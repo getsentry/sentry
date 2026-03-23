@@ -2,21 +2,21 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import type {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -29,11 +29,8 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Props = {
@@ -48,7 +45,6 @@ type Props = {
   data?: TableData;
   footerAlignedPagination?: boolean;
   pageLinks?: string;
-  showDeviceClassSelector?: boolean;
 };
 
 const ICON_FIELDS = ['profile.id', 'profile_id'];
@@ -57,7 +53,6 @@ const COLUMN_RESIZE_PARAM_NAME = 'spans';
 export function EventSamplesTable({
   cursorName,
   sortKey,
-  showDeviceClassSelector,
   eventView,
   data,
   isLoading,
@@ -207,13 +202,6 @@ export function EventSamplesTable({
     <Fragment>
       {!footerAlignedPagination && (
         <Header>
-          {showDeviceClassSelector && (
-            <StyledControls>
-              <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
-              <SubregionSelector size="xs" />
-            </StyledControls>
-          )}
-
           <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
         </Header>
       )}
@@ -240,20 +228,15 @@ export function EventSamplesTable({
 }
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space.md};
 `;
 
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
   height: 26px;
-`;
-
-const StyledControls = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const IconWrapper = styled('div')`
@@ -265,21 +248,21 @@ const IconWrapper = styled('div')`
 // Not pretty but we need to override gridEditable styles since the original
 // styles have too much padding for small spaces
 const GridContainer = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   th {
-    padding: 0 ${space(1)};
+    padding: 0 ${p => p.theme.space.md};
   }
   th:first-child {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
   }
   th:last-child {
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space.xl};
   }
   td {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   }
   td:first-child {
-    padding-right: ${space(1)};
-    padding-left: ${space(2)};
+    padding-right: ${p => p.theme.space.md};
+    padding-left: ${p => p.theme.space.xl};
   }
 `;

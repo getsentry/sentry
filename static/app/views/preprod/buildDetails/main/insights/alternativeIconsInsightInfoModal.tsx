@@ -3,8 +3,7 @@ import {Fragment} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
@@ -53,7 +52,7 @@ function AlternativeIconsContent() {
       </Text>
 
       <Container padding="md 0">
-        <Alert type="warning">
+        <Alert variant="warning">
           {t(
             "Reminder: If you convert your image to HEIC, make sure to update the reference in your app's project to use this new filepath!"
           )}

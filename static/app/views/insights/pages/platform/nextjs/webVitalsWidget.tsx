@@ -1,13 +1,14 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import type {ProjectData} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
@@ -195,7 +196,7 @@ function WebVitalsWidgetVisualization({
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   return (
-    <WebVitalsWidgetVisualizationContainer>
+    <Flex justify="center" align="center" height="100%">
       <PerformanceScoreRingWithTooltips
         projectScore={projectScore}
         projectData={projectData}
@@ -212,16 +213,9 @@ function WebVitalsWidgetVisualization({
         ringSegmentColors={ringSegmentColors}
         inPerformanceWidget
       />
-    </WebVitalsWidgetVisualizationContainer>
+    </Flex>
   );
 }
 
 WebVitalsWidgetVisualization.LoadingPlaceholder =
   TimeSeriesWidgetVisualization.LoadingPlaceholder;
-
-const WebVitalsWidgetVisualizationContainer = styled('div')`
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;

@@ -41,7 +41,7 @@ class SiloRouter:
 
     __simulated_map = {
         SiloMode.MONOLITH: "default",
-        SiloMode.REGION: "default",
+        SiloMode.CELL: "default",
         SiloMode.CONTROL: "control",
     }
 
@@ -68,15 +68,28 @@ class SiloRouter:
     historical_silo_assignments = {
         "authidentity_duplicate": SiloMode.CONTROL,
         "authprovider_duplicate": SiloMode.CONTROL,
-        "sentry_actor": SiloMode.REGION,
-        "sentry_alertruleactivations": SiloMode.REGION,
-        "sentry_monitorlocation": SiloMode.REGION,
+        "feedback_feedback": SiloMode.CELL,
+        "prevent_ai_configuration": SiloMode.CELL,
+        "releases_commit": SiloMode.CELL,
+        "releases_commitfilechange": SiloMode.CELL,
+        "sentry_actor": SiloMode.CELL,
+        "sentry_alertruleactivations": SiloMode.CELL,
+        "sentry_code_review_event": SiloMode.CELL,
+        "sentry_dashboardwidgetsnapshot": SiloMode.CELL,
+        "sentry_datasecrecywaiver": SiloMode.CELL,
+        "sentry_incidentseen": SiloMode.CELL,
+        "sentry_incidentsubscription": SiloMode.CELL,
+        "sentry_monitorlocation": SiloMode.CELL,
         "sentry_notificationsetting": SiloMode.CONTROL,
-        "sentry_pagerdutyservice": SiloMode.REGION,
-        "sentry_projectavatar": SiloMode.REGION,
+        "sentry_pagerdutyservice": SiloMode.CELL,
+        "sentry_projectavatar": SiloMode.CELL,
         "sentry_scheduledjob": SiloMode.CONTROL,
-        "sentry_teamavatar": SiloMode.REGION,
-        "workflow_engine_workflowaction": SiloMode.REGION,
+        "sentry_teamavatar": SiloMode.CELL,
+        "sentry_projecttemplate": SiloMode.CELL,
+        "sentry_projecttemplateoption": SiloMode.CELL,
+        "uptime_projectuptimesubscription": SiloMode.CELL,
+        "workflow_engine_actiongroupstatus": SiloMode.CELL,
+        "workflow_engine_workflowaction": SiloMode.CELL,
     }
     """
     When we remove models, we are no longer able to resolve silo assignments

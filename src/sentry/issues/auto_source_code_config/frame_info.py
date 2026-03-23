@@ -14,18 +14,17 @@ from .errors import (
     NeedsExtension,
     UnsupportedFrameInfo,
 )
-from .utils.platform import PlatformConfig
+from .utils.platform import PlatformConfig, supported_platform
 
 NOT_FOUND = -1
 
-# Regex patterns for unsupported frame paths
+# Regex pattern for unsupported frame paths
 UNSUPPORTED_FRAME_PATH_PATTERN = re.compile(r"^[\[<]|https?://", re.IGNORECASE)
-UNSUPPORTED_NORMALIZED_PATH_PATTERN = re.compile(r"^[^/]*$")
 
 
 def create_frame_info(frame: Mapping[str, Any], platform: str | None = None) -> FrameInfo:
     """Factory function to create the appropriate FrameInfo instance."""
-    if platform:
+    if platform and supported_platform(platform):
         platform_config = PlatformConfig(platform)
         if platform_config.extracts_filename_from_module():
             return ModuleBasedFrameInfo(frame)
@@ -76,11 +75,7 @@ class PathBasedFrameInfo(FrameInfo):
         # the straight path prefix and drive letter
         self.normalized_path, removed_prefix = remove_prefixes(frame_file_path)
 
-        if (
-            not frame_file_path
-            or UNSUPPORTED_FRAME_PATH_PATTERN.search(frame_file_path)
-            or UNSUPPORTED_NORMALIZED_PATH_PATTERN.search(self.normalized_path)
-        ):
+        if not frame_file_path or UNSUPPORTED_FRAME_PATH_PATTERN.search(frame_file_path):
             raise UnsupportedFrameInfo("This path is not supported.")
 
         if not get_extension(frame_file_path):

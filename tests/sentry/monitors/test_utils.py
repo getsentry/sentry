@@ -1,15 +1,19 @@
+from datetime import timedelta
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.db import IntegrityError
 
-from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import (
+    _fetch_associated_groups_eap,
+    _fetch_associated_groups_snuba,
     ensure_cron_detector,
     ensure_cron_detector_deletion,
     get_detector_for_monitor,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
 
@@ -20,8 +24,7 @@ class EnsureCronDetectorTest(TestCase):
 
     def test_creates_data_source_and_detector_for_new_monitor(self) -> None:
         assert not get_detector_for_monitor(self.monitor)
-        ensure_cron_detector(self.monitor)
-        detector = get_detector_for_monitor(self.monitor)
+        detector = ensure_cron_detector(self.monitor)
         assert detector is not None
         assert detector.type == "monitor_check_in_failure"
         assert detector.project_id == self.monitor.project_id
@@ -30,32 +33,23 @@ class EnsureCronDetectorTest(TestCase):
         assert detector.owner_team_id == self.monitor.owner_team_id
 
     def test_idempotent_for_existing_data_source(self) -> None:
-        ensure_cron_detector(self.monitor)
-        detector = get_detector_for_monitor(self.monitor)
-        assert detector
-        ensure_cron_detector(self.monitor)
-        detector_after = get_detector_for_monitor(self.monitor)
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
+        detector_after = ensure_cron_detector(self.monitor)
         assert detector_after is not None
         assert detector.id == detector_after.id
 
     def test_with_owner_user(self) -> None:
         self.monitor.owner_user_id = self.user.id
         self.monitor.save()
-        ensure_cron_detector(self.monitor)
-        detector = Detector.objects.get(
-            type=MonitorIncidentType.slug,
-            project_id=self.monitor.project_id,
-        )
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
         assert detector.owner_user_id == self.user.id
         assert detector.owner_team_id is None
 
     def test_with_no_owner(self) -> None:
-        ensure_cron_detector(self.monitor)
-
-        detector = Detector.objects.get(
-            type=MonitorIncidentType.slug,
-            project_id=self.monitor.project_id,
-        )
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
         assert detector.owner_user_id is None
         assert detector.owner_team_id is None
 
@@ -216,3 +210,105 @@ class EnsureCronDetectorDeletionTest(TestCase):
 
         assert DataSource.objects.filter(id=data_source.id).exists()
         assert Detector.objects.filter(id=detector.id).exists()
+
+
+class TestEAPFetchAssociatedGroups(TestCase, SnubaTestCase):
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
+
+    def _event_timestamp(self) -> float:
+        return (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+
+    def _query_both(
+        self, trace_ids: list[str], project_id: int | None = None
+    ) -> tuple[dict[int, set[str]], dict[int, set[str]]]:
+        start = self.FROZEN_TIME - timedelta(hours=1)
+        end = self.FROZEN_TIME + timedelta(hours=1)
+        target_project_id = project_id or self.project.id
+
+        snuba_result = _fetch_associated_groups_snuba(
+            trace_ids, self.organization.id, target_project_id, start, end
+        )
+        eap_result = _fetch_associated_groups_eap(
+            trace_ids, self.organization.id, target_project_id, start, end
+        )
+        return snuba_result, eap_result
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_match_multiple_traces_and_groups(self) -> None:
+        trace_a = uuid4().hex
+        trace_b = uuid4().hex
+        ts = self._event_timestamp()
+
+        group_a = self.store_events_to_snuba_and_eap(
+            "monitor-group-a", count=2, trace_id=trace_a, timestamp=ts
+        )[0].group_id
+        group_b = self.store_events_to_snuba_and_eap(
+            "monitor-group-b", count=1, trace_id=trace_a, timestamp=ts
+        )[0].group_id
+        group_a_again = self.store_events_to_snuba_and_eap(
+            "monitor-group-a", count=1, trace_id=trace_b, timestamp=ts
+        )[0].group_id
+
+        assert group_a is not None
+        assert group_b is not None
+        assert group_a_again is not None
+        assert group_a_again == group_a
+
+        snuba_result, eap_result = self._query_both([trace_a, trace_b])
+
+        assert eap_result == snuba_result
+        assert snuba_result[group_a] == {trace_a, trace_b}
+        assert snuba_result[group_b] == {trace_a}
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_isolate_by_trace(self) -> None:
+        trace_a = uuid4().hex
+        trace_b = uuid4().hex
+        ts = self._event_timestamp()
+
+        group_a = self.store_events_to_snuba_and_eap(
+            "trace-isolate-a", count=1, trace_id=trace_a, timestamp=ts
+        )[0].group_id
+        self.store_events_to_snuba_and_eap(
+            "trace-isolate-b", count=1, trace_id=trace_b, timestamp=ts
+        )
+        assert group_a is not None
+
+        snuba_result, eap_result = self._query_both([trace_a])
+
+        assert eap_result == snuba_result
+        assert snuba_result == {group_a: {trace_a}}
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_isolate_by_project(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        trace_id = uuid4().hex
+        ts = self._event_timestamp()
+
+        local_group = self.store_events_to_snuba_and_eap(
+            "project-isolate-local",
+            count=1,
+            trace_id=trace_id,
+            timestamp=ts,
+            project_id=self.project.id,
+        )[0].group_id
+        self.store_events_to_snuba_and_eap(
+            "project-isolate-other",
+            count=1,
+            trace_id=trace_id,
+            timestamp=ts,
+            project_id=other_project.id,
+        )
+        assert local_group is not None
+
+        snuba_result, eap_result = self._query_both([trace_id], project_id=self.project.id)
+
+        assert eap_result == snuba_result
+        assert snuba_result == {local_group: {trace_id}}
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_return_empty_when_no_matches(self) -> None:
+        snuba_result, eap_result = self._query_both([uuid4().hex])
+
+        assert snuba_result == {}
+        assert eap_result == {}

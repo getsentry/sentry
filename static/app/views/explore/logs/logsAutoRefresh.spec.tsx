@@ -3,7 +3,7 @@ import {createLogFixtures, initializeLogsTest} from 'sentry-fixture/log';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
@@ -48,7 +48,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        <LogsPageDataProvider allowHighFidelity>{children}</LogsPageDataProvider>
       </LogsQueryParamsProvider>,
       options
     ) as ReturnType<typeof render> & {router: any}; // Can't select the router type without exporting it.

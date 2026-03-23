@@ -11,10 +11,10 @@ from sentry.models.organizationslugreservationreplica import OrganizationSlugRes
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_regions
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_cells
 
 
-@control_silo_test(regions=create_test_regions("us"))
+@control_silo_test(cells=create_test_cells("us"))
 class TestOrganizationSlugReservationReplication(TestCase):
     def does_replica_match_original_reservation(
         self,
@@ -22,7 +22,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
         slug_replica: OrganizationSlugReservationReplica,
     ):
         matches = slug_replica.organization_id == slug_reservation.organization_id
-        matches = matches and slug_replica.region_name == slug_reservation.region_name
+        matches = matches and slug_replica.cell_name == slug_reservation.cell_name
         matches = matches and slug_replica.reservation_type == slug_reservation.reservation_type
 
         return matches
@@ -32,7 +32,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             org_slug.slug: org_slug for org_slug in list(OrganizationSlugReservation.objects.all())
         }
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org_slug_replicas: dict[str, OrganizationSlugReservationReplica] = {
                 org_slug_r.slug: org_slug_r
                 for org_slug_r in list(OrganizationSlugReservationReplica.objects.all())
@@ -44,9 +44,9 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug_res = org_slug_reservations.get(slug)
             assert slug_res is not None
 
-            org_slug_reservation_replica: None | (OrganizationSlugReservationReplica) = (
-                org_slug_replicas.pop(slug, None)
-            )
+            org_slug_reservation_replica: None | (
+                OrganizationSlugReservationReplica
+            ) = org_slug_replicas.pop(slug, None)
 
             if org_slug_reservation_replica is None:
                 slug_reservations_missing_replicas.append(slug_res)
@@ -92,7 +92,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -101,7 +101,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -117,7 +117,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -137,7 +137,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -156,7 +156,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -173,7 +173,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -181,7 +181,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="acme",
             user_id=self.user.id,
             organization_id=43,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -199,7 +199,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="santry",
             user_id=self.user.id,
             organization_id=42,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -207,7 +207,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="acme",
             user_id=self.user.id,
             organization_id=43,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
@@ -215,7 +215,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug="foobar",
             user_id=self.user.id,
             organization_id=44,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 

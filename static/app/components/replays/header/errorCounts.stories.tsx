@@ -1,6 +1,7 @@
-import {Flex} from 'sentry/components/core/layout/flex';
-import ErrorCounts from 'sentry/components/replays/header/errorCounts';
-import ReplaySlugChooser from 'sentry/components/replays/player/__stories__/replaySlugChooser';
+import {Flex} from '@sentry/scraps/layout';
+
+import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
+import {ReplaySlugChooser} from 'sentry/components/replays/player/__stories__/replaySlugChooser';
 import * as Storybook from 'sentry/stories';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ErrorFrame, RawReplayError} from 'sentry/utils/replays/types';

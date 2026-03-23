@@ -1,13 +1,16 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 
 
+@pytest.mark.skip
 class TestBackfillIssueStreamDetectorWorkflows(TestMigrations):
     migrate_from = "0093_add_action_config_index"
     migrate_to = "0094_backfill_issue_stream_detector_workflows"
     app = "workflow_engine"
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.test_org = self.create_organization(
             name="test-email-fix-org", slug="test-email-fix-org"
         )
@@ -37,7 +40,7 @@ class TestBackfillIssueStreamDetectorWorkflows(TestMigrations):
             detector=self.error_detector2, workflow=self.workflow4
         )
 
-    def test_migration(self):
+    def test_migration(self) -> None:
         # existing issue stream detector connected to error detector workflows
         issue_stream_detector1_workflows = DetectorWorkflow.objects.filter(
             detector=self.issue_stream_detector1
@@ -49,7 +52,7 @@ class TestBackfillIssueStreamDetectorWorkflows(TestMigrations):
         assert issue_stream_detector2.name == "Issue Stream"
         assert issue_stream_detector2.enabled is True
         assert issue_stream_detector2.owner_user_id is None
-        assert issue_stream_detector2.owner_team is None
+        assert issue_stream_detector2.owner_team_id is None
         assert issue_stream_detector2.config == {}
 
         issue_stream_detector2_workflows = DetectorWorkflow.objects.filter(

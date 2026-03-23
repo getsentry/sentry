@@ -1,22 +1,24 @@
 import {useEffect} from 'react';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {withOrganization} from 'sentry/utils/withOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import trackSpendVisibilityAnaltyics, {
+import {
   SpendVisibilityEvents,
+  trackSpendVisibilityAnaltyics,
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
 import {SPIKE_PROTECTION_DOCS_LINK} from 'getsentry/views/spikeProtection/constants';
 import SpikeProtectionProjects from 'getsentry/views/spikeProtection/spikeProtectionProjects';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type Props = {organization: Organization; subscription: Subscription};
 
@@ -47,7 +49,7 @@ function SpikeProtectionRoot({organization, subscription}: Props) {
   );
 
   return (
-    <SubscriptionPageContainer background="secondary" organization={organization}>
+    <SubscriptionPageContainer background="secondary">
       <SentryDocumentTitle
         title={t('Spike Protection Settings')}
         orgSlug={organization.slug}

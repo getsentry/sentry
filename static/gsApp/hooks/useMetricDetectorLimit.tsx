@@ -1,8 +1,9 @@
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks/index';
 
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 
 type MetricDetectorLimitResponse = {
   detectorCount: number;
@@ -43,7 +44,12 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
     isError: isMetricRulesError,
     getResponseHeader: getMetricRulesResponseHeader,
   } = useApiQuery<any[]>(
-    [`/organizations/${organization.slug}/alert-rules/`, {query: {limit: 1}}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/alert-rules/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {limit: 1}},
+    ],
     {
       enabled: hasFlag && !isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
       staleTime: 5 * 1000, // Set stale time to 5 sec to avoid unnecessary re-fetching

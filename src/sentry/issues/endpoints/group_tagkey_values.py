@@ -2,12 +2,13 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, tagstore
+from sentry import analytics, tagstore
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
@@ -20,6 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.tags_examples import TagsExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tagstore.types import TagValueSerializerResponse
@@ -27,7 +29,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @extend_schema(tags=["Events"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupTagKeyValuesEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -67,6 +69,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         },
         examples=[TagsExamples.GROUP_TAGKEY_VALUES],
     )
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-tag-key-values"])
     def get(self, request: Request, group, key) -> Response:
         """
         List a Tag's Values
@@ -81,18 +84,12 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
         tenant_ids = {"organization_id": group.project.organization_id}
-        include_empty_values = features.has(
-            "organizations:issue-tags-include-empty-values",
-            group.project.organization,
-            actor=request.user,
-        )
         try:
             tagstore.backend.get_group_tag_key(
                 group,
                 None,
                 lookup_key,
                 tenant_ids=tenant_ids,
-                include_empty_values=include_empty_values,
             )
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
@@ -117,7 +114,6 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
             lookup_key,
             order_by=order_by,
             tenant_ids=tenant_ids,
-            include_empty_values=include_empty_values,
         )
 
         return self.paginate(

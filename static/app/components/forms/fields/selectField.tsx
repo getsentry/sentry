@@ -1,18 +1,18 @@
 import {Component} from 'react';
 
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select, SelectOption} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {SelectOption} from 'sentry/components/core/select/option';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {
   OptionsType,
   OptionTypeBase,
   ValueType,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import FormField from 'sentry/components/forms/formField';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
+import {FormField} from 'sentry/components/forms/formField';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 
@@ -22,8 +22,20 @@ import type {InputFieldProps} from './inputField';
 const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
-  extends InputFieldProps,
-    Omit<ControlProps<OptionType>, 'onChange'> {
+  extends
+    InputFieldProps,
+    Omit<
+      ControlProps<OptionType>,
+      | 'onChange'
+      | 'defaultValue'
+      | 'disabled'
+      | 'name'
+      | 'onBlur'
+      | 'onFocus'
+      | 'onKeyDown'
+      | 'placeholder'
+      | 'tabIndex'
+    > {
   /**
    * Should the select be clearable?
    */
@@ -52,7 +64,7 @@ export interface SelectFieldProps<OptionType extends OptionTypeBase>
 function getChoices<T extends OptionTypeBase>(props: SelectFieldProps<T>): Choices {
   const choices = props.choices;
   if (typeof choices === 'function') {
-    return choices(props);
+    return choices(props as any);
   }
   if (choices === undefined) {
     return [];
@@ -70,7 +82,7 @@ function isArray<T extends OptionTypeBase>(
   return Array.isArray(maybe);
 }
 
-export default class SelectField<OptionType extends SelectValue<any>> extends Component<
+export class SelectField<OptionType extends SelectValue<any>> extends Component<
   SelectFieldProps<OptionType>
 > {
   static defaultProps = {
@@ -102,7 +114,12 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
     }
 
     onChange?.(value, {});
-    onBlur?.(value, {});
+
+    // Prevent onBlur from firing when toggling options in a multi-select.
+    // Instead,onBlur is handled once at the component level.
+    if (!this.props.multiple) {
+      onBlur?.(value, {});
+    }
   };
 
   render() {
@@ -219,6 +236,13 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                       return;
                     }
                     throw e;
+                  }
+                }}
+                onBlur={() => {
+                  // For multiple selects, trigger onBlur when the component actually loses focus
+                  // (as opposed to on every selection which would close the menu)
+                  if (multiple) {
+                    onBlur?.(props.value, {});
                   }
                 }}
               />

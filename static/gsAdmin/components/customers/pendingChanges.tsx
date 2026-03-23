@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {Alert} from '@sentry/scraps/alert';
+
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {IconArrow} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 
@@ -21,7 +22,7 @@ import {
   isOnDemandBudgetsEqual,
   parseOnDemandBudgets,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 function getStringForPrice(
   price: number | null | undefined,
@@ -368,7 +369,7 @@ function getChanges(subscription: Subscription, planMigrations: PlanMigration[])
   return changeSet;
 }
 
-function PendingChanges({subscription}: any) {
+export function PendingChanges({subscription}: any) {
   const {pendingChanges} = subscription;
   const {planMigrations, isLoading} = usePlanMigrations();
   if (isLoading) {
@@ -387,7 +388,7 @@ function PendingChanges({subscription}: any) {
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="info">This account has pending changes to the subscription</Alert>
+        <Alert variant="info">This account has pending changes to the subscription</Alert>
       </Alert.Container>
 
       <List>
@@ -408,5 +409,3 @@ function PendingChanges({subscription}: any) {
     </Fragment>
   );
 }
-
-export default PendingChanges;

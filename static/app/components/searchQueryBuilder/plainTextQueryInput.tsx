@@ -9,8 +9,7 @@ import {
 import styled from '@emotion/styled';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import {space} from 'sentry/styles/space';
+import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
 
 interface PlainTextQueryInputProps {
   label?: string;
@@ -87,23 +86,23 @@ const InputWrapper = styled('div')`
 const Highlight = styled('div')<{size: 'small' | 'normal'}>`
   padding: ${p =>
     p.size === 'small'
-      ? `${space(0.75)} ${space(1)}`
-      : `${space(0.75)} 48px ${space(0.75)} 44px`};
+      ? `${p.theme.space.sm} ${p.theme.space.md}`
+      : `${p.theme.space.sm} 48px ${p.theme.space.sm} 44px`};
   width: 100%;
   height: 100%;
   user-select: none;
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 24px;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
   padding: ${p =>
     p.size === 'small'
-      ? `${space(0.75)} ${space(1)}`
-      : `${space(0.75)} 48px ${space(0.75)} 44px`};
+      ? `${p.theme.space.sm} ${p.theme.space.md}`
+      : `${p.theme.space.sm} 48px ${p.theme.space.sm} 44px`};
   position: absolute;
   inset: 0;
   resize: none;
@@ -113,16 +112,16 @@ const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
   line-height: 25px;
   margin-bottom: -1px;
   background: transparent;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.familyMono};
-  caret-color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  caret-color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   color: transparent;
 
   &::selection {
     background: rgba(0, 0, 0, 0.2);
   }
   &::placeholder {
-    color: ${p => p.theme.formPlaceholder};
+    color: ${p => p.theme.colors.gray300};
   }
   :placeholder-shown {
     overflow: hidden;
@@ -131,6 +130,6 @@ const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
   }
 
   [disabled] {
-    color: ${p => p.theme.disabled};
+    color: ${p => p.theme.tokens.content.disabled};
   }
 `;

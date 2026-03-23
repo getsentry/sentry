@@ -1,4 +1,4 @@
-import {Component, Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import iconAndroid from 'sentry-logos/logo-android.svg';
@@ -9,39 +9,41 @@ import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
 
-import Access from 'sentry/components/acl/access';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
+
+import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
-import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
 import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
+import {Form} from 'sentry/components/forms/form';
+import {FormField} from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import filterGroups, {
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {
   customFilterFields,
+  formGroups as filterGroups,
   getOptionsData,
 } from 'sentry/data/forms/inboundFilters';
 import {t, tct} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const filterDescriptions = {
   'browser-extensions': {
@@ -83,13 +85,13 @@ const LEGACY_BROWSER_SUBFILTERS = {
   chrome: {
     icon: iconChrome,
     title: 'Chrome',
-    helpText: 'Version 63 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   safari: {
     icon: iconSafari,
     title: 'Safari',
-    helpText: 'Version 11 and lower',
+    helpText: 'Version 15 and lower',
     legacy: false,
   },
   safari_pre_6: {
@@ -101,7 +103,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   firefox: {
     icon: iconFirefox,
     title: 'Firefox',
-    helpText: 'Version 66 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   android: {
@@ -119,7 +121,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   edge: {
     icon: iconEdgeLegacy,
     title: 'Edge',
-    helpText: 'Version 78 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   edge_pre_79: {
@@ -161,7 +163,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   opera: {
     icon: iconOpera,
     title: 'Opera',
-    helpText: 'Version 50 and lower',
+    helpText: 'Version 99 and lower',
     legacy: false,
   },
   opera_pre_15: {
@@ -184,6 +186,8 @@ const LEGACY_BROWSER_SUBFILTERS = {
   },
 };
 
+type LegacyBrowserSubfilterKeys = Array<keyof typeof LEGACY_BROWSER_SUBFILTERS>;
+
 type FormFieldProps = React.ComponentProps<typeof FormField>;
 
 type RowProps = {
@@ -192,144 +196,116 @@ type RowProps = {
   };
   onToggle: (
     data: RowProps['data'],
-    filters: RowState['subfilters'],
-    event: React.MouseEvent
+    filters: Set<string>,
+    event: React.ChangeEvent | React.MouseEvent
   ) => void;
   disabled?: boolean;
 };
 
-type RowState = {
-  error: boolean | Error;
-  loading: boolean;
-  subfilters: Set<string>;
-};
+function getActiveSubfilters() {
+  return new Set(
+    Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
+      key =>
+        !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS].legacy
+    )
+  );
+}
 
-class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
-  constructor(props: RowProps) {
-    super(props);
-
-    let initialSubfilters: any;
-    if (props.data.active === true) {
-      initialSubfilters = new Set(
-        Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key =>
-            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
-              .legacy
-        )
-      );
-    } else if (props.data.active === false) {
-      initialSubfilters = new Set<string>();
-    } else {
-      initialSubfilters = new Set(props.data.active);
-    }
-
-    this.state = {
-      loading: false,
-      error: false,
-      subfilters: initialSubfilters,
-    };
+function getInitialSubfilters(active: boolean | string[]): Set<string> {
+  switch (active) {
+    case true:
+      return getActiveSubfilters();
+    case false:
+      return new Set();
+    default:
+      return new Set(active);
   }
+}
 
-  handleToggleSubfilters = (subfilter: boolean, e: React.MouseEvent) => {
-    let {subfilters} = this.state;
+function LegacyBrowserFilterRow({data, disabled, onToggle}: RowProps) {
+  const [subfilters, setSubfilters] = useState(getInitialSubfilters(data.active));
 
-    if (subfilter === true) {
-      subfilters = new Set(
-        Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key =>
-            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
-              .legacy
-        )
-      );
-    } else if (subfilter === false) {
-      subfilters = new Set();
-    } else if (subfilters.has(subfilter)) {
-      subfilters.delete(subfilter);
-    } else {
-      subfilters.add(subfilter);
-    }
+  const createHandleToggleSubfilters = (subfilter: boolean | string) => {
+    return (e: React.ChangeEvent | React.MouseEvent) => {
+      let newSubfilters = new Set(subfilters);
 
-    this.setState(
-      {
-        subfilters: new Set(subfilters),
-      },
-      () => {
-        this.props.onToggle(this.props.data, subfilters, e);
+      if (subfilter === true) {
+        newSubfilters = getActiveSubfilters();
+      } else if (subfilter === false) {
+        newSubfilters = new Set();
+      } else if (newSubfilters.has(subfilter)) {
+        newSubfilters.delete(subfilter);
+      } else {
+        newSubfilters.add(subfilter);
       }
-    );
+
+      setSubfilters(newSubfilters);
+      onToggle(data, newSubfilters, e);
+    };
   };
 
-  render() {
-    const {disabled} = this.props;
-    return (
+  return (
+    <div>
       <div>
-        <div>
-          <BulkFilter>
-            <FieldLabel disabled={disabled}>
-              {t('Filter out legacy browsers')}:
-            </FieldLabel>
-            <ButtonBar>
-              <Button
-                priority="link"
-                borderless
-                onClick={this.handleToggleSubfilters.bind(this, true)}
-                disabled={disabled}
-              >
-                {t('All')}
-              </Button>
-              <Button
-                priority="link"
-                borderless
-                onClick={this.handleToggleSubfilters.bind(this, false)}
-                disabled={disabled}
-              >
-                {t('None')}
-              </Button>
-            </ButtonBar>
-          </BulkFilter>
-          <FieldHelp>
-            {t(
-              'The browser versions filtered out will be periodically evaluated and updated.'
-            )}
-          </FieldHelp>
-        </div>
-        <FilterGrid>
-          {Object.keys(LEGACY_BROWSER_SUBFILTERS)
-            .filter(key => {
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
-                return true;
-              }
-              return this.state.subfilters.has(key);
-            })
-            .map(key => {
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
-              return (
-                <FilterGridItem key={key}>
-                  <FilterGridIcon src={subfilter.icon} />
-                  <div>
-                    <FilterTitle>{subfilter.title}</FilterTitle>
-                    <FilterDescription>{subfilter.helpText}</FilterDescription>
-                  </div>
-                  <Switch
-                    aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                    checked={this.state.subfilters.has(key)}
-                    disabled={disabled}
-                    css={css`
-                      flex-shrink: 0;
-                      margin-left: 6;
-                    `}
-                    onChange={this.handleToggleSubfilters.bind(this, key)}
-                    size="lg"
-                  />
-                </FilterGridItem>
-              );
-            })}
-        </FilterGrid>
+        <Flex align="center" gap="xs">
+          <FieldLabel disabled={disabled}>{t('Filter out legacy browsers')}:</FieldLabel>
+          <Grid flow="column" align="center" gap="md">
+            <Button
+              priority="link"
+              onClick={createHandleToggleSubfilters(true)}
+              disabled={disabled}
+            >
+              {t('All')}
+            </Button>
+            <Button
+              priority="link"
+              onClick={createHandleToggleSubfilters(false)}
+              disabled={disabled}
+            >
+              {t('None')}
+            </Button>
+          </Grid>
+        </Flex>
+        <FieldHelp>
+          {t(
+            'The browser versions filtered out will be periodically evaluated and updated.'
+          )}
+        </FieldHelp>
       </div>
-    );
-  }
+      <FilterGrid>
+        {(Object.keys(LEGACY_BROWSER_SUBFILTERS) as LegacyBrowserSubfilterKeys)
+          .filter(key => {
+            if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
+              return true;
+            }
+            return subfilters.has(key);
+          })
+          .map(key => {
+            const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
+            return (
+              <FilterGridItem key={key}>
+                <FilterGridIcon src={subfilter.icon} />
+                <div>
+                  <FilterTitle>{subfilter.title}</FilterTitle>
+                  <FilterDescription>{subfilter.helpText}</FilterDescription>
+                </div>
+                <Switch
+                  aria-label={`${subfilter.title} ${subfilter.helpText}`}
+                  checked={subfilters.has(key)}
+                  disabled={disabled}
+                  css={css`
+                    flex-shrink: 0;
+                    margin-left: 6;
+                  `}
+                  onChange={createHandleToggleSubfilters(key)}
+                  size="lg"
+                />
+              </FilterGridItem>
+            );
+          })}
+      </FilterGrid>
+    </div>
+  );
 }
 
 function CustomFilters({project, disabled}: {disabled: boolean; project: Project}) {
@@ -386,7 +362,7 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
             ))}
 
           {hasFeature && project.options?.['filters:error_messages'] && (
-            <PanelAlert type="warning" data-test-id="error-message-disclaimer">
+            <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
               {t(
                 "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
               )}
@@ -425,10 +401,17 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
-    staleTime: 0,
-    gcTime: 0,
-  });
+  } = useApiQuery<Filter[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+      }),
+    ],
+    {
+      staleTime: 0,
+      gcTime: 0,
+    }
+  );
 
   const filterList = filterListData ?? [];
 
@@ -439,10 +422,10 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
       event,
       subfilters,
     }: {
-      event: React.MouseEvent;
+      event: React.ChangeEvent | React.MouseEvent;
       onBlur: FormFieldProps['onBlur'];
       onChange: FormFieldProps['onChange'];
-      subfilters: RowState['subfilters'];
+      subfilters: Set<string>;
     }) => {
       onChange?.(subfilters, event);
       onBlur?.(subfilters, event);
@@ -601,7 +584,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       name: 'filters:chunk-load-error',
                       label: t('Filter out ChunkLoadError(s)'),
                       help: t(
-                        "ChunkLoadErrors can happen in Webpack-powered applications when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+                        "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
                       ),
                       disabled: !hasAccess,
                     }}
@@ -644,18 +627,18 @@ const NestedForm = styled(Form)<FormProps>`
 const FilterGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1.5)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const FilterGridItem = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)};
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space.lg};
 `;
 
 const FilterGridIcon = styled('img')`
@@ -664,19 +647,13 @@ const FilterGridIcon = styled('img')`
 `;
 
 const FilterTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
 `;
 
 const FilterDescription = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
-`;
-
-const BulkFilter = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;

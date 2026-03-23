@@ -35,6 +35,7 @@ class TestWorkflowSerializer(TestCase):
             "detectorIds": [],
             "enabled": workflow.enabled,
             "lastTriggered": None,
+            "owner": None,
         }
 
     def test_serialize_full(self) -> None:
@@ -92,26 +93,15 @@ class TestWorkflowSerializer(TestCase):
             workflow=workflow,
             group=self.group,
             event_id=self.event.event_id,
-            is_single_written=True,
         )
         # Too old, shouldn't be used.
         WorkflowFireHistory.objects.create(
             workflow=workflow,
             group=self.group,
             event_id=self.event.event_id,
-            is_single_written=True,
         )
         history.date_added = workflow.date_added + timedelta(seconds=1)
         history.save()
-        # Dual written, shouldn't be used.
-        dual_written_history = WorkflowFireHistory.objects.create(
-            workflow=workflow,
-            group=self.group,
-            event_id=self.event.event_id,
-            is_single_written=False,
-        )
-        dual_written_history.date_added = workflow.date_added + timedelta(seconds=2)
-        dual_written_history.save()
 
         result = serialize(workflow)
 
@@ -166,4 +156,5 @@ class TestWorkflowSerializer(TestCase):
             "detectorIds": [str(detector.id)],
             "enabled": workflow.enabled,
             "lastTriggered": history.date_added,
+            "owner": None,
         }

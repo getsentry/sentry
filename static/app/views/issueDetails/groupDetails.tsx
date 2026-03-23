@@ -5,20 +5,21 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
-import {TabPanels, Tabs} from 'sentry/components/core/tabs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import useDrawer from 'sentry/components/globalDrawer';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Container} from '@sentry/scraps/layout';
+import {TabPanels, Tabs} from '@sentry/scraps/tabs';
+
+import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
@@ -34,27 +35,27 @@ import {
   getTitle,
 } from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
-import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useApi from 'sentry/utils/useApi';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import GroupHeader from 'sentry/views/issueDetails/header';
+import {GroupHeader} from 'sentry/views/issueDetails/header';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   IssueDetailsTourContext,
@@ -69,6 +70,7 @@ import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
+import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -335,8 +337,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       // - The previous environments are not the same as the current environments
       if (
         !groupData &&
-        previousInstance?.cachedGroup &&
-        previousInstance.cachedGroup.id === groupId &&
+        previousInstance?.cachedGroup?.id === groupId &&
         !isEqual(previousInstance.previousEnvironments, environments)
       ) {
         return {
@@ -520,7 +521,8 @@ function useTrackView({
   project?: Project;
 }) {
   const location = useLocation();
-  const {alert_date, alert_rule_id, alert_type, ref_fallback, query} = location.query;
+  const {alert_date, alert_rule_id, alert_type, ref_fallback, query, notification_uuid} =
+    location.query;
   const groupEventType = useLoadedEventType();
   const user = useUser();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -540,12 +542,12 @@ function useTrackView({
     ref_fallback,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
-    enforced_streamlined_ui:
-      organization.features.includes('issue-details-streamline-enforce') &&
-      user?.options?.prefersIssueDetailsStreamlinedUI === null,
+    enforced_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
     has_streamlined_ui: hasStreamlinedUI,
     has_seer_access: hasAutofixQuota,
+    notification_uuid:
+      typeof notification_uuid === 'string' ? notification_uuid : undefined,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -646,7 +648,11 @@ function GroupDetailsContentError({
       );
 
     case ERROR_TYPES.MISSING_MEMBERSHIP:
-      return <MissingProjectMembership organization={organization} project={project} />;
+      return (
+        <Container padding="lg">
+          <MissingProjectMembership organization={organization} project={project} />
+        </Container>
+      );
     default:
       return <StyledLoadingError onRetry={onRetry} />;
   }
@@ -726,6 +732,8 @@ function GroupDetailsContent({
     organization,
     hasAutofixQuota,
   });
+
+  useEngagedViewTracking({group, project});
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
@@ -918,7 +926,7 @@ function GroupDetails() {
           forceProject={group?.project}
           shouldForceProject
         >
-          {config?.showFeedbackWidget && <FloatingFeedbackWidget />}
+          {config?.showFeedbackWidget && <FloatingFeedbackButton />}
           <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
             <Outlet />
           </GroupDetailsPageContent>
@@ -931,7 +939,7 @@ function GroupDetails() {
 export default Sentry.withProfiler(GroupDetails);
 
 const StyledLoadingError = styled(LoadingError)`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space.xl};
 `;
 
 const GroupTabPanels = styled(TabPanels)`

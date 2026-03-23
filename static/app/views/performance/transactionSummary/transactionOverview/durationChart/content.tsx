@@ -4,12 +4,12 @@ import type {Query} from 'history';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import Placeholder from 'sentry/components/placeholder';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import type {Series} from 'sentry/types/echarts';
 import {
@@ -17,7 +17,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
 
 type Props = {
@@ -34,7 +34,7 @@ type Props = {
 } & Omit<React.ComponentProps<typeof ReleaseSeries>, 'children' | 'queryExtra'> &
   Pick<LineChartProps, 'onLegendSelectChanged' | 'legend'>;
 
-function Content({
+export function Content({
   errored,
   theme,
   series: data,
@@ -72,7 +72,7 @@ function Content({
   if (errored) {
     return (
       <ErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </ErrorPanel>
     );
   }
@@ -120,7 +120,7 @@ function Content({
     yAxis: {
       minInterval: durationUnit,
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.secondary,
         formatter: (value: number) => {
           return axisLabelFormatter(value, 'duration', undefined, durationUnit);
         },
@@ -164,5 +164,3 @@ function Content({
     </ChartZoom>
   );
 }
-
-export default Content;

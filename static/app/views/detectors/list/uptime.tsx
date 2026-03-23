@@ -6,9 +6,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
+import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -16,6 +16,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
 import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
+import {InsightsRedirectNotice} from 'sentry/views/detectors/list/common/insightsRedirectNotice';
 import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 import {
   MonitorViewContext,
@@ -109,6 +110,9 @@ export default function UptimeDetectorsList() {
           description={DESCRIPTION}
           docsUrl={DOCS_URL}
         >
+          <InsightsRedirectNotice>
+            {t('Uptime monitors have been moved from Insights to Monitors.')}
+          </InsightsRedirectNotice>
           <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
           <DetectorListContent {...detectorListQuery} />
         </WorkflowEngineListLayout>

@@ -3,7 +3,7 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const metricConfig: IssueCategoryConfigMapping = {
+export const metricConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -105,7 +105,7 @@ const metricConfig: IssueCategoryConfigMapping = {
       ctaText: t('View monitor details'),
     },
     header: {
-      filterBar: {enabled: true, fixedEnvironment: true},
+      filterBar: {enabled: true, fixedEnvironment: true, searchBar: {enabled: false}},
       graph: {enabled: true, type: 'detector-history'},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
@@ -131,7 +131,6 @@ const metricConfig: IssueCategoryConfigMapping = {
     stats: {enabled: true},
     tags: {enabled: false},
     issueSummary: {enabled: false},
+    groupingInfo: {enabled: false},
   },
 };
-
-export default metricConfig;

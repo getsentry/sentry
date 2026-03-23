@@ -1,16 +1,17 @@
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import Ai from 'sentry/views/replays/detail/ai/ai';
-import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
-import Console from 'sentry/views/replays/detail/console';
-import ErrorList from 'sentry/views/replays/detail/errorList/index';
-import MemoryPanel from 'sentry/views/replays/detail/memoryPanel/index';
-import NetworkList from 'sentry/views/replays/detail/network';
-import OurLogs from 'sentry/views/replays/detail/ourlogs';
-import TagPanel from 'sentry/views/replays/detail/tagPanel';
-import TraceFeature from 'sentry/views/replays/detail/trace/index';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {TabKey, useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {Ai} from 'sentry/views/replays/detail/ai/ai';
+import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
+import {Console} from 'sentry/views/replays/detail/console';
+import {ErrorList} from 'sentry/views/replays/detail/errorList/index';
+import {MemoryPanel} from 'sentry/views/replays/detail/memoryPanel/index';
+import {NetworkList} from 'sentry/views/replays/detail/network';
+import {OurLogs} from 'sentry/views/replays/detail/ourlogs';
+import {Playlist} from 'sentry/views/replays/detail/playlist';
+import {TagPanel} from 'sentry/views/replays/detail/tagPanel';
+import {TraceFeature} from 'sentry/views/replays/detail/trace/index';
 
-export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
+export function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
   const {getActiveTab} = useActiveReplayTab({isVideoReplay});
 
   switch (getActiveTab()) {
@@ -60,6 +61,12 @@ export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
       return (
         <AnalyticsArea name="tags_tab">
           <TagPanel />
+        </AnalyticsArea>
+      );
+    case TabKey.PLAYLIST:
+      return (
+        <AnalyticsArea name="playlist_tab">
+          <Playlist />
         </AnalyticsArea>
       );
     case TabKey.BREADCRUMBS:

@@ -1,16 +1,17 @@
 from django.db.models import Q
 from django.db.models.query import EmptyQuerySet
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ObjectStatus
+from sentry.constants import CELL_API_DEPRECATION_DATE, ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
@@ -18,13 +19,14 @@ from sentry.search.utils import tokenize_query
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectIndexEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectPermission,)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/projects/")
     def get(self, request: Request) -> Response:
         """
         List your Projects
@@ -86,7 +88,13 @@ class ProjectIndexEndpoint(Endpoint):
                 elif key == "dsn":
                     queryset = queryset.filter(key_set__public_key__in=value)
                 elif key == "id":
-                    queryset = queryset.filter(id__in=value)
+                    valid_ids = []
+                    for v in value:
+                        try:
+                            valid_ids.append(int(v))
+                        except (ValueError, TypeError):
+                            raise ParseError(detail=f"Invalid project ID: {v}")
+                    queryset = queryset.filter(id__in=valid_ids)
                 else:
                     queryset = queryset.none()
 

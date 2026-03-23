@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -18,7 +18,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function CustomerPolicies({orgId}: any) {
+export function CustomerPolicies({orgId}: any) {
   return (
     <ResultGrid
       inPanel
@@ -43,5 +43,3 @@ function CustomerPolicies({orgId}: any) {
     />
   );
 }
-
-export default CustomerPolicies;

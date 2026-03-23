@@ -1,25 +1,27 @@
 import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   platformEventLinkMap,
   PlatformEvents,
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
 const analyticsView = 'new_integration_modal';
 
 function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRenderProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const [option, selectOption] = useState('internal');
   const choices = [
@@ -80,10 +82,10 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
   return (
     <Fragment>
       <Header>
-        <HeaderWrapper>
+        <Flex justify="between" align="center" width="100%">
           <h3>{t('Choose Integration Type')}</h3>
           <ExampleIntegrationButton analyticsView={analyticsView} />
-        </HeaderWrapper>
+        </Flex>
       </Header>
       <Body>
         <StyledRadioGroup
@@ -94,7 +96,11 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
         />
       </Body>
       <Footer>
-        <Button size="sm" onClick={() => closeModal()} style={{marginRight: space(1)}}>
+        <Button
+          size="sm"
+          onClick={() => closeModal()}
+          style={{marginRight: theme.space.md}}
+        >
           {t('Cancel')}
         </Button>
         <LinkButton
@@ -125,7 +131,7 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
 const StyledRadioGroup = styled(RadioGroup)`
   grid-auto-columns: auto;
   & > label:not(:last-child) > div:last-child > * {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space.md};
   }
 `;
 const RadioChoiceHeader = styled('h6')`
@@ -133,16 +139,9 @@ const RadioChoiceHeader = styled('h6')`
 `;
 
 const RadioChoiceDescription = styled('div')`
-  color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.colors.gray500};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.6em;
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
 `;
 
 export default CreateNewIntegrationModal;

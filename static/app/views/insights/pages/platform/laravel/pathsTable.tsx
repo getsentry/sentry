@@ -2,8 +2,9 @@ import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Placeholder from 'sentry/components/placeholder';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -11,11 +12,11 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   HeadSortCell,
   useTableSort,
-} from 'sentry/views/insights/agents/components/headSortCell';
-import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -32,7 +33,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const getP95Threshold = (avg: number) => {
   return {
-    error: avg * 3,
+    danger: avg * 3,
     warning: avg * 2,
   };
 };
@@ -180,7 +181,7 @@ function TransactionDetails({
   const theme = useTheme();
 
   if (isControllerLoading) {
-    return <Placeholder height={theme.fontSize.sm} width="200px" />;
+    return <Placeholder height={theme.font.size.sm} width="200px" />;
   }
 
   if (!controller) {
@@ -201,8 +202,12 @@ function TransactionDetails({
 }
 
 const ControllerText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   min-width: 0px;
 `;

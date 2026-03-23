@@ -4,8 +4,9 @@ import {
   PreprodVcsInfoFullFixture,
 } from 'sentry-fixture/preprod';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 import BuildDetails from './buildDetails';
@@ -15,13 +16,17 @@ describe('BuildDetails', () => {
 
   const initialRouterConfig = {
     location: {
-      pathname: `/organizations/${organization.slug}/projects/project-1/preprod/artifacts/artifact-1/`,
+      pathname: `/organizations/${organization.slug}/preprod/size/artifact-1/`,
+      query: {
+        project: 'project-1',
+      },
     },
-    route: '/organizations/:orgId/projects/:projectId/preprod/artifacts/:artifactId/',
+    route: '/organizations/:orgId/preprod/size/:artifactId/',
   };
 
-  const BUILD_DETAILS_URL = `/projects/org-slug/project-1/preprodartifacts/artifact-1/build-details/`;
-  const SIZE_ANALYSIS_URL = `/projects/org-slug/project-1/files/preprodartifacts/artifact-1/size-analysis/`;
+  const BUILD_DETAILS_URL = `/organizations/org-slug/preprodartifacts/artifact-1/build-details/`;
+  const SIZE_ANALYSIS_URL = `/organizations/org-slug/files/preprodartifacts/artifact-1/size-analysis/`;
+  const QUOTA_STATE_URL = `/organizations/org-slug/preprod/quota/`;
 
   const createMockSizeAnalysisData = () => ({
     treemap: {
@@ -33,6 +38,12 @@ describe('BuildDetails', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    // Default quota state mock - quotas available
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
   });
 
   it('shows loading skeletons when queries are pending', () => {
@@ -63,6 +74,12 @@ describe('BuildDetails', () => {
   it('shows error state when build details query fails', async () => {
     MockApiClient.clearMockResponses();
 
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
+
     const buildDetailsMock = MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
@@ -92,14 +109,26 @@ describe('BuildDetails', () => {
   it('shows success state when both queries succeed', async () => {
     MockApiClient.clearMockResponses();
 
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
+
     const buildDetailsMock = MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
       body: PreprodBuildDetailsWithSizeInfoFixture(
         {
           state: BuildDetailsSizeAnalysisState.COMPLETED,
-          install_size_bytes: 1024000,
-          download_size_bytes: 512000,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
+          base_size_metrics: [],
         },
         {
           vcs_info: PreprodVcsInfoFullFixture(),
@@ -122,11 +151,17 @@ describe('BuildDetails', () => {
     await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(1));
 
     expect(await screen.findByText('v1.0.0 (123)')).toBeInTheDocument();
-    expect(await screen.findByText('Git details')).toBeInTheDocument();
+    expect(await screen.findByText('Build Metadata')).toBeInTheDocument();
   });
 
   it('shows "Your app is still being analyzed..." text when size analysis is processing', async () => {
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
 
     const buildDetailsMock = MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
@@ -153,7 +188,15 @@ describe('BuildDetails', () => {
   });
 
   it('refetches size analysis when size_info state transitions from processing to completed', async () => {
+    jest.useFakeTimers();
+
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
 
     let callCount = 0;
     const buildDetailsMock = MockApiClient.addMockResponse({
@@ -168,8 +211,14 @@ describe('BuildDetails', () => {
         }
         return PreprodBuildDetailsWithSizeInfoFixture({
           state: BuildDetailsSizeAnalysisState.COMPLETED,
-          install_size_bytes: 1024000,
-          download_size_bytes: 512000,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
+          base_size_metrics: [],
         });
       },
     });
@@ -191,32 +240,41 @@ describe('BuildDetails', () => {
     // Size analysis should only be called once initially
     expect(appSizeMock).toHaveBeenCalledTimes(1);
 
-    await waitFor(
-      () => {
-        expect(buildDetailsMock).toHaveBeenCalledTimes(2);
-      },
-      {timeout: 12000}
-    );
+    // Advance past the 10s refetchInterval to trigger the polling refetch
+    act(() => {
+      jest.advanceTimersByTime(10_000);
+    });
+
+    await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(2));
 
     // After the state transition, size analysis should be refetched
-    await waitFor(
-      () => {
-        expect(appSizeMock).toHaveBeenCalledTimes(2);
-      },
-      {timeout: 5000}
-    );
-  }, 20000);
+    await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(2));
+
+    jest.useRealTimers();
+  });
 
   it('does not refetch size analysis when size_info remains in completed state', async () => {
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
 
     const buildDetailsMock = MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
       body: PreprodBuildDetailsWithSizeInfoFixture({
         state: BuildDetailsSizeAnalysisState.COMPLETED,
-        install_size_bytes: 1024000,
-        download_size_bytes: 512000,
+        size_metrics: [
+          {
+            metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+            install_size_bytes: 1024000,
+            download_size_bytes: 512000,
+          },
+        ],
+        base_size_metrics: [],
       }),
     });
 
@@ -241,7 +299,15 @@ describe('BuildDetails', () => {
   });
 
   it('does not refetch size analysis when size_info transitions from pending to processing', async () => {
+    jest.useFakeTimers();
+
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
 
     let callCount = 0;
     const buildDetailsMock = MockApiClient.addMockResponse({
@@ -272,19 +338,186 @@ describe('BuildDetails', () => {
     });
 
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
+    // First call returns PENDING state - shows queued message
+    expect(await screen.findByText('Queued for analysis')).toBeInTheDocument();
 
-    await waitFor(
-      () => {
-        expect(buildDetailsMock).toHaveBeenCalledTimes(2);
-      },
-      {timeout: 12000}
-    );
+    // Advance past the 10s refetchInterval to trigger the polling refetch
+    act(() => {
+      jest.advanceTimersByTime(10_000);
+    });
 
-    // Still showing processing state (not completed yet)
+    await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(2));
+
+    // Second call returns PROCESSING state - shows processing message
     expect(screen.getByText('Running size analysis')).toBeInTheDocument();
 
     // Size analysis should not be refetched since we're still processing
     expect(appSizeMock).toHaveBeenCalledTimes(1);
-  }, 20000);
+
+    jest.useRealTimers();
+  });
+
+  describe('quota warning banner', () => {
+    it('does not show warning banner when quotas are available', async () => {
+      MockApiClient.addMockResponse({
+        url: BUILD_DETAILS_URL,
+        method: 'GET',
+        body: PreprodBuildDetailsWithSizeInfoFixture({
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
+          base_size_metrics: [],
+        }),
+      });
+
+      MockApiClient.addMockResponse({
+        url: SIZE_ANALYSIS_URL,
+        method: 'GET',
+        body: createMockSizeAnalysisData(),
+      });
+
+      render(<BuildDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await screen.findByText('v1.0.0 (123)');
+
+      expect(
+        screen.queryByText("You've exceeded your size analysis quota.")
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("You've exceeded your build distribution quota.")
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          "You've exceeded your size analysis and build distribution quota."
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows warning banner when size quota is exceeded', async () => {
+      MockApiClient.addMockResponse({
+        url: QUOTA_STATE_URL,
+        method: 'GET',
+        body: {hasSizeQuota: false, hasDistributionQuota: true},
+      });
+
+      MockApiClient.addMockResponse({
+        url: BUILD_DETAILS_URL,
+        method: 'GET',
+        body: PreprodBuildDetailsWithSizeInfoFixture({
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
+          base_size_metrics: [],
+        }),
+      });
+
+      MockApiClient.addMockResponse({
+        url: SIZE_ANALYSIS_URL,
+        method: 'GET',
+        body: createMockSizeAnalysisData(),
+      });
+
+      render(<BuildDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByText(/You've exceeded your Size Analysis quota/)
+      ).toBeInTheDocument();
+    });
+
+    it('shows warning banner when distribution quota is exceeded', async () => {
+      MockApiClient.addMockResponse({
+        url: QUOTA_STATE_URL,
+        method: 'GET',
+        body: {hasSizeQuota: true, hasDistributionQuota: false},
+      });
+
+      MockApiClient.addMockResponse({
+        url: BUILD_DETAILS_URL,
+        method: 'GET',
+        body: PreprodBuildDetailsWithSizeInfoFixture({
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
+          base_size_metrics: [],
+        }),
+      });
+
+      MockApiClient.addMockResponse({
+        url: SIZE_ANALYSIS_URL,
+        method: 'GET',
+        body: createMockSizeAnalysisData(),
+      });
+
+      render(<BuildDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByText(/You've exceeded your Build Distribution quota/)
+      ).toBeInTheDocument();
+    });
+
+    it('shows warning banner when both quotas are exceeded', async () => {
+      MockApiClient.addMockResponse({
+        url: QUOTA_STATE_URL,
+        method: 'GET',
+        body: {hasSizeQuota: false, hasDistributionQuota: false},
+      });
+
+      MockApiClient.addMockResponse({
+        url: BUILD_DETAILS_URL,
+        method: 'GET',
+        body: PreprodBuildDetailsWithSizeInfoFixture({
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
+          base_size_metrics: [],
+        }),
+      });
+
+      MockApiClient.addMockResponse({
+        url: SIZE_ANALYSIS_URL,
+        method: 'GET',
+        body: createMockSizeAnalysisData(),
+      });
+
+      render(<BuildDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByText(
+          /You've exceeded your Size Analysis and Build Distribution quota/
+        )
+      ).toBeInTheDocument();
+    });
+  });
 });

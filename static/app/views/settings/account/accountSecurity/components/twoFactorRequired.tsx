@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
-import {tct} from 'sentry/locale';
-import getPendingInvite from 'sentry/utils/getPendingInvite';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
 
-export default function TwoFactorRequired() {
+import {tct} from 'sentry/locale';
+import {getPendingInvite} from 'sentry/utils/getPendingInvite';
+
+export function TwoFactorRequired() {
   return getPendingInvite() ? (
-    <StyledAlert data-test-id="require-2fa" type="error">
+    <StyledAlert data-test-id="require-2fa" variant="danger">
       {tct(
         'You have been invited to an organization that requires [link:two-factor authentication]. Setup two-factor authentication below to join your organization.',
         {

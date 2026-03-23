@@ -1,19 +1,22 @@
+import logging
 from copy import deepcopy
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone as django_timezone
 
 from sentry import features, roles
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models.utils import slugify_instance
-from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.hybridcloud.services.control_organization_provisioning import (
     ControlOrganizationProvisioningRpcService,
     RpcOrganizationSlugReservation,
     serialize_slug_reservation,
 )
 from sentry.hybridcloud.services.organization_mapping.serial import serialize_organization_mapping
+from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -27,14 +30,10 @@ from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.utils.snowflake import generate_snowflake_id
 
 
-class SlugMismatchException(Exception):
-    pass
-
-
 def create_post_provision_outbox(
     provisioning_options: OrganizationProvisioningOptions, org_id: int
-) -> RegionOutbox:
-    return RegionOutbox(
+) -> CellOutbox:
+    return CellOutbox(
         shard_scope=OutboxScope.ORGANIZATION_SCOPE,
         shard_identifier=org_id,
         category=OutboxCategory.POST_ORGANIZATION_PROVISION,
@@ -45,12 +44,12 @@ def create_post_provision_outbox(
 
 def create_organization_provisioning_outbox(
     organization_id: int,
-    region_name: str,
+    cell_name: str,
     org_provision_payload: OrganizationProvisioningOptions | None,
 ) -> ControlOutbox:
     payload = org_provision_payload.dict() if org_provision_payload is not None else None
     return ControlOutbox(
-        region_name=region_name,
+        cell_name=cell_name,
         shard_scope=OutboxScope.PROVISION_SCOPE,
         category=OutboxCategory.PROVISION_ORGANIZATION,
         shard_identifier=organization_id,
@@ -59,11 +58,7 @@ def create_organization_provisioning_outbox(
     )
 
 
-class InvalidOrganizationProvisioningException(Exception):
-    pass
-
-
-REDIS_KEY_PREFIX = "control_org"
+logger = logging.getLogger(__name__)
 
 
 class DatabaseBackedControlOrganizationProvisioningService(
@@ -95,8 +90,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
     @staticmethod
     def _generate_org_snowflake_id(region_name: str) -> int:
-        redis_key = f"{REDIS_KEY_PREFIX}_{region_name}"
-        return generate_snowflake_id(redis_key)
+        return generate_snowflake_id(Organization.snowflake_redis_key)
 
     @staticmethod
     def _generate_org_slug(region_name: str, slug: str) -> str:
@@ -133,12 +127,15 @@ class DatabaseBackedControlOrganizationProvisioningService(
         )
 
     def provision_organization(
-        self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
+        self,
+        *,
+        cell_name: str,
+        org_provision_args: OrganizationProvisioningOptions,
     ) -> RpcOrganizationSlugReservation:
         # Generate a new non-conflicting slug and org ID
-        org_id = self._generate_org_snowflake_id(region_name=region_name)
+        org_id = self._generate_org_snowflake_id(region_name=cell_name)
         slug = self._generate_org_slug(
-            region_name=region_name, slug=org_provision_args.provision_options.slug
+            region_name=cell_name, slug=org_provision_args.provision_options.slug
         )
 
         # Generate a provisioning outbox for the region and drain
@@ -157,13 +154,13 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 slug=slug,
                 organization_id=org_id,
                 user_id=org_provision_args.provision_options.owning_user_id,
-                region_name=region_name,
+                cell_name=cell_name,
             )
 
             org_slug_res.save(unsafe_write=True)
             create_organization_provisioning_outbox(
                 organization_id=org_id,
-                region_name=region_name,
+                cell_name=cell_name,
                 org_provision_payload=provision_payload,
             ).save()
 
@@ -179,15 +176,10 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
         return serialize_slug_reservation(org_slug_res)
 
-    def idempotent_provision_organization(
-        self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
-    ) -> RpcOrganizationSlugReservation | None:
-        raise NotImplementedError()
-
     def update_organization_slug(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         organization_id: int,
         desired_slug: str,
         require_exact: bool = True,
@@ -210,36 +202,56 @@ class DatabaseBackedControlOrganizationProvisioningService(
         )
 
         # If there's already a matching primary slug reservation for the org,
-        # just replicate it to the region to kick off the organization sync process
+        # just replicate it to the cell to kick off the organization sync process
         if existing_primary_alias and existing_primary_alias.slug == desired_slug:
-            existing_primary_alias.handle_async_replication(region_name, organization_id)
+            existing_primary_alias.handle_async_replication(cell_name, organization_id)
             return serialize_slug_reservation(existing_primary_alias)
 
         slug_base = desired_slug
         if not require_exact:
-            slug_base = self._generate_org_slug(region_name=region_name, slug=slug_base)
+            slug_base = self._generate_org_slug(region_name=cell_name, slug=slug_base)
 
-        with outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
-        ):
-            OrganizationSlugReservation(
-                slug=slug_base,
-                organization_id=organization_id,
-                user_id=-1,
-                region_name=region_name,
-                reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
-            ).save(unsafe_write=True)
+        try:
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+            ):
+                OrganizationSlugReservation(
+                    slug=slug_base,
+                    organization_id=organization_id,
+                    user_id=-1,
+                    cell_name=cell_name,
+                    reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
+                ).save(unsafe_write=True)
 
-            org_mapping = OrganizationMapping.objects.filter(
-                organization_id=organization_id
-            ).first()
-            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
-            if org and features.has("organizations:revoke-org-auth-on-slug-rename", org):
-                # Changing a slug invalidates all org tokens, so revoke them all.
-                auth_tokens = OrgAuthToken.objects.filter(
-                    organization_id=organization_id, date_deactivated__isnull=True
+                org_mapping = OrganizationMapping.objects.filter(
+                    organization_id=organization_id
+                ).first()
+                org = (
+                    serialize_organization_mapping(org_mapping) if org_mapping is not None else None
                 )
-                auth_tokens.update(date_deactivated=django_timezone.now())
+                if org and features.has("organizations:revoke-org-auth-on-slug-rename", org):
+                    # Changing a slug invalidates all org tokens, so revoke them all.
+                    auth_tokens = OrgAuthToken.objects.filter(
+                        organization_id=organization_id, date_deactivated__isnull=True
+                    )
+                    auth_tokens.update(date_deactivated=django_timezone.now())
+        except IntegrityError as e:
+            # Check if this is a unique constraint violation on the slug
+            if "sentry_organizationslugreservation_slug_key" in str(e):
+                logging.info(
+                    "update_organization_slug.conflict",
+                    extra={
+                        "organization_id": organization_id,
+                        "slug": slug_base,
+                    },
+                )
+                raise RpcValidationException(
+                    detail=f"Organization slug '{slug_base}' is already in use",
+                    code="slug_conflict",
+                    service_name="control_organization_provisioning",
+                    method_name="update_organization_slug",
+                ) from e
+            raise
 
         primary_slug = self._validate_primary_slug_updated(
             organization_id=organization_id, slug_base=slug_base
@@ -256,8 +268,19 @@ class DatabaseBackedControlOrganizationProvisioningService(
         )
 
         if not primary_slug or primary_slug.slug != slug_base:
-            raise InvalidOrganizationProvisioningException(
-                "Failed to swap slug for organization, likely due to conflict on the region"
+            logging.info(
+                "validate-primary-slug-updated.failure",
+                extra={
+                    "organization_id": organization_id,
+                    "primary_slug": primary_slug.slug if primary_slug else "n/a",
+                    "new": slug_base,
+                },
+            )
+            raise RpcValidationException(
+                detail=f"Organization slug '{slug_base}' is already in use",
+                code="slug_swap",
+                service_name="control_organization_provisioning",
+                method_name="update_organization_slug",
             )
 
         return primary_slug
@@ -265,7 +288,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
     def bulk_create_organization_slug_reservations(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         slug_mapping: dict[int, str],
     ) -> None:
         slug_reservations_to_create: list[OrganizationSlugReservation] = []
@@ -273,11 +296,11 @@ class DatabaseBackedControlOrganizationProvisioningService(
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
             for org_id, slug in slug_mapping.items():
                 slug_reservation = OrganizationSlugReservation(
-                    slug=self._generate_org_slug(slug=slug, region_name=region_name),
+                    slug=self._generate_org_slug(slug=slug, region_name=cell_name),
                     organization_id=org_id,
                     reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
                     user_id=-1,
-                    region_name=region_name,
+                    cell_name=cell_name,
                 )
                 slug_reservation.save(unsafe_write=True)
 
@@ -285,5 +308,6 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
         for slug_reservation in slug_reservations_to_create:
             self._validate_primary_slug_updated(
-                slug_base=slug_reservation.slug, organization_id=slug_reservation.organization_id
+                slug_base=slug_reservation.slug,
+                organization_id=slug_reservation.organization_id,
             )

@@ -39,7 +39,7 @@ class TestPagerDutyActionValidator(TestCase):
             "integrationId": self.integration.id,
         }
 
-    def test_validate(self):
+    def test_validate(self) -> None:
         validator = BaseActionValidator(
             data=self.valid_data,
             context={"organization": self.organization},
@@ -49,7 +49,7 @@ class TestPagerDutyActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    def test_validate__invalid_service(self):
+    def test_validate__invalid_service(self) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,

@@ -1,12 +1,17 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Button} from '@sentry/scraps/button';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {OP_LABELS as NATIVE_OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -16,8 +21,8 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {
   BetweenFilterSelectorTrigger,
@@ -54,7 +59,7 @@ interface NumericFilterState {
   isValidValue: boolean;
   operatorOptions: Array<SelectOption<Operator>>;
   renderInputField: () => React.ReactNode;
-  renderSelectorTrigger: () => React.ReactNode;
+  renderSelectorTrigger: () => React.JSX.Element;
   resetValues: () => void;
   setStagedOperator: (operator: TermOperator) => void;
   setStagedValue: (value: string) => void;
@@ -73,7 +78,6 @@ function useNativeOperatorFilter(
       globalFilterToken &&
       getOperatorInfo({
         filterToken: globalFilterToken,
-        hasWildcardOperators: false,
         fieldDefinition: getFieldDefinitionForDataset(
           globalFilter.tag,
           globalFilter.dataset
@@ -94,7 +98,7 @@ function useNativeOperatorFilter(
 
   const renderInputField = () => {
     return (
-      <Input
+      <StyledInput
         aria-label="Filter value"
         value={stagedFilterValue}
         onChange={e => {
@@ -201,10 +205,11 @@ function useBetweenOperatorFilter(
   };
 }
 
-function NumericFilterSelector({
+export function NumericFilterSelector({
   globalFilter,
   onRemoveFilter,
   onUpdateFilter,
+  disableRemoveFilter,
 }: GenericFilterSelectorProps) {
   const globalFilterQueries = useMemo(
     () => globalFilter.value.split(FILTER_QUERY_SEPARATOR),
@@ -287,16 +292,25 @@ function NumericFilterSelector({
         filter.resetValues();
         setStagedIsNativeOperator(isNativeOperator);
       }}
-      menuTitle={t('%s Filter', getDatasetLabel(globalFilter.dataset))}
-      menuHeaderTrailingItems={() => (
-        <StyledButton
-          aria-label={t('Remove Filter')}
-          size="zero"
-          onClick={() => onRemoveFilter(globalFilter)}
-        >
-          {t('Remove Filter')}
-        </StyledButton>
-      )}
+      menuTitle={
+        <MenuTitleWrapper>
+          {t('%s Filter', getDatasetLabel(globalFilter.dataset))}
+        </MenuTitleWrapper>
+      }
+      menuHeaderTrailingItems={
+        disableRemoveFilter
+          ? undefined
+          : () => (
+              <StyledButton
+                aria-label={t('Remove Filter')}
+                size="xs"
+                priority="transparent"
+                onClick={() => onRemoveFilter(globalFilter)}
+              >
+                {t('Remove Filter')}
+              </StyledButton>
+            )
+      }
       menuBody={
         <MenuBodyWrap>
           <Flex gap="xs" direction="column">
@@ -313,33 +327,26 @@ function NumericFilterSelector({
           </Flex>
         </MenuBodyWrap>
       }
-      triggerProps={{
-        children: filter.renderSelectorTrigger(),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>
+          {filter.renderSelectorTrigger()}
+        </OverlayTrigger.Button>
+      )}
       menuFooter={
         hasStagedChanges
-          ? ({closeOverlay}: any) => (
-              <FooterWrap>
-                <FooterInnerWrap>
-                  <Button borderless size="xs" onClick={closeOverlay}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button
-                    size="xs"
-                    priority="primary"
-                    disabled={!filter.isValidValue}
-                    onClick={() => {
-                      onUpdateFilter({
-                        ...globalFilter,
-                        value: filter.buildFilterQuery(),
-                      });
-                      closeOverlay();
-                    }}
-                  >
-                    {t('Apply')}
-                  </Button>
-                </FooterInnerWrap>
-              </FooterWrap>
+          ? () => (
+              <Flex gap="md" justify="end">
+                <MenuComponents.CancelButton />
+                <MenuComponents.ApplyButton
+                  disabled={!filter.isValidValue}
+                  onClick={() => {
+                    onUpdateFilter({
+                      ...globalFilter,
+                      value: filter.buildFilterQuery(),
+                    });
+                  }}
+                />
+              </Flex>
             )
           : null
       }
@@ -347,47 +354,23 @@ function NumericFilterSelector({
   );
 }
 
-export default NumericFilterSelector;
-
 const MenuBodyWrap = styled('div')`
-  margin: 4px;
-`;
-
-const FooterWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(2)};
-
-  /* If there's FooterMessage above */
-  &:not(:first-child) {
-    margin-top: ${space(1)};
-  }
-`;
-const FooterInnerWrap = styled('div')`
-  grid-row: -1;
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
-  justify-self: end;
-  justify-items: end;
-
-  &:empty {
-    display: none;
-  }
+  padding: ${p => p.theme.space.md};
 `;
 
 const StyledOperatorButton = styled(Button)`
   width: 100%;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StyledButton = styled(Button)`
-  font-size: inherit;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
-  padding: 0 ${space(0.5)};
-  margin: ${p =>
-    p.theme.isChonk
-      ? `-${space(0.5)} -${space(0.5)}`
-      : `-${space(0.25)} -${space(0.25)}`};
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: 0 ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
+`;
+
+const StyledInput = styled(Input)`
+  text-align: center;
 `;

@@ -5,13 +5,13 @@ from django.test.utils import override_settings
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from tests.sentry.utils.test_jwt import RS256_KEY
 
 RS256_KEY_B64 = base64.b64encode(RS256_KEY.encode()).decode()
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationConduitDemoEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-conduit-demo"
 
@@ -40,6 +40,34 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         assert "channel_id" in response.data["conduit"]
         assert "url" in response.data["conduit"]
         assert str(self.organization.id) in response.data["conduit"]["url"]
+
+    @override_settings(
+        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY_B64,
+        CONDUIT_GATEWAY_JWT_ISSUER="sentry",
+        CONDUIT_GATEWAY_JWT_AUDIENCE="conduit",
+        CONDUIT_GATEWAY_URL="https://conduit.example.com",
+    )
+    @with_feature("organizations:conduit-demo")
+    def test_post_member_can_access(self) -> None:
+        """Test that members can generate credentials."""
+        member_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[],
+        )
+        self.login_as(member_user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            method="POST",
+            status_code=201,
+        )
+
+        assert "conduit" in response.data
+        assert "token" in response.data["conduit"]
+        assert "channel_id" in response.data["conduit"]
 
     @with_feature("organizations:conduit-demo")
     def test_post_without_org_access(self) -> None:

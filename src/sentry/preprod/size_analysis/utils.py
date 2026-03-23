@@ -1,10 +1,33 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
+from enum import Enum
 
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from django.db.models import Q
+
+from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ComparisonValidationResult:
+    """Result of validating whether two sets of size metrics can be compared."""
+
+    class ErrorType(str, Enum):
+        """Types of comparison errors that can occur."""
+
+        DIFFERENT_LENGTH = "different_length"
+        DIFFERENT_APP_IDS = "different_app_ids"
+        DIFFERENT_BUILD_CONFIGURATIONS = "different_build_configurations"
+        DIFFERENT_METRICS = "different_metrics"
+        NOT_ALL_COMPLETED = "not_all_completed"
+        METRICS_FAILED = "metrics_failed"
+
+    can_compare: bool
+    error_message: str | None = None
+    error_type: ErrorType | None = None
 
 
 # Build a mapping of (metrics_artifact_type, identifier) -> size metric for quick lookup of matching metrics from head or base size metrics
@@ -14,31 +37,158 @@ def build_size_metrics_map(
     return {(metric.metrics_artifact_type, metric.identifier): metric for metric in metrics}
 
 
+@dataclass
+class MatchedComparison:
+    """A matched head/base metric pair with its comparison object (if any)."""
+
+    head_metric: PreprodArtifactSizeMetrics
+    base_metric: PreprodArtifactSizeMetrics | None
+    comparison: PreprodArtifactSizeComparison | None
+
+
+def match_and_fetch_comparisons(
+    head_size_metrics: list[PreprodArtifactSizeMetrics],
+    base_size_metrics: list[PreprodArtifactSizeMetrics],
+) -> list[MatchedComparison]:
+    """Match head/base metrics by (artifact_type, identifier) and batch-fetch their comparisons."""
+
+    head_metrics_map = build_size_metrics_map(head_size_metrics)
+    base_metrics_map = build_size_metrics_map(base_size_metrics)
+
+    head_base_pairs = []
+    for key, head_metric in head_metrics_map.items():
+        base_metric = base_metrics_map.get(key)
+        if base_metric:
+            head_base_pairs.append((head_metric.id, base_metric.id))
+
+    comparison_objs_by_key: dict[tuple[int, int], PreprodArtifactSizeComparison] = {}
+    if head_base_pairs:
+        q = Q()
+        for head_id, base_id in head_base_pairs:
+            q |= Q(head_size_analysis_id=head_id, base_size_analysis_id=base_id)
+        for obj in PreprodArtifactSizeComparison.objects.filter(q):
+            comparison_objs_by_key[(obj.head_size_analysis_id, obj.base_size_analysis_id)] = obj
+
+    results = []
+    for key, head_metric in head_metrics_map.items():
+        base_metric = base_metrics_map.get(key)
+        comparison = None
+        if base_metric:
+            comparison = comparison_objs_by_key.get((head_metric.id, base_metric.id))
+        results.append(MatchedComparison(head_metric, base_metric, comparison))
+
+    return results
+
+
 def can_compare_size_metrics(
-    head_metrics: list[PreprodArtifactSizeMetrics], base_metric: list[PreprodArtifactSizeMetrics]
-) -> bool:
+    head_metrics: list[PreprodArtifactSizeMetrics], base_metrics: list[PreprodArtifactSizeMetrics]
+) -> ComparisonValidationResult:
+    if not head_metrics or not base_metrics:
+        return ComparisonValidationResult(
+            can_compare=False,
+            error_message="Head or base has no completed size metrics to compare.",
+            error_type=ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH,
+        )
+
+    all_metrics = head_metrics + base_metrics
+    failed_metrics = [
+        m
+        for m in all_metrics
+        if m.state
+        in (
+            PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+            PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+        )
+    ]
+    if failed_metrics:
+        return ComparisonValidationResult(
+            can_compare=False,
+            error_message=f"{len(failed_metrics)} metric(s) failed size analysis.",
+            error_type=ComparisonValidationResult.ErrorType.METRICS_FAILED,
+        )
+
+    incomplete = [
+        m for m in all_metrics if m.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+    ]
+    if incomplete:
+        return ComparisonValidationResult(
+            can_compare=False,
+            error_message=f"{len(incomplete)} metric(s) have not completed size analysis yet.",
+            error_type=ComparisonValidationResult.ErrorType.NOT_ALL_COMPLETED,
+        )
+
     # Check that both lists have the same length
-    if len(head_metrics) != len(base_metric):
+    if len(head_metrics) != len(base_metrics):
         # TODO: Add ability to compare size metrics with different lengths
         logger.info(
             "preprod.size_analysis.compare.cannot_compare_size_metrics.different_length",
             extra={
                 "head_metrics_length": len(head_metrics),
-                "base_metric_length": len(base_metric),
+                "base_metrics_length": len(base_metrics),
             },
         )
-        return False
+        return ComparisonValidationResult(
+            can_compare=False,
+            error_message=f"Head and base have different numbers of size metrics. Head has {len(head_metrics)} metric(s), base has {len(base_metrics)} metric(s).",
+            error_type=ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH,
+        )
 
     # Build sets of (metrics_artifact_type, identifier) for both lists
     head_set = {(m.metrics_artifact_type, m.identifier) for m in head_metrics}
-    base_set = {(m.metrics_artifact_type, m.identifier) for m in base_metric}
+    base_set = {(m.metrics_artifact_type, m.identifier) for m in base_metrics}
 
     # Return True if the sets are equal (all metrics match on both dimensions)
     if head_set == base_set:
-        return True
+        return ComparisonValidationResult(can_compare=True)
+
+    # Find the differences to provide detailed error message
+    head_only = head_set - base_set
+    base_only = base_set - head_set
+
+    head_artifact_types = {m.metrics_artifact_type for m in head_metrics}
+    base_artifact_types = {m.metrics_artifact_type for m in base_metrics}
+    head_identifiers = {m.identifier for m in head_metrics}
+    base_identifiers = {m.identifier for m in base_metrics}
+
+    # Check if only identifiers differ (same artifact types)
+    if head_artifact_types == base_artifact_types and head_identifiers != base_identifiers:
+        error_type = ComparisonValidationResult.ErrorType.DIFFERENT_APP_IDS
+    # Check if only artifact types differ (same identifiers)
+    elif head_identifiers == base_identifiers and head_artifact_types != base_artifact_types:
+        error_type = ComparisonValidationResult.ErrorType.DIFFERENT_BUILD_CONFIGURATIONS
+    # Both differ or it's a complex mismatch
+    else:
+        error_type = ComparisonValidationResult.ErrorType.DIFFERENT_METRICS
+
+    def format_metric_key(key: tuple[int | None, str | None]) -> str:
+        artifact_type, identifier = key
+        type_name = "Unknown"
+        if artifact_type is not None:
+            try:
+                type_name = PreprodArtifactSizeMetrics.MetricsArtifactType(artifact_type).name
+            except (ValueError, AttributeError):
+                type_name = f"Type({artifact_type})"
+        identifier_str = identifier if identifier else "(no identifier)"
+        return f"{type_name}: {identifier_str}"
+
+    error_parts = ["Head and base size metrics cannot be compared due to mismatched metrics."]
+
+    if head_only:
+        formatted_head = [format_metric_key(k) for k in head_only]
+        error_parts.append(f"Head has metric(s) not in base: {', '.join(formatted_head)}")
+
+    if base_only:
+        formatted_base = [format_metric_key(k) for k in base_only]
+        error_parts.append(f"Base has metric(s) not in head: {', '.join(formatted_base)}")
+
+    error_message = " ".join(error_parts)
 
     logger.info(
         "preprod.size_analysis.compare.cannot_compare_size_metrics.sets_not_equal",
-        extra={"head_set": head_set, "base_set": base_set},
+        extra={"head_set": head_set, "base_set": base_set, "error_message": error_message},
     )
-    return False
+    return ComparisonValidationResult(
+        can_compare=False,
+        error_message=error_message,
+        error_type=error_type,
+    )

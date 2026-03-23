@@ -3,16 +3,20 @@ from __future__ import annotations
 import logging
 
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.explorer.client import continue_seer_run, get_seer_run, start_seer_run
+from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
+from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -34,6 +38,11 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional context from the user's screen.",
     )
+    override_ce_enable = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Override context engine rollout flag (applies to reasoning platform only).",
+    )
 
 
 class OrganizationSeerExplorerChatPermission(OrganizationPermission):
@@ -43,7 +52,7 @@ class OrganizationSeerExplorerChatPermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -73,13 +82,21 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         """
         Get the current state of a Seer Explorer session.
         """
+        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        if not has_access:
+            raise PermissionDenied(error)
+
         if not run_id:
             return Response({"session": None}, status=404)
 
         try:
-            state = get_seer_run(run_id=int(run_id), organization=organization, user=request.user)
+            client = SeerExplorerClient(organization, request.user)
+            state = client.get_run(run_id=int(run_id))
             return Response({"session": state.dict()})
+        except SeerPermissionError as e:
+            raise PermissionDenied(e.message) from e
         except ValueError:
+            logger.exception("Error getting Explorer run state")
             return Response({"session": None}, status=404)
 
     def post(
@@ -97,6 +114,10 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         Returns:
         - run_id: The run ID.
         """
+        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        if not has_access:
+            raise PermissionDenied(error)
+
         serializer = SeerExplorerChatSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -105,24 +126,36 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         query = validated_data["query"]
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
+        override_ce_enable = validated_data["override_ce_enable"]
 
-        # Use client to start or continue run
-        if run_id:
-            # Continue existing conversation
-            result_run_id = continue_seer_run(
-                run_id=int(run_id),
-                organization=organization,
-                prompt=query,
-                user=request.user,
-                insert_index=insert_index,
-                on_page_context=on_page_context,
+        try:
+            enable_coding = organization.get_option(
+                "sentry:enable_seer_coding", False
+            ) and features.has(
+                "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
-        else:
-            # Start new conversation
-            result_run_id = start_seer_run(
-                organization=organization,
-                prompt=query,
-                user=request.user,
-                on_page_context=on_page_context,
+            client = SeerExplorerClient(
+                organization,
+                request.user,
+                is_interactive=True,
+                enable_coding=enable_coding,
             )
-        return Response({"run_id": result_run_id})
+            if run_id:
+                # Continue existing conversation
+                result_run_id = client.continue_run(
+                    run_id=int(run_id),
+                    prompt=query,
+                    insert_index=insert_index,
+                    on_page_context=on_page_context,
+                )
+            else:
+                # Start new conversation
+                result_run_id = client.start_run(
+                    prompt=query,
+                    on_page_context=on_page_context,
+                    override_ce_enable=override_ce_enable,
+                )
+
+            return Response({"run_id": result_run_id})
+        except SeerPermissionError as e:
+            raise PermissionDenied(e.message) from e

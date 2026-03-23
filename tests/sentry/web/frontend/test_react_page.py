@@ -1,16 +1,20 @@
 from fnmatch import fnmatch
+from importlib import reload
 
+from django.conf import settings as django_settings
+from django.test import override_settings
 from django.urls import URLResolver, get_resolver, reverse
 
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
-us = Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
+us = Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
 
 
 @control_silo_test
@@ -158,7 +162,7 @@ class ReactPageViewTest(TestCase):
             assert response.status_code == 200
             assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
 
-    @override_regions((us,))
+    @override_cells((us,))
     def test_redirect_to_customer_domain_from_region_domain(self) -> None:
         user = self.create_user("bar@example.com")
         org = self.create_organization(owner=user)
@@ -186,9 +190,9 @@ class ReactPageViewTest(TestCase):
             url_name_is_non_customer_domain = any(
                 fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES
             )
-            assert (
-                url_name_is_non_customer_domain
-            ), "precondition missing. org-create should be non-customer-domain"
+            assert url_name_is_non_customer_domain, (
+                "precondition missing. org-create should be non-customer-domain"
+            )
 
             # Induce last active org.
             assert "activeorg" not in self.client.session
@@ -397,21 +401,7 @@ class ReactPageViewTest(TestCase):
             ]
             assert "activeorg" in self.client.session
 
-    def test_document_policy_header_when_flag_is_enabled(self) -> None:
-        org = self.create_organization(owner=self.user)
-
-        self.login_as(self.user)
-
-        with self.feature({"organizations:profiling-browser": [org.slug]}):
-            response = self.client.get(
-                "/issues/",
-                HTTP_HOST=f"{org.slug}.testserver",
-                follow=True,
-            )
-            assert response.status_code == 200
-            assert response.headers["Document-Policy"] == "js-profiling"
-
-    def test_document_policy_header_when_flag_is_disabled(self) -> None:
+    def test_document_policy_header(self) -> None:
         org = self.create_organization(owner=self.user)
 
         self.login_as(self.user)
@@ -422,12 +412,12 @@ class ReactPageViewTest(TestCase):
             follow=True,
         )
         assert response.status_code == 200
-        assert "Document-Policy" not in response.headers
+        assert response.headers["Document-Policy"] == "js-profiling"
 
     def test_dns_prefetch(self) -> None:
-        us_region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-        de_region = Region("de", 1, "https://de.testserver", RegionCategory.MULTI_TENANT)
-        with override_regions(regions=[us_region, de_region]):
+        us_region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+        de_region = Cell("de", 1, "https://de.testserver", RegionCategory.MULTI_TENANT)
+        with override_cells(cells=[us_region, de_region]):
             user = self.create_user("bar@example.com")
             org = self.create_organization(owner=user)
             self.login_as(user)
@@ -452,3 +442,47 @@ class ReactPageViewTest(TestCase):
                 '<link rel="preconnect" href="https://s1.sentry-cdn.com"'
                 in response_body.decode("utf-8")
             )
+
+    def test_manage_endpoint_only_available_in_non_saas_mode(self) -> None:
+        import sentry.web.urls
+
+        # Test that manage/ route does NOT exist in SAAS mode
+        with override_settings(SENTRY_MODE=SentryMode.SAAS):
+            reload(sentry.web.urls)
+
+            has_admin_route = any(
+                getattr(pattern, "name", None) == "sentry-admin-overview"
+                for pattern in sentry.web.urls.urlpatterns
+            )
+            assert not has_admin_route, (
+                f"sentry-admin-overview should not exist in SAAS mode. "
+                f"SENTRY_MODE={django_settings.SENTRY_MODE}"
+            )
+
+        # Test that manage/ route IS registered in SELF_HOSTED mode
+        with override_settings(SENTRY_MODE=SentryMode.SELF_HOSTED):
+            reload(sentry.web.urls)
+
+            has_admin_route = any(
+                getattr(pattern, "name", None) == "sentry-admin-overview"
+                for pattern in sentry.web.urls.urlpatterns
+            )
+            assert has_admin_route, (
+                f"sentry-admin-overview should exist in SELF_HOSTED mode. "
+                f"SENTRY_MODE={django_settings.SENTRY_MODE}"
+            )
+
+        # Test that manage/ route IS registered in SINGLE_TENANT mode
+        with override_settings(SENTRY_MODE=SentryMode.SINGLE_TENANT):
+            reload(sentry.web.urls)
+
+            has_admin_route = any(
+                getattr(pattern, "name", None) == "sentry-admin-overview"
+                for pattern in sentry.web.urls.urlpatterns
+            )
+            assert has_admin_route, (
+                f"sentry-admin-overview should exist in SINGLE_TENANT mode. "
+                f"SENTRY_MODE={django_settings.SENTRY_MODE}"
+            )
+
+        reload(sentry.web.urls)

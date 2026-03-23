@@ -6,11 +6,11 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {Organization} from 'sentry/types/organization';
 
-import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
+import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHistory';
 
 describe('DeleteBillingMetricHistory', () => {
   // Add afterEach to clean up after tests
@@ -36,7 +36,7 @@ describe('DeleteBillingMetricHistory', () => {
   it('renders modal with billing config data', async () => {
     // Mock the billing config API call
     const billingConfigMock = MockApiClient.addMockResponse({
-      url: '/api/0/billing-config/',
+      url: '/billing-config/',
       body: {
         category_info: {
           '1': {
@@ -102,7 +102,7 @@ describe('DeleteBillingMetricHistory', () => {
   it('successfully deletes billing metric history when form is submitted', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
-      url: '/api/0/billing-config/',
+      url: '/billing-config/',
       body: {
         category_info: {
           '1': {
@@ -139,7 +139,7 @@ describe('DeleteBillingMetricHistory', () => {
 
     // Mock the API endpoint for deleting billing metric history
     const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
-      url: `/api/0/_admin/${organization.slug}/delete-billing-metric-history/`,
+      url: `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
       method: 'POST',
       body: {},
     });
@@ -168,7 +168,7 @@ describe('DeleteBillingMetricHistory', () => {
 
     // Check that the API call was made with the correct parameters
     expect(deleteBillingMetricHistoryMock).toHaveBeenCalledWith(
-      `/api/0/_admin/${organization.slug}/delete-billing-metric-history/`,
+      `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
       expect.objectContaining({
         method: 'POST',
         data: {
@@ -189,7 +189,7 @@ describe('DeleteBillingMetricHistory', () => {
   it('shows error message when API request fails', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
-      url: '/api/0/billing-config/',
+      url: '/billing-config/',
       body: {
         category_info: {
           '1': {
@@ -216,7 +216,7 @@ describe('DeleteBillingMetricHistory', () => {
 
     // Mock the API endpoint to return an error
     const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
-      url: `/api/0/_admin/${organization.slug}/delete-billing-metric-history/`,
+      url: `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
       method: 'POST',
       statusCode: 400,
       body: {
@@ -259,7 +259,7 @@ describe('DeleteBillingMetricHistory', () => {
   it('disables Submit button when no data category is selected', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
-      url: '/api/0/billing-config/',
+      url: '/billing-config/',
       body: {
         category_info: {
           '1': {
@@ -306,7 +306,7 @@ describe('DeleteBillingMetricHistory', () => {
   it('closes modal when Cancel button is clicked', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
-      url: '/api/0/billing-config/',
+      url: '/billing-config/',
       body: {
         category_info: {
           '1': {

@@ -1,28 +1,35 @@
+import {useCallback} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
+import {parseApiError} from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/buildDetailsMetricCards';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
+import {openMissingDsymModal} from 'sentry/views/preprod/components/missingDsymModal';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
-import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
+  isSizeInfoPending,
   isSizeInfoProcessing,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -36,6 +43,8 @@ interface BuildDetailsMainContentProps {
   onRerunAnalysis: () => void;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
+  projectId?: string;
+  projectType?: string | null;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
@@ -45,6 +54,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeQuery,
     buildDetailsData,
     isBuildDetailsPending = false,
+    projectType,
+    projectId,
   } = props;
   const {
     data: appSizeData,
@@ -52,6 +63,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     isError: isAppSizeError,
     error: appSizeError,
   } = appSizeQuery;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openInsightsSidebar = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.set('insights', 'open');
+    setSearchParams(next);
+  }, [searchParams, setSearchParams]);
 
   // If the main data fetch fails, this component will not be rendered
   // so we don't handle 'isBuildDetailsError'.
@@ -73,12 +90,17 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     fieldName: 'search',
   });
 
+  const [highlightInsights, setHighlightInsights] = useQueryState(
+    'highlightInsights',
+    parseAsBoolean.withDefault(true)
+  );
+
   const [selectedCategoriesParam, setSelectedCategoriesParam] =
     useQueryParamState<string>({
       fieldName: 'categories',
     });
 
-  const selectedCategories: Set<TreemapType> = selectedCategoriesParam
+  const selectedCategories = selectedCategoriesParam
     ? new Set(
         selectedCategoriesParam
           .split(',')
@@ -87,7 +109,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           )
           .map(c => c as TreemapType)
       )
-    : new Set();
+    : new Set<TreemapType>();
 
   const handleToggleCategory = (category: TreemapType) => {
     const next = new Set(selectedCategories);
@@ -101,24 +123,44 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   const sizeInfo = buildDetailsData?.size_info;
   const isLoadingRequests = isAppSizeLoading || isBuildDetailsPending;
-  const isSizeNotStarted = sizeInfo === undefined;
+  const isSizeStarted = sizeInfo !== undefined && sizeInfo !== null;
   const isSizeFailed = sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED;
-  const showNoSizeRequested = !isLoadingRequests && isSizeNotStarted;
+  const isSizeNotRan = sizeInfo?.state === BuildDetailsSizeAnalysisState.NOT_RAN;
+  const showNoSizeRequested = !isLoadingRequests && !isSizeStarted;
 
   if (isLoadingRequests) {
     return (
-      <Stack gap="lg" width="100%">
-        <Flex width="100%" justify="between" align="center" gap="md">
-          <Placeholder width="92px" height="40px" />
-          <Placeholder style={{flex: 1}} height="40px" />
+      <Stack gap="xl" minHeight="700px" width="100%">
+        <Flex gap="lg" wrap="wrap">
+          <Placeholder style={{flex: 1}} height="100px" />
+          <Placeholder style={{flex: 1}} height="100px" />
+          <Placeholder style={{flex: 1}} height="100px" />
         </Flex>
-        <Placeholder width="100%" height="540px" />
-        <Placeholder height="140px" />
+        <Stack gap="sm">
+          <Flex width="100%" justify="between" align="center" gap="md">
+            <Placeholder width="92px" height="40px" />
+            <Placeholder style={{flex: 1}} height="40px" />
+          </Flex>
+          <Placeholder width="100%" height="540px" />
+          <Placeholder height="140px" />
+        </Stack>
+        <Placeholder height="200px" />
       </Stack>
     );
   }
 
   const isWaitingForData = !appSizeData && !isAppSizeError;
+
+  if (isSizeInfoPending(sizeInfo)) {
+    return (
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
+        <BuildProcessing
+          title={t('Queued for analysis')}
+          message={t('Your build is in the queue and will start processing soon...')}
+        />
+      </Flex>
+    );
+  }
 
   if (isSizeInfoProcessing(sizeInfo) || isWaitingForData) {
     return (
@@ -166,14 +208,30 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  // TODO(EME-302): Currently we don't set the size metrics
-  // error_{code,message} correctly so we often see this.
+  if (isSizeNotRan) {
+    return (
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
+        <BuildError
+          title={t('Size analysis not started')}
+          message={
+            sizeInfo.error_message || t('Size analysis was not started for this build.')
+          }
+        />
+      </Flex>
+    );
+  }
+
   if (isAppSizeError) {
+    const errorMessage = appSizeError ? parseApiError(appSizeError) : 'Unknown API Error';
     return (
       <Flex width="100%" justify="center" align="center" minHeight="60vh">
         <BuildError
           title={t('Size analysis failed')}
-          message={appSizeError?.message ?? t('The treemap data could not be loaded')}
+          message={
+            errorMessage === 'Unknown API Error'
+              ? t('The treemap data could not be loaded')
+              : errorMessage
+          }
         >
           <Button
             priority="primary"
@@ -204,13 +262,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeData.insights && totalSize > 0
       ? processInsights(appSizeData.insights, totalSize)
       : [];
-
   const categoriesEnabled =
     appSizeData.treemap.category_breakdown &&
     Object.keys(appSizeData.treemap.category_breakdown).length > 0;
 
-  const missingDsymBinaries =
-    buildDetailsData?.app_info?.apple_app_info?.missing_dsym_binaries;
+  const missingDsymBinaries = appSizeData.missing_dsym_binaries;
 
   const missingProguardMapping =
     buildDetailsData?.app_info?.android_app_info?.has_proguard_mapping === false;
@@ -219,13 +275,14 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     if (missingDsymBinaries && missingDsymBinaries.length > 0) {
       if (missingDsymBinaries?.length === 1) {
         return t(
-          'Missing debug symbols for some binaries (%s). Those binaries will not have a detailed breakdown.',
+          'Missing debug symbols for %s. This binary will not have a detailed breakdown.',
           missingDsymBinaries[0]
         );
       }
       return t(
-        'Missing debug symbols for some binaries (%s and others). Those binaries will not have a detailed breakdown.',
-        missingDsymBinaries[0]
+        'Missing debug symbols for some binaries (%s and %s others). Those binaries will not have a detailed breakdown. Click to view details.',
+        missingDsymBinaries[0],
+        missingDsymBinaries.length - 1
       );
     }
 
@@ -235,6 +292,21 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
     return undefined;
   };
+
+  const handleAlertClick = () => {
+    if (missingDsymBinaries && missingDsymBinaries.length > 0) {
+      openMissingDsymModal(missingDsymBinaries);
+    }
+  };
+
+  // Determine if insights highlighting is available:
+  // 1. The treemap must have flagged_insights support (new schema)
+  // 2. There must be at least one insight in the insights object
+  const hasFlaggedInsightsSupport = 'flagged_insights' in appSizeData.treemap.root;
+  const hasAnyInsights = appSizeData.insights
+    ? Object.keys(appSizeData.insights).length > 0
+    : false;
+  const insightsAvailable = hasFlaggedInsightsSupport && hasAnyInsights;
 
   // Filter data based on search query and categories
   const filteredRoot = filterTreemapElement(
@@ -260,10 +332,18 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             searchQuery={searchQuery || ''}
             unfilteredRoot={appSizeData.treemap.root}
             alertMessage={getAlertMessage()}
+            onAlertClick={
+              missingDsymBinaries && missingDsymBinaries.length > 1
+                ? handleAlertClick
+                : undefined
+            }
             onSearchChange={value => setSearchQuery(value || undefined)}
+            highlightInsights={highlightInsights}
+            onHighlightInsightsChange={setHighlightInsights}
+            insightsAvailable={insightsAvailable}
           />
         ) : (
-          <Alert type="info">No files found matching "{searchQuery}"</Alert>
+          <Alert variant="info">No files found matching "{searchQuery}"</Alert>
         )
       ) : (
         <AppSizeCategories treemapData={appSizeData.treemap} />
@@ -275,50 +355,69 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         searchQuery={searchQuery || ''}
         unfilteredRoot={appSizeData.treemap.root}
         alertMessage={getAlertMessage()}
+        onAlertClick={
+          missingDsymBinaries && missingDsymBinaries.length > 1
+            ? handleAlertClick
+            : undefined
+        }
         onSearchChange={value => setSearchQuery(value || undefined)}
+        highlightInsights={highlightInsights}
+        onHighlightInsightsChange={setHighlightInsights}
+        insightsAvailable={insightsAvailable}
       />
     ) : (
-      <Alert type="info">No files found matching "{searchQuery}"</Alert>
+      <Alert variant="info">No files found matching "{searchQuery}"</Alert>
     );
   }
 
   return (
-    <Flex direction="column" gap="sm" minHeight="700px" width="100%">
-      <Flex align="center" gap="md">
-        {categoriesEnabled && (
-          <SegmentedControl value={selectedContent} onChange={handleContentChange}>
-            <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
-            <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
-          </SegmentedControl>
-        )}
-        {selectedContent === 'treemap' && (
-          <InputGroup style={{flexGrow: 1}}>
-            <InputGroup.LeadingItems>
-              <IconSearch />
-            </InputGroup.LeadingItems>
-            <InputGroup.Input
-              placeholder="Search files"
-              value={searchQuery || ''}
-              onChange={e => setSearchQuery(e.target.value || undefined)}
-            />
-            {searchQuery && (
-              <InputGroup.TrailingItems>
-                <Button
-                  onClick={() => setSearchQuery(undefined)}
-                  aria-label="Clear search"
-                  borderless
-                  size="zero"
-                >
-                  <IconClose size="sm" />
-                </Button>
-              </InputGroup.TrailingItems>
-            )}
-          </InputGroup>
-        )}
-      </Flex>
-      <ChartContainer>{visualizationContent}</ChartContainer>
+    <Stack gap="xl" minHeight="700px" width="100%">
+      <BuildDetailsMetricCards
+        sizeInfo={sizeInfo}
+        processedInsights={processedInsights}
+        totalSize={totalSize}
+        artifactId={buildDetailsData?.id}
+        baseArtifactId={buildDetailsData?.base_artifact_id ?? null}
+        platform={buildDetailsData?.app_info?.platform ?? null}
+        projectType={projectType ?? null}
+        projectId={projectId}
+        onOpenInsightsSidebar={openInsightsSidebar}
+      />
 
-      <Stack gap="xl">
+      <Stack gap="sm">
+        <Flex align="center" gap="md">
+          {categoriesEnabled && (
+            <SegmentedControl value={selectedContent} onChange={handleContentChange}>
+              <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
+              <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
+            </SegmentedControl>
+          )}
+          {selectedContent === 'treemap' && (
+            <InputGroup style={{flexGrow: 1}}>
+              <InputGroup.LeadingItems>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input
+                placeholder="Search files"
+                value={searchQuery || ''}
+                onChange={e => setSearchQuery(e.target.value || undefined)}
+              />
+              {searchQuery && (
+                <InputGroup.TrailingItems>
+                  <Button
+                    onClick={() => setSearchQuery(undefined)}
+                    aria-label="Clear search"
+                    priority="transparent"
+                    size="zero"
+                  >
+                    <IconClose size="sm" />
+                  </Button>
+                </InputGroup.TrailingItems>
+              )}
+            </InputGroup>
+          )}
+        </Flex>
+        <ChartContainer>{visualizationContent}</ChartContainer>
         {selectedContent === 'treemap' && appSizeData && (
           <AppSizeLegend
             root={appSizeData.treemap.root}
@@ -326,12 +425,14 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             onToggleCategory={handleToggleCategory}
           />
         )}
-        <AppSizeInsights
-          processedInsights={processedInsights}
-          platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
-        />
       </Stack>
-    </Flex>
+
+      <AppSizeInsights
+        processedInsights={processedInsights}
+        platform={validatedPlatform(buildDetailsData?.app_info?.platform ?? undefined)}
+        projectType={projectType}
+      />
+    </Stack>
   );
 }
 

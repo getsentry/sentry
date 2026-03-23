@@ -1,29 +1,31 @@
 import {Fragment, useCallback, useState} from 'react';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import TimeSince from 'sentry/components/timeSince';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {TimeSince} from 'sentry/components/timeSince';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
-import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getMonitorRefetchInterval,
   getNextCheckInEnv,
@@ -31,14 +33,18 @@ import {
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
+import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
-import {useDetectorQuery} from 'sentry/views/detectors/hooks';
+import {
+  makeDetectorDetailsQueryKey,
+  useDetectorQuery,
+} from 'sentry/views/detectors/hooks';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
-import MonitorQuickStartGuide from 'sentry/views/insights/crons/components/monitorQuickStartGuide';
+import {MonitorQuickStartGuide} from 'sentry/views/insights/crons/components/monitorQuickStartGuide';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
 import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
 import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneOverride';
@@ -68,6 +74,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
   const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
+  const queryClient = useQueryClient();
 
   useDetectorQuery<CronDetector>(detector.id, {
     staleTime: 0,
@@ -81,6 +88,14 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
       return getMonitorRefetchInterval(monitor, new Date());
     },
   });
+
+  const handleEnvironmentUpdated = useCallback(() => {
+    const queryKey = makeDetectorDetailsQueryKey({
+      orgSlug: organization.slug,
+      detectorId: detector.id,
+    });
+    queryClient.invalidateQueries({queryKey});
+  }, [queryClient, organization.slug, detector.id]);
 
   const {checkinErrors, handleDismissError} = useMonitorProcessingErrors({
     organization,
@@ -156,6 +171,10 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 onTimezoneSelected={setTimezoneOverride}
               />
             </Flex>
+            <DisabledAlert
+              detector={detector}
+              message={t('This monitor is disabled and not accepting check-ins.')}
+            />
             {!!checkinErrors?.length && (
               <MonitorProcessingErrors
                 checkinErrors={checkinErrors}
@@ -169,6 +188,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 <DetailsTimeline
                   monitor={filteredMonitor}
                   onStatsLoaded={checkHasUnknown}
+                  onEnvironmentUpdated={handleEnvironmentUpdated}
                 />
                 <ErrorBoundary mini>
                   <DetectorDetailsOpenPeriodIssues
@@ -240,7 +260,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                       text={dataSource.queryObj.slug}
                       aria-label={t('Copy monitor slug to clipboard')}
                       size="zero"
-                      borderless
+                      priority="transparent"
                     />
                   </Flex>
                 }
@@ -282,7 +302,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               <DetectorExtraDetails.LastModified detector={detector} />
             </DetectorExtraDetails>
             {dataSource.queryObj.isUpserting && (
-              <Alert type="muted" icon={<IconJson />}>
+              <Alert variant="muted" icon={<IconJson />}>
                 {t(
                   'This monitor is managed in code and updates automatically with each check-in.'
                 )}

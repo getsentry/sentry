@@ -1,35 +1,36 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Confirm} from 'sentry/components/confirm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Scope} from 'sentry/types/core';
 import {IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {
   setApiQueryData,
   useApiQuery,
@@ -37,12 +38,11 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 // These labels need to be exported so that they can be used in audit logs
@@ -158,15 +158,27 @@ const formFields: Field[] = [
 ];
 
 const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/transaction-threshold/configure/`,
+  getApiUrl(
+    `/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/`,
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }
+  ),
 ];
 
 const getPerformanceIssueSettingsQueryKey = (
   orgSlug: string,
   projectSlug: string
-): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/performance-issues/configure/`];
+): ApiQueryKey => [
+  getApiUrl(
+    `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/`,
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }
+  ),
+];
 
-function ProjectPerformance() {
+export function ProjectPerformance() {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const {projectId: projectSlug} = useParams<{projectId: string}>();
@@ -209,7 +221,14 @@ function ProjectPerformance() {
     isPending: isPendingGeneral,
     isError: isErrorGeneral,
   } = useApiQuery<any>(
-    [`/projects/${organization.slug}/${projectSlug}/performance/configure/`],
+    [
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/`,
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        }
+      ),
+    ],
     {
       staleTime: 0,
     }
@@ -785,9 +804,7 @@ function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
             ),
             disabledReason,
-            visible: organization.features.includes(
-              'large-http-payload-detector-improvements'
-            ),
+            visible: true,
           },
         ],
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -1236,7 +1253,7 @@ const Actions = styled(PanelItem)`
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: none;
 `;
 
@@ -1248,7 +1265,7 @@ const StyledJsonForm = styled(JsonForm)`
   }
 
   ${FieldWrapper} {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   ${FieldWrapper} + ${FieldWrapper} {
@@ -1256,7 +1273,7 @@ const StyledJsonForm = styled(JsonForm)`
   }
 
   ${Panel} + ${Panel} {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   ${PanelHeader} {
@@ -1264,23 +1281,21 @@ const StyledJsonForm = styled(JsonForm)`
     text-transform: none;
     margin-bottom: 0;
     background: none;
-    padding: ${space(3)} ${space(2)};
+    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
   }
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 calc(${p => p.theme.borderRadius} - 1px)
-    calc(${p => p.theme.borderRadius} - 1px);
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: 0 0 calc(${p => p.theme.radius.md} - 1px)
+    calc(${p => p.theme.radius.md} - 1px);
 
   ${Actions} {
-    padding: ${space(1.5)};
+    padding: ${p => p.theme.space.lg};
   }
 `;
 
 const LoadingIndicatorContainer = styled('div')`
   margin: 18px 18px 0;
 `;
-
-export default ProjectPerformance;

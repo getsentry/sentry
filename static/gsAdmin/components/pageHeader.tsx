@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type Props = Omit<React.HTMLProps<HTMLHeadingElement>, 'title'> & {
   title: React.ReactNode;
   breadcrumbs?: React.ReactNode[];
@@ -10,13 +8,13 @@ type Props = Omit<React.HTMLProps<HTMLHeadingElement>, 'title'> & {
 const Breadcrumbs = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.lg};
+  gap: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.lg};
 
   & > *:not(:first-child) {
     display: flex;
     align-items: center;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space.md};
 
     &:before {
       content: '\203A';
@@ -25,12 +23,12 @@ const Breadcrumbs = styled('div')`
 `;
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   text-transform: uppercase;
   margin: 0;
 `;
 
-const PageHeader = styled(({children, title, breadcrumbs, ...props}: Props) => (
+export const PageHeader = styled(({children, title, breadcrumbs, ...props}: Props) => (
   <header {...props}>
     <Breadcrumbs>
       <Heading>{title}</Heading>
@@ -42,11 +40,9 @@ const PageHeader = styled(({children, title, breadcrumbs, ...props}: Props) => (
   </header>
 ))`
   padding: 0;
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space.xl} 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: 40px;
 `;
-
-export default PageHeader;

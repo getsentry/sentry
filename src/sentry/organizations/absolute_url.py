@@ -27,6 +27,7 @@ _path_patterns: list[tuple[re.Pattern[str], str]] = [
         re.compile(r"^\/?(?!settings)[^/]+\/([^/]+)\/getting-started\/(.*)"),
         r"/getting-started/\1/\2",
     ),
+    (re.compile(r"^\/?checkout\/[^/]+\/(.*)"), r"/checkout/\1"),
 ]
 
 

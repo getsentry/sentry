@@ -1,6 +1,7 @@
 import type {ReleaseWithHealth} from 'sentry/types/release';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useReleaseDetails(
   {release}: {release: string},
@@ -9,7 +10,9 @@ export function useReleaseDetails(
   const organization = useOrganization();
   return useApiQuery<ReleaseWithHealth>(
     [
-      `/organizations/${organization.slug}/releases/${encodeURIComponent(release)}/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/releases/$version/`, {
+        path: {organizationIdOrSlug: organization.slug, version: release},
+      }),
       {
         query: {},
       },

@@ -1,7 +1,5 @@
 ---
-created: '2025-11-05T23:19:06.766206+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
   "grouping_config": "newstyle:2023-01-11",
@@ -34,7 +32,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "id": "value",
                 "name": null,
                 "values": [
-                  "GET /issues/<int>/events/latest/ <int>"
+                  "GET /issues/<hex>/events/latest/ <int>"
                 ]
               },
               {
@@ -876,7 +874,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "id": "value",
                 "name": null,
                 "values": [
-                  "GET /issues/<int>/events/latest/ <int>"
+                  "GET /issues/<hex>/events/latest/ <int>"
                 ]
               },
               {

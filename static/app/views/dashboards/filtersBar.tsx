@@ -1,54 +1,121 @@
-import {Fragment, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import {createParser, useQueryState} from 'nuqs';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  DEFAULT_RELEASES_SORT,
+  RELEASES_SORT_OPTIONS,
+  ReleasesSortOption,
+} from 'sentry/constants/releases';
+import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
-import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
-import GenericFilterSelector from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
+import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
-import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
+import {
+  PREBUILT_DASHBOARDS,
+  type PrebuiltDashboardId,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
-import ReleasesSelectControl from './releasesSelectControl';
-import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';
-import {DashboardFilterKeys} from './types';
+import {SortableReleasesSelect} from './sortableReleasesSelect';
+import type {
+  DashboardDetails,
+  DashboardFilters,
+  DashboardPermissions,
+  GlobalFilter,
+  Widget,
+} from './types';
+import {DashboardFilterKeys, WidgetType} from './types';
 
-type FiltersBarProps = {
+/**
+ * Maps widget types to data categories for determining max pickable days
+ */
+function getDataCategoriesFromWidgets(
+  widgets: Widget[]
+): [DataCategory, ...DataCategory[]] {
+  const categories = new Set<DataCategory>();
+
+  for (const widget of widgets) {
+    const widgetType = widget.widgetType ?? WidgetType.DISCOVER;
+
+    switch (widgetType) {
+      case WidgetType.SPANS:
+        categories.add(DataCategory.SPANS);
+        break;
+      case WidgetType.TRANSACTIONS:
+        categories.add(DataCategory.TRANSACTIONS);
+        break;
+      case WidgetType.TRACEMETRICS:
+        categories.add(DataCategory.TRACE_METRICS);
+        break;
+      case WidgetType.LOGS:
+        categories.add(DataCategory.LOG_ITEM);
+        break;
+      case WidgetType.ERRORS:
+      case WidgetType.DISCOVER:
+      case WidgetType.ISSUE:
+      case WidgetType.RELEASE:
+      case WidgetType.METRICS:
+      default:
+        // For error-like widgets, use TRANSACTIONS as a safe default
+        // since it has the most permissive date range
+        categories.add(DataCategory.TRANSACTIONS);
+        break;
+    }
+  }
+
+  // Return as tuple with at least one element (required by useMaxPickableDays)
+  const categoriesArray = Array.from(categories);
+  return categoriesArray.length > 0
+    ? (categoriesArray as [DataCategory, ...DataCategory[]])
+    : [DataCategory.TRANSACTIONS];
+}
+
+export type FiltersBarProps = {
   filters: DashboardFilters;
-  hasTemporaryFilters: boolean;
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
   isPreview: boolean;
   location: Location;
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
+  dashboard?: DashboardDetails;
   dashboardCreator?: User;
   dashboardPermissions?: DashboardPermissions;
   onCancel?: () => void;
   onSave?: () => Promise<void>;
+  prebuiltDashboardId?: PrebuiltDashboardId;
   shouldBusySaveButton?: boolean;
+  storageNamespace?: string;
 };
 
-export default function FiltersBar({
+export function FiltersBar({
   filters,
-  hasTemporaryFilters,
+  dashboard,
   dashboardPermissions,
   dashboardCreator,
   hasUnsavedChanges,
@@ -59,13 +126,42 @@ export default function FiltersBar({
   onDashboardFilterChange,
   onSave,
   shouldBusySaveButton,
+  prebuiltDashboardId,
+  storageNamespace,
 }: FiltersBarProps) {
-  const {selection} = usePageFilters();
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
-  const hasDrillDownFlowsFeature = useHasDrillDownFlows();
+  const isPrebuiltDashboard = defined(prebuiltDashboardId);
+  const prebuiltDashboardFilters = prebuiltDashboardId
+    ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
+    : [];
+
+  // Determine data categories based on widget types in the dashboard
+  const dataCategories = useMemo(() => {
+    if (!dashboard?.widgets || dashboard.widgets.length === 0) {
+      // Default to TRANSACTIONS if no widgets
+      return [DataCategory.TRANSACTIONS] as [DataCategory, ...DataCategory[]];
+    }
+
+    return getDataCategoriesFromWidgets(dashboard.widgets);
+  }, [dashboard?.widgets]);
+
+  // Calculate maxPickableDays based on the data categories
+  const maxPickableDaysOptions = useMaxPickableDays({dataCategories});
+
+  // Release sort state - validates and defaults to DATE via custom parser
+  const [releaseSort, setReleaseSort] = useQueryState('sortReleasesBy', parseReleaseSort);
+
+  // Reset sort to default if ADOPTION is selected but environment requirement isn't met
+  const {selection} = usePageFilters();
+  const {environments} = selection;
+  useEffect(() => {
+    if (releaseSort === ReleasesSortOption.ADOPTION && environments.length !== 1) {
+      setReleaseSort(DEFAULT_RELEASES_SORT);
+    }
+  }, [releaseSort, environments.length, setReleaseSort]);
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -84,20 +180,46 @@ export default function FiltersBar({
     [];
 
   const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
-    const globalFilters =
-      dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      [];
+    const savedFilters = filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+    const initialFilters =
+      savedFilters.length > 0 ? savedFilters : prebuiltDashboardFilters;
+    const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
 
-    if (hasDrillDownFlowsFeature) {
-      return [
-        ...globalFilters,
-        ...(dashboardFiltersFromURL?.[DashboardFilterKeys.TEMPORARY_FILTERS] ?? []),
-      ];
+    if (!urlFilters) {
+      return initialFilters;
     }
 
-    return globalFilters;
+    // Empty array means user explicitly cleared all filters — respect that
+    if (urlFilters.length === 0) {
+      return urlFilters;
+    }
+
+    const nonOverlapping = initialFilters.filter(
+      saved => !urlFilters.some(url => globalFilterKeysAreEqual(saved, url))
+    );
+
+    return [...nonOverlapping, ...urlFilters];
   });
+
+  // Sync merged filters to the URL on mount so widgets see the same filters
+  // as the filter bar. Without this, the filter bar shows merged [saved + URL]
+  // filters but widgets only query with raw URL filters.
+  useEffect(() => {
+    const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
+
+    // Only sync if URL has non-empty filters AND saved filters were merged in
+    if (
+      urlFilters &&
+      urlFilters.length > 0 &&
+      activeGlobalFilters.length > urlFilters.length
+    ) {
+      onDashboardFilterChange({
+        [DashboardFilterKeys.RELEASE]: selectedReleases,
+        [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
     setActiveGlobalFilters(newGlobalFilters);
@@ -107,130 +229,189 @@ export default function FiltersBar({
     });
   };
 
+  const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
+
+  const hasIntervalSelection = organization.features.includes(
+    'dashboards-interval-selection'
+  );
+  const [interval, setInterval, intervalOptions] = useChartInterval();
+
   return (
     <Wrapper>
-      <PageFilterBar condensed>
-        <ProjectPageFilter
-          disabled={isEditingDashboard}
-          onChange={() => {
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'project',
-            });
-          }}
-        />
-        <EnvironmentPageFilter
-          disabled={isEditingDashboard}
-          onChange={() => {
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'environment',
-            });
-          }}
-        />
-        <DatePageFilter
-          disabled={isEditingDashboard}
-          onChange={() => {
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'date',
-            });
-          }}
-        />
-      </PageFilterBar>
-      <ReleasesProvider organization={organization} selection={selection}>
-        <ReleasesSelectControl
+      <FiltersRow>
+        <PageFilterBar condensed>
+          <ProjectPageFilter
+            disabled={isEditingDashboard}
+            storageNamespace={storageNamespace}
+            onChange={() => {
+              trackAnalytics('dashboards2.filter.change', {
+                organization,
+                filter_type: 'project',
+              });
+            }}
+          />
+          <EnvironmentPageFilter
+            disabled={isEditingDashboard}
+            storageNamespace={storageNamespace}
+            onChange={() => {
+              trackAnalytics('dashboards2.filter.change', {
+                organization,
+                filter_type: 'environment',
+              });
+            }}
+          />
+          <DatePageFilter
+            disabled={isEditingDashboard}
+            maxPickableDays={maxPickableDaysOptions.maxPickableDays}
+            onChange={() => {
+              trackAnalytics('dashboards2.filter.change', {
+                organization,
+                filter_type: 'date',
+              });
+            }}
+          />
+        </PageFilterBar>
+        <SortableReleasesSelect
+          sortBy={releaseSort}
+          selectedReleases={selectedReleases}
+          isDisabled={isEditingDashboard}
           handleChangeFilter={activeFilters => {
             onDashboardFilterChange({
               ...activeFilters,
               [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
             });
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'release',
-            });
           }}
-          selectedReleases={selectedReleases}
-          isDisabled={isEditingDashboard}
+          onSortChange={setReleaseSort}
         />
-      </ReleasesProvider>
-      {organization.features.includes('dashboards-global-filters') && (
-        <Fragment>
-          {activeGlobalFilters.map(filter => (
-            <GenericFilterSelector
-              key={filter.tag.key + filter.value}
-              globalFilter={filter}
-              searchBarData={getSearchBarData(filter.dataset)}
-              onUpdateFilter={updatedFilter => {
-                updateGlobalFilters(
-                  activeGlobalFilters.map(f =>
-                    globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
-                  )
-                );
-              }}
-              onRemoveFilter={removedFilter => {
-                updateGlobalFilters(
-                  activeGlobalFilters.filter(
-                    f => !globalFilterKeysAreEqual(f, removedFilter)
-                  )
-                );
-                trackAnalytics('dashboards2.global_filter.remove', {
-                  organization,
-                });
-              }}
-            />
-          ))}
-          <AddFilter
-            globalFilters={activeGlobalFilters}
-            getSearchBarData={getSearchBarData}
-            onAddFilter={newFilter => {
-              updateGlobalFilters([...activeGlobalFilters, newFilter]);
-              trackAnalytics('dashboards2.global_filter.add', {
+        {activeGlobalFilters.map(filter => (
+          <GenericFilterSelector
+            disableRemoveFilter={
+              isPrebuiltDashboard &&
+              prebuiltDashboardFilters.some(
+                prebuiltFilter =>
+                  prebuiltFilter.tag.key === filter.tag.key &&
+                  prebuiltFilter.dataset === filter.dataset
+              )
+            }
+            key={filter.tag.key + filter.value}
+            globalFilter={filter}
+            searchBarData={getSearchBarData(filter.dataset)}
+            onUpdateFilter={updatedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.map(f =>
+                  globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
+                )
+              );
+            }}
+            onRemoveFilter={removedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.filter(
+                  f => !globalFilterKeysAreEqual(f, removedFilter)
+                )
+              );
+              trackAnalytics('dashboards2.global_filter.remove', {
                 organization,
               });
             }}
           />
-        </Fragment>
+        ))}
+        <AddFilter
+          globalFilters={activeGlobalFilters}
+          getSearchBarData={getSearchBarData}
+          onAddFilter={newFilter => {
+            updateGlobalFilters([...activeGlobalFilters, newFilter]);
+            trackAnalytics('dashboards2.global_filter.add', {
+              organization,
+            });
+          }}
+        />
+        {!hasTemporaryFilters &&
+          hasUnsavedChanges &&
+          !isEditingDashboard &&
+          !isPreview && (
+            <Grid flow="column" align="center" gap="md">
+              <Button
+                tooltipProps={{
+                  title:
+                    !hasEditAccess &&
+                    t('You do not have permission to edit this dashboard'),
+                }}
+                priority="primary"
+                onClick={async () => {
+                  await onSave?.();
+                  invalidateStarredDashboards();
+                }}
+                disabled={!hasEditAccess}
+                busy={shouldBusySaveButton}
+              >
+                {isPrebuiltDashboard ? t('Save for Everyone') : t('Save')}
+              </Button>
+              <Button
+                data-test-id="filter-bar-cancel"
+                onClick={() => {
+                  onCancel?.();
+                  // Reset local display state, falling back to prebuilt
+                  // defaults when no saved filters exist
+                  const displayFilters = filters.globalFilter?.length
+                    ? filters.globalFilter
+                    : prebuiltDashboardFilters;
+                  setActiveGlobalFilters(displayFilters);
+                  // Push saved filters (not display fallback) to avoid a
+                  // URL/DB mismatch that re-triggers hasUnsavedFilterChanges
+                  onDashboardFilterChange(filters);
+                }}
+              >
+                {t('Cancel')}
+              </Button>
+            </Grid>
+          )}
+        <ToggleOnDemand />
+      </FiltersRow>
+      {hasIntervalSelection && (
+        <CompactSelect
+          value={interval}
+          onChange={option => setInterval(option.value)}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconClock />}
+              priority="transparent"
+              showChevron={false}
+              size="xs"
+            />
+          )}
+          menuTitle={t('Interval')}
+          options={intervalOptions}
+        />
       )}
-      {!hasTemporaryFilters && hasUnsavedChanges && !isEditingDashboard && !isPreview && (
-        <ButtonBar>
-          <Button
-            title={
-              !hasEditAccess && t('You do not have permission to edit this dashboard')
-            }
-            priority="primary"
-            onClick={async () => {
-              await onSave?.();
-              invalidateStarredDashboards();
-            }}
-            disabled={!hasEditAccess}
-            busy={shouldBusySaveButton}
-          >
-            {t('Save')}
-          </Button>
-          <Button
-            data-test-id="filter-bar-cancel"
-            onClick={() => {
-              onCancel?.();
-              setActiveGlobalFilters(filters.globalFilter ?? []);
-              onDashboardFilterChange(filters);
-            }}
-          >
-            {t('Cancel')}
-          </Button>
-        </ButtonBar>
-      )}
-      <ToggleOnDemand />
     </Wrapper>
   );
 }
 
+const parseReleaseSort = createParser({
+  parse: (value: string): ReleasesSortOption => {
+    if (value in RELEASES_SORT_OPTIONS) {
+      return value as ReleasesSortOption;
+    }
+    return DEFAULT_RELEASES_SORT;
+  },
+  serialize: (value: ReleasesSortOption): string => value,
+}).withDefault(DEFAULT_RELEASES_SORT);
+
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
+  align-items: flex-start;
+`;
+
+const FiltersRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${p => p.theme.space.lg};
   flex-wrap: wrap;
+  flex: 1;
 
   & button[aria-haspopup] {
     height: 100%;

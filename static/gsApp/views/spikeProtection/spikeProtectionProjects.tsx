@@ -3,31 +3,32 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
-import Pagination from 'sentry/components/pagination';
+import {Confirm} from 'sentry/components/confirm';
+import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
+import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AvailableNotificationAction,
   NotificationAction,
 } from 'sentry/types/notificationActions';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ProjectBadge} from 'sentry/views/organizationStats/teamInsights/styles';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import trackSpendVisibilityAnaltyics, {
+import {
   SpendVisibilityEvents,
+  trackSpendVisibilityAnaltyics,
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
 import {
   SPIKE_PROTECTION_ERROR_MESSAGE,
@@ -37,7 +38,7 @@ import SpikeProtectionProjectToggle, {
   isSpikeProtectionEnabled,
 } from 'getsentry/views/spikeProtection/spikeProtectionProjectToggle';
 
-import AccordionRow from './components/accordionRow';
+import {AccordionRow} from './components/accordionRow';
 
 interface Props {
   subscription: Subscription;
@@ -214,14 +215,14 @@ function SpikeProtectionProjects({subscription}: Props) {
           disabled={!hasOrgWrite}
           priority={isEnabling ? 'primary' : 'default'}
           data-test-id={`sp-${action.toLowerCase()}-all`}
-          title={
-            hasOrgWrite
+          tooltipProps={{
+            title: hasOrgWrite
               ? undefined
               : tct(
                   `You do not have permission to [action] spike protection for all projects.`,
                   {action: action.toLowerCase()}
-                )
-          }
+                ),
+          }}
         >
           {tct('[action] All', {action})}
         </Button>
@@ -231,17 +232,16 @@ function SpikeProtectionProjects({subscription}: Props) {
 
   const renderAccordionTitle = (project: Project) => {
     return (
-      <StyledAccordionTitle>
-        <AccordionTitleCell>
+      <Flex justify="between" align="center" width="100%" height="100%">
+        <Flex align="center" marginRight="xl">
           <StyledProjectBadge hideOverflow project={project} displayName={project.slug} />
-        </AccordionTitleCell>
-      </StyledAccordionTitle>
+        </Flex>
+      </Flex>
     );
   };
 
   const renderAccordionBody = (project: Project) => {
-    const projectNotificationActions: NotificationAction[] =
-      notificationActionsById[project.id] ?? [];
+    const projectNotificationActions = notificationActionsById[project.id] ?? [];
 
     // Only render if all of the notification actions have been loaded
     if (isLoading) {
@@ -265,13 +265,13 @@ function SpikeProtectionProjects({subscription}: Props) {
 
   return (
     <Fragment>
-      <Container>
+      <Flex justify="between" marginBottom="xl">
         <StyledSearch placeholder={t('Search projects')} onChange={onChange} />
-        <StyledButtonBar gap="0" merged>
+        <ButtonBar marginLeft="xl">
           {AllProjectsAction(false)}
           {AllProjectsAction(true)}
-        </StyledButtonBar>
-      </Container>
+        </ButtonBar>
+      </Flex>
       <StyledPanelTable
         disablePadding={
           organization.features.includes('notification-actions') ? true : false
@@ -324,12 +324,6 @@ function SpikeProtectionProjects({subscription}: Props) {
 
 export default withSubscription(SpikeProtectionProjects);
 
-const Container = styled('div')`
-  margin-bottom: ${space(2)};
-  justify-content: space-between;
-  display: flex;
-`;
-
 const StyledSearch = styled(SearchBar)`
   flex: 1;
 `;
@@ -343,46 +337,28 @@ const StyledProjectBadge = styled(ProjectBadge)`
   font-weight: bold;
 `;
 
-const StyledAccordionTitle = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-`;
-
 const AccordionRowContainer = styled('div')`
   display: flex;
   width: 100%;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   padding-left: 0;
 `;
 
-const AccordionTitleCell = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-right: ${space(2)};
-`;
-
 const StyledAccordionDetails = styled('div')`
-  margin-right: ${space(3)};
-  margin-top: ${space(2)};
-  padding-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  margin-right: ${p => p.theme.space['2xl']};
+  margin-top: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledPanelTableHeader = styled('div')`
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space.xl};
 `;
 
 const StyledPanelToggle = styled(SpikeProtectionProjectToggle)`
   height: 100%;
   border-bottom: none;
   padding: 0;
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
   align-items: start;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  margin-left: ${space(2)};
 `;

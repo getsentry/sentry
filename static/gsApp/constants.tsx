@@ -19,7 +19,7 @@ export const CPE_MULTIPLIER_TO_CENTS = 0.000001;
 export const GIGABYTE = 10 ** 9;
 
 // the first tier is the default tier
-export const SUPPORTED_TIERS = [PlanTier.AM3, PlanTier.AM2, PlanTier.AM1];
+const SUPPORTED_TIERS = [PlanTier.AM3, PlanTier.AM2, PlanTier.AM1];
 export const DEFAULT_TIER = SUPPORTED_TIERS[0];
 export const UPSELL_TIER = SUPPORTED_TIERS[1]; // TODO(am3): Update to DEFAULT_TIER when upsells are configured for AM3
 
@@ -54,13 +54,13 @@ Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
       ...categoryInfo,
       canAllocate: false,
       canProductTrial: false,
-      maxAdminGift: 0,
       freeEventsMultiple: 0,
       feature: null,
       hasSpikeProtection: false,
       checkoutTooltip: null,
       tallyType: 'usage',
       hasPerCategory: false,
+      adminOnlyProductTrialFeature: null,
     };
   }
 );
@@ -75,7 +75,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ERROR],
     canAllocate: true,
-    maxAdminGift: 10_000_000,
     freeEventsMultiple: 1_000,
     hasSpikeProtection: true,
     checkoutTooltip: t(
@@ -87,7 +86,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.TRANSACTION],
     canAllocate: true,
     canProductTrial: true,
-    maxAdminGift: 50_000_000,
     freeEventsMultiple: 1_000,
     feature: 'performance-view',
     hasSpikeProtection: true,
@@ -100,7 +98,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.ATTACHMENT]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT],
     canAllocate: true,
-    maxAdminGift: 10_000,
     freeEventsMultiple: 1,
     feature: 'event-attachments',
     hasSpikeProtection: true,
@@ -111,7 +108,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.REPLAY]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.REPLAY],
     canProductTrial: true,
-    maxAdminGift: 1_000_000,
     freeEventsMultiple: 1,
     feature: 'session-replay',
     checkoutTooltip: t(
@@ -122,7 +118,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.SPAN]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN],
     canProductTrial: true,
-    maxAdminGift: 1_000_000_000,
     freeEventsMultiple: 100_000,
     feature: 'spans-usage-tracking',
     hasSpikeProtection: true,
@@ -133,13 +128,11 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.SPAN_INDEXED]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED],
     canProductTrial: true,
-    maxAdminGift: 1_000_000_000,
     freeEventsMultiple: 100_000,
     feature: 'spans-usage-tracking',
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT],
-    maxAdminGift: 10_000,
     freeEventsMultiple: 1,
     feature: 'monitor-seat-billing',
     tallyType: 'seat',
@@ -151,7 +144,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.UPTIME]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.UPTIME],
-    maxAdminGift: 10_000,
     freeEventsMultiple: 1,
     feature: 'uptime-billing',
     tallyType: 'seat',
@@ -164,7 +156,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.PROFILE_DURATION]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION],
     canProductTrial: true,
-    maxAdminGift: 10_000,
     freeEventsMultiple: 1, // in hours
     hasPerCategory: true,
     checkoutTooltip: t(
@@ -175,7 +166,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION_UI],
     canProductTrial: true,
-    maxAdminGift: 10_000,
     freeEventsMultiple: 1, // in hours
     hasPerCategory: true,
     checkoutTooltip: t(
@@ -198,7 +188,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.LOG_BYTE],
     canAllocate: false,
     canProductTrial: true,
-    maxAdminGift: 10_000,
     freeEventsMultiple: 1,
     hasSpikeProtection: false,
     feature: 'logs-billing',
@@ -207,11 +196,24 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ),
     shortenedUnitName: 'GB',
   },
-  [DataCategoryExact.PREVENT_USER]: {
-    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PREVENT_USER],
-    feature: 'prevent-billing',
-    canProductTrial: true,
-    maxAdminGift: 10_000, // TODO(prevent): Update this to the actual max admin gift
+  [DataCategoryExact.SEER_USER]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_USER],
+    feature: 'seer-user-billing-launch',
+    canProductTrial: false,
+    freeEventsMultiple: 1,
     tallyType: 'seat',
+    shortenedUnitName: t('contributor'),
+  },
+  [DataCategoryExact.SIZE_ANALYSIS]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SIZE_ANALYSIS],
+    freeEventsMultiple: 1,
+    shortenedUnitName: t('build'),
+    adminOnlyProductTrialFeature: true,
+  },
+  [DataCategoryExact.INSTALLABLE_BUILD]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.INSTALLABLE_BUILD],
+    freeEventsMultiple: 1,
+    shortenedUnitName: t('install'),
+    adminOnlyProductTrialFeature: 'expose-category-installable-build',
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

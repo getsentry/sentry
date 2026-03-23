@@ -1,9 +1,10 @@
 import unittest.mock as mock
+from typing import Any
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.types import (
     DataConditionResult,
     DetectorGroupKey,
@@ -99,6 +100,43 @@ class TestStatefulDetectorHandler(TestCase):
             handler = MockDetectorStateHandler(detector=fetched_detector)
             assert handler._thresholds == {Level.OK: 1, Level.HIGH: 1}
 
+    def test_bulk_commit_skips_update_when_state_unchanged(self) -> None:
+        group_key: DetectorGroupKey = None
+
+        detector_state = self.create_detector_state(
+            detector=self.detector,
+            detector_group_key=group_key,
+            is_triggered=False,
+            state=Level.OK,
+        )
+
+        handler = MockDetectorStateHandler(
+            detector=self.detector,
+            thresholds={Level.HIGH: 1},
+        )
+
+        # First update changes state - should call bulk_update
+        handler.state_manager.enqueue_state_update(
+            group_key, is_triggered=True, priority=Level.HIGH
+        )
+        with mock.patch.object(
+            DetectorState.objects, "bulk_update", wraps=DetectorState.objects.bulk_update
+        ) as mock_bulk_update:
+            handler.state_manager.commit_state_updates()
+            mock_bulk_update.assert_called_once()
+
+        detector_state.refresh_from_db()
+        assert detector_state.is_triggered is True
+        assert detector_state.state == str(Level.HIGH)
+
+        # Second update with same state - should not call bulk_update
+        handler.state_manager.enqueue_state_update(
+            group_key, is_triggered=True, priority=Level.HIGH
+        )
+        with mock.patch.object(DetectorState.objects, "bulk_update") as mock_bulk_update:
+            handler.state_manager.commit_state_updates()
+            mock_bulk_update.assert_not_called()
+
 
 class TestStatefulDetectorIncrementThresholds(TestCase):
     def setUp(self) -> None:
@@ -189,7 +227,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             },
         )
 
-    def packet(self, key: int, result: DataConditionResult | str) -> DataPacket:
+    def packet(self, key: int, result: DataConditionResult | str) -> DataPacket[Any]:
         """
         Constructs a test data packet that will evaluate to the
         DetectorPriorityLevel specified for the result parameter.
@@ -403,7 +441,27 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert state_data.is_triggered is True
         assert state_data.status == Level.LOW
 
-    def test_evaluate__condition_hole(self):
+    def test_evaluate__counter_reset_for_non_none_group_key(self) -> None:
+        self.group_key = "group1"
+
+        # Trigger HIGH priority
+        result = self.handler.evaluate(self.packet(1, Level.HIGH))
+        assert result == {}
+        result = self.handler.evaluate(self.packet(2, Level.HIGH))
+        assert result[self.group_key].priority == Level.HIGH
+
+        # Evaluate again at HIGH priority (same as current state)
+        result = self.handler.evaluate(self.packet(3, Level.HIGH))
+        assert result == {}
+
+        # Evaluate at MEDIUM priority - should require 2 evaluations to trigger
+        result = self.handler.evaluate(self.packet(4, Level.MEDIUM))
+        assert result == {}
+
+        result = self.handler.evaluate(self.packet(5, Level.MEDIUM))
+        assert result[self.group_key].priority == Level.MEDIUM
+
+    def test_evaluate__condition_hole(self) -> None:
         detector = self.create_detector(
             name="Stateful Detector",
             project=self.project,

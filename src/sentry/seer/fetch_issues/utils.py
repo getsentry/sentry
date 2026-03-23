@@ -12,7 +12,9 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.sentry_data_models import IssueDetails
+from sentry.seer.utils import filter_repo_by_provider
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +23,20 @@ MAX_NUM_ISSUES_DEFAULT = 10
 MAX_NUM_DAYS_AGO_DEFAULT = 90
 
 
-def handle_fetch_issues_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
+class SeerResponseError(TypedDict):
+    error: str
+
+
+def handle_fetch_issues_exceptions[R](
+    func: Callable[..., R],
+) -> Callable[..., R | SeerResponseError]:
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args: Any, **kwargs: Any) -> R | SeerResponseError:
         try:
             return func(*args, **kwargs)
         except Exception as e:
             logger.warning("Exception in fetch_issues function", exc_info=True)
-            return {"error": str(e)}
+            return SeerResponseError(error=str(e))
 
     return wrapper
 
@@ -36,7 +44,7 @@ def handle_fetch_issues_exceptions(func: Callable[..., Any]) -> Callable[..., An
 @dataclass
 class RepoInfo:
     organization_id: int
-    provider: str
+    provider: SeerSCMProvider
     external_id: str
 
 
@@ -52,25 +60,17 @@ class SeerResponse(TypedDict):
     issues_full: list[dict[str, Any]]
 
 
-class SeerResponseError(TypedDict):
-    error: str
-
-
 def get_repo_and_projects(
     organization_id: int,
-    provider: str,
+    provider: SeerSCMProvider,
     external_id: str,
+    owner: str,
+    name: str,
     run_id: int | None = None,
 ) -> RepoProjects:
     """
     Returns auxilliary info about the repo and its projects.
-    This info is often needed to go from repo -> project -> issue.
-
-    Note
-    ----
-    `provider` refers to the field in the DB, e.g. `"integrations:github"`.
-
-    In seer.automation.models.RepoDefinition, this is the `provider_raw` attribute, not `provider`.
+    This info is currently required to go from repo -> project -> issue.
     """
     sentry_sdk.set_tags(
         {
@@ -78,11 +78,13 @@ def get_repo_and_projects(
             "provider": provider,
             "external_id": external_id,
             "run_id": run_id,
+            "owner": owner,
+            "name": name,
         }
     )
-    repo = Repository.objects.get(
-        organization_id=organization_id, provider=provider, external_id=external_id
-    )
+    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+    if repo is None:
+        raise Repository.DoesNotExist
     repo_configs = list(
         RepositoryProjectPathConfig.objects.filter(
             organization_id=organization_id,

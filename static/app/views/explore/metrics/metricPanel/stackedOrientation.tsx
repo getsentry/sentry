@@ -5,14 +5,13 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {type TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
-import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
+import {MetricInfoTabs} from 'sentry/views/explore/metrics/metricInfoTabs';
 import {HideContentButton} from 'sentry/views/explore/metrics/metricPanel/hideContentButton';
 import {PanelPositionSelector} from 'sentry/views/explore/metrics/metricPanel/panelPositionSelector';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 export function StackedOrientation({
   timeseriesResult,
-  queryIndex,
   traceMetric,
   orientation,
   setOrientation,
@@ -25,7 +24,6 @@ export function StackedOrientation({
   infoContentHidden: boolean;
   isMetricOptionsEmpty: boolean;
   orientation: TableOrientation;
-  queryIndex: number;
   setInfoContentHidden: (hidden: boolean) => void;
   setOrientation: (orientation: TableOrientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
@@ -46,26 +44,27 @@ export function StackedOrientation({
     </Flex>
   );
   return (
-    <Stack>
+    <Stack gap="sm">
       <StackedGraphWrapper>
         <MetricsGraph
           timeseriesResult={timeseriesResult}
-          queryIndex={queryIndex}
           orientation={orientation}
           isMetricOptionsEmpty={isMetricOptionsEmpty}
         />
       </StackedGraphWrapper>
-      <MetricInfoTabs
-        traceMetric={traceMetric}
-        additionalActions={additionalInfoTabActions}
-        contentsHidden={infoContentHidden}
-        orientation={orientation}
-        isMetricOptionsEmpty={isMetricOptionsEmpty}
-      />
+      <div>
+        <MetricInfoTabs
+          traceMetric={traceMetric}
+          additionalActions={additionalInfoTabActions}
+          contentsHidden={infoContentHidden}
+          orientation={orientation}
+          isMetricOptionsEmpty={isMetricOptionsEmpty}
+        />
+      </div>
     </Stack>
   );
 }
 
 const StackedGraphWrapper = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;

@@ -1,16 +1,16 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import RadioField from 'sentry/components/forms/fields/radioField';
-import Form from 'sentry/components/forms/form';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {RadioField} from 'sentry/components/forms/fields/radioField';
+import {Form} from 'sentry/components/forms/form';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -93,9 +93,10 @@ export function ReprocessingEventModal({
             label={t('Number of events to be reprocessed')}
             help={t('If you set a limit, we will reprocess your most recent events.')}
             placeholder={t('Reprocess all events')}
-            onChange={(value: any) =>
-              setMaxEvents(isNaN(value) ? undefined : Number(value))
-            }
+            onChange={(value: any) => {
+              const num = Number(value);
+              setMaxEvents(value === '' || isNaN(num) ? undefined : num);
+            }}
             min={1}
           />
 
@@ -117,11 +118,11 @@ export function ReprocessingEventModal({
 }
 
 const Introduction = styled('p')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const StyledList = styled(List)`
-  gap: ${space(1)};
-  margin-bottom: ${space(4)};
-  font-size: ${p => p.theme.fontSize.md};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['3xl']};
+  font-size: ${p => p.theme.font.size.md};
 `;

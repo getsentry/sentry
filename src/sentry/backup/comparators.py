@@ -736,6 +736,17 @@ class UUID4Comparator(RegexComparator):
         return findings
 
 
+class DataSourceComparator(IgnoredComparator):
+    """
+    DataSource.source_id is a dynamic foreign key that gets remapped during import via the
+    normalize_before_relocation_import method. Since the remapping is handled there, we just
+    need to verify that both sides have a valid source_id value, without comparing the actual values.
+    """
+
+    def __init__(self):
+        super().__init__("source_id")
+
+
 def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
     """Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already
     claimed by the `DateUpdatedComparator`."""
@@ -778,19 +789,27 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
         name = str(get_model_name(e))
         fields = e._meta.get_fields()
         assign = set()
-        for f in fields:
-            if isinstance(f, models.EmailField):
-                assign.add(f.name)
 
-        if len(assign):
-            found = next(
-                filter(lambda e: isinstance(e, EmailObfuscatingComparator), comps[name]),
-                None,
-            )
-            if found:
-                found.fields.update(assign)
-            else:
-                comps[name].append(EmailObfuscatingComparator(*assign))
+        # Check each email field individually against existing comparators
+        for f in fields:
+            if isinstance(f, models.EmailField) and name in comps:
+                # Only add this field if it's not already handled by any existing comparator
+                field_already_handled = any(f.name in comp.fields for comp in comps[name])
+                if not field_already_handled:
+                    assign.add(f.name)
+
+        if not assign:
+            continue
+
+        # Find existing EmailObfuscatingComparator for this model
+        found = next(
+            filter(lambda e: isinstance(e, EmailObfuscatingComparator), comps[name]),
+            None,
+        )
+        if found:
+            found.fields.update(assign)
+        else:
+            comps[name].append(EmailObfuscatingComparator(*assign))
 
 
 def auto_assign_foreign_key_comparators(comps: ComparatorMap) -> None:
@@ -830,6 +849,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
             "sentry.alertrule": [
                 DateUpdatedComparator("date_modified"),
+            ],
+            "sentry.codereviewevent": [
+                DateUpdatedComparator("date_added", "date_updated"),
             ],
             "sentry.dashboardfavoriteuser": [
                 DateUpdatedComparator("date_added", "date_updated"),
@@ -882,6 +904,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.relay": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.relayusage": [HashObfuscatingComparator("relay_id", "public_key")],
+            "sentry.repositorysettings": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
             "sentry.rollbackorganization": [DateUpdatedComparator("date_updated")],
             "sentry.rollbackuser": [
                 UUID4Comparator("uuid", "share_uuid"),
@@ -906,6 +931,8 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 # fields otherwise and scrub them from the comparison.
                 IgnoredComparator("last_password_change", "is_unclaimed", "is_password_expired"),
                 UserPasswordObfuscatingComparator(),
+                # `email_unique` can be set to None for relocated users when there are duplicate emails
+                EqualOrRemovedComparator("email_unique"),
             ],
             "sentry.useremail": [
                 DateUpdatedComparator("date_hash_added"),
@@ -929,7 +956,10 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "workflow_engine.dataconditiongroupaction": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
-            "workflow_engine.datasource": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.datasource": [
+                DateUpdatedComparator("date_updated", "date_added"),
+                DataSourceComparator(),
+            ],
             "workflow_engine.datasourcedetector": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
@@ -968,6 +998,15 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added")
             ],
             "monitors.monitor": [UUID4Comparator("guid")],
+            "replays.organizationmemberreplayaccess": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "seer.seerprojectrepository": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
+            "seer.seerprojectrepositorybranchoverride": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
         },
     )
 

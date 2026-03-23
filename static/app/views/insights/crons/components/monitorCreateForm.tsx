@@ -4,25 +4,25 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
 
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {SentryMemberTeamSelectorField} from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {HookStore} from 'sentry/stores/hookStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {getScheduleIntervals} from 'sentry/views/insights/crons/utils';
@@ -43,8 +43,9 @@ const DEFAULT_SCHEDULE_CONFIG = {
   intervalUnit: 'day',
 };
 
-export default function MonitorCreateForm() {
+export function MonitorCreateForm() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -55,6 +56,7 @@ export default function MonitorCreateForm() {
       transformData: transformMonitorFormData,
     })
   );
+  const {onFieldChange} = useFormEagerValidation(form.current);
 
   const selectedProjectId = selection.projects[0];
   const selectedProject = selectedProjectId
@@ -71,9 +73,9 @@ export default function MonitorCreateForm() {
         environment: selection.environments,
       },
     };
-    browserHistory.push(
+    navigate(
       normalizeUrl({
-        pathname: `/organizations/${organization.slug}/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`,
+        pathname: `/organizations/${organization.slug}/issues/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`,
         query: endpointOptions.query,
       })
     );
@@ -91,6 +93,7 @@ export default function MonitorCreateForm() {
       apiEndpoint={`/organizations/${organization.slug}/monitors/`}
       apiMethod="POST"
       model={form.current}
+      onFieldChange={onFieldChange}
       initialData={{
         project: selectedProject ? selectedProject.slug : null,
         type: DEFAULT_MONITOR_TYPE,
@@ -153,7 +156,7 @@ export default function MonitorCreateForm() {
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
                           css={css`
                             input {
-                              font-family: ${theme.text.familyMono};
+                              font-family: ${theme.font.family.mono};
                             }
                           `}
                           required={selectedCrontab}
@@ -222,10 +225,10 @@ export default function MonitorCreateForm() {
 
             const schedule = {
               scheduleType,
-              timezone,
               cronSchedule,
               intervalFrequency,
               intervalUnit,
+              timezone: typeof timezone === 'string' ? timezone : undefined,
             };
 
             return <MockTimelineVisualization schedule={schedule} />;
@@ -245,37 +248,37 @@ const FieldContainer = styled('div')`
 `;
 
 const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
-  border-radius: 0 ${space(0.75)} ${space(0.75)} 0;
+  border-radius: 0 ${p => p.theme.space.sm} ${p => p.theme.space.sm} 0;
 
   ${p =>
     p.highlighted
       ? css`
-          border: 2px solid ${p.theme.purple300};
+          border: 2px solid ${p.theme.tokens.border.accent.vibrant};
         `
       : css`
           padding: 1px;
         `};
 
   &:first-child {
-    border-radius: ${space(0.75)} 0 0 ${space(0.75)};
+    border-radius: ${p => p.theme.space.sm} 0 0 ${p => p.theme.space.sm};
   }
 `;
 
 const ScheduleLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(2)};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Label = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SubHeading = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
   text-transform: uppercase;
 `;
 
@@ -287,7 +290,7 @@ const ScheduleOptions = styled('div')`
 const MultiColumnInput = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ProjectOwnerNameInputs = styled(MultiColumnInput)`
@@ -303,8 +306,8 @@ const IntervalInputs = styled(MultiColumnInput)`
 `;
 
 const CronstrueText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
+  font-family: ${p => p.theme.font.family.mono};
   grid-column: auto / span 2;
 `;

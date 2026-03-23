@@ -183,7 +183,11 @@ class AppContextType(ContextType):
 @contexttype
 class DeviceContextType(ContextType):
     type = "device"
-    context_to_tag_mapping = {"": "{model}", "family": "{family}"}
+    context_to_tag_mapping = {
+        "": "{model}",
+        "family": "{family}",
+        "device_type": "{device_type}",
+    }
     # model_id, arch
 
 
@@ -236,6 +240,15 @@ class OtelContextType(ContextType):
     context_to_tag_mapping = {}
 
 
+@contexttype
+class UnityContextType(ContextType):
+    type = "unity"
+    context_to_tag_mapping = {
+        "is_main_thread": "{is_main_thread}",
+        "install_mode": "{install_mode}",
+    }
+
+
 class Contexts(Interface):
     """
     This interface stores context specific information.
@@ -245,7 +258,7 @@ class Contexts(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         rv = {}
 
         # Note the alias is the key of the context entry
@@ -255,7 +268,7 @@ class Contexts(Interface):
             if value is not None:
                 rv[alias] = cls.normalize_context(alias, value)
 
-        return super().to_python(rv, **kwargs)
+        return super().to_python(rv)
 
     @classmethod
     def normalize_context(cls, alias, data):

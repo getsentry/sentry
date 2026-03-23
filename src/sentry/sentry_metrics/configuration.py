@@ -167,6 +167,4 @@ def initialize_main_process_state(config: MetricsIngestConfiguration) -> None:
 
     from sentry.utils.metrics import add_global_tags
 
-    global_tag_map = {"pipeline": config.internal_metrics_tag or ""}
-
-    add_global_tags(_all_threads=True, **global_tag_map)
+    add_global_tags(all_threads=True, tags={"pipeline": config.internal_metrics_tag or ""})

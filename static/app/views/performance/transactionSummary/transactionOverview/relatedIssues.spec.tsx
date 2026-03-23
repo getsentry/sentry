@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import RelatedIssues from 'sentry/views/performance/transactionSummary/transactionOverview/relatedIssues';
+import {RelatedIssues} from 'sentry/views/performance/transactionSummary/transactionOverview/relatedIssues';
 
 describe('RelatedIssues', () => {
   const organization = OrganizationFixture();
@@ -25,9 +25,8 @@ describe('RelatedIssues', () => {
   });
 
   beforeEach(() => {
-    // NOTE: This mock is jank. `GroupList` concatenates the query string with the URL. This means we have to mock the full URL including the parameters. There are a few other tests that have to do the same.
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3Atest-transaction&sort=trends&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/',
       method: 'GET',
       body: issues,
     });
@@ -69,7 +68,7 @@ describe('RelatedIssues', () => {
 
   it('shows empty state when no issues are found', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3Atest-transaction&sort=trends&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/',
       method: 'GET',
       body: [],
     });
@@ -86,5 +85,47 @@ describe('RelatedIssues', () => {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-placeholder'));
 
     expect(screen.getByText(/No new issues/i)).toBeInTheDocument();
+  });
+
+  it('remaps request.method to http.method when EAP is enabled', async () => {
+    const eapOrganization = OrganizationFixture({
+      features: ['performance-transaction-summary-eap'],
+    });
+    const eapData = initializeOrg({
+      organization: eapOrganization,
+      router: {
+        location: {
+          query: {
+            transaction: 'test-transaction',
+            project: '1',
+            statsPeriod: '14d',
+            query: 'request.method:GET',
+          },
+        },
+      },
+    });
+
+    render(
+      <RelatedIssues
+        organization={eapOrganization}
+        location={eapData.router.location}
+        transaction={transaction}
+        statsPeriod="14d"
+      />,
+      {organization: eapOrganization}
+    );
+
+    const placeholders = screen.queryAllByTestId('loading-placeholder');
+    await waitForElementToBeRemoved(placeholders);
+
+    const $openInIssuesButton = screen.getByRole('button', {name: 'Open in Issues'});
+    expect($openInIssuesButton).toHaveAttribute(
+      'href',
+      expect.stringContaining('http.method')
+    );
+    expect($openInIssuesButton).not.toHaveAttribute(
+      'href',
+      expect.stringContaining('request.method')
+    );
   });
 });

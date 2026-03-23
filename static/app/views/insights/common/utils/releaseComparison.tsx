@@ -3,24 +3,15 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 export function appendReleaseFilters(
   query: MutableSearch,
-  primaryRelease: string | undefined,
-  secondaryRelease?: string
+  primaryRelease: string | undefined
 ) {
-  let queryString: string = query.formatString();
-  if (
-    defined(primaryRelease) &&
-    defined(secondaryRelease) &&
-    primaryRelease !== secondaryRelease
-  ) {
-    queryString = query
-      .copy()
-      .addDisjunctionFilterValues('release', [primaryRelease, secondaryRelease])
-      .formatString();
-  } else if (defined(primaryRelease)) {
-    queryString = query
-      .copy()
-      .addStringFilter(`release:${primaryRelease}`)
-      .formatString();
+  // Treat empty strings as undefined
+  const validPrimary =
+    primaryRelease && primaryRelease !== '' ? primaryRelease : undefined;
+
+  let queryString = query.formatString();
+  if (defined(validPrimary)) {
+    queryString = query.copy().addStringFilter(`release:${validPrimary}`).formatString();
   }
   return queryString;
 }

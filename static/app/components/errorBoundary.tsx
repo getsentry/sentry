@@ -2,12 +2,12 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Flex} from 'sentry/components/core/layout';
-import DetailedError from 'sentry/components/errors/detailedError';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+
+import {DetailedError} from 'sentry/components/errors/detailedError';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type DefaultProps = {
   mini: boolean;
@@ -128,7 +128,7 @@ class ErrorBoundary extends Component<Props, State> {
     if (mini) {
       return (
         <Alert.Container>
-          <Alert type="error" className={className}>
+          <Alert variant="danger" className={className}>
             <Flex align="center" justify="between">
               {message || t('There was a problem rendering this component')}
               {this.props.allowDismiss && <IconClose onClick={this.handleClose} />}
@@ -155,8 +155,8 @@ Anyway, we apologize for the inconvenience.`
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.textColor};
-  padding: ${space(3)};
+  color: ${p => p.theme.tokens.content.primary};
+  padding: ${p => p.theme.space['2xl']};
   max-width: 1000px;
   margin: auto;
 `;

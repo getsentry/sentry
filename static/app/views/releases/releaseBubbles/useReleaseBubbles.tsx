@@ -14,7 +14,8 @@ import moment from 'moment-timezone';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
-import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tn} from 'sentry/locale';
 import type {
   EChartMouseOutHandler,
@@ -28,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {
   cleanReleaseCursors,
@@ -191,7 +191,7 @@ function ReleaseBubbleSeries({
         // in the "padding" areas (i.e. so tooltips open)
         lineWidth: bubblePadding,
         stroke: 'transparent',
-        fill: theme.purple400,
+        fill: theme.tokens.graphics.accent.vibrant,
         // TODO: figure out correct opacity calculations
         opacity: Math.round((Number(numberReleases) / avgReleases) * 50) / 100,
       },
@@ -205,7 +205,7 @@ function ReleaseBubbleSeries({
     renderItem: renderReleaseBubble,
     name: t('Releases'),
     data,
-    color: theme.purple400,
+    color: theme.tokens.graphics.accent.vibrant,
     animation: false,
     markLine: {
       silent: true,
@@ -214,7 +214,7 @@ function ReleaseBubbleSeries({
         show: false,
       },
       lineStyle: {
-        color: theme.gray300,
+        color: theme.colors.gray400,
         opacity: 0.5,
         type: 'solid',
         width: 1,
@@ -527,7 +527,7 @@ export function useReleaseBubbles({
           type: 'custom',
           renderItem: () => null,
           markArea: {
-            itemStyle: {color: theme.purple400, opacity: 0.1},
+            itemStyle: {color: theme.tokens.graphics.accent.vibrant, opacity: 0.1},
             data: [
               [
                 {
@@ -643,7 +643,7 @@ export function useReleaseBubbles({
       legendSelected,
       releaseBubbleGrid,
       releaseBubbleXAxis,
-      theme.purple400,
+      theme.tokens.graphics.accent.vibrant,
     ]
   );
 

@@ -5,16 +5,16 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {HTTPLandingPage} from 'sentry/views/insights/http/views/httpLandingPage';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPLandingPage', () => {
@@ -261,7 +261,7 @@ describe('HTTPLandingPage', () => {
           referrer: 'api.insights.http.landing-throughput-chart',
           statsPeriod: '10d',
           yAxis: ['epm()'],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -303,7 +303,7 @@ describe('HTTPLandingPage', () => {
           referrer: 'api.insights.http.landing-duration-chart',
           statsPeriod: '10d',
           yAxis: ['avg(span.self_time)'],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -330,7 +330,7 @@ describe('HTTPLandingPage', () => {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );

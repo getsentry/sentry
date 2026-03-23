@@ -1,23 +1,20 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
-import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {ScreensOverviewTable} from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {DEFAULT_SORT} from 'sentry/views/insights/mobile/screens/settings';
 import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
@@ -25,8 +22,8 @@ import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 const getQueryString = (
   location: Location,
-  screens: string[],
-  selectedPlatform: string | undefined
+  selectedPlatform: string | undefined,
+  selectedRelease: string | undefined
 ) => {
   const {query: locationQuery} = location;
   const query = new MutableSearch(['transaction.op:[ui.load,navigation]']);
@@ -39,17 +36,16 @@ const getQueryString = (
   if (selectedPlatform) {
     query.addFilterValue('os.name', selectedPlatform);
   }
-  let queryString = query.formatString();
-
-  if (screens.length > 0) {
-    const screenFilter = `transaction:[${screens.map(name => `"${name}"`).join()}]`;
-    queryString = queryString + ' ' + screenFilter;
+  if (selectedRelease && selectedRelease !== '') {
+    query.addFilterValue('release', selectedRelease);
   }
+
+  const queryString = query.formatString();
 
   return queryString;
 };
 
-const transactionMetricsFields = [
+const fields = [
   SpanFields.PROJECT_ID,
   SpanFields.TRANSACTION,
   `count()`,
@@ -57,11 +53,6 @@ const transactionMetricsFields = [
   'avg(measurements.app_start_warm)',
   `avg(measurements.time_to_initial_display)`,
   `avg(measurements.time_to_full_display)`,
-] as const satisfies SpanProperty[];
-
-const spanMetricsFields = [
-  SpanFields.PROJECT_ID,
-  SpanFields.TRANSACTION,
   `division(mobile.slow_frames,mobile.total_frames)`,
   `division(mobile.frozen_frames,mobile.total_frames)`,
   `avg(mobile.frames_delay)`,
@@ -72,127 +63,42 @@ export function ScreensOverview() {
   const location = useLocation();
   const {selection} = usePageFilters();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
-  const [hasVisibleScreens, setHasVisibleScreens] = useState<boolean>(false);
-  const visibleScreensRef = useRef<string[]>([]);
+  const {primaryRelease} = useReleaseSelection();
   const sortedBy = decodeScalar(location.query.sort);
   const sort = (sortedBy && decodeSorts([sortedBy])[0]) || DEFAULT_SORT;
-  const sortField = sort?.field;
 
-  const isSpanPrimary = spanMetricsFields.some(
-    field => getAggregateAlias(field) === sortField
-  );
-
-  const primaryQuery = getQueryString(
+  const queryString = getQueryString(
     location,
-    [],
-    isProjectCrossPlatform ? selectedPlatform : undefined
-  );
-  const visibleScreenQuery = getQueryString(
-    location,
-    visibleScreensRef.current,
-    isProjectCrossPlatform ? selectedPlatform : undefined
+    isProjectCrossPlatform ? selectedPlatform : undefined,
+    primaryRelease
   );
 
   // TODO: This is temporary while we are still using eventView here
   const newQuery: NewQuery = {
     name: '',
-    fields: isSpanPrimary ? spanMetricsFields : transactionMetricsFields,
-    query: primaryQuery,
+    fields,
+    query: queryString,
     version: 2,
     projects: selection.projects,
   };
+
   if (sortedBy) {
     newQuery.orderby = sortedBy;
   }
-  const primaryEventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  const spanMetricsQuery = isSpanPrimary ? primaryQuery : visibleScreenQuery;
-  const metricsQuery = isSpanPrimary ? visibleScreenQuery : primaryQuery;
+  const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  const spanMetricsSorts = isSpanPrimary ? [sort] : [];
-  const metricsSorts = isSpanPrimary ? [] : [sort];
-
-  const spanMetricsResult = useSpans(
+  const {data, meta, isPending, pageLinks} = useSpans(
     {
-      search: spanMetricsQuery,
-      fields: spanMetricsFields,
-      sorts: spanMetricsSorts,
-      enabled: isSpanPrimary || hasVisibleScreens,
+      search: queryString,
+      fields,
+      sorts: [sort],
     },
     Referrer.SCREENS_SCREEN_TABLE_SPAN_METRICS
   );
 
-  const metricsResult = useSpans(
-    {
-      search: metricsQuery,
-      fields: transactionMetricsFields,
-      sorts: metricsSorts,
-      enabled: !isSpanPrimary || hasVisibleScreens,
-    },
-    Referrer.SCREENS_SCREEN_TABLE
-  );
+  const derivedQuery = getTransactionSearchQuery(location, queryString);
 
-  const primaryResult = isSpanPrimary ? spanMetricsResult : metricsResult;
-  const secondaryResult = isSpanPrimary ? metricsResult : spanMetricsResult;
-
-  const {
-    data: primaryData,
-    meta: primaryMeta,
-    isPending: primaryLoading,
-    pageLinks: primaryLinks,
-  } = primaryResult;
-  const {
-    data: secondaryData,
-    meta: secondaryMeta,
-    isPending: secondaryLoading,
-  } = secondaryResult;
-
-  useEffect(() => {
-    if (primaryData) {
-      const screens: string[] = [];
-      primaryData?.forEach(row => {
-        if (row.transaction) {
-          screens.push(String(row.transaction));
-        }
-      });
-      visibleScreensRef.current = screens;
-      setHasVisibleScreens(screens.length > 0);
-    }
-  }, [primaryData]);
-
-  const derivedQuery = getTransactionSearchQuery(location, primaryQuery);
-
-  const combinedData = useMemo(() => {
-    const meta: MetaType = {};
-    meta.units = {
-      ...secondaryMeta?.units,
-      ...primaryMeta?.units,
-    };
-    meta.fields = {
-      ...secondaryMeta?.fields,
-      ...primaryMeta?.fields,
-    };
-
-    const data = primaryData.map(row => {
-      const matchingRow = secondaryData.find(
-        metricRow => metricRow.transaction === row.transaction
-      );
-      if (matchingRow) {
-        return {
-          ...matchingRow,
-          ...row,
-        };
-      }
-      return row;
-    });
-
-    return {
-      data,
-      meta,
-    };
-  }, [primaryData, secondaryData, primaryMeta, secondaryMeta]);
-
-  const loading = primaryLoading || (hasVisibleScreens && secondaryLoading);
   return (
     <Container>
       <SearchBar
@@ -211,10 +117,13 @@ export function ScreensOverview() {
       />
       <Container>
         <ScreensOverviewTable
-          eventView={primaryEventView}
-          data={combinedData}
-          isLoading={loading}
-          pageLinks={primaryLinks}
+          eventView={eventView}
+          data={{
+            data,
+            meta: meta!,
+          }}
+          isLoading={isPending}
+          pageLinks={pageLinks}
         />
       </Container>
     </Container>
@@ -222,7 +131,7 @@ export function ScreensOverview() {
 }
 
 const Container = styled('div')`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
 `;
 
 const getFreeTextFromQuery = (query: string) => {

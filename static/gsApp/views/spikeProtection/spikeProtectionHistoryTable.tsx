@@ -1,44 +1,46 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import DiscoverButton from 'sentry/components/discoverButton';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DiscoverButton} from 'sentry/components/discoverButton';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSettings} from 'sentry/icons';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {
   formatUsageWithUnits,
   getFormatUsageOptions,
 } from 'sentry/views/organizationStats/utils';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import trackSpendVisibilityAnaltyics, {
+import {
   SpendVisibilityEvents,
+  trackSpendVisibilityAnaltyics,
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
 import {
   SPIKE_PROTECTION_DOCS_LINK,
   SPIKE_PROTECTION_ERROR_MESSAGE,
 } from 'getsentry/views/spikeProtection/constants';
-import SpikeProtectionTimeDetails from 'getsentry/views/spikeProtection/spikeProtectionTimeDetails';
+import {SpikeProtectionTimeDetails} from 'getsentry/views/spikeProtection/spikeProtectionTimeDetails';
 import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
 import {isSpikeProtectionEnabled} from './spikeProtectionProjectToggle';
@@ -129,17 +131,19 @@ class SpikeProtectionHistoryTable extends Component<Props> {
       : null;
     return [
       <SpikeProtectionTimeDetails spike={spike} key="time" />,
-      <StyledCell key="threshold">
-        {formatUsageWithUnits(
-          spike.threshold,
-          dataCategoryInfo.plural,
-          getFormatUsageOptions(dataCategoryInfo.plural)
-        )}
-      </StyledCell>,
-      <StyledCell key="duration">
+      <Flex align="center" key="threshold">
+        {defined(spike.threshold)
+          ? formatUsageWithUnits(
+              spike.threshold,
+              dataCategoryInfo.plural,
+              getFormatUsageOptions(dataCategoryInfo.plural)
+            )
+          : '-'}
+      </Flex>,
+      <Flex align="center" key="duration">
         {duration ? getExactDuration(duration, true) : t('Ongoing')}
-      </StyledCell>,
-      <StyledCell key="dropped">
+      </Flex>,
+      <Flex align="center" key="dropped">
         {spike.dropped
           ? formatUsageWithUnits(
               spike.dropped,
@@ -147,8 +151,8 @@ class SpikeProtectionHistoryTable extends Component<Props> {
               getFormatUsageOptions(dataCategoryInfo.plural)
             )
           : '-'}
-      </StyledCell>,
-      <StyledCell key="discover-button">
+      </Flex>,
+      <Flex align="center" justify="end" key="discover-button">
         <DiscoverButton
           icon={<IconTelescope size="sm" />}
           data-test-id="spike-protection-discover-button"
@@ -173,7 +177,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
         >
           {t('Open in Discover')}
         </DiscoverButton>
-      </StyledCell>,
+      </Flex>,
     ];
   }
 
@@ -242,7 +246,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
     const {organization} = this.props;
     return (
       <div data-test-id="spike-protection-history-table">
-        <SectionHeading>
+        <Flex align="center" marginBottom="xl" gap="md">
           <Title>
             {t('Spike Protection')}
             <PageHeadingQuestionTooltip
@@ -255,11 +259,11 @@ class SpikeProtectionHistoryTable extends Component<Props> {
           <LinkButton
             size="sm"
             icon={<IconSettings />}
-            aria-label={t('Settings')}
-            title={t('Go to spike protection settings')}
             to={`/settings/${organization.slug}/spike-protection/`}
-          />
-        </SectionHeading>
+          >
+            {t('Spike Protection Settings')}
+          </LinkButton>
+        </Flex>
         {this.renderTable()}
       </div>
     );
@@ -268,29 +272,14 @@ class SpikeProtectionHistoryTable extends Component<Props> {
 
 export default withSubscription(withOrganization(SpikeProtectionHistoryTable));
 
-const SectionHeading = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
-  align-items: center;
-`;
-
 const Title = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.gray400};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.colors.gray500};
   display: flex;
   flex: 1;
   align-items: center;
-  gap: ${space(0.75)};
-`;
-
-const StyledCell = styled('div')`
-  display: flex;
-  align-items: center;
-  &:nth-child(5n) {
-    justify-content: end;
-  }
+  gap: ${p => p.theme.space.sm};
 `;
 
 const EmptySpikeHistory = styled(Panel)`
@@ -298,10 +287,10 @@ const EmptySpikeHistory = styled(Panel)`
   display: flex;
   flex-direction: column;
   text-align: center;
-  padding: ${space(4)} ${space(2)};
+  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl};
   b {
-    font-size: ${p => p.theme.fontSize.lg};
-    margin-bottom: ${space(1)};
+    font-size: ${p => p.theme.font.size.lg};
+    margin-bottom: ${p => p.theme.space.md};
   }
   p:last-child {
     margin: 0;

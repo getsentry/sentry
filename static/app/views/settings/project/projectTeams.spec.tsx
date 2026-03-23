@@ -10,7 +10,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import TeamStore from 'sentry/stores/teamStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import ProjectTeams from 'sentry/views/settings/project/projectTeams';
@@ -294,14 +294,14 @@ describe('ProjectTeams', () => {
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Add new team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]!);
+    await userEvent.click(screen.getByRole('button', {name: 'Add Team'}));
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Team'}));
 
     renderGlobalModal();
     const modal = await screen.findByRole('dialog');
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Team Name'}), 'new-team');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Team Slug'}), 'new-team');
     await userEvent.click(within(modal).getByRole('button', {name: 'Create Team'}));
 
     await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));

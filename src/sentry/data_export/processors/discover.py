@@ -122,14 +122,11 @@ class DiscoverProcessor:
         if "issue" in self.header_fields:
             issue_ids = {result["issue.id"] for result in new_result_list}
             assert self.snuba_params.organization is not None
-            issues = {
-                i.id: i.qualified_short_id
-                for i in Group.objects.filter(
-                    id__in=issue_ids,
-                    project__in=self.snuba_params.project_ids,
-                    project__organization_id=self.snuba_params.organization.id,
-                )
-            }
+            issues = Group.objects.get_issues_mapping(
+                issue_ids,
+                self.snuba_params.project_ids,
+                self.snuba_params.organization,
+            )
             for result in new_result_list:
                 if "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")

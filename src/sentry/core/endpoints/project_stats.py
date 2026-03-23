@@ -1,9 +1,10 @@
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import StatsMixin, region_silo_endpoint
+from sentry.api.base import StatsMixin, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environment_id
@@ -14,7 +15,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
@@ -76,7 +77,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             try:
                 stat_model = FILTER_STAT_KEYS_TO_VALUES[stat]
             except KeyError:
-                raise ValueError("Invalid stat: %s" % stat)
+                raise ValidationError("Invalid stat: %s" % stat)
 
         data = tsdb.backend.get_range(
             model=stat_model,

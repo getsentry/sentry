@@ -1,5 +1,6 @@
 import type {CloudResourceContext} from '@sentry/core';
 
+import type {AppContext} from 'sentry/components/events/contexts/knownContext/app';
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
@@ -190,6 +191,8 @@ export type Frame = {
   mapUrl?: string | null;
   minGroupingLevel?: number;
   origAbsPath?: string | null;
+  parentIndex?: number | null;
+  sampleCount?: number | null;
   sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
@@ -203,6 +206,9 @@ export type ExceptionValue = {
   type: string;
   value: string;
   frames?: Frame[] | null;
+  rawModule?: string | null;
+  rawType?: string | null;
+  rawValue?: string | null;
 };
 
 export type ExceptionType = {
@@ -333,8 +339,10 @@ interface EntryRequestDataDefault {
   query?: Array<[key: string, value: string] | null> | string;
 }
 
-export interface EntryRequestDataGraphQl
-  extends Omit<EntryRequestDataDefault, 'apiTarget' | 'data'> {
+export interface EntryRequestDataGraphQl extends Omit<
+  EntryRequestDataDefault,
+  'apiTarget' | 'data'
+> {
   apiTarget: 'graphql';
   data: {
     query: string;
@@ -432,8 +440,7 @@ export enum DeviceContextKey {
 
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
 export interface DeviceContext
-  extends Partial<Record<DeviceContextKey, unknown>>,
-    BaseContext {
+  extends Partial<Record<DeviceContextKey, unknown>>, BaseContext {
   type: 'device';
   [DeviceContextKey.NAME]: string;
   [DeviceContextKey.ARCH]?: string;
@@ -489,8 +496,7 @@ enum RuntimeContextKey {
 
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#runtime-context
 interface RuntimeContext
-  extends Partial<Record<RuntimeContextKey, unknown>>,
-    BaseContext {
+  extends Partial<Record<RuntimeContextKey, unknown>>, BaseContext {
   type: 'runtime';
   [RuntimeContextKey.BUILD]?: string;
   [RuntimeContextKey.NAME]?: string;
@@ -520,17 +526,21 @@ interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseCont
 }
 
 export enum UnityContextKey {
+  ACTIVE_SCENE_NAME = 'active_scene_name',
   COPY_TEXTURE_SUPPORT = 'copy_texture_support',
   EDITOR_VERSION = 'editor_version',
   INSTALL_MODE = 'install_mode',
+  IS_MAIN_THREAD = 'is_main_thread',
   RENDERING_THREADING_MODE = 'rendering_threading_mode',
   TARGET_FRAME_RATE = 'target_frame_rate',
 }
 
 export interface UnityContext {
+  [UnityContextKey.ACTIVE_SCENE_NAME]: string;
   [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
   [UnityContextKey.EDITOR_VERSION]: string;
   [UnityContextKey.INSTALL_MODE]: string;
+  [UnityContextKey.IS_MAIN_THREAD]: boolean;
   [UnityContextKey.RENDERING_THREADING_MODE]: string;
   [UnityContextKey.TARGET_FRAME_RATE]: string;
   type: 'unity';
@@ -628,12 +638,13 @@ interface ResponseContext {
 
 // event.contexts.flags can be overriden by the user so the type is not strict
 export type FeatureFlag = {flag?: string; result?: boolean};
-type Flags = {values?: FeatureFlag[]};
+type Flags = {values?: Array<FeatureFlag | null>};
 
 export type EventContexts = {
   'Current Culture'?: CultureContext;
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
+  app?: AppContext;
   browser?: BrowserContext;
   client_os?: OSContext;
   cloud_resource?: CloudResourceContext;
@@ -691,7 +702,7 @@ export type EventEvidenceDisplay = {
   value: string;
 };
 
-type EventOccurrence = {
+export type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**
@@ -789,8 +800,10 @@ interface TraceEventContexts extends EventContexts {
   profile?: ProfileContext;
 }
 
-export interface EventTransaction
-  extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
+export interface EventTransaction extends Omit<
+  EventBase,
+  'entries' | 'type' | 'contexts'
+> {
   contexts: TraceEventContexts;
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
@@ -803,28 +816,27 @@ export interface EventTransaction
   perfProblem?: PerformanceDetectorData;
 }
 
-export interface AggregateEventTransaction
-  extends Omit<
-    EventTransaction,
-    | 'crashFile'
-    | 'culprit'
-    | 'dist'
-    | 'dateReceived'
-    | 'errors'
-    | 'location'
-    | 'metadata'
-    | 'message'
-    | 'occurrence'
-    | 'type'
-    | 'size'
-    | 'user'
-    | 'eventID'
-    | 'fingerprints'
-    | 'id'
-    | 'projectID'
-    | 'tags'
-    | 'title'
-  > {
+export interface AggregateEventTransaction extends Omit<
+  EventTransaction,
+  | 'crashFile'
+  | 'culprit'
+  | 'dist'
+  | 'dateReceived'
+  | 'errors'
+  | 'location'
+  | 'metadata'
+  | 'message'
+  | 'occurrence'
+  | 'type'
+  | 'size'
+  | 'user'
+  | 'eventID'
+  | 'fingerprints'
+  | 'id'
+  | 'projectID'
+  | 'tags'
+  | 'title'
+> {
   count: number;
   frequency: number;
   total: number;

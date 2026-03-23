@@ -1,11 +1,21 @@
+import copy
 from typing import cast
 
 import orjson
+import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue
+from sentry_protos.snuba.v1.trace_item_pb2 import (
+    AnyValue,
+    ArrayValue,
+    CategoryCount,
+    KeyValue,
+    KeyValueList,
+    Outcomes,
+)
 
+from sentry.constants import DataCategory
 from sentry.spans.consumers.process_segments.convert import RENAME_ATTRIBUTES, convert_span_to_item
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
 
@@ -26,6 +36,7 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
         "my.neg.float.field": {"value": -101.2, "type": "double"},
         "my.true.bool.field": {"value": True, "type": "boolean"},
         "my.u64.field": {"value": 9447000002305251000, "type": "integer"},
+        "my.unested.array.field": {"value": [1, 2, 3, 4], "type": "array"},
         "my.invalid.field": None,
         "num_of_spans": {"value": 50.0, "type": "string"},
         "relay_endpoint_version": {"value": "3", "type": "string"},
@@ -80,7 +91,7 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
     "_meta": {
         "attributes": {
             "my.invalid.field": {
-                "": {"err": ["invalid_data"], "val": {"type": "string", "value": True}}
+                "": {"err": ["invalid_data"], "val": {"type": "boolean", "value": True}}
             }
         }
     },
@@ -106,8 +117,30 @@ def test_convert_span_to_item() -> None:
 
     assert attrs == {
         "http.status_code": AnyValue(string_value="200"),
-        "my.array.field": AnyValue(string_value=r"""[1,2,["nested","array"]]"""),
-        "my.dict.field": AnyValue(string_value=r"""{"id":42,"name":"test"}"""),
+        "my.array.field": AnyValue(
+            array_value=ArrayValue(
+                values=[
+                    AnyValue(int_value=1),
+                    AnyValue(int_value=2),
+                    AnyValue(
+                        array_value=ArrayValue(
+                            values=[
+                                AnyValue(string_value="nested"),
+                                AnyValue(string_value="array"),
+                            ],
+                        ),
+                    ),
+                ],
+            ),
+        ),
+        "my.dict.field": AnyValue(
+            kvlist_value=KeyValueList(
+                values=[
+                    KeyValue(key="id", value=AnyValue(int_value=42)),
+                    KeyValue(key="name", value=AnyValue(string_value="test")),
+                ],
+            ),
+        ),
         "my.false.bool.field": AnyValue(bool_value=False),
         "my.float.field": AnyValue(double_value=101.2),
         "my.int.field": AnyValue(int_value=2000),
@@ -115,6 +148,16 @@ def test_convert_span_to_item() -> None:
         "my.neg.float.field": AnyValue(double_value=-101.2),
         "my.true.bool.field": AnyValue(bool_value=True),
         "my.u64.field": AnyValue(double_value=9447000002305251000.0),
+        "my.unested.array.field": AnyValue(
+            array_value=ArrayValue(
+                values=[
+                    AnyValue(int_value=1),
+                    AnyValue(int_value=2),
+                    AnyValue(int_value=3),
+                    AnyValue(int_value=4),
+                ],
+            ),
+        ),
         "num_of_spans": AnyValue(double_value=50.0),
         "relay_endpoint_version": AnyValue(string_value="3"),
         "relay_id": AnyValue(string_value="88888888-4444-4444-8444-cccccccccccc"),
@@ -124,7 +167,7 @@ def test_convert_span_to_item() -> None:
         "relay_use_post_or_schedule": AnyValue(string_value="True"),
         "sentry.category": AnyValue(string_value="http"),
         "sentry.client_sample_rate": AnyValue(double_value=0.1),
-        "sentry.duration_ms": AnyValue(int_value=152),
+        "sentry.duration_ms": AnyValue(double_value=152.158022),
         "sentry.end_timestamp_precise": AnyValue(double_value=1721319572.768806),
         "sentry.environment": AnyValue(string_value="development"),
         "sentry.is_segment": AnyValue(bool_value=True),
@@ -159,13 +202,13 @@ def test_convert_span_to_item() -> None:
         "thread.id": AnyValue(string_value="8522009600"),
         "thread.name": AnyValue(string_value="uWSGIWorker1Core0"),
         "sentry._meta.fields.attributes.my.invalid.field": AnyValue(
-            string_value=r"""{"meta":{"":{"err":["invalid_data"],"val":{"type":"string","value":true}}}}"""
+            string_value=r"""{"meta":{"":{"err":["invalid_data"],"val":{"type":"boolean","value":true}}}}"""
         ),
     }
 
 
 def test_convert_falsy_fields() -> None:
-    message: SpanEvent = {**SPAN_KAFKA_MESSAGE}
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     message["is_segment"] = False
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
@@ -174,28 +217,26 @@ def test_convert_falsy_fields() -> None:
 
 
 def test_convert_span_links_to_json() -> None:
-    message: SpanEvent = {
-        **SPAN_KAFKA_MESSAGE,
-        "links": [
-            # A link with all properties
-            {
-                "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
-                "span_id": "8873a98879faf06d",
-                "sampled": True,
-                "attributes": {
-                    "sentry.link.type": {"type": "string", "value": "parent"},
-                    "sentry.dropped_attributes_count": {"type": "integer", "value": 2},
-                    "parent_depth": {"type": "integer", "value": 17},
-                    "confidence": {"type": "string", "value": "high"},
-                },
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["links"] = [
+        # A link with all properties
+        {
+            "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
+            "span_id": "8873a98879faf06d",
+            "sampled": True,
+            "attributes": {
+                "sentry.link.type": {"type": "string", "value": "parent"},
+                "sentry.dropped_attributes_count": {"type": "integer", "value": 2},
+                "parent_depth": {"type": "integer", "value": 17},
+                "confidence": {"type": "string", "value": "high"},
             },
-            # A link with missing optional properties
-            {
-                "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
-                "span_id": "873a988879faf06d",
-            },
-        ],
-    }
+        },
+        # A link with missing optional properties
+        {
+            "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
+            "span_id": "873a988879faf06d",
+        },
+    ]
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
@@ -208,7 +249,7 @@ def test_convert_renamed_attribute_meta() -> None:
     # precondition: make sure we're testing a renamed field
     assert "sentry.description" in RENAME_ATTRIBUTES
 
-    message: SpanEvent = {**SPAN_KAFKA_MESSAGE}
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     description_meta = {"": {"err": ["invalid_data"], "val": {"type": "string", "value": True}}}
     message["_meta"]["attributes"]["sentry.description"] = description_meta
 
@@ -218,3 +259,58 @@ def test_convert_renamed_attribute_meta() -> None:
     assert item.attributes.get("sentry._meta.fields.attributes.sentry.raw_description") == AnyValue(
         string_value=orjson.dumps({"meta": description_meta}).decode()
     )
+
+
+@pytest.mark.parametrize(
+    "key_id, expected_key_id",
+    [(123, 123), ("123", 123), (None, 0)],
+    ids=["int_key_id", "str_key_id", "none_key_id"],
+)
+def test_convert_outcomes_when_not_emitted(key_id, expected_key_id) -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["accepted_outcome_emitted"] = False
+    message["key_id"] = key_id
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.HasField("outcomes")
+    assert item.outcomes == Outcomes(
+        key_id=expected_key_id,
+        category_count=[
+            CategoryCount(
+                data_category=int(DataCategory.SPAN_INDEXED),
+                quantity=1,
+            ),
+        ],
+    )
+
+
+def test_convert_outcomes_when_not_emitted_missing_key_id() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["accepted_outcome_emitted"] = False
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.HasField("outcomes")
+    assert item.outcomes == Outcomes(
+        key_id=0,
+        category_count=[
+            CategoryCount(
+                data_category=int(DataCategory.SPAN_INDEXED),
+                quantity=1,
+            ),
+        ],
+    )
+
+
+def test_convert_outcomes_when_already_emitted() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["accepted_outcome_emitted"] = True
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+    assert not item.HasField("outcomes")
+
+
+def test_convert_outcomes_when_field_missing() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+    assert not item.HasField("outcomes")

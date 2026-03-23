@@ -5,6 +5,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
+  AnomalyDetectionComparison,
   Detector,
   MetricCondition,
   MetricConditionGroup,
@@ -18,7 +19,9 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
+import {getIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -83,10 +86,12 @@ interface SnubaQueryFormData {
   environment: string;
   interval: number;
   query: string;
+  extrapolationMode?: ExtrapolationMode;
 }
 
 export interface MetricDetectorFormData
-  extends PrioritizeLevelFormData,
+  extends
+    PrioritizeLevelFormData,
     MetricDetectorConditionFormData,
     MetricDetectorDynamicFormData,
     SnubaQueryFormData {
@@ -119,6 +124,7 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
   interval: 'interval',
   query: 'query',
   name: 'name',
+  extrapolationMode: 'extrapolationMode',
 
   // Priority level fields
   initialPriorityLevel: 'initialPriorityLevel',
@@ -152,10 +158,10 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   sensitivity: AlertRuleSensitivity.MEDIUM,
   thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
 
-  dataset: DetectorDataset.SPANS,
-  aggregateFunction: 'avg(span.duration)',
+  dataset: DetectorDataset.ERRORS,
+  aggregateFunction: 'count()',
   interval: 60 * 60, // One hour in seconds
-  query: '',
+  query: 'is:unresolved',
 } satisfies Partial<MetricDetectorFormData>;
 
 /**
@@ -181,6 +187,23 @@ interface NewDataSource {
   query: string;
   queryType: number;
   timeWindow: number;
+  extrapolationMode?: string;
+}
+
+function createAnomalyDetectionCondition(
+  data: Pick<MetricDetectorFormData, 'sensitivity' | 'thresholdType'>
+): NewConditionGroup['conditions'] {
+  return [
+    {
+      type: DataConditionType.ANOMALY_DETECTION,
+      comparison: {
+        sensitivity: data.sensitivity,
+        seasonality: 'auto' as const,
+        thresholdType: data.thresholdType,
+      },
+      conditionResult: DetectorPriorityLevel.HIGH,
+    },
+  ];
 }
 
 /**
@@ -256,6 +279,7 @@ export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
       return Dataset.METRICS;
     case DetectorDataset.SPANS:
     case DetectorDataset.LOGS:
+    case DetectorDataset.METRICS:
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     default:
       unreachable(dataset);
@@ -277,6 +301,7 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
       case DetectorDataset.TRANSACTIONS:
       case DetectorDataset.SPANS:
       case DetectorDataset.LOGS:
+      case DetectorDataset.METRICS:
         return SnubaQueryType.PERFORMANCE;
       case DetectorDataset.RELEASES:
         return SnubaQueryType.CRASH_RATE; // Maps to crash rate for metrics dataset
@@ -289,9 +314,18 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
   const datasetConfig = getDatasetConfig(data.dataset);
   const {eventTypes, query} = datasetConfig.separateEventTypesFromQuery(data.query);
 
+  const isUsingMigratedExtrapolation = getIsMigratedExtrapolation({
+    dataset: data.dataset,
+    extrapolationMode: data.extrapolationMode,
+  });
+  const adjustedExtrapolationMode = isUsingMigratedExtrapolation
+    ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
+    : data.extrapolationMode;
+
   return {
     queryType: getQueryType(data.dataset),
     dataset: getBackendDataset(data.dataset),
+    extrapolationMode: adjustedExtrapolationMode,
     query,
     aggregate: datasetConfig.toApiAggregate(data.aggregateFunction),
     timeWindow: data.interval,
@@ -303,7 +337,11 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
 export function metricDetectorFormDataToEndpointPayload(
   data: MetricDetectorFormData
 ): MetricDetectorUpdatePayload {
-  const conditions = createConditions(data);
+  const conditions =
+    data.detectionType === 'dynamic'
+      ? createAnomalyDetectionCondition(data)
+      : createConditions(data);
+
   const dataSource = createDataSource(data);
 
   // Create config based on detection type
@@ -311,22 +349,18 @@ export function metricDetectorFormDataToEndpointPayload(
   switch (data.detectionType) {
     case 'percent':
       config = {
-        thresholdPeriod: 1,
         detectionType: 'percent',
         comparisonDelta: data.conditionComparisonAgo || 3600,
       };
       break;
     case 'dynamic':
       config = {
-        thresholdPeriod: 1,
         detectionType: 'dynamic',
-        sensitivity: data.sensitivity,
       };
       break;
     case 'static':
     default:
       config = {
-        thresholdPeriod: 1,
         detectionType: 'static',
       };
       break;
@@ -396,7 +430,7 @@ function processDetectorConditions(
 
   // Determine resolution strategy: automatic if OK threshold matches warning or critical
   const resolutionValue = okCondition?.comparison ?? undefined;
-  const computedResolutionStrategy: 'default' | 'custom' =
+  const computedResolutionStrategy =
     defined(resolutionValue) &&
     ![highCondition?.comparison, mediumCondition?.comparison].includes(resolutionValue)
       ? 'custom'
@@ -423,6 +457,24 @@ function processDetectorConditions(
   };
 }
 
+function getAnomalyCondition(detector: MetricDetector): AnomalyDetectionComparison {
+  const anomalyCondition = detector.conditionGroup?.conditions?.find(
+    condition => condition.type === DataConditionType.ANOMALY_DETECTION
+  );
+
+  const comparison = anomalyCondition?.comparison;
+  if (typeof comparison === 'object') {
+    return comparison;
+  }
+
+  // Fallback to default values
+  return {
+    sensitivity: AlertRuleSensitivity.MEDIUM,
+    seasonality: 'auto',
+    thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
+  };
+}
+
 /**
  * Converts a Detector to MetricDetectorFormData for editing
  */
@@ -441,9 +493,10 @@ export function metricSavedDetectorToFormData(
 
   const dataset = snubaQuery?.dataset
     ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
-    : DetectorDataset.SPANS;
+    : DetectorDataset.ERRORS;
 
   const datasetConfig = getDatasetConfig(dataset);
+  const anomalyCondition = getAnomalyCondition(detector);
 
   return {
     // Core detector fields
@@ -454,6 +507,7 @@ export function metricSavedDetectorToFormData(
     owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
     description: detector.description || null,
     query: datasetConfig.toSnubaQueryString(snubaQuery),
+    extrapolationMode: snubaQuery.extrapolationMode,
     aggregateFunction:
       datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
       DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction,
@@ -471,15 +525,8 @@ export function metricSavedDetectorToFormData(
         ? detector.config.comparisonDelta
         : DEFAULT_THRESHOLD_METRIC_FORM_DATA.conditionComparisonAgo,
 
-    // Dynamic fields - extract from config for dynamic detectors
-    sensitivity:
-      detector.config.detectionType === 'dynamic' && defined(detector.config.sensitivity)
-        ? detector.config.sensitivity
-        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.sensitivity,
-    thresholdType:
-      detector.config.detectionType === 'dynamic' &&
-      defined(detector.config.thresholdType)
-        ? detector.config.thresholdType
-        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.thresholdType,
+    // Dynamic fields - extract from anomaly detection condition for dynamic detectors
+    sensitivity: anomalyCondition.sensitivity,
+    thresholdType: anomalyCondition.thresholdType,
   };
 }

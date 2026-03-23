@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
 import Indicators from 'sentry/components/indicators';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useSetupWizardViewedAnalytics} from 'sentry/views/setupWizard/utils/setupWizardAnalytics';
 import {useOrganizationsWithRegion} from 'sentry/views/setupWizard/utils/useOrganizationsWithRegion';

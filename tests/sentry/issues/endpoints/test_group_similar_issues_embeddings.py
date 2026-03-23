@@ -79,7 +79,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self.event = self.store_event(data=self.base_error_trace, project_id=self.project)
         self.group = self.event.group
         assert self.group
-        self.path = f"/api/0/issues/{self.group.id}/similar-issues-embeddings/"
+        self.path = f"/api/0/organizations/{self.org.slug}/issues/{self.group.id}/similar-issues-embeddings/"
         self.similar_event = self.store_event(
             data={"message": "Dogs are great!"}, project_id=self.project
         )
@@ -136,6 +136,56 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 event_from_second_similar_group.group_id,
             ],
             [1.0000, 0.7700],
+            ["Yes", "No"],
+        )
+
+    def test_get_formatted_results_deduplicates_groups(self) -> None:
+        event_from_second_similar_group = save_new_event({"message": "example"}, self.project)
+        assert self.similar_event.group_id is not None
+        assert event_from_second_similar_group.group_id is not None
+
+        second_hash = GroupHash.objects.create(
+            project=self.project,
+            group_id=self.similar_event.group_id,
+            hash="duplicate_hash_for_same_group",
+        )
+
+        similar_issue_data_best = SeerSimilarIssueData(
+            parent_group_id=self.similar_event.group_id,
+            parent_hash=self.similar_event.get_primary_hash(),
+            should_group=True,
+            stacktrace_distance=0.01,
+        )
+        similar_issue_data_other = SeerSimilarIssueData(
+            parent_group_id=event_from_second_similar_group.group_id,
+            parent_hash=event_from_second_similar_group.get_primary_hash(),
+            should_group=False,
+            stacktrace_distance=0.05,
+        )
+        similar_issue_data_worse_dup = SeerSimilarIssueData(
+            parent_group_id=self.similar_event.group_id,
+            parent_hash=second_hash.hash,
+            should_group=True,
+            stacktrace_distance=0.10,
+        )
+
+        group_similar_endpoint = GroupSimilarIssuesEmbeddingsEndpoint()
+        formatted_results = group_similar_endpoint.get_formatted_results(
+            similar_issues_data=[
+                similar_issue_data_best,
+                similar_issue_data_other,
+                similar_issue_data_worse_dup,
+            ],
+            user=self.user,
+            group=self.group,
+        )
+
+        assert formatted_results == self.get_expected_response(
+            [
+                self.similar_event.group_id,
+                event_from_second_similar_group.group_id,
+            ],
+            [0.99, 0.95],
             ["Yes", "No"],
         )
 
@@ -219,7 +269,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         assert event.group
-        path = f"/api/0/issues/{event.group.id}/similar-issues-embeddings/"
+        path = f"/api/0/organizations/{self.org.slug}/issues/{event.group.id}/similar-issues-embeddings/"
         response = self.client.get(path, data={"k": "1", "threshold": "0.01"})
 
         assert self.similar_event.group_id is not None
@@ -451,7 +501,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         The seer API can return hashes which don't have a group id attached.
         Test that these groups are not returned.
         """
-        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         assert existing_grouphash.group_id is None
 
         # Create metadata for the grouphash so it has a creation date
@@ -460,7 +510,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
-                    "parent_hash": "dogs are great",
+                    "parent_hash": "dogs_are_great",
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
@@ -487,7 +537,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "get_similarity_data_from_seer.parent_hash_missing_group",
             extra={
                 "hash": self.event.get_primary_hash(),
-                "parent_hash": "dogs are great",
+                "parent_hash": "dogs_are_great",
                 "parent_gh_age_in_sec": mock.ANY,  # See below
                 "project_id": self.project.id,
                 "event_id": self.event.event_id,
@@ -554,7 +604,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert group_no_contributing_exception
 
         response = self.client.get(
-            f"/api/0/issues/{group_no_contributing_exception.id}/similar-issues-embeddings/",
+            f"/api/0/organizations/{self.org.slug}/issues/{group_no_contributing_exception.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
         )
 
@@ -565,7 +615,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         group_no_exception = event_no_exception.group
         assert group_no_exception
         response = self.client.get(
-            f"/api/0/issues/{group_no_exception.id}/similar-issues-embeddings/",
+            f"/api/0/organizations/{self.org.slug}/issues/{group_no_exception.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
         )
 
@@ -576,7 +626,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_get_latest_event.return_value = None
 
         response = self.client.get(
-            f"/api/0/issues/{self.group.id}/similar-issues-embeddings/",
+            f"/api/0/organizations/{self.org.slug}/issues/{self.group.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
         )
 
@@ -587,7 +637,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_get_stacktrace_string.return_value = ""
 
         response = self.client.get(
-            f"/api/0/issues/{self.group.id}/similar-issues-embeddings/",
+            f"/api/0/organizations/{self.org.slug}/issues/{self.group.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
         )
 
@@ -745,7 +795,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         new_event = self.store_event(data=error_data, project_id=self.project)
         assert new_event.group
         response = self.client.get(
-            path=f"/api/0/issues/{new_event.group.id}/similar-issues-embeddings/",
+            path=f"/api/0/organizations/{self.org.slug}/issues/{new_event.group.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.01"},
         )
         assert response.data == []
@@ -777,7 +827,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         new_event = self.store_event(data=error_data, project_id=self.project)
         assert new_event.group
         response = self.client.get(
-            path=f"/api/0/issues/{new_event.group.id}/similar-issues-embeddings/",
+            path=f"/api/0/organizations/{self.org.slug}/issues/{new_event.group.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.01"},
         )
         assert response.data == []

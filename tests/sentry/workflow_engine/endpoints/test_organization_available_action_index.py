@@ -13,7 +13,7 @@ from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.types import ActionHandler
@@ -22,7 +22,7 @@ from sentry_plugins.slack.plugin import SlackPlugin
 from sentry_plugins.trello.plugin import TrelloPlugin
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationAvailableActionAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-available-action-index"
 
@@ -204,6 +204,32 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         )
         self.sentry_app_installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.organization
+        )
+
+        # should not return sentry apps that are not alertable
+        self.not_alertable_sentry_app = self.create_sentry_app(
+            name="Not Alertable Sentry App",
+            organization=self.organization,
+            is_alertable=False,
+        )
+        self.not_alertable_sentry_app_installation = self.create_sentry_app_installation(
+            slug=self.not_alertable_sentry_app.slug, organization=self.organization
+        )
+
+        self.not_alertable_sentry_app = self.create_sentry_app(
+            name="Not Alertable Sentry App With Component",
+            organization=self.organization,
+            schema={
+                "elements": [
+                    self.sentry_app_settings_schema,
+                ]
+            },
+            is_alertable=False,
+        )
+        self.not_alertable_sentry_app_with_component_installation = (
+            self.create_sentry_app_installation(
+                slug=self.not_alertable_sentry_app.slug, organization=self.organization
+            )
         )
 
         # should not return sentry apps that are not installed
@@ -388,6 +414,28 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
+    @patch(
+        "sentry.workflow_engine.endpoints.organization_available_action_index.prepare_ui_component"
+    )
+    def test_sentry_apps_filters_failed_component_preparation(
+        self, mock_prepare_ui_component: MagicMock
+    ) -> None:
+        """Test that sentry apps whose components fail to prepare are filtered out"""
+        self.setup_sentry_apps()
+
+        # make prepare_ui_component return None to simulate a broken app
+        mock_prepare_ui_component.return_value = None
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+
+        # verify prepare_ui_component was called
+        assert mock_prepare_ui_component.called
+        # should return no sentry apps since component preparation failed
+        assert len(response.data) == 0
+
     def test_webhooks(self) -> None:
         self.setup_webhooks()
 
@@ -411,7 +459,6 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_actions_sorting(self, mock_sentry_app_component_preparer: MagicMock) -> None:
-
         self.setup_sentry_apps()
         self.setup_integrations()
         self.setup_integrations_with_services()

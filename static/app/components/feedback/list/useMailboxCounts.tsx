@@ -1,12 +1,13 @@
 import {useMemo} from 'react';
 
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import type {Organization} from 'sentry/types/organization';
-import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {coaleseIssueStatsPeriodQuery} from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface Props {
@@ -23,7 +24,7 @@ type HookReturnType = {
   unresolved: number;
 };
 
-export default function useMailboxCounts({
+export function useMailboxCounts({
   organization,
 }: Props): UseApiQueryResult<HookReturnType, RequestError> {
   const location = useLocation();
@@ -66,7 +67,11 @@ export default function useMailboxCounts({
 
   const result = useApiQuery<ApiReturnType>(
     [
-      `/organizations/${organization.slug}/issues-count/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
       {query: queryViewWithStatsPeriod},
     ],
     {

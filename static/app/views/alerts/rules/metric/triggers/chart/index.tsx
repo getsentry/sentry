@@ -6,9 +6,12 @@ import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import EventsRequest, {
   type EventsRequestProps,
 } from 'sentry/components/charts/eventsRequest';
@@ -21,13 +24,11 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import LoadingMask from 'sentry/components/loadingMask';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingMask} from 'sentry/components/loadingMask';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {
   Confidence,
@@ -36,6 +37,7 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -44,15 +46,19 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
-import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {
   AlertRuleComparisonType,
   Dataset,
+  EAP_EXTRAPOLATION_MODE_MAP,
+  ExtrapolationMode,
   SessionsAggregate,
   TimePeriod,
   TimeWindow,
+  type MetricRule,
+  type Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
 import type {SeriesSamplingInfo} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
@@ -75,7 +81,7 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-import ThresholdsChart from './thresholdsChart';
+import {ThresholdsChart} from './thresholdsChart';
 
 type Props = {
   aggregate: MetricRule['aggregate'];
@@ -97,10 +103,12 @@ type Props = {
   anomalies?: Anomaly[];
   comparisonDelta?: number;
   confidence?: Confidence;
+  extrapolationMode?: ExtrapolationMode;
   formattedAggregate?: string;
   header?: React.ReactNode;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
+  isPreloading?: boolean;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   seriesSamplingInfo?: SeriesSamplingInfo;
@@ -116,6 +124,7 @@ const SESSION_AGGREGATE_TO_HEADING = {
 const noop: any = () => {};
 
 type State = {
+  adjustedExtrapolationMode: ExtrapolationMode | undefined;
   extrapolationSampleCount: number | null;
   sampleRate: number;
   statsPeriod: TimePeriod;
@@ -156,18 +165,39 @@ class TriggersChart extends PureComponent<Props, State> {
     totalCount: null,
     sampleRate: 1,
     extrapolationSampleCount: null,
+    adjustedExtrapolationMode: undefined,
   };
 
   componentDidMount() {
-    const {aggregate, showTotalCount} = this.props;
+    const {aggregate, showTotalCount, extrapolationMode, dataset, traceItemType} =
+      this.props;
     if (showTotalCount && !isSessionAggregate(aggregate)) {
       this.fetchTotalCount();
+    }
+
+    // we want to show the regular extrapolated chart as we are changing the extrapolation to UNKNOWN
+    // once a migrated alert is saved
+    if (getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)) {
+      this.setState({
+        adjustedExtrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+      });
+    } else {
+      this.setState({adjustedExtrapolationMode: extrapolationMode});
     }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {query, environment, timeWindow, aggregate, projects, showTotalCount} =
-      this.props;
+    const {
+      query,
+      environment,
+      timeWindow,
+      aggregate,
+      projects,
+      showTotalCount,
+      extrapolationMode,
+      dataset,
+      traceItemType,
+    } = this.props;
     const {statsPeriod} = this.state;
     if (
       !isEqual(prevProps.projects, projects) ||
@@ -178,6 +208,19 @@ class TriggersChart extends PureComponent<Props, State> {
     ) {
       if (showTotalCount && !isSessionAggregate(aggregate)) {
         this.fetchTotalCount();
+      }
+    }
+    if (
+      prevProps.extrapolationMode !== this.props.extrapolationMode ||
+      prevProps.dataset !== dataset ||
+      prevProps.traceItemType !== traceItemType
+    ) {
+      if (getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)) {
+        this.setState({
+          adjustedExtrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+        });
+      } else {
+        this.setState({adjustedExtrapolationMode: extrapolationMode});
       }
     }
   }
@@ -280,6 +323,8 @@ class TriggersChart extends PureComponent<Props, State> {
     errored,
     orgFeatures,
     seriesAdditionalInfo,
+    timeseriesResultsTypes,
+    timeseriesResultsUnits,
   }: {
     isLoading: boolean;
     isQueryValid: boolean;
@@ -292,6 +337,8 @@ class TriggersChart extends PureComponent<Props, State> {
     errored?: boolean;
     minutesThresholdToDisplaySeconds?: number;
     seriesAdditionalInfo?: Record<string, any>;
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
   }) {
     const {
       triggers,
@@ -358,6 +405,8 @@ class TriggersChart extends PureComponent<Props, State> {
             aggregate={aggregate}
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
             isExtrapolatedData={showExtrapolatedChartData}
+            timeseriesResultsTypes={timeseriesResultsTypes}
+            timeseriesResultsUnits={timeseriesResultsUnits}
           />
         )}
 
@@ -394,10 +443,13 @@ class TriggersChart extends PureComponent<Props, State> {
               value={period}
               onChange={opt => this.handleStatsPeriodChange(opt.value)}
               position="bottom-end"
-              triggerProps={{
-                borderless: true,
-                prefix: t('Display'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  priority="transparent"
+                  prefix={t('Display')}
+                />
+              )}
             />
           </InlineContainer>
         </ChartControls>
@@ -427,7 +479,20 @@ class TriggersChart extends PureComponent<Props, State> {
       isQueryValid,
       isOnDemandMetricAlert,
       traceItemType,
+      isPreloading,
+      header,
     } = this.props;
+
+    const {adjustedExtrapolationMode} = this.state;
+
+    if (isPreloading) {
+      return (
+        <Fragment>
+          {header}
+          <ChartPlaceholder />
+        </Fragment>
+      );
+    }
 
     const period = this.getStatsPeriod()!;
     const renderComparisonStats = Boolean(
@@ -463,6 +528,13 @@ class TriggersChart extends PureComponent<Props, State> {
         partial: false,
         limit: 15,
         children: noop,
+        extrapolationMode: adjustedExtrapolationMode
+          ? EAP_EXTRAPOLATION_MODE_MAP[adjustedExtrapolationMode]
+          : undefined,
+        sampling:
+          adjustedExtrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL,
       };
 
       return (
@@ -589,6 +661,17 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
+      sampling:
+        dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+        this.props.traceItemType === TraceItemDataset.SPANS
+          ? adjustedExtrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL
+          : undefined,
+
+      extrapolationMode: adjustedExtrapolationMode
+        ? EAP_EXTRAPOLATION_MODE_MAP[adjustedExtrapolationMode]
+        : undefined,
     };
 
     return (
@@ -615,17 +698,7 @@ class TriggersChart extends PureComponent<Props, State> {
             {noop}
           </EventsRequest>
         ) : null}
-        <EventsRequest
-          {...baseProps}
-          period={period}
-          dataLoadedCallback={onDataLoaded}
-          sampling={
-            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-            this.props.traceItemType === TraceItemDataset.SPANS
-              ? SAMPLING_MODE.NORMAL
-              : undefined
-          }
-        >
+        <EventsRequest {...baseProps} period={period} dataLoadedCallback={onDataLoaded}>
           {({
             loading,
             errored,
@@ -633,6 +706,8 @@ class TriggersChart extends PureComponent<Props, State> {
             reloading,
             timeseriesData,
             comparisonTimeseriesData,
+            timeseriesResultsTypes,
+            timeseriesResultsUnits,
           }) => {
             let comparisonMarkLines: LineChartSeries[] = [];
             if (renderComparisonStats && comparisonTimeseriesData) {
@@ -656,6 +731,8 @@ class TriggersChart extends PureComponent<Props, State> {
               isQueryValid,
               errored,
               orgFeatures: organization.features,
+              timeseriesResultsTypes,
+              timeseriesResultsUnits,
             });
           }}
         </EventsRequest>
@@ -674,18 +751,18 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
 
 const ChartPlaceholder = styled(Placeholder)`
   /* Height and margin should add up to graph size (200px) */
-  margin: 0 0 ${space(2)};
+  margin: 0 0 ${p => p.theme.space.xl};
   height: 184px;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
   /* Height and margin should with the alert should match up placeholder height of (184px) */
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   height: 119px;
 `;
 
 const ChartErrorWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 interface ErrorChartProps extends React.ComponentProps<'div'> {
@@ -702,7 +779,7 @@ export function ErrorChart({
 }: ErrorChartProps) {
   return (
     <ChartErrorWrapper {...props}>
-      <PanelAlert type="error">
+      <PanelAlert variant="danger">
         {!isAllowIndexed && !isQueryValid
           ? t('Your filter conditions contain an unsupported field - please review.')
           : typeof errorMessage === 'string'
@@ -711,7 +788,7 @@ export function ErrorChart({
       </PanelAlert>
 
       <StyledErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </StyledErrorPanel>
     </ChartErrorWrapper>
   );

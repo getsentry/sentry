@@ -2,18 +2,18 @@ import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Input, NumberInput} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
+import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
   IssueAlertRuleAction,
@@ -29,11 +29,11 @@ import {
 } from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IssueCategory} from 'sentry/types/group';
-import {VALID_ISSUE_CATEGORIES_V2} from 'sentry/types/group';
+import {VALID_ISSUE_CATEGORIES} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
-import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 
 interface FieldProps {
   data: Props['data'];
@@ -157,20 +157,14 @@ function getChoices({
   data,
   fieldConfig,
   name,
-  organization,
   selectedValue,
-}: Pick<FieldProps, 'data' | 'fieldConfig' | 'name' | 'organization'> & {
+}: Pick<FieldProps, 'data' | 'fieldConfig' | 'name'> & {
   selectedValue?: string;
 }) {
-  if (
-    data.id === IssueAlertFilterType.ISSUE_CATEGORY &&
-    name === 'value' &&
-    organization.features.includes('issue-taxonomy')
-  ) {
+  if (data.id === IssueAlertFilterType.ISSUE_CATEGORY && name === 'value') {
     return fieldConfig.choices.filter(
       ([value, label]: [string | number, string]) =>
-        VALID_ISSUE_CATEGORIES_V2.includes(label as IssueCategory) ||
-        value === selectedValue
+        VALID_ISSUE_CATEGORIES.includes(label as IssueCategory) || value === selectedValue
     );
   }
 
@@ -185,7 +179,6 @@ function ChoiceField({
   onReset,
   name,
   fieldConfig,
-  organization,
 }: FieldProps) {
   // Select the first item on this list
   // If it's not yet defined, call onPropertyChange to make sure the value is set on state
@@ -205,7 +198,6 @@ function ChoiceField({
     data,
     fieldConfig,
     name,
-    organization,
     selectedValue: initialVal,
   }).map(([value, label]: [string | number, string]) => ({
     value: `${value}`,
@@ -283,7 +275,7 @@ interface Props {
   node?: IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null;
 }
 
-function RuleNode({
+export function RuleNode({
   index,
   data,
   node,
@@ -366,10 +358,6 @@ function RuleNode({
     ) {
       // Hide the fallback options when targeting team or member
       label = 'Send a notification to {targetType}';
-    }
-
-    if (data.id === IssueAlertConditionType.REAPPEARED_EVENT) {
-      label = t('The issue changes state from archived to escalating');
     }
 
     const parts = label.split(/({\w+})/).map((part, i) => {
@@ -469,7 +457,7 @@ function RuleNode({
     if (data.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT) {
       if (!project.platform || !releaseHealth.includes(project.platform)) {
         return (
-          <FooterAlert type="error">
+          <FooterAlert variant="danger">
             {tct(
               "This project doesn't support sessions. [link:View supported platforms]",
               {
@@ -483,7 +471,7 @@ function RuleNode({
       }
 
       return (
-        <FooterAlert type="warning">
+        <FooterAlert variant="warning">
           {tct(
             'Percent of sessions affected is approximated by the ratio of the issue frequency to the number of sessions in the project. [link:Learn more.]',
             {
@@ -499,7 +487,7 @@ function RuleNode({
     if (data.id === IssueAlertActionType.SLACK) {
       return (
         <FooterAlert
-          type="info"
+          variant="info"
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
@@ -514,7 +502,7 @@ function RuleNode({
     if (data.id === IssueAlertActionType.DISCORD) {
       return (
         <FooterAlert
-          type="info"
+          variant="info"
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
@@ -526,17 +514,14 @@ function RuleNode({
       );
     }
 
-    // While `issue-taxonomy` is being rolled out, both the old and new categories are supported.
-    // This will display a banner to nudge users towards selecting a new category.
     if (
       data.id === IssueAlertFilterType.ISSUE_CATEGORY &&
-      organization.features.includes('issue-taxonomy') &&
-      !VALID_ISSUE_CATEGORIES_V2.includes(
+      !VALID_ISSUE_CATEGORIES.includes(
         getSelectedCategoryLabel({data, node}) as IssueCategory
       )
     ) {
       return (
-        <FooterAlert type="warning">
+        <FooterAlert variant="warning">
           {t(
             'Issue categories have been recently updated. Make a new selection to save changes.'
           )}
@@ -552,7 +537,7 @@ function RuleNode({
       return null;
     }
     return (
-      <FooterAlert type="error">
+      <FooterAlert variant="danger">
         {t(
           'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
         )}
@@ -608,12 +593,12 @@ function RuleNode({
 
   return (
     <RuleRowContainer incompatible={incompatibleRule}>
-      <RuleRow>
-        <Rule>
+      <Flex align="center" padding="md">
+        <Flex align="center" wrap="wrap" flex="1">
           <input type="hidden" name="id" value={data.id} />
           {renderRow()}
           {renderIntegrationButton()}
-        </Rule>
+        </Flex>
         <DeleteButton
           disabled={disabled}
           aria-label={t('Delete Node')}
@@ -621,14 +606,12 @@ function RuleNode({
           size="sm"
           icon={<IconDelete />}
         />
-      </RuleRow>
+      </Flex>
       {renderIncompatibleRuleBanner()}
       {conditionallyRenderHelpfulBanner()}
     </RuleRowContainer>
   );
 }
-
-export default RuleNode;
 
 const InlineInput = styled(Input)`
   width: auto;
@@ -647,29 +630,16 @@ const InlineSelectControl = styled(Select)`
 `;
 
 const Separator = styled('span')`
-  margin-right: ${space(1)};
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
-`;
-
-const RuleRow = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px ${p => p.theme.innerBorder} solid;
-  border-color: ${p => (p.incompatible ? p.theme.red200 : 'none')};
-`;
-
-const Rule = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  flex-wrap: wrap;
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px ${p => p.theme.tokens.border.secondary} solid;
+  border-color: ${p => (p.incompatible ? p.theme.colors.red200 : 'none')};
 `;
 
 const DeleteButton = styled(Button)`
@@ -677,7 +647,7 @@ const DeleteButton = styled(Button)`
 `;
 
 const FooterAlert = styled(Alert)`
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   margin-top: -1px; /* remove double border on panel bottom */
   a {
     white-space: nowrap;

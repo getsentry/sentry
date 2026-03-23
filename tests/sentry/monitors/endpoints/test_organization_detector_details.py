@@ -1,17 +1,17 @@
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
     """Test PUT/DELETE operations for monitor incident detectors."""
 
@@ -138,6 +138,42 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
         assert self.monitor.name == original_monitor_name
         assert self.monitor.config == original_monitor_config
 
+    def test_update_monitor_incident_detector_with_data_sources(self):
+        """Test updating a monitor detector with dataSources field (including existing slug)."""
+        data = {
+            "name": "Updated Name",
+            "dataSources": [
+                {
+                    "name": "Updated Monitor Name",
+                    "slug": self.monitor.slug,  # Keep the existing slug
+                    "config": {
+                        "checkin_margin": 1,
+                        "failure_issue_threshold": 1,
+                        "max_runtime": 30,
+                        "recovery_threshold": 1,
+                        "timezone": "UTC",
+                        "schedule": "0 0 * * 5",
+                        "schedule_type": "crontab",
+                    },
+                }
+            ],
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=200,
+            method="PUT",
+        )
+
+        assert response.data["name"] == "Updated Name"
+
+        self.monitor.refresh_from_db()
+        assert self.monitor.name == "Updated Monitor Name"
+        assert self.monitor.slug == "test-monitor"  # Slug unchanged
+        assert self.monitor.config["schedule"] == "0 0 * * 5"
+
     def test_delete_monitor_incident_detector(self):
         """Test deleting a monitor incident detector."""
         with outbox_runner():
@@ -147,7 +183,7 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
                 method="DELETE",
             )
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id
         ).exists()
 

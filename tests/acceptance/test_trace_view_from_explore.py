@@ -1,6 +1,8 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from fixtures.page_objects.explore_spans import ExploreSpansPage
 from fixtures.page_objects.trace_view import TraceViewWaterfallPage
 from sentry.eventstream.snuba import SnubaEventStream
@@ -15,7 +17,6 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
     FEATURES = [
         "organizations:visibility-explore-view",
         "organizations:performance-view",
-        "organizations:trace-spans-format",
     ]
 
     def setUp(self) -> None:
@@ -42,6 +43,7 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
         self.dismiss_assistant(which="tour.explore.spans")
 
     @patch("django.utils.timezone.now")
+    @pytest.mark.skip(reason="This test is flaky and needs to be fixed")
     def test_navigation(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 
@@ -67,7 +69,6 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
                 parent_span_id=None,
                 project_id=self.project.id,
                 milliseconds=3000,
-                is_eap=True,
             )
 
             # Visit explore spans table

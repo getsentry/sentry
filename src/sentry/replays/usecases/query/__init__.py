@@ -116,7 +116,6 @@ def handle_search_filters(
         # are top level filters they are implicitly AND'ed in the WHERE/HAVING clause.  Otherwise
         # explicit operators are used.
         if isinstance(search_filter, SearchFilter):
-
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
                 if condition is None:
@@ -344,7 +343,11 @@ def _query_using_scalar_strategy(
 
     try:
         where = handle_search_filters(scalar_search_config, search_filters)
-        orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
+        orderby = handle_ordering(
+            agg_sort_config,
+            sort or "-" + DEFAULT_SORT_FIELD,
+            tiebreaker="replay_id",  # Ensure stable sort when ordering by column with duplicates
+        )
     except RetryAggregated:
         return _query_using_aggregated_strategy(
             search_filters,
@@ -378,7 +381,11 @@ def _query_using_aggregated_strategy(
     period_start: datetime,
     period_stop: datetime,
 ):
-    orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
+    orderby = handle_ordering(
+        agg_sort_config,
+        sort or "-" + DEFAULT_SORT_FIELD,
+        tiebreaker="replay_id",  # Ensure stable sort when ordering by column with duplicates
+    )
 
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
     having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))
@@ -459,11 +466,16 @@ def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Map
         raise
 
 
-def handle_ordering(config: dict[str, Expression], sort: str) -> list[OrderBy]:
-    if sort.startswith("-"):
-        return [OrderBy(_get_sort_column(config, sort[1:]), Direction.DESC)]
-    else:
-        return [OrderBy(_get_sort_column(config, sort), Direction.ASC)]
+def handle_ordering(
+    config: dict[str, Expression], sort: str, tiebreaker: str | None = None
+) -> list[OrderBy]:
+    direction = Direction.DESC if sort.startswith("-") else Direction.ASC
+    bare_sort = sort[1:] if sort.startswith("-") else sort
+
+    orderby = [OrderBy(_get_sort_column(config, bare_sort), direction)]
+    if tiebreaker:
+        orderby.append(OrderBy(Column(tiebreaker), direction))
+    return orderby
 
 
 def _get_sort_column(config: dict[str, Expression], column_name: str) -> Function:

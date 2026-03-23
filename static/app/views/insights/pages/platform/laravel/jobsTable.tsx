@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -10,12 +11,12 @@ import {
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   HeadSortCell,
   useTableSort,
-} from 'sentry/views/insights/agents/components/headSortCell';
-import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -164,7 +165,11 @@ function DestinationCell({destination}: {destination: string}) {
 }
 
 const StyledJobLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
 `;
 

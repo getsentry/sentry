@@ -1,6 +1,6 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -17,16 +17,18 @@ interface GroupEventAttachmentsFilterProps {
   onChange?: (filter: EventAttachmentFilter) => void;
 }
 
-function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProps) {
+export function GroupEventAttachmentsFilter({
+  onChange,
+}: GroupEventAttachmentsFilterProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeFilter: AttachmentFilterValue =
+  const activeFilter =
     (location.query.attachmentFilter as AttachmentFilterValue | undefined) ??
     EventAttachmentFilter.ALL;
 
   return (
-    <FilterWrapper>
+    <Flex justify="end">
       <SegmentedControl
         aria-label={t('Attachment Filter')}
         size="sm"
@@ -52,13 +54,6 @@ function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProp
           {t('Only Crash Reports')}
         </SegmentedControl.Item>
       </SegmentedControl>
-    </FilterWrapper>
+    </Flex>
   );
 }
-
-const FilterWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
-export default GroupEventAttachmentsFilter;

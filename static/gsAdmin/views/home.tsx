@@ -1,25 +1,25 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import UserBadge from 'sentry/components/idBadge/userBadge';
-import Truncate from 'sentry/components/truncate';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {Truncate} from 'sentry/components/truncate';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import DebounceSearch from 'admin/components/debounceSearch';
-import Overview from 'admin/views/overview';
+import {DebounceSearch} from 'admin/components/debounceSearch';
+import {Overview} from 'admin/views/overview';
 
-type Props = RouteComponentProps<unknown, unknown>;
-
-function HomePage(props: Props) {
+export function HomePage() {
   const navigate = useNavigate();
   const regions = ConfigStore.get('regions');
   const [oldSplash, setOldSplash] = useState(false);
   const [regionUrl, setRegionUrl] = useState(regions[0]!.url);
+  const selectedRegion = regions.find((region: any) => region.url === regionUrl);
 
   const buildOrgPath = (org: any) => `/_admin/customers/${org.slug}/`;
   const orgSelect = (org: any) => {
@@ -78,13 +78,13 @@ function HomePage(props: Props) {
   };
 
   if (oldSplash) {
-    return <Overview {...props} />;
+    return <Overview />;
   }
   return (
     <SplashWrapper>
-      <Header>
+      <Flex align="center" margin="3xl 0">
         <HeaderTitle>Welcome to the Admin Portal!</HeaderTitle>
-      </Header>
+      </Flex>
       <div>
         <strong>
           This is an internal tool meant to enable Sentry Employees (you!) to better
@@ -92,12 +92,12 @@ function HomePage(props: Props) {
         </strong>
         <div>If you have any questions, ask us in #discuss-admin</div>
       </div>
-      <Centered>
+      <Flex justify="center" margin="xl 0">
         <Warning>
           <strong>NOTE:</strong>&nbsp;
           <span>All actions are logged and audited</span>
         </Warning>
-      </Centered>
+      </Flex>
       <div>
         <SearchLabel>Users</SearchLabel>
         <DebounceSearch
@@ -111,7 +111,9 @@ function HomePage(props: Props) {
       </div>
       <RegionPanel>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={regionUrl}
           options={regions.map((r: any) => ({
             label: r.name,
@@ -125,7 +127,11 @@ function HomePage(props: Props) {
         <SearchLabel>Organizations</SearchLabel>
         <DebounceSearch
           host={regionUrl}
-          path="/customers/"
+          path={
+            selectedRegion
+              ? `/_admin/cells/${selectedRegion.name}/customers/`
+              : '/customers/'
+          }
           onSelectResult={orgSelect}
           onSearch={orgSubmit}
           suggestionContent={renderOrgSuggestion}
@@ -156,46 +162,33 @@ function HomePage(props: Props) {
 }
 
 const RegionPanel = styled('div')`
-  padding: ${space(4)} 0;
+  padding: ${p => p.theme.space['3xl']} 0;
 `;
 
 const SearchLabel = styled('label')`
   display: block;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const SplashWrapper = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;
 
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: ${space(4)} 0;
-`;
 const HeaderTitle = styled('h3')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: normal;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const OverviewWrap = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space.xl} 0;
 `;
 const SecondaryText = styled('span')`
-  color: ${p => p.theme.subText};
-`;
-
-const Centered = styled('div')`
-  display: flex;
-  justify-content: center;
-  margin: ${space(2)} 0;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Warning = styled('div')`
   color: red;
   font-size: large;
 `;
-
-export default HomePage;

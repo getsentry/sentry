@@ -9,7 +9,12 @@ interface UseExploreTracesTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
-  queryExtras?: {caseInsensitive?: CaseInsensitive};
+  queryExtras?: {
+    caseInsensitive?: CaseInsensitive;
+    logQuery?: string[];
+    metricQuery?: string[];
+    spanQuery?: string[];
+  };
 }
 
 export interface TracesTableResult {
@@ -32,6 +37,9 @@ export function useExploreTracesTable({
     sort: '-timestamp',
     cursor,
     caseInsensitive: queryExtras?.caseInsensitive,
+    logQuery: queryExtras?.logQuery,
+    metricQuery: queryExtras?.metricQuery,
+    spanQuery: queryExtras?.spanQuery,
   });
 
   return useMemo(() => {

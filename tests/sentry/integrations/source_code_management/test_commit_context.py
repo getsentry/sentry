@@ -1,7 +1,10 @@
+import datetime
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from sentry.integrations.github.integration import GitHubPRCommentWorkflow
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
@@ -12,7 +15,8 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.users.models.identity import Identity
 
 
@@ -20,6 +24,7 @@ class MockCommitContextIntegration(CommitContextIntegration):
     """Mock implementation for testing"""
 
     integration_name = "mock_integration"
+    integration_id = 1
 
     def __init__(self) -> None:
         self.client = Mock()
@@ -207,3 +212,60 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert result == []
         assert len(mock_record.mock_calls) == 2
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+
+class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = MockCommitContextIntegration()
+        self.pr_comment_workflow = GitHubPRCommentWorkflow(self.integration)
+
+    def _query_both(
+        self, issue_ids: list[int]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        snuba_result = self.pr_comment_workflow._get_top_5_issues_by_count_snuba(
+            issue_ids, self.project
+        )
+        eap_result = self.pr_comment_workflow._get_top_5_issues_by_count_eap(
+            issue_ids, self.project
+        )
+        return snuba_result, eap_result
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_return_same_top_issues(self) -> None:
+        ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
+        group_a = self.store_events_to_snuba_and_eap("group-a", count=5, timestamp=ts)[0].group_id
+        group_b = self.store_events_to_snuba_and_eap("group-b", count=3, timestamp=ts)[0].group_id
+        group_c = self.store_events_to_snuba_and_eap("group-c", count=1, timestamp=ts)[0].group_id
+        assert group_a is not None
+        assert group_b is not None
+        assert group_c is not None
+
+        snuba_result, eap_result = self._query_both([group_a, group_b, group_c])
+
+        snuba_counts = {r["group_id"]: r["event_count"] for r in snuba_result}
+        eap_counts = {r["group_id"]: int(r["event_count"]) for r in eap_result}
+
+        assert snuba_counts == {group_a: 5, group_b: 3, group_c: 1}
+        assert eap_counts == snuba_counts
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_isolate_groups(self) -> None:
+        ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
+        group_a = self.store_events_to_snuba_and_eap("group-a", count=3, timestamp=ts)[0].group_id
+        assert group_a is not None
+        self.store_events_to_snuba_and_eap("group-b", count=2, timestamp=ts)
+
+        snuba_result, eap_result = self._query_both([group_a])
+
+        snuba_groups = {r["group_id"] for r in snuba_result}
+        eap_groups = {r["group_id"] for r in eap_result}
+
+        assert snuba_groups == {group_a}
+        assert eap_groups == snuba_groups
+
+    def test_empty_issue_ids_returns_empty(self) -> None:
+        result = self.pr_comment_workflow.get_top_5_issues_by_count([], self.project)
+        assert result == []

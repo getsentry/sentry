@@ -1,11 +1,11 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {Component, createRef, Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
+import {GridEditableEmptyData} from 'sentry/components/tables/gridEditable/GridEditableEmptyData';
+import {GridEditableError} from 'sentry/components/tables/gridEditable/GridEditableError';
+import {GridEditableLoading} from 'sentry/components/tables/gridEditable/GridEditableLoading';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
@@ -14,7 +14,6 @@ import {
   GridBody,
   GridBodyCell,
   GridBodyCellStatic,
-  GridBodyCellStatus,
   GridHead,
   GridHeadCell,
   GridHeadCellStatic,
@@ -24,45 +23,20 @@ import {
   HeaderButtonContainer,
   HeaderTitle,
 } from './styles';
+import type {
+  ColResizeMetadata,
+  GridColumnOrder,
+  GridColumnSortBy,
+  GridData,
+} from './types';
+
+export type * from './types';
 
 // Auto layout width.
 export const COL_WIDTH_UNDEFINED = -1;
 
 // Set to 90 as the edit/trash icons need this much space.
 export const COL_WIDTH_MINIMUM = 90;
-
-// For GridEditable, there are 2 generic types for the component, T and K
-//
-// - T is an element/object that represents the data to be displayed
-// - K is a key of T/
-//   - columnKey should have the same set of values as K
-
-type ObjectKey = string | number;
-
-export type GridColumn<K = ObjectKey> = {
-  key: K;
-  width?: number;
-};
-
-export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
-  name: string;
-  tooltip?: React.ReactNode;
-};
-
-export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;
-
-export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
-  order: 'desc' | 'asc';
-};
-
-/**
- * Store state at the start of "resize" action
- */
-type ColResizeMetadata = {
-  columnIndex: number; // Column being resized
-  columnWidth: number; // Column width at start of resizing
-  cursorX: number; // X-coordinate of cursor on window
-};
 
 type GridEditableProps<
   DataRow,
@@ -77,22 +51,7 @@ type GridEditableProps<
    * GridEditable allows the parent component to determine how to display the
    * data within it. Note that this is optional.
    */
-  grid: {
-    onResizeColumn?: (columnIndex: number, nextColumn: Order) => void;
-    prependColumnWidths?: string[];
-    renderBodyCell?: (
-      column: Order,
-      dataRow: DataRow,
-      rowIndex: number,
-      columnIndex: number
-    ) => React.ReactNode;
-    renderHeadCell?: (column: Order, columnIndex: number) => React.ReactNode;
-    renderPrependColumns?: (
-      isHeader: boolean,
-      dataRow?: DataRow,
-      rowIndex?: number
-    ) => React.ReactNode[];
-  };
+  grid: GridData<DataRow, Order>;
   'aria-label'?: string;
   bodyStyle?: React.CSSProperties;
   emptyMessage?: React.ReactNode;
@@ -138,92 +97,71 @@ type GridEditableProps<
   title?: ReactNode;
 };
 
-type GridEditableState = {
-  numColumn: number;
-};
-
-export default class GridEditable<
+export function GridEditable<
   DataRow extends Record<string, any>,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
   SortBy extends GridColumnSortBy<unknown> = GridColumnSortBy<keyof DataRow>,
-> extends Component<GridEditableProps<DataRow, Order, SortBy>, GridEditableState> {
-  // Static methods do not allow the use of generics bounded to the parent class
-  // For more info: https://github.com/microsoft/TypeScript/issues/14600
-  static getDerivedStateFromProps<DataRow = Record<string, any>>(
-    props: Readonly<GridEditableProps<DataRow>>,
-    prevState: GridEditableState
-  ): GridEditableState {
-    return {
-      ...prevState,
-      numColumn: props.columnOrder.length,
-    };
-  }
+>(props: GridEditableProps<DataRow, Order, SortBy>) {
+  const {
+    'aria-label': ariaLabel,
+    bodyStyle,
+    data,
+    error,
+    fit,
+    getRowAriaLabel,
+    grid,
+    headerButtons,
+    height,
+    highlightedRowKey,
+    isLoading,
+    isRowClickable,
+    minimumColWidth = COL_WIDTH_MINIMUM,
+    onRowClick,
+    onRowMouseOut,
+    onRowMouseOver,
+    resizable = true,
+    scrollable,
+    stickyHeader,
+    title,
+  } = props;
 
-  constructor(props: GridEditableProps<DataRow, Order, SortBy>) {
-    super(props);
-    this.onResetColumnSize = this.onResetColumnSize.bind(this);
-    this.onResizeMouseDown = this.onResizeMouseDown.bind(this);
-    this.onResizeMouseUp = this.onResizeMouseUp.bind(this);
-    this.onResizeMouseMove = this.onResizeMouseMove.bind(this);
-    this.redrawGridColumn = this.redrawGridColumn.bind(this);
-    this.resizeGridColumn = this.resizeGridColumn.bind(this);
-    this.renderGridBody = this.renderGridBody.bind(this);
-    this.renderGridBodyRow = this.renderGridBodyRow.bind(this);
-  }
+  const clearWindowLifecycleEvents = useCallback(() => {
+    Object.keys(resizeWindowLifecycleEvents.current).forEach(e => {
+      resizeWindowLifecycleEvents.current[e]!.forEach(c =>
+        window.removeEventListener(e, c)
+      );
+      resizeWindowLifecycleEvents.current[e] = [];
+    });
+  }, []);
 
-  state: GridEditableState = {
-    numColumn: 0,
-  };
-
-  componentDidMount() {
-    window.addEventListener('resize', this.redrawGridColumn);
-    this.setGridTemplateColumns(this.props.columnOrder);
-  }
-
-  componentDidUpdate() {
-    // Redraw columns whenever new props are received
-    this.setGridTemplateColumns(this.props.columnOrder);
-  }
-
-  componentWillUnmount() {
-    this.clearWindowLifecycleEvents();
-    window.removeEventListener('resize', this.redrawGridColumn);
-  }
-
-  private refGrid = createRef<HTMLTableElement>();
-  private resizeMetadata?: ColResizeMetadata;
-  private resizeWindowLifecycleEvents: Record<string, any[]> = {
+  const refGrid = useRef<HTMLTableElement>(null);
+  const resizeWindowLifecycleEvents = useRef<Record<string, any[]>>({
     mousemove: [],
     mouseup: [],
-  };
+  });
 
-  clearWindowLifecycleEvents() {
-    Object.keys(this.resizeWindowLifecycleEvents).forEach(e => {
-      this.resizeWindowLifecycleEvents[e]!.forEach(c => window.removeEventListener(e, c));
-      this.resizeWindowLifecycleEvents[e] = [];
-    });
-  }
+  const refResizeMetadata = useRef<ColResizeMetadata>(null);
 
-  onResetColumnSize(e: React.MouseEvent, i: number) {
+  const onResetColumnSize = (e: React.MouseEvent, i: number) => {
     e.stopPropagation();
 
-    const nextColumnOrder = [...this.props.columnOrder];
+    const nextColumnOrder = [...props.columnOrder];
     nextColumnOrder[i] = {
       ...nextColumnOrder[i]!,
       width: COL_WIDTH_UNDEFINED,
     };
-    this.setGridTemplateColumns(nextColumnOrder);
+    setGridTemplateColumns(nextColumnOrder);
 
-    const onResizeColumn = this.props.grid.onResizeColumn;
+    const onResizeColumn = props.grid.onResizeColumn;
     if (onResizeColumn) {
       onResizeColumn(i, {
         ...nextColumnOrder[i],
         width: COL_WIDTH_UNDEFINED,
       });
     }
-  }
+  };
 
-  onResizeMouseDown(e: React.MouseEvent, i = -1) {
+  const onResizeMouseDown = (e: React.MouseEvent, i = -1) => {
     e.stopPropagation();
 
     // Block right-click and other funky stuff
@@ -237,26 +175,25 @@ export default class GridEditable<
       return;
     }
 
-    // HACK: Do not put into state to prevent re-rendering of component
-    this.resizeMetadata = {
+    refResizeMetadata.current = {
       columnIndex: i,
       columnWidth: cell.offsetWidth,
       cursorX: e.clientX,
     };
 
-    window.addEventListener('mousemove', this.onResizeMouseMove);
-    this.resizeWindowLifecycleEvents.mousemove!.push(this.onResizeMouseMove);
+    window.addEventListener('mousemove', onResizeMouseMove);
+    resizeWindowLifecycleEvents.current.mousemove!.push(onResizeMouseMove);
 
-    window.addEventListener('mouseup', this.onResizeMouseUp);
-    this.resizeWindowLifecycleEvents.mouseup!.push(this.onResizeMouseUp);
-  }
+    window.addEventListener('mouseup', onResizeMouseUp);
+    resizeWindowLifecycleEvents.current.mouseup!.push(onResizeMouseUp);
+  };
 
-  onResizeMouseUp(e: MouseEvent) {
-    const metadata = this.resizeMetadata;
-    const onResizeColumn = this.props.grid.onResizeColumn;
+  const onResizeMouseUp = (e: MouseEvent) => {
+    const metadata = refResizeMetadata.current;
+    const onResizeColumn = props.grid.onResizeColumn;
 
     if (metadata && onResizeColumn) {
-      const {columnOrder} = this.props;
+      const {columnOrder} = props;
       const widthChange = e.clientX - metadata.cursorX;
 
       onResizeColumn(metadata.columnIndex, {
@@ -265,82 +202,84 @@ export default class GridEditable<
       });
     }
 
-    this.resizeMetadata = undefined;
-    this.clearWindowLifecycleEvents();
-  }
+    refResizeMetadata.current = null;
+    clearWindowLifecycleEvents();
+  };
 
-  onResizeMouseMove(e: MouseEvent) {
-    const {resizeMetadata} = this;
-    if (!resizeMetadata) {
+  const onResizeMouseMove = (e: MouseEvent) => {
+    const {current} = refResizeMetadata;
+    if (!current) {
       return;
     }
 
-    window.requestAnimationFrame(() => this.resizeGridColumn(e, resizeMetadata));
-  }
+    window.requestAnimationFrame(() => resizeGridColumn(e, current));
+  };
 
-  resizeGridColumn(e: MouseEvent, metadata: ColResizeMetadata) {
-    const grid = this.refGrid.current;
-    if (!grid) {
+  const resizeGridColumn = (e: MouseEvent, metadata: ColResizeMetadata) => {
+    if (!refGrid.current) {
       return;
     }
 
     const widthChange = e.clientX - metadata.cursorX;
 
-    const nextColumnOrder = [...this.props.columnOrder];
+    const nextColumnOrder = [...props.columnOrder];
     nextColumnOrder[metadata.columnIndex] = {
       ...nextColumnOrder[metadata.columnIndex]!,
       width: Math.max(metadata.columnWidth + widthChange, 0),
     };
 
-    this.setGridTemplateColumns(nextColumnOrder);
-  }
+    setGridTemplateColumns(nextColumnOrder);
+  };
 
   /**
    * Recalculate the dimensions of Grid and Columns and redraws them
    */
-  redrawGridColumn() {
-    this.setGridTemplateColumns(this.props.columnOrder);
-  }
-
-  /**
-   * Set the CSS for Grid Column
-   */
-  setGridTemplateColumns(columnOrder: Order[]) {
-    const grid = this.refGrid.current;
-    if (!grid) {
-      return;
-    }
-
-    const minimumColWidth = this.props.minimumColWidth ?? COL_WIDTH_MINIMUM;
-    const prependColumns = this.props.grid.prependColumnWidths || [];
-    const prepend = prependColumns.join(' ');
-    const widths = columnOrder.map((item, index) => {
-      if (item.width === COL_WIDTH_UNDEFINED) {
-        return `minmax(${minimumColWidth}px, auto)`;
+  const setGridTemplateColumns = useCallback(
+    (columnOrder: Order[]) => {
+      if (!refGrid.current) {
+        return;
       }
-      if (typeof item.width === 'number' && item.width > minimumColWidth) {
-        if (index === columnOrder.length - 1) {
-          return `minmax(${item.width}px, auto)`;
+
+      const prependColumns = props.grid.prependColumnWidths || [];
+      const prepend = prependColumns.join(' ');
+      const widths = columnOrder.map((item, index) => {
+        if (item.width === COL_WIDTH_UNDEFINED) {
+          return `minmax(${minimumColWidth}px, auto)`;
         }
-        return `${item.width}px`;
-      }
-      if (index === columnOrder.length - 1) {
-        return `minmax(${minimumColWidth}px, auto)`;
-      }
-      return `${minimumColWidth}px`;
-    });
+        if (typeof item.width === 'number' && item.width > minimumColWidth) {
+          if (index === columnOrder.length - 1) {
+            return `minmax(${item.width}px, auto)`;
+          }
+          return `${item.width}px`;
+        }
+        if (index === columnOrder.length - 1) {
+          return `minmax(${minimumColWidth}px, auto)`;
+        }
+        return `${minimumColWidth}px`;
+      });
 
-    // The last column has no resizer and should always be a flexible column
-    // to prevent underflows.
+      // The last column has no resizer and should always be a flexible column
+      // to prevent underflows.
 
-    grid.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
-  }
+      refGrid.current.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
 
-  renderGridHead() {
-    const {error, isLoading, columnOrder, grid, data, resizable = true} = this.props;
+      // Setting the rendered grid height as a CSS variable so `GridResizer` can
+      // reliably span the full visible height even when rows grow (e.g. wrapped text).
+      refGrid.current.style.setProperty(
+        '--grid-editable-resizer-height',
+        `${refGrid.current.offsetHeight}px`
+      );
+    },
+    [minimumColWidth, props.grid.prependColumnWidths]
+  );
 
+  const redrawGridColumn = useCallback(() => {
+    setGridTemplateColumns(props.columnOrder);
+  }, [props.columnOrder, setGridTemplateColumns]);
+
+  function renderGridHead() {
     // Ensure that the last column cannot be removed
-    const numColumn = columnOrder.length;
+    const numColumn = props.columnOrder.length;
 
     const prependColumns = grid.renderPrependColumns
       ? grid.renderPrependColumns(true)
@@ -349,16 +288,16 @@ export default class GridEditable<
     return (
       <GridRow data-test-id="grid-head-row">
         {prependColumns &&
-          columnOrder?.length > 0 &&
+          props.columnOrder?.length > 0 &&
           prependColumns.map((item, i) => (
             <GridHeadCellStatic data-test-id="grid-head-cell-static" key={`prepend-${i}`}>
               {item}
             </GridHeadCellStatic>
           ))}
         {
-          // Note that this.onResizeMouseDown assumes GridResizer is nested
+          // Note that onResizeMouseDown assumes GridResizer is nested
           // 1 levels under GridHeadCell
-          columnOrder.map((column, i) => (
+          props.columnOrder.map((column, i) => (
             <GridHeadCell
               data-test-id="grid-head-cell"
               key={`${i}.${String(column.key)}`}
@@ -368,9 +307,9 @@ export default class GridEditable<
               {i !== numColumn - 1 && resizable && (
                 <GridResizer
                   dataRows={!error && !isLoading && data ? data.length : 0}
-                  onMouseDown={e => this.onResizeMouseDown(e, i)}
-                  onDoubleClick={e => this.onResetColumnSize(e, i)}
-                  onContextMenu={this.onResizeMouseDown}
+                  onMouseDown={e => onResizeMouseDown(e, i)}
+                  onDoubleClick={e => onResetColumnSize(e, i)}
+                  onContextMenu={onResizeMouseDown}
                 />
               )}
             </GridHeadCell>
@@ -380,35 +319,23 @@ export default class GridEditable<
     );
   }
 
-  renderGridBody() {
-    const {data, error, isLoading} = this.props;
-
+  const renderGridBody = () => {
     if (error) {
-      return this.renderError();
+      return <GridEditableError />;
     }
 
     if (isLoading) {
-      return this.renderLoading();
+      return <GridEditableLoading />;
     }
 
     if (!data || data.length === 0) {
-      return this.renderEmptyData();
+      return <GridEditableEmptyData emptyMessage={props.emptyMessage} />;
     }
 
-    return data.map(this.renderGridBodyRow);
-  }
+    return data.map(renderGridBodyRow);
+  };
 
-  renderGridBodyRow(dataRow: DataRow, row: number) {
-    const {
-      columnOrder,
-      grid,
-      onRowMouseOver,
-      onRowMouseOut,
-      highlightedRowKey,
-      onRowClick,
-      isRowClickable,
-      getRowAriaLabel,
-    } = this.props;
+  const renderGridBodyRow = (dataRow: DataRow, row: number) => {
     const prependColumns = grid.renderPrependColumns
       ? grid.renderPrependColumns(false, dataRow, row)
       : [];
@@ -434,7 +361,7 @@ export default class GridEditable<
             {item}
           </GridBodyCellStatic>
         ))}
-        {columnOrder.map((col, i) => (
+        {props.columnOrder.map((col, i) => (
           <GridBodyCell data-test-id="grid-body-cell" key={`${String(col.key)}${i}`}>
             {grid.renderBodyCell
               ? grid.renderBodyCell(col, dataRow, row, i)
@@ -443,81 +370,47 @@ export default class GridEditable<
         ))}
       </GridRow>
     );
-  }
+  };
 
-  renderError() {
-    return (
-      <GridRow>
-        <GridBodyCellStatus>
-          <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-        </GridBodyCellStatus>
-      </GridRow>
-    );
-  }
+  useEffect(() => {
+    redrawGridColumn();
+  }, [data, error, redrawGridColumn]);
 
-  renderLoading() {
-    return (
-      <GridRow>
-        <GridBodyCellStatus>
-          <LoadingIndicator />
-        </GridBodyCellStatus>
-      </GridRow>
-    );
-  }
+  useEffect(() => {
+    window.addEventListener('resize', redrawGridColumn);
 
-  renderEmptyData() {
-    const {emptyMessage} = this.props;
-    return (
-      <GridRow>
-        <GridBodyCellStatus>
-          {emptyMessage ?? (
-            <EmptyStateWarning>
-              <p>{t('No results found for your query')}</p>
-            </EmptyStateWarning>
-          )}
-        </GridBodyCellStatus>
-      </GridRow>
-    );
-  }
+    return () => {
+      clearWindowLifecycleEvents();
+      window.removeEventListener('resize', redrawGridColumn);
+    };
+  }, [clearWindowLifecycleEvents, redrawGridColumn]);
 
-  render() {
-    const {
-      title,
-      headerButtons,
-      scrollable,
-      height,
-      'aria-label': ariaLabel,
-      bodyStyle,
-      stickyHeader,
-      fit,
-    } = this.props;
-    const showHeader = title || headerButtons;
-    return (
-      <Fragment>
-        <Profiler id="GridEditable" onRender={onRenderCallback}>
-          {showHeader && (
-            <Header>
-              {title && <HeaderTitle>{title}</HeaderTitle>}
-              {headerButtons && (
-                <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
-              )}
-            </Header>
-          )}
-          <Body style={bodyStyle} showVerticalScrollbar={scrollable}>
-            <Grid
-              aria-label={ariaLabel}
-              data-test-id="grid-editable"
-              scrollable={scrollable}
-              height={height}
-              ref={this.refGrid}
-              fit={fit}
-            >
-              <GridHead sticky={stickyHeader}>{this.renderGridHead()}</GridHead>
-              <GridBody>{this.renderGridBody()}</GridBody>
-            </Grid>
-          </Body>
-        </Profiler>
-      </Fragment>
-    );
-  }
+  const showHeader = title || headerButtons;
+  return (
+    <Fragment>
+      <Profiler id="GridEditable" onRender={onRenderCallback}>
+        {showHeader && (
+          <Header>
+            {title && <HeaderTitle>{title}</HeaderTitle>}
+            {headerButtons && (
+              <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
+            )}
+          </Header>
+        )}
+        <Body style={bodyStyle} showVerticalScrollbar={scrollable}>
+          <Grid
+            aria-label={ariaLabel}
+            data-test-id="grid-editable"
+            scrollable={scrollable}
+            height={height}
+            ref={refGrid}
+            fit={fit}
+          >
+            <GridHead sticky={stickyHeader}>{renderGridHead()}</GridHead>
+            <GridBody>{renderGridBody()}</GridBody>
+          </Grid>
+        </Body>
+      </Profiler>
+    </Fragment>
+  );
 }

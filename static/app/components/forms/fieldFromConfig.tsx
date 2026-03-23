@@ -1,31 +1,37 @@
+import {
+  CollapsibleSection,
+  type CollapsibleSectionProps,
+} from 'sentry/components/forms/collapsibleSection';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
-import SeparatorField from 'sentry/components/forms/fields/separatorField';
+import {SentryMemberSelectorField} from 'sentry/components/forms/fields/sentryMemberSelectorField';
+import {SeparatorField} from 'sentry/components/forms/fields/separatorField';
 import type {Field} from 'sentry/components/forms/types';
 import type {Scope} from 'sentry/types/core';
 
-import BlankField from './fields/blankField';
-import BooleanField, {type BooleanFieldProps} from './fields/booleanField';
-import ChoiceMapperField, {type ChoiceMapperFieldProps} from './fields/choiceMapperField';
-import DateTimeField, {type DateTimeFieldProps} from './fields/dateTimeField';
-import EmailField, {type EmailFieldProps} from './fields/emailField';
-import FileField, {type FileFieldProps} from './fields/fileField';
-import HiddenField, {type HiddenFieldProps} from './fields/hiddenField';
-import NumberField, {type NumberFieldProps} from './fields/numberField';
-import ProjectMapperField, {type ProjectMapperProps} from './fields/projectMapperField';
-import RadioField, {type RadioFieldProps} from './fields/radioField';
-import RangeField, {type RangeFieldProps} from './fields/rangeField';
-import SecretField, {type SecretFieldProps} from './fields/secretField';
-import SelectAsyncField, {type SelectAsyncFieldProps} from './fields/selectAsyncField';
-import SelectField, {type SelectFieldProps} from './fields/selectField';
-import SentryOrganizationRoleSelectorField from './fields/sentryOrganizationRoleSelectorField';
-import SentryProjectSelectorField, {
+import {BlankField} from './fields/blankField';
+import {BooleanField, type BooleanFieldProps} from './fields/booleanField';
+import {ChoiceMapperField, type ChoiceMapperFieldProps} from './fields/choiceMapperField';
+import {DateTimeField, type DateTimeFieldProps} from './fields/dateTimeField';
+import {EmailField, type EmailFieldProps} from './fields/emailField';
+import {FileField, type FileFieldProps} from './fields/fileField';
+import {HiddenField, type HiddenFieldProps} from './fields/hiddenField';
+import {NumberField, type NumberFieldProps} from './fields/numberField';
+import {ProjectMapperField, type ProjectMapperProps} from './fields/projectMapperField';
+import {RadioField, type RadioFieldProps} from './fields/radioField';
+import {RangeField, type RangeFieldProps} from './fields/rangeField';
+import {SecretField, type SecretFieldProps} from './fields/secretField';
+import {SelectAsyncField, type SelectAsyncFieldProps} from './fields/selectAsyncField';
+import {SelectField, type SelectFieldProps} from './fields/selectField';
+import {SentryOrganizationRoleSelectorField} from './fields/sentryOrganizationRoleSelectorField';
+import {
+  SentryProjectSelectorField,
   type RenderFieldProps,
 } from './fields/sentryProjectSelectorField';
-import TableField, {type TableFieldProps} from './fields/tableField';
-import TextareaField, {type TextareaFieldProps} from './fields/textareaField';
-import TextField, {type TextFieldProps} from './fields/textField';
+import {TableField, type TableFieldProps} from './fields/tableField';
+import {TextareaField, type TextareaFieldProps} from './fields/textareaField';
+import {TextField, type TextFieldProps} from './fields/textField';
 
-interface FieldFromConfigProps {
+export interface FieldFromConfigProps {
   field: Field;
   access?: Set<Scope>;
 
@@ -39,7 +45,7 @@ interface FieldFromConfigProps {
   stacked?: boolean;
 }
 
-function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null {
+export function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null {
   const {field, ...otherProps} = props;
 
   const componentProps = {
@@ -95,6 +101,8 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
       return (
         <SentryOrganizationRoleSelectorField {...(componentProps as RenderFieldProps)} />
       );
+    case 'sentry_member_selector':
+      return <SentryMemberSelectorField {...(componentProps as RenderFieldProps)} />;
     case 'select_async':
       return <SelectAsyncField {...(componentProps as SelectAsyncFieldProps)} />;
     case 'file':
@@ -103,9 +111,9 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
       return <DateTimeField {...(componentProps as DateTimeFieldProps)} />;
     case 'custom':
       return field.Component(field);
+    case 'collapsible':
+      return <CollapsibleSection {...(componentProps as CollapsibleSectionProps)} />;
     default:
       return null;
   }
 }
-
-export default FieldFromConfig;

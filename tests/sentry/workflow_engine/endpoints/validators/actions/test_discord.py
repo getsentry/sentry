@@ -30,7 +30,7 @@ class TestDiscordActionValidator(TestCase):
         }
 
     @mock.patch("sentry.integrations.discord.actions.issue_alert.form.validate_channel_id")
-    def test_validate(self, mock_validate_channel_id):
+    def test_validate(self, mock_validate_channel_id: mock.MagicMock) -> None:
         mock_validate_channel_id.return_value = None
 
         validator = BaseActionValidator(
@@ -42,7 +42,7 @@ class TestDiscordActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    def test_validate__empty_server(self):
+    def test_validate__empty_server(self) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -61,7 +61,7 @@ class TestDiscordActionValidator(TestCase):
         }
 
     @mock.patch("sentry.integrations.discord.actions.issue_alert.form.validate_channel_id")
-    def test_validate__invalid_channel_id(self, mock_validate_channel_id):
+    def test_validate__invalid_channel_id(self, mock_validate_channel_id: mock.MagicMock) -> None:
         mock_validate_channel_id.side_effect = ValidationError("Invalid channel id")
 
         validator = BaseActionValidator(

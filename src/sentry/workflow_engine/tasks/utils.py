@@ -1,6 +1,7 @@
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
 from sentry import nodestore
+from sentry.constants import ObjectStatus
 from sentry.eventstream.base import GroupState
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
@@ -62,15 +63,19 @@ class EventNotFoundError(Exception):
         super().__init__(msg)
 
 
+class ProjectNotActiveError(Exception):
+    def __init__(self, project_id: int):
+        msg = f"Project not active: project_id={project_id}"
+        super().__init__(msg)
+
+
 @scopedstats.timer()
 def build_workflow_event_data_from_event(
-    project_id: int,
     event_id: str,
     group_id: int,
     workflow_id: int | None = None,
     occurrence_id: str | None = None,
     group_state: GroupState | None = None,
-    has_reappeared: bool = False,
     has_escalated: bool = False,
 ) -> WorkflowEventData:
     """
@@ -78,14 +83,18 @@ def build_workflow_event_data_from_event(
     This method handles all the database fetching and object construction logic.
     Raises EventNotFoundError if the event is not found.
     """
+    group = Group.objects.get_from_cache(id=group_id)
+    project_id = group.project_id
 
     event = fetch_event(event_id, project_id)
     if event is None:
         raise EventNotFoundError(event_id, project_id)
 
+    if event.project.status != ObjectStatus.ACTIVE:
+        raise ProjectNotActiveError(project_id)
+
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
 
-    group = Group.objects.get_from_cache(id=group_id)
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 
@@ -100,7 +109,6 @@ def build_workflow_event_data_from_event(
         event=group_event,
         group=group,
         group_state=group_state,
-        has_reappeared=has_reappeared,
         has_escalated=has_escalated,
         workflow_env=workflow_env,
     )
@@ -110,7 +118,6 @@ def build_workflow_event_data_from_activity(
     activity_id: int,
     group_id: int,
 ) -> WorkflowEventData:
-
     activity = Activity.objects.get(id=activity_id)
     group = Group.objects.get(id=group_id)
 

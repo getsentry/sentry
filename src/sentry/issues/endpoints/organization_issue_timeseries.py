@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.timeseries import GroupBy, Row, SeriesMeta, TimeSeries
 from sentry.api.helpers.environments import get_environments
@@ -30,7 +30,7 @@ GROUPBY_TRANSLATION = {
 INVERSE_GROUPBY_TRANSLATION = {value: key for key, value in GROUPBY_TRANSLATION.items()}
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
@@ -57,16 +57,14 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
         )
 
         # This step validates our maximum granularity. Without this we could see unbounded
-        # cardinality in our queries. Our maximum granularity is 200 which is more than enough to
-        # accommodate common aggregation intervals.
-        #
-        # Max granularity estimates for a given range (rounded to understandable intervals):
-        #   - One week range -> one hour interval.
-        #   - One day range -> ten minute interval.
-        #   - One hour range -> twenty second interval.
+        # cardinality in our queries. Our maximum granularity is 10_000 to match our other endpoints
         interval = timedelta(
             seconds=get_rollup_from_request(
-                request, end - start, "1h", ParseError("Invalid Interval"), max_rollup_override=200
+                request,
+                end - start,
+                "1h",
+                ParseError("Invalid Interval"),
+                max_rollup_override=10_000,
             )
         )
 
@@ -115,7 +113,11 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
                 groupby_key_to_dict[key] = groupby_dict
                 grouped_counter[key] += row["value"]
                 grouped_series[key].append(
-                    Row(timestamp=row["timestamp"] * 1000, value=row["value"], incomplete=False)
+                    Row(
+                        timestamp=row["timestamp"] * 1000,
+                        value=row["value"],
+                        incomplete=False,
+                    )
                 )
 
             # Group the smallest series into the "other" bucket.
@@ -205,7 +207,7 @@ def make_timeseries_query(
     environments: list[int],
     type_filter: Q,
     group_by: list[str],
-    stride: timedelta,
+    interval: timedelta,
     source: str,
     start: datetime,
     end: datetime,
@@ -227,7 +229,7 @@ def make_timeseries_query(
 
     annotations["timestamp"] = Extract(
         Func(
-            stride,
+            interval,
             source,
             start,
             function="date_bin",
@@ -290,6 +292,10 @@ def fill_timeseries(
     interval: timedelta,
     values: list[Row],
 ) -> list[Row]:
+    # remove microseconds
+    start = start.replace(microsecond=0)
+    end = end.replace(microsecond=0)
+
     def iter_interval(start: datetime, end: datetime, interval: timedelta) -> Iterator[int]:
         while start <= end:
             yield int(start.timestamp() * 1000)

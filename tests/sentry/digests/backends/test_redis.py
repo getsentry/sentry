@@ -7,13 +7,18 @@ import pytest
 from sentry.digests.backends.base import InvalidState
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.types import Notification, Record
+from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 
 
 class RedisBackendTestCase(TestCase):
     @cached_property
+    def project(self) -> Project:
+        return self.create_project(fire_project_created=True)
+
+    @cached_property
     def notification(self) -> Notification:
-        rule = self.event.project.rule_set.all()[0]
+        rule = self.event.project.rule_set.all().order_by("id")[0]
         return Notification(self.event, (rule.id,), str(uuid.uuid4()))
 
     def test_basic(self) -> None:

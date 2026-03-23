@@ -102,7 +102,6 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert response.data["platform"][0] == "Invalid platform"
 
     def test_invalid_name(self) -> None:
-
         invalid_name = list(RESERVED_PROJECT_SLUGS)[0]
         response = self.get_error_response(
             self.organization.slug,
@@ -483,12 +482,12 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         project = Project.objects.get(id=response.data["id"])
         autofix_tuning = ProjectOption.objects.get_value(
-            project=project, key="sentry:default_autofix_automation_tuning"
+            project=project, key="sentry:autofix_automation_tuning"
         )
         assert autofix_tuning == "medium"
 
-    def test_project_autofix_tuning_none_if_org_option_not_set_in_db(self) -> None:
-        # Ensure the option is not set for this specific organization,
+    def test_project_autofix_tuning_not_set_if_org_option_not_set_in_db(self) -> None:
+        # Ensure the option is not set for this specific organization
         self.organization.delete_option("sentry:default_autofix_automation_tuning")
         response = self.get_success_response(
             self.organization.slug,
@@ -499,10 +498,70 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             status_code=201,
         )
         project = Project.objects.get(id=response.data["id"])
-        autofix_tuning = ProjectOption.objects.get_value(
-            project=project, key="sentry:default_autofix_automation_tuning"
+        # Verify no option was explicitly written to the database
+        assert not ProjectOption.objects.filter(
+            project=project, key="sentry:autofix_automation_tuning"
+        ).exists()
+
+    @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    def test_project_autofix_tuning_defaults_to_medium_with_seat_based_tier(
+        self, mock_seat_based_tier
+    ) -> None:
+        # Ensure no org-level default is set
+        self.organization.delete_option("sentry:default_autofix_automation_tuning")
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="Project With Flag",
+            slug="project-with-flag",
+            platform="python",
+            status_code=201,
         )
-        assert autofix_tuning is None
+        project = Project.objects.get(id=response.data["id"])
+        autofix_tuning = ProjectOption.objects.get_value(
+            project=project, key="sentry:autofix_automation_tuning"
+        )
+        assert autofix_tuning == "medium"
+
+    @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    def test_project_autofix_tuning_respects_explicit_off_even_with_seat_based_tier(
+        self, mock_seat_based_tier
+    ) -> None:
+        # Org explicitly sets "off" - should be respected even with seat-based tier
+        self.organization.update_option("sentry:default_autofix_automation_tuning", "off")
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="Project Explicit Off",
+            slug="project-explicit-off",
+            platform="python",
+            status_code=201,
+        )
+        project = Project.objects.get(id=response.data["id"])
+        autofix_tuning = ProjectOption.objects.get_value(
+            project=project, key="sentry:autofix_automation_tuning"
+        )
+        assert autofix_tuning == "off"
+
+    @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    def test_project_autofix_tuning_seat_based_tier_overrides_non_off_org_default(
+        self, mock_seat_based_tier
+    ) -> None:
+        # Org sets "high" but seat-based tier overrides to "medium"
+        self.organization.update_option("sentry:default_autofix_automation_tuning", "high")
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="Project Flag Override",
+            slug="project-flag-override",
+            platform="python",
+            status_code=201,
+        )
+        project = Project.objects.get(id=response.data["id"])
+        autofix_tuning = ProjectOption.objects.get_value(
+            project=project, key="sentry:autofix_automation_tuning"
+        )
+        assert autofix_tuning == "medium"
 
     def test_console_platform_not_enabled(self) -> None:
         response = self.get_error_response(

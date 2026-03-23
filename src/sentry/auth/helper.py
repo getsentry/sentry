@@ -21,7 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry import audit_log, features, options
+from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
@@ -83,6 +83,15 @@ ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 
 ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
 
+ERR_IDENTITY_CONFLICT = _(
+    "An account already exists for this email address."
+    " Try logging in with your existing credentials instead."
+)
+
+ERR_MERGE_FAILED = _(
+    "Unable to merge accounts. Please verify your email address to link your SSO identity."
+)
+
 
 @dataclass
 class AuthIdentityHandler:
@@ -100,7 +109,7 @@ class AuthIdentityHandler:
         email = self.identity.get("email")
         if email:
             try:
-                user = resolve_email_to_user(email)
+                user = resolve_email_to_user(email, organization=self.organization)
             except AmbiguousUserFromEmail as e:
                 user = e.users[0]
                 self.warn_about_ambiguous_email(email, e.users, user)
@@ -133,10 +142,19 @@ class AuthIdentityHandler:
             sample_rate=1.0,
             skip_internal=False,
         )
+
+        # Use the user's original destination (from _next) for 2FA redirect,
+        # falling back to current URL if not set or invalid
+        after_2fa_url = self.request.session.get("_next")
+        if not after_2fa_url or not auth.is_valid_redirect(
+            after_2fa_url, allowed_hosts=(self.request.get_host(),)
+        ):
+            after_2fa_url = self.request.build_absolute_uri()
+
         user_was_logged_in = auth.login(
             self.request,
             user,
-            after_2fa=self.request.build_absolute_uri(),
+            after_2fa=after_2fa_url,
             organization_id=self.organization.id,
         )
         if not user_was_logged_in:
@@ -451,11 +469,7 @@ class AuthIdentityHandler:
     @property
     def _logged_in_user(self) -> User | None:
         """The user, if they have authenticated on this session."""
-        if (
-            options.get("demo-user.auth.pipelines.always.unauthenticated.enabled")
-            and is_demo_mode_enabled()
-            and is_demo_user(self.request.user)
-        ):
+        if is_demo_mode_enabled() and is_demo_user(self.request.user):
             return None
 
         return self.request.user if self.request.user.is_authenticated else None
@@ -567,28 +581,56 @@ class AuthIdentityHandler:
         elif not self._has_usable_password():
             is_new_account = True
 
-        if op == "confirm" and (self.request.user.id == self.user.id) or is_account_verified:
-            auth_identity = self.handle_attach_identity()
-        elif op == "newuser":
-            auth_identity = self.handle_new_user()
-        elif op == "login" and not self._logged_in_user:
-            # confirm authentication, login
-            if self._login_form.is_valid():
-                # This flow is special.  If we are going through a 2FA
-                # flow here (login returns False) we want to instruct the
-                # system to return upon completion of the 2fa flow to the
-                # current URL and continue with the dialog.
-                #
-                # If there is no 2fa we don't need to do this and can just
-                # go on.
-                try:
-                    self._login(self._login_form.get_user())
-                except self._NotCompletedSecurityChecks:
-                    return self._post_login_redirect()
+        try:
+            if op == "confirm" and ((self.request.user.id == self.user.id) or is_account_verified):
+                auth_identity = self.handle_attach_identity()
+            elif op == "confirm":
+                logger.info(
+                    "sso.login-pipeline.merge-failed",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "email": self.identity.get("email"),
+                        "request_user_id": self.request.user.id,
+                        "resolved_user_id": self.user.id,
+                    },
+                )
+                messages.add_message(self.request, messages.ERROR, ERR_MERGE_FAILED)
+                return self._build_confirmation_response(is_new_account)
+            elif op == "newuser":
+                auth_identity = self.handle_new_user()
+            elif op == "login" and not self._logged_in_user:
+                # confirm authentication, login
+                if self._login_form.is_valid():
+                    # This flow is special.  If we are going through a 2FA
+                    # flow here (login returns False) we want to instruct the
+                    # system to return upon completion of the 2fa flow to the
+                    # current URL and continue with the dialog.
+                    #
+                    # If there is no 2fa we don't need to do this and can just
+                    # go on.
+                    try:
+                        self._login(self._login_form.get_user())
+                    except self._NotCompletedSecurityChecks:
+                        return self._post_login_redirect()
+                else:
+                    auth.log_auth_failure(self.request, self.request.POST.get("username"))
+                return self._build_confirmation_response(is_new_account)
             else:
-                auth.log_auth_failure(self.request, self.request.POST.get("username"))
-            return self._build_confirmation_response(is_new_account)
-        else:
+                return self._build_confirmation_response(is_new_account)
+        except IntegrityError:
+            logger.info(
+                "sso.login-pipeline.integrity-error",
+                extra={
+                    "organization_id": self.organization.id,
+                    "email": self.identity.get("email"),
+                    "op": op,
+                },
+            )
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                ERR_IDENTITY_CONFLICT,
+            )
             return self._build_confirmation_response(is_new_account)
 
         user = auth_identity.user
@@ -784,6 +826,21 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
         if not data:
             return self.error(ERR_INVALID_IDENTITY)
 
+        # Check for provider mismatch - user authenticated with a different provider
+        # than what the organization requires. This can happen when a user has multiple
+        # SSO sessions in different tabs and completes the wrong one.
+        provider_key = data.get("provider_key")
+        if (
+            self.state.flow == FLOW_LOGIN
+            and self.provider_model
+            and provider_key
+            and provider_key != self.provider_model.provider
+        ):
+            return self._handle_provider_mismatch(
+                provider_key=provider_key,
+                expected_provider_key=self.provider_model.provider,
+            )
+
         try:
             identity = self.provider.build_identity(data)
         except IdentityNotValid as error:
@@ -799,6 +856,49 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             raise Exception(f"Unrecognized flow value: {self.state.flow}")
 
         return response
+
+    def _handle_provider_mismatch(
+        self,
+        provider_key: str,
+        expected_provider_key: str,
+    ) -> HttpResponseRedirect:
+        """
+        Handle when user authenticated with a different provider than required.
+
+        This happens when a user starts SSO for an org (e.g., "sentry" which requires Okta)
+        but authenticates with a different provider (e.g., Google). We redirect them back
+        to the org's login page to use the correct SSO provider.
+        """
+        logger.info(
+            "sso.provider-mismatch",
+            extra={
+                "organization_id": self.organization.id,
+                "expected_provider": expected_provider_key,
+                "actual_provider": provider_key,
+            },
+        )
+
+        metrics.incr(
+            "sso.provider_mismatch",
+            tags={
+                "expected_provider": expected_provider_key,
+                "actual_provider": provider_key,
+            },
+        )
+
+        # Clear the invalid pipeline state
+        self.clear_session()
+
+        expected_name = getattr(self.provider, "name", expected_provider_key)
+        messages.add_message(
+            self.request,
+            messages.WARNING,
+            f"This organization requires {expected_name} SSO. Please sign in with your organization's SSO provider.",
+        )
+
+        # Redirect to org-specific login to initiate correct SSO
+        redirect_uri = reverse("sentry-auth-organization", args=[self.organization.slug])
+        return HttpResponseRedirect(redirect_uri)
 
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
         assert self.provider_model is not None
@@ -861,16 +961,32 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
                 return auth_handler.handle_unknown_identity(self.state)
 
             # If the User attached to this AuthIdentity is not active,
-            # we want to clobber the old account and take it over, rather than
-            # getting logged into the inactive account.
+            # always route through handle_unknown_identity which enforces
+            # email verification, membership validation, and user confirmation.
             if not auth_identity.user.is_active:
-                # Current user is also not logged in, so we have to
-                # assume unknown.
-                if not self.request.user.is_authenticated:
-                    return auth_handler.handle_unknown_identity(self.state)
-                auth_identity = auth_handler.handle_attach_identity()
+                logger.info(
+                    "sso.login-pipeline.inactive-user-identity",
+                    extra={
+                        "auth_identity_id": auth_identity.id,
+                        "inactive_user_id": auth_identity.user_id,
+                        "request_user_authenticated": self.request.user.is_authenticated,
+                        "organization_id": self.organization.id,
+                    },
+                )
+                return auth_handler.handle_unknown_identity(self.state)
 
-            return auth_handler.handle_existing_identity(self.state, auth_identity)
+            try:
+                return auth_handler.handle_existing_identity(self.state, auth_identity)
+            except IntegrityError:
+                logger.info(
+                    "sso.login-pipeline.integrity-error",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "email": identity.get("email"),
+                        "auth_identity_id": auth_identity.id,
+                    },
+                )
+                return self.error(ERR_IDENTITY_CONFLICT)
 
     def _finish_setup_pipeline(self, identity: Mapping[str, Any]) -> HttpResponseRedirect:
         """

@@ -1,9 +1,11 @@
-import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
+import {Outlet} from 'react-router-dom';
 
-interface Props extends React.ComponentProps<typeof SettingsLayout> {}
+import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 
-function AccountSettingsLayout({children, ...props}: Props) {
-  return <SettingsLayout {...props}>{children}</SettingsLayout>;
+export default function AccountSettingsLayout() {
+  return (
+    <SettingsLayout>
+      <Outlet />
+    </SettingsLayout>
+  );
 }
-
-export default AccountSettingsLayout;

@@ -3,7 +3,7 @@ import {useLayoutEffect, useState} from 'react';
 import type {Client} from 'sentry/api';
 import type {RequestState} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 function fetchSentryEvent<T extends Event>(
   api: Client,
@@ -19,7 +19,8 @@ function fetchSentryEvent<T extends Event>(
 export function useSentryEvent<T extends Event>(
   organizationSlug: string,
   projectSlug: string,
-  eventId: string | null
+  eventId: string | null,
+  disabled?: boolean
 ): RequestState<T> {
   const api = useApi();
   const [requestState, setRequestState] = useState<RequestState<T>>({
@@ -27,7 +28,7 @@ export function useSentryEvent<T extends Event>(
   });
 
   useLayoutEffect(() => {
-    if (eventId === null || !projectSlug || !organizationSlug) {
+    if (disabled || !eventId || !projectSlug || !organizationSlug) {
       return undefined;
     }
 
@@ -47,7 +48,7 @@ export function useSentryEvent<T extends Event>(
     return () => {
       api.clear();
     };
-  }, [api, organizationSlug, projectSlug, eventId]);
+  }, [api, organizationSlug, projectSlug, eventId, disabled]);
 
-  return requestState;
+  return disabled ? {type: 'empty'} : requestState;
 }

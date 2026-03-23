@@ -3,15 +3,15 @@ from rest_framework import status
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.monitors.grouptype import MonitorIncidentType
-from sentry.monitors.models import Monitor, ScheduleType
+from sentry.monitors.models import Monitor, ScheduleType, is_monitor_muted
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
 
-@region_silo_test
+@cell_silo_test
 class BaseDetectorTestCase(APITestCase):
     def setUp(self):
         super().setUp()
@@ -44,50 +44,48 @@ class BaseDetectorTestCase(APITestCase):
         self.create_data_source_detector(data_source=self.data_source, detector=self.detector)
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorIndexGetTest(BaseDetectorTestCase):
     endpoint = "sentry-api-0-organization-detector-index"
 
     def test_list_monitor_incident_detectors(self):
         response = self.get_success_response(self.organization.slug)
 
-        detector_data = response.data[0]
+        detector_data = response.data[2]
 
-        assert response.data == [
-            {
-                "id": str(self.detector.id),
-                "projectId": str(self.project.id),
-                "name": "Original Detector",
-                "description": None,
-                "type": MonitorIncidentType.slug,
-                "workflowIds": [],
-                "owner": None,
-                "createdBy": None,
-                "dateCreated": detector_data["dateCreated"],
-                "dateUpdated": detector_data["dateUpdated"],
-                "dataSources": [
-                    {
-                        "id": detector_data["dataSources"][0]["id"],
-                        "organizationId": str(self.organization.id),
-                        "type": DATA_SOURCE_CRON_MONITOR,
-                        "sourceId": str(self.monitor.id),
-                        "queryObj": serialize(
-                            self.monitor, user=self.user, serializer=MonitorSerializer()
-                        ),
-                    }
-                ],
-                "conditionGroup": detector_data["conditionGroup"],
-                "config": {},
-                "enabled": True,
-                "alertRuleId": None,
-                "ruleId": None,
-                "latestGroup": None,
-                "openIssues": 0,
-            }
-        ]
+        assert detector_data == {
+            "id": str(self.detector.id),
+            "projectId": str(self.project.id),
+            "name": "Original Detector",
+            "description": None,
+            "type": MonitorIncidentType.slug,
+            "workflowIds": [],
+            "owner": None,
+            "createdBy": None,
+            "dateCreated": detector_data["dateCreated"],
+            "dateUpdated": detector_data["dateUpdated"],
+            "dataSources": [
+                {
+                    "id": detector_data["dataSources"][0]["id"],
+                    "organizationId": str(self.organization.id),
+                    "type": DATA_SOURCE_CRON_MONITOR,
+                    "sourceId": str(self.monitor.id),
+                    "queryObj": serialize(
+                        self.monitor, user=self.user, serializer=MonitorSerializer()
+                    ),
+                }
+            ],
+            "conditionGroup": detector_data["conditionGroup"],
+            "config": {},
+            "enabled": True,
+            "alertRuleId": None,
+            "ruleId": None,
+            "latestGroup": None,
+            "openIssues": 0,
+        }
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorIndexPostTest(APITestCase):
     endpoint = "sentry-api-0-organization-detector-index"
     method = "post"
@@ -116,12 +114,11 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
     def test_create_monitor_incident_detector_validates_correctly(self):
         data = self._get_detector_post_data()
-        with self.tasks():
-            response = self.get_success_response(
-                self.organization.slug,
-                **data,
-                status_code=201,
-            )
+        response = self.get_success_response(
+            self.organization.slug,
+            **data,
+            status_code=201,
+        )
 
         assert response.data["name"] == "Test Monitor Detector"
         assert response.data["type"] == MonitorIncidentType.slug
@@ -182,7 +179,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
                     "name": "Full Config Monitor",
                     "slug": "full-config-monitor",
                     "status": "disabled",
-                    "isMuted": True,
+                    "isMuted": False,
                     "config": {
                         "schedule": "*/30 * * * *",
                         "scheduleType": "crontab",
@@ -195,19 +192,18 @@ class OrganizationDetectorIndexPostTest(APITestCase):
                 }
             ],
         )
-        with self.tasks():
-            self.get_success_response(
-                self.organization.slug,
-                **data,
-                status_code=201,
-            )
+        self.get_success_response(
+            self.organization.slug,
+            **data,
+            status_code=201,
+        )
 
         monitor = Monitor.objects.get(
             organization_id=self.organization.id, slug="full-config-monitor"
         )
         assert monitor.name == "Full Config Monitor"
         assert monitor.status == ObjectStatus.DISABLED
-        assert monitor.is_muted is True
+        assert is_monitor_muted(monitor) is False
         assert monitor.config["schedule"] == "*/30 * * * *"
         assert monitor.config["checkin_margin"] == 15
         assert monitor.config["max_runtime"] == 120
@@ -216,7 +212,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         assert monitor.config["recovery_threshold"] == 2
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorIndexPutTest(BaseDetectorTestCase):
     endpoint = "sentry-api-0-organization-detector-details"
     method = "put"
@@ -228,13 +224,12 @@ class OrganizationDetectorIndexPutTest(BaseDetectorTestCase):
             "name": "Updated Detector",
             "owner": new_user.get_actor_identifier(),
         }
-        with self.tasks():
-            response = self.get_success_response(
-                self.organization.slug,
-                self.detector.id,
-                **data,
-                status_code=200,
-            )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=200,
+        )
 
         assert response.data["name"] == "Updated Detector"
         assert response.data["owner"] == {
@@ -269,13 +264,12 @@ class OrganizationDetectorIndexPutTest(BaseDetectorTestCase):
                 }
             ],
         }
-        with self.tasks():
-            self.get_success_response(
-                self.organization.slug,
-                self.detector.id,
-                **data,
-                status_code=200,
-            )
+        self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=200,
+        )
 
         self.detector.refresh_from_db()
         assert self.detector.name == "Updated Detector With Monitor Config"
@@ -287,7 +281,7 @@ class OrganizationDetectorIndexPutTest(BaseDetectorTestCase):
         assert self.monitor.config["max_runtime"] == 60
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDeleteTest(BaseDetectorTestCase):
     endpoint = "sentry-api-0-organization-detector-details"
     method = "delete"
@@ -295,12 +289,11 @@ class OrganizationDetectorDeleteTest(BaseDetectorTestCase):
     def test_delete_monitor_incident_detector(self):
         detector_id = self.detector.id
         monitor_id = self.monitor.id
-        with self.tasks():
-            self.get_success_response(
-                self.organization.slug,
-                detector_id,
-                status_code=204,
-            )
+        self.get_success_response(
+            self.organization.slug,
+            detector_id,
+            status_code=204,
+        )
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         assert Monitor.objects.filter(id=monitor_id).exists()

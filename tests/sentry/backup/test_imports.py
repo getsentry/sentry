@@ -40,6 +40,7 @@ from sentry.models.importchunk import (
     RegionImportChunk,
 )
 from sentry.models.options.option import ControlOption, Option
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -82,6 +83,7 @@ from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole, UserRoleUser
+from sentry.workflow_engine.models import DataSource
 from tests.sentry.backup import (
     expect_models,
     get_matching_exportable_models,
@@ -342,7 +344,7 @@ class SanitizationTests(ImportTestCase):
 
     def test_generate_suffix_for_already_taken_username(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            self.create_user("min_user")
+            self.create_user("min_user", is_test_user=False)
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
@@ -642,6 +644,55 @@ class SanitizationTests(ImportTestCase):
 
                 assert err.value.context.get_kind() == RpcImportErrorKind.ValidationError
                 assert err.value.context.on.model == "sentry.useroption"
+
+    def test_org_and_project_option_type_preserve(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "wb+") as tmp_file:
+                models = self.json_of_org_and_project()
+
+                # Add project options with several types that should be preserved
+                option_values = (
+                    ("bool-val", True),
+                    ("int-val", 0),
+                    ("str-int", "1"),
+                    ("list-val", ["ie", "edge"]),
+                    ("string-list", '["a","b"]'),
+                    ("str-dict-val", '{"k":"v"}'),
+                    ("dict-val", {"k": "v"}),
+                )
+                for key, value in option_values:
+                    models.append(
+                        {
+                            "model": "sentry.projectoption",
+                            "pk": 3,
+                            "fields": {
+                                "project": 1,
+                                "key": key,
+                                "value": value,
+                            },
+                        }
+                    )
+
+                # Also check organization options
+                for key, value in option_values:
+                    models.append(
+                        {
+                            "model": "sentry.organizationoption",
+                            "pk": 2,
+                            "fields": {"organization": 1, "key": key, "value": value},
+                        }
+                    )
+
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+        # Ensure that values come back out with the correct type.
+        for key, value in option_values:
+            assert ProjectOption.objects.get(key=key).value == value
+            assert OrganizationOption.objects.get(key=key).value == value
 
 
 class SignalingTests(ImportTestCase):
@@ -1520,7 +1571,7 @@ class CollisionTests(ImportTestCase):
 
         # Take note of a `ProjectKey` that was created by the exhaustive organization - this is the
         # one we'll be importing.
-        colliding = ProjectKey.objects.all()[0]
+        colliding = ProjectKey.objects.order_by("id")[0]
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1562,7 +1613,7 @@ class CollisionTests(ImportTestCase):
 
             # Take note of the `QuerySubscription` that was created by the exhaustive organization -
             # this is the one we'll be importing.
-            colliding_snuba_query = SnubaQuery.objects.all()[0]
+            colliding_snuba_query = SnubaQuery.objects.order_by("id")[0]
             colliding_query_subscription = QuerySubscription.objects.get(
                 snuba_query=colliding_snuba_query
             )
@@ -1627,6 +1678,43 @@ class CollisionTests(ImportTestCase):
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
             assert SavedSearch.objects.count() == 1
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
+
+    @expect_models(COLLISION_TESTED, DataSource)
+    def test_colliding_data_source(self, expected_models: list[type[Model]]) -> None:
+        owner = self.create_exhaustive_user("owner")
+        invited = self.create_exhaustive_user("invited")
+        self.create_exhaustive_organization("some-org", owner, invited)
+
+        # Get a DataSource that was created - it should have (type, source_id) as unique
+        colliding = DataSource.objects.first()
+        assert colliding is not None
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            # After exporting and clearing, insert a DataSource with the same (type, source_id)
+            # but different organization
+            new_org = self.create_organization()
+            colliding.organization_id = new_org.id
+            colliding.save()
+
+            assert DataSource.objects.count() == 1
+            assert (
+                DataSource.objects.filter(
+                    type=colliding.type, source_id=colliding.source_id
+                ).count()
+                == 1
+            )
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+            # After import, the incoming DataSource should get a new source_id to avoid collision
+            # with the existing one (since the referenced source model will be remapped)
+            assert DataSource.objects.count() == 2
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
@@ -2512,6 +2600,6 @@ class TestLegacyTestSuite:
         handles monolith- and hybrid-database modes with the same code path,
         which is planned work.
         """
-        assert date.today() <= date(
-            2023, 11, 11
-        ), "Please delete the monolith-dbs test suite!"  # or else bump the date
+        assert date.today() <= date(2023, 11, 11), (
+            "Please delete the monolith-dbs test suite!"
+        )  # or else bump the date

@@ -7,8 +7,8 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
@@ -25,7 +25,8 @@ jest
     getConfigFromTimeRange(
       startTime,
       new Date(startTime.getTime() + 1000 * 60 * 60),
-      1000
+      1000,
+      'UTC'
     )
   );
 

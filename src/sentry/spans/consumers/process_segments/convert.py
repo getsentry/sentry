@@ -3,11 +3,23 @@ from typing import Any, cast
 import orjson
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import (
+    AnyValue,
+    ArrayValue,
+    CategoryCount,
+    KeyValue,
+    KeyValueList,
+    Outcomes,
+    TraceItem,
+)
 
+from sentry.constants import DataCategory
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
+from sentry.utils import metrics
+from sentry.utils.eap import hex_to_item_id
 
 I64_MAX = 2**63 - 1
 
@@ -15,7 +27,6 @@ FIELD_TO_ATTRIBUTE = {
     "end_timestamp": "sentry.end_timestamp_precise",
     "event_id": "sentry.event_id",
     "hash": "sentry.hash",
-    "kind": "sentry.kind",
     "name": "sentry.name",
     "parent_span_id": "sentry.parent_span_id",
     "received": "sentry.received",
@@ -23,8 +34,8 @@ FIELD_TO_ATTRIBUTE = {
 }
 
 RENAME_ATTRIBUTES = {
-    "sentry.description": "sentry.raw_description",
-    "sentry.segment.id": "sentry.segment_id",
+    ATTRIBUTE_NAMES.SENTRY_DESCRIPTION: "sentry.raw_description",
+    ATTRIBUTE_NAMES.SENTRY_SEGMENT_ID: "sentry.segment_id",
 }
 
 
@@ -45,12 +56,12 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         except Exception:
             sentry_sdk.capture_exception()
         else:
-            if k == "sentry.client_sample_rate":
+            if k == ATTRIBUTE_NAMES.SENTRY_CLIENT_SAMPLE_RATE:
                 try:
                     client_sample_rate = float(value)  # type:ignore[arg-type]
                 except ValueError:
                     pass
-            elif k == "sentry.server_sample_rate":
+            elif k == ATTRIBUTE_NAMES.SENTRY_SERVER_SAMPLE_RATE:
                 try:
                     server_sample_rate = float(value)  # type:ignore[arg-type]
                 except ValueError:
@@ -73,7 +84,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
 
     try:
         attributes["sentry.duration_ms"] = AnyValue(
-            int_value=int(1000 * (span["end_timestamp"] - span["start_timestamp"]))
+            double_value=round(1000.0 * (span["end_timestamp"] - span["start_timestamp"]), 6)
         )
     except Exception:
         sentry_sdk.capture_exception()
@@ -83,23 +94,43 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             try:
                 if attr in RENAME_ATTRIBUTES:
                     attr = RENAME_ATTRIBUTES[attr]
-                attributes[f"sentry._meta.fields.attributes.{attr}"] = _anyvalue({"meta": meta})
+                # Meta is expected to be a stringified json object.
+                value = orjson.dumps({"meta": meta}).decode()
+                attributes[f"sentry._meta.fields.attributes.{attr}"] = _anyvalue(value)
             except Exception:
                 sentry_sdk.capture_exception()
 
     if links := span.get("links"):
         try:
             sanitized_links = [_sanitize_span_link(link) for link in links if link is not None]
-            attributes["sentry.links"] = _anyvalue(sanitized_links)
+            # Span links are expected to be a stringified json object.
+            value = orjson.dumps(sanitized_links).decode()
+            attributes["sentry.links"] = _anyvalue(value)
         except Exception:
             sentry_sdk.capture_exception()
             attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
+
+    metrics.incr(
+        "spans.consumers.process_segments.outcome_emitted",
+        tags={"already_emitted": str(span.get("accepted_outcome_emitted"))},
+    )
+    outcomes = None
+    if span.get("accepted_outcome_emitted") is False:
+        outcomes = Outcomes(
+            key_id=int(span.get("key_id") or 0),
+            category_count=[
+                CategoryCount(
+                    data_category=int(DataCategory.SPAN_INDEXED),
+                    quantity=1,
+                ),
+            ],
+        )
 
     return TraceItem(
         organization_id=span["organization_id"],
         project_id=span["project_id"],
         trace_id=span["trace_id"],
-        item_id=int(span["span_id"], 16).to_bytes(16, "little"),
+        item_id=hex_to_item_id(span["span_id"]),
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         timestamp=_timestamp(span["start_timestamp"]),
         attributes=attributes,
@@ -108,6 +139,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         retention_days=span["retention_days"],
         downsampled_retention_days=span.get("downsampled_retention_days", 0),
         received=_timestamp(span["received"]),
+        outcomes=outcomes,
     )
 
 
@@ -122,8 +154,14 @@ def _anyvalue(value: Any) -> AnyValue:
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
-    elif isinstance(value, (list, dict)):
-        return AnyValue(string_value=orjson.dumps(value).decode())
+    elif isinstance(value, list):
+        return AnyValue(array_value=ArrayValue(values=[_anyvalue(v) for v in value]))
+    elif isinstance(value, dict):
+        return AnyValue(
+            kvlist_value=KeyValueList(
+                values=[KeyValue(key=k, value=_anyvalue(v)) for k, v in value.items()]
+            )
+        )
 
     raise ValueError(f"Unknown value type: {type(value)}")
 

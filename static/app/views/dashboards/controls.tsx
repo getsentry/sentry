@@ -1,36 +1,40 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {Confirm, openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IconAdd, IconCopy, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
+import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
-import exportDashboard from './exportDashboard';
+import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
-import {DashboardState, MAX_WIDGETS} from './types';
+import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
 
 type Props = {
   dashboard: DashboardDetails;
@@ -48,7 +52,7 @@ type Props = {
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
-function Controls({
+export function Controls({
   dashboardState,
   dashboard,
   dashboards,
@@ -83,6 +87,20 @@ function Controls({
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
+  const navigate = useNavigate();
+  const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
+    useDuplicatePrebuiltDashboard({
+      onSuccess: (newDashboard: DashboardDetails) => {
+        navigate(
+          normalizeUrl(
+            `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`
+          )
+        );
+      },
+    });
+
+  const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
       <StyledButtonBar key="edit-controls">
@@ -151,9 +169,9 @@ function Controls({
               }}
               priority="primary"
               disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-              title={limitMessage}
               tooltipProps={{
                 isHoverable: true,
+                title: limitMessage,
               }}
             >
               {t('Add Dashboard')}
@@ -194,6 +212,57 @@ function Controls({
         })
       : null
     : t('You do not have permission to edit this dashboard');
+
+  const renderEditButton = (hasFeature: boolean) => {
+    if (!hasFeature) {
+      return null;
+    }
+    if (isPrebuiltDashboard) {
+      return (
+        <Button
+          data-test-id="dashboard-edit"
+          aria-label={t('edit-dashboard')}
+          icon={<IconEdit />}
+          disabled
+          tooltipProps={{
+            title: tct(
+              'This is a [label] dashboard and cannot be edited. Duplicate it to make changes.',
+              {label: PREBUILT_DASHBOARD_LABEL}
+            ),
+          }}
+          priority="default"
+          size="sm"
+        />
+      );
+    }
+    const isDisabled = !hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving;
+    const toolTipMessage = isSaving
+      ? DASHBOARD_SAVING_MESSAGE
+      : hasEditAccess
+        ? hasUnsavedFilters
+          ? UNSAVED_FILTERS_MESSAGE
+          : null
+        : t('You do not have permission to edit this dashboard');
+
+    return (
+      <Tooltip title={t('Edit Dashboard')} disabled={isDisabled}>
+        <Button
+          data-test-id="dashboard-edit"
+          aria-label={t('edit-dashboard')}
+          onClick={e => {
+            e.preventDefault();
+            onEdit();
+          }}
+          icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
+          disabled={isDisabled}
+          tooltipProps={{title: toolTipMessage}}
+          priority="default"
+          size="sm"
+        />
+      </Tooltip>
+    );
+  };
+
   return (
     <StyledButtonBar key="controls">
       <DashboardEditFeature>
@@ -214,7 +283,7 @@ function Controls({
                 />
               </Tooltip>
             </Feature>
-            {dashboard.id !== 'default-overview' && (
+            {dashboard.id !== 'default-overview' && !isPrebuiltDashboard && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}
@@ -227,7 +296,7 @@ function Controls({
                   aria-label={t('star-dashboard')}
                   icon={
                     <IconStar
-                      color={isFavorited ? 'yellow300' : 'gray500'}
+                      variant={isFavorited ? 'warning' : 'muted'}
                       isSolid={isFavorited}
                       aria-label={isFavorited ? t('Unstar') : t('Star')}
                       data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
@@ -256,28 +325,8 @@ function Controls({
                 />
               </Tooltip>
             )}
-            <Tooltip title={t('Edit Dashboard')}>
-              <Button
-                data-test-id="dashboard-edit"
-                aria-label={t('edit-dashboard')}
-                onClick={e => {
-                  e.preventDefault();
-                  onEdit();
-                }}
-                icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
-                disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving}
-                title={
-                  isSaving
-                    ? DASHBOARD_SAVING_MESSAGE
-                    : hasEditAccess
-                      ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
-                      : t('You do not have permission to edit this dashboard')
-                }
-                priority="default"
-                size="sm"
-              />
-            </Tooltip>
-            {hasFeature ? (
+            {renderEditButton(hasFeature)}
+            {hasFeature && !isPrebuiltDashboard && (
               <Tooltip
                 title={tooltipMessage}
                 disabled={!widgetLimitReached && hasEditAccess}
@@ -296,7 +345,47 @@ function Controls({
                   position="bottom-end"
                 />
               </Tooltip>
-            ) : null}
+            )}
+            {hasFeature && isPrebuiltDashboard && (
+              <DashboardCreateLimitWrapper>
+                {({
+                  hasReachedDashboardLimit,
+                  isLoading: isLoadingDashboardsLimit,
+                  limitMessage,
+                }) => {
+                  const isLoading =
+                    isLoadingDuplicatePrebuiltDashboard || isLoadingDashboardsLimit;
+                  return (
+                    <Tooltip
+                      title={t('Duplicate Dashboard')}
+                      disabled={isLoading || hasReachedDashboardLimit}
+                    >
+                      <Button
+                        data-test-id="dashboard-duplicate"
+                        aria-label={t('duplicate-dashboard')}
+                        onClick={e => {
+                          e.preventDefault();
+                          openConfirmModal({
+                            message: t(
+                              'Are you sure you want to duplicate this dashboard?'
+                            ),
+                            priority: 'primary',
+                            onConfirm: () => duplicatePrebuiltDashboard(dashboard.id),
+                          });
+                        }}
+                        icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}
+                        disabled={isLoading || hasReachedDashboardLimit}
+                        tooltipProps={{title: limitMessage}}
+                        priority="default"
+                        size="sm"
+                      >
+                        {t('Duplicate Dashboard')}
+                      </Button>
+                    </Tooltip>
+                  );
+                }}
+              </DashboardCreateLimitWrapper>
+            )}
           </Fragment>
         )}
       </DashboardEditFeature>
@@ -334,12 +423,12 @@ function DashboardEditFeature({
   );
 }
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: row;
-    grid-row-gap: ${space(1)};
+    grid-row-gap: ${p => p.theme.space.md};
     width: 100%;
   }
 `;
-
-export default Controls;

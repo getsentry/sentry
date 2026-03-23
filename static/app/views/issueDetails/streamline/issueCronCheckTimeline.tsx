@@ -1,6 +1,9 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
@@ -8,16 +11,13 @@ import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
-import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {MonitorIndicator} from 'sentry/views/insights/crons/components/monitorIndicator';
 import {CheckInStatus, type MonitorBucket} from 'sentry/views/insights/crons/types';
@@ -83,8 +83,7 @@ function useCronLegendStatuses({
       [CheckInStatus.UNKNOWN]: false,
     };
     bucketStats?.forEach(([_timestamp, bucketEnvMapping]) => {
-      const bucketEnvMappingEntries: Array<StatsBucket<CheckInStatus>> =
-        Object.values(bucketEnvMapping);
+      const bucketEnvMappingEntries = Object.values(bucketEnvMapping);
       for (const statBucket of bucketEnvMappingEntries) {
         const statBucketEntries = Object.entries(statBucket) as Array<
           [CheckInStatus, number]
@@ -217,8 +216,8 @@ const TimelineLegend = styled('div')`
 `;
 
 const TimelineLegendText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TimelineContainer = styled('div')`
@@ -233,9 +232,9 @@ const EnvironmentLabel = styled(Tooltip)`
   position: absolute;
   user-select: none;
   left: 0;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 

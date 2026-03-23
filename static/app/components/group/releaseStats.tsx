@@ -1,35 +1,30 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import GroupReleaseChart from 'sentry/components/group/releaseChart';
-import SeenInfo from 'sentry/components/group/seenInfo';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {AlertLink} from '@sentry/scraps/alert';
+
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {GroupReleaseChart} from 'sentry/components/group/releaseChart';
+import {SeenInfo} from 'sentry/components/group/seenInfo';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {CurrentRelease, Release} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {CurrentRelease} from 'sentry/types/release';
+import {useQuery} from 'sentry/utils/queryClient';
+import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
 
-type Props = {
+interface GroupReleaseStatsProps {
+  allEnvironments: Group | undefined;
+  currentRelease: CurrentRelease | undefined;
   environments: string[];
+  group: Group;
   organization: Organization;
   project: Project;
-  allEnvironments?: Group;
-  currentRelease?: CurrentRelease;
-  group?: Group;
-};
-
-type GroupRelease = {
-  firstRelease: Release;
-  lastRelease: Release;
-};
+}
 
 function GroupReleaseStats({
   organization,
@@ -38,7 +33,7 @@ function GroupReleaseStats({
   allEnvironments,
   group,
   currentRelease,
-}: Props) {
+}: GroupReleaseStatsProps) {
   const environment = environments.length > 0 ? environments.join(', ') : undefined;
   const environmentLabel = environment ? environment : t('All Environments');
 
@@ -49,16 +44,11 @@ function GroupReleaseStats({
         ? environments[0]
         : undefined;
 
-  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [
-      defined(group)
-        ? `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`
-        : '',
-    ],
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-    }
+  const {data: groupReleaseData} = useQuery(
+    issueFirstLastReleaseQueryOptions({
+      groupId: group.id,
+      organizationSlug: organization.slug,
+    })
   );
 
   const firstRelease = groupReleaseData?.firstRelease;
@@ -71,9 +61,7 @@ function GroupReleaseStats({
 
   return (
     <div>
-      {!group || !allEnvironments ? (
-        <Placeholder height="346px" bottomGutter={4} />
-      ) : (
+      {allEnvironments ? (
         <Fragment>
           <GraphContainer>
             <GroupReleaseChart
@@ -157,7 +145,7 @@ function GroupReleaseStats({
               <SidebarSection.Title>{t('Releases')}</SidebarSection.Title>
               <SidebarSection.Content>
                 <AlertLink.Container>
-                  <AlertLink type="muted" to={releaseTrackingUrl}>
+                  <AlertLink variant="muted" to={releaseTrackingUrl}>
                     {t('See which release caused this issue ')}
                   </AlertLink>
                 </AlertLink.Container>
@@ -165,6 +153,8 @@ function GroupReleaseStats({
             </SidebarSection.Wrap>
           )}
         </Fragment>
+      ) : (
+        <Placeholder height="346px" bottomGutter="3xl" />
       )}
     </div>
   );
@@ -173,9 +163,9 @@ function GroupReleaseStats({
 export default memo(GroupReleaseStats);
 
 const GraphContainer = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const StyledSidebarSectionContent = styled(SidebarSection.Content)`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;

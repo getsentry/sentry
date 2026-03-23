@@ -1,19 +1,20 @@
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT_LARGE} from 'sentry/components/events/eventReplay/constants';
-import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPreviewPlayer';
+import {ReplayPreviewPlayer} from 'sentry/components/events/eventReplay/replayPreviewPlayer';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
-import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
+import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {t} from 'sentry/locale';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import useLogEventReplayStatus from 'sentry/utils/replays/hooks/useLogEventReplayStatus';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useLogEventReplayStatus} from 'sentry/utils/replays/hooks/useLogEventReplayStatus';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
   analyticsContext: string;
@@ -21,10 +22,12 @@ interface Props {
   handleForwardClick: undefined | (() => void);
   overlayContent: React.ReactNode;
   replayReaderResult: ReturnType<typeof useLoadReplayReader>;
+  query?: Query;
 }
 
-export default function GroupReplaysPlayer({
+export function GroupReplaysPlayer({
   analyticsContext,
+  query,
   handleForwardClick,
   handleBackClick,
   overlayContent,
@@ -65,6 +68,7 @@ export default function GroupReplaysPlayer({
               <ReplayReaderProvider replay={replay}>
                 <ReplayPlayerStateContextProvider>
                   <ReplayPreviewPlayer
+                    query={query}
                     errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
                     replayId={replayReaderResult.replayId}
                     replayRecord={replayReaderResult.replayRecord!}
@@ -95,5 +99,5 @@ const PlayerContainer = styled(FluidHeight)`
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;

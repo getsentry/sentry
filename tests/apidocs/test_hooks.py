@@ -1,6 +1,49 @@
 from unittest import TestCase
 
-from sentry.apidocs.hooks import custom_postprocessing_hook
+from sentry.apidocs.hooks import _ENDPOINT_SERVERS, custom_postprocessing_hook
+
+
+class EndpointServersTest(TestCase):
+    def setUp(self) -> None:
+        _ENDPOINT_SERVERS.clear()
+
+    def tearDown(self) -> None:
+        _ENDPOINT_SERVERS.clear()
+
+    def test_servers_applied_to_endpoint(self) -> None:
+        """Test that servers from _ENDPOINT_SERVERS are applied to matching paths."""
+        _ENDPOINT_SERVERS["/api/0/seer/models/"] = [{"url": "https://{region}.sentry.io"}]
+
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/seer/models/": {
+                    "get": {
+                        "tags": ["Seer"],
+                        "description": "Get models",
+                        "operationId": "get models",
+                        "parameters": [],
+                    }
+                },
+                "/api/0/other/endpoint/": {
+                    "get": {
+                        "tags": ["Events"],
+                        "description": "Other endpoint",
+                        "operationId": "get other",
+                        "parameters": [],
+                    }
+                },
+            },
+        }
+
+        processed = custom_postprocessing_hook(result, None)
+
+        # Servers should be applied to the matching endpoint
+        assert processed["paths"]["/api/0/seer/models/"]["get"]["servers"] == [
+            {"url": "https://{region}.sentry.io"}
+        ]
+        # Servers should NOT be applied to non-matching endpoint
+        assert "servers" not in processed["paths"]["/api/0/other/endpoint/"]["get"]
 
 
 class FixIssueRoutesTest(TestCase):

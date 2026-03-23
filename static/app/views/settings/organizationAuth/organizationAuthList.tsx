@@ -1,18 +1,19 @@
-import {ExternalLink} from 'sentry/components/core/link';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
 import {descopeFeatureName} from 'sentry/utils';
-import getCsrfToken from 'sentry/utils/getCsrfToken';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {getCsrfToken} from 'sentry/utils/getCsrfToken';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
-import ProviderItem from './providerItem';
+import {ProviderItem} from './providerItem';
 
 const PROVIDER_POPULARITY: Record<string, number> = {
   google: 0,
@@ -31,7 +32,7 @@ type Props = {
   activeProvider?: AuthProvider;
 };
 
-function OrganizationAuthList({providerList, activeProvider}: Props) {
+export function OrganizationAuthList({providerList, activeProvider}: Props) {
   const organization = useOrganization();
   const features = organization.features;
 
@@ -73,7 +74,7 @@ function OrganizationAuthList({providerList, activeProvider}: Props) {
         <PanelHeader>{t('Choose a provider')}</PanelHeader>
         <PanelBody>
           {!activeProvider && (
-            <PanelAlert type="info">
+            <PanelAlert variant="info">
               {tct(
                 'Get started with Single Sign-on for your organization by selecting a provider. Read more in our [link:SSO documentation].',
                 {
@@ -86,7 +87,7 @@ function OrganizationAuthList({providerList, activeProvider}: Props) {
           )}
 
           {warn2FADisable && (
-            <PanelAlert type="warning">
+            <PanelAlert variant="warning">
               {t('Require 2FA will be disabled if you enable SSO.')}
             </PanelAlert>
           )}
@@ -116,8 +117,3 @@ function OrganizationAuthList({providerList, activeProvider}: Props) {
     </div>
   );
 }
-
-export default OrganizationAuthList;
-
-// For tests
-export {OrganizationAuthList};

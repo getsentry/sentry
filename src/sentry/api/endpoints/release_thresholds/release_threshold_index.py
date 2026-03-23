@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -30,7 +30,7 @@ class ReleaseThresholdIndexGETValidator(serializers.Serializer[ReleaseThresholdI
     )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ReleaseThresholdIndexEndpoint(OrganizationEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {

@@ -1,14 +1,15 @@
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import IdBadge from 'sentry/components/idBadge';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TeamRoleSelect from 'sentry/components/teamRoleSelect';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {IdBadge} from 'sentry/components/idBadge';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TeamRoleSelect} from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Team, TeamMember} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
@@ -23,7 +24,7 @@ interface Props {
   user: User;
 }
 
-function TeamMembersRow({
+export function TeamMembersRow({
   organization,
   team,
   member,
@@ -38,7 +39,7 @@ function TeamMembersRow({
     <TeamRolesPanelItem key={member.id}>
       <Flex gap="md">
         <IdBadge avatarSize={36} member={member} />
-        {member.pending ? <Tag>{t('Pending')}</Tag> : null}
+        {member.pending ? <Tag variant="muted">{t('Pending')}</Tag> : null}
       </Flex>
       <RoleSelectWrapper>
         <TeamRoleSelect
@@ -77,9 +78,11 @@ function RemoveButton(props: {
       <Button
         size="xs"
         disabled
-        icon={<IconSubtract isCircled />}
+        icon={<IconSubtract />}
         aria-label={t('Remove')}
-        title={t('You do not have permission to remove a member from this team.')}
+        tooltipProps={{
+          title: t('You do not have permission to remove a member from this team.'),
+        }}
       >
         {t('Remove')}
       </Button>
@@ -95,10 +98,10 @@ function RemoveButton(props: {
       data-test-id={`button-remove-${member.id}`}
       size="xs"
       disabled={!canRemoveMember || isIdpProvisioned}
-      icon={<IconSubtract isCircled />}
+      icon={<IconSubtract />}
       onClick={onClick}
       aria-label={buttonRemoveText}
-      title={buttonHelpText}
+      tooltipProps={{title: buttonHelpText}}
     >
       {buttonRemoveText}
     </Button>
@@ -115,10 +118,10 @@ const RoleSelectWrapper = styled('div')`
   }
 `;
 
-export const GRID_TEMPLATE = `
+export const GRID_TEMPLATE = (p: {theme: Theme}) => `
   display: grid;
   grid-template-columns: minmax(100px, 1fr) 200px 150px;
-  gap: ${space(1)};
+  gap: ${p.theme.space.md};
 `;
 
 const TeamRolesPanelItem = styled(PanelItem)`
@@ -129,5 +132,3 @@ const TeamRolesPanelItem = styled(PanelItem)`
     margin-left: auto;
   }
 `;
-
-export default TeamMembersRow;

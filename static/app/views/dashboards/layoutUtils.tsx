@@ -1,14 +1,16 @@
 import type {Layout} from 'react-grid-layout';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import {compact} from 'react-grid-layout/build/utils';
+import * as Sentry from '@sentry/react';
 import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
 
 import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
+import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 
-import {NUM_DESKTOP_COLS} from './dashboard';
+import {clampWidgetLayout} from './clampWidgetLayout';
 import type {Widget, WidgetLayout} from './types';
 import {DisplayType} from './types';
 
@@ -19,7 +21,7 @@ const WIDGET_PREFIX = 'grid-item';
 // Keys for grid layout values we track in the server
 const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
-export type Position = Pick<Layout, 'x' | 'y'>;
+type Position = Pick<Layout, 'x' | 'y'>;
 
 type NextPosition = [position: Position, columnDepths: number[]];
 
@@ -52,7 +54,7 @@ export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     x: 0,
     y: index * 2,
     w: 2,
-    h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+    h: getDefaultWidgetHeight(widget.displayType),
   }));
 
   return mobileLayout;
@@ -65,10 +67,18 @@ export function getDashboardLayout(widgets: Widget[]): Layout[] {
   type WidgetWithDefinedLayout = Omit<Widget, 'layout'> & {layout: WidgetLayout};
   return widgets
     .filter((widget): widget is WidgetWithDefinedLayout => defined(widget.layout))
-    .map(({layout, ...widget}) => ({
-      ...layout,
-      i: constructGridItemKey(widget),
-    }));
+    .map(({layout, ...widget}) => {
+      const clamped = clampWidgetLayout(layout);
+      if (clamped.w !== layout.w || clamped.x !== layout.x) {
+        Sentry.captureMessage('Invalid widget layout dimensions detected', {
+          extra: {
+            original: {x: layout.x, y: layout.y, w: layout.w, h: layout.h},
+            clamped: {x: clamped.x, w: clamped.w},
+          },
+        });
+      }
+      return {...clamped, i: constructGridItemKey(widget)};
+    });
 }
 
 export function pickDefinedStoreKeys(layout: Layout): WidgetLayout {
@@ -80,7 +90,10 @@ export function pickDefinedStoreKeys(layout: Layout): WidgetLayout {
 }
 
 export function getDefaultWidgetHeight(displayType: DisplayType): number {
-  return displayType === DisplayType.BIG_NUMBER ? 1 : 2;
+  if (displayType === DisplayType.BIG_NUMBER || displayType === DisplayType.DETAILS) {
+    return 1;
+  }
+  return 2;
 }
 
 export function getInitialColumnDepths() {
@@ -158,7 +171,7 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
   let columnDepths = [...initialColumnDepths];
   const newWidgets = widgets.map(widget => {
     if (defined(widget.layout)) {
-      return widget;
+      return {...widget, layout: clampWidgetLayout(widget.layout)};
     }
     const height = getDefaultWidgetHeight(widget.displayType);
     const [nextPosition, nextColumnDepths] = getNextAvailablePosition(

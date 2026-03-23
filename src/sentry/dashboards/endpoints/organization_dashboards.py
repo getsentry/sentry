@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, TypedDict
+from typing import Any, Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
@@ -13,6 +13,7 @@ from django.db.models import (
     IntegerField,
     OrderBy,
     OuterRef,
+    Q,
     Subquery,
     Value,
     When,
@@ -23,10 +24,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import features, quotas, roles
+from sentry import features, options, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
@@ -63,11 +64,39 @@ MAX_RETRIES = 2
 # Do not delete or modify existing entries. These enums are required to match ids in the frontend.
 class PrebuiltDashboardId(IntEnum):
     FRONTEND_SESSION_HEALTH = 1
+    BACKEND_QUERIES = 2
+    BACKEND_QUERIES_SUMMARY = 3
+    HTTP = 4
+    HTTP_DOMAIN_SUMMARY = 5
+    WEB_VITALS = 6
+    WEB_VITALS_SUMMARY = 7
+    MOBILE_VITALS = 8
+    MOBILE_VITALS_APP_STARTS = 9
+    MOBILE_VITALS_SCREEN_LOADS = 10
+    MOBILE_VITALS_SCREEN_RENDERING = 11
+    BACKEND_OVERVIEW = 12
+    MOBILE_SESSION_HEALTH = 13
+    FRONTEND_OVERVIEW = 14
+    NEXTJS_FRONTEND_OVERVIEW = 15
+    AI_AGENTS_OVERVIEW = 16
+    AI_AGENTS_MODELS = 17
+    AI_AGENTS_TOOLS = 18
+    MCP_OVERVIEW = 19
+    MCP_TOOLS = 20
+    MCP_RESOURCES = 21
+    MCP_PROMPTS = 22
+    LARAVEL_OVERVIEW = 23
+    FRONTEND_ASSETS = 24
+    FRONTEND_ASSETS_SUMMARY = 25
+    BACKEND_QUEUES = 26
+    BACKEND_QUEUE_SUMMARY = 27
+    BACKEND_CACHES = 28
 
 
-class PrebuiltDashboard(TypedDict):
-    prebuilt_id: PrebuiltDashboardId
-    title: str
+class PrebuiltDashboard(TypedDict, total=False):
+    prebuilt_id: Required[PrebuiltDashboardId]
+    title: Required[str]
+    hidden: bool
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -78,35 +107,176 @@ class PrebuiltDashboard(TypedDict):
 # deprecate once this feature is released.
 # Note B: Consider storing all dashboard and widget data in the database instead of relying on matching
 # prebuilt_id on the frontend, if there are issues.
+# Note C: These titles should match the configs in the `PREBUILT_DASHBOARDS` constant in the frontend so that the results returned by the API match the titles in the frontend.
 PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
         "title": "Frontend Session Health",
     },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES,
+        "title": "Queries",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
+        "title": "Query Details",
+        "hidden": True,
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.HTTP,
+        "title": "Outbound API Requests",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.HTTP_DOMAIN_SUMMARY,
+        "title": "Domain Details",
+        "hidden": True,
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
+        "title": "Web Vitals",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.WEB_VITALS_SUMMARY,
+        "title": "Web Vitals Page Summary",
+        "hidden": True,
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS,
+        "title": "Mobile Vitals",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS,
+        "title": "Mobile Vitals App Starts",
+        "hidden": True,
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
+        "title": "Mobile Vitals Screen Loads",
+        "hidden": True,
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
+        "title": "Mobile Vitals Screen Rendering",
+        "hidden": True,
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
+        "title": "Backend Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_SESSION_HEALTH,
+        "title": "Mobile Session Health",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_OVERVIEW,
+        "title": "Frontend Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.NEXTJS_FRONTEND_OVERVIEW,
+        "title": "Next.js Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_MODELS,
+        "title": "AI Agents Model Details",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_TOOLS,
+        "title": "AI Agents Tool Details",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_TOOLS,
+        "title": "MCP Tool Details",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_RESOURCES,
+        "title": "MCP Resource Details",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_PROMPTS,
+        "title": "MCP Prompt Details",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
+        "title": "AI Agents Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_OVERVIEW,
+        "title": "MCP Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.LARAVEL_OVERVIEW,
+        "title": "Laravel Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS,
+        "title": "Frontend Assets",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
+        "title": "Frontend Assets Summary",
+        "hidden": True,
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUES,
+        "title": "Queues",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY,
+        "title": "Queue Summary",
+        "hidden": True,
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_CACHES,
+        "title": "Caches",
+    },
 ]
+
+
+def get_enabled_prebuilt_dashboards(
+    organization: Organization,
+) -> list[PrebuiltDashboard]:
+    """
+    Returns the list of prebuilt dashboards that are enabled for the given organization,
+    based on the prebuilt-dashboard-ids option and the sync-all feature flag.
+    """
+    enabled_prebuilt_dashboard_ids = options.get("dashboards.prebuilt-dashboard-ids")
+    should_sync_all_registered_prebuilt_dashboards = features.has(
+        "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+        organization,
+    )
+    all_prebuilt_dashboards = [dashboard for dashboard in PREBUILT_DASHBOARDS]
+    if should_sync_all_registered_prebuilt_dashboards:
+        return all_prebuilt_dashboards
+    return [
+        dashboard
+        for dashboard in all_prebuilt_dashboards
+        if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+    ]
 
 
 def sync_prebuilt_dashboards(organization: Organization) -> None:
     """
     Queries the database to check if prebuilt dashboards have a Dashboard record and
-    creates them if they don't, or deletes them if they should no longer exist.
+    creates them if they don't, updates titles if they've changed, or deletes them
+    if they should no longer exist.
     """
 
     with transaction.atomic(router.db_for_write(Dashboard)):
+        enabled_prebuilt_dashboards = get_enabled_prebuilt_dashboards(organization)
+
         saved_prebuilt_dashboards = Dashboard.objects.filter(
             organization=organization,
             prebuilt_id__isnull=False,
         )
 
-        saved_prebuilt_dashboard_ids = set(
-            saved_prebuilt_dashboards.values_list("prebuilt_id", flat=True)
-        )
+        saved_prebuilt_dashboard_map = {d.prebuilt_id: d for d in saved_prebuilt_dashboards}
 
-        # Create prebuilt dashboards if they don't exist
-        for prebuilt_dashboard in PREBUILT_DASHBOARDS:
+        # Create prebuilt dashboards if they don't exist, or update titles if changed
+        dashboards_to_update: list[Dashboard] = []
+        for prebuilt_dashboard in enabled_prebuilt_dashboards:
             prebuilt_id: PrebuiltDashboardId = prebuilt_dashboard["prebuilt_id"]
 
-            if prebuilt_id not in saved_prebuilt_dashboard_ids:
+            if prebuilt_id not in saved_prebuilt_dashboard_map:
                 # Create new dashboard
                 Dashboard.objects.create(
                     organization=organization,
@@ -114,9 +284,16 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
                     created_by_id=None,
                     prebuilt_id=prebuilt_id,
                 )
+            elif saved_prebuilt_dashboard_map[prebuilt_id].title != prebuilt_dashboard["title"]:
+                # Update title if changed
+                saved_prebuilt_dashboard_map[prebuilt_id].title = prebuilt_dashboard["title"]
+                dashboards_to_update.append(saved_prebuilt_dashboard_map[prebuilt_id])
+
+        if dashboards_to_update:
+            Dashboard.objects.bulk_update(dashboards_to_update, ["title"])
 
         # Delete old prebuilt dashboards if they should no longer exist
-        prebuilt_ids = [d["prebuilt_id"] for d in PREBUILT_DASHBOARDS]
+        prebuilt_ids = [d["prebuilt_id"] for d in enabled_prebuilt_dashboards]
         Dashboard.objects.filter(
             organization=organization,
             prebuilt_id__isnull=False,
@@ -160,7 +337,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
 
 @extend_schema(tags=["Dashboards"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -206,38 +383,60 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     name="sync_prebuilt_dashboards",
                 )
                 with lock.acquire():
-                    # Adds prebuilt dashboards to the database if they don't exist.
-                    # Deletes old prebuilt dashboards from the database if they should no longer exist.
                     sync_prebuilt_dashboards(organization)
             except UnableToAcquireLock:
-                # Another process is already syncing the prebuilt dashboards. We can skip syncing this time.
                 pass
             except Exception as err:
                 sentry_sdk.capture_exception(err)
 
-        filter_by = request.query_params.get("filter")
-        if filter_by == "onlyFavorites":
-            dashboards = Dashboard.objects.filter(
-                organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
-            )
-        elif filter_by == "excludeFavorites":
-            dashboards = Dashboard.objects.exclude(
-                organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
-            )
-        elif filter_by == "owned":
-            dashboards = Dashboard.objects.filter(
-                created_by_id=request.user.id, organization_id=organization.id
-            )
-        elif filter_by == "shared":
-            dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
-                created_by_id=request.user.id
-            )
-        else:
-            dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        filters = request.query_params.getlist("filter")
+
+        dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        for f in filters:
+            if f == "onlyFavorites":
+                dashboards = dashboards.filter(
+                    dashboardfavoriteuser__user_id=request.user.id,
+                    dashboardfavoriteuser__favorited=True,
+                )
+            elif f == "excludeFavorites":
+                dashboards = dashboards.exclude(
+                    dashboardfavoriteuser__user_id=request.user.id,
+                    dashboardfavoriteuser__favorited=True,
+                )
+            elif f == "owned":
+                dashboards = dashboards.filter(created_by_id=request.user.id)
+            elif f == "shared":
+                dashboards = dashboards.exclude(created_by_id=request.user.id)
+            elif f == "excludePrebuilt":
+                dashboards = dashboards.exclude(prebuilt_id__isnull=False)
+            elif f == "onlyPrebuilt":
+                dashboards = dashboards.filter(prebuilt_id__isnull=False)
+
+        if "showHidden" not in filters:
+            hidden_prebuilt_ids = [
+                d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("hidden", False)
+            ]
+            if hidden_prebuilt_ids:
+                dashboards = dashboards.exclude(prebuilt_id__in=hidden_prebuilt_ids)
 
         query = request.GET.get("query")
+        prebuilt_ids = request.GET.getlist("prebuiltId")
+
+        should_filter_by_prebuilt_ids = (
+            features.has(
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                organization,
+                actor=request.user,
+            )
+            and prebuilt_ids
+            and len(prebuilt_ids) > 0
+        )
+
         if query:
             dashboards = dashboards.filter(title__icontains=query)
+        if should_filter_by_prebuilt_ids:
+            dashboards = dashboards.filter(prebuilt_id__in=prebuilt_ids)
+
         prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
 
         sort_by = request.query_params.get("sort")
@@ -329,7 +528,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             "organizations:dashboards-starred-reordering", organization, actor=request.user
         ):
             dashboards = dashboards.annotate(
-                favorites_count=Count("dashboardfavoriteuser", distinct=True)
+                favorites_count=Count(
+                    "dashboardfavoriteuser",
+                    filter=Q(dashboardfavoriteuser__favorited=True),
+                    distinct=True,
+                )
             )
             order_by = [
                 "favorites_count" if desc else "-favorites_count",
@@ -342,7 +545,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         pin_by = request.query_params.get("pin")
         if pin_by == "favorites":
             favorited_by_subquery = DashboardFavoriteUser.objects.filter(
-                dashboard=OuterRef("pk"), user_id=request.user.id
+                dashboard=OuterRef("pk"), user_id=request.user.id, favorited=True
             )
 
             order_by_favorites = [
@@ -383,8 +586,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             )
             return serialized
 
+        HIDE_PREBUILT_FILTERS = {"onlyFavorites", "owned", "excludePrebuilt", "onlyPrebuilt"}
         render_pre_built_dashboard = True
-        if filter_by and filter_by in {"onlyFavorites", "owned"}:
+        if HIDE_PREBUILT_FILTERS.intersection(filters) or should_filter_by_prebuilt_ids:
             render_pre_built_dashboard = False
         elif pin_by and pin_by == "favorites":
             # Only hide prebuilt dashboard when pinning favorites if there are actual dashboards to show
@@ -421,14 +625,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
-        dashboard_count = Dashboard.objects.filter(organization=organization).count()
-        dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
-        if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
-            return Response(
-                f"You may not exceed {dashboard_limit} dashboards on your current plan.",
-                status=400,
-            )
-
         serializer = DashboardSerializer(
             data=request.data,
             context={
@@ -442,8 +638,32 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        if request.GET.get("validateOnly"):
+            return Response(status=200)
+
+        # We need to acquire a lock so that a burst of concurrent create requests doesn't read
+        # stale count data and bypass the dashboard limit for an org.
+        dashboard_create_lock = locks.get(
+            f"dashboard:create:{organization.id}",
+            duration=5,
+            name="dashboard_create",
+        )
+
         try:
-            with transaction.atomic(router.db_for_write(Dashboard)):
+            with (
+                dashboard_create_lock.acquire(),
+                transaction.atomic(router.db_for_write(Dashboard)),
+            ):
+                dashboard_count = Dashboard.objects.filter(
+                    organization=organization, prebuilt_id=None
+                ).count()
+                dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
+                if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
+                    return Response(
+                        f"You may not exceed {dashboard_limit} dashboards on your current plan.",
+                        status=400,
+                    )
+
                 dashboard = serializer.save()
 
                 if features.has(
@@ -463,11 +683,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            duplicate = request.data.get("duplicate", False)
-
-            if not duplicate or retry >= MAX_RETRIES:
+            if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)
 
             request.data["title"] = Dashboard.incremental_title(organization, request.data["title"])
 
             return self.post(request, organization, retry=retry + 1)
+        except UnableToAcquireLock:
+            return Response("Unable to create dashboard, please try again", status=503)

@@ -2,6 +2,15 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openInviteMembersModal,
@@ -9,20 +18,17 @@ import {
 } from 'sentry/actionCreators/modal';
 import {joinTeamPromise, leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -30,15 +36,16 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
-import TeamMembersRow, {
+import {
   GRID_TEMPLATE,
+  TeamMembersRow,
 } from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -54,7 +61,9 @@ function getTeamMembersQueryKey({
   teamId: string;
 }): ApiQueryKey {
   return [
-    `/teams/${organization.slug}/${teamId}/members/`,
+    getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/members/`, {
+      path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamId},
+    }),
     {
       query: {
         cursor: location.query.cursor,
@@ -83,7 +92,9 @@ function AddMemberDropdown({
   const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
   const {data: orgMembers = [], isFetching: isOrgMembersFetching} = useApiQuery<Member[]>(
     [
-      `/organizations/${organization.slug}/members/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/members/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: debouncedMemberQuery ? {query: debouncedMemberQuery} : undefined,
       },
@@ -145,6 +156,7 @@ function AddMemberDropdown({
       menuWidth={250}
       options={items}
       onClose={() => setMemberQuery('')}
+      value={undefined}
       onChange={
         canAddMembers
           ? addTeamMember
@@ -155,29 +167,30 @@ function AddMemberDropdown({
                 memberId: selection.value,
               })
       }
-      menuHeaderTrailingItems={
-        <Button
-          size="zero"
-          priority="link"
+      menuFooter={
+        <MenuComponents.CTAButton
           onClick={() => openInviteMembersModal({source: 'teams'})}
           data-test-id="invite-member"
         >
           {t('Invite Member')}
-        </Button>
+        </MenuComponents.CTAButton>
       }
       data-test-id="add-member-menu"
       disabled={isDropdownDisabled}
       menuTitle={t('Members')}
-      triggerProps={{children: t('Add Member')}}
-      searchPlaceholder={t('Search Members')}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>{t('Add Member')}</OverlayTrigger.Button>
+      )}
+      search={{
+        placeholder: t('Search Members'),
+        filter: false,
+        /**
+         * We perform an API request to support orgs with > 100 members (since that's the max API returns)
+         */
+        onChange: setMemberQuery,
+      }}
       emptyMessage={t('No members')}
       loading={isOrgMembersFetching}
-      searchable
-      disableSearchFilter
-      /**
-       * We perform an API request to support orgs with > 100 members (since that's the max API returns)
-       */
-      onSearch={setMemberQuery}
     />
   );
 }
@@ -345,7 +358,7 @@ export default function TeamMembers() {
       });
     }
     return (
-      <EmptyMessage icon={<IconUser size="xl" />} size="large">
+      <EmptyMessage icon={<IconUser />} size="lg">
         {t('This team has no members')}
       </EmptyMessage>
     );

@@ -12,7 +12,6 @@ import {
 } from 'sentry/data/platformCategories';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
-import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 
 type Props = {
@@ -41,20 +40,15 @@ export function useLoadGettingStarted({
   projectKeyId: Project['id'] | undefined;
   refetch: () => void;
 } {
-  const [module, setModule] = useState<undefined | 'none' | {default: Docs<any>}>(
-    undefined
-  );
+  const [module, setModule] = useState<undefined | 'none' | {docs: Docs<any>}>(undefined);
 
   const projectKeys = useProjectKeys({orgSlug, projSlug});
-
-  const platformPath = getPlatformPath(platform);
 
   useEffect(() => {
     async function getGettingStartedDoc() {
       if (
         platform.deprecated ||
         platform.id === 'other' ||
-        !platformPath ||
         (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
         (productType === 'performance' && !withPerformanceOnboarding.has(platform.id)) ||
         (productType === 'logs' && !withLoggingOnboarding.has(platform.id)) ||
@@ -71,7 +65,7 @@ export function useLoadGettingStarted({
       try {
         const mod = await import(
           /* webpackExclude: /.spec/ */
-          `sentry/gettingStartedDocs/${platformPath}`
+          `sentry/gettingStartedDocs/${platform.id}`
         );
         setModule(mod);
       } catch (err) {
@@ -85,13 +79,13 @@ export function useLoadGettingStarted({
     return () => {
       setModule(undefined);
     };
-  }, [platformPath, platform.id, platform.deprecated, productType]);
+  }, [platform.id, platform.deprecated, productType]);
 
   return {
     refetch: projectKeys.refetch,
     isLoading: projectKeys.isPending || module === undefined,
     isError: projectKeys.isError,
-    docs: module === 'none' ? null : (module?.default ?? null),
+    docs: module === 'none' ? null : (module?.docs ?? null),
     dsn: projectKeys.data?.[0]?.dsn,
     projectKeyId: projectKeys.data?.[0]?.id,
   };

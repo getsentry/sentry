@@ -1,6 +1,7 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -9,32 +10,45 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
+    TraceItemAttributeNamesResponse,
     TraceItemAttributeValuesRequest,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
+from sentry_protos.snuba.v1.request_common_pb2 import (
+    TraceItemType as ProtoTraceItemType,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.endpoints.organization_spans_fields import BaseSpanFieldValuesAutocompletionExecutor
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_spans_fields import (
+    BaseSpanFieldValuesAutocompletionExecutor,
+)
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.search.eap import constants
-from sentry.search.eap.columns import ColumnDefinitions
+from sentry.search.eap.columns import (
+    ColumnDefinitions,
+    ResolvedAttribute,
+    VirtualColumnDefinition,
+)
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
+from sentry.search.eap.processing_errors.definitions import PROCESSING_ERROR_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
@@ -59,12 +73,15 @@ from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 from sentry.utils.cursors import Cursor, CursorResult
 
+POSSIBLE_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
+
 
 class TraceItemAttributeKey(TypedDict):
     key: str
     name: str
     secondaryAliases: NotRequired[list[str]]
     attributeSource: dict[str, str | bool]
+    attributeType: Literal["string", "number", "boolean"]
 
 
 class TraceItemAttributesNamesPaginator:
@@ -100,15 +117,16 @@ class TraceItemAttributesNamesPaginator:
         )
 
 
-class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
     feature_flags = [
         "organizations:ourlogs-enabled",
         "organizations:visibility-explore-view",
         "organizations:tracemetrics-enabled",
+        "organizations:preprod-frontend-routes",
     ]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
@@ -127,13 +145,21 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
     itemType = serializers.ChoiceField(
-        [e.value for e in SupportedTraceItemType], required=True, source="item_type"
+        [e.value for e in SupportedTraceItemType], required=False, source="item_type"
     )
-    attributeType = serializers.ChoiceField(
-        ["string", "number"], required=True, source="attribute_type"
+    dataset = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=False)
+    attributeType = serializers.MultipleChoiceField(
+        choices=POSSIBLE_ATTRIBUTE_TYPES,
+        required=False,
+        source="attribute_type",
     )
     substringMatch = serializers.CharField(required=False, source="substring_match")
     query = serializers.CharField(required=False)
+
+    def validate(self, attrs: Any) -> Any:
+        if attrs.get("item_type") is None and attrs.get("dataset") is None:
+            raise serializers.ValidationError("dataset is required if itemType is not passed")
+        return attrs
 
 
 def is_valid_item_type(item_type: str) -> bool:
@@ -147,17 +173,25 @@ def get_column_definitions(item_type: SupportedTraceItemType) -> ColumnDefinitio
         return OURLOG_DEFINITIONS
     elif item_type == SupportedTraceItemType.TRACEMETRICS:
         return TRACE_METRICS_DEFINITIONS
+    elif item_type == SupportedTraceItemType.PREPROD:
+        return PREPROD_SIZE_DEFINITIONS
+    elif item_type == SupportedTraceItemType.PROCESSING_ERRORS:
+        return PROCESSING_ERROR_DEFINITIONS
 
     raise ValueError(f"Invalid item type: {item_type}")
 
 
-def resolve_attribute_referrer(item_type: str, attribute_type: str) -> Referrer:
+def resolve_attribute_referrer(item_type: str) -> Referrer:
     if item_type == SupportedTraceItemType.SPANS.value:
         return Referrer.API_SPANS_TAG_KEYS_RPC
     elif item_type == SupportedTraceItemType.LOGS.value:
         return Referrer.API_LOGS_TAG_KEYS_RPC
     elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
         return Referrer.API_TRACE_METRICS_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.PREPROD.value:
+        return Referrer.API_PREPROD_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.PROCESSING_ERRORS.value:
+        return Referrer.API_PROCESSING_ERRORS_TAG_KEYS_RPC
     else:
         raise ValueError(f"Invalid item type: {item_type}")
 
@@ -169,22 +203,31 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
         return Referrer.API_LOGS_TAG_VALUES_RPC
     elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
         return Referrer.API_TRACE_METRICS_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.PREPROD.value:
+        return Referrer.API_PREPROD_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.PROCESSING_ERRORS.value:
+        return Referrer.API_PROCESSING_ERRORS_TAG_VALUES_RPC
     else:
         raise ValueError(f"Invalid item type: {item_type}")
 
 
 def as_attribute_key(
-    name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
+    name: str,
+    attr_type: Literal["string", "number", "boolean"],
+    item_type: SupportedTraceItemType,
 ) -> TraceItemAttributeKey:
     public_key, public_name, attribute_source = translate_internal_to_public_alias(
-        name, type, item_type
+        name, attr_type, item_type
     )
     secondary_aliases = get_secondary_aliases(name, item_type)
 
     if public_key is not None and public_name is not None:
         pass
-    elif type == "number":
+    elif attr_type == "number":
         public_key = f"tags[{name},number]"
+        public_name = name
+    elif attr_type == "boolean":
+        public_key = f"tags[{name},boolean]"
         public_name = name
     else:
         public_key = name
@@ -204,6 +247,7 @@ def as_attribute_key(
         # source of the attribute, used to determine whether to show the sentry icon etc. and helps delineate between sentry and user attributes when the names are identical
         # eg. sentry.environment and environment set by the user both have the same alias (name).
         "attributeSource": serialized_source,
+        "attributeType": attr_type,
     }
 
     if secondary_aliases:
@@ -212,7 +256,7 @@ def as_attribute_key(
     return attribute_key
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
@@ -231,7 +275,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             )
 
         use_sentry_conventions = features.has(
-            "organizations:performance-sentry-conventions-fields", organization, actor=request.user
+            "organizations:performance-sentry-conventions-fields",
+            organization,
+            actor=request.user,
         )
 
         sentry_sdk.set_tag("feature.use_sentry_conventions", use_sentry_conventions)
@@ -239,16 +285,25 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
-        attribute_type = serialized.get("attribute_type")
+        attribute_types = serialized.get("attribute_type")
+        # When not passed the user wants all types
+        if attribute_types is None or len(attribute_types) == 0:
+            attribute_types = POSSIBLE_ATTRIBUTE_TYPES
+        # Deprecating this so we're using the same param name as the events endpoints
         item_type = serialized.get("item_type")
+        # Dataset is going to replace item_type
+        dataset = serialized.get("dataset")
+        if dataset is None:
+            dataset = item_type
 
         max_attributes = options.get("explore.trace-items.keys.max")
-        value_substring_match = translate_escape_sequences(substring_match)
-        trace_item_type = SupportedTraceItemType(item_type)
-        referrer = resolve_attribute_referrer(trace_item_type, attribute_type)
+        trace_item_type = SupportedTraceItemType(dataset)
+        referrer = resolve_attribute_referrer(trace_item_type)
         column_definitions = get_column_definitions(trace_item_type)
         resolver = SearchResolver(
-            params=snuba_params, config=SearchResolverConfig(), definitions=column_definitions
+            params=snuba_params,
+            config=SearchResolverConfig(),
+            definitions=column_definitions,
         )
         query_filter, _, _ = resolver.resolve_query(query_string)
         meta = resolver.resolve_meta(referrer=referrer.value)
@@ -262,67 +317,33 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.start = adjusted_start_date
         snuba_params.end = adjusted_end_date
 
-        attr_type = (
-            AttributeKey.Type.TYPE_DOUBLE
-            if attribute_type == "number"
-            else AttributeKey.Type.TYPE_STRING
-        )
-
         include_internal = is_active_superuser(request) or is_active_staff(request)
 
-        def data_fn(offset: int, limit: int):
-            rpc_request = TraceItemAttributeNamesRequest(
-                meta=meta,
-                limit=limit,
-                page_token=PageToken(offset=offset),
-                type=attr_type,
-                value_substring_match=value_substring_match,
-                intersecting_attributes_filter=query_filter,
-            )
-
-            with handle_query_errors():
-                rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
-
-            if use_sentry_conventions:
-                attribute_keys = {}
-                for attribute in rpc_response.attributes:
-                    if attribute.name and can_expose_attribute(
-                        attribute.name, trace_item_type, include_internal=include_internal
-                    ):
-                        attr_key = as_attribute_key(
-                            attribute.name, serialized["attribute_type"], trace_item_type
+        def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
+            futures = []
+            with ThreadPoolExecutor(
+                thread_name_prefix=__name__,
+                max_workers=len(POSSIBLE_ATTRIBUTE_TYPES),
+            ) as pool:
+                for attribute_type in attribute_types:
+                    futures.append(
+                        pool.submit(
+                            self.query_trace_attributes,
+                            offset,
+                            limit,
+                            meta,
+                            query_filter,
+                            substring_match,
+                            attribute_type,
+                            column_definitions,
+                            use_sentry_conventions,
+                            trace_item_type,
+                            include_internal,
                         )
-                        public_alias = attr_key["name"]
-                        replacement = translate_to_sentry_conventions(public_alias, trace_item_type)
-                        if public_alias != replacement:
-                            attr_key = as_attribute_key(
-                                replacement, serialized["attribute_type"], trace_item_type
-                            )
-
-                        attribute_keys[attr_key["name"]] = attr_key
-
-                attributes = list(attribute_keys.values())
-                sentry_sdk.set_context("api_response", {"attributes": attributes})
-                return attributes
-
-            attributes = list(
-                filter(
-                    lambda x: not is_sentry_convention_replacement_attribute(
-                        x["name"], trace_item_type
-                    ),
-                    [
-                        as_attribute_key(
-                            attribute.name, serialized["attribute_type"], trace_item_type
-                        )
-                        for attribute in rpc_response.attributes
-                        if attribute.name
-                        and can_expose_attribute(
-                            attribute.name, trace_item_type, include_internal=include_internal
-                        )
-                    ],
-                )
-            )
-            sentry_sdk.set_context("api_response", {"attributes": attributes})
+                    )
+            attributes = []
+            for future in futures:
+                attributes.extend(future.result())
             return attributes
 
         return self.paginate(
@@ -333,8 +354,168 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             max_per_page=max_attributes,
         )
 
+    def query_trace_attributes(
+        self,
+        offset: int,
+        limit: int,
+        meta: RequestMeta,
+        query_filter: TraceItemFilter | None,
+        substring_match: str,
+        attribute_type: Literal["string", "number", "boolean"],
+        column_definitions: ColumnDefinitions,
+        use_sentry_conventions: bool,
+        trace_item_type: SupportedTraceItemType,
+        include_internal: bool,
+    ):
+        value_substring_match = translate_escape_sequences(substring_match)
+        attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
+            attribute_type, AttributeKey.Type.TYPE_STRING
+        )
+        with sentry_sdk.start_span(op="filter", name="hardcoded_aliases") as span:
+            all_aliased_attributes = []
+            # our aliases don't exist in the db, so filter over our aliases
+            # virtually page through defined aliases before we hit the db
+            if substring_match and offset <= len(column_definitions.columns):
+                for index, column in enumerate(column_definitions.columns.values()):
+                    if (
+                        column.proto_type == attr_type
+                        and substring_match in column.public_alias
+                        and not column.secondary_alias
+                        and not column.private
+                    ):
+                        all_aliased_attributes.append(column)
+            aliased_attributes = all_aliased_attributes[offset : offset + limit]
+        with sentry_sdk.start_span(op="query", name="attribute_names") as span:
+            if len(aliased_attributes) < limit - 1:
+                offset -= len(all_aliased_attributes) - len(aliased_attributes)
+                limit -= len(aliased_attributes)
+                rpc_request = TraceItemAttributeNamesRequest(
+                    meta=meta,
+                    limit=limit,
+                    page_token=PageToken(offset=offset),
+                    type=attr_type,
+                    value_substring_match=value_substring_match,
+                    intersecting_attributes_filter=query_filter,
+                )
 
-@region_silo_endpoint
+                with handle_query_errors():
+                    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+            else:
+                rpc_response = TraceItemAttributeNamesResponse()
+
+        with sentry_sdk.start_span(op="query", name="serialize") as span:
+            if use_sentry_conventions:
+                serialize_function = self.serialize_trace_attributes_using_sentry_conventions
+            else:
+                serialize_function = self.serialize_trace_attributes
+
+            attributes = serialize_function(
+                rpc_response,
+                attribute_type,
+                trace_item_type,
+                include_internal,
+                substring_match,
+                aliased_attributes,
+            )
+
+            sentry_sdk.set_context("api_response", {"attributes": attributes})
+            span.set_data("attribute_count", len(attributes))
+            span.set_data("attribute_type", attribute_type)
+        return attributes
+
+    def serialize_trace_attributes_using_sentry_conventions(
+        self,
+        rpc_response: TraceItemAttributeNamesResponse,
+        attribute_type: Literal["string", "number", "boolean"],
+        trace_item_type: SupportedTraceItemType,
+        include_internal: bool,
+        substring_match: str,
+        aliased_attributes: list[ResolvedAttribute],
+    ) -> list[TraceItemAttributeKey]:
+        attribute_keys = {}
+        for attribute in rpc_response.attributes:
+            if attribute.name and can_expose_attribute(
+                attribute.name,
+                trace_item_type,
+                include_internal=include_internal,
+            ):
+                attr_key = as_attribute_key(
+                    attribute.name,
+                    attribute_type,
+                    trace_item_type,
+                )
+                public_alias = attr_key["name"]
+                replacement = translate_to_sentry_conventions(public_alias, trace_item_type)
+                if public_alias != replacement:
+                    attr_key = as_attribute_key(
+                        replacement,
+                        attribute_type,
+                        trace_item_type,
+                    )
+
+                attribute_keys[attr_key["name"]] = attr_key
+        for aliased_attr in aliased_attributes:
+            attr_key = as_attribute_key(
+                aliased_attr.internal_name,
+                attribute_type,
+                trace_item_type,
+            )
+            attribute_keys[attr_key["name"]] = attr_key
+
+        attributes = list(attribute_keys.values())
+        sentry_sdk.set_context("api_response", {"attributes": attributes})
+        return attributes
+
+    def serialize_trace_attributes(
+        self,
+        rpc_response: TraceItemAttributeNamesResponse,
+        attribute_type: Literal["string", "number", "boolean"],
+        trace_item_type: SupportedTraceItemType,
+        include_internal: bool,
+        substring_match: str,
+        aliased_attributes: list[ResolvedAttribute],
+    ) -> list[TraceItemAttributeKey]:
+        attributes = list(
+            filter(
+                lambda x: (
+                    not is_sentry_convention_replacement_attribute(x["name"], trace_item_type)
+                    # Remove anything where the public alias doesn't match the substring
+                    # This can happen when the public alias is different, but that's handled by
+                    # aliased_attributes
+                    and (substring_match in x["name"] if substring_match else True)
+                ),
+                [
+                    as_attribute_key(
+                        attribute.name,
+                        attribute_type,
+                        trace_item_type,
+                    )
+                    for attribute in rpc_response.attributes
+                    if attribute.name
+                    and can_expose_attribute(
+                        attribute.name,
+                        trace_item_type,
+                        include_internal=include_internal,
+                    )
+                ],
+            )
+        )
+        for aliased_attr in aliased_attributes:
+            if can_expose_attribute(
+                aliased_attr.public_alias,
+                trace_item_type,
+                include_internal=include_internal,
+            ):
+                attr_key = as_attribute_key(
+                    aliased_attr.internal_name,
+                    attribute_type,
+                    trace_item_type,
+                )
+                attributes.append(attr_key)
+        return attributes
+
+
+@cell_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
         if not self.has_feature(organization, request):
@@ -355,12 +536,17 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         sentry_sdk.set_tag("query.attribute_key", key)
 
         serialized = serializer.validated_data
-        item_type = serialized.get("item_type")
         substring_match = serialized.get("substring_match", "")
+        # Deprecating this so we're using the same param name as the events endpoints
+        item_type = serialized.get("item_type")
+        # Dataset is going to replace item_type
+        dataset = serialized.get("dataset")
+        if dataset is None:
+            dataset = item_type
 
         max_attribute_values = options.get("explore.trace-items.values.max")
 
-        definitions = get_column_definitions(SupportedTraceItemType(item_type))
+        definitions = get_column_definitions(SupportedTraceItemType(dataset))
 
         def data_fn(offset: int, limit: int):
             executor = TraceItemAttributeValuesAutocompletionExecutor(
@@ -375,7 +561,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
             with handle_query_errors():
                 tag_values = executor.execute()
-            tag_values.sort(key=lambda tag: tag.value)
+            tag_values.sort(key=lambda tag: tag.value or "")
             return tag_values
 
         return self.paginate(
@@ -404,7 +590,9 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         self.resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=definitions
         )
-        self.search_type, self.attribute_key = self.resolve_attribute_key(key, snuba_params)
+        self.search_type, self.attribute_key, self.context_definition = self.resolve_attribute_key(
+            key
+        )
         self.autocomplete_function: dict[str, Callable[[], list[TagValue]]] = (
             {key: self.project_id_autocomplete_function for key in self.PROJECT_ID_KEYS}
             | {key: self.project_slug_autocomplete_function for key in self.PROJECT_SLUG_KEYS}
@@ -418,10 +606,16 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         )
 
     def resolve_attribute_key(
-        self, key: str, snuba_params: SnubaParams
-    ) -> tuple[constants.SearchType, AttributeKey]:
-        resolved_attr, _ = self.resolver.resolve_attribute(key)
-        return resolved_attr.search_type, resolved_attr.proto_definition
+        self, key: str
+    ) -> tuple[constants.SearchType, AttributeKey, VirtualColumnDefinition | None]:
+        resolved_attr, context_definition = self.resolver.resolve_attribute(key)
+        if context_definition:
+            resolved_attr = self.resolver.map_context_to_original_column(context_definition)
+        return (
+            resolved_attr.search_type,
+            resolved_attr.proto_definition,
+            context_definition,
+        )
 
     def execute(self) -> list[TagValue]:
         func = self.autocomplete_function.get(self.key)
@@ -539,9 +733,11 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         ]
 
     def semver_package_autocomplete_function(self):
+        assert self.snuba_params.organization_id is not None
         packages = (
             Release.objects.filter(
-                organization_id=self.snuba_params.organization_id, package__startswith=self.query
+                organization_id=self.snuba_params.organization_id,
+                package__startswith=self.query,
             )
             .values_list("package")
             .distinct()
@@ -620,6 +816,11 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         )
         rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
 
+        values: Sequence[str] = rpc_response.values
+        if self.context_definition:
+            context = self.context_definition.constructor(self.snuba_params)
+            values = [context.value_map.get(value, value) for value in values]
+
         return [
             TagValue(
                 key=self.key,
@@ -628,7 +829,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
                 first_seen=None,
                 last_seen=None,
             )
-            for value in rpc_response.values
+            for value in values
             if value
         ]
 
@@ -637,3 +838,76 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
     start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     return start_date, end_date
+
+
+class OrganizationTraceItemAttributeValidateSerializer(serializers.Serializer):
+    itemType = serializers.ChoiceField(
+        [e.value for e in SupportedTraceItemType], required=True, source="item_type"
+    )
+    attributes = serializers.ListField(
+        child=serializers.CharField(max_length=300),
+        min_length=1,
+        max_length=100,
+        required=True,
+    )
+
+
+def serialize_type(search_type: constants.SearchType) -> str:
+    proto_type = constants.TYPE_MAP.get(search_type)
+    if proto_type == constants.STRING:
+        return "string"
+    if proto_type == constants.BOOLEAN:
+        return "boolean"
+    # DOUBLE, INT, or anything else numeric
+    return "number"
+
+
+@cell_silo_endpoint
+class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttributesEndpointBase):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.DATA_BROWSING
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
+        serializer = OrganizationTraceItemAttributeValidateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        validated = serializer.validated_data
+        item_type = SupportedTraceItemType(validated["item_type"])
+        attribute_names: list[str] = validated["attributes"]
+
+        try:
+            snuba_params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response({"attributes": {}})
+
+        try:
+            definitions = get_column_definitions(item_type)
+        except ValueError:
+            return Response({"detail": f"Unsupported item type: {item_type.value}"}, status=400)
+        resolver = SearchResolver(
+            params=snuba_params,
+            config=SearchResolverConfig(),
+            definitions=definitions,
+        )
+
+        results: dict[str, dict[str, Any]] = {}
+        for attr_name in attribute_names:
+            try:
+                resolved, _context = resolver.resolve_attribute(attr_name)
+                results[attr_name] = {
+                    "valid": True,
+                    "type": serialize_type(resolved.search_type),
+                }
+            except InvalidSearchQuery as e:
+                results[attr_name] = {
+                    "valid": False,
+                    "error": str(e),
+                }
+
+        return Response({"attributes": results})

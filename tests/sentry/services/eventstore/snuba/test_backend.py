@@ -1,5 +1,7 @@
+from datetime import timedelta
 from unittest import mock
 from unittest.mock import MagicMock
+from uuid import uuid4
 
 from snuba_sdk import Column, Condition, Op
 
@@ -8,7 +10,13 @@ from sentry.services.eventstore.base import Filter
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
+from sentry.testutils.cases import (
+    OccurrenceTestCase,
+    PerformanceIssueTestCase,
+    SnubaTestCase,
+    TestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import snuba
 from sentry.utils.samples import load_data
@@ -388,6 +396,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
     def test_transaction_get_next_prev_event_id(self) -> None:
         group = self.transaction_event_2.group
+        assert group is not None
         _filter = Filter(
             project_ids=[self.project2.id],
             group_ids=[group.id],
@@ -706,3 +715,179 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         assert prev_ids is None
         assert next_ids == (str(event_c.project_id), event_c.event_id)
+
+
+class EAPEventStorageTest(TestCase, SnubaTestCase, OccurrenceTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.eventstore = SnubaEventStorage()
+        self.now = before_now(minutes=1)
+
+    def test_get_event_by_id_eap_returns_correct_group_id(self) -> None:
+        group = self.create_group(project=self.project)
+        event_id = uuid4().hex
+
+        trace_item = self.create_eap_occurrence(
+            group_id=group.id,
+            event_id=event_id,
+            timestamp=self.now,
+        )
+        self.store_eap_items([trace_item])
+
+        result = self.eventstore._get_event_by_id_eap(
+            project_id=self.project.id,
+            event_id=event_id,
+            event_datetime=self.now,
+            organization_id=self.organization.id,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+
+        assert result is not None
+        assert result["group_id"] == group.id
+        assert result["project_id"] == self.project.id
+        assert result["id"] == event_id
+
+    def test_get_event_by_id_eap_returns_none_for_nonexistent_event(self) -> None:
+        result = self.eventstore._get_event_by_id_eap(
+            project_id=self.project.id,
+            event_id=uuid4().hex,
+            event_datetime=self.now,
+            organization_id=self.organization.id,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        assert result is None
+
+    def test_get_event_by_id_eap_filters_by_group_id(self) -> None:
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        event_id = uuid4().hex
+
+        trace_item = self.create_eap_occurrence(
+            group_id=group1.id,
+            event_id=event_id,
+            timestamp=self.now,
+        )
+        self.store_eap_items([trace_item])
+
+        # Querying with the correct group_id returns the event
+        result = self.eventstore._get_event_by_id_eap(
+            project_id=self.project.id,
+            event_id=event_id,
+            event_datetime=self.now,
+            organization_id=self.organization.id,
+            occurrence_category=OccurrenceCategory.ERROR,
+            group_id=group1.id,
+        )
+        assert result is not None
+        assert result["group_id"] == group1.id
+
+        # Querying with the wrong group_id returns nothing
+        result = self.eventstore._get_event_by_id_eap(
+            project_id=self.project.id,
+            event_id=event_id,
+            event_datetime=self.now,
+            organization_id=self.organization.id,
+            occurrence_category=OccurrenceCategory.ERROR,
+            group_id=group2.id,
+        )
+        assert result is None
+
+    def test_get_event_by_id_eap_occurrence_category_filtering(self) -> None:
+        group = self.create_group(project=self.project)
+        error_event_id = uuid4().hex
+        ip_event_id = uuid4().hex
+        occurrence_id = uuid4().hex
+
+        error_item = self.create_eap_occurrence(
+            group_id=group.id,
+            event_id=error_event_id,
+            timestamp=self.now,
+        )
+        ip_item = self.create_eap_occurrence(
+            group_id=group.id,
+            event_id=ip_event_id,
+            timestamp=self.now,
+            issue_occurrence_id=occurrence_id,
+        )
+        self.store_eap_items([error_item, ip_item])
+
+        # ERROR category returns only the error item
+        result = self.eventstore._get_event_by_id_eap(
+            project_id=self.project.id,
+            event_id=error_event_id,
+            event_datetime=self.now,
+            organization_id=self.organization.id,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        assert result is not None
+        assert result["id"] == error_event_id
+        assert result["group_id"] == group.id
+        assert result["project_id"] == self.project.id
+        assert result["timestamp"] is not None
+
+        # ERROR category does not return the issue platform item
+        result = self.eventstore._get_event_by_id_eap(
+            project_id=self.project.id,
+            event_id=ip_event_id,
+            event_datetime=self.now,
+            organization_id=self.organization.id,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        assert result is None
+
+        # ISSUE_PLATFORM category returns only the issue platform item
+        result = self.eventstore._get_event_by_id_eap(
+            project_id=self.project.id,
+            event_id=ip_event_id,
+            event_datetime=self.now,
+            organization_id=self.organization.id,
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        )
+        assert result is not None
+        assert result["id"] == ip_event_id
+        assert result["group_id"] == group.id
+        assert result["project_id"] == self.project.id
+        assert result["timestamp"] is not None
+        assert result["issue_occurrence_id"] == occurrence_id
+
+        # ISSUE_PLATFORM category does not return the error item
+        result = self.eventstore._get_event_by_id_eap(
+            project_id=self.project.id,
+            event_id=error_event_id,
+            event_datetime=self.now,
+            organization_id=self.organization.id,
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        )
+        assert result is None
+
+    def test_get_event_by_id_eap_respects_time_window(self) -> None:
+        group = self.create_group(project=self.project)
+        event_id = uuid4().hex
+
+        trace_item = self.create_eap_occurrence(
+            group_id=group.id,
+            event_id=event_id,
+            timestamp=self.now,
+        )
+        self.store_eap_items([trace_item])
+
+        # Querying with a time window that includes the event returns it
+        result = self.eventstore._get_event_by_id_eap(
+            project_id=self.project.id,
+            event_id=event_id,
+            event_datetime=self.now,
+            organization_id=self.organization.id,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        assert result is not None
+
+        # Querying with a time window that excludes the event returns None
+        wrong_time = self.now - timedelta(hours=2)
+        result = self.eventstore._get_event_by_id_eap(
+            project_id=self.project.id,
+            event_id=event_id,
+            event_datetime=wrong_time,
+            organization_id=self.organization.id,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        assert result is None

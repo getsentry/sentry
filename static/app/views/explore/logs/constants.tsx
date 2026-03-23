@@ -57,7 +57,6 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   'sentry.timestamp_nanos',
   'sentry.observed_timestamp_nanos',
   'tags[sentry.trace_flags,number]',
-  'span_id',
 ];
 
 export const DeprecatedLogDetailFields: OurLogFieldKey[] = [
@@ -78,6 +77,12 @@ export const LOGS_INSTRUCTIONS_URL =
   'https://docs.sentry.io/product/explore/logs/getting-started/';
 
 export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [LOGS_FILTERS];
+
+/**
+ * Query parameter key for controlling the logs drawer state.
+ * When this parameter is set to 'true', the logs drawer should open automatically.
+ */
+export const LOGS_DRAWER_QUERY_PARAM = 'logsDrawer';
 
 export const VIRTUAL_STREAMED_INTERVAL_MS = 250;
 export const MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS = 1000;

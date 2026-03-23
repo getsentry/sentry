@@ -1,14 +1,15 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {useLocation} from 'sentry/utils/useLocation';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
-export default function TagDetailsLink({
+export function TagDetailsLink({
   tag,
   groupId,
   children,
@@ -62,7 +63,7 @@ export default function TagDetailsLink({
 }
 
 const StyledLink = styled(Link)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: block;
 
   &:hover h5 {

@@ -28,11 +28,8 @@ class DetectorType(Enum):
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
     DB_MAIN_THREAD = "db_main_thread"
     HTTP_OVERHEAD = "http_overhead"
-    EXPERIMENTAL_N_PLUS_ONE_API_CALLS = "experimental_n_plus_one_api_calls"
-    EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES = "experimental_n_plus_one_db_queries"
     SQL_INJECTION = "sql_injection"
     QUERY_INJECTION = "query_injection"
-    EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES = "experimental_m_n_plus_one_db_queries"
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -47,7 +44,6 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
     DetectorType.M_N_PLUS_ONE_DB: "performance.issues.m_n_plus_one_db.problem-creation",
-    DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
     DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
     DetectorType.HTTP_OVERHEAD: "performance.issues.http_overhead.problem-creation",
     DetectorType.SQL_INJECTION: "performance.issues.sql_injection.problem-creation",
@@ -62,10 +58,18 @@ class PerformanceDetector(ABC):
 
     type: ClassVar[DetectorType]
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        self.settings = settings[self.settings_key]
+    def __init__(
+        self,
+        settings: dict[str, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        self.settings = settings
         self._event = event
         self.stored_problems: dict[str, PerformanceProblem] = {}
+        self.organization = organization
+        self.detector_id = detector_id
 
     def find_span_prefix(self, settings: dict[str, Any], span_op: str) -> str | bool:
         allowed_span_ops = settings.get("allowed_span_ops", [])
@@ -90,10 +94,7 @@ class PerformanceDetector(ABC):
     def event(self) -> dict[str, Any]:
         return self._event
 
-    @property
-    @abstractmethod
-    def settings_key(self) -> DetectorType:
-        raise NotImplementedError
+    settings_key: ClassVar[DetectorType]
 
     @abstractmethod
     def visit_span(self, span: Span) -> None:

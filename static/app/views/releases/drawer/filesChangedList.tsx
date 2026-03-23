@@ -1,21 +1,21 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import LoadingError from 'sentry/components/loadingError';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import Placeholder from 'sentry/components/placeholder';
+import {Container} from '@sentry/scraps/layout';
+
+import {LoadingError} from 'sentry/components/loadingError';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
-import FileChange from 'sentry/views/releases/detail/commitsAndFiles/fileChange';
-import RepositorySwitcher from 'sentry/views/releases/detail/commitsAndFiles/repositorySwitcher';
+import {FileChange} from 'sentry/views/releases/detail/commitsAndFiles/fileChange';
+import {RepositorySwitcher} from 'sentry/views/releases/detail/commitsAndFiles/repositorySwitcher';
 import {getFilesByRepository, getReposToRender} from 'sentry/views/releases/detail/utils';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 import {useReleaseCommitFiles} from 'sentry/views/releases/utils/useReleaseCommitFiles';
@@ -58,12 +58,12 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
   return (
     <div>
       {releaseRepos.length > 1 && (
-        <Actions>
+        <Container marginBottom="xl">
           <RepositorySwitcher
             repositories={releaseRepos}
             activeRepository={activeReleaseRepo}
           />
-        </Actions>
+        </Container>
       )}
       <div>
         {fileListError && <LoadingError onRetry={refetch} />}
@@ -119,7 +119,3 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
     </div>
   );
 }
-
-const Actions = styled('div')`
-  margin-bottom: ${space(2)};
-`;

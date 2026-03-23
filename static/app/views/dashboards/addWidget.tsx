@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {DisplayType} from './types';
-import WidgetWrapper from './widgetWrapper';
+import {WidgetWrapper} from './widgetWrapper';
 
 export const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';
 
@@ -24,7 +24,7 @@ type Props = {
   onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
 };
 
-function AddWidget({onAddWidget}: Props) {
+export function AddWidget({onAddWidget}: Props) {
   const {setNodeRef, transform} = useSortable({
     disabled: true,
     id: ADD_WIDGET_BUTTON_DRAG_ID,
@@ -76,8 +76,8 @@ function AddWidget({onAddWidget}: Props) {
               'aria-label': t('Add Widget'),
               size: 'md',
               showChevron: false,
-              icon: <IconAdd isCircled size="lg" color="subText" />,
-              borderless: true,
+              icon: <IconAdd size="lg" variant="muted" />,
+              priority: 'transparent',
             }}
           />
         </InnerWrapper>
@@ -86,13 +86,11 @@ function AddWidget({onAddWidget}: Props) {
   );
 }
 
-export default AddWidget;
-
 const InnerWrapper = styled('div')<{onClick?: () => void}>`
   width: 100%;
   height: 110px;
-  border: 2px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 2px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
   justify-content: center;

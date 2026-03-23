@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:46.824362+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -169,7 +167,7 @@ app:
         value (ignored because stacktrace takes precedence)
           "SoftTimeLimitExceeded()"
 --------------------------------------------------------------------------
-custom_fingerprint:
+custom_client_fingerprint:
   hash: "f30afa00b85f5cac5ee0bce01b31f08d"
   fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]}
   values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]

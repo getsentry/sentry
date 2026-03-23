@@ -1,23 +1,24 @@
 import {useEffect} from 'react';
 
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
-import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
+import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
 import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 
 interface Props {
   feedbackId: string;
 }
 
-export default function useFetchFeedbackData({feedbackId}: Props) {
+export function useFetchFeedbackData({feedbackId}: Props) {
   const organization = useOrganization();
   const {getItemQueryKeys} = useFeedbackQueryKeys();
   const {issueQueryKey, eventQueryKey} = getItemQueryKeys(feedbackId);
 
   const {data: issueData, ...issueResult} = useApiQuery<FeedbackIssue>(
-    issueQueryKey ?? [''],
+    issueQueryKey ?? ([''] as unknown as ApiQueryKey),
     {
       staleTime: 0,
       enabled: Boolean(issueQueryKey),
@@ -25,7 +26,7 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
   );
 
   const {data: eventData, ...eventResult} = useApiQuery<FeedbackEvent>(
-    eventQueryKey ?? [''],
+    eventQueryKey ?? ([''] as unknown as ApiQueryKey),
     {
       staleTime: 0,
       enabled: Boolean(eventQueryKey),

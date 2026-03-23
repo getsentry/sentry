@@ -1,4 +1,6 @@
-import {t} from 'sentry/locale';
+import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+
+import {t, td} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -18,6 +20,7 @@ export enum FieldKind {
   EQUATION = 'equation',
   METRICS = 'metric',
   NUMERIC_METRICS = 'numeric_metric',
+  BOOLEAN = 'boolean',
 }
 
 export enum FieldKey {
@@ -95,6 +98,7 @@ export enum FieldKey {
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
+  RELEASE_CREATED = 'release.created',
   RELEASE_PACKAGE = 'release.package',
   RELEASE_STAGE = 'release.stage',
   RELEASE_VERSION = 'release.version',
@@ -249,6 +253,7 @@ type OsFieldKey =
 type ReleaseFieldKey =
   | FieldKey.RELEASE
   | FieldKey.RELEASE_BUILD
+  | FieldKey.RELEASE_CREATED
   | FieldKey.RELEASE_PACKAGE
   | FieldKey.RELEASE_STAGE
   | FieldKey.RELEASE_VERSION;
@@ -421,8 +426,8 @@ const IsFieldDescriptions: Record<IsFieldValues, string> = {
   [IsFieldValues.ASSIGNED]: t('Issues assigned to a team member'),
   [IsFieldValues.UNASSIGNED]: t('Issues not assigned to anyone'),
   [IsFieldValues.FOR_REVIEW]: t('Issues pending review'),
-  [IsFieldValues.LINKED]: t('Issues linked to other issues'),
-  [IsFieldValues.UNLINKED]: t('Issues not linked to other issues'),
+  [IsFieldValues.LINKED]: t('Issues linked via an integration'),
+  [IsFieldValues.UNLINKED]: t('Issues not linked via an integration'),
 };
 
 export function getIsFieldDescriptionFromValue(
@@ -1013,7 +1018,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.PERFORMANCE_SCORE]: {
     desc: t('Returns the performance score for a given web vital'),
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
+    valueType: FieldValueType.SCORE,
     parameters: [
       {
         name: 'value',
@@ -1831,7 +1836,11 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
-  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
+  [FieldKey.PROJECT]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   [FieldKey.HAS]: {
     desc: t('Determines if a tag or field exists in an event'),
     kind: FieldKind.FIELD,
@@ -2109,7 +2118,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
 
 const BROWSER_FIELD_DEFINITION: Record<BrowserFieldKey, FieldDefinition> = {
   [FieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[FieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2270,24 +2279,33 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     desc: t('The version of your code deployed to an environment'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_BUILD]: {
     desc: t('The full version number that identifies the iteration'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowWildcard: false,
+  },
+  [FieldKey.RELEASE_CREATED]: {
+    desc: t('The date the release was created'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
   },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_STAGE]: {
     desc: t('Stage of usage (i.e., adopted, replaced, low)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_VERSION]: {
     desc: t('An abbreviated version number of the build'),
@@ -2456,6 +2474,7 @@ const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
     valueType: FieldValueType.SIZE,
   },
 };
+
 const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...EVENT_FIELD_DEFINITIONS,
   ...SPAN_AGGREGATION_FIELDS,
@@ -2488,12 +2507,155 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   },
 };
 
+const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  app_id: {
+    desc: t('The bundle identifier of the application'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  app_name: {
+    desc: t('The display name of the application'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  build_configuration_name: {
+    desc: t('The name of the build configuration (e.g., Debug, Release)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  platform_name: {
+    desc: t('The platform the build targets (e.g., apple, android)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  build_number: {
+    desc: t('The build number assigned to this build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  build_version: {
+    desc: t('The version string of the build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_head_ref: {
+    desc: t('The Git branch of the HEAD commit associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_base_ref: {
+    desc: t('The Git branch of the base commit for comparison associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_head_sha: {
+    desc: t('The Git SHA of the HEAD commit associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_base_sha: {
+    desc: t('The Git SHA of the base commit for comparison associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_head_repo_name: {
+    desc: t('The repository name for the HEAD commit associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_pr_number: {
+    desc: t('The pull request number associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+};
+
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...LOG_AGGREGATION_FIELDS,
+  ...EVENT_FIELD_DEFINITIONS,
+  [OurLogKnownFieldKey.CODE_FILE_PATH]: {
+    desc: t(
+      'The source code file name that identifies the code unit as uniquely as possible (preferably an absolute file path).'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.CODE_LINE_NUMBER]: {
+    desc: t(
+      'The line number in %s best representing the operation. It SHOULD point within the code unit named in %s.',
+      OurLogKnownFieldKey.CODE_FILE_PATH,
+      OurLogKnownFieldKey.CODE_FUNCTION_NAME
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: {
+    desc: t(
+      'The method or function name, or equivalent (usually rightmost part of the code unit’s name).'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.LOGGER]: {
+    desc: t('The name of the logger that generated this event.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.MESSAGE]: {
+    desc: t('Log message'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.PARENT_SPAN_ID]: {
+    desc: t(
+      'The span id of the span that was active when the log was collected. This should not be set if there was no active span.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [OurLogKnownFieldKey.PAYLOAD_SIZE]: {
+    desc: t('The size of the log payload in bytes.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.SIZE,
+  },
+  [OurLogKnownFieldKey.REPLAY_ID]: {
+    desc: t('The ID of an associated sentry replay.'),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [OurLogKnownFieldKey.SERVER_ADDRESS]: {
+    desc: t(
+      'Server domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.SEVERITY]: {
+    desc: t('The severity level of the log.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.SPAN_ID]: {
+    desc: t('The associated span ID of the log.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [OurLogKnownFieldKey.TEMPLATE]: {
+    desc: t('The parameterized template string.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  // TODO: Add field definitions for tracemetric fields
+  [FieldKey.TIMESTAMP]: {
+    desc: t('The time the metric was recorded'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
 };
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
@@ -2595,7 +2757,7 @@ export const ISSUE_FIELDS: FieldKey[] = [
  * Search locations are defined in sentry/snuba/events.py, anything that
  * references a tag should not be defined here.
  */
-export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new Set([
+export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>([
   FieldKey.APP_IN_FOREGROUND,
   FieldKey.DEVICE_ARCH,
   FieldKey.DEVICE_BRAND,
@@ -2898,12 +3060,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2979,6 +3141,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Error instance'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayFieldKey.IS_ARCHIVED]: {
     desc: t('Whether the replay has been archived'),
@@ -3095,6 +3258,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.DEAD_SELECTOR]: {
     desc: t(
@@ -3102,6 +3266,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.RAGE_SELECTOR]: {
     desc: t(
@@ -3109,6 +3274,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.CLICK_TAG]: {
     desc: t('`tag` of an element that was clicked'),
@@ -3208,7 +3374,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     allowWildcard: true,
   },
   [FeedbackFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[FeedbackFieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3247,49 +3413,76 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
   },
 };
 
-export const getFieldDefinition = (
-  key: string,
+function _getFieldFromMappings(
   type:
     | 'event'
     | 'replay'
     | 'replay_click'
     | 'feedback'
+    | 'preprod'
     | 'span'
     | 'log'
     | 'uptime'
     | 'tracemetric' = 'event',
+  key: string,
   kind?: FieldKind
-): FieldDefinition | null => {
+): FieldDefinition | undefined | null {
   switch (type) {
     case 'replay':
-      if (REPLAY_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(REPLAY_FIELD_DEFINITIONS, key)) {
         return REPLAY_FIELD_DEFINITIONS[key as keyof typeof REPLAY_FIELD_DEFINITIONS];
       }
-      if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(REPLAY_CLICK_FIELD_DEFINITIONS, key)) {
         return REPLAY_CLICK_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
         ];
       }
-      if (REPLAY_TAP_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(REPLAY_TAP_FIELD_DEFINITIONS, key)) {
         return REPLAY_TAP_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_TAP_FIELD_DEFINITIONS
         ];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
-        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
+          return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        }
       }
       return null;
     case 'feedback':
-      if (FEEDBACK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(FEEDBACK_FIELD_DEFINITIONS, key)) {
         return FEEDBACK_FIELD_DEFINITIONS[key as keyof typeof FEEDBACK_FIELD_DEFINITIONS];
       }
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
-        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
+          return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        }
       }
       return null;
-    case 'span':
-      if (SPAN_FIELD_DEFINITIONS[key]) {
+    case 'preprod':
+      if (Object.hasOwn(PREPROD_FIELD_DEFINITIONS, key)) {
+        return PREPROD_FIELD_DEFINITIONS[key];
+      }
+      if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
         return SPAN_FIELD_DEFINITIONS[key];
+      }
+
+      if (kind === FieldKind.MEASUREMENT) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
+      }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      return null;
+
+    case 'span':
+      if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
+        return SPAN_FIELD_DEFINITIONS[key] ?? null;
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -3303,11 +3496,14 @@ export const getFieldDefinition = (
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
 
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'log':
-      if (LOG_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      if (Object.hasOwn(LOG_FIELD_DEFINITIONS, key)) {
         return LOG_FIELD_DEFINITIONS[key];
       }
 
@@ -3321,11 +3517,15 @@ export const getFieldDefinition = (
       if (kind === FieldKind.TAG) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'tracemetric':
-      if (TRACEMETRIC_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      if (Object.hasOwn(TRACEMETRIC_FIELD_DEFINITIONS, key)) {
         return TRACEMETRIC_FIELD_DEFINITIONS[key];
       }
 
@@ -3339,16 +3539,38 @@ export const getFieldDefinition = (
       if (kind === FieldKind.TAG) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'event':
     default:
-      if (EVENT_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
   }
+}
+
+export const getFieldDefinition = (
+  key: string,
+  type:
+    | 'event'
+    | 'replay'
+    | 'replay_click'
+    | 'feedback'
+    | 'preprod'
+    | 'span'
+    | 'log'
+    | 'uptime'
+    | 'tracemetric' = 'event',
+  kind?: FieldKind
+): FieldDefinition | null => {
+  return _getFieldFromMappings(type, key, kind) ?? null;
 };
 
 export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
@@ -3370,7 +3592,16 @@ const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
 
 export function classifyTagKey(key: string): FieldKind {
   const result = key.match(TYPED_TAG_KEY_RE);
-  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+
+  if (result?.[2] === 'number') {
+    return FieldKind.MEASUREMENT;
+  }
+
+  if (result?.[2] === 'boolean') {
+    return FieldKind.BOOLEAN;
+  }
+
+  return FieldKind.TAG;
 }
 
 export function prettifyTagKey(key: string): string {

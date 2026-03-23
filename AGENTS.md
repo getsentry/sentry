@@ -1,33 +1,10 @@
 # Sentry Development Guide for AI Agents
 
-> **IMPORTANT**: AGENTS.md files are the source of truth for AI agent instructions. Always update the relevant AGENTS.md file when adding or modifying agent guidance. do not add to CLAUDE.md or cursor rules
+> **IMPORTANT**: AGENTS.md files are the source of truth for AI agent instructions. Always update the relevant AGENTS.md file when adding or modifying agent guidance. Do not add to CLAUDE.md or Cursor rules.
 
 ## Overview
 
 Sentry is a developer-first error tracking and performance monitoring platform. This repository contains the main Sentry application, which is a large-scale Django application with a React frontend.
-
-## Tech Stack
-
-### Frontend
-
-See `static/CLAUDE.md` for frontend development guide.
-
-### Backend
-
-- **Language**: Python 3.13+
-- **Framework**: Django 5.2+
-- **API**: Django REST Framework with drf-spectacular for OpenAPI docs
-- **Task Queue**: Celery 5.5+
-- **Databases**: PostgreSQL (primary), Redis, ClickHouse (via Snuba)
-- **Message Queue**: Kafka, RabbitMQ
-- **Stream Processing**: Arroyo (Kafka consumer/producer framework)
-- **Cloud Services**: Google Cloud Platform (Bigtable, Pub/Sub, Storage, KMS)
-
-### Infrastructure
-
-- **Container**: Docker (via devservices)
-- **Package Management**: pnpm (Node.js), pip (Python)
-- **Node Version**: 22 (managed by Volta)
 
 ## Project Structure
 
@@ -43,17 +20,45 @@ sentry/
 │   │   └── web/          # Web views and middleware
 │   ├── sentry_plugins/   # Plugin system
 │   └── social_auth/      # Social authentication
-├── static/               # Frontend application (see static/CLAUDE.md)
-├── tests/                # Test suite
+├── static/               # Frontend application
+├── tests/                # Backend test suite
 ├── fixtures/             # Test fixtures
 ├── devenv/               # Development environment config
 ├── migrations/           # Database migrations
 └── config/               # Configuration files
 ```
 
-## Key Commands
+## Command Execution Guide
 
-### Development Setup
+This section contains critical command execution instructions that apply across all Sentry development.
+
+### Python Command Execution Requirements
+
+**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
+
+#### For AI Agents (automated commands)
+
+Use the full relative path to virtualenv executables:
+
+```bash
+cd /path/to/sentry && .venv/bin/pytest tests/...
+cd /path/to/sentry && .venv/bin/python -m mypy ...
+```
+
+Or source the activate script in your command:
+
+```bash
+cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
+```
+
+**Important for AI agents:**
+
+- Always use `required_permissions: ['all']` when running Python commands to avoid sandbox permission issues
+- The `.venv/bin/` prefix ensures you're using the correct Python interpreter and dependencies
+
+### Backend Development Commands
+
+#### Setup
 
 ```bash
 # Install dependencies and setup development environment
@@ -62,6 +67,9 @@ make develop
 # Or use the newer devenv command
 devenv sync
 
+# Activate the Python virtual environment (required for running tests and Python commands)
+direnv allow
+
 # Start dev dependencies
 devservices up
 
@@ -69,17 +77,7 @@ devservices up
 devservices serve
 ```
 
-### Testing
-
-```bash
-# Run Python tests
-pytest
-
-# Run specific test file
-pytest tests/sentry/api/test_base.py
-```
-
-### Code Quality and Style
+#### Linting
 
 ```bash
 # Preferred: Run pre-commit hooks on specific files
@@ -87,14 +85,30 @@ pre-commit run --files src/sentry/path/to/file.py
 
 # Run all pre-commit hooks
 pre-commit run --all-files
-
-# Individual linting tools (use pre-commit instead when possible)
-black --check  # Run black first
-isort --check
-flake8
 ```
 
-### Database Operations
+#### Before completing a task
+
+Before you consider a coding task complete, run pre-commit on any files you created or modified. Use the actual paths (e.g. `src/sentry/foo/bar.py`, `tests/sentry/foo/test_bar.py`, `static/app/components/foo.tsx`):
+
+```bash
+# From repo root; for automation use the venv
+cd /path/to/sentry && .venv/bin/pre-commit run --files <file1> [file2 ...]
+```
+
+If pre-commit fails, fix the reported issues and run it again until it passes. Do not push with `--no-verify` to skip hooks—fix the issues and try again instead. Only then treat the task as done.
+
+#### Testing
+
+```bash
+# Run Python tests (always use these parameters)
+pytest -svv --reuse-db
+
+# Run specific test file
+pytest -svv --reuse-db tests/sentry/api/test_base.py
+```
+
+#### Database Operations
 
 ```bash
 # Run migrations
@@ -103,624 +117,128 @@ sentry django migrate
 # Create new migration
 sentry django makemigrations
 
+# Update migration after rebase conflict (handles renaming, dependencies, lockfile)
+./bin/update-migration <migration_name_or_number> <app_label>
+# Example: ./bin/update-migration 0101_workflow_when_condition_group_unique workflow_engine
+
 # Reset database
 make reset-db
 ```
 
-## Development Services
+### Frontend Development Commands
 
-Sentry uses `devservices` to manage local development dependencies:
+#### Development Setup
 
-- **PostgreSQL**: Primary database
-- **Redis**: Caching and queuing
-- **Snuba**: ClickHouse-based event storage
-- **Relay**: Event ingestion service
-- **Symbolicator**: Debug symbol processing
-- **Taskbroker**: Asynchronous task processing
-- **Spotlight**: Local debugging tool
+```bash
+# Start the development server
+pnpm run dev
 
-📖 Full devservices documentation: https://develop.sentry.dev/development-infrastructure/devservices.md
-
-## AI Assistant Quick Decision Trees
-
-### "User wants to add an API endpoint"
-
-1. Check if endpoint already exists: `grep -r "endpoint_name" src/sentry/api/`
-2. Inherit from appropriate base:
-   - Organization-scoped: `OrganizationEndpoint`
-   - Project-scoped: `ProjectEndpoint`
-   - Region silo: `RegionSiloEndpoint`
-3. File locations:
-   - Endpoint: `src/sentry/api/endpoints/{resource}.py`
-   - URL: `src/sentry/api/urls.py`
-   - Test: `tests/sentry/api/endpoints/test_{resource}.py`
-   - Serializer: `src/sentry/api/serializers/models/{model}.py`
-
-### "User wants to add a Celery task"
-
-1. Location: `src/sentry/tasks/{category}.py`
-2. Use `@instrumented_task` decorator
-3. Set appropriate `queue` and `max_retries`
-4. Test location: `tests/sentry/tasks/test_{category}.py`
-
-## On Commenting
-
-Comments should not repeat what the code is saying. Instead, reserve comments
-for explaining **why** something is being done, or to provide context that is not
-obvious from the code itself.
-
-Bad:
-
-```py
-# Increment the retry count by 1
-retries += 1
+# Start only the UI development server with hot reload
+pnpm run dev-ui
 ```
 
-Good:
+#### Typechecking
 
-```py
-# Some APIs occasionally return 500s on valid requests. We retry up to 3 times
-# before surfacing an error.
-retries += 1
+Typechecking only works on the entire project. Individual files cannot be checked.
+
+```bash
+pnpm run typecheck
 ```
 
-When to Comment
+#### Linting
 
-- To explain why a particular approach or workaround was chosen.
-- To clarify intent when the code could be misread or misunderstood.
-- To provide context from external systems, specs, or requirements.
-- To document assumptions, edge cases, or limitations.
+```bash
+# JavaScript/TypeScript linting
+pnpm run lint:js
 
-When Not to Comment
+# Linting for specific file(s)
+pnpm run lint:js components/avatar.tsx [...other files]
 
-- Don't narrate what the code is doing — the code already says that.
-- Don't duplicate function or variable names in plain English.
-- Don't leave stale comments that contradict the code.
-
-Avoid comments that reference removed or obsolete code paths (e.g. "No longer
-uses X format"). If compatibility code or legacy behavior is deleted, comments
-about it should also be deleted. The comment should describe the code that
-exists now, not what used to be there. Historic details belong in commit
-messages or documentation, not in-line comments.
-
-## Critical Patterns (Copy-Paste Ready)
-
-### API Endpoint Pattern
-
-```python
-# src/sentry/core/endpoints/organization_details.py
-from rest_framework.request import Request
-from rest_framework.response import Response
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import DetailedOrganizationSerializer
-
-@region_silo_endpoint
-class OrganizationDetailsEndpoint(OrganizationEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
-    }
-
-    def get(self, request: Request, organization: Organization) -> Response:
-        """Get organization details."""
-        return Response(
-            serialize(
-                organization,
-                request.user,
-                DetailedOrganizationSerializer()
-            )
-        )
-
-# Add to src/sentry/api/urls.py:
-# path('organizations/<slug:organization_slug>/', OrganizationDetailsEndpoint.as_view()),
+# Fix linting issues
+pnpm run fix
 ```
 
-### Celery Task Pattern
+#### Testing
 
-```python
-# src/sentry/tasks/email.py
-from sentry.tasks.base import instrumented_task
+```bash
+# Run JavaScript tests (always use CI flag)
+CI=true pnpm test <file_path>
 
-@instrumented_task(
-    name="sentry.tasks.send_email",
-    queue="email",
-    max_retries=3,
-    default_retry_delay=60,
-)
-def send_email(user_id: int, subject: str, body: str) -> None:
-    from sentry.models import User
-
-    try:
-        user = User.objects.get(id=user_id)
-        # Send email logic
-    except User.DoesNotExist:
-        # Don't retry if user doesn't exist
-        return
+# Run specific test file(s)
+CI=true pnpm test components/avatar.spec.tsx
 ```
 
-## API Development
+### Git worktrees
 
-### Adding New Endpoints
+Each worktree has its own `.venv`. When you create a new worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in the new worktree to setup the dev environment. Otherwise run `devenv sync` once in the new worktree, then `direnv allow` to validate and activate the dev environment.
 
-1. Create endpoint in `src/sentry/api/endpoints/`
-2. Add URL pattern in `src/sentry/api/urls.py`
-3. Document with drf-spectacular decorators
-4. Add tests in `tests/sentry/api/endpoints/`
+### Context-Aware Loading
 
-### API Documentation
+Use the right AGENTS.md for the area you're working in:
 
-- OpenAPI spec generation: `make build-api-docs`
-- API ownership tracked in `src/sentry/apidocs/api_ownership_allowlist_dont_modify.py`
+- **Backend** (`src/**/*.py`) → `src/AGENTS.md` (backend patterns)
+- **Tests** (`tests/**/*.py`, `src/**/tests/**/*.py`) → `tests/AGENTS.md` (testing patterns)
+- **Frontend** (`static/**/*.{ts,tsx,js,jsx,css,scss}`) → `static/AGENTS.md` (frontend patterns)
+- **General** → This file (`AGENTS.md`) for Sentry overview and commands
 
-### API Design Rules
+Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (`.agents/skills/`). Attach or read the area `AGENTS.md` when working in that tree. Add or update guidance in the appropriate AGENTS.md or skill—do not duplicate long guidance in editor-specific rule files.
 
-1. Route: `/api/0/organizations/{org}/projects/{project}/`
-2. Use `snake_case` for URL params
-3. Use `camelCase` for request/response bodies
-4. Return strings for numeric IDs
-5. Implement pagination with `cursor`
-6. Use `GET` for read, `POST` for create, `PUT` for update
+## Agent Skills
 
-## Testing Best Practices
+Skills under `.agents/skills/` should follow the same current-practice conventions as the rest of the repo:
 
-### Python Tests
+- Prefer diff-first review workflows. When no explicit file or patch is provided, default to the current branch diff.
+- Keep skill descriptions aligned with natural user requests like PR review, branch audit, and Warden follow-up.
+- If a downstream review harness controls the final response shape, do not hardcode a competing output format in the skill. Specify required evidence instead.
 
-- Use pytest fixtures
-- Mock external services
-- Test database isolation with transactions
-- Use factories for test data
-- For Kafka/Arroyo components: Use `LocalProducer` with `MemoryMessageStorage` instead of mocks
+## Backend
 
-### Test Pattern
+For backend development patterns, security guidelines, and architecture, see `src/AGENTS.md`.
+For backend testing patterns and best practices, see `tests/AGENTS.md`.
 
-```python
-# tests/sentry/core/endpoints/test_organization_details.py
-from sentry.testutils.cases import APITestCase
+## Frontend
 
-class OrganizationDetailsTest(APITestCase):
-    endpoint = "sentry-api-0-organization-details"
+For frontend development patterns, design system guidelines, and React testing best practices, see `static/AGENTS.md`.
 
-    def test_get_organization(self):
-        org = self.create_organization(owner=self.user)
-        self.login_as(self.user)
+## Feature Flags (FlagPole)
 
-        response = self.get_success_response(org.slug)
-        assert response.data["id"] == str(org.id)
-```
+New features should be gated behind a feature flag.
 
-Notes:
+1. **Register** the flag in `src/sentry/features/temporary.py`:
 
-- Tests should ALWAYS be procuderal with NO branching logic. It is very rare
-  that you will need an if statement as part of a Frontend Jest test or backend
-  pytest.
+   ```python
+   manager.add("organizations:my-feature", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+   ```
 
-## Common Patterns
+   Use `api_expose=True` if the frontend needs to check the flag. Use `ProjectFeature` and a `projects:` prefix for project-scoped flags.
 
-### Feature Flags
+2. **Python check**:
 
-```python
-from sentry import features
+   ```python
+   if features.has("organizations:my-feature", organization, actor=user):
+   ```
 
-if features.has('organizations:new-feature', organization):
-    # New feature code
-```
+3. **Frontend check** (requires `api_expose=True`):
 
-### Permissions
+   ```typescript
+   organization.features.includes('my-feature');
+   ```
 
-```python
-from sentry.api.permissions import SentryPermission
+4. **Tests**:
 
-class MyPermission(SentryPermission):
-    scope_map = {
-        'GET': ['org:read'],
-        'POST': ['org:write'],
-    }
-```
+   ```python
+   with self.feature("organizations:my-feature"):
+       ...
+   ```
 
-### Logging Pattern
+5. **Rollout**: FlagPole YAML config lives in the `sentry-options-automator` repo, not here.
 
-```python
-import logging
-from sentry import analytics
-from sentry.analytics.events.feature_used import FeatureUsedEvent  # does not exist, only for demonstration purposes
+See https://develop.sentry.dev/feature-flags/ for full docs.
 
-logger = logging.getLogger(__name__)
+## Pull Requests
 
-# Structured logging
-logger.info(
-    "user.action.complete",
-    extra={
-        "user_id": user.id,
-        "action": "login",
-        "ip_address": request.META.get("REMOTE_ADDR"),
-    }
-)
+Frontend (`static/`) and backend (`src/`, `tests/`) are **not atomically deployed**. A CI check enforces this.
 
-# Analytics event
-analytics.record(
-    FeatureUsedEvent(
-        user_id=user.id,
-        organization_id=org.id,
-        feature="new-dashboard",
-    )
-)
-```
-
-### Arroyo Stream Processing
-
-```python
-# Using Arroyo for Kafka producers with dependency injection for testing
-from arroyo.backends.abstract import Producer
-from arroyo.backends.kafka import KafkaProducer, KafkaPayload
-from arroyo.backends.local.backend import LocalBroker
-from arroyo.backends.local.storages.memory import MemoryMessageStorage
-
-# Production producer
-def create_kafka_producer(config):
-    return KafkaProducer(build_kafka_configuration(default_config=config))
-
-# Test producer using Arroyo's LocalProducer
-def create_test_producer_factory():
-    storage = MemoryMessageStorage()
-    broker = LocalBroker(storage)
-    return lambda config: broker.get_producer(), storage
-
-# Dependency injection pattern for testable Kafka producers
-class MultiProducer:
-    def __init__(self, topic: Topic, producer_factory: Callable[[Mapping[str, object]], Producer[KafkaPayload]] | None = None):
-        self.producer_factory = producer_factory or self._default_producer_factory
-        # ... setup code
-
-    def _default_producer_factory(self, config) -> KafkaProducer:
-        return KafkaProducer(build_kafka_configuration(default_config=config))
-```
-
-## Architecture Rules
-
-### Silo Mode
-
-- **Control Silo**: User auth, billing, organization management
-- **Region Silo**: Project data, events, issues
-- Check model's silo in `src/sentry/models/outbox.py`
-- Use `@region_silo_endpoint` or `@control_silo_endpoint`
-
-### Database Guidelines
-
-1. NEVER join across silos
-2. Use `outbox` for cross-silo updates
-3. Migrations must be backwards compatible
-4. Add indexes for queries on 1M+ row tables
-5. Use `db_index=True` or `db_index_together`
-
-## Anti-Patterns (NEVER DO)
-
-### Backend
-
-```python
-# WRONG: Direct model import in API
-from sentry.models import Organization  # NO!
-
-# RIGHT: Use endpoint bases
-from sentry.api.bases.organization import OrganizationEndpoint
-
-# WRONG: Synchronous external calls
-response = requests.get(url)  # NO!
-
-# RIGHT: Use Celery task
-from sentry.tasks import fetch_external_data
-fetch_external_data.delay(url)
-
-# WRONG: N+1 queries
-for org in organizations:
-    org.projects.all()  # NO!
-
-# RIGHT: Use prefetch_related
-organizations.prefetch_related('projects')
-
-# WRONG: Use hasattr() for unions
-x: str | None = "hello"
-if hasattr(x, "replace"):
-    x = x.replace("e", "a")
-
-# RIGHT: Use isinstance()
-x: str | None = "hello"
-if isinstance(x, str):
-    x = x.replace("e", "a")
-
-# WRONG: Importing inside function bodies.
-# RIGHT: Import at the top of python modules. ONLY import in a function body if
-# to avoid a circular import (very rare)
-def my_function():
-    from sentry.models.project import Project # NO!
-    ...
-```
-
-## Exception Handling
-
-- Avoid blanket exception handling (`except Exception:` or bare `except:`)
-- Only catch specific exceptions when you have a meaningful way to handle them
-- We have global exception handlers in tasks and endpoints that automatically log errors and report them to Sentry
-- Let exceptions bubble up unless you need to:
-  - Add context to the error
-  - Perform cleanup operations
-  - Convert one exception type to another with additional information
-  - Recover from expected error conditions
-
-## Performance Considerations
-
-1. Use database indexing appropriately
-2. Implement pagination for list endpoints
-3. Cache expensive computations with Redis
-4. Use Celery for background tasks
-5. Optimize queries with `select_related` and `prefetch_related`
-
-## Security Guidelines
-
-1. Always validate user input
-2. Use Django's CSRF protection
-3. Implement proper permission checks
-4. Sanitize data before rendering
-5. Follow OWASP guidelines
-
-## Secure Code Practices
-
-### Preventing Indirect Object References (IDOR)
-
-**Indirect Object Reference** vulnerabilities occur when an attacker can access resources they shouldn't by manipulating IDs passed in requests. This is one of the most critical security issues in multi-tenant applications like Sentry.
-
-#### Core Principle: Always Scope Queries by Organization/Project
-
-When querying resources, ALWAYS include `organization_id` and/or `project_id` in your query filters. Never trust user-supplied IDs alone.
-
-```python
-# WRONG: Vulnerable to IDOR - user can access any resource by guessing IDs
-resource = Resource.objects.get(id=request.data["resource_id"])
-
-# RIGHT: Properly scoped to organization
-resource = Resource.objects.get(
-    id=request.data["resource_id"],
-    organization_id=organization.id
-)
-
-# RIGHT: Properly scoped to project
-resource = Resource.objects.get(
-    id=request.data["resource_id"],
-    project_id=project.id
-)
-```
-
-#### Project ID Handling: Use `self.get_projects()`
-
-When project IDs are passed in the request (query string or body), NEVER directly access or trust `request.data["project_id"]` or `request.GET["project_id"]`. Instead, use the endpoint's `self.get_projects()` method which performs proper permission checks.
-
-```python
-# WRONG: Direct access bypasses permission checks
-project_ids = request.data.get("project_id")
-projects = Project.objects.filter(id__in=project_ids)
-
-# RIGHT: Use self.get_projects() which validates permissions
-projects = self.get_projects(
-    request=request,
-    organization=organization,
-    project_ids=request.data.get("project_id")
-)
-```
-
-## Debugging Tips
-
-1. Use `devservices serve` for full stack debugging
-2. Access Django shell: `sentry django shell`
-3. View Celery tasks: monitor RabbitMQ management UI
-4. Database queries: use Django Debug Toolbar
-
-### Quick Debugging
-
-```python
-# Print SQL queries
-from django.db import connection
-print(connection.queries)
-
-# Debug Celery task
-from sentry.tasks import my_task
-my_task.apply(args=[...]).get()  # Run synchronously
-
-# Check feature flag
-from sentry import features
-features.has('organizations:feature', org)
-
-# Current silo mode
-from sentry.silo import SiloMode
-from sentry.services.hybrid_cloud import silo_mode_delegation
-print(silo_mode_delegation.get_current_mode())
-```
-
-## Important Configuration Files
-
-- `pyproject.toml`: Python project configuration
-- `setup.cfg`: Python package metadata
-- `.github/`: CI/CD workflows
-- `devservices/config.yml`: Local service configuration
-- `.pre-commit-config.yaml`: Pre-commit hooks configuration
-- `codecov.yml`: Code coverage configuration
-
-## File Location Map
-
-### Backend
-
-- **Models**: `src/sentry/models/{model}.py`
-- **API Endpoints**: `src/sentry/api/endpoints/{resource}.py`
-- **Serializers**: `src/sentry/api/serializers/models/{model}.py`
-- **Tasks**: `src/sentry/tasks/{category}.py`
-- **Integrations**: `src/sentry/integrations/{provider}/`
-- **Permissions**: `src/sentry/api/permissions.py`
-- **Feature Flags**: `src/sentry/features/permanent.py` or `temporary.py`
-- **Utils**: `src/sentry/utils/{category}.py`
-
-### Tests
-
-- **Python**: `tests/` mirrors `src/` structure
-- **Fixtures**: `fixtures/{type}/`
-- **Factories**: `tests/sentry/testutils/factories.py`
-
-## Integration Development
-
-### Adding Integration
-
-1. Create dir: `src/sentry/integrations/{name}/`
-2. Required files:
-   - `__init__.py`
-   - `integration.py` (inherit from `Integration`)
-   - `client.py` (API client)
-   - `webhooks/` (if needed)
-3. Register in `src/sentry/integrations/registry.py`
-4. Add feature flag in `temporary.py`
-
-### Integration Pattern
-
-```python
-# src/sentry/integrations/example/integration.py
-from sentry.integrations import Integration, IntegrationProvider
-
-class ExampleIntegration(Integration):
-    def get_client(self):
-        from .client import ExampleClient
-        return ExampleClient(self.metadata['access_token'])
-
-class ExampleIntegrationProvider(IntegrationProvider):
-    key = "example"
-    name = "Example"
-    features = ["issue-basic", "alert-rule"]
-
-    def build_integration(self, state):
-        # OAuth flow handling
-        pass
-```
-
-## Contributing Guidelines
-
-1. Follow existing code style
-2. Write comprehensive tests
-3. Update documentation
-4. Add feature flags for experimental features
-5. Consider backwards compatibility
-6. Performance test significant changes
-
-## Common Gotchas
-
-1. **Hybrid Cloud**: Check silo mode before cross-silo queries
-2. **Feature Flags**: Always add for new features
-3. **Migrations**: Test rollback, never drop columns immediately
-4. **Celery**: Always handle task failures/retries
-5. **API**: Serializers can be expensive, use `@attach_scenarios`
-6. **Tests**: Use `self.create_*` helpers, not direct model creation
-7. **Permissions**: Check both RBAC and scopes
-
-## Useful Resources
-
-- Development Setup Guide: https://develop.sentry.dev/getting-started/
-- Devservices Documentation: https://develop.sentry.dev/development-infrastructure/devservices
-- Main Documentation: https://docs.sentry.io/
-- Internal Contributing Guide: https://docs.sentry.io/internal/contributing/
-- GitHub Discussions: https://github.com/getsentry/sentry/discussions
-- Discord: https://discord.gg/PXa5Apfe7K
-
-## Notes for AI Assistants
-
-- This is a large, complex codebase with many interconnected systems
-- Always consider the impact of changes on performance and scalability
-- Many features are gated behind feature flags for gradual rollout
-- The codebase follows Django patterns but with significant customization
-- Database migrations require special care due to the scale of deployment
-- ALWAYS use pre-commit for linting instead of individual tools
-- Check silo mode before making cross-silo queries
-- Use decision trees above for common user requests
-- Follow the anti-patterns section to avoid common mistakes
-
-## Python Development
-
-### Python Environment
-
-**ALWAYS activate the virtualenv before any Python operation**: Before running any Python command (e.g. `python -c`), Python package (e.g. `pytest`, `mypy`), or Python script, you MUST first activate the virtualenv with `source .venv/bin/activate`. This applies to ALL Python operations without exception.
-
-### Python Typing
-
-#### Recommended Practices
-
-For function signatures, always use abstract types (e.g. `Sequence` over `list`) for input parameters and use specific return types (e.g. `list` over `Sequence`).
-
-```python
-# Good: Abstract input types, specific return types
-def process_items(items: Sequence[Item]) -> list[ProcessedItem]:
-    return [process(item) for item in items]
-
-# Avoid: Specific input types, abstract return types
-def process_items(items: list[Item]) -> Sequence[ProcessedItem]:
-    return [process(item) for item in items]
-```
-
-Always import a type from the module `collections.abc` rather than the `typing` module if it is available (e.g. `from collections.abc import Sequence` rather than `from typing import Sequence`).
-
-### Python Tests
-
-#### Running Tests
-
-Always run pytest with these parameters: `pytest -svv --reuse-db` since it is faster to execute.
-
-#### How to Determine Where to Add New Test Cases
-
-When fixing errors or adding functionality, you MUST add test cases to existing test files rather than creating new test files. Follow this pattern to locate the correct test file:
-
-- Code location: `src/sentry/foo/bar.py`
-- Test location: `tests/sentry/foo/test_bar.py`
-
-Notice that we prefix `tests/` to the path and prefix `test_` to the module name.
-
-**Exception**: Tests ensuring Snuba compatibility MUST be placed in `tests/snuba/`. The tests in this folder will also run in Snuba's CI.
-
-#### Use Factories Instead of Directly Calling `Model.objects.create`
-
-In Sentry Python tests, you MUST use factory methods in this priority order:
-
-1. Fixture methods (e.g., `self.create_model`) from base classes like `sentry.testutils.fixtures.Fixtures`
-2. Factory methods from `sentry.testutils.factories.Factories` when fixtures aren't available
-
-NEVER directly call `Model.objects.create` - this violates our testing standards and bypasses shared test setup logic.
-
-For example, a diff that uses a fixture instead of directly calling `Model.objects.create` would look like:
-
-```diff
-    -        direct_project = Project.objects.create(
-    -            organization=self.organization,
-    -            name="Directly Created",
-    -            slug="directly-created"
-    -        )
-    +        direct_project = self.create_project(
-    +            organization=self.organization,
-    +            name="Directly Created",
-    +            slug="directly-created" # Note: Ensure factory args match
-    +        )
-```
-
-#### Use `pytest` Instead of `unittest`
-
-In Sentry Python tests, always use `pytest` instead of `unittest`. This promotes consistency, reduces boilerplate, and leverages shared test setup logic defined in the factories.
-
-For example, a diff that uses `pytest` instead of `unittest` would look like:
-
-```diff
-    -        self.assertRaises(ValueError, EffectiveGrantStatus.from_cache, None)
-    +        with pytest.raises(ValueError):
-    +            EffectiveGrantStatus.from_cache(None)
-```
-
-### Rule Enforcement
-
-These rules are MANDATORY for all Python development in the Sentry codebase. Violations will:
-
-- Cause CI failures
-- Require code review rejection
-- Must be fixed before merging the pull request
-
-Agents MUST follow these rules without exception to maintain code quality and consistency across the project.
+- If your changes touch both frontend and backend, split them into **separate PRs**.
+- Land the backend PR first when the frontend depends on new API changes.
+- Pure test additions alongside `src/` changes are fine in one PR.

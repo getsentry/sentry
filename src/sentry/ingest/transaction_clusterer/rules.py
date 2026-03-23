@@ -54,6 +54,10 @@ class RedisRuleStore:
         data = client.hgetall(key)
         return {rule: int(timestamp) for rule, timestamp in data.items()}
 
+    def read_sorted(self, project: Project) -> list[tuple[ReplacementRule, int]]:
+        rule_set = self.read(project)
+        return _sort(rule_set)
+
     def write(self, project: Project, rules: RuleSet) -> None:
         client = get_redis_client()
         key = self._get_rules_key(project)
@@ -93,14 +97,10 @@ class ProjectOptionRuleStore:
         self.last_read = rules
         return rules
 
-    def _sort(self, rules: RuleSet) -> list[tuple[ReplacementRule, int]]:
-        """Sort rules by number of slashes, i.e. depth of the rule"""
-        return sorted(rules.items(), key=lambda p: p[0].count("/"), reverse=True)
-
     def write(self, project: Project, rules: RuleSet) -> None:
         """Writes the rules to project options, sorted by depth."""
         # we make sure the database stores lists such that they are json round trippable
-        converted_rules = [list(tup) for tup in self._sort(rules)]
+        converted_rules = [list(tup) for tup in _sort(rules)]
 
         # Track the number of rules per project.
         metrics.distribution(self._tracker, len(converted_rules))
@@ -177,6 +177,11 @@ def _now() -> int:
     return int(datetime.now(timezone.utc).timestamp())
 
 
+def _sort(rules: RuleSet) -> list[tuple[ReplacementRule, int]]:
+    """Sort rules by number of slashes, i.e. depth of the rule"""
+    return sorted(rules.items(), key=lambda p: p[0].count("/"), reverse=True)
+
+
 def get_rules(namespace: ClustererNamespace, project: Project) -> RuleSet:
     """Get rules from project options."""
     return ProjectOptionRuleStore(namespace).read(project)
@@ -187,6 +192,20 @@ def get_redis_rules(namespace: ClustererNamespace, project: Project) -> RuleSet:
     return RedisRuleStore(namespace).read(project)
 
 
+def get_sorted_rules_from_redis(
+    namespace: ClustererNamespace, project: Project
+) -> list[tuple[ReplacementRule, int]]:
+    """Public interface for fetching rules for a project from Redis.
+
+    Typically `get_sorted_rules` is preferred, but for high throughput scenarios
+    it may be appropriate to use Redis instead.
+
+    The rules are ordered by specificity, meaning that rules that go deeper
+    into the URL tree occur first.
+    """
+    return RedisRuleStore(namespace).read_sorted(project)
+
+
 def get_sorted_rules(
     namespace: ClustererNamespace, project: Project
 ) -> list[tuple[ReplacementRule, int]]:
@@ -195,7 +214,7 @@ def get_sorted_rules(
     The rules are fetched from project options rather than redis, because
     project options is the more persistent store.
 
-    The rules are ordered by specifity, meaning that rules that go deeper
+    The rules are ordered by specificity, meaning that rules that go deeper
     into the URL tree occur first.
     """
     return ProjectOptionRuleStore(namespace).read_sorted(project)

@@ -2,13 +2,14 @@ import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   CanvasPoolManager,
   CanvasScheduler,
@@ -22,7 +23,7 @@ import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
@@ -213,11 +214,11 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
         </ProfilingDetailsListItem>
         <Separator />
         <ProfilingDetailsListItem>
-          <LayoutSelectionContainer>
+          <Flex align="center" gap="2xs" height="100%">
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
                 // @ts-expect-error transparent is not a valid priority in legacy UI
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table left'}
                 onClick={onTableLeftClick}
                 title={t('Table left')}
@@ -229,7 +230,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
             <Tooltip title={t('Table bottom')} skipWrapper>
               <StyledButton
                 // @ts-expect-error transparent is not a valid priority in legacy UI
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table bottom'}
                 onClick={onTableBottomClick}
                 title={t('Table bottom')}
@@ -241,7 +242,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
             <Tooltip title={t('Table right')} skipWrapper>
               <StyledButton
                 // @ts-expect-error transparent is not a valid priority in legacy UI
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table right'}
                 onClick={onTableRightClick}
                 title={t('Table right')}
@@ -250,7 +251,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
                 icon={<IconPanel direction="right" />}
               />
             </Tooltip>
-          </LayoutSelectionContainer>
+          </Flex>
         </ProfilingDetailsListItem>
       </ProfilingDetailsFrameTabs>
 
@@ -285,13 +286,13 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
 const ResizableVerticalDrawer = styled('div')`
   width: 1px;
   grid-area: drawer;
-  background-color: ${p => p.theme.backgroundTertiary};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   position: relative;
 `;
 
 const InvisibleHandler = styled('div')`
   opacity: 0;
-  width: ${space(1)};
+  width: ${p => p.theme.space.md};
   position: absolute;
   inset: 0;
   cursor: ew-resize;
@@ -305,8 +306,8 @@ const FrameDrawerLabel = styled('label')`
   white-space: nowrap;
   margin-bottom: 0;
   height: 100%;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  gap: ${space(0.5)};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  gap: ${p => p.theme.space.xs};
 `;
 
 // Linter produces a false positive for the grid layout. I did not manage to find out
@@ -340,18 +341,18 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
 const Separator = styled('li')`
   width: 1px;
   height: 66%;
-  margin: 0 ${space(1)};
-  background: 1px solid ${p => p.theme.border};
+  margin: 0 ${p => p.theme.space.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translateY(29%);
 `;
 
 const ProfilingDetailsFrameTabs = styled('ul')`
   display: flex;
   list-style-type: none;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   margin: 0;
-  border-top: 1px solid ${prop => prop.theme.border};
-  background-color: ${props => props.theme.surface200};
+  border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
+  background-color: ${props => props.theme.tokens.background.tertiary};
   user-select: none;
   grid-area: tabs;
 `;
@@ -363,8 +364,8 @@ const ProfilingDetailsListItem = styled('li')<{
   height: 100%;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
-  margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
+  font-size: ${p => p.theme.font.size.sm};
+  margin-right: ${p => (p.margin === 'none' ? 0 : p.theme.space.md)};
 
   button {
     height: 100%;
@@ -372,16 +373,16 @@ const ProfilingDetailsListItem = styled('li')<{
     border-top: 2px solid transparent;
     border-bottom: 2px solid transparent;
     border-radius: 0;
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
     margin: 0;
-    padding: ${p => (p.size === 'sm' ? space(0.25) : space(0.5))} 0;
-    color: ${p => p.theme.textColor};
+    padding: ${p => (p.size === 'sm' ? p.theme.space['2xs'] : p.theme.space.xs)} 0;
+    color: ${p => p.theme.tokens.content.primary};
     max-height: ${p => (p.size === 'sm' ? '24px' : undefined)};
 
     &::after {
       display: block;
       content: attr(data-title);
-      font-weight: ${p => p.theme.fontWeight.bold};
+      font-weight: ${p => p.theme.font.weight.sans.medium};
       height: 1px;
       color: transparent;
       overflow: hidden;
@@ -390,18 +391,18 @@ const ProfilingDetailsListItem = styled('li')<{
     }
 
     &:hover {
-      color: ${p => p.theme.textColor};
+      color: ${p => p.theme.tokens.content.primary};
     }
   }
 
   &.active button {
-    font-weight: ${p => p.theme.fontWeight.bold};
-    border-bottom: 2px solid ${prop => prop.theme.active};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
+    border-bottom: 2px solid ${prop => prop.theme.tokens.border.accent};
   }
 `;
 
 const StyledButton = styled('button')<{active: boolean}>`
-  padding: ${space(0.5)} ${space(0.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
   opacity: ${p => (p.active ? 0.7 : 0.5)};
   background-color: transparent;
 
@@ -412,13 +413,6 @@ const StyledButton = styled('button')<{active: boolean}>`
   &:hover {
     opacity: ${p => (p.active ? 0.6 : 0.5)};
   }
-`;
-
-const LayoutSelectionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  gap: ${space(0.25)};
 `;
 
 export {DifferentialFlamegraphDrawer};

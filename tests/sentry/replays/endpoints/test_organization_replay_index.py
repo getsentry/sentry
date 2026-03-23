@@ -485,6 +485,30 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
+    def test_get_replays_duration_sorted_tiebreaker(self) -> None:
+        """Test that replays with identical durations have deterministic order when ordering by duration."""
+        project = self.create_project(teams=[self.team])
+        replay_ids = [uuid.uuid4().hex for _ in range(5)]
+
+        timestamp_start = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        timestamp_end = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        for replay_id in replay_ids:
+            self.store_replays(mock_replay(timestamp_start, project.id, replay_id, segment_id=0))
+            self.store_replays(mock_replay(timestamp_end, project.id, replay_id, segment_id=1))
+
+        with self.feature(self.features):
+            response = self.client.get(self.url + "?orderBy=duration")
+            assert response.status_code == 200, response
+            asc_order = [r["id"] for r in response.json()["data"]]
+
+            response = self.client.get(self.url + "?orderBy=-duration")
+            assert response.status_code == 200, response
+            desc_order = [r["id"] for r in response.json()["data"]]
+
+            assert desc_order == list(reversed(asc_order))
+            assert set(asc_order) == set(replay_ids)
+
     def test_get_replays_pagination(self) -> None:
         """Test replays can be paginated."""
         project = self.create_project(teams=[self.team])
@@ -743,8 +767,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "count_infos:>1",
                 "count_infos:<3",
                 f"viewed_by_id:{self.user.id}",
-                f"!viewed_by_id:{self.user.id+1}",
-                f"viewed_by_id:[{self.user.id+3},{self.user.id}]",
+                f"!viewed_by_id:{self.user.id + 1}",
+                f"viewed_by_id:[{self.user.id + 3},{self.user.id}]",
                 f"seen_by_id:{self.user.id}",
                 f"!seen_by_id:{self.user.id + 1}",
                 f"seen_by_id:[{self.user.id + 3},{self.user.id}]",
@@ -806,8 +830,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!c:*st",
                 "!activity:8",
                 "activity:<2",
-                f"viewed_by_id:{self.user.id+1}",
-                f"seen_by_id:{self.user.id+1}",
+                f"viewed_by_id:{self.user.id + 1}",
+                f"seen_by_id:{self.user.id + 1}",
                 "viewed_by_me:false",
                 "seen_by_me:false",
                 "user.email:[user2@example.com]",
@@ -1516,9 +1540,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400, query
-                assert (
-                    response.content == b'{"detail":"Only the \'=\' operator is supported."}'
-                ), query
+                assert response.content == b'{"detail":"Only the \'=\' operator is supported."}', (
+                    query
+                )
 
     def test_get_replays_field_order(self) -> None:
         """Test replay response with fields requested in production."""

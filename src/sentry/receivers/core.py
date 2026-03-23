@@ -1,3 +1,5 @@
+import os
+
 from click import echo
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -13,7 +15,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.team import Team
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import post_upgrade, project_created
-from sentry.silo.base import SiloMode, region_silo_function
+from sentry.silo.base import SiloMode, cell_silo_function
 from sentry.users.services.user.service import user_service
 from sentry.utils.db import handle_db_failure
 from sentry.utils.env import in_test_environment
@@ -32,6 +34,14 @@ def create_default_projects(**kwds):
         # No op in production SaaS environments.
         return
 
+    # Temporary patch to stop getsentry migrations-drift ci from timing out
+    # because something in create_default_project triggers taskworkers which
+    # spin for 5m waiting for kafka which isn't up.
+    # (Only postgres+redis is needed for running migrations.)
+    # We still want post_save hooks to run, just not in this specific case.
+    if os.environ.get("SENTRY_NO_CREATE_DEFAULT_PROJECT") == "1":
+        return
+
     create_default_project(
         # This guards against sentry installs that have SENTRY_PROJECT set to None, so
         # that they don't error after every migration. Specifically for single tenant.
@@ -48,7 +58,7 @@ def create_default_projects(**kwds):
         )
 
 
-@region_silo_function
+@cell_silo_function
 def create_default_project(id, name, slug, verbosity=2, **kwargs):
     if Project.objects.filter(id=id).exists():
         return

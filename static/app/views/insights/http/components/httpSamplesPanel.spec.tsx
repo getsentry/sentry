@@ -9,15 +9,15 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {HTTPSamplesPanel} from 'sentry/views/insights/http/components/httpSamplesPanel';
 import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('HTTPSamplesPanel', () => {
   const organization = OrganizationFixture();
@@ -240,7 +240,7 @@ describe('HTTPSamplesPanel', () => {
             statsPeriod: '10d',
             topEvents: 5,
             yAxis: ['count()'],
-            caseInsensitive: 0,
+            caseInsensitive: undefined,
           },
         })
       );
@@ -347,7 +347,7 @@ describe('HTTPSamplesPanel', () => {
       });
 
       samplesRequestMock = MockApiClient.addMockResponse({
-        url: `/api/0/organizations/${organization.slug}/spans-samples/`,
+        url: `/organizations/${organization.slug}/spans-samples/`,
         method: 'GET',
         body: {
           data: [
@@ -397,14 +397,14 @@ describe('HTTPSamplesPanel', () => {
             referrer: 'api.insights.http.samples-panel-duration-chart',
             statsPeriod: '10d',
             yAxis: ['avg(span.self_time)'],
-            caseInsensitive: 0,
+            caseInsensitive: undefined,
           }),
         })
       );
 
       expect(samplesRequestMock).toHaveBeenNthCalledWith(
         1,
-        `/api/0/organizations/${organization.slug}/spans-samples/`,
+        `/organizations/${organization.slug}/spans-samples/`,
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({

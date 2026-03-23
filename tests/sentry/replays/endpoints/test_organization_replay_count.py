@@ -107,7 +107,6 @@ class OrganizationReplayCountEndpointTest(
 
         query = {"query": f"(issue.id:[{event_a.group.id}, {event_c.group.id}] or abc)"}
         with self.feature(self.features):
-
             response = self.client.get(self.url, query, format="json")
 
         expected = {
@@ -277,6 +276,9 @@ class OrganizationReplayCountEndpointTest(
                 "replay": {"replay_id": "z" * 32},  # a replay id that doesn't exist
             },
         )
+        assert issue1.group is not None
+        assert issue2.group is not None
+        assert issue3.group is not None
 
         query = {
             "query": f"issue.id:[{issue1.group.id}, {issue2.group.id}, {issue3.group.id}]",
@@ -492,8 +494,7 @@ class OrganizationReplayCountEndpointTest(
 
         assert response.status_code == 400, response.content
         assert response.content == (
-            b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be '
-            b'escaped."}'
+            b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be escaped."}'
         ), response.content
 
     def test_replay_count_invalid_replay_ids(self) -> None:

@@ -74,6 +74,11 @@ function treeTransformer({tree, transform}: TreeTransformerOpts) {
           argsSpaceBefore: nodeVisitor(token.argsSpaceBefore),
           argsSpaceAfter: nodeVisitor(token.argsSpaceAfter),
         });
+      case Token.KEY_EXPLICIT_BOOLEAN_TAG:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
       case Token.KEY_EXPLICIT_NUMBER_TAG:
         return transform({
           ...token,
@@ -179,7 +184,9 @@ describe('searchSyntax/parser', () => {
     });
 
   Object.entries(testData).map(([name, cases]) =>
-    describe(`${name}`, () => {
+    // https://github.com/jest-community/eslint-plugin-jest/issues/1940
+    // eslint-disable-next-line jest/valid-title
+    describe(name, () => {
       cases.map(c => registerTestCase(c, {parse: true}));
     })
   );

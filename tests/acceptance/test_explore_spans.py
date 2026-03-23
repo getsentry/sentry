@@ -60,7 +60,6 @@ class ExploreSpansTest(AcceptanceTestCase, SpanTestCase, SnubaTestCase):
             ]
             self.store_spans(
                 spans,
-                is_eap=True,
             )
 
             self.page.visit_explore_spans(self.organization.slug)

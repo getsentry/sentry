@@ -2,7 +2,6 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
@@ -13,9 +12,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -25,12 +25,13 @@ jest.mock('sentry/utils/analytics');
 
 describe('OrganizationGeneralSettings', () => {
   const ENDPOINT = '/organizations/org-slug/';
-  const {organization, router} = initializeOrg();
+  const organization = OrganizationFixture();
   let configState: Config;
 
   beforeEach(() => {
     configState = ConfigStore.getState();
     OrganizationsStore.addOrReplace(organization);
+    OrganizationStore.onUpdate(organization, {replace: true});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
@@ -50,7 +51,7 @@ describe('OrganizationGeneralSettings', () => {
 
   it('can enable "early adopter"', async () => {
     render(<OrganizationGeneralSettings />, {
-      deprecatedRouterMocks: true,
+      organization,
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -74,9 +75,9 @@ describe('OrganizationGeneralSettings', () => {
       features: ['codecov-integration'],
       codecovAccess: false,
     });
+    OrganizationStore.onUpdate(organizationWithCodecovFeature, {replace: true});
     render(<OrganizationGeneralSettings />, {
       organization: organizationWithCodecovFeature,
-      deprecatedRouterMocks: true,
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -100,9 +101,14 @@ describe('OrganizationGeneralSettings', () => {
   });
 
   it('changes org slug and redirects to new slug', async () => {
-    render(<OrganizationGeneralSettings />, {
-      router,
-      deprecatedRouterMocks: true,
+    const {router} = render(<OrganizationGeneralSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/`,
+        },
+        route: '/settings/:orgId/',
+      },
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -124,9 +130,7 @@ describe('OrganizationGeneralSettings', () => {
       );
     });
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({pathname: '/settings/new-slug/'})
-      );
+      expect(router.location.pathname).toBe('/settings/new-slug/');
     });
   });
 
@@ -134,6 +138,7 @@ describe('OrganizationGeneralSettings', () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
 
     const org = OrganizationFixture();
+    OrganizationStore.onUpdate(org, {replace: true});
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -142,7 +147,6 @@ describe('OrganizationGeneralSettings', () => {
 
     render(<OrganizationGeneralSettings />, {
       organization: org,
-      deprecatedRouterMocks: true,
     });
 
     const input = screen.getByRole('textbox', {name: /slug/i});
@@ -169,10 +173,10 @@ describe('OrganizationGeneralSettings', () => {
 
   it('disables the entire form if user does not have write access', () => {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
+    OrganizationStore.onUpdate(readOnlyOrg, {replace: true});
 
     render(<OrganizationGeneralSettings />, {
       organization: readOnlyOrg,
-      deprecatedRouterMocks: true,
     });
 
     const formElements = [
@@ -182,7 +186,11 @@ describe('OrganizationGeneralSettings', () => {
     ];
 
     for (const formElement of formElements) {
-      expect(formElement).toBeDisabled();
+      // New form system uses aria-disabled + readOnly instead of native disabled attribute
+      const isDisabled =
+        formElement.hasAttribute('disabled') ||
+        formElement.getAttribute('aria-disabled') === 'true';
+      expect(isDisabled).toBe(true);
     }
 
     expect(
@@ -193,12 +201,11 @@ describe('OrganizationGeneralSettings', () => {
   });
 
   it('does not have remove organization button without org:admin permission', () => {
-    render(<OrganizationGeneralSettings />, {
-      organization: OrganizationFixture({
-        access: ['org:write'],
-      }),
+    const orgWithWriteAccess = OrganizationFixture({access: ['org:write']});
+    OrganizationStore.onUpdate(orgWithWriteAccess, {replace: true});
 
-      deprecatedRouterMocks: true,
+    render(<OrganizationGeneralSettings />, {
+      organization: orgWithWriteAccess,
     });
 
     expect(
@@ -207,11 +214,12 @@ describe('OrganizationGeneralSettings', () => {
   });
 
   it('can remove organization when org admin', async () => {
+    const orgWithAdminAccess = OrganizationFixture({access: ['org:admin']});
+    OrganizationStore.onUpdate(orgWithAdminAccess, {replace: true});
     act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
     render(<OrganizationGeneralSettings />, {
-      organization: OrganizationFixture({access: ['org:admin']}),
-      deprecatedRouterMocks: true,
+      organization: orgWithAdminAccess,
     });
     renderGlobalModal();
 

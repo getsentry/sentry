@@ -71,11 +71,10 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-def assert_alert_rule_migrated(alert_rule, project_id):
+def assert_alert_rule_migrated(alert_rule: AlertRule, project_id: int) -> None:
     alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
     alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
 
@@ -83,14 +82,14 @@ def assert_alert_rule_migrated(alert_rule, project_id):
     assert workflow.name == get_workflow_name(alert_rule)
     assert workflow.organization_id == alert_rule.organization.id
     assert workflow.owner_user_id == alert_rule.user_id
-    assert workflow.owner_team == alert_rule.team
+    assert workflow.owner_team_id == alert_rule.team_id
     detector = Detector.objects.get(id=alert_rule_detector.detector.id)
     assert detector.name == alert_rule.name
     assert detector.project_id == project_id
     assert detector.enabled is True
     assert detector.description == alert_rule.description
     assert detector.owner_user_id == alert_rule.user_id
-    assert detector.owner_team == alert_rule.team
+    assert detector.owner_team_id == alert_rule.team_id
     assert detector.type == MetricIssue.slug
     assert detector.config == {
         "comparison_delta": alert_rule.comparison_delta,
@@ -115,7 +114,7 @@ def assert_alert_rule_migrated(alert_rule, project_id):
     assert data_source_detector.detector == detector
 
 
-def assert_alert_rule_resolve_trigger_migrated(alert_rule):
+def assert_alert_rule_resolve_trigger_migrated(alert_rule: AlertRule) -> None:
     detector_trigger = DataCondition.objects.get(
         comparison=alert_rule.resolve_threshold,
         condition_result=DetectorPriorityLevel.OK,
@@ -128,7 +127,9 @@ def assert_alert_rule_resolve_trigger_migrated(alert_rule):
     assert detector_trigger.condition_group == detector.workflow_condition_group
 
 
-def assert_dual_written_resolution_threshold_equals(alert_rule, threshold):
+def assert_dual_written_resolution_threshold_equals(
+    alert_rule: AlertRule, threshold: int | float
+) -> None:
     # assert that a detector trigger exists with the correct threshold
     assert DataCondition.objects.filter(
         comparison=threshold,
@@ -141,7 +142,7 @@ def assert_dual_written_resolution_threshold_equals(alert_rule, threshold):
     ).exists()
 
 
-def assert_alert_rule_trigger_migrated(alert_rule_trigger):
+def assert_alert_rule_trigger_migrated(alert_rule_trigger: AlertRuleTrigger) -> None:
     condition_result = (
         DetectorPriorityLevel.MEDIUM
         if alert_rule_trigger.label == "warning"
@@ -192,7 +193,9 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     ).exists()
 
 
-def assert_anomaly_detection_alert_rule_trigger_migrated(alert_rule_trigger):
+def assert_anomaly_detection_alert_rule_trigger_migrated(
+    alert_rule_trigger: AlertRuleTrigger,
+) -> None:
     alert_rule = alert_rule_trigger.alert_rule
     detector_trigger = DataCondition.objects.get(type=Condition.ANOMALY_DETECTION)
     assert DataConditionAlertRuleTrigger.objects.filter(
@@ -245,10 +248,9 @@ def build_sentry_app_compare_blob(
 
 def assert_sentry_app_action_migrated(
     action: Action, alert_rule_trigger_action: AlertRuleTriggerAction
-):
+) -> None:
     # Verify target_identifier is the string representation of sentry_app_id
     assert action.config.get("target_identifier") == str(alert_rule_trigger_action.sentry_app_id)
-    assert action.config.get("sentry_app_identifier") == SentryAppIdentifier.SENTRY_APP_ID
 
     # Verify data blob has correct structure for Sentry apps
     if not alert_rule_trigger_action.sentry_app_config:
@@ -265,7 +267,7 @@ def assert_sentry_app_action_migrated(
 
 def assert_oncall_action_migrated(
     action: Action, alert_rule_trigger_action: AlertRuleTriggerAction
-):
+) -> None:
     if action.type == Action.Type.OPSGENIE:
         if not alert_rule_trigger_action.sentry_app_config:
             assert action.data == {
@@ -290,7 +292,9 @@ def assert_oncall_action_migrated(
             }
 
 
-def assert_action_migrated(action: Action, alert_rule_trigger_action: AlertRuleTriggerAction):
+def assert_action_migrated(
+    action: Action, alert_rule_trigger_action: AlertRuleTriggerAction
+) -> None:
     if action.type == Action.Type.SENTRY_APP:
         assert_sentry_app_action_migrated(action, alert_rule_trigger_action)
     elif action.type == Action.Type.OPSGENIE or action.type == Action.Type.PAGERDUTY:
@@ -299,7 +303,9 @@ def assert_action_migrated(action: Action, alert_rule_trigger_action: AlertRuleT
         assert action.data == {}
 
 
-def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_type):
+def assert_alert_rule_trigger_action_migrated(
+    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+) -> None:
     aarta = ActionAlertRuleTriggerAction.objects.get(
         alert_rule_trigger_action_id=alert_rule_trigger_action.id
     )
@@ -331,7 +337,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         )
 
     def create_migrated_metric_alert_objects(
-        self, metric_alert: AlertRule, name="hojicha"
+        self, metric_alert: AlertRule, name: str = "hojicha"
     ) -> tuple[
         DataSource,
         DataConditionGroup,
@@ -432,7 +438,10 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         return detector_trigger, action_filter, resolve_action_filter
 
     def create_migrated_metric_alert_rule_resolve_objects(
-        self, alert_rule: AlertRule, resolve_threshold, detector_trigger_type: Condition
+        self,
+        alert_rule: AlertRule,
+        resolve_threshold: int | float,
+        detector_trigger_type: Condition,
     ) -> DataCondition:
         """
         Set up all the necessary ACI objects for a dual written metric alert resolution threshold.
@@ -475,7 +484,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
     @mock.patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def create_dynamic_alert(self, mock_seer_request):
+    def create_dynamic_alert(self, mock_seer_request: mock.MagicMock) -> AlertRule:
         seer_return_value = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         dynamic_rule = self.create_alert_rule(
@@ -506,7 +515,8 @@ class DualWriteAlertRuleTest(APITestCase):
         self.create_incident(alert_rule=self.metric_alert, status=IncidentStatus.CRITICAL.value)
         aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
         detector_state = aci_objects[4]
-        assert detector_state.state == DetectorPriorityLevel.HIGH
+        detector_state.refresh_from_db()
+        assert detector_state.priority_level == DetectorPriorityLevel.HIGH
 
     def test_rule_snooze_updates_detector(self) -> None:
         aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
@@ -757,7 +767,7 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
             type="something",
             status=QuerySubscription.Status.ACTIVE.value,
         )
-        original_subscription.delete()
+        original_subscription.update(status=QuerySubscription.Status.DELETING.value)
 
         dual_update_migrated_alert_rule(self.metric_alert)
 

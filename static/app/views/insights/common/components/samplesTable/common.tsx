@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {NEAR_AVERAGE_THRESHOLD_PERCENTAGE} from 'sentry/views/insights/settings';
@@ -40,6 +40,10 @@ export function DurationComparisonCell({
 
 const ComparisonLabel = styled('span')<{value: number}>`
   color: ${p =>
-    p.value === 0 ? p.theme.subText : p.value < 0 ? p.theme.green400 : p.theme.red400};
+    p.value === 0
+      ? p.theme.tokens.content.secondary
+      : p.value < 0
+        ? p.theme.colors.green500
+        : p.theme.colors.red500};
   text-align: right;
 `;

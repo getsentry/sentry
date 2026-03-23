@@ -11,33 +11,41 @@ export type MetricsAnalyticsEventParameters = {
     metric_panels_with_group_bys_count: number;
     metric_queries_count: number;
     project_count: number;
+    title: string;
   };
   'metrics.explorer.panel.metadata': {
-    columns: readonly string[];
-    columns_count: number;
+    aggregate_function: string;
     confidences: string[];
     dataScanned: string;
     dataset: string;
     empty_buckets_percentage: number[];
+    group_bys: readonly string[];
     interval: string;
+    metric_name: string;
+    metric_type: string;
     query_status: 'success' | 'error' | 'pending';
     sample_counts: number[];
     table_result_length: number;
-    table_result_missing_root: number;
     table_result_mode: 'metric samples' | 'aggregates';
     table_result_sort: string[];
     user_queries: string;
     user_queries_count: number;
+    panel_index?: number;
   };
   'metrics.explorer.setup_button_clicked': {
     organization: Organization;
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
   };
+  'metrics.issue_details.drawer_opened': {
+    organization: Organization;
+  };
   'metrics.nav.rendered': {
+    has_feature_flag: boolean;
+    has_metrics_supported_platform: boolean;
+    metrics_supported_platform_name: string | undefined;
     metrics_tab_visible: boolean;
     organization: Organization;
-    platforms: Array<PlatformKey | 'unknown'>;
   };
   'metrics.onboarding': {
     organization: Organization;
@@ -66,6 +74,7 @@ type MetricsAnalyticsEventKey = keyof MetricsAnalyticsEventParameters;
 export const metricsAnalyticsEventMap: Record<MetricsAnalyticsEventKey, string | null> = {
   'metrics.explorer.metadata': 'Metric Explorer Pageload Metadata',
   'metrics.explorer.panel.metadata': 'Metric Explorer Panel Metadata',
+  'metrics.issue_details.drawer_opened': 'Metrics Issue Details Drawer Opened',
   'metrics.explorer.setup_button_clicked': 'Metrics Setup Button Clicked',
   'metrics.nav.rendered': 'Metrics Nav Rendered',
   'metrics.onboarding': 'Metrics Explore Empty State (Onboarding)',

@@ -1,10 +1,10 @@
-import type {ErrorInfo} from 'react';
-import {Component, Suspense} from 'react';
+import {Component, Suspense, useEffect, useState, type ErrorInfo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Container, Flex} from '@sentry/scraps/layout';
+
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {isWebpackChunkLoadingError} from 'sentry/utils';
 
@@ -23,6 +23,26 @@ type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
   loadingFallback?: React.ReactNode | undefined;
 };
 
+function DeferredLoader({
+  children,
+  fallback = null,
+}: {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoaded(true);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return loaded ? children : fallback;
+}
+
 /**
  * LazyLoad is used to dynamically load codesplit components via a `import`
  * call. This is primarily used in our routing tree.
@@ -32,7 +52,7 @@ type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
  *
  * <LazyLoad LazyComponent={LazyComponent} someComponentProps={...} />
  */
-function LazyLoad<C extends React.LazyExoticComponent<any>>({
+export function LazyLoad<C extends React.LazyExoticComponent<any>>({
   LazyComponent,
   loadingFallback,
   ...props
@@ -43,7 +63,9 @@ function LazyLoad<C extends React.LazyExoticComponent<any>>({
         fallback={
           loadingFallback ?? (
             <Flex flex="1" align="center" column="1 / -1">
-              <LoadingIndicator />
+              <DeferredLoader fallback={<LoadingIndicator style={{display: 'none'}} />}>
+                <LoadingIndicator />
+              </DeferredLoader>
             </Flex>
           )
         }
@@ -136,5 +158,3 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
     return this.props.children;
   }
 }
-
-export default LazyLoad;

@@ -8,6 +8,7 @@ import {
   MetricsFrozenContextProvider,
   type MetricsFrozenForTracesProviderProps,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
+import {MetricsStateQueryParamsProvider} from 'sentry/views/explore/metrics/metricsStateQueryParamsProvider';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   QueryParamsContextProvider,
@@ -42,6 +43,7 @@ interface MetricsQueryParamsProviderProps {
   setTraceMetric: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
   freeze?: MetricsFrozenForTracesProviderProps;
+  isStateBased?: boolean;
 }
 
 export function MetricsQueryParamsProvider({
@@ -52,6 +54,7 @@ export function MetricsQueryParamsProvider({
   removeMetric,
   traceMetric,
   freeze,
+  isStateBased,
 }: MetricsQueryParamsProviderProps) {
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
@@ -76,20 +79,24 @@ export function MetricsQueryParamsProvider({
     [setTraceMetric, removeMetric, traceMetric]
   );
 
+  const QueryContextProvider = isStateBased
+    ? MetricsStateQueryParamsProvider
+    : QueryParamsContextProvider;
+
   return (
     <TraceMetricContext value={traceMetricContextValue}>
       <MetricsFrozenContextProvider
         traceIds={freeze?.traceIds ?? []}
         tracePeriod={freeze?.tracePeriod}
       >
-        <QueryParamsContextProvider
+        <QueryContextProvider
           queryParams={queryParams}
           setQueryParams={setWritableQueryParams}
           isUsingDefaultFields
           shouldManageFields={false}
         >
           {children}
-        </QueryParamsContextProvider>
+        </QueryContextProvider>
       </MetricsFrozenContextProvider>
     </TraceMetricContext>
   );
@@ -112,10 +119,23 @@ function getUpdatedValue<T>(
 
 export function useMetricVisualize(): VisualizeFunction {
   const visualizes = useQueryParamsVisualizes();
-  if (visualizes.length === 1 && isVisualizeFunction(visualizes[0]!)) {
+  if (visualizes.length > 0 && isVisualizeFunction(visualizes[0]!)) {
     return visualizes[0];
   }
-  throw new Error('Only 1 visualize per metric allowed');
+  throw new Error('No visualize found');
+}
+
+export function useMetricVisualizes(): readonly VisualizeFunction[] {
+  const visualizes = useQueryParamsVisualizes();
+  if (visualizes.length > 0 && visualizes.every(isVisualizeFunction)) {
+    return visualizes;
+  }
+  throw new Error('Only visualize functions are allowed');
+}
+
+export function useMetricName(): string {
+  const {metric} = useTraceMetricContext();
+  return metric.name;
 }
 
 export function useMetricLabel(): string {
@@ -127,6 +147,11 @@ export function useMetricLabel(): string {
   }
 
   return `${visualize.parsedFunction.name}(${metric.name})`;
+}
+
+export function useTraceMetric(): TraceMetric {
+  const {metric} = useTraceMetricContext();
+  return metric;
 }
 
 export function useSetTraceMetric() {
@@ -148,6 +173,17 @@ export function useSetMetricVisualize() {
     [setVisualizes]
   );
   return setVisualize;
+}
+
+export function useSetMetricVisualizes() {
+  const setVisualizes = useSetQueryParamsVisualizes();
+  const setMetricVisualizes = useCallback(
+    (newVisualizes: VisualizeFunction[]) => {
+      setVisualizes(newVisualizes.map(v => v.serialize()));
+    },
+    [setVisualizes]
+  );
+  return setMetricVisualizes;
 }
 
 function updateQueryParams(

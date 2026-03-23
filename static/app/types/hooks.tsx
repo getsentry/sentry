@@ -1,14 +1,22 @@
+import type {ButtonProps} from '@sentry/scraps/button';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
+
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import type {ButtonProps} from 'sentry/components/core/button';
-import type {SelectKey} from 'sentry/components/core/compactSelect';
-import type {FormPanelProps} from 'sentry/components/forms/formPanel';
-import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
-import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
-import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
+import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
+import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
+import type {DataCategory} from 'sentry/types/core';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import type {
+  useDefaultMaxPickableDays,
+  useMaxPickableDays,
+} from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
@@ -16,7 +24,6 @@ import type {NavigationSection} from 'sentry/views/settings/types';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {RouteContextInterface} from './legacyReactRouter';
 import type {Member, Organization, OrgRole} from './organization';
-import type {Project} from './project';
 import type {User} from './user';
 
 // XXX(epurkhiser): A Note about `_`.
@@ -33,7 +40,8 @@ import type {User} from './user';
  * the sentry frontend application.
  */
 export interface Hooks
-  extends RouteHooks,
+  extends
+    RouteHooks,
     ComponentHooks,
     CustomizationHooks,
     AnalyticsHooks,
@@ -54,17 +62,25 @@ export type HookName = keyof Hooks;
  */
 type RouteHooks = {
   'routes:legacy-organization-redirects': RouteObjectHook;
+  'routes:org-settings': RouteObjectHook;
   'routes:root': RouteObjectHook;
   'routes:subscription-settings': RouteObjectHook;
+};
+
+type AiSetupConfigrationProps = {
+  event: Event;
+  group: Group;
+  project: Project;
+};
+
+type AiSetupDataConsentProps = {
+  groupId: string;
 };
 
 /**
  * Component specific hooks for DateRange and SelectorItems
  * These components have plan specific overrides in getsentry
  */
-type AiSetupDataConsentProps = {
-  groupId: string;
-};
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
@@ -83,7 +99,6 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
-type ReplayFeedbackButton = {children: React.ReactNode};
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
 type ReplayOnboardingAlertProps = {children: React.ReactNode};
 type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
@@ -110,6 +125,11 @@ type OrganizationHeaderProps = {
 };
 
 type ProductSelectionAvailabilityProps = Omit<ProductSelectionProps, 'disabledProducts'>;
+
+type DateRangeQueryLimitFooterProps = {
+  description: string;
+  source: string;
+};
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
@@ -145,11 +165,8 @@ export type PartnershipAgreementProps = {
 };
 
 export type MembershipSettingsProps = {
-  forms: JsonFormObject[];
-  jsonFormSettings: Omit<
-    FormPanelProps,
-    'highlighted' | 'fields' | 'additionalFieldProps'
-  >;
+  onSave: (previous: Organization, updated: Organization) => void;
+  organization: Organization;
 };
 export type GithubInstallationInstallButtonProps = {
   handleSubmit: (e: React.MouseEvent) => void;
@@ -173,6 +190,8 @@ type DashboardLimitProviderProps = {
  * Component wrapping hooks
  */
 type ComponentHooks = {
+  'component:ai-configure-seer-quota-sidebar': () => React.ComponentType<AutofixContentProps>;
+  'component:ai-setup-configuration': () => React.ComponentType<AiSetupConfigrationProps>;
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
@@ -190,9 +209,9 @@ type ComponentHooks = {
   'component:disabled-member': () => React.ComponentType;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
-  'component:explore-date-range-query-limit-footer': () => React.ComponentType;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
+  'component:header-date-page-filter-upsell-footer': () => React.ComponentType<DateRangeQueryLimitFooterProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:insights-date-range-query-limit-footer': () => React.ComponentType;
@@ -207,7 +226,6 @@ type ComponentHooks = {
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
-  'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
@@ -284,6 +302,7 @@ type InterfaceChromeHooks = {
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
+  'sidebar:seer-config-reminder': GenericOrganizationComponentHook;
   'sidebar:try-business': SidebarTryBusinessHook;
 };
 
@@ -327,7 +346,9 @@ type ReactHooks = {
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
   }) => number;
+  'react-hook:use-default-max-pickable-days': typeof useDefaultMaxPickableDays;
   'react-hook:use-get-max-retention-days': () => number | undefined;
+  'react-hook:use-max-pickable-days': typeof useMaxPickableDays;
   'react-hook:use-metric-detector-limit': () => {
     detectorCount: number;
     detectorLimit: number;
@@ -335,6 +356,7 @@ type ReactHooks = {
     isError: boolean;
     isLoading: boolean;
   };
+  'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
 };
 
 /**

@@ -58,6 +58,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "range" not in response.data[0]
         assert response.data[0]["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": [
                     "id",
                     "span.op",
@@ -87,7 +88,7 @@ class ExploreSavedQueriesTest(APITestCase):
 
         # User saved query
         assert response.data[3]["name"] == "Test query"
-        assert response.data[3]["projects"] == self.project_ids
+        assert sorted(response.data[3]["projects"]) == sorted(self.project_ids)
         assert response.data[3]["range"] == "24h"
         assert response.data[3]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
         assert "createdBy" in response.data[3]
@@ -618,6 +619,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["environment"] == ["dev"]
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["span.op", "count(span.duration)"],
                 "mode": "samples",
                 "query": "span.op:pageload",
@@ -1139,6 +1141,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["dataset"] == "metrics"
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["count()"],
                 "mode": "aggregate",
                 "metric": {
@@ -1175,6 +1178,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["dataset"] == "metrics"
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["avg()"],
                 "mode": "aggregate",
                 "metric": {
@@ -1270,3 +1274,120 @@ class ExploreSavedQueriesTest(APITestCase):
             )
         assert response.status_code == 400, response.content
         assert "Metric field is required for metrics dataset" in str(response.data)
+
+    def test_save_with_start_and_end_time(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Start and end time query",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "start": "2025-11-12T23:00:00.000Z",
+                    "end": "2025-11-20T22:59:59.000Z",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                        }
+                    ],
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["start"] is not None
+        assert data["end"] is not None
+
+    def test_save_with_case_insensitive(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Case insensitive query",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                            "caseInsensitive": 1,
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["query"][0]["caseInsensitive"] is True
+
+    def test_save_replay_query(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Replay dataset",
+                    "projects": self.project_ids,
+                    "dataset": "replays",
+                    "query": [
+                        {
+                            "query": "user.email:*@sentry.io",
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "48h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["query"][0]["query"] == "user.email:*@sentry.io"
+        assert data["query"][0]["mode"] == "samples"
+
+    def test_malformed_query_missing_query_field_in_get(self) -> None:
+        """VULN-950: A saved query with no 'query' content returns a response
+        missing the 'query' key, which crashes the frontend All Queries page."""
+        malformed = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="malformed",
+            query={"range": "24h"},
+        )
+        malformed.set_projects(self.project_ids)
+
+        with self.feature(self.features):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail",
+                args=[self.org.slug, malformed.id],
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        # The response is missing the 'query' key entirely — this is what
+        # crashes the frontend, which expects it to be an array.
+        assert "query" not in response.data
+
+    def test_post_without_query_is_rejected(self) -> None:
+        """VULN-950: POST with no query field should be rejected."""
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "crash",
+                    "projects": self.project_ids,
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 400
+
+    def test_post_with_empty_query_is_rejected(self) -> None:
+        """VULN-950: POST with empty query list should also be rejected."""
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "crash",
+                    "projects": self.project_ids,
+                    "query": [],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 400

@@ -1,9 +1,7 @@
-import {RouterFixture} from 'sentry-fixture/routerFixture';
-
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import RegisterForm from 'sentry/views/auth/registerForm';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {RegisterForm} from 'sentry/views/auth/registerForm';
 
 describe('Register', () => {
   const emptyAuthConfig = {
@@ -46,16 +44,13 @@ describe('Register', () => {
       },
     });
 
-    render(<RegisterForm authConfig={emptyAuthConfig} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<RegisterForm authConfig={emptyAuthConfig} />);
     await doLogin(mockRequest);
 
     expect(await screen.findByText('Registration failed')).toBeInTheDocument();
   });
 
   it('handles success', async () => {
-    const router = RouterFixture();
     const userObject = {
       id: 1,
       name: 'Joe',
@@ -71,13 +66,10 @@ describe('Register', () => {
       },
     });
 
-    render(<RegisterForm authConfig={emptyAuthConfig} />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(<RegisterForm authConfig={emptyAuthConfig} />);
     await doLogin(mockRequest);
 
     await waitFor(() => expect(ConfigStore.get('user')).toEqual(userObject));
-    expect(router.push).toHaveBeenCalledWith({pathname: '/next/'});
+    expect(router.location.pathname).toBe('/next/');
   });
 });

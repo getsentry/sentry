@@ -21,18 +21,22 @@ import {
   IconGraph,
   IconIssues,
   IconOpen,
-  IconPrevent,
   IconSettings,
   IconStar,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
+import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
-import {useNavContext} from 'sentry/views/nav/context';
-import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 // This hook generates actions for all pages in the primary and secondary navigation.
@@ -154,13 +158,37 @@ function useNavigationActions(): CommandPaletteAction[] {
       display: {
         label: t('Frontend'),
       },
-      to: `${prefix}/insights/frontend/`,
+      to: `${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`,
     }),
     makeCommandPaletteLink({
       display: {
         label: t('Backend'),
       },
-      to: `${prefix}/insights/backend/`,
+      to: `${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`,
+    }),
+    makeCommandPaletteLink({
+      display: {
+        label: t('Mobile'),
+      },
+      to: `${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`,
+    }),
+    makeCommandPaletteLink({
+      display: {
+        label: t('Agents'),
+      },
+      to: `${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`,
+    }),
+    makeCommandPaletteLink({
+      display: {
+        label: t('MCP'),
+      },
+      to: `${prefix}/insights/${MCP_LANDING_SUB_PATH}/`,
+    }),
+    makeCommandPaletteLink({
+      display: {
+        label: t('Crons'),
+      },
+      to: `${prefix}/insights/crons/`,
     }),
     makeCommandPaletteLink({
       display: {
@@ -174,36 +202,6 @@ function useNavigationActions(): CommandPaletteAction[] {
         label: t('All Projects'),
       },
       to: `${prefix}/insights/projects/`,
-    }),
-  ];
-
-  const preventChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
-      display: {
-        label: t('Coverage'),
-      },
-      to: `${prefix}/prevent/coverage/commits/`,
-      hidden: !organization.features.includes('codecov-ui'),
-    }),
-    makeCommandPaletteLink({
-      display: {
-        label: t('Tests'),
-      },
-      to: `${prefix}/prevent/tests/`,
-      hidden: !organization.features.includes('prevent-test-analytics'),
-    }),
-    makeCommandPaletteLink({
-      display: {
-        label: t('AI Code Review'),
-      },
-      to: `${prefix}/prevent/ai-code-review/new/`,
-    }),
-    makeCommandPaletteLink({
-      display: {
-        label: t('Tokens'),
-      },
-      to: `${prefix}/prevent/tokens/`,
-      hidden: !organization.features.includes('prevent-test-analytics'),
     }),
   ];
 
@@ -256,15 +254,6 @@ function useNavigationActions(): CommandPaletteAction[] {
     makeCommandPaletteGroup({
       groupingKey: 'navigate',
       display: {
-        label: t('Prevent'),
-        icon: <IconPrevent />,
-      },
-      actions: preventChildren,
-      hidden: !organization.features.includes('prevent-ai'),
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'navigate',
-      display: {
         label: t('Settings'),
         icon: <IconSettings />,
       },
@@ -274,7 +263,8 @@ function useNavigationActions(): CommandPaletteAction[] {
 }
 
 function useNavigationToggleCollapsed(): CommandPaletteAction {
-  const {isCollapsed, setIsCollapsed} = useNavContext();
+  const {view, setView} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
 
   return {
     type: 'callback',
@@ -285,7 +275,7 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
       icon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
     },
     onAction: () => {
-      setIsCollapsed(!isCollapsed);
+      setView(view === 'expanded' ? 'collapsed' : 'expanded');
     },
   };
 }

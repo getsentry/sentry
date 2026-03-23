@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import CommitLink from 'sentry/components/commitLink';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {UserAvatar} from '@sentry/scraps/avatar';
+
+import {CommitLink} from 'sentry/components/commitLink';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Repository} from 'sentry/types/integrations';
@@ -49,6 +49,9 @@ export function renderResolutionReason({
     activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
   );
 
+  const integrationName = relevantActivity?.sentry_app?.name ?? null;
+  const resolvedActor = integrationName ? <strong>{integrationName}</strong> : actor;
+
   // Resolved in next release has current_release_version (semver only)
   if (relevantActivity && 'current_release_version' in relevantActivity.data) {
     const releaseVersion =
@@ -62,9 +65,9 @@ export function renderResolutionReason({
         <VersionComponent version={releaseVersion} projectId={project.id} />
       </VersionHoverCard>
     );
-    return statusDetails.actor
+    return resolvedActor
       ? tct('[actor] marked this issue as resolved in versions greater than [version].', {
-          actor,
+          actor: resolvedActor,
           version,
         })
       : tct(
@@ -76,9 +79,9 @@ export function renderResolutionReason({
   }
 
   if (statusDetails.inNextRelease) {
-    return actor
+    return resolvedActor
       ? tct('[actor] marked this issue as resolved in the upcoming release.', {
-          actor,
+          actor: resolvedActor,
         })
       : t('This issue has been marked as resolved in the upcoming release.');
   }
@@ -92,9 +95,9 @@ export function renderResolutionReason({
         <VersionComponent version={statusDetails.inRelease} projectId={project.id} />
       </VersionHoverCard>
     );
-    return actor
+    return resolvedActor
       ? tct('[actor] marked this issue as resolved in version [version].', {
-          actor,
+          actor: resolvedActor,
           version,
         })
       : tct('This issue has been marked as resolved in version [version].', {version});
@@ -126,11 +129,11 @@ export function renderResolutionReason({
   return hasStreamlinedUI ? null : t('This issue has been marked as resolved.');
 }
 
-function ResolutionBox(props: Props) {
+export function ResolutionBox(props: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <StyledIconCheckmark color="successText" />
+        <StyledIconCheckmark variant="success" />
         <span>{renderResolutionReason(props)}</span>
       </BannerSummary>
     </BannerContainer>
@@ -138,16 +141,16 @@ function ResolutionBox(props: Props) {
 }
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
-  margin-left: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-left: ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StreamlinedTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   font-size: inherit;
   text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.green400};
+  text-decoration-color: ${p => p.theme.colors.green500};
 `;
 
 const StyledIconCheckmark = styled(IconCheckmark)`
@@ -156,32 +159,30 @@ const StyledIconCheckmark = styled(IconCheckmark)`
   align-self: center;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    margin-top: ${space(0.5)} !important;
+    margin-top: ${p => p.theme.space.xs} !important;
     align-self: flex-start;
   }
 `;
 
 const StreamlinedVersion = styled(Version)`
-  color: ${p => p.theme.green400};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.colors.green500};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
   &:hover {
-    color: ${p => p.theme.green400};
+    color: ${p => p.theme.colors.green500};
     text-decoration: none;
   }
 `;
 
 const StreamlinedCommitLink = styled(CommitLink)`
-  color: ${p => p.theme.green400};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.colors.green500};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
   &:hover {
-    color: ${p => p.theme.green400};
+    color: ${p => p.theme.colors.green500};
     text-decoration: none;
   }
 `;
-
-export default ResolutionBox;

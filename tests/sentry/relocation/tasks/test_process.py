@@ -94,7 +94,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.task_runner import BurstTaskRunner, BurstTaskRunnerRetryError
-from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_cells
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.utils import json
@@ -103,7 +103,7 @@ IMPORT_JSON_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
 
 REQUESTING_TEST_REGION = "requesting"
 EXPORTING_TEST_REGION = "exporting"
-SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTING_TEST_REGION)
+SAAS_TO_SAAS_TEST_REGIONS = create_test_cells(REQUESTING_TEST_REGION, EXPORTING_TEST_REGION)
 
 
 class RelocationTaskTestCase(TestCase):
@@ -125,12 +125,12 @@ class RelocationTaskTestCase(TestCase):
         self.owner = self.create_user(
             email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
         )
-        self.superuser = self.create_user(
-            email="superuser@example.com", is_superuser=True, is_staff=True, is_active=True
+        self.staff_user = self.create_user(
+            email="staff_user@example.com", is_staff=True, is_active=True
         )
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         self.relocation: Relocation = Relocation.objects.create(
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             want_org_slugs=[self.requested_org_slug],
             step=Relocation.Step.UPLOADING.value,
@@ -223,18 +223,18 @@ class RelocationTaskTestCase(TestCase):
 @patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.uploading_complete.apply_async")
-@region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
+@cell_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class UploadingStartTest(RelocationTaskTestCase):
     def setUp(self) -> None:
         self.owner = self.create_user(
             email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
         )
-        self.superuser = self.create_user(
+        self.staff_superuser = self.create_user(
             email="superuser@example.com", is_superuser=True, is_staff=True, is_active=True
         )
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_superuser, staff=True)
 
-        with assume_test_silo_mode(SiloMode.REGION, region_name=EXPORTING_TEST_REGION):
+        with assume_test_silo_mode(SiloMode.CELL, cell_name=EXPORTING_TEST_REGION):
             self.requested_org_slug = "testing"
             self.existing_org_owner = self.create_user(
                 email="existing_org_owner@example.com",
@@ -246,9 +246,9 @@ class UploadingStartTest(RelocationTaskTestCase):
                 name=self.requested_org_slug, owner=self.existing_org_owner
             )
 
-        with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+        with assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION):
             self.relocation: Relocation = Relocation.objects.create(
-                creator_id=self.superuser.id,
+                creator_id=self.staff_superuser.id,
                 owner_id=self.owner.id,
                 want_org_slugs=[self.requested_org_slug],
                 step=Relocation.Step.UPLOADING.value,
@@ -274,7 +274,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
         with (
             self.tasks(),
-            assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+            assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
         ):
             uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
@@ -308,7 +308,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
         with (
             self.tasks(),
-            assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+            assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
         ):
             uploading_start(self.uuid, None, None)
 
@@ -336,7 +336,7 @@ class UploadingStartTest(RelocationTaskTestCase):
             fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
             with (
                 self.tasks(),
-                assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+                assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
             ):
                 uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
@@ -368,14 +368,14 @@ class UploadingStartTest(RelocationTaskTestCase):
             fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
             with (
                 self.tasks(),
-                assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+                assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
             ):
                 uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_superuser.email]
         )
 
         assert uploading_complete_mock.call_count == 0
@@ -401,7 +401,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
         with (
             self.tasks(),
-            assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+            assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
         ):
             # Will fail, because we do not supply an `org_slug` argument for a `SAAS_TO_SAAS`
             # relocation.
@@ -430,7 +430,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
         with (
             self.tasks(),
-            assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+            assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
         ):
             uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
@@ -450,7 +450,7 @@ class UploadingStartTest(RelocationTaskTestCase):
             assert fake_message_builder.call_count == 1
             assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
             fake_message_builder.return_value.send_async.assert_called_once_with(
-                to=[self.owner.email, self.superuser.email]
+                to=[self.owner.email, self.staff_superuser.email]
             )
 
         assert fake_kms_client.return_value.get_public_key.call_count == 1
@@ -516,7 +516,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_scan_mock.call_count == 0
@@ -550,7 +550,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.started"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 1
@@ -648,7 +648,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -672,7 +672,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -702,7 +702,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 1
@@ -726,7 +726,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -749,7 +749,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -771,7 +771,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -794,7 +794,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -818,7 +818,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -843,7 +843,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -870,7 +870,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -932,7 +932,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_baseline_config_mock.call_count == 0
@@ -980,10 +980,10 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
             )
         assert len(json_models) > 0
 
-        # Only user `superuser` is an admin, so only they should be exported.
+        # Only user `staff_user` is an admin, so only they should be exported.
         for json_model in json_models:
             if NormalizedModelName(json_model["model"]) == get_model_name(User):
-                assert json_model["fields"]["username"] in "superuser@example.com"
+                assert json_model["fields"]["username"] in "staff_user@example.com"
 
     def test_retry_if_attempts_left(
         self,
@@ -1035,7 +1035,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_colliding_users_mock.call_count == 0
@@ -1135,7 +1135,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_complete_mock.call_count == 0
@@ -1219,7 +1219,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert validating_start_mock.call_count == 0
@@ -1631,7 +1631,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert validating_poll_mock.call_count == 0
@@ -1740,7 +1740,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert importing_mock.call_count == 0
@@ -1795,7 +1795,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert importing_mock.call_count == 0
@@ -2154,7 +2154,7 @@ class PostprocessingTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert relocated_signal_mock.call_count == 1
@@ -2385,7 +2385,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
         assert notifying_owner_mock.call_count == 0
 
@@ -2430,7 +2430,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.succeeded"
         assert fake_message_builder.call_args.kwargs["context"]["orgs"] == self.imported_orgs
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert completed_mock.call_count == 1

@@ -13,7 +13,8 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -242,6 +243,51 @@ class GitHubApiClientTest(TestCase):
         assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
         assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_file_codeowners_raises_on_json_error_response(self, mock_jwt) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/contents/CODEOWNERS",
+            json={
+                "message": "Not Found",
+                "documentation_url": "https://docs.github.com/rest",
+                "status": "404",
+            },
+            status=404,
+        )
+        with pytest.raises(ApiError):
+            self.github_client.get_file(self.repo, "CODEOWNERS", ref=None, codeowners=True)
+
+    @mock.patch(
+        "sentry.integrations.github.integration.GitHubIntegration.check_file",
+        return_value="https://github.com/Test-Organization/foo/blob/master/CODEOWNERS",
+    )
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_codeowner_file_returns_none_on_error_response(
+        self, mock_jwt, mock_check_file
+    ) -> None:
+        self.config = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+        )
+        for location in ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]:
+            responses.add(
+                method=responses.GET,
+                url=f"https://api.github.com/repos/{self.repo.name}/contents/{location}",
+                json={
+                    "message": "Not Found",
+                    "documentation_url": "https://docs.github.com/rest",
+                    "status": "404",
+                },
+                status=404,
+            )
+        result = self.install.get_codeowner_file(
+            self.config.repository, ref=self.config.default_branch
+        )
+        assert result is None
+
     @responses.activate
     def test_get_cached_repo_files_caching_functionality(self) -> None:
         """Fetch files for repo. Test caching logic."""
@@ -378,37 +424,105 @@ class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_comment_reactions(self, get_jwt) -> None:
-        comment_reactions = {
-            "reactions": {
-                "url": "abcdef",
-                "hooray": 1,
-                "+1": 2,
-                "-1": 0,
-            }
-        }
+        reaction_list = [
+            {"id": 1, "content": "hooray", "user": {"login": "octocat", "id": 1}},
+            {"id": 2, "content": "+1", "user": {"login": "hubot", "id": 2}},
+        ]
         responses.add(
             responses.GET,
-            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2",
-            json=comment_reactions,
+            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2/reactions?per_page=100",
+            json=reaction_list,
+            headers={},
         )
 
         reactions = self.github_client.get_comment_reactions(repo=self.repo.name, comment_id="2")
-        stored_reactions = comment_reactions["reactions"]
-        del stored_reactions["url"]
-        assert reactions == stored_reactions
+        assert reactions == reaction_list
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_comment_reactions_missing_reactions(self, get_jwt) -> None:
-        comment_reactions = {"other": "stuff"}
+    def test_get_comment_reactions_empty(self, get_jwt) -> None:
         responses.add(
             responses.GET,
-            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2",
-            json=comment_reactions,
+            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2/reactions?per_page=100",
+            json=[],
+            headers={},
         )
 
         reactions = self.github_client.get_comment_reactions(repo=self.repo.name, comment_id="2")
-        assert reactions == {}
+        assert reactions == []
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_create_comment_reaction(self, get_jwt) -> None:
+        response_data = {
+            "id": 1,
+            "node_id": "MDg6UmVhY3Rpb24x",
+            "user": {"login": "octocat", "id": 1},
+            "content": "eyes",
+            "created_at": "2016-05-20T20:09:31Z",
+        }
+        responses.add(
+            responses.POST,
+            f"https://api.github.com/repos/{self.repo.name}/issues/comments/123/reactions",
+            json=response_data,
+            status=201,
+        )
+
+        result = self.github_client.create_comment_reaction(
+            repo=self.repo.name, comment_id="123", reaction=GitHubReaction.EYES
+        )
+        assert result == response_data
+        assert orjson.loads(responses.calls[0].request.body) == {"content": "eyes"}
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_issue_reactions(self, get_jwt) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions?per_page={self.github_client.page_size}",
+            json=[
+                {"id": 1, "user": {"login": "sentry[bot]"}, "content": "eyes"},
+                {"id": 2, "user": {"login": "other-user"}, "content": "heart"},
+            ],
+            headers={},
+        )
+        result = self.github_client.get_issue_reactions(repo=self.repo.name, issue_number="42")
+        assert len(result) == 2
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_create_issue_reaction(self, get_jwt) -> None:
+        response_data = {
+            "id": 1,
+            "node_id": "MDg6UmVhY3Rpb24x",
+            "user": {"login": "octocat", "id": 1},
+            "content": "eyes",
+        }
+        responses.add(
+            responses.POST,
+            f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions",
+            json=response_data,
+            status=201,
+        )
+
+        result = self.github_client.create_issue_reaction(
+            repo=self.repo.name, issue_number="42", reaction=GitHubReaction.EYES
+        )
+        assert result == response_data
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_delete_issue_reaction(self, get_jwt) -> None:
+        responses.add(
+            responses.DELETE,
+            f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions/123",
+            status=204,
+        )
+
+        result = self.github_client.delete_issue_reaction(
+            repo=self.repo.name, issue_number="42", reaction_id="123"
+        )
+        assert result is None or result == {}
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -439,6 +553,39 @@ class GitHubApiClientTest(TestCase):
 
         sha = self.github_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha is None
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request(self, get_jwt) -> None:
+        pull_number = 42
+        pr_data = {
+            "number": pull_number,
+            "title": "Test PR",
+            "state": "open",
+            "head": {
+                "sha": "abc123def456",
+                "ref": "feature-branch",
+            },
+            "base": {
+                "sha": "789xyz",
+                "ref": "main",
+            },
+            "user": {"login": "testuser"},
+        }
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/pulls/{pull_number}",
+            json=pr_data,
+        )
+
+        result = self.github_client.get_pull_request(
+            repo=self.repo.name, pull_number=str(pull_number)
+        )
+        assert result["number"] == pull_number
+        assert result["title"] == "Test PR"
+        assert result["state"] == "open"
+        assert result["head"]["sha"] == "abc123def456"
+        assert result["base"]["ref"] == "main"
 
 
 @control_silo_test
@@ -597,7 +744,7 @@ class GithubProxyClientTest(TestCase):
         # First request should refresh the token and add headers
         self.gh_client.authorize_request(prepared_request=access_token_request)
         assert mock_jwt.called
-        assert access_token_request.headers["Accept"] == "application/vnd.github+json"
+        assert access_token_request.headers["Accept"] == GITHUB_API_ACCEPT_HEADER
         assert self.access_token in access_token_request.headers["Authorization"]
 
         mock_jwt.reset_mock()
@@ -606,13 +753,13 @@ class GithubProxyClientTest(TestCase):
         # Following requests should just add headers
         self.gh_client.authorize_request(prepared_request=access_token_request)
         assert not mock_jwt.called
-        assert access_token_request.headers["Accept"] == "application/vnd.github+json"
+        assert access_token_request.headers["Accept"] == GITHUB_API_ACCEPT_HEADER
         assert self.access_token in access_token_request.headers["Authorization"]
 
         # JWT-authorized requests should be identified by request path
         self.gh_client.authorize_request(prepared_request=jwt_request)
         assert mock_jwt.called
-        assert jwt_request.headers["Accept"] == "application/vnd.github+json"
+        assert jwt_request.headers["Accept"] == GITHUB_API_ACCEPT_HEADER
         assert jwt_request.headers["Authorization"] == f"Bearer {self.jwt}"
 
     @responses.activate
@@ -671,7 +818,7 @@ class GithubProxyClientTest(TestCase):
 
         responses.calls.reset()
         assert control_proxy_responses.call_count == 0
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             client = GithubProxyTestClient(integration=self.integration)
             client.get_issue("test-repo", "123")
             request = responses.calls[0].request
@@ -738,6 +885,34 @@ class GitHubCommitContextClientTest(TestCase):
         assert result["status"] == "completed"
         assert result["conclusion"] == "success"
         assert result["details_url"] == "https://example.com/build/123"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_check_run(self, get_jwt) -> None:
+        repo_name = "getsentry/sentry"
+        check_run_id = 123456
+
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{repo_name}/check-runs/{check_run_id}",
+            json={
+                "id": check_run_id,
+                "name": "Seer Code Review",
+                "head_sha": "abc123",
+                "status": "in_progress",
+                "conclusion": None,
+                "started_at": "2026-02-17T12:00:00Z",
+                "details_url": "https://example.com/check/123456",
+            },
+            status=200,
+        )
+
+        result = self.github_client.get_check_run(repo_name, check_run_id)
+
+        assert result["id"] == check_run_id
+        assert result["name"] == "Seer Code Review"
+        assert result["status"] == "in_progress"
+        assert result["conclusion"] is None
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -1591,10 +1766,10 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             ],
         )
 
-    @mock.patch("sentry.integrations.github.client.logger.error")
+    @mock.patch("sentry.integrations.github.client.logger.warning")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_invalid_commit(self, get_jwt, mock_logger_error) -> None:
+    def test_get_blame_for_files_invalid_commit(self, get_jwt, mock_logger_warning) -> None:
         """
         Tests commits that have invalid data are skipped and logged
         """
@@ -1663,7 +1838,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
         response = self.github_client.get_blame_for_files([file1, file2], extra={})
         self.assertEqual(response, [])
 
-        mock_logger_error.assert_has_calls(
+        mock_logger_warning.assert_has_calls(
             [
                 mock.call(
                     "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
@@ -1735,13 +1910,13 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
             content_type="application/json",
         )
 
-    @mock.patch("sentry.integrations.github.client.logger.error")
+    @mock.patch("sentry.integrations.github.client.logger.warning")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_rate_limit_exceeded(self, get_jwt, mock_logger_error) -> None:
+    def test_rate_limit_exceeded(self, get_jwt, mock_logger_warning) -> None:
         with pytest.raises(ApiRateLimitedError):
             self.github_client.get_blame_for_files([self.file], extra={})
-        mock_logger_error.assert_called_with(
+        mock_logger_warning.assert_called_with(
             "sentry.integrations.github.get_blame_for_files.rate_limit",
             extra={
                 "provider": "github",

@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {ContextBlock} from 'sentry/components/events/contexts/contextBlock';
 import {
   getKnownData,
   getKnownStructuredData,

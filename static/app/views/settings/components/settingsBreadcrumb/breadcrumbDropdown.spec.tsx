@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
+import {BreadcrumbDropdown} from './breadcrumbDropdown';
 
 describe('Settings Breadcrumb Dropdown', () => {
   const selectMock = jest.fn();
@@ -10,6 +10,7 @@ describe('Settings Breadcrumb Dropdown', () => {
   const createWrapper = () => {
     return render(
       <BreadcrumbDropdown
+        value={undefined}
         route={{path: '/', name: 'root'}}
         options={[
           {value: '1', label: 'foo'},
@@ -74,6 +75,7 @@ describe('Settings Breadcrumb Dropdown', () => {
     render(
       <Fragment>
         <BreadcrumbDropdown
+          value={undefined}
           route={{path: '/', name: 'root'}}
           options={[
             {value: '1', label: 'foo'},
@@ -84,6 +86,7 @@ describe('Settings Breadcrumb Dropdown', () => {
           onCrumbSelect={selectMock}
         />
         <BreadcrumbDropdown
+          value={undefined}
           route={{path: '/', name: 'root'}}
           options={[
             {value: '1', label: 'baz'},

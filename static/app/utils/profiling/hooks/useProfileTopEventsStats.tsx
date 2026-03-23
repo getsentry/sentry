@@ -1,15 +1,16 @@
 import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventsStatsSeries} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {transformSingleSeries} from 'sentry/utils/profiling/hooks/utils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseProfileTopEventsStatsOptions<F> {
   dataset: 'profileFunctions';
@@ -44,7 +45,6 @@ export function useProfileTopEventsStats<F extends string>({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/events-stats/`;
   const endpointOptions = {
     query: {
       dataset,
@@ -61,12 +61,20 @@ export function useProfileTopEventsStats<F extends string>({
     },
   };
 
-  const result = useApiQuery<any>([path, endpointOptions], {
-    staleTime: Infinity,
-    enabled,
-  });
+  const result = useApiQuery<any>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      endpointOptions,
+    ],
+    {
+      staleTime: Infinity,
+      enabled,
+    }
+  );
 
-  const transformed: EventsStatsSeries<F> = useMemo(
+  const transformed = useMemo(
     () => transformTopEventsStatsResponse(dataset, yAxes, result.data),
     [yAxes, result.data, dataset]
   );

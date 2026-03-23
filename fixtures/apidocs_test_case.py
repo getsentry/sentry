@@ -32,7 +32,8 @@ class APIDocsTestCase(APITestCase):
 
         response["Content-Type"] = "application/json"
         V30ResponseDataValidator(self.cached_schema).validate(
-            DjangoOpenAPIRequest(request), DjangoOpenAPIResponse(response)
+            DjangoOpenAPIRequest(request),
+            DjangoOpenAPIResponse(response),  # type: ignore[arg-type]  # Werkzeug 3.1 Headers vs Mapping
         )
 
     def create_event(self, name, **kwargs):

@@ -6,8 +6,11 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+import sentry_sdk
 import urllib3
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from urllib3.fields import RequestField
+from urllib3.filepost import encode_multipart_formdata
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -17,7 +20,8 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
-from sentry.utils import json, snuba
+from sentry.utils import json, metrics, snuba
+from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, item_id_to_hex
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
 
@@ -213,7 +217,10 @@ class SnubaProtocolEventStream(EventStream):
         )
 
         if in_rollout_group("eventstream.eap_forwarding_rate", event.project_id):
-            self._forward_event_to_items(event, event_data, event_type, project)
+            try:
+                self._forward_event_to_items(event, event_data, event_type, project)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     def _missing_required_item_fields(self, event_data: Mapping[str, Any]) -> list[str]:
         root_level_fields = ["event_id", "timestamp"]
@@ -493,6 +500,57 @@ class SnubaEventStream(SnubaProtocolEventStream):
             return None
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
+
+    def _send_item(self, trace_item: TraceItem) -> None:
+        try:
+            serialized = trace_item.SerializeToString()
+            field = RequestField(name="item_0", data=serialized, filename="item_0")
+            field.make_multipart(content_type="application/octet-stream")
+            body, content_type = encode_multipart_formdata([field])
+
+            resp = snuba._snuba_pool.urlopen(
+                "POST",
+                EAP_ITEMS_INSERT_ENDPOINT,
+                body=body,
+                headers={"Content-Type": content_type},
+            )
+
+            if resp.status == 200:
+                metrics.incr(
+                    "eventstream.eap.occurrence_insert.success",
+                    tags={"backend": "snuba_http"},
+                )
+            else:
+                logger.warning(
+                    "Failed to insert EAP occurrence item via Snuba HTTP",
+                    extra={
+                        "status": resp.status,
+                        "organization_id": trace_item.organization_id,
+                        "project_id": trace_item.project_id,
+                        "event_id": item_id_to_hex(trace_item.item_id),
+                        "trace_id": trace_item.trace_id,
+                        "backend": "snuba_http",
+                    },
+                )
+                metrics.incr(
+                    "eventstream.eap.occurrence_insert.failure",
+                    tags={"backend": "snuba_http"},
+                )
+        except Exception:
+            logger.exception(
+                "Exception while inserting EAP occurrence item via Snuba HTTP",
+                extra={
+                    "organization_id": trace_item.organization_id,
+                    "project_id": trace_item.project_id,
+                    "event_id": item_id_to_hex(trace_item.item_id),
+                    "trace_id": trace_item.trace_id,
+                    "backend": "snuba_http",
+                },
+            )
+            metrics.incr(
+                "eventstream.eap.occurrence_insert.failure",
+                tags={"backend": "snuba_http"},
+            )
 
     def requires_post_process_forwarder(self) -> bool:
         return False

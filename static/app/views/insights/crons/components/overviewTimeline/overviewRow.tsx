@@ -1,26 +1,27 @@
 import {useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ActorBadge from 'sentry/components/idBadge/actorBadge';
+import {ActorBadge} from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/insights/crons/types';
@@ -33,7 +34,7 @@ import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
-import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
+import {MonitorEnvironmentLabel} from './monitorEnvironmentLabel';
 
 interface Props {
   monitor: Monitor;
@@ -59,7 +60,6 @@ export function OverviewRow({
   onToggleStatus,
 }: Props) {
   const organization = useOrganization();
-  const theme = useTheme();
 
   const {data: monitorStats, isPending} = useMonitorStats({
     monitors: [monitor.id],
@@ -102,27 +102,27 @@ export function OverviewRow({
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
         </DetailsHeadline>
-        <DetailsContainer>
+        <Stack gap="xs">
           <OwnershipDetails>
             <ProjectBadge project={monitor.project} avatarSize={12} disableLink />
             {monitor.owner ? (
               <ActorBadge actor={monitor.owner} avatarSize={12} />
             ) : (
-              <UnassignedLabel>
+              <Flex align="center" gap="xs">
                 <IconUser size="xs" />
                 {t('Unassigned')}
-              </UnassignedLabel>
+              </Flex>
             )}
           </OwnershipDetails>
           <ScheduleDetails>
             <IconTimer size="xs" />
             {scheduleAsText(monitor.config)}
           </ScheduleDetails>
-          <MonitorStatuses>
-            {monitor.isMuted && <Tag>{t('Muted')}</Tag>}
-            {isDisabled && <Tag>{t('Disabled')}</Tag>}
-          </MonitorStatuses>
-        </DetailsContainer>
+          <Flex gap="xs">
+            {monitor.isMuted && <Tag variant="muted">{t('Muted')}</Tag>}
+            {isDisabled && <Tag variant="muted">{t('Disabled')}</Tag>}
+          </Flex>
+        </Stack>
       </DetailsLink>
       <DetailsActions>
         {onToggleStatus && (
@@ -131,7 +131,7 @@ export function OverviewRow({
             size="xs"
             onToggleStatus={status => onToggleStatus(monitor, status)}
             disabled={!canDisable}
-            title={canDisable ? undefined : permissionTooltipText}
+            tooltipProps={{title: canDisable ? undefined : permissionTooltipText}}
           />
         )}
       </DetailsActions>
@@ -147,13 +147,8 @@ export function OverviewRow({
     ...(onToggleMuteEnvironment
       ? [
           (env: string, isMuted: boolean) => ({
-            label:
-              isMuted && !monitor.isMuted
-                ? t('Unmute Environment')
-                : t('Mute Environment'),
+            label: isMuted ? t('Unmute Environment') : t('Mute Environment'),
             key: 'mute',
-            details: monitor.isMuted ? t('Monitor is muted') : undefined,
-            disabled: monitor.isMuted,
             onAction: () => onToggleMuteEnvironment(env, !isMuted),
           }),
         ]
@@ -200,7 +195,7 @@ export function OverviewRow({
                   <EnvActionButton
                     {...triggerProps}
                     aria-label={t('Monitor environment actions')}
-                    size={theme.isChonk ? 'zero' : 'xs'}
+                    size="zero"
                     icon={<IconEllipsis />}
                   />
                 )}
@@ -248,8 +243,8 @@ export function OverviewRow({
 
 const DetailsLink = styled(Link)`
   display: block;
-  padding: ${space(3)};
-  color: ${p => p.theme.textColor};
+  padding: ${p => p.theme.space['2xl']};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:focus-visible {
     outline: none;
@@ -257,55 +252,38 @@ const DetailsLink = styled(Link)`
 `;
 
 const DetailsArea = styled('div')`
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 0;
   position: relative;
 `;
 
 const DetailsHeadline = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: 1fr minmax(30px, max-content);
-`;
-
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
 `;
 
 const OwnershipDetails = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const UnassignedLabel = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const MonitorStatuses = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   word-break: break-word;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const ScheduleDetails = styled('small')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 interface TimelineRowProps {
@@ -325,13 +303,13 @@ const TimelineRow = styled('li')<TimelineRowProps>`
       transition: background 50ms ease-in-out;
 
       &:nth-child(odd) {
-        background: ${p.theme.backgroundSecondary};
+        background: ${p.theme.tokens.background.secondary};
       }
       &:hover {
-        background: ${p.theme.backgroundTertiary};
+        background: ${p.theme.tokens.background.tertiary};
       }
       &:has(*:focus-visible) {
-        background: ${p.theme.backgroundTertiary};
+        background: ${p.theme.tokens.background.tertiary};
       }
     `}
 
@@ -339,8 +317,8 @@ const TimelineRow = styled('li')<TimelineRowProps>`
   --disabled-opacity: ${p => (p.isDisabled ? '0.6' : 'unset')};
 
   &:last-child {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 `;
 
@@ -351,8 +329,8 @@ const DetailsActions = styled('div')`
   opacity: 0;
 
   /* Align to the center of the heading text */
-  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
-  margin: ${space(3)};
+  height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
+  margin: ${p => p.theme.space['2xl']};
 
   /* Show when timeline is hovered / focused */
   ${TimelineRow}:hover &,
@@ -365,10 +343,10 @@ const DetailsActions = styled('div')`
 
 const MonitorEnvContainer = styled('div')`
   display: flex;
-  padding: ${space(3)} ${space(2)};
-  gap: ${space(4)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
+  gap: ${p => p.theme.space['3xl']};
   flex-direction: column;
-  border-right: 1px solid ${p => p.theme.innerBorder};
+  border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   text-align: right;
 `;
 
@@ -378,10 +356,10 @@ const EnvDropdown = styled(DropdownMenu)`
 
 const EnvRow = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-content: space-between;
   align-items: center;
-  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
 `;
 
 const EnvActionButton = styled(Button)`
@@ -392,9 +370,9 @@ const EnvActionButton = styled(Button)`
 
 const TimelineContainer = styled('div')`
   display: flex;
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
   flex-direction: column;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   contain: content;
   grid-column: 3/-1;
 `;
@@ -403,7 +381,7 @@ const TimelineEnvOuterContainer = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
-  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
   opacity: var(--disabled-opacity);
 `;
 

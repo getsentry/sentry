@@ -5,7 +5,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ForcedTrialModal from 'getsentry/components/forcedTrialModal';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 const slug = 'my-org';
 

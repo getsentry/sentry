@@ -1,5 +1,5 @@
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {t} from 'sentry/locale';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
@@ -8,7 +8,7 @@ import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetect
 
 const TITLE = t('My Monitors');
 const DESCRIPTION = t('View monitors assigned to you or your teams.');
-const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
+const DOCS_URL = 'https://docs.sentry.io/product/new-monitors-and-alerts/monitors/';
 
 export default function MyMonitorsList() {
   const detectorListQuery = useDetectorListQuery({
@@ -18,7 +18,7 @@ export default function MyMonitorsList() {
   return (
     <SentryDocumentTitle title={TITLE}>
       <WorkflowEngineListLayout
-        actions={<DetectorListActions />}
+        actions={<DetectorListActions detectorType={null} />}
         title={TITLE}
         description={DESCRIPTION}
         docsUrl={DOCS_URL}

@@ -3,13 +3,12 @@ import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
-import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
-import EventReplay from 'sentry/components/events/eventReplay';
+import {EventHydrationDiff} from 'sentry/components/events/eventHydrationDiff';
+import {EventReplay} from 'sentry/components/events/eventReplay';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -139,7 +138,7 @@ function EventEntries({
 // Because replays are not an interface, we need to manually insert the replay section
 // into the array of entries. The long-term solution here is to move the ordering
 // logic to this component, similar to how GroupEventDetailsContent works.
-export function partitionEntriesForReplay(entries: Entry[]) {
+function partitionEntriesForReplay(entries: Entry[]) {
   let replayIndex = 0;
 
   for (const [i, entry] of entries.entries()) {
@@ -212,14 +211,14 @@ function Entries({
 }
 
 const LatestEventNotAvailable = styled('div')`
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
 
 const BorderlessEventEntries = styled(EventEntries)`
   & ${DataSection} {
     margin-left: 0 !important;
     margin-right: 0 !important;
-    padding: ${space(3)} 0 0 0;
+    padding: ${p => p.theme.space['2xl']} 0 0 0;
   }
   & ${DataSection}:first-child {
     padding-top: 0;

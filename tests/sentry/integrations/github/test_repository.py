@@ -47,7 +47,7 @@ class GitHubAppsProviderTest(TestCase):
     def repository(self) -> Repository:
         # TODO: Refactor this out with a call to the relevant factory if possible to avoid
         # explicitly having to exempt it from silo limits
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             return Repository.objects.create(
                 name="getsentry/example-repo",
                 provider="integrations:github",
@@ -126,6 +126,45 @@ class GitHubAppsProviderTest(TestCase):
         result = self.provider.compare_commits(self.repository, "xyz123", "abcdef")
         for commit in result:
             assert_commit_shape(commit)
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_compare_commits_pagination(self, get_jwt: mock.MagicMock) -> None:
+        """Test that compare_commits paginates to fetch all commits."""
+        page1_data = orjson.loads(COMPARE_COMMITS_EXAMPLE)
+        page2_commit = {
+            **page1_data["commits"][0],
+            "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        }
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
+            json=page1_data,
+            headers={
+                "Link": '<https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef?page=2>; rel="next"'
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef?page=2",
+            json={**page1_data, "commits": [page2_commit]},
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
+        )
+
+        result = self.provider.compare_commits(self.repository, "xyz123", "abcdef")
+        assert len(result) == 2
+        assert result[0]["id"] == "6dcb09b5b57875f334f61aebed695e2e4193db5e"
+        assert result[1]["id"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

@@ -1,94 +1,133 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import FormContext from 'sentry/components/forms/formContext';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  FieldValueType,
+  getFieldDefinition,
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {unreachable} from 'sentry/utils/unreachable';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTags from 'sentry/utils/useTags';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTags} from 'sentry/utils/useTags';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {MetricsVisualize} from 'sentry/views/detectors/components/forms/metric/metricsVisualize';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';
-import {
-  useTraceItemNumberAttributes,
-  useTraceItemStringAttributes,
-} from 'sentry/views/detectors/datasetConfig/useTraceItemAttributes';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-
-const LOCKED_SPAN_COUNT_OPTION = {
-  value: DEFAULT_VISUALIZATION_FIELD,
-  label: t('spans'),
-};
 
 /**
  * Render a tag badge for field types, similar to dashboard widget builder
  */
 function renderTag(kind: FieldValueKind): React.ReactNode {
   let text: string | undefined;
-  let tagType: TagProps['type'] | undefined;
+  let tagVariant: TagProps['variant'] | undefined;
 
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.TAG:
       text = 'tag';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.FIELD:
       text = 'field';
-      tagType = 'highlight';
+      tagVariant = 'info';
       break;
     case FieldValueKind.EQUATION:
       text = 'equation';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     case FieldValueKind.METRICS:
       text = 'metrics';
-      tagType = 'warning';
+      tagVariant = 'warning';
       break;
     default:
       unreachable(kind);
       throw new Error(`Invalid field value kind: ${kind}`);
   }
 
-  return <Tag type={tagType}>{text}</Tag>;
+  return <Tag variant={tagVariant}>{text}</Tag>;
+}
+
+/**
+ * Aggregate options excluded for the logs dataset
+ */
+const LOGS_EXCLUDED_AGGREGATES = [
+  AggregationKey.FAILURE_RATE,
+  AggregationKey.FAILURE_COUNT,
+  AggregationKey.APDEX,
+];
+
+const ADDITIONAL_EAP_AGGREGATES = [AggregationKey.APDEX];
+
+/**
+ * Locks the primary dropdown to the single option
+ */
+const LOCKED_SPAN_AGGREGATES = {
+  [AggregationKey.APDEX]: {
+    value: DEFAULT_VISUALIZATION_FIELD,
+    label: 'span.duration',
+  },
+  [AggregationKey.COUNT]: {
+    value: DEFAULT_VISUALIZATION_FIELD,
+    label: 'spans',
+  },
+};
+
+// Type guard for locked span aggregates
+const isLockedSpanAggregate = (
+  agg: string
+): agg is keyof typeof LOCKED_SPAN_AGGREGATES => {
+  return agg in LOCKED_SPAN_AGGREGATES;
+};
+
+function getEAPAllowedAggregates(dataset: DetectorDataset): Array<[string, string]> {
+  return [...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, ...ADDITIONAL_EAP_AGGREGATES]
+    .filter(aggregate => {
+      if (dataset === DetectorDataset.LOGS) {
+        return !LOGS_EXCLUDED_AGGREGATES.includes(aggregate);
+      }
+      return true;
+    })
+    .map(aggregate => [aggregate, aggregate]);
 }
 
 function getAggregateOptions(
@@ -97,7 +136,7 @@ function getAggregateOptions(
 ): Array<[string, string]> {
   // For spans dataset, use the predefined aggregates
   if (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => [aggregate, aggregate]);
+    return getEAPAllowedAggregates(dataset);
   }
 
   // For other datasets, extract function-type options from tableFieldOptions
@@ -107,7 +146,7 @@ function getAggregateOptions(
 
   // If no function options available, fall back to the predefined aggregates
   if (functionOptions.length === 0) {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => [aggregate, aggregate]);
+    return getEAPAllowedAggregates(dataset);
   }
 
   return functionOptions.sort((a, b) => a[1].localeCompare(b[1]));
@@ -180,6 +219,16 @@ function buildAggregateFunction(aggregate: string, parameters: string[]): string
 }
 
 export function Visualize() {
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+
+  if (dataset === DetectorDataset.METRICS) {
+    return <MetricsVisualize />;
+  }
+
+  return <GenericVisualize />;
+}
+
+function GenericVisualize() {
   const organization = useOrganization();
   const {customMeasurements} = useCustomMeasurements();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
@@ -191,14 +240,21 @@ export function Visualize() {
 
   const traceItemType =
     dataset === DetectorDataset.SPANS ? TraceItemDataset.SPANS : TraceItemDataset.LOGS;
-  const {attributes: numericSpanTags} = useTraceItemNumberAttributes({
+  const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    projectIds: [Number(projectId)],
-  });
-  const {attributes: stringSpanTags} = useTraceItemStringAttributes({
+    {projects: [projectId]},
+    'number'
+  );
+  const {attributes: stringSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    projectIds: [Number(projectId)],
-  });
+    {projects: [projectId]},
+    'string'
+  );
+  const {attributes: booleanSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    {projects: [projectId]},
+    'boolean'
+  );
   const formContext = useContext(FormContext);
 
   const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
@@ -210,23 +266,45 @@ export function Visualize() {
 
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
 
-  const aggregateOptions = useMemo(
-    () => datasetConfig.getAggregateOptions(organization, tags, customMeasurements),
-    [organization, tags, datasetConfig, customMeasurements]
-  );
+  const aggregateOptions = useMemo(() => {
+    return datasetConfig.getAggregateOptions(organization, tags, customMeasurements);
+  }, [organization, tags, datasetConfig, customMeasurements]);
 
   const fieldOptions = useMemo(() => {
     // For Spans dataset, use span-specific options from the provider
     if (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) {
+      // Use field definition to determine what options should be displayed
+      const fieldDefinition = getFieldDefinition(
+        aggregate,
+        dataset === DetectorDataset.SPANS ? 'span' : 'log'
+      );
+      let isTypeAllowed = (_valueType: FieldValueType) => true;
+      if (fieldDefinition?.parameters?.[0]?.kind === 'column') {
+        const columnTypes = fieldDefinition?.parameters[0]?.columnTypes;
+        isTypeAllowed = (valueType: FieldValueType) =>
+          typeof columnTypes === 'function'
+            ? columnTypes({key: '', valueType})
+            : columnTypes.includes(valueType);
+      }
       const spanColumnOptions: Array<[string, string]> = [
-        ...Object.values(stringSpanTags).map((tag): [string, string] => [
-          tag.key,
-          prettifyTagKey(tag.name),
-        ]),
-        ...Object.values(numericSpanTags).map((tag): [string, string] => [
-          tag.key,
-          prettifyTagKey(tag.name),
-        ]),
+        ...(isTypeAllowed(FieldValueType.STRING)
+          ? Object.values(stringSpanTags).map((tag): [string, string] => [
+              tag.key,
+              prettifyTagKey(tag.name),
+            ])
+          : []),
+        ...(isTypeAllowed(FieldValueType.NUMBER)
+          ? Object.values(numericSpanTags).map((tag): [string, string] => [
+              tag.key,
+              prettifyTagKey(tag.name),
+            ])
+          : []),
+        ...(isTypeAllowed(FieldValueType.BOOLEAN)
+          ? Object.values(booleanSpanTags).map((tag): [string, string] => [
+              tag.key,
+              prettifyTagKey(tag.name),
+            ])
+          : []),
       ];
       return spanColumnOptions.sort((a, b) => a[1].localeCompare(b[1]));
     }
@@ -239,7 +317,14 @@ export function Visualize() {
       )
       .map((option): [string, string] => [option.value.meta.name, option.value.meta.name])
       .sort((a, b) => a[1].localeCompare(b[1]));
-  }, [dataset, stringSpanTags, numericSpanTags, aggregateOptions]);
+  }, [
+    aggregate,
+    aggregateOptions,
+    booleanSpanTags,
+    dataset,
+    numericSpanTags,
+    stringSpanTags,
+  ]);
 
   const fieldOptionsDropdown = useMemo(() => {
     return fieldOptions.map(([value, label]) => ({
@@ -301,12 +386,15 @@ export function Visualize() {
   };
 
   const lockSpanOptions =
-    dataset === DetectorDataset.SPANS && aggregate === AggregationKey.COUNT;
+    dataset === DetectorDataset.SPANS && isLockedSpanAggregate(aggregate);
+
+  // Get locked option if applicable, with proper type narrowing
+  const lockedOption = lockSpanOptions ? LOCKED_SPAN_AGGREGATES[aggregate] : null;
 
   return (
     <Flex direction="column" gap="md">
       <Flex gap="md" align="end">
-        <FieldContainer>
+        <Stack flex="1" gap="xs" maxWidth="425px">
           <div>
             <Tooltip
               title={t(
@@ -318,8 +406,12 @@ export function Visualize() {
             </Tooltip>
           </div>
           <StyledAggregateSelect
-            searchable
-            triggerProps={{children: aggregate || t('Select aggregate')}}
+            search
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps}>
+                {aggregate || t('Select aggregate')}
+              </OverlayTrigger.Button>
+            )}
             options={aggregateDropdownOptions}
             value={aggregate}
             onChange={option => {
@@ -327,38 +419,39 @@ export function Visualize() {
             }}
             disabled={isTransactionsDataset}
           />
-        </FieldContainer>
+        </Stack>
         {aggregateMetadata?.parameters?.map((param, index) => {
           return (
-            <FieldContainer key={index}>
+            <Stack flex="1" gap="xs" maxWidth="425px" key={index}>
               {param.kind === 'column' ? (
                 <StyledVisualizeSelect
-                  searchable
-                  triggerProps={{
-                    children: lockSpanOptions
-                      ? LOCKED_SPAN_COUNT_OPTION.label
-                      : parameters[index] || param.defaultValue || t('Select metric'),
-                  }}
-                  options={
-                    lockSpanOptions ? [LOCKED_SPAN_COUNT_OPTION] : fieldOptionsDropdown
-                  }
+                  search
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps}>
+                      {lockedOption
+                        ? lockedOption.label
+                        : parameters[index] || param.defaultValue || t('Select metric')}
+                    </OverlayTrigger.Button>
+                  )}
+                  options={lockedOption ? [lockedOption] : fieldOptionsDropdown}
                   value={
-                    lockSpanOptions
+                    lockedOption
                       ? DEFAULT_VISUALIZATION_FIELD
                       : parameters[index] || param.defaultValue || ''
                   }
                   onChange={option => {
                     handleParameterChange(index, String(option.value));
                   }}
-                  disabled={isTransactionsDataset || lockSpanOptions}
+                  disabled={isTransactionsDataset}
                 />
               ) : param.kind === 'dropdown' && param.options ? (
                 <StyledVisualizeSelect
-                  searchable
-                  triggerProps={{
-                    children:
-                      parameters[index] || param.defaultValue || t('Select value'),
-                  }}
+                  search
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps}>
+                      {parameters[index] || param.defaultValue || t('Select value')}
+                    </OverlayTrigger.Button>
+                  )}
                   options={param.options.map(option => ({
                     value: option.value,
                     label: option.label,
@@ -371,6 +464,7 @@ export function Visualize() {
                 />
               ) : (
                 <StyledParameterInput
+                  size="md"
                   placeholder={param.defaultValue || t('Enter value')}
                   value={parameters[index] || ''}
                   onChange={e => {
@@ -379,21 +473,13 @@ export function Visualize() {
                   disabled={isTransactionsDataset}
                 />
               )}
-            </FieldContainer>
+            </Stack>
           );
         })}
       </Flex>
     </Flex>
   );
 }
-
-const FieldContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  flex: 1;
-  max-width: 425px;
-`;
 
 const StyledAggregateSelect = styled(CompactSelect)`
   width: 100%;

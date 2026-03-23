@@ -1,18 +1,21 @@
 from dataclasses import asdict
 
 from django.db.models import Value
+from taskbroker_client.retry import Retry
 
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import namespaces
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.exceptions import timeout_grouping_context
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.tasks.utils import (
+    ProjectNotActiveError,
     build_workflow_event_data_from_activity,
     build_workflow_event_data_from_event,
 )
@@ -23,15 +26,17 @@ logger = log_context.get_logger(__name__)
 
 
 def build_trigger_action_task_params(
-    action: Action, detector: Detector, event_data: WorkflowEventData
+    action: Action,
+    event_data: WorkflowEventData,
+    workflow_uuid_map: dict[int, str],
 ) -> dict[str, object]:
     """
     Build parameters for trigger_action task invocation.
 
     Args:
         action: The action to trigger.
-        detector: The detector that triggered the action.
         event_data: The event data to use for the action.
+        workflow_uuid_map: Mapping of workflow_id to notification_uuid.
     """
     event_id = None
     activity_id = None
@@ -43,18 +48,26 @@ def build_trigger_action_task_params(
     elif isinstance(event_data.event, Activity):
         activity_id = event_data.event.id
 
-    return {
+    # workflow_id is annotated in the queryset by filter_recently_fired_workflow_actions
+    workflow_id = getattr(action, "workflow_id", None)
+
+    task_params = {
         "action_id": action.id,
-        "detector_id": detector.id,
-        "workflow_id": getattr(action, "workflow_id", None),
+        "workflow_id": workflow_id,
         "event_id": event_id,
         "activity_id": activity_id,
         "group_id": event_data.event.group_id,
         "occurrence_id": occurrence_id,
         "group_state": event_data.group_state,
-        "has_reappeared": event_data.has_reappeared,
+        "has_reappeared": False,  # TODO: remove when deployed trigger_action task doesn't expect it
         "has_escalated": event_data.has_escalated,
     }
+
+    # Add notification_uuid if available from workflow_uuid_map
+    if workflow_id is not None and workflow_id in workflow_uuid_map:
+        task_params["notification_uuid"] = workflow_uuid_map[workflow_id]
+
+    return task_params
 
 
 @instrumented_task(
@@ -62,22 +75,35 @@ def build_trigger_action_task_params(
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=30,
     retry=Retry(times=3, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
-@retry(timeouts=True, raise_on_no_retries=False, ignore_and_capture=Action.DoesNotExist)
+@retry(
+    timeouts=True,
+    raise_on_no_retries=False,
+    ignore_and_capture=(Action.DoesNotExist, Group.DoesNotExist),
+    ignore=(Project.DoesNotExist, ProjectNotActiveError),
+)
 def trigger_action(
     action_id: int,
-    detector_id: int,
     workflow_id: int,
     event_id: str | None,
     activity_id: int | None,
     group_id: int,
     occurrence_id: str | None,
     group_state: GroupState,
-    has_reappeared: bool,
     has_escalated: bool,
+    detector_id: int | None = None,  # TODO: remove
+    notification_uuid: str | None = None,
+    **kwargs: dict[str, object],
 ) -> None:
+    import uuid
+
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    from sentry.workflow_engine.processors.detector import get_preferred_detector
+
+    # Generate UUID if not provided (handles version skew at task boundary)
+    if notification_uuid is None:
+        notification_uuid = str(uuid.uuid4())
 
     # XOR check to ensure exactly one of event_id or activity_id is provided
     if (event_id is not None) == (activity_id is not None):
@@ -88,28 +114,16 @@ def trigger_action(
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
     action = Action.objects.annotate(workflow_id=Value(workflow_id)).get(id=action_id)
-    detector = Detector.objects.get(id=detector_id)
-
-    metrics.incr(
-        "workflow_engine.tasks.trigger_action_task_started",
-        tags={"action_type": action.type, "detector_type": detector.type},
-        sample_rate=1.0,
-    )
-
-    project_id = detector.project_id
 
     if event_id is not None:
         event_data = build_workflow_event_data_from_event(
-            project_id=project_id,
             event_id=event_id,
             group_id=group_id,
             workflow_id=workflow_id,
             occurrence_id=occurrence_id,
             group_state=group_state,
-            has_reappeared=has_reappeared,
             has_escalated=has_escalated,
         )
-
     elif activity_id is not None:
         event_data = build_workflow_event_data_from_activity(
             activity_id=activity_id, group_id=group_id
@@ -122,6 +136,14 @@ def trigger_action(
         )
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
+    detector = get_preferred_detector(event_data)
+
+    metrics.incr(
+        "workflow_engine.tasks.trigger_action_task_started",
+        tags={"action_type": action.type, "detector_type": detector.type},
+        sample_rate=1.0,
+    )
+
     should_trigger_actions = should_fire_workflow_actions(
         detector.project.organization, event_data.group.type
     )
@@ -130,7 +152,7 @@ def trigger_action(
         # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
         # in this scope is grouped properly.
         with timeout_grouping_context(action.type):
-            action.trigger(event_data, detector)
+            action.trigger(event_data, notification_uuid=notification_uuid)
     else:
         logger.info(
             "workflow_engine.triggered_actions.dry-run",

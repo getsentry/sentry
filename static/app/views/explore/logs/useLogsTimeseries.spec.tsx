@@ -1,15 +1,16 @@
 import type {ReactNode} from 'react';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -29,19 +30,27 @@ describe('useLogsTimeseries', () => {
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
+    const mockTimeSeries = TimeSeriesFixture();
+
     const mockNormalRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [[1745371800, [{count: 0}]]],
-        meta: {
-          dataScanned: 'partial',
-          accuracy: {
-            confidence: [],
-            sampleCount: [],
-            samplingRate: [],
+        timeSeries: [
+          {
+            ...mockTimeSeries,
+            yAxis: 'count(message)',
+            values: [
+              {
+                ...mockTimeSeries.values[0]!,
+                value: 0,
+              },
+            ],
+            meta: {
+              ...mockTimeSeries.meta,
+              dataScanned: 'partial',
+            },
           },
-          fields: {},
-        },
+        ],
       },
       method: 'GET',
       match: [
@@ -52,18 +61,9 @@ describe('useLogsTimeseries', () => {
     });
 
     const mockHighAccuracyRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [[1745371800, [{count: 0}]]],
-        meta: {
-          dataScanned: 'partial',
-          accuracy: {
-            confidence: [],
-            sampleCount: [],
-            samplingRate: [],
-          },
-          fields: {},
-        },
+        timeSeries: [TimeSeriesFixture()],
       },
       method: 'GET',
       match: [
@@ -110,7 +110,7 @@ describe('useLogsTimeseries', () => {
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);
     expect(mockNormalRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'ourlogs',
@@ -123,7 +123,7 @@ describe('useLogsTimeseries', () => {
       expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1);
     });
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'ourlogs',

@@ -1,23 +1,25 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NarrowLayout from 'sentry/components/narrowLayout';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NarrowLayout} from 'sentry/components/narrowLayout';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
@@ -25,12 +27,12 @@ import {
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import RouteError from 'sentry/views/routeError';
-import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
-import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {AddIntegration} from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 interface GitHubIntegrationInstallation {
   account: {
@@ -86,13 +88,18 @@ export default function IntegrationOrganizationLink() {
     isPending: isPendingOrganizations,
     error: organizationsError,
   } = useApiQuery<Organization[]>(
-    ['/organizations/', {query: {include_feature_flags: 1}}],
+    [getApiUrl('/organizations/'), {query: {include_feature_flags: 1}}],
     {staleTime: Infinity}
   );
 
   const isOrganizationQueryEnabled = !!selectedOrgSlug;
   const organizationQuery = useApiQuery<Organization>(
-    [`/organizations/${selectedOrgSlug}/`, {query: {include_feature_flags: 1}}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/', {
+        path: {organizationIdOrSlug: selectedOrgSlug!},
+      }),
+      {query: {include_feature_flags: 1}},
+    ],
     {staleTime: Infinity, enabled: isOrganizationQueryEnabled}
   );
   const organization = organizationQuery.data ?? null;
@@ -107,7 +114,9 @@ export default function IntegrationOrganizationLink() {
     providers: IntegrationProvider[];
   }>(
     [
-      `/organizations/${selectedOrgSlug}/config/integrations/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
+        path: {organizationIdOrSlug: selectedOrgSlug!},
+      }),
       {query: {provider_key: integrationSlug}},
     ],
     {staleTime: Infinity, enabled: isProviderQueryEnabled}
@@ -122,6 +131,7 @@ export default function IntegrationOrganizationLink() {
 
   const isInstallationQueryEnabled = !!installationId && integrationSlug === 'github';
   const installationQuery = useApiQuery<GitHubIntegrationInstallation>(
+    // @ts-expect-error TODO(ryan953): Invalid useApiQuery path
     [`/../../extensions/github/installation/${installationId}/`],
     {staleTime: Infinity, enabled: isInstallationQueryEnabled}
   );
@@ -272,7 +282,7 @@ export default function IntegrationOrganizationLink() {
       <Fragment>
         {selectedOrgSlug && organization && !hasAccess && (
           <Alert.Container>
-            <Alert type="error">
+            <Alert variant="danger">
               <p>
                 {tct(
                   `You do not have permission to install integrations in
@@ -321,7 +331,7 @@ export default function IntegrationOrganizationLink() {
     if (!installationData) {
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {t(
               'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
             )}
@@ -357,7 +367,7 @@ export default function IntegrationOrganizationLink() {
 
     return (
       <Alert.Container>
-        <Alert type="info">{alertText}</Alert>
+        <Alert variant="info">{alertText}</Alert>
       </Alert.Container>
     );
   }, [integrationSlug, installationData]);

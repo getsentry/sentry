@@ -2,11 +2,10 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.silo.base import SiloMode
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class SentryAppDetailsDocsTest(APIDocsTestCase):
     def setUp(self) -> None:
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -15,11 +14,9 @@ class SentryAppDetailsDocsTest(APIDocsTestCase):
         self.sentry_app = self.create_sentry_app(
             name="Hellboy App", published=True, organization_id=self.org.id
         )
-        self.install = SentryAppInstallation(
-            sentry_app=self.sentry_app, organization_id=self.org.id
+        self.install = self.create_sentry_app_installation(
+            organization=self.org, slug=self.sentry_app.slug
         )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.install.save()
         self.external_issue = self.create_platform_external_issue(
             group=self.group,
             service_type=self.sentry_app.slug,

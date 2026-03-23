@@ -2,34 +2,43 @@ from unittest.mock import Mock
 
 import pytest
 
-from sentry.workflow_engine.buffer.batch_client import CohortUpdates, DelayedWorkflowClient
+from sentry.workflow_engine.buffer.batch_client import (
+    CohortUpdates,
+    DelayedWorkflowClient,
+    ProjectDelayedWorkflowClient,
+)
 from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 
 
 class TestDelayedWorkflowClient:
     @pytest.fixture
-    def mock_buffer(self):
+    def mock_buffer(self) -> Mock:
         """Create a mock buffer for testing."""
         return Mock(spec=RedisHashSortedSetBuffer)
 
     @pytest.fixture
-    def buffer_keys(self):
+    def buffer_keys(self) -> list[str]:
         """Create test buffer keys."""
         return ["test_key_1", "test_key_2"]
 
     @pytest.fixture
-    def delayed_workflow_client(self, mock_buffer):
+    def delayed_workflow_client(self, mock_buffer: Mock) -> DelayedWorkflowClient:
         """Create a DelayedWorkflowClient with mocked buffer."""
         return DelayedWorkflowClient(buf=mock_buffer)
 
     @pytest.fixture
-    def workflow_client_with_keys(self, mock_buffer, buffer_keys):
+    def workflow_client_with_keys(
+        self, mock_buffer: Mock, buffer_keys: list[str]
+    ) -> DelayedWorkflowClient:
         """Create a DelayedWorkflowClient with mocked buffer and specific keys."""
         return DelayedWorkflowClient(buf=mock_buffer, buffer_keys=buffer_keys)
 
     def test_mark_project_ids_as_processed(
-        self, workflow_client_with_keys, mock_buffer, buffer_keys
-    ):
+        self,
+        workflow_client_with_keys: DelayedWorkflowClient,
+        mock_buffer: Mock,
+        buffer_keys: list[str],
+    ) -> None:
         """Test mark_project_ids_as_processed with mocked RedisHashSortedSetBuffer."""
         # Mock the conditional_delete_from_sorted_sets return value
         # Return value is dict[str, list[int]] where keys are buffer keys and values are deleted project IDs
@@ -60,8 +69,11 @@ class TestDelayedWorkflowClient:
         assert sorted(result) == sorted(expected_result)
 
     def test_mark_project_ids_as_processed_empty_input(
-        self, workflow_client_with_keys, mock_buffer, buffer_keys
-    ):
+        self,
+        workflow_client_with_keys: DelayedWorkflowClient,
+        mock_buffer: Mock,
+        buffer_keys: list[str],
+    ) -> None:
         """Test mark_project_ids_as_processed with empty input."""
         # Mock return value for empty input
         mock_buffer.conditional_delete_from_sorted_sets.return_value = {
@@ -85,8 +97,11 @@ class TestDelayedWorkflowClient:
         assert result == []
 
     def test_mark_project_ids_as_processed_partial_deletion(
-        self, workflow_client_with_keys, mock_buffer, buffer_keys
-    ):
+        self,
+        workflow_client_with_keys: DelayedWorkflowClient,
+        mock_buffer: Mock,
+        buffer_keys: list[str],
+    ) -> None:
         """Test mark_project_ids_as_processed when only some project IDs are deleted."""
         # Mock return value where only some project IDs are actually deleted
         mock_return_value = {
@@ -114,8 +129,11 @@ class TestDelayedWorkflowClient:
         assert result == [123]
 
     def test_mark_project_ids_as_processed_deduplicates_results(
-        self, workflow_client_with_keys, mock_buffer, buffer_keys
-    ):
+        self,
+        workflow_client_with_keys: DelayedWorkflowClient,
+        mock_buffer: Mock,
+        buffer_keys: list[str],
+    ) -> None:
         """Test that mark_project_ids_as_processed deduplicates project IDs from multiple keys."""
         # Mock return value where the same project ID appears in multiple keys
         mock_return_value = {
@@ -139,7 +157,9 @@ class TestDelayedWorkflowClient:
         assert sorted(result) == sorted(expected_result)
         assert len(result) == 3  # Should have exactly 3 unique project IDs
 
-    def test_fetch_updates(self, delayed_workflow_client, mock_buffer):
+    def test_fetch_updates(
+        self, delayed_workflow_client: DelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test fetching cohort updates from buffer."""
         expected_updates = CohortUpdates(values={1: 100.0})
         mock_buffer.get_parsed_key.return_value = expected_updates
@@ -151,7 +171,9 @@ class TestDelayedWorkflowClient:
         )
         assert result == expected_updates
 
-    def test_persist_updates(self, delayed_workflow_client, mock_buffer):
+    def test_persist_updates(
+        self, delayed_workflow_client: DelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test persisting cohort updates to buffer."""
         updates = CohortUpdates(values={1: 100.0, 2: 200.0})
 
@@ -161,7 +183,9 @@ class TestDelayedWorkflowClient:
             "WORKFLOW_ENGINE_COHORT_UPDATES", updates
         )
 
-    def test_fetch_updates_missing_key(self, delayed_workflow_client, mock_buffer):
+    def test_fetch_updates_missing_key(
+        self, delayed_workflow_client: DelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test fetching cohort updates when key doesn't exist (returns None)."""
         mock_buffer.get_parsed_key.return_value = None
 
@@ -173,7 +197,9 @@ class TestDelayedWorkflowClient:
         assert isinstance(result, CohortUpdates)
         assert result.values == {}  # Should be default empty dict
 
-    def test_add_project_ids(self, delayed_workflow_client, mock_buffer):
+    def test_add_project_ids(
+        self, delayed_workflow_client: DelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test adding project IDs to a random shard."""
         project_ids = [1, 2, 3]
 
@@ -188,7 +214,9 @@ class TestDelayedWorkflowClient:
         expected_keys = DelayedWorkflowClient._get_buffer_keys()
         assert called_key in expected_keys
 
-    def test_get_project_ids(self, delayed_workflow_client, mock_buffer):
+    def test_get_project_ids(
+        self, delayed_workflow_client: DelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test getting project IDs within score range."""
         expected_result = {1: [100.0], 2: [200.0]}
         mock_buffer.bulk_get_sorted_set.return_value = expected_result
@@ -202,7 +230,9 @@ class TestDelayedWorkflowClient:
         )
         assert result == expected_result
 
-    def test_clear_project_ids(self, delayed_workflow_client, mock_buffer):
+    def test_clear_project_ids(
+        self, delayed_workflow_client: DelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test clearing project IDs within score range."""
         delayed_workflow_client.clear_project_ids(min=0.0, max=300.0)
 
@@ -212,7 +242,7 @@ class TestDelayedWorkflowClient:
             max=300.0,
         )
 
-    def test_get_buffer_keys(self):
+    def test_get_buffer_keys(self) -> None:
         """Test that buffer keys are generated correctly."""
         keys = DelayedWorkflowClient._get_buffer_keys()
 
@@ -221,7 +251,9 @@ class TestDelayedWorkflowClient:
         assert keys[1] == "workflow_engine_delayed_processing_buffer:1"  # shard 1
         assert keys[7] == "workflow_engine_delayed_processing_buffer:7"  # shard 7
 
-    def test_for_project(self, delayed_workflow_client, mock_buffer):
+    def test_for_project(
+        self, delayed_workflow_client: DelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test creating a project-specific client."""
         project_id = 123
 
@@ -233,26 +265,28 @@ class TestDelayedWorkflowClient:
 
 class TestProjectDelayedWorkflowClient:
     @pytest.fixture
-    def mock_buffer(self):
+    def mock_buffer(self) -> Mock:
         """Create a mock buffer for testing."""
         return Mock(spec=RedisHashSortedSetBuffer)
 
     @pytest.fixture
-    def project_client(self, mock_buffer):
+    def project_client(self, mock_buffer: Mock) -> ProjectDelayedWorkflowClient:
         """Create a ProjectDelayedWorkflowClient with mocked buffer."""
         return DelayedWorkflowClient(buf=mock_buffer).for_project(123)
 
-    def test_filters_without_batch_key(self, project_client):
+    def test_filters_without_batch_key(self, project_client: ProjectDelayedWorkflowClient) -> None:
         """Test filters generation without batch key."""
         filters = project_client._filters(batch_key=None)
         assert filters == {"project_id": 123}
 
-    def test_filters_with_batch_key(self, project_client):
+    def test_filters_with_batch_key(self, project_client: ProjectDelayedWorkflowClient) -> None:
         """Test filters generation with batch key."""
         filters = project_client._filters(batch_key="test-batch")
         assert filters == {"project_id": 123, "batch_key": "test-batch"}
 
-    def test_delete_hash_fields(self, project_client, mock_buffer):
+    def test_delete_hash_fields(
+        self, project_client: ProjectDelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test deleting specific fields from workflow hash."""
         fields = ["field1", "field2"]
 
@@ -264,7 +298,9 @@ class TestProjectDelayedWorkflowClient:
             model=Workflow, filters={"project_id": 123}, fields=fields
         )
 
-    def test_get_hash_length(self, project_client, mock_buffer):
+    def test_get_hash_length(
+        self, project_client: ProjectDelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test getting hash length."""
         mock_buffer.get_hash_length.return_value = 5
 
@@ -277,7 +313,9 @@ class TestProjectDelayedWorkflowClient:
         )
         assert result == 5
 
-    def test_get_hash_data(self, project_client, mock_buffer):
+    def test_get_hash_data(
+        self, project_client: ProjectDelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test fetching hash data."""
         expected_data = {"key1": "value1", "key2": "value2"}
         mock_buffer.get_hash.return_value = expected_data
@@ -291,7 +329,9 @@ class TestProjectDelayedWorkflowClient:
         )
         assert result == expected_data
 
-    def test_push_to_hash(self, project_client, mock_buffer):
+    def test_push_to_hash(
+        self, project_client: ProjectDelayedWorkflowClient, mock_buffer: Mock
+    ) -> None:
         """Test pushing data to hash in bulk."""
         data = {"key1": "value1", "key2": "value2"}
 

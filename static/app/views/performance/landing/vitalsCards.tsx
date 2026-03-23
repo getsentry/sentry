@@ -1,20 +1,25 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Placeholder from 'sentry/components/placeholder';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {WebVital} from 'sentry/utils/fields';
 import type {
   VitalData,
   VitalsData,
 } from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
-import {VitalState, vitalStateColors} from 'sentry/views/performance/vitalDetail/utils';
-import VitalPercents from 'sentry/views/performance/vitalDetail/vitalPercents';
+import {ColorBar} from 'sentry/views/performance/vitalDetail/colorBar';
+import {
+  makeVitalStateColors,
+  VitalState,
+} from 'sentry/views/performance/vitalDetail/utils';
+import {VitalPercents} from 'sentry/views/performance/vitalDetail/vitalPercents';
 
 type VitalBarProps = {
   data: VitalsData | null;
@@ -32,6 +37,7 @@ type VitalBarProps = {
 };
 
 export function VitalBar(props: VitalBarProps) {
+  const theme = useTheme();
   const {
     isLoading,
     data,
@@ -81,7 +87,7 @@ export function VitalBar(props: VitalBarProps) {
     ? null
     : (value ?? getP75(data?.[vital] ?? null, vital));
   const percents = getPercentsFromCounts(counts);
-  const colorStops = getColorStopsFromPercents(percents);
+  const colorStops = getColorStopsFromPercents(theme, percents);
 
   return (
     <Fragment>
@@ -125,7 +131,7 @@ export function VitalBar(props: VitalBarProps) {
 
 const EmptyVitalBar = styled(EmptyStateWarning)`
   height: 48px;
-  padding: ${space(1.5)} 15%;
+  padding: ${p => p.theme.space.lg} 15%;
 `;
 
 const StyledTooltip = styled(Tooltip)`
@@ -173,15 +179,15 @@ function getPercentsFromCounts({
   return percents;
 }
 
-function getColorStopsFromPercents(percents: Percent[]) {
+function getColorStopsFromPercents(theme: Theme, percents: Percent[]) {
   return percents.map(({percent, vitalState}) => ({
     percent,
-    color: vitalStateColors[vitalState],
+    color: makeVitalStateColors(theme)[vitalState],
   }));
 }
 
 const BarDetail = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;

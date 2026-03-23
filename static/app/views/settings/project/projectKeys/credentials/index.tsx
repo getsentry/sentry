@@ -1,15 +1,15 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {OtlpTab} from 'sentry/views/settings/project/projectKeys/credentials/otlp';
 import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/vercel';
 
@@ -26,7 +26,6 @@ type Props = {
   showSecretKey?: boolean;
   showSecurityEndpoint?: boolean;
   showUnreal?: boolean;
-  showVercelLogDrainEndpoint?: boolean;
 };
 
 type TabValue = 'otlp' | 'security' | 'minidump' | 'unreal' | 'vercel' | 'credentials';
@@ -164,7 +163,7 @@ function CredentialsTab({
   );
 }
 
-function ProjectKeyCredentials({
+export function ProjectKeyCredentials({
   data,
   projectId,
   showDsn = true,
@@ -175,14 +174,11 @@ function ProjectKeyCredentials({
   showSecretKey = false,
   showOtlpTraces = false,
   showOtlpLogs = false,
-  showVercelLogDrainEndpoint = false,
   showSecurityEndpoint = true,
   showUnreal = true,
 }: Props) {
   const location = useLocation();
-  const navigate = useNavigate();
 
-  // Calculate available tabs based on props
   const availableTabs = useMemo<TabConfig[]>(() => {
     const tabs: TabConfig[] = [
       {
@@ -213,7 +209,7 @@ function ProjectKeyCredentials({
       {
         key: 'vercel',
         label: t('Vercel Drains'),
-        visible: showVercelLogDrainEndpoint || showOtlpTraces,
+        visible: true,
       },
     ];
     return tabs.filter(tab => tab.visible);
@@ -221,7 +217,6 @@ function ProjectKeyCredentials({
     showOtlpTraces,
     showOtlpLogs,
     showSecurityEndpoint,
-    showVercelLogDrainEndpoint,
     showMinidump,
     showUnreal,
     showPublicKey,
@@ -229,29 +224,17 @@ function ProjectKeyCredentials({
     showProjectId,
   ]);
 
-  // Get showDeprecatedDsn from query params
-  const showDeprecatedDsn = decodeScalar(location?.query?.showDeprecated) === 'true';
+  const [showDeprecatedDsn] = useQueryState('showDeprecated', parseAsBoolean);
 
-  // Get current tab from query params, defaulting to first available
-  const getCurrentTab = (): TabValue => {
-    const queryTab = decodeScalar(location?.query?.tab);
-    const validTabs = availableTabs.map(tab => tab.key);
-    return validTabs.includes(queryTab as TabValue)
-      ? (queryTab as TabValue)
-      : (availableTabs[0]?.key ?? 'otlp');
-  };
+  const tabParser = useMemo(
+    () => ({
+      ...parseAsStringLiteral(availableTabs.map(tab => tab.key)),
+      defaultValue: availableTabs[0]?.key ?? 'otlp',
+    }),
+    [availableTabs]
+  );
 
-  const activeTab = getCurrentTab();
-
-  const handleTabChange = (newTab: TabValue) => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        tab: newTab,
-      },
-    });
-  };
+  const [activeTab, setActiveTab] = useQueryState('tab', tabParser);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -286,7 +269,6 @@ function ProjectKeyCredentials({
       case 'vercel':
         return (
           <VercelTab
-            showVercelLogDrainEndpoint={showVercelLogDrainEndpoint}
             integrationEndpoint={data.dsn.integration}
             publicKey={data.public}
             showOtlpTraces={showOtlpTraces}
@@ -309,7 +291,6 @@ function ProjectKeyCredentials({
             link: showDsn ? (
               <Link
                 to={{
-                  ...location,
                   query: {
                     ...location.query,
                     showDeprecated: showDeprecatedDsn ? undefined : 'true',
@@ -365,7 +346,7 @@ function ProjectKeyCredentials({
 
       {availableTabs.length > 0 && (
         <Fragment>
-          <Tabs value={activeTab} onChange={handleTabChange}>
+          <Tabs value={activeTab} onChange={setActiveTab}>
             <TabList>
               {availableTabs.map(tab => (
                 <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
@@ -382,5 +363,3 @@ function ProjectKeyCredentials({
 const StyledField = styled(FieldGroup)`
   padding: ${p => p.theme.space['2xs']} 0 0 0;
 `;
-
-export default ProjectKeyCredentials;

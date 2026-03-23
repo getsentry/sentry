@@ -9,17 +9,18 @@ from rest_framework.response import Response
 from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisCompareDownloadEvent
 from sentry.preprod.models import PreprodArtifactSizeComparison
+from sentry.preprod.quotas import get_size_retention_cutoff
 
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -57,7 +58,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
         if not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         logger.info(
             "preprod.size_analysis.compare.api.download",
@@ -68,7 +69,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
         )
 
         try:
-            comparison_obj = PreprodArtifactSizeComparison.objects.get(
+            comparison_obj = PreprodArtifactSizeComparison.objects.select_related(
+                "head_size_analysis__preprod_artifact",
+                "base_size_analysis__preprod_artifact",
+            ).get(
                 head_size_analysis_id=head_size_metric_id,
                 base_size_analysis_id=base_size_metric_id,
                 organization_id=project.organization_id,
@@ -81,14 +85,20 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                     "base_size_metric_id": base_size_metric_id,
                 },
             )
-            return Response({"error": "Comparison not found."}, status=404)
+            return Response({"detail": "Comparison not found."}, status=404)
+
+        cutoff = get_size_retention_cutoff(project.organization)
+        head_artifact = comparison_obj.head_size_analysis.preprod_artifact
+        base_artifact = comparison_obj.base_size_analysis.preprod_artifact
+        if head_artifact.date_added < cutoff or base_artifact.date_added < cutoff:
+            return Response({"detail": "This build's size data has expired."}, status=404)
 
         if comparison_obj.file_id is None:
             logger.info(
                 "preprod.size_analysis.compare.api.download.no_file_id",
                 extra={"comparison_id": comparison_obj.id},
             )
-            return Response({"error": "Comparison not found."}, status=404)
+            return Response({"detail": "Comparison not found."}, status=404)
 
         try:
             file_obj = File.objects.get(id=comparison_obj.file_id)
@@ -97,7 +107,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                 "preprod.size_analysis.compare.api.download.no_file",
                 extra={"comparison_id": comparison_obj.id},
             )
-            return Response({"error": "Comparison not found."}, status=404)
+            return Response({"detail": "Comparison not found."}, status=404)
 
         try:
             fp = file_obj.getfile()
@@ -106,7 +116,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                 "preprod.size_analysis.compare.api.download.no_file_getfile",
                 extra={"comparison_id": comparison_obj.id},
             )
-            return Response({"error": "Failed to retrieve size analysis comparison."}, status=500)
+            return Response({"detail": "Failed to retrieve size analysis comparison."}, status=500)
 
         response = FileResponse(
             fp,

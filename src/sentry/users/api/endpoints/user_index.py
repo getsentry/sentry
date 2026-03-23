@@ -1,4 +1,5 @@
 from django.db.models import Q
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -36,9 +37,16 @@ class UserIndexEndpoint(Endpoint):
                         | Q(emails__email__icontains=joined)
                     )
                 elif key == "id":
-                    queryset = queryset.filter(
-                        id__in=[request.user.id if v == "me" else v for v in value]
-                    )
+                    valid_ids = []
+                    for v in value:
+                        if v == "me":
+                            valid_ids.append(request.user.id)
+                        else:
+                            try:
+                                valid_ids.append(int(v))
+                            except (ValueError, TypeError):
+                                raise ParseError(detail=f"Invalid user ID: {v}")
+                    queryset = queryset.filter(id__in=valid_ids)
                 elif key == "name":
                     queryset = queryset.filter(in_iexact("name", value))
                 elif key == "email":
@@ -64,7 +72,12 @@ class UserIndexEndpoint(Endpoint):
         elif status == "disabled":
             queryset = queryset.filter(is_active=False)
 
-        order_by = "-date_joined"
+        sort_by = request.GET.get("sortBy", "date")
+        if sort_by == "lastActive":
+            queryset = queryset.exclude(last_active__isnull=True)
+            order_by = "-last_active"
+        else:
+            order_by = "-date_joined"
         paginator_cls = DateTimePaginator
 
         return self.paginate(

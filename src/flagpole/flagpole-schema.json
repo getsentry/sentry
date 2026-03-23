@@ -10,9 +10,21 @@
     },
     "owner": {
       "title": "Owner",
-      "description": "The owner of this feature. Either an email address or team name, preferably.",
-      "minLength": 1,
-      "type": "string"
+      "description": "The owner of this feature.",
+      "type": "object",
+      "properties": {
+        "team": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The team that owns this feature."
+        },
+        "email": {
+          "type": ["string", "null"],
+          "description": "The email address of the owner. Not required."
+        }
+      },
+      "required": ["team"],
+      "additionalProperties": false
     },
     "segments": {
       "title": "Segments",
@@ -33,6 +45,12 @@
       "description": "The datetime when this feature was created.",
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?)?$"
+    },
+    "experiment_mode": {
+      "title": "Experiment Mode",
+      "description": "When set, the flag is treated as an experiment with exposure tracking.",
+      "type": ["string", "null"],
+      "enum": ["simple", null]
     }
   },
   "required": ["name", "owner", "segments", "created_at"],

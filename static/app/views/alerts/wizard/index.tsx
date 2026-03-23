@@ -1,69 +1,72 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {ExternalLink} from 'sentry/components/core/link';
-import CreateAlertButton from 'sentry/components/createAlertButton';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import Hook from 'sentry/components/hook';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import {HookStore} from 'sentry/stores/hookStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
-import type {AlertType, MetricAlertType, WizardRuleTemplate} from './options';
+import type {AlertType, MetricAlertType} from './options';
 import {
   AlertWizardAlertNames,
   AlertWizardExtraContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
 } from './options';
-import {AlertWizardPanelContent} from './panelContent';
-import RadioPanelGroup from './radioPanelGroup';
-
-type RouteParams = {
-  projectId?: string;
-};
-
-type AlertWizardProps = RouteComponentProps<RouteParams> & {
-  organization: Organization;
-  projectId: string;
-};
+import {getAlertWizardPanelContent} from './panelContent';
+import {RadioPanelGroup} from './radioPanelGroup';
 
 const DEFAULT_ALERT_OPTION = 'issues';
 
-function AlertWizard({organization, params, location, projectId}: AlertWizardProps) {
+export default function AlertWizard() {
+  const organization = useOrganization();
+  const location = useLocation();
+  const params = useParams<{projectId?: string}>();
+  const {project} = useAlertBuilderOutlet();
+
   const useMetricDetectorLimit =
     HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
   const quota = useMetricDetectorLimit();
   const canCreateMetricAlert = !quota?.hasReachedLimit;
 
+  const alertOptionQuery = decodeScalar(location.query.alert_option) as
+    | AlertType
+    | undefined;
   const [alertOption, setAlertOption] = useState<AlertType>(
-    location.query.alert_option in AlertWizardAlertNames
-      ? location.query.alert_option
+    alertOptionQuery && alertOptionQuery in AlertWizardAlertNames
+      ? alertOptionQuery
       : DEFAULT_ALERT_OPTION
   );
-  const projectSlug = params.projectId ?? projectId;
+  const projectSlug = params.projectId ?? project.slug;
 
   const handleChangeAlertOption = (option: AlertType) => {
     setAlertOption(option);
   };
 
-  let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+  let metricRuleTemplate =
     alertOption in AlertWizardRuleTemplates
       ? AlertWizardRuleTemplates[alertOption as MetricAlertType]
       : undefined;
@@ -154,7 +157,10 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
     );
   }
 
-  const panelContent = AlertWizardPanelContent[alertOption];
+  const hasMetricIssues = organization.features.includes(
+    'workflow-engine-metric-issue-ui'
+  );
+  const panelContent = getAlertWizardPanelContent({hasMetricIssues})[alertOption];
   return (
     <Layout.Page>
       <SentryDocumentTitle title={t('Alert Creation Wizard')} projectSlug={projectSlug} />
@@ -171,7 +177,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">
-          <WizardBody>
+          <Flex paddingTop="md">
             <WizardOptions>
               {getAlertWizardCategories(organization).map(
                 ({categoryHeading, options}: any) => (
@@ -228,7 +234,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                 )}
               </WizardPanelBody>
             </WizardPanel>
-          </WizardBody>
+          </Flex>
         </Layout.Main>
       </Layout.Body>
     </Layout.Page>
@@ -240,29 +246,24 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const CategoryTitle = styled('h2')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.xl};
-  margin-bottom: ${space(1)} !important;
-`;
-
-const WizardBody = styled('div')`
-  display: flex;
-  padding-top: ${space(1)};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.xl};
+  margin-bottom: ${p => p.theme.space.md} !important;
 `;
 
 const WizardOptions = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   flex: 3;
-  margin-right: ${space(3)};
-  padding-right: ${space(3)};
+  margin-right: ${p => p.theme.space['2xl']};
+  padding-right: ${p => p.theme.space['2xl']};
   max-width: 300px;
 `;
 
 const WizardImage = styled('img')`
   max-height: 300px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const WizardPanel = styled(Panel)<{visible?: boolean}>`
@@ -290,7 +291,7 @@ const WizardPanel = styled(Panel)<{visible?: boolean}>`
 `;
 
 const ExampleList = styled(List)`
-  margin-bottom: ${space(2)} !important;
+  margin-bottom: ${p => p.theme.space.xl} !important;
 `;
 
 const WizardPanelBody = styled(PanelBody)`
@@ -299,28 +300,29 @@ const WizardPanelBody = styled(PanelBody)`
 `;
 
 const PanelDescription = styled('p')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ExampleHeader = styled('div')`
-  margin: 0 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.lg};
+  margin: 0 0 ${p => p.theme.space.md} 0;
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const ExampleItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const WizardFooter = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.lg}
+    ${p => p.theme.space.lg};
 `;
 
 const WizardButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
   a:not(:last-child) {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
   }
 `;
 
@@ -331,11 +333,9 @@ const WizardGroupedOptions = styled(RadioPanelGroup)`
 `;
 
 const DisabledAlertMessageContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
 `;
-
-export default AlertWizard;

@@ -2,20 +2,19 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {AvatarList} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
-import LastCommit from 'sentry/components/lastCommit';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {LastCommit} from 'sentry/components/lastCommit';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -75,14 +74,12 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
 
   const authors = useMemo(
     () =>
-      release?.authors.map<Actor | User>(author =>
-        // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
-      ),
+      release?.authors.map<Actor | User>(author => // Add a unique id if missing
+      ({
+        ...author,
+        type: 'user',
+        id: 'id' in author ? author.id : uniqueId(),
+      })),
     [release?.authors]
   );
 
@@ -127,14 +124,14 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
                   {release.authors.length}{' '}
                   {release.authors.length === 1 ? t('author') : t('authors')}{' '}
                 </h6>
-                <AvatarListContainer>
+                <Flex paddingLeft="xs">
                   <AvatarList
                     users={authors}
                     avatarSize={25}
                     tooltipOptions={{container: 'body'} as any}
                     typeAvatars="authors"
                   />
-                </AvatarListContainer>
+                </Flex>
               </div>
             ) : null}
           </Flex>
@@ -146,7 +143,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
             {recentDeploysByEnvironment.map(deploy => {
               return (
                 <Flex key={deploy.id} align="center" gap="md" justify="between">
-                  <Tag type="highlight">{deploy.environment}</Tag>
+                  <Tag variant="info">{deploy.environment}</Tag>
                   {deploy.dateFinished && <StyledTimeSince date={deploy.dateFinished} />}
                 </Flex>
               );
@@ -177,7 +174,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
 
 interface Props extends React.ComponentProps<typeof Hovercard>, BodyProps {}
 
-function VersionHoverCard({
+export function VersionHoverCard({
   organization,
   projectSlug,
   releaseVersion,
@@ -206,49 +203,35 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
   return (
     <Flex align="center" gap="xs">
       {t('Release:')}
-      <VersionWrapper>
+      <Flex justify="end" align="center" gap="xs">
         <StyledVersion version={releaseVersion} truncate anchor={false} />
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={releaseVersion}
           aria-label={t('Copy release version to clipboard')}
         />
-      </VersionWrapper>
+      </Flex>
     </Flex>
   );
 }
 
-export default VersionHoverCard;
-
 const ConnectRepo = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   text-align: center;
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const VersionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  justify-content: flex-end;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledVersion = styled(Version)`
   max-width: 190px;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const CountSince = styled('div')`
-  color: ${p => p.theme.headingColor};
-  font-size: ${p => p.theme.headerFontSize};
-`;
-
-const AvatarListContainer = styled('div')`
-  display: flex;
-  padding-left: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.xl};
 `;

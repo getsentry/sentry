@@ -10,10 +10,10 @@ from sentry.integrations.models.data_forwarder_project import DataForwarderProje
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwarderSerializerTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization()
@@ -68,17 +68,6 @@ class DataForwarderSerializerTest(TestCase):
         serializer = DataForwarderSerializer(data={"organization_id": self.organization.id})
         assert not serializer.is_valid()
         assert "provider" in serializer.errors
-
-        # Missing project_ids
-        serializer = DataForwarderSerializer(
-            data={
-                "organization_id": self.organization.id,
-                "provider": DataForwarderProviderSlug.SEGMENT,
-                "config": {"write_key": "test_key"},
-            }
-        )
-        assert not serializer.is_valid()
-        assert "project_ids" in serializer.errors
 
     def test_provider_choice_validation(self) -> None:
         # Valid providers
@@ -230,8 +219,8 @@ class DataForwarderSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
         assert "config" in serializer.errors
-        config_errors = serializer.errors["config"]
-        assert "access_key" in config_errors or "secret_key" in config_errors
+        config_errors_str = str(serializer.errors["config"])
+        assert "access_key" in config_errors_str and "secret_key" in config_errors_str
 
     def test_sqs_config_validation_fifo_queue_without_message_group_id(self) -> None:
         config: dict[str, str] = {
@@ -419,8 +408,8 @@ class DataForwarderSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
         assert "config" in serializer.errors
-        config_errors = serializer.errors["config"]
-        assert "index" in config_errors or "source" in config_errors
+        config_errors_str = str(serializer.errors["config"])
+        assert "index" in config_errors_str and "source" in config_errors_str
 
     def test_splunk_config_validation_invalid_token_format(self) -> None:
         config: dict[str, str] = {
@@ -504,7 +493,7 @@ class DataForwarderSerializerTest(TestCase):
         assert serializer.is_valid()
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwarderProjectSerializerTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization()

@@ -1,16 +1,19 @@
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.repository import RepositorySerializer
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
@@ -28,7 +31,7 @@ UNMIGRATABLE_PROVIDERS = (
 )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
@@ -40,6 +43,10 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
+    @extend_schema(
+        operation_id="List an Organization's Repositories",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Repositories
@@ -49,6 +56,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
         :pparam string organization_id_or_slug: the id or slug of the organization
         :qparam string query: optional filter by repository name
+        :qparam string expand: optional expand parameter to include related data (e.g., "settings")
         :auth: required
         """
         queryset = Repository.objects.filter(organization_id=organization.id)
@@ -59,6 +67,8 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
         status = request.GET.get("status", "active")
         query = request.GET.get("query")
+        expand = request.GET.getlist("expand", [])
+
         if query:
             queryset = queryset.filter(Q(name__icontains=query))
         if status == "active":
@@ -97,8 +107,9 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             request=request,
             queryset=queryset,
             order_by="name",
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, RepositorySerializer(expand=expand)),
             paginator_cls=OffsetPaginator,
+            count_hits=True,
         )
 
     def post(self, request: Request, organization) -> Response:

@@ -1,4 +1,4 @@
-import grammar from './grammar.pegjs';
+import {parse} from './grammar.pegjs';
 
 type DurationTokenValue = {
   value: string;
@@ -14,7 +14,7 @@ type DurationTokenValue = {
  */
 export function parseFilterValueDuration(query: string): DurationTokenValue | null {
   try {
-    return grammar.parse(query);
+    return parse(query);
   } catch (e) {
     return null;
   }

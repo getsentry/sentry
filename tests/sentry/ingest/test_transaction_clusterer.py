@@ -1,6 +1,8 @@
 from unittest import mock
 
+import orjson
 import pytest
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
@@ -13,16 +15,19 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     get_active_projects,
     get_redis_client,
     get_transaction_names,
+    record_segment_name,
     record_transaction_name,
 )
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
     RedisRuleStore,
+    _sort,
     bump_last_used,
     get_redis_rules,
     get_rules,
     get_sorted_rules,
+    get_sorted_rules_from_redis,
     update_rules,
 )
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
@@ -209,13 +214,54 @@ def test_record_transactions(
     assert len(mocked_record.mock_calls) == expected
 
 
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
+@django_db_all
+@pytest.mark.parametrize(
+    "source, segment_name, attributes, expected",
+    [
+        ("url", "/a/b/c", {}, 1),
+        (
+            "url",
+            "/a/b/c",
+            {ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: {"type": "integer", "value": 200}},
+            1,
+        ),
+        ("route", "/", {}, 0),
+        ("url", None, {}, 0),
+        (
+            "url",
+            "/a/b/c",
+            {ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: {"type": "integer", "value": 404}},
+            0,
+        ),
+        (None, "/a/b/c", {}, 1),
+        (None, "foo", {}, 0),
+    ],
+)
+def test_record_segment_name(
+    mocked_record, default_organization, source, segment_name, attributes, expected
+) -> None:
+    project = Project(id=111, name="project", organization_id=default_organization.id)
+    record_segment_name(
+        project,
+        {
+            "name": segment_name,
+            "attributes": {
+                ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE: {"type": "string", "value": source},
+                **attributes,
+            },
+        },  # type: ignore[typeddict-item]
+    )
+    assert len(mocked_record.mock_calls) == expected
+
+
 def test_sort_rules() -> None:
     rules = {
         ReplacementRule("/a/*/**"): 1,
         ReplacementRule("/a/**"): 2,
         ReplacementRule("/a/*/c/**"): 3,
     }
-    assert ProjectOptionRuleStore(ClustererNamespace.TRANSACTIONS)._sort(rules) == [
+    assert _sort(rules) == [
         ("/a/*/c/**", 3),
         ("/a/*/**", 1),
         ("/a/**", 2),
@@ -511,6 +557,66 @@ def test_transaction_clusterer_bumps_rules(_, default_organization) -> None:
         assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
 
 
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 10)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@mock.patch(
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay",
+    wraps=cluster_projects,  # call immediately
+)
+@django_db_all
+def test_segment_clusterer_bumps_rules(_, default_organization) -> None:
+    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
+    project1.save()
+
+    with override_options({"txnames.bump-lifetime-sample-rate": 1.0}):
+        for i in range(10):
+            _record_sample(
+                ClustererNamespace.TRANSACTIONS, project1, f"/user/tx-{project1.name}-{i}/settings"
+            )
+
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
+            spawn_clusterers()
+
+        assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 1}
+
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 2):
+            record_segment_name(
+                project1,
+                {
+                    "name": "/user/*/settings",
+                    "attributes": {
+                        ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE: {
+                            "type": "string",
+                            "value": "sanitized",
+                        },
+                        f"sentry._meta.fields.attributes.{ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME}": {
+                            "type": "string",
+                            "value": orjson.dumps(
+                                {
+                                    "meta": {
+                                        "": {
+                                            "rem": [["int", "s", 0, 0], ["/user/*/**", "s"]],
+                                            "val": "/user/tx-project1-pi/settings",
+                                        }
+                                    }
+                                }
+                            ).decode(),
+                        },
+                    },
+                },  # type: ignore[typeddict-item]
+            )
+
+        # _get_rules fetches from project options, which arent updated yet.
+        assert get_redis_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
+        assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 1}
+        # Update rules to update the project option storage.
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
+            assert 0 == update_rules(ClustererNamespace.TRANSACTIONS, project1, [])
+        # After project options are updated, the last_seen should also be updated.
+        assert get_redis_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
+        assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
+
+
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 3)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch(
@@ -610,3 +716,26 @@ def test_stored_invalid_rules_dropped_on_update(default_project) -> None:
     with freeze_time("2000-01-01 01:00:00"):
         update_rules(ClustererNamespace.TRANSACTIONS, default_project, [rule])
     assert get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project) == []
+
+
+@django_db_all
+def test_get_sorted_rules_from_redis(default_project: Project) -> None:
+    with freeze_time("2000-01-01 01:00:00"):
+        update_rules(
+            ClustererNamespace.TRANSACTIONS,
+            default_project,
+            [
+                ReplacementRule("/a/*/**"),
+                ReplacementRule("/a/**"),
+                ReplacementRule("/a/*/c/**"),
+            ],
+        )
+
+    assert get_sorted_rules_from_redis(ClustererNamespace.TRANSACTIONS, default_project) == [
+        ("/a/*/c/**", 946688400),
+        ("/a/*/**", 946688400),
+        ("/a/**", 946688400),
+    ]
+    assert get_sorted_rules_from_redis(
+        ClustererNamespace.TRANSACTIONS, default_project
+    ) == get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project)

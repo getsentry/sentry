@@ -8,12 +8,13 @@ from typing import TYPE_CHECKING, TypeVar
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model
-from redis.client import StrictRedis
 from rest_framework import status
 from rest_framework.exceptions import APIException
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.types.region import RegionContextError, get_local_region
+from sentry.types.cell import CellContextError, get_local_cell
+from sentry.utils import redis
 
 if TYPE_CHECKING:
     from sentry.db.models.base import Model as BaseModel
@@ -47,9 +48,9 @@ def uses_snowflake_id(model_class: type[ModelT]) -> bool:
 def save_with_snowflake_id(
     instance: BaseModel, snowflake_redis_key: str, save_callback: Callable[[], object]
 ) -> None:
-    assert uses_snowflake_id(
-        instance.__class__
-    ), "Only models decorated with uses_snowflake_id can be saved with save_with_snowflake_id()"
+    assert uses_snowflake_id(instance.__class__), (
+        "Only models decorated with uses_snowflake_id can be saved with save_with_snowflake_id()"
+    )
 
     for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETRY_COUNTER):
         if not instance.id:
@@ -59,7 +60,7 @@ def save_with_snowflake_id(
                 save_callback()
             return
         except IntegrityError:
-            instance.id = None  # type: ignore[assignment]  # see typeddjango/django-stubs#2014
+            instance.id = None
     raise MaxSnowflakeRetryError
 
 
@@ -116,8 +117,8 @@ def generate_snowflake_id(redis_key: str) -> int:
     segment_values[VERSION_ID] = msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length)
 
     try:
-        segment_values[REGION_ID] = get_local_region().snowflake_id
-    except RegionContextError:  # expected if running in monolith mode
+        segment_values[REGION_ID] = get_local_cell().snowflake_id
+    except CellContextError:  # expected if running in monolith mode
         segment_values[REGION_ID] = NULL_REGION_ID
 
     current_time = datetime.now().timestamp()
@@ -139,14 +140,16 @@ def generate_snowflake_id(redis_key: str) -> int:
     return snowflake_id
 
 
-def get_redis_cluster(redis_key: str) -> StrictRedis[str]:
-    from sentry.utils import redis
+def get_redis_cluster() -> RedisCluster[str] | StrictRedis[str]:
+    return redis.redis_clusters.get(settings.SENTRY_SNOWFLAKE_REDIS_CLUSTER)
 
-    return redis.clusters.get("default").get_local_client_for_key(redis_key)
+
+def get_timestamp_redis_key(redis_key: str, timestamp: int) -> str:
+    return f"snowflakeid:{redis_key}:{str(timestamp)}"
 
 
 def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> tuple[int, int]:
-    cluster = get_redis_cluster(redis_key)
+    cluster = get_redis_cluster()
 
     # this is the amount we want to lookback for previous timestamps
     # the below is more of a safety net if starting_timestamp is ever
@@ -156,14 +159,16 @@ def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> tu
     for i in range(time_range):
         timestamp = starting_timestamp - i
 
+        timestamp_redis_key = get_timestamp_redis_key(redis_key, timestamp)
+
         # We are decreasing the value by 1 each time since the incr operation in redis
         # initializes the counter at 1. For our region sequences, we want the value to
         # be from 0-15 and not 1-16
-        sequence_value = cluster.incr(str(timestamp))
+        sequence_value = cluster.incr(timestamp_redis_key)
         sequence_value -= 1
 
         if sequence_value == 0:
-            cluster.expire(str(timestamp), int(_TTL.total_seconds()))
+            cluster.expire(timestamp_redis_key, int(_TTL.total_seconds()))
 
         if sequence_value < MAX_AVAILABLE_REGION_SEQUENCES:
             return timestamp, sequence_value

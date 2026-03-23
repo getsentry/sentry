@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
+import {Flex} from '@sentry/scraps/layout';
+
 import type {Integration} from 'sentry/types/integrations';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
@@ -9,9 +10,9 @@ type Props = {
   compact?: boolean;
 };
 
-function IntegrationItem({integration, compact = false}: Props) {
+export function IntegrationItem({integration, compact = false}: Props) {
   return (
-    <Flex>
+    <Flex align="center">
       <div>
         <IntegrationIcon size={compact ? 22 : 32} integration={integration} />
       </div>
@@ -25,38 +26,31 @@ function IntegrationItem({integration, compact = false}: Props) {
   );
 }
 
-export default IntegrationItem;
-
-const Flex = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const Labels = styled('div')<{compact: boolean}>`
   box-sizing: border-box;
   display: flex;
   ${p => (p.compact ? 'align-items: center;' : '')};
   flex-direction: ${p => (p.compact ? 'row' : 'column')};
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
   min-width: 0;
   justify-content: center;
 `;
 
 const IntegrationName = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  line-height: ${p => p.theme.text.lineHeightHeading};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  line-height: ${p => p.theme.font.lineHeight.default};
 `;
 
 // Not using the overflowEllipsis style import here
 // as it sets width 100% which causes layout issues in the
 // integration list.
 const DomainName = styled('div')<{compact: boolean}>`
-  color: ${p => p.theme.subText};
-  margin-left: ${p => (p.compact ? space(1) : 'inherit')};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-left: ${p => (p.compact ? p.theme.space.md : 'inherit')};
   margin-top: ${p => (p.compact ? 'inherit' : 0)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;

@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 
 type Props = {
@@ -26,7 +25,7 @@ const StyledNoteBody = styled(MarkedText)`
   pre,
   hr,
   blockquote {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 
   ul,
@@ -42,8 +41,8 @@ const StyledNoteBody = styled(MarkedText)`
 
   blockquote {
     font-size: 15px;
-    border-left: 5px solid ${p => p.theme.innerBorder};
-    padding-left: ${space(1)};
+    border-left: 5px solid ${p => p.theme.tokens.border.secondary};
+    padding-left: ${p => p.theme.space.md};
     margin-left: 0;
   }
 `;

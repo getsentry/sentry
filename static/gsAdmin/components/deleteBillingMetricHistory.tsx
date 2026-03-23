@@ -3,12 +3,13 @@ import {Fragment, useState} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import Form from 'sentry/components/forms/form';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {Form} from 'sentry/components/forms/form';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type CategoryInfo = {
   api_name: string;
@@ -46,7 +47,7 @@ function DeleteBillingMetricHistoryModal({
   const orgSlug = organization.slug;
 
   const {data: billingConfig = null, isPending: isLoadingBillingConfig} =
-    useApiQuery<BillingConfig>(['/api/0/billing-config/'], {
+    useApiQuery<BillingConfig>([getApiUrl('/billing-config/')], {
       staleTime: Infinity,
     });
 
@@ -76,7 +77,7 @@ function DeleteBillingMetricHistoryModal({
       return;
     }
 
-    api.request(`/api/0/_admin/${orgSlug}/delete-billing-metric-history/`, {
+    api.request(`/api/0/customers/${orgSlug}/delete-billing-metric-history/`, {
       method: 'POST',
       data: {
         data_category: dataCategory,
@@ -123,9 +124,7 @@ function DeleteBillingMetricHistoryModal({
 
 type Options = Pick<Props, 'onSuccess' | 'organization'>;
 
-const deleteBillingMetricHistory = (opts: Options) =>
+export const deleteBillingMetricHistory = (opts: Options) =>
   openModal(deps => <DeleteBillingMetricHistoryModal {...deps} {...opts} />, {
     closeEvents: 'escape-key',
   });
-
-export default deleteBillingMetricHistory;

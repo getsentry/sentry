@@ -32,21 +32,21 @@ class WorkflowTest(BaseWorkflowTest):
 
     def test_evaluate_trigger_conditions__condition_new_event__True(self) -> None:
         evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
-        assert evaluation is True
+        assert evaluation.triggered is True
 
     def test_evaluate_trigger_conditions__condition_new_event__False(self) -> None:
         # Update event to have been seen before
         self.group_event.group.times_seen = 5
 
         evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
-        assert evaluation is False
+        assert evaluation.triggered is False
 
     def test_evaluate_trigger_conditions__no_conditions(self) -> None:
         self.workflow.when_condition_group = None
         self.workflow.save()
 
         evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
-        assert evaluation is True
+        assert evaluation.triggered is True
 
     def test_evaluate_trigger_conditions__slow_condition(self) -> None:
         # Update group to _all_, since the fast condition is met
@@ -60,7 +60,7 @@ class WorkflowTest(BaseWorkflowTest):
             self.event_data
         )
 
-        assert evaluation is True
+        assert evaluation.triggered is True
         assert remaining_conditions == [slow_condition]
 
     def test_full_clean__success(self) -> None:
@@ -71,7 +71,7 @@ class WorkflowTest(BaseWorkflowTest):
             when_condition_group=self.create_data_condition_group(),
             created_by_id=None,
             owner_user_id=None,
-            owner_team=None,
+            owner_team_id=None,
             config={"frequency": 5},
         )
 
@@ -82,7 +82,7 @@ class WorkflowTest(BaseWorkflowTest):
             when_condition_group=self.create_data_condition_group(),
             created_by_id=None,
             owner_user_id=None,
-            owner_team=None,
+            owner_team_id=None,
             config={"frequency": 5},
         )
         workflow2.full_clean()
@@ -95,7 +95,7 @@ class WorkflowTest(BaseWorkflowTest):
             when_condition_group=self.create_data_condition_group(),
             created_by_id=self.user.id,
             owner_user_id=None,
-            owner_team=None,
+            owner_team_id=None,
             config={"frequency": 5},
         )
         self.organization.delete()
@@ -112,7 +112,7 @@ class WorkflowTest(BaseWorkflowTest):
             when_condition_group=self.create_data_condition_group(),
             created_by_id=None,
             owner_user_id=None,
-            owner_team=None,
+            owner_team_id=None,
             config={"frequency": 30},
         )
         self.create_workflow(
@@ -122,7 +122,7 @@ class WorkflowTest(BaseWorkflowTest):
             when_condition_group=self.create_data_condition_group(),
             created_by_id=None,
             owner_user_id=None,
-            owner_team=None,
+            owner_team_id=None,
             config={"frequency": 5},
         )
         assert Workflow.objects.filter(name=name).count() == 2

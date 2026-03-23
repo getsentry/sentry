@@ -2,15 +2,16 @@ import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Link} from 'sentry/components/core/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import PerformanceDuration from 'sentry/components/performanceDuration';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -28,7 +29,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ProfilingSparklineChart} from './profilingSparklineChart';
 
@@ -56,7 +57,7 @@ function findBreakPointIndex(
   let low = 0;
   let high = examples.length - 1;
   let mid = 0;
-  let bestMatch: number = examples.length;
+  let bestMatch = examples.length;
 
   while (low <= high) {
     mid = Math.floor((low + high) / 2);
@@ -174,7 +175,9 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           value={trendType}
           options={TREND_FUNCTION_OPTIONS}
           onChange={onChangeTrendType}
-          triggerProps={TRIGGER_PROPS}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
+          )}
           offset={4}
         />
         <RegressedFunctionsPagination
@@ -233,7 +236,11 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
                 <ProfilingSparklineChart
                   name="p95(function.duration)"
                   points={trendToPoints(fn)}
-                  color={trendType === 'improvement' ? theme.green300 : theme.red300}
+                  color={
+                    trendType === 'improvement'
+                      ? theme.colors.green400
+                      : theme.colors.red400
+                  }
                   aggregate_range_1={fn.aggregate_range_1}
                   aggregate_range_2={fn.aggregate_range_2}
                   breakpoint={fn.breakpoint}
@@ -403,7 +410,7 @@ function RegressedFunctionBeforeAfterFlamechart(
 }
 
 const ChangeArrow = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RegressedFunctionsTypeSelect = styled(CompactSelect)`
@@ -417,7 +424,7 @@ const RegressedFunctionSparklineContainer = styled('div')``;
 
 const RegressedFunctionRow = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const RegressedFunctionMainRow = styled('div')`
@@ -436,15 +443,15 @@ const RegressedFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  margin-top: ${space(0.25)};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const RegressedFunctionsContainer = styled('div')`
   flex-basis: 80px;
-  padding: 0 ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  padding: 0 ${p => p.theme.space.md};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const RegressedFunctionsPagination = styled(Pagination)`
@@ -467,17 +474,16 @@ const RegressedFunctionsTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
-  margin-top: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const RegressedFunctionsQueryState = styled('div')`
   text-align: center;
-  padding: ${space(2)} ${space(0.5)};
-  color: ${p => p.theme.subText};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xs};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
 const TREND_FUNCTION_OPTIONS: Array<SelectOption<TrendType>> = [
   {
     label: t('Most Regressed Functions'),

@@ -1,23 +1,23 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import HighlightModalContainer from 'sentry/components/highlightModalContainer';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Plan, PreviewData, Subscription} from 'getsentry/types';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 
-import ActionButtons from './actionButtons';
-import PlanTable from './planTable';
+import {ActionButtons} from './actionButtons';
+import {PlanTable} from './planTable';
 import type {Reservations} from './types';
-import useLogUpgradeNowViewed from './useLogUpgradeNowViewed';
+import {useLogUpgradeNowViewed} from './useLogUpgradeNowViewed';
 
 type Props = ModalRenderProps & {
   organization: Organization;
@@ -108,40 +108,40 @@ const Subheader = styled('h2')`
   text-transform: uppercase;
   font-weight: bold;
 
-  font-size: ${p => p.theme.fontSize.sm};
-  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.font.size.sm};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SubheaderPrimary = styled(Subheader)`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
 `;
 
 const Header = styled('h1')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const ModalLayout = styled('div')`
   display: grid;
-  font-size: ${p => p.theme.fontSize.md};
-  margin-bottom: ${space(2)};
+  font-size: ${p => p.theme.font.size.md};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr auto;
-    gap: ${space(3)};
+    gap: ${p => p.theme.space['2xl']};
   }
 `;
 
 const UpsellContent = styled('div')`
   grid-column: 1;
   grid-row: 1;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const Note = styled('p')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 export const modalCss = css`

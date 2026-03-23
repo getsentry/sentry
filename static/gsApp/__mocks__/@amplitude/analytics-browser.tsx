@@ -8,5 +8,6 @@ export const identify = jest.fn();
 export const init = jest.fn();
 export const track = jest.fn();
 export const setGroup = jest.fn();
+export const Types = jest.requireActual('@amplitude/analytics-browser').Types;
 
 export const _identifyInstance = identifyInstance;

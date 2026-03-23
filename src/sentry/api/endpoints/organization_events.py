@@ -11,8 +11,8 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_orderby_for_error_upsampling,
@@ -29,11 +29,12 @@ from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
 )
-from sentry.search.eap.types import AdditionalQueries, FieldsACL, SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
@@ -44,6 +45,8 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
+from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
@@ -83,9 +86,9 @@ class EventsApiResponse(TypedDict):
     meta: EventsMeta
 
 
-@extend_schema(tags=["Discover"])
-@region_silo_endpoint
-class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
+@extend_schema(tags=["Explore"])
+@cell_silo_endpoint
+class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -104,12 +107,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
-            "organizations:dashboards-mep",
-            "organizations:mep-rollout-flag",
             "organizations:performance-use-metrics",
             "organizations:profiling",
             "organizations:dynamic-sampling",
-            "organizations:use-metrics-layer",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
@@ -138,7 +138,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         return all_features
 
     @extend_schema(
-        operation_id="Query Discover Events in Table Format",
+        operation_id="Query Explore Events in Table Format",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
@@ -150,6 +150,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             VisibilityParams.PER_PAGE,
             VisibilityParams.QUERY,
             VisibilityParams.SORT,
+            VisibilityParams.DATASET,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -162,15 +163,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Retrieves discover (also known as events) data for a given organization.
-
-        **Eventsv2 Deprecation Note**: Users who may be using the `eventsv2` endpoint should update their requests to the `events` endpoint outline in this document.
-        The `eventsv2` endpoint is not a public endpoint and has no guaranteed availability. If you are not making any API calls to `eventsv2`, you can safely ignore this.
-        Changes between `eventsv2` and `events` include:
-        - Field keys in the response now match the keys in the requested `field` param exactly.
-        - The `meta` object in the response now shows types in the nested `field` object.
-
-        Aside from the url change, there are no changes to the request payload itself.
+        Retrieves explore data for a given organization.
 
         **Note**: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
         Sentry.
@@ -205,15 +198,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         batch_features = self.get_features(organization, request)
 
-        use_metrics = (
-            (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and batch_features.get("organizations:dynamic-sampling", False)
-            )
-            or batch_features.get("organizations:performance-use-metrics", False)
-            or batch_features.get("organizations:dashboards-mep", False)
-        )
-
         try:
             use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
         except ValueError:
@@ -245,7 +229,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
-        debug = request.user.is_superuser and "debug" in request.GET
 
         def _data_fn(
             dataset_query: DatasetQuery,
@@ -279,13 +262,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 use_aggregate_conditions=use_aggregate_conditions,
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
-                has_metrics=use_metrics,
-                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                has_metrics=True,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 fallback_to_transactions=True,
                 query_source=query_source,
-                debug=debug,
             )
 
         @sentry_sdk.tracing.trace
@@ -297,7 +278,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             dashboard_widget_id: str,
         ):
             try:
-                widget = DashboardWidget.objects.get(id=dashboard_widget_id)
+                widget = DashboardWidget.objects.get(
+                    id=dashboard_widget_id, dashboard__organization_id=organization.id
+                )
                 does_widget_have_split = widget.discover_widget_split is not None
 
                 if does_widget_have_split:
@@ -503,11 +486,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             scoped_query = request.GET.get("query")
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
-            additional_queries = AdditionalQueries(
-                span=request.GET.getlist("spanQueries"),
-                log=request.GET.getlist("logQueries"),
-                metric=request.GET.getlist("metricQueries"),
-            )
+            additional_queries = self.get_additional_queries(request)
 
             def get_rpc_config():
                 if scoped_dataset not in RPC_DATASETS:
@@ -517,30 +496,33 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     request.GET.get("disableAggregateExtrapolation", "0") == "1"
                 )
 
+                extrapolation_mode = self.get_extrapolation_mode(request)
+
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
                         fields_acl=FieldsACL(functions={"time_spent_percentage"}),
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == OurLogs:
                     # ourlogs doesn't have use aggregate conditions
                     return SearchResolverConfig(
                         use_aggregate_conditions=False,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
-                    metric_name, metric_type, metric_unit = get_trace_metric_from_request(request)
+                    metric = get_trace_metric_from_request(request)
 
                     return TraceMetricsSearchResolverConfig(
-                        metric_name=metric_name,
-                        metric_type=metric_type,
-                        metric_unit=metric_unit,
+                        metric=metric,
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == ProfileFunctions:
                     # profile_functions uses aggregate conditions
@@ -548,17 +530,33 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
+                    )
+                elif scoped_dataset == ProcessingErrors:
+                    return SearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions,
+                        auto_fields=True,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
+                    )
+                elif scoped_dataset == PreprodSize:
+                    return PreprodSizeSearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
                 else:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":

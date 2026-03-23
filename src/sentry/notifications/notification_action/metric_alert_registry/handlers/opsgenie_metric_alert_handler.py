@@ -31,7 +31,6 @@ class OpsgenieMetricAlertHandler(BaseMetricAlertHandler):
         organization: Organization,
         project: Project,
     ) -> None:
-
         logger.info(
             "notification_action.execute_via_metric_alert_handler.opsgenie",
             extra={

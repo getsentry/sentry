@@ -61,7 +61,6 @@ class BasePaginator:
     def __init__(
         self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None, post_query_filter=None
     ):
-
         if order_by:
             if order_by.startswith("-"):
                 self.key, self.desc = order_by[1:], True
@@ -295,8 +294,12 @@ class OffsetPaginator(PaginatorLike):
         if self.on_results:
             results = self.on_results(results)
 
-        if count_hits:
-            hits = self.count_hits(max_hits=MAX_HITS_LIMIT)
+        if known_hits is not None:
+            hits = known_hits
+        elif count_hits:
+            if max_hits is None:
+                max_hits = MAX_HITS_LIMIT
+            hits = self.count_hits(max_hits)
         else:
             hits = None
 
@@ -567,9 +570,9 @@ class CombinedQuerysetIntermediary:
             self.is_empty = True
 
     def _assert_has_field(self, instance, field):
-        assert hasattr(
-            instance, field
-        ), f"Model of type {self.instance_type} does not have field {field}"
+        assert hasattr(instance, field), (
+            f"Model of type {self.instance_type} does not have field {field}"
+        )
 
 
 class CombinedQuerysetPaginator:
@@ -613,9 +616,9 @@ class CombinedQuerysetPaginator:
                 using_other = True
 
         if self.using_dates:
-            assert (
-                not using_other
-            ), "When sorting by a date, it must be the key used on all intermediaries"
+            assert not using_other, (
+                "When sorting by a date, it must be the key used on all intermediaries"
+            )
 
     def key_from_item(self, item):
         return self.model_key_map[type(item)][0]

@@ -1,7 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {tn} from 'sentry/locale';
 
@@ -30,8 +31,9 @@ interface CheckInTimelineConfig<Status extends string> {
   style?: React.CSSProperties;
 }
 
-interface CheckInTimelineProps<Status extends string>
-  extends CheckInTimelineConfig<Status> {
+interface CheckInTimelineProps<
+  Status extends string,
+> extends CheckInTimelineConfig<Status> {
   /**
    * Represents each check-in tick as bucketed check-in data.
    */
@@ -42,15 +44,12 @@ interface CheckInTimelineProps<Status extends string>
    * Defaults to 'check-ins'
    */
   makeUnit?: (count: number) => React.ReactNode;
-}
 
-function getBucketedCheckInsPosition(
-  timestamp: number,
-  timelineStart: Date,
-  msPerPixel: number
-) {
-  const elapsedSinceStart = new Date(timestamp).getTime() - timelineStart.getTime();
-  return elapsedSinceStart / msPerPixel;
+  /**
+   * Extra props to pass to the Tooltip component,
+   * Title is determined by the CheckInTooltip component
+   */
+  tooltipProps?: Omit<TooltipProps, 'title' | 'skipWrapper'>;
 }
 
 export function CheckInTimeline<Status extends string>({
@@ -62,6 +61,7 @@ export function CheckInTimeline<Status extends string>({
   className,
   style,
   makeUnit = count => tn('check-in', 'check-ins', count),
+  tooltipProps,
 }: CheckInTimelineProps<Status>) {
   const jobTicks = mergeBuckets(
     statusPrecedent,
@@ -85,6 +85,7 @@ export function CheckInTimeline<Status extends string>({
             skipWrapper
             key={startTs}
             makeUnit={makeUnit}
+            {...tooltipProps}
           >
             <JobTick
               style={{left, width}}
@@ -100,13 +101,23 @@ export function CheckInTimeline<Status extends string>({
   );
 }
 
-interface MockCheckInTimelineProps<Status extends string>
-  extends CheckInTimelineConfig<Status> {
+interface MockCheckInTimelineProps<
+  Status extends string,
+> extends CheckInTimelineConfig<Status> {
   mockTimestamps: Date[];
   /**
    * The status to use for each mocked tick
    */
   status: Status;
+}
+
+function getBucketedCheckInsPosition(
+  timestamp: number,
+  timelineStart: Date,
+  msPerPixel: number
+) {
+  const elapsedSinceStart = new Date(timestamp).getTime() - timelineStart.getTime();
+  return elapsedSinceStart / msPerPixel;
 }
 
 export function MockCheckInTimeline<Status extends string>({
@@ -115,15 +126,16 @@ export function MockCheckInTimeline<Status extends string>({
   status,
   statusStyle,
 }: MockCheckInTimelineProps<Status>) {
-  const {start, end} = timeWindowConfig;
-  const elapsedMs = end.getTime() - start.getTime();
-  const msPerPixel = elapsedMs / timeWindowConfig.timelineWidth;
+  const {periodStart, elapsedMinutes, timelineWidth, rollupConfig} = timeWindowConfig;
+  const msPerPixel = (elapsedMinutes * 60 * 1000) / timelineWidth;
+  const startOffset = rollupConfig.timelineUnderscanWidth;
 
   return (
     <TimelineContainer>
       {mockTimestamps.map(ts => {
         const timestampMs = ts.getTime();
-        const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
+        const left =
+          startOffset + getBucketedCheckInsPosition(timestampMs, periodStart, msPerPixel);
 
         return (
           <Tooltip

@@ -1,17 +1,18 @@
 import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
 const FILE_MAX_SIZE = 200e6; // 200 MB limit for file upload
 
@@ -108,11 +109,13 @@ function RelocationForm() {
           <li>This API has a ratelimit of 1 request per org per day</li>
           <li>Owner must be a single username</li>
           <li>Orgs can be entered as a comma separated list of slugs</li>
-          <li>Uploaded files have a maximum size of 200 MB</li>
+          <li>Uploaded files have a maximum size of 100 MB</li>
           <li>Files must be tar archives (.tar) </li>
         </ul>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region.url}
           options={regions.map((r: any) => ({
             label: r.name,
@@ -170,11 +173,11 @@ function RelocationForm() {
 }
 
 const UploadWell = styled('div')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(3)};
-  border: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.backgroundSecondary};
-  padding: ${space(2)} ${space(3)};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space['2xl']};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   border-radius: 3px;
   text-align: center;
 `;
@@ -186,14 +189,14 @@ const UploadInput = styled('input')`
 
 const InputLabel = styled('label')`
   display: block;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const SubmitButton = styled(Button)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
-function RelocationCreate() {
+export function RelocationCreate() {
   return (
     <div>
       <PageHeader title="Relocation" />
@@ -202,5 +205,3 @@ function RelocationCreate() {
     </div>
   );
 }
-
-export default RelocationCreate;

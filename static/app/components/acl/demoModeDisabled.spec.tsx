@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
-import DisableInDemoMode from './demoModeDisabled'; // Adjust the import path as necessary
+import {DisableInDemoMode} from './demoModeDisabled'; // Adjust the import path as necessary
 
 jest.mock('sentry/utils/demoMode', () => ({
   isDemoModeActive: jest.fn(),
@@ -10,6 +10,7 @@ jest.mock('sentry/utils/demoMode', () => ({
 
 jest.mock('sentry/locale', () => ({
   t: jest.fn(key => key), // Mock translation function
+  td: jest.fn(key => key), // Mock translation description function
 }));
 
 describe('DisableInDemoMode', () => {

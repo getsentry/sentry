@@ -16,8 +16,8 @@ from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.preprod_artifact = PreprodArtifact.objects.create(
-            project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
+        self.preprod_artifact = self.create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.UPLOADED
         )
 
     def _get_url(self, artifact_id=None):

@@ -15,8 +15,9 @@ interface RouteWithName extends PlainRoute {
   name?: string;
 }
 
-interface PartialInjectedRouter<P>
-  extends Partial<Omit<InjectedRouter<P>, 'location' | 'routes'>> {
+interface PartialInjectedRouter<P> extends Partial<
+  Omit<InjectedRouter<P>, 'location' | 'routes'>
+> {
   location?: Partial<Location>;
   routes?: RouteWithName[];
 }

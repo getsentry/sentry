@@ -5,21 +5,22 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {TagSegment} from 'sentry/actionCreators/events';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {appendExcludeTagValuesCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_SEGMENTS = 4;
 const TOOLTIP_DELAY = 800;
@@ -36,7 +37,7 @@ type Props = {
   project?: Project;
 };
 
-function TagFacetsDistributionMeter({
+export function TagFacetsDistributionMeter({
   segments,
   title,
   totalValues,
@@ -74,7 +75,7 @@ function TagFacetsDistributionMeter({
           <TitleDescription>{topSegments[0]!.name || t('n/a')}</TitleDescription>
         </Tooltip>
         <ExpandToggleButton
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconChevron direction={expanded ? 'up' : 'down'} size="xs" />}
           aria-label={t(
@@ -90,14 +91,14 @@ function TagFacetsDistributionMeter({
   function renderSegments() {
     if (totalValues === 0) {
       return (
-        <SegmentBar>
+        <Flex overflow="hidden">
           <p>{t('No recent data.')}</p>
-        </SegmentBar>
+        </Flex>
       );
     }
 
     return (
-      <SegmentBar>
+      <Flex overflow="hidden">
         {topSegments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
@@ -126,7 +127,7 @@ function TagFacetsDistributionMeter({
               {value.isOther ? (
                 <OtherSegment
                   aria-label={t('Other segment')}
-                  color={theme.chart.neutral}
+                  color={theme.tokens.dataviz.semantic.neutral}
                 />
               ) : (
                 <Segment
@@ -141,7 +142,7 @@ function TagFacetsDistributionMeter({
             </div>
           );
         })}
-      </SegmentBar>
+      </Flex>
     );
   }
 
@@ -182,7 +183,11 @@ function TagFacetsDistributionMeter({
                     onMouseLeave={() => setHoveredValue(null)}
                   >
                     <LegendDot
-                      color={segment.isOther ? theme.chart.neutral : colors[index]!}
+                      color={
+                        segment.isOther
+                          ? theme.tokens.dataviz.semantic.neutral
+                          : colors[index]!
+                      }
                       focus={focus}
                     />
                     <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
@@ -257,52 +262,47 @@ function TagFacetsDistributionMeter({
   );
 }
 
-export default TagFacetsDistributionMeter;
-
 const TagSummary = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const TagHeader = styled('span')`
   cursor: pointer;
 `;
 
-const SegmentBar = styled('div')`
-  display: flex;
-  overflow: hidden;
-`;
-
 const Title = styled('div')`
   display: flex;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   justify-content: space-between;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
   line-height: 1.1;
 `;
 
 const TitleType = styled('div')`
   flex: none;
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.md};
-  margin-right: ${space(1)};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.md};
+  margin-right: ${p => p.theme.space.md};
   align-self: center;
 `;
 
 const TitleDescription = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
   color: ${p => p.theme.tokens.content.primary};
   text-align: right;
-  font-size: ${p => p.theme.fontSize.md};
-  ${p => p.theme.overflowEllipsis};
+  font-size: ${p => p.theme.font.size.md};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   align-self: center;
 `;
 
 const OtherSegment = styled('span')<{color: string}>`
   display: block;
   width: 100%;
-  height: ${space(2)};
+  height: ${p => p.theme.space.xl};
   color: inherit;
   outline: none;
   background-color: ${p => p.color};
@@ -310,31 +310,31 @@ const OtherSegment = styled('span')<{color: string}>`
 
 const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
   &:hover {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
   display: block;
   width: 100%;
-  height: ${space(2)};
-  color: ${p => p.theme.white};
+  height: ${p => p.theme.space.xl};
+  color: ${p => p.theme.colors.white};
   outline: none;
   background-color: ${p => p.color};
   text-align: right;
-  font-size: ${p => p.theme.fontSize.xs};
-  padding: 1px ${space(0.5)} 0 0;
+  font-size: ${p => p.theme.font.size.xs};
+  padding: 1px ${p => p.theme.space.xs} 0 0;
   user-select: none;
 `;
 
 const LegendContainer = styled('ol')`
   list-style: none;
   padding: 0;
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const LegendRow = styled('div')`
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} 0;
 `;
 
 const LegendDot = styled('span')<{color: string; focus: boolean}>`
@@ -355,34 +355,34 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
     left: 0;
     width: 100%;
     height: 100%;
-    outline: ${p => p.theme.gray100} ${space(0.5)} solid;
+    outline: ${p => p.theme.colors.gray100} ${p => p.theme.space.xs} solid;
     opacity: ${p => (p.focus ? '1' : '0')};
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 `;
 
 const LegendText = styled('span')<{unfocus: boolean}>`
-  font-size: ${p => p.theme.fontSize.sm};
-  margin-left: ${space(1)};
+  font-size: ${p => p.theme.font.size.sm};
+  margin-left: ${p => p.theme.space.md};
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   transition: color 0.3s;
   color: ${p =>
-    p.unfocus ? p.theme.tokens.content.muted : p.theme.tokens.content.primary};
+    p.unfocus ? p.theme.tokens.content.secondary : p.theme.tokens.content.primary};
 `;
 
 const LegendPercent = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
-  margin-left: ${space(1)};
+  font-size: ${p => p.theme.font.size.sm};
+  margin-left: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
   text-align: right;
   flex-grow: 1;
 `;
 
 const ExpandToggleButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.muted};
-  margin-left: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 const StyledSummary = styled('summary')`

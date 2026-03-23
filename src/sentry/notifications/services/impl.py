@@ -29,9 +29,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         team_id: int | None = None,
         types: list[NotificationSettingEnum] | None = None,
     ) -> None:
-        assert (team_id and not user_id) or (
-            user_id and not team_id
-        ), "Can only enable settings for team or user"
+        assert (team_id and not user_id) or (user_id and not team_id), (
+            "Can only enable settings for team or user"
+        )
 
         kwargs: MutableMapping[str, str | int] = {}
         if user_id:

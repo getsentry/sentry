@@ -2,8 +2,6 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   onChangeEnd: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeStart: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -22,7 +20,7 @@ type State = {
   focused: boolean;
 };
 
-const TimePicker = styled(
+export const TimePicker = styled(
   class TimePicker extends Component<Props, State> {
     state: State = {
       focused: false,
@@ -102,7 +100,7 @@ const TimePicker = styled(
     grid-template-columns: 48% 48%;
     grid-column-gap: 4%;
     align-items: center;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     width: 100%;
     padding: 0;
   }
@@ -115,25 +113,23 @@ const Input = styled('input')`
 
   &.rdrDateDisplayItem {
     width: 100%;
-    background: ${p => p.theme.backgroundSecondary};
-    border: 1px solid ${p => p.theme.border};
-    color: ${p => p.theme.subText};
-    padding: ${space(0.25)} ${space(0.5)};
+    background: ${p => p.theme.tokens.background.secondary};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    color: ${p => p.theme.tokens.content.secondary};
+    padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
     box-shadow: none;
     font-variant-numeric: tabular-nums;
 
     &&:focus-visible {
       outline: none;
-      border-color: ${p => p.theme.focusBorder};
-      box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+      border-color: ${p => p.theme.tokens.focus.default};
+      box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
     }
 
     &&[aria-invalid='true'] {
       outline: none;
-      border-color: ${p => p.theme.error};
-      box-shadow: 0 0 0 1px ${p => p.theme.error};
+      border-color: ${p => p.theme.tokens.focus.invalid};
+      box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.invalid};
     }
   }
 `;
-
-export default TimePicker;

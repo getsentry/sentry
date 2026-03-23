@@ -63,16 +63,19 @@ class GetSimilarityDataFromSeerTest(TestCase):
         ]
 
         for raw_data, expected_outcome in cases:
-            mock_seer_request.return_value = self._make_response({"responses": [raw_data]})
+            mock_seer_request.return_value = self._make_response(
+                {"responses": [raw_data], "model_used": "v1"}
+            )
 
             similar_issue_data: Any = {
                 **raw_data,
                 "parent_group_id": self.similar_event.group_id,
             }
 
-            assert get_similarity_data_from_seer(self.request_params) == [
-                SeerSimilarIssueData(**similar_issue_data)
-            ]
+            assert get_similarity_data_from_seer(self.request_params) == (
+                [SeerSimilarIssueData(**similar_issue_data)],
+                "v1",
+            )
             mock_metrics_incr.assert_any_call(
                 "seer.similar_issues_request",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -89,9 +92,9 @@ class GetSimilarityDataFromSeerTest(TestCase):
     def test_no_groups_found(
         self, mock_seer_request: MagicMock, mock_metrics_incr: MagicMock
     ) -> None:
-        mock_seer_request.return_value = self._make_response({"responses": []})
+        mock_seer_request.return_value = self._make_response({"responses": [], "model_used": "v1"})
 
-        assert get_similarity_data_from_seer(self.request_params) == []
+        assert get_similarity_data_from_seer(self.request_params) == ([], "v1")
         mock_metrics_incr.assert_any_call(
             "seer.similar_issues_request",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -107,7 +110,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_metrics_incr: MagicMock,
         mock_record_circuit_breaker_error: MagicMock,
     ):
-        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         assert existing_grouphash.group_id is None
 
         cases: list[tuple[Any, str]] = [
@@ -144,7 +147,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
                         {
                             # hash value matches the `GroupHash` created above, but that `GroupHash`
                             # has no associated group
-                            "parent_hash": "dogs are great",
+                            "parent_hash": "dogs_are_great",
                             "should_group": True,
                             "stacktrace_distance": 0.01,
                         }
@@ -157,7 +160,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         for response_data, expected_error in cases:
             mock_seer_request.return_value = self._make_response(response_data)
 
-            assert get_similarity_data_from_seer(self.request_params) == []
+            assert get_similarity_data_from_seer(self.request_params) == ([], None)
             mock_metrics_incr.assert_any_call(
                 "seer.similar_issues_request",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -182,7 +185,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             status=308, headers={"location": "/new/and/improved/endpoint/"}
         )
 
-        assert get_similarity_data_from_seer(self.request_params) == []
+        assert get_similarity_data_from_seer(self.request_params) == ([], None)
         mock_logger.error.assert_called_with(
             f"Encountered redirect when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}. Please update `SEER_SIMILAR_ISSUES_URL` in `sentry.conf.server` to be '/new/and/improved/endpoint/'."
         )
@@ -213,7 +216,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         ]:
             mock_seer_request.side_effect = request_error
 
-            assert get_similarity_data_from_seer(self.request_params) == []
+            assert get_similarity_data_from_seer(self.request_params) == ([], None)
             mock_logger.warning.assert_called_with(
                 "get_seer_similar_issues.request_error",
                 extra={
@@ -250,7 +253,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         ]:
             mock_seer_request.return_value = HTTPResponse(response, status=status)
 
-            assert get_similarity_data_from_seer(self.request_params) == []
+            assert get_similarity_data_from_seer(self.request_params) == ([], None)
             mock_logger.error.assert_called_with(
                 f"Received {status} when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}.",
                 extra={"response_data": response},
@@ -281,7 +284,10 @@ class GetSimilarityDataFromSeerTest(TestCase):
 
         # Note that the less similar issue is first in the list as it comes back from Seer
         mock_seer_request.return_value = self._make_response(
-            {"responses": [raw_less_similar_issue_data, raw_similar_issue_data]}
+            {
+                "responses": [raw_less_similar_issue_data, raw_similar_issue_data],
+                "model_used": "v1",
+            }
         )
 
         similar_issue_data: Any = {
@@ -294,10 +300,13 @@ class GetSimilarityDataFromSeerTest(TestCase):
         }
 
         # The results have been reordered so that the more similar issue comes first
-        assert get_similarity_data_from_seer(self.request_params) == [
-            SeerSimilarIssueData(**similar_issue_data),
-            SeerSimilarIssueData(**less_similar_issue_data),
-        ]
+        assert get_similarity_data_from_seer(self.request_params) == (
+            [
+                SeerSimilarIssueData(**similar_issue_data),
+                SeerSimilarIssueData(**less_similar_issue_data),
+            ],
+            "v1",
+        )
 
     @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
@@ -329,7 +338,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_seer_similarity_request: MagicMock,
         mock_seer_deletion_request: MagicMock,
     ):
-        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         assert existing_grouphash.group_id is None
 
         # Set the grouphash creation date to yesterday
@@ -341,7 +350,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             {
                 "responses": [
                     {
-                        "parent_hash": "dogs are great",
+                        "parent_hash": "dogs_are_great",
                         "should_group": True,
                         "stacktrace_distance": 0.01,
                     }
@@ -352,12 +361,12 @@ class GetSimilarityDataFromSeerTest(TestCase):
         get_similarity_data_from_seer(self.request_params)
 
         assert mock_seer_deletion_request.delay.call_count == 1
-        mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["dogs are great"])
+        mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["dogs_are_great"])
 
         # Now do it all over again, but with a hash that's just been created
 
         newly_created_grouphash = GroupHash.objects.create(
-            hash="adopt, don't shop", project=self.project
+            hash="adopt_dont_shop", project=self.project
         )
         assert newly_created_grouphash.group_id is None
 
@@ -370,7 +379,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             {
                 "responses": [
                     {
-                        "parent_hash": "adopt, don't shop",
+                        "parent_hash": "adopt_dont_shop",
                         "should_group": True,
                         "stacktrace_distance": 0.01,
                     }
@@ -418,23 +427,24 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_grouphash_objects_filter: MagicMock,
     ):
         existing_grouphash_no_group = GroupHash.objects.create(
-            hash="dogs are great", project=self.project
+            hash="dogs_are_great", project=self.project
         )
         GroupHashMetadata.objects.create(grouphash=existing_grouphash_no_group)
         assert existing_grouphash_no_group.group_id is None
         existing_grouphash_with_group = GroupHash.objects.create(
-            hash="adopt, don't shop", project=self.project, group=self.group
+            hash="adopt_dont_shop", project=self.project, group=self.group
         )
 
         mock_seer_similarity_request.return_value = self._make_response(
             {
                 "responses": [
                     {
-                        "parent_hash": "dogs are great",
+                        "parent_hash": "dogs_are_great",
                         "should_group": True,
                         "stacktrace_distance": 0.01,
                     }
-                ]
+                ],
+                "model_used": "v1",
             }
         )
 
@@ -456,14 +466,17 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_logger.info.assert_any_call(
             "get_similarity_data_from_seer.parent_hash_missing_group.retry_success", extra=ANY
         )
-        assert results == [
-            SeerSimilarIssueData(
-                parent_group_id=self.group.id,
-                parent_hash="dogs are great",
-                should_group=True,
-                stacktrace_distance=0.01,
-            )
-        ]
+        assert results == (
+            [
+                SeerSimilarIssueData(
+                    parent_group_id=self.group.id,
+                    parent_hash="dogs_are_great",
+                    should_group=True,
+                    stacktrace_distance=0.01,
+                )
+            ],
+            "v1",
+        )
 
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
@@ -471,9 +484,8 @@ class GetSimilarityDataFromSeerTest(TestCase):
         self,
         mock_seer_similarity_request: MagicMock,
         mock_logger: MagicMock,
-        # mock_grouphash_objects_filter: MagicMock,
     ):
-        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         GroupHashMetadata.objects.create(grouphash=existing_grouphash)
         assert existing_grouphash.group_id is None
 
@@ -481,7 +493,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             {
                 "responses": [
                     {
-                        "parent_hash": "dogs are great",
+                        "parent_hash": "dogs_are_great",
                         "should_group": True,
                         "stacktrace_distance": 0.01,
                     }
@@ -497,4 +509,37 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_logger.info.assert_any_call(
             "get_similarity_data_from_seer.parent_hash_missing_group.retry_failure", extra=ANY
         )
-        assert results == []
+        assert results == ([], None)
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_model_used_returned_from_response(self, mock_seer_request: MagicMock) -> None:
+        raw_data: RawSeerSimilarIssueData = {
+            "parent_hash": self.similar_event_hash,
+            "should_group": True,
+            "stacktrace_distance": 0.01,
+        }
+        mock_seer_request.return_value = self._make_response(
+            {"responses": [raw_data], "model_used": "v2"}
+        )
+
+        results, model_used = get_similarity_data_from_seer(self.request_params)
+
+        assert model_used == "v2"
+        assert len(results) == 1
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_model_used_missing_from_response_returns_none(
+        self, mock_seer_request: MagicMock
+    ) -> None:
+        """Backward compat: if Seer somehow doesn't return model_used, we get None."""
+        raw_data: RawSeerSimilarIssueData = {
+            "parent_hash": self.similar_event_hash,
+            "should_group": True,
+            "stacktrace_distance": 0.01,
+        }
+        mock_seer_request.return_value = self._make_response({"responses": [raw_data]})
+
+        results, model_used = get_similarity_data_from_seer(self.request_params)
+
+        assert model_used is None
+        assert len(results) == 1

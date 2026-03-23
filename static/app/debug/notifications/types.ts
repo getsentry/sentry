@@ -1,3 +1,5 @@
+import type {NotificationBodyFormattingBlock} from 'sentry/debug/notifications/components/notificationBodyRenderer';
+
 export enum NotificationProviderKey {
   EMAIL = 'email',
   SLACK = 'slack',
@@ -9,7 +11,7 @@ export interface NotificationTemplateRegistration {
   category: string;
   example: {
     actions: Array<{label: string; link: string}>;
-    body: string;
+    body: NotificationBodyFormattingBlock[];
     subject: string;
     chart?: {alt_text: string; url: string};
     footer?: string;

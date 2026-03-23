@@ -1,8 +1,9 @@
 from dataclasses import dataclass
+from typing import Any
 from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DataConditionHandler
@@ -14,7 +15,9 @@ class OrganizationDataConditionAPITestCase(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
-        self.registry = Registry[type[DataConditionHandler]](enable_reverse_lookup=False)
+        self.registry = Registry[type[DataConditionHandler[dict[str, Any]]]](
+            enable_reverse_lookup=False
+        )
         self.registry_patcher = patch(
             "sentry.workflow_engine.endpoints.organization_data_condition_index.condition_handler_registry",
             new=self.registry,
@@ -23,13 +26,13 @@ class OrganizationDataConditionAPITestCase(APITestCase):
 
         @self.registry.register(Condition.REAPPEARED_EVENT)
         @dataclass(frozen=True)
-        class TestWorkflowTrigger(DataConditionHandler):
+        class TestWorkflowTrigger(DataConditionHandler[dict[str, str]]):
             group = DataConditionHandler.Group.WORKFLOW_TRIGGER
             comparison_json_schema = {"type": "boolean"}
 
         @self.registry.register(Condition.AGE_COMPARISON)
         @dataclass(frozen=True)
-        class TestActionFilter(DataConditionHandler):
+        class TestActionFilter(DataConditionHandler[dict[str, Any]]):
             group = DataConditionHandler.Group.ACTION_FILTER
             subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
             comparison_json_schema = {
@@ -43,20 +46,20 @@ class OrganizationDataConditionAPITestCase(APITestCase):
 
         @self.registry.register(Condition.ANOMALY_DETECTION)
         @dataclass(frozen=True)
-        class TestDetectorTrigger(DataConditionHandler):
+        class TestDetectorTrigger(DataConditionHandler[dict[str, str]]):
             group = DataConditionHandler.Group.DETECTOR_TRIGGER
             comparison_json_schema = {"type": "boolean"}
 
         # This legacy condition should not be included in the response
         @self.registry.register(Condition.EXISTING_HIGH_PRIORITY_ISSUE)
         @dataclass(frozen=True)
-        class TestIgnoredCondition(DataConditionHandler):
+        class TestIgnoredCondition(DataConditionHandler[dict[str, str]]):
             group = DataConditionHandler.Group.WORKFLOW_TRIGGER
             comparison_json_schema = {"type": "boolean"}
 
         @self.registry.register(Condition.ISSUE_CATEGORY)
         @dataclass(frozen=True)
-        class TestIssueCategoryCondition(DataConditionHandler):
+        class TestIssueCategoryCondition(DataConditionHandler[dict[str, Any]]):
             group = DataConditionHandler.Group.ACTION_FILTER
             subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
             comparison_json_schema = {
@@ -73,7 +76,7 @@ class OrganizationDataConditionAPITestCase(APITestCase):
         self.registry_patcher.stop()
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCase):
     def test_group_filter(self) -> None:
         response = self.get_success_response(

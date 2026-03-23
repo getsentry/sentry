@@ -2,13 +2,13 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import type {TooltipProps} from 'sentry/components/core/tooltip';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {JobTickData, TickStyle, TimeWindowConfig} from './types';
 
@@ -74,7 +74,9 @@ export function CheckInTooltip<Status extends string>({
               count > 0 && (
                 <tr key={status}>
                   <StatusLabel
-                    labelColor={labelColors[status]?.labelColor ?? theme.disabled}
+                    labelColor={
+                      labelColors[status]?.labelColor ?? theme.tokens.content.disabled
+                    }
                   >
                     {statusLabel[status]}
                   </StatusLabel>
@@ -100,7 +102,7 @@ const StatusCountContainer = styled('table')`
   margin: 0;
   display: grid;
   grid-template-columns: max-content max-content max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   /* Visually hide the tooltip headers but keep them for accessability */
   thead {
@@ -134,5 +136,5 @@ const StatusCount = styled('td')`
 `;
 
 const StatusUnit = styled('td')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

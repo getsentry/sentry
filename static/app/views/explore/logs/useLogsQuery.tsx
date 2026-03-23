@@ -2,16 +2,16 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {logger} from '@sentry/react';
 
 import {type ApiResult} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {
   fetchDataQuery,
-  useApiQuery,
   useInfiniteQuery,
   useQueryClient,
   type ApiQueryKey,
@@ -19,9 +19,11 @@ import {
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  useLogsAutoRefresh,
+  useLogsAutoRefreshEnabled,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
@@ -40,7 +42,6 @@ import {
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
-  type LogsAggregatesResult,
 } from 'sentry/views/explore/logs/types';
 import {
   isRowVisibleInVirtualStream,
@@ -141,7 +142,7 @@ function useLogsQueryKey({
       per_page: limit ? limit : undefined,
       referrer,
       sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
-      caseInsensitive,
+      caseInsensitive: caseInsensitive ? '1' : undefined,
     },
     pageFiltersReady,
     eventView,
@@ -151,7 +152,9 @@ function useLogsQueryKey({
     frozenTraceIds || frozenReplayInfo.replayId ? 'trace-logs' : 'events';
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${endpointSuffix}/`,
+    getApiUrl(`/organizations/$organizationIdOrSlug/${endpointSuffix}/`, {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     params,
   ];
 
@@ -393,7 +396,11 @@ function isFlexTimePageParam(pageParam: LogPageParam): pageParam is FlexTimePage
   return defined(pageParam) && 'cursor' in pageParam;
 }
 
-type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions, 'infinite'];
+type QueryKey = [
+  url: ReturnType<typeof getApiUrl>,
+  endpointOptions: QueryKeyEndpointOptions,
+  'infinite',
+];
 
 export function useInfiniteLogsQuery({
   disabled,
@@ -408,6 +415,13 @@ export function useInfiniteLogsQuery({
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
+  const {hasInitialized: autoRefreshHasInitialized} = useLogsAutoRefresh();
+
+  // High fidelity and auto refresh are disjoint features and cannot
+  // be used together. So if auto refresh was ever initialized, we must
+  // disable high fidelity mode.
+  highFidelity = autoRefreshHasInitialized ? false : highFidelity;
+
   const {queryKey: queryKeyWithInfinite, other} = useLogsQueryKeyWithInfinite({
     referrer: _referrer,
     autoRefresh,
@@ -628,6 +642,7 @@ export function useInfiniteLogsQuery({
     return filteredData;
   }, [data, virtualStreamedTimestamp]);
 
+  const pageCount = data?.pages?.length;
   const _meta = useMemo<EventsMetaType>(() => {
     return (
       data?.pages.reduce(
@@ -641,7 +656,8 @@ export function useInfiniteLogsQuery({
         {fields: {}, units: {}}
       ) ?? {fields: {}, units: {}}
     );
-  }, [data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageCount]);
 
   const _fetchPreviousPage = useCallback(() => {
     if (autoRefresh || hasPreviousPage) {
@@ -734,92 +750,13 @@ export function useInfiniteLogsQuery({
 export type UseInfiniteLogsQueryResult = ReturnType<typeof useInfiniteLogsQuery>;
 
 export function useLogsQueryHighFidelity() {
-  const organization = useOrganization();
   const sortBys = useQueryParamsSortBys();
-  const highFidelity = organization.features.includes('ourlogs-high-fidelity');
 
   // we can only turn on high accuracy flex time sampling when
   // the order by is exactly timestamp descending,
   return (
-    highFidelity &&
     sortBys.length === 1 &&
     sortBys[0]?.field === 'timestamp' &&
     sortBys[0]?.kind === 'desc'
   );
-}
-
-interface RawCount {
-  count: number | null;
-  isLoading: boolean;
-}
-
-export interface RawLogCounts {
-  highAccuracy: RawCount;
-  normal: RawCount;
-}
-
-export function useLogsRawCounts(): RawLogCounts {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  const baseQueryParams = {
-    dataset: DiscoverDatasets.OURLOGS,
-    project: selection.projects,
-    environment: selection.environments,
-    ...normalizeDateTimeParams(selection.datetime),
-    field: ['count(message)'],
-    disableAggregateExtrapolation: '1',
-  };
-
-  const normalScanQueryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/events/`,
-    {
-      query: {
-        ...baseQueryParams,
-        referrer: 'api.explore.logs.raw-count.normal',
-        sampling: SAMPLING_MODE.NORMAL,
-      },
-    },
-  ];
-
-  const normalScanResult = useApiQuery<LogsAggregatesResult>(normalScanQueryKey, {
-    enabled: true,
-    staleTime: 0,
-  });
-
-  const highestAccuracyScanQueryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/events/`,
-    {
-      query: {
-        ...baseQueryParams,
-        referrer: 'api.explore.logs.raw-count.high-accuracy',
-        sampling: SAMPLING_MODE.HIGH_ACCURACY,
-      },
-    },
-  ];
-
-  const highestAccuracyScanResult = useApiQuery<LogsAggregatesResult>(
-    highestAccuracyScanQueryKey,
-    {
-      enabled: true,
-      staleTime: 0,
-    }
-  );
-
-  const normalScanCount = (normalScanResult.data?.data?.[0]?.['count(message)'] ||
-    null) as number | null;
-  const highestAccuracyScanCount = (highestAccuracyScanResult.data?.data?.[0]?.[
-    'count(message)'
-  ] || null) as number | null;
-
-  return {
-    normal: {
-      isLoading: normalScanResult.isFetching,
-      count: normalScanCount,
-    },
-    highAccuracy: {
-      isLoading: highestAccuracyScanResult.isFetching,
-      count: highestAccuracyScanCount,
-    },
-  };
 }

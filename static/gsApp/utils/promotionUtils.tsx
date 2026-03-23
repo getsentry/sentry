@@ -1,28 +1,9 @@
-import * as Sentry from '@sentry/react';
-
-import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
-import {QueryClient, type QueryObserverResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {QueryClient} from 'sentry/utils/queryClient';
 
-import {
-  openPromotionModal,
-  openPromotionReminderModal,
-} from 'getsentry/actionCreators/modal';
-import {
-  InvoiceItemType,
-  type DiscountInfo,
-  type Plan,
-  type Promotion,
-  type PromotionClaimed,
-  type PromotionData,
-  type Subscription,
-} from 'getsentry/types';
-import {isBizPlanFamily} from 'getsentry/utils/billing';
+import type {PromotionClaimed, PromotionData} from 'getsentry/types';
 import {createPromotionCheckQueryKey} from 'getsentry/utils/usePromotionTriggerCheck';
-
-import trackGetsentryAnalytics from './trackGetsentryAnalytics';
 
 export async function claimAvailablePromotion({
   promotionData,
@@ -85,116 +66,4 @@ export async function claimAvailablePromotion({
       activePromotions,
     }
   );
-}
-
-export function showSubscriptionDiscount({
-  activePlan,
-  discountInfo,
-}: {
-  activePlan: Plan;
-  discountInfo?: DiscountInfo;
-}): boolean {
-  return !!(
-    discountInfo?.durationText &&
-    discountInfo.discountType === 'percentPoints' &&
-    activePlan.billingInterval === discountInfo.billingInterval &&
-    discountInfo.creditCategory === InvoiceItemType.SUBSCRIPTION
-  );
-}
-
-export function showChurnDiscount({
-  activePlan,
-  discountInfo,
-}: {
-  activePlan: Plan;
-  discountInfo?: DiscountInfo;
-}) {
-  // for now, only show discouns for percentPoints that are for the same billing interval
-  if (
-    discountInfo?.discountType !== 'percentPoints' ||
-    activePlan.billingInterval !== discountInfo?.billingInterval
-  ) {
-    return false;
-  }
-  switch (discountInfo.planRequirement) {
-    case 'business':
-      return isBizPlanFamily(activePlan);
-    case 'paid':
-      // can't select a free plan on the checkout page
-      return true;
-    default:
-      return false;
-  }
-}
-
-export async function checkForPromptBasedPromotion({
-  organization,
-  onRefetch,
-  promptFeature,
-  subscription,
-  promotionData,
-  onAcceptConditions,
-}: {
-  onAcceptConditions: () => void;
-  onRefetch: () => Promise<QueryObserverResult<PromotionData | any, RequestError>>;
-  organization: Organization;
-  promotionData: PromotionData;
-  promptFeature: string;
-  subscription: Subscription;
-}) {
-  // from the existing promotion data, check if the user has already claimed the prompt-based promotion
-  const completedPromotion = promotionData.completedPromotions?.find(
-    promoClaimed => promoClaimed.promotion.promptActivityTrigger === promptFeature
-  );
-  if (completedPromotion) {
-    // add tracking to the modal
-    openPromotionReminderModal(
-      completedPromotion,
-      () => {
-        trackGetsentryAnalytics('growth.promo_reminder_modal_keep', {
-          organization,
-          promo: completedPromotion.promotion.slug,
-        });
-        onAcceptConditions();
-      },
-      () => {
-        trackGetsentryAnalytics('growth.promo_reminder_modal_continue_downgrade', {
-          organization,
-          promo: completedPromotion.promotion.slug,
-        });
-      }
-    );
-    return;
-  }
-  // if no completed promo, trigger the prompt endpoint and see if one is available
-  try {
-    const api = new Client();
-    await promptsUpdate(api, {
-      organization,
-      feature: promptFeature,
-      status: 'dismissed',
-    });
-    await onRefetch(); // will refresh promotionData
-    // find the matching available promotion based on prompt features
-    const promotion = promotionData?.availablePromotions?.find(
-      (promo: Promotion) => promo.promptActivityTrigger === promptFeature
-    );
-    if (!promotion) {
-      return;
-    }
-    const intervalPrice = subscription.customPrice
-      ? subscription.customPrice
-      : subscription.planDetails.price || 0;
-
-    openPromotionModal({
-      promotion,
-      organization,
-      price: intervalPrice,
-      promptFeature,
-      onAccept: onAcceptConditions,
-    });
-  } catch (err) {
-    Sentry.captureException(err);
-    return;
-  }
 }

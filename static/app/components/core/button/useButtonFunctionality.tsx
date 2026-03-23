@@ -1,4 +1,4 @@
-import {useButtonTracking} from 'sentry/components/core/trackingContext';
+import {useButtonTracking} from '@sentry/scraps/trackingContext';
 
 import type {
   DO_NOT_USE_ButtonProps as ButtonProps,

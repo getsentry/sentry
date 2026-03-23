@@ -1,18 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar} from '@sentry/scraps/avatar';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Actor} from 'sentry/types/core';
 import type {Member, Team} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {TextAction, TextCondition} from './textRule';
 
@@ -25,7 +26,12 @@ type Props = {
 function Conditions({rule, teams, projectSlug}: Props) {
   const organization = useOrganization();
   const {data: memberList} = useApiQuery<Member[]>(
-    [`/organizations/${organization.slug}/users/`, {query: {projectSlug}}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/users/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {projectSlug}},
+    ],
     {staleTime: 60000}
   );
 
@@ -34,7 +40,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
       <Step>
         <StepContainer>
           <ChevronContainer>
-            <IconChevron color="gray200" isCircled direction="right" size="sm" />
+            <IconChevron variant="muted" direction="right" size="sm" />
           </ChevronContainer>
           <StepContent>
             <StepLead>
@@ -55,7 +61,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
         <Step>
           <StepContainer>
             <ChevronContainer>
-              <IconChevron color="gray200" isCircled direction="right" size="sm" />
+              <IconChevron variant="muted" direction="right" size="sm" />
             </ChevronContainer>
             <StepContent>
               <StepLead>
@@ -76,7 +82,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
       <Step>
         <StepContainer>
           <ChevronContainer>
-            <IconChevron isCircled color="gray200" direction="right" size="sm" />
+            <IconChevron variant="muted" direction="right" size="sm" />
           </ChevronContainer>
           <div>
             <StepLead>
@@ -106,7 +112,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
   );
 }
 
-function Sidebar({rule, teams, projectSlug}: Props) {
+export function Sidebar({rule, teams, projectSlug}: Props) {
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
 
@@ -153,18 +159,16 @@ function Sidebar({rule, teams, projectSlug}: Props) {
   );
 }
 
-export default Sidebar;
-
 const Status = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto auto auto;
-  gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.lg};
+  gap: ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const StatusContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   h4 {
     margin-top: 0;
@@ -172,15 +176,15 @@ const StatusContainer = styled('div')`
 `;
 
 const ConditionsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Step = styled('div')`
   position: relative;
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
 
   :first-child {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 
@@ -196,48 +200,52 @@ const StepContent = styled('div')`
     position: absolute;
     height: 100%;
     top: 28px;
-    left: ${space(0.75)};
-    border-right: 1px ${p => p.theme.gray200} dashed;
+    left: ${p => p.theme.space.sm};
+    border-right: 1px ${p => p.theme.colors.gray200} dashed;
   }
 `;
 
 const StepLead = styled('div')`
-  margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  margin-bottom: ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const ChevronContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(1)} ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs} 0;
 `;
 
 const Badge = styled('span')`
   display: inline-block;
-  background-color: ${p => p.theme.purple300};
-  padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.white};
+  background-color: ${p => p.theme.tokens.background.accent.vibrant};
+  padding: 0 ${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.colors.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   line-height: 1.5;
 `;
 
 const ConditionsBadge = styled('span')`
   display: block;
-  background-color: ${p => p.theme.surface200};
-  padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.sm};
-  margin-bottom: ${space(1)};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  padding: 0 ${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
+  margin-bottom: ${p => p.theme.space.md};
   width: fit-content;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const OverflowTableValue = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

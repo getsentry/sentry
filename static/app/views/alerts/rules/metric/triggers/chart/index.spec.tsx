@@ -9,6 +9,7 @@ import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
   Dataset,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -256,6 +257,55 @@ describe('Incident Rules Create', () => {
           referrer: 'api.organization-event-stats',
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
+        },
+      })
+    );
+  });
+
+  it('uses sample weighted extrapolation mode for editing a migrated alert', async () => {
+    const {organization, project, router} = initializeOrg();
+
+    render(
+      <TriggersChart
+        theme={theme}
+        api={api}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        query=""
+        timeWindow={1}
+        aggregate="count(span.duration)"
+        dataset={Dataset.EVENTS_ANALYTICS_PLATFORM}
+        triggers={[]}
+        environment={null}
+        comparisonType={AlertRuleComparisonType.COUNT}
+        resolveThreshold={null}
+        thresholdType={AlertRuleThresholdType.BELOW}
+        newAlertOrQuery
+        onDataLoaded={() => {}}
+        isQueryValid
+        showTotalCount
+        traceItemType={TraceItemDataset.SPANS}
+        extrapolationMode={ExtrapolationMode.NONE}
+      />
+    );
+
+    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
+    expect(await screen.findByTestId('alert-total-events')).toBeInTheDocument();
+
+    expect(eventStatsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          interval: '1m',
+          project: [2],
+          query: '',
+          statsPeriod: '14d',
+          yAxis: 'count(span.duration)',
+          referrer: 'api.organization-event-stats',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
+          extrapolationMode: 'sampleWeighted',
         },
       })
     );

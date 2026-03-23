@@ -1,8 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
+import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
@@ -40,6 +41,41 @@ describe('getWidgetExploreUrl', () => {
         ['mode', 'aggregate'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
+      ],
+    });
+  });
+
+  it('returns correct URL for widgets with a project selection', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.LOGS,
+      queries: [
+        WidgetQueryFixture({
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '-count()',
+        }),
+      ],
+    });
+
+    const widgetSelection = PageFiltersFixture({
+      projects: [17762],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, widgetSelection, organization);
+
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/logs/',
+      params: [
+        ['aggregateField', '{"chartType":1,"yAxes":["count(message)"]}'],
+        ['interval', '3h'],
+        ['logsGroupBy', ''],
+        ['mode', 'aggregate'],
+        ['project', '17762'],
+        ['statsPeriod', '14d'],
       ],
     });
   });
@@ -75,6 +111,7 @@ describe('getWidgetExploreUrl', () => {
           'visualize',
           JSON.stringify({chartType: 1, yAxes: ['equation|avg(span.duration) + 100']}),
         ],
+        ['project', ''],
       ],
     });
   });
@@ -105,6 +142,7 @@ describe('getWidgetExploreUrl', () => {
         ['interval', '30m'],
         ['mode', 'samples'],
         ['statsPeriod', '14d'],
+        ['project', ''],
       ],
     });
   });
@@ -138,6 +176,7 @@ describe('getWidgetExploreUrl', () => {
         ['mode', 'aggregate'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 2, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -170,6 +209,7 @@ describe('getWidgetExploreUrl', () => {
         ['mode', 'aggregate'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 2, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -205,6 +245,7 @@ describe('getWidgetExploreUrl', () => {
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['count(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -246,6 +287,7 @@ describe('getWidgetExploreUrl', () => {
         ['sort', '-avg(span.duration)'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -336,6 +378,7 @@ describe('getWidgetExploreUrl', () => {
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
         ['referrer', 'test-referrer'],
+        ['project', ''],
       ],
     });
   });
@@ -382,6 +425,7 @@ describe('getWidgetTableRowExploreUrlFunction', () => {
         ['sort', '-span.duration'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });

@@ -1,4 +1,3 @@
-import type {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {ApiResult} from 'sentry/api';
@@ -127,6 +126,12 @@ declare global {
      */
     superUserCookieName?: string;
   }
+  interface FocusOptions {
+    /**
+     * https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus#focusvisible
+     */
+    focusVisible?: boolean;
+  }
 }
 
 export interface Region {
@@ -173,7 +178,11 @@ export interface Config {
   /**
    * This comes from django (django.contrib.messages)
    */
-  messages: Array<{level: keyof Theme['alert']; message: string}>;
+  messages: Array<{
+    // Default django message level tags. See client config in ./src/sentry/web/client_config.py
+    level: 'debug' | 'info' | 'success' | 'warning' | 'error';
+    message: string;
+  }>;
   needsUpgrade: boolean;
   privacyUrl: string | null;
   // The list of regions the user has has access to.

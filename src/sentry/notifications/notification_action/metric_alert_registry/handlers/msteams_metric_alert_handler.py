@@ -35,7 +35,6 @@ class MSTeamsMetricAlertHandler(BaseMetricAlertHandler):
         organization: Organization,
         project: Project,
     ) -> None:
-
         from sentry.integrations.msteams.utils import send_incident_alert_notification
 
         detector = Detector.objects.get(id=alert_context.action_identifier_id)

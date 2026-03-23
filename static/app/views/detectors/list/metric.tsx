@@ -1,5 +1,5 @@
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {t} from 'sentry/locale';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
@@ -10,7 +10,8 @@ const TITLE = t('Metric Monitors');
 const DESCRIPTION = t(
   'Metric monitors track errors based on span attributes and custom metrics.'
 );
-const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
+const DOCS_URL =
+  'https://docs.sentry.io/product/new-monitors-and-alerts/monitors/#metric-monitor-settings';
 
 export default function MetricDetectorsList() {
   const detectorListQuery = useDetectorListQuery({

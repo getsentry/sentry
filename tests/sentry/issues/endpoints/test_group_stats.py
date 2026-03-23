@@ -18,7 +18,7 @@ class GroupStatsTest(APITestCase):
         ).group
         assert group1 is not None
 
-        url = f"/api/0/issues/{group1.id}/stats/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group1.id}/stats/"
 
         for fingerprint, count in (("group1", 2), ("group2", 5)):
             for _ in range(count):

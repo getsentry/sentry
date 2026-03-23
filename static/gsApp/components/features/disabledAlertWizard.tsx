@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -12,17 +12,16 @@ type Props = React.PropsWithChildren<{
   organization: Organization;
 }>;
 
-function DisabledAlertWizard({organization}: Props) {
+export function DisabledAlertWizard({organization}: Props) {
   return (
-    <Wrapper>
+    <Flex justify="between" align="center" wrap="wrap">
       <Description>{t('Upgrade your plan to create this type of alert')}</Description>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Button
           onClick={() =>
             openUpsellModal({
               organization,
               source: 'alert-wizard',
-              defaultSelection: 'integration-alerts',
             })
           }
         >
@@ -31,20 +30,11 @@ function DisabledAlertWizard({organization}: Props) {
         <Button priority="primary" disabled>
           {t('Set Conditions')}
         </Button>
-      </ButtonBar>
-    </Wrapper>
+      </Grid>
+    </Flex>
   );
 }
 
-export default DisabledAlertWizard;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const Description = styled('div')`
-  margin: ${space(1)} ${space(1)} ${space(1)} 0;
+  margin: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
 `;

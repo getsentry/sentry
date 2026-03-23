@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from fnmatch import fnmatch
 
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
@@ -11,18 +10,18 @@ from django.middleware.csrf import get_token as get_csrf_token
 from django.urls import resolve
 
 from sentry import features, options
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import customer_domain_path, generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.types.region import (
-    find_all_multitenant_region_names,
-    get_region_by_name,
-    subdomain_is_region,
+from sentry.silo.base import SiloMode
+from sentry.types.cell import (
+    find_all_multitenant_locality_names,
+    subdomain_is_locality,
 )
 from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.client_config import get_client_config
-from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
+from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
@@ -76,12 +75,10 @@ class ReactMixin:
         return preconnects
 
     def dns_prefetch(self) -> list[str]:
-        regions = find_all_multitenant_region_names()
-        if len(regions) < 2:
+        localities = find_all_multitenant_locality_names()
+        if len(localities) < 2:
             return []
-        return [
-            generate_region_url(get_region_by_name(region_name).name) for region_name in regions
-        ]
+        return [generate_locality_url(locality_name) for locality_name in localities]
 
     def handle_react(
         self, request: HttpRequest, *, organization: Organization | None = None, **kwargs
@@ -136,7 +133,7 @@ class ReactMixin:
             return HttpResponseRedirect(redirect_url)
 
         # We don't allow HTML pages to be served from region domains.
-        if request.subdomain and subdomain_is_region(request):
+        if request.subdomain and subdomain_is_locality(request):
             redirect_url = resolve_activeorg_redirect_url(request)
             if redirect_url:
                 logger.info(
@@ -174,20 +171,14 @@ class ReactMixin:
 
         response = render_to_response("sentry/base-react.html", context=context, request=request)
 
-        try:
-            if "x-sentry-browser-profiling" in request.headers or (
-                organization is not None
-                and features.has("organizations:profiling-browser", organization)
-            ):
-                response["Document-Policy"] = "js-profiling"
-        except Exception as error:
-            sentry_sdk.capture_exception(error)
+        response["Document-Policy"] = "js-profiling"
 
         return response
 
 
-# TODO(dcramer): once we implement basic auth hooks in React we can make this
-# generic
+# While most of our HTML views are rendered in control silo,
+# our tests frequently redirect to HTML views
+@control_silo_view
 class ReactPageView(ControlSiloOrganizationView, ReactMixin):
     def handle_auth_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         # If user is a superuser (but not active, because otherwise this method would never be called)
@@ -199,14 +190,28 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         return super().handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request: HttpRequest, organization, **kwargs) -> HttpResponse:
+        if SiloMode.get_current_mode() == SiloMode.CELL:
+            # This shouldn't happen as all requests in production for HTML pages
+            # should be in control.
+            logger.info(
+                "react_page.region_silo",
+                extra={
+                    "url": request.get_full_path(),
+                    "method": request.method,
+                    "user-agent": request.headers.get("User-Agent"),
+                },
+            )
+
         return self.handle_react(request, organization=organization)
 
 
+@control_silo_view
 class GenericReactPageView(BaseView, ReactMixin):
     def handle(self, request: HttpRequest, **kwargs) -> HttpResponse:
         return self.handle_react(request, **kwargs)
 
 
+@control_silo_view
 class AuthV2ReactPageView(GenericReactPageView):
     auth_required = False
 

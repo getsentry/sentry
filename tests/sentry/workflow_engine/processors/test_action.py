@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+from django.db import connection
 from django.utils import timezone
 
 from sentry.integrations.base import IntegrationFeatures
@@ -12,6 +13,7 @@ from sentry.workflow_engine.models import (
     WorkflowActionGroupStatus,
 )
 from sentry.workflow_engine.processors.action import (
+    StatusUpdateResult,
     filter_recently_fired_workflow_actions,
     get_workflow_action_group_statuses,
     is_action_permitted,
@@ -107,7 +109,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         # dedupes action if both workflows will fire it
         assert set(triggered_actions) == {self.action}
         # Dedupes action so we have a single workflow_id -> environment to fire with
-        assert {getattr(action, "workflow_id") for action in triggered_actions} == {workflow.id}
+        assert getattr(triggered_actions[0], "workflow_id") == self.workflow.id
 
         assert WorkflowActionGroupStatus.objects.filter(action=self.action).count() == 2
 
@@ -191,8 +193,8 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
 
         assert action_to_workflow_ids == {
-            self.action.id: self.workflow.id,
-            action.id: workflow.id,
+            self.action.id: {self.workflow.id},
+            action.id: {workflow.id},
         }
         assert statuses_to_update == {status_2.id}
 
@@ -221,6 +223,105 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         assert all_statuses.count() == 2
         for status in all_statuses:
             assert status.date_updated == timezone.now()
+
+    def test_returns_uncreated_statuses(self) -> None:
+        WorkflowActionGroupStatus.objects.create(
+            workflow=self.workflow, action=self.action, group=self.group
+        )
+
+        statuses_to_create = [
+            WorkflowActionGroupStatus(
+                workflow=self.workflow,
+                action=self.action,
+                group=self.group,
+                date_updated=timezone.now(),
+            )
+        ]
+        result = update_workflow_action_group_statuses(timezone.now(), set(), statuses_to_create)
+
+        assert result.not_created == [(self.workflow.id, self.action.id)]
+
+    def test_update_workflow_action_group_statuses_missing_group(self) -> None:
+        new_group = self.create_group()
+        new_group2 = self.create_group()
+        _, new_action = self.create_workflow_action(workflow=self.workflow)
+
+        to_create = [
+            WorkflowActionGroupStatus(
+                workflow=self.workflow,
+                action=self.action,
+                group_id=new_group.id,
+                date_updated=timezone.now(),
+            ),
+            WorkflowActionGroupStatus(
+                workflow=self.workflow,
+                action=new_action,
+                group_id=new_group2.id,
+                date_updated=timezone.now(),
+            ),
+        ]
+
+        new_group.delete()
+
+        # The FK constraint on group_id is DEFERRABLE INITIALLY DEFERRED,
+        # so within the test transaction the delete above doesn't enforce the
+        # FK check. Set constraints to immediate so the INSERT behaves like
+        # production (separate transactions).
+        with connection.cursor() as cursor:
+            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+
+        result = update_workflow_action_group_statuses(timezone.now(), set(), to_create)
+        assert result.created == 1
+        assert result.not_created == [(self.workflow.id, self.action.id)]
+
+    @patch("sentry.workflow_engine.processors.action.update_workflow_action_group_statuses")
+    def test_does_not_fire_for_uncreated_statuses(self, mock_update: MagicMock) -> None:
+        mock_update.return_value = StatusUpdateResult(
+            updated=0, created=0, not_created=[(self.workflow.id, self.action.id)]
+        )
+
+        triggered_actions = filter_recently_fired_workflow_actions(
+            set(DataConditionGroup.objects.all()), self.event_data
+        )
+
+        assert set(triggered_actions) == set()
+
+    @patch("sentry.workflow_engine.processors.action.update_workflow_action_group_statuses")
+    def test_fires_for_non_conflicting_workflow(self, mock_update: MagicMock) -> None:
+        workflow = self.create_workflow(organization=self.organization, config={"frequency": 1440})
+        action_group = self.create_data_condition_group(logic_type="any-short")
+        self.create_data_condition_group_action(
+            condition_group=action_group,
+            action=self.action,
+        )  # shared action
+        self.create_workflow_data_condition_group(workflow, action_group)
+
+        mock_update.return_value = StatusUpdateResult(
+            updated=0, created=0, not_created=[(self.workflow.id, self.action.id)]
+        )
+
+        triggered_actions = filter_recently_fired_workflow_actions(
+            set(DataConditionGroup.objects.all()), self.event_data
+        )
+
+        assert set(triggered_actions) == {self.action}
+        assert getattr(triggered_actions[0], "workflow_id") == workflow.id
+
+    def test_skips_action_with_no_workflow(self) -> None:
+        orphan_group = self.create_data_condition_group(logic_type="any-short")
+        orphan_action = self.create_action(type=Action.Type.PLUGIN)
+        self.create_data_condition_group_action(
+            condition_group=orphan_group,
+            action=orphan_action,
+        )
+        # No WorkflowDataConditionGroup links orphan_group to any workflow
+
+        triggered_actions = filter_recently_fired_workflow_actions(
+            {self.action_group, orphan_group}, self.event_data
+        )
+
+        # The orphan action should not appear; the normal action still fires
+        assert set(triggered_actions) == {self.action}
 
 
 class TestIsActionPermitted(BaseWorkflowTest):

@@ -14,7 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import UpsellProvider from 'getsentry/components/upsellProvider';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 
 jest.mock('getsentry/actionCreators/modal');
@@ -56,7 +56,7 @@ describe('UpsellProvider', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${org.slug}/`,
+      url: `/customers/${org.slug}/`,
       body: sub,
     });
 
@@ -120,7 +120,7 @@ describe('UpsellProvider', () => {
 
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/settings/${org.slug}/billing/checkout/`,
+        pathname: `/checkout/${org.slug}/`,
         query: {
           referrer: 'upsell-test-abc',
         },

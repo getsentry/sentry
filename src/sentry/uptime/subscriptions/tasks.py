@@ -5,10 +5,10 @@ from datetime import timedelta
 from uuid import uuid4
 
 from django.utils import timezone
+from taskbroker_client.retry import Retry
 
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
-from sentry.taskworker.retry import Retry
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
     UptimeRegionScheduleMode,
@@ -145,8 +145,10 @@ def uptime_subscription_to_check_config(
         "request_method": subscription.method,
         "request_headers": subscription.headers,
         "trace_sampling": subscription.trace_sampling,
+        "capture_response_on_failure": subscription.capture_response_on_failure,
         "active_regions": [r.region_slug for r in subscription.regions.filter(mode=region_mode)],
         "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
+        "assertion": subscription.assertion,
     }
     if subscription.body is not None:
         config["request_body"] = subscription.body

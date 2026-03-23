@@ -2,12 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Search} from 'sentry/components/search';
-import SearchResult from 'sentry/components/search/searchResult';
-import SearchResultWrapper from 'sentry/components/search/searchResultWrapper';
-import HelpSource from 'sentry/components/search/sources/helpSource';
+import {SearchResult} from 'sentry/components/search/searchResult';
+import {SearchResultWrapper} from 'sentry/components/search/searchResultWrapper';
+import {HelpSource} from 'sentry/components/search/sources/helpSource';
 import {IconWindow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type ItemRenderer = React.ComponentProps<typeof Search>['renderItem'];
 
@@ -46,7 +45,7 @@ type Props = Omit<
 >;
 
 // TODO(ts): Type based on Search props once that has types
-function HelpSearch(props: Props) {
+export function HelpSearch(props: Props) {
   return (
     <Search
       {...props}
@@ -61,28 +60,26 @@ function HelpSearch(props: Props) {
 const SectionHeading = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
-  padding: ${space(1)} ${space(2)};
+  background: ${p => p.theme.tokens.background.secondary};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 
   &:not(:first-of-type) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const Count = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Empty = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(2)};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  padding: ${p => p.theme.space.xl};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
-
-export default HelpSearch;

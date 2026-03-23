@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ExternalIssueForm from 'sentry/components/externalIssues/externalIssueForm';
+import {ExternalIssueForm} from 'sentry/components/externalIssues/externalIssueForm';
 import {
   makeClosableHeader,
   makeCloseButton,
@@ -307,6 +307,14 @@ describe('ExternalIssueForm', () => {
     it('renders and loads options', async () => {
       await renderComponent('Link');
       expect(getFormConfigRequest).toHaveBeenCalled();
+    });
+
+    it('shows placeholder for async select fields', async () => {
+      await renderComponent('Link');
+
+      // The Issue field has a url property (async select), so it should display our placeholder
+      expect(screen.getByRole('textbox', {name: 'Issue'})).toBeInTheDocument();
+      expect(screen.getByText('Type to search')).toBeInTheDocument();
     });
 
     describe('options loaded', () => {

@@ -1,14 +1,15 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import type {FormFieldProps} from 'sentry/components/forms/formField';
-import FormField from 'sentry/components/forms/formField';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
+import {FormField} from 'sentry/components/forms/formField';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {uniqueId} from 'sentry/utils/guid';
 
 /**
@@ -86,7 +87,7 @@ function UptimHeadersControl(props: any) {
   }
 
   return (
-    <HeadersContainer>
+    <Stack gap="md">
       {items.length > 0 && (
         <HeaderItems>
           {items.map(([id, headerName, headerValue], index) => (
@@ -115,7 +116,7 @@ function UptimHeadersControl(props: any) {
                 disabled={disabled}
                 icon={<IconDelete />}
                 size="sm"
-                borderless
+                priority="transparent"
                 aria-label={
                   headerName
                     ? t('Remove %s', disambiguateHeaderName(index))
@@ -127,13 +128,13 @@ function UptimHeadersControl(props: any) {
           ))}
         </HeaderItems>
       )}
-      <HeaderActions>
+      <Flex gap="lg">
         <Button disabled={disabled} icon={<IconAdd />} size="sm" onClick={addItem}>
           {t('Add Header')}
         </Button>
         <FormFieldControlState model={model} name={name} />
-      </HeaderActions>
-    </HeadersContainer>
+      </Flex>
+    </Stack>
   );
 }
 
@@ -145,21 +146,10 @@ export function UptimeHeadersField(props: Omit<FormFieldProps, 'children'>) {
   );
 }
 
-const HeadersContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const HeaderActions = styled('div')`
-  display: flex;
-  gap: ${space(1.5)};
-`;
-
 const HeaderItems = styled('fieldset')`
   display: grid;
   grid-template-columns: minmax(200px, 1fr) 2fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: 100%;
 `;
 

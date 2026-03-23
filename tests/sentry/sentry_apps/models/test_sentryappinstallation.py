@@ -5,8 +5,9 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import get_region_for_organization
+from sentry.types.cell import get_cell_for_organization
 
 
 @control_silo_test
@@ -36,6 +37,13 @@ class SentryAppInstallationTest(TestCase):
         assert self.install.date_deleted is not None
         assert self.install not in SentryAppInstallation.objects.all()
 
+    @override_options({"sentry-apps.disable-paranoia": True})
+    def test_paranoid_querying_disabled(self) -> None:
+        self.install.save()
+        self.install.delete()
+        assert self.install.date_deleted is not None
+        assert self.install in SentryAppInstallation.objects.all()
+
     def test_date_updated(self) -> None:
         self.install.save()
         date_updated = self.install.date_updated
@@ -50,9 +58,9 @@ class SentryAppInstallationTest(TestCase):
         )
 
     def test_handle_async_replication_clears_region_cache(self) -> None:
-        with mock.patch.object(caching_module, "region_caching_service") as mock_caching_service:
+        with mock.patch.object(caching_module, "cell_caching_service") as mock_caching_service:
             self.install.save()
-            region = get_region_for_organization(self.org.slug)
+            cell = get_cell_for_organization(self.org.slug)
             mock_caching_service.clear_key.assert_any_call(
-                key=f"app_service.get_installation:{self.install.id}", region_name=region.name
+                key=f"app_service.get_installation:{self.install.id}", cell_name=cell.name
             )

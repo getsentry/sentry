@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 /**
  * Used in new inbox
@@ -16,10 +15,10 @@ type Props = {
   lastSeen: string;
 };
 
-function TimesTag({lastSeen, firstSeen}: Props) {
+export function TimesTag({lastSeen, firstSeen}: Props) {
   return (
     <Wrapper>
-      <StyledIconClock size="xs" color="gray300" />
+      <StyledIconClock size="xs" variant="muted" />
       {lastSeen && (
         <TimeSince
           tooltipPrefix={t('Last Seen')}
@@ -47,15 +46,13 @@ function TimesTag({lastSeen, firstSeen}: Props) {
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Separator = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconClock = styled(IconClock)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
-
-export default TimesTag;

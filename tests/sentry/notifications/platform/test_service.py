@@ -2,19 +2,27 @@ from unittest import mock
 
 import pytest
 from django.core.mail import EmailMultiAlternatives
+from django.utils import timezone
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
-from sentry.notifications.platform.service import NotificationService, NotificationServiceError
+from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
+from sentry.notifications.platform.service import (
+    NotificationService,
+    NotificationServiceError,
+    deserialize_notification_data,
+    serialize_notification_data,
+)
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
 )
+from sentry.notifications.platform.templates.data_export import DataExportFailure
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import (
@@ -85,14 +93,18 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_notify_sync_collects_errors(self, mock_send: mock.MagicMock) -> None:
-        mock_send.side_effect = ApiError("Provider error", 400)
+        mock_send.return_value = SendFailure(
+            status=SendFailureStatus.HALT,
+            exception=IntegrationConfigurationError(message="Provider error"),
+            error_code=400,
+        )
 
         service = NotificationService(data=MockNotification(message="test"))
         errors = service.notify_sync(targets=[self.target])
 
-        assert NotificationProviderKey.EMAIL in errors
         assert len(errors[NotificationProviderKey.EMAIL]) == 1
-        assert "Provider error" in errors[NotificationProviderKey.EMAIL][0]
+        assert errors[NotificationProviderKey.EMAIL][0].status == SendFailureStatus.HALT
+        assert str(errors[NotificationProviderKey.EMAIL][0].exception) == "Provider error"
 
     def test_render_template_classmethod(self) -> None:
         data = MockNotification(message="test")
@@ -116,10 +128,14 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_notify_target_async_with_api_error(
+    def test_notify_target_async_with_failure(
         self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
-        mock_send.side_effect = ApiError("API request failed", 400)
+        mock_send.return_value = SendFailure(
+            status=SendFailureStatus.FAILURE,
+            exception=IntegrationError(message="API request failed"),
+            error_code=400,
+        )
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
             service.notify_async(targets=[self.target])
@@ -143,10 +159,14 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_notify_integration_target_async_with_api_error(
+    def test_notify_integration_target_async_with_failure(
         self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
-        mock_send.side_effect = ApiError("Slack API request failed", 400)
+        mock_send.return_value = SendFailure(
+            status=SendFailureStatus.FAILURE,
+            exception=IntegrationError(message="Slack API request failed"),
+            error_code=400,
+        )
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
             service.notify_async(targets=[self.integration_target])
@@ -172,3 +192,41 @@ class NotificationServiceTest(TestCase):
         # slo asserts - should have 2 notifications sent
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 2)
         assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 2)
+
+
+class NotificationDataSerializationTest(TestCase):
+    def test_deserialize_raises_error_without_source(self) -> None:
+        serialized = {
+            "data": {
+                "message": "test",
+            },
+        }
+
+        with pytest.raises(NotificationServiceError, match="Source is required"):
+            deserialize_notification_data(serialized)
+
+    def test_roundtrip_serialization(self) -> None:
+        original_notification = MockNotification(message="roundtrip test")
+
+        serialized = serialize_notification_data(original_notification)
+        reconstructed = deserialize_notification_data(serialized)
+
+        assert isinstance(reconstructed, MockNotification)
+        assert reconstructed.source == original_notification.source
+        assert reconstructed.message == original_notification.message
+
+    def test_roundtrip_with_complex_data_types(self) -> None:
+        now = timezone.now()
+        data = DataExportFailure(
+            error_message="Export failed",
+            error_payload={"export_type": "Issues", "project": [123]},
+            creation_date=now,
+        )
+        serialized = serialize_notification_data(data)
+        reconstructed = deserialize_notification_data(serialized)
+
+        assert reconstructed.source == "data-export-failure"
+        assert isinstance(reconstructed, DataExportFailure)
+        assert reconstructed.error_message == "Export failed"
+        assert reconstructed.error_payload == {"export_type": "Issues", "project": [123]}
+        assert reconstructed.creation_date == now

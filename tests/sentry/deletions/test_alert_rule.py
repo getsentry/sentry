@@ -78,19 +78,13 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @patch(
-        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
-    )
-    @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_dynamic_alert_rule(
-        self, mock_store_request: MagicMock, mock_delete_request: MagicMock
-    ) -> None:
+    def test_dynamic_alert_rule(self, mock_store_request: MagicMock) -> None:
         organization = self.create_organization()
 
         seer_return_value = {"success": True}
         mock_store_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        mock_delete_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         alert_rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
@@ -120,5 +114,3 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
         assert not Incident.objects.filter(id=incident.id).exists()
-
-        assert mock_delete_request.call_count == 1

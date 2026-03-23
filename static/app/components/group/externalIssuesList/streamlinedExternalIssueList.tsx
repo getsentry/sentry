@@ -1,24 +1,22 @@
-import {useTheme} from '@emotion/react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {AlertLink} from '@sentry/scraps/alert';
+import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
-import useGroupExternalIssues from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
-import Placeholder from 'sentry/components/placeholder';
+import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function getActionLabelAndTextValue({
   action,
@@ -67,7 +65,6 @@ export function StreamlinedExternalIssueList({
   project,
 }: ExternalIssueListProps) {
   const organization = useOrganization();
-  const theme = useTheme();
   const {isLoading, integrations, linkedIssues} = useGroupExternalIssues({
     group,
     event,
@@ -82,7 +79,7 @@ export function StreamlinedExternalIssueList({
   if (!hasLinkedIssuesOrIntegrations) {
     return (
       <AlertLink
-        type="muted"
+        variant="muted"
         to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
       >
         {t('Track this issue in Jira, GitHub, etc.')}
@@ -91,7 +88,7 @@ export function StreamlinedExternalIssueList({
   }
 
   return (
-    <Flex direction="row" gap="md">
+    <Fragment>
       {linkedIssues.length > 0 && (
         <IssueActionWrapper>
           {linkedIssues.map(linkedIssue => (
@@ -133,7 +130,7 @@ export function StreamlinedExternalIssueList({
             const sharedButtonProps: ButtonProps = {
               size: 'zero',
               icon: integration.displayIcon,
-              priority: theme.isChonk ? 'transparent' : undefined,
+              priority: 'transparent',
               children: <IssueActionName>{integration.displayName}</IssueActionName>,
             };
 
@@ -147,7 +144,11 @@ export function StreamlinedExternalIssueList({
                       size="zero"
                       icon={integration.displayIcon}
                       disabled={integration.disabled}
-                      title={integration.disabled ? integration.disabledText : undefined}
+                      tooltipProps={{
+                        title: integration.disabled
+                          ? integration.disabledText
+                          : undefined,
+                      }}
                       onClick={() => {
                         action.onClick();
                         trackAnalytics('feedback.details-integration-issue-clicked', {
@@ -164,7 +165,11 @@ export function StreamlinedExternalIssueList({
                     <IssueActionButton
                       {...sharedButtonProps}
                       disabled={integration.disabled}
-                      title={integration.disabled ? integration.disabledText : undefined}
+                      tooltipProps={{
+                        title: integration.disabled
+                          ? integration.disabledText
+                          : undefined,
+                      }}
                       onClick={() => {
                         action.onClick();
                         trackAnalytics('feedback.details-integration-issue-clicked', {
@@ -203,80 +208,89 @@ export function StreamlinedExternalIssueList({
           })}
         </IssueActionWrapper>
       )}
-    </Flex>
+    </Fragment>
   );
 }
 
 const IssueActionWrapper = styled('span')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   line-height: 1.2;
 `;
 
 const LinkedIssue = styled(LinkButton)`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
-  border: ${p => (p.theme.isChonk ? 'none' : '1px solid ' + p.theme.border)};
-  border-radius: ${p => p.theme.borderRadius};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  border: none;
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
 
 const IssueActionButton = styled(Button)`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
 
 const IssueActionLinkButton = styled(LinkButton)`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
 
 const IssueActionDropdownMenu = styled(DropdownButton)`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 
   &[aria-expanded='true'] {
-    border: 1px solid ${p => p.theme.border};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const IssueActionName = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 200px;
 `;
 
 const LinkedIssueTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   white-space: nowrap;
 `;
 
 const LinkedIssueName = styled('div')`
-  ${p => p.theme.overflowEllipsis}
-  margin-right: ${space(0.25)};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: ${p => p.theme.space['2xs']};
 `;
 
 const HorizontalSeparator = styled('div')`
   width: 1px;
   height: 14px;
-  background: ${p => p.theme.border};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.primary};
 `;
 
 const UnlinkButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

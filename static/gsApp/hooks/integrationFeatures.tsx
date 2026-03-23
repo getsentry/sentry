@@ -5,14 +5,13 @@ import partition from 'lodash/partition';
 
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Hooks} from 'sentry/types/hooks';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {getIntegrationType} from 'sentry/utils/integrationUtil';
 
-import UpsellButton from 'getsentry/components/upsellButton';
-import withSubscription from 'getsentry/components/withSubscription';
+import {UpsellButton} from 'getsentry/components/upsellButton';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
@@ -239,14 +238,14 @@ const FeatureList = withSubscription(FeatureListBase);
 const HasFeatureIndicator = styled((p: any) => (
   <div {...p}>
     Enabled
-    <IconCheckmark isCircled />
+    <IconCheckmark />
   </div>
 ))`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.colors.green400};
   font-weight: bold;
   text-transform: uppercase;
   font-size: 0.8em;
@@ -279,16 +278,16 @@ const IntegrationFeatureGroup = styled((p: GroupProps) => {
 })`
   overflow: hidden;
   border-radius: 4px;
-  border: 1px solid ${p => p.theme.border};
-  margin-bottom: ${space(2)};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const FeatureGroupHeading = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid ${p => p.theme.gray200};
-  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.colors.gray200};
+  background: ${p => p.theme.tokens.background.secondary};
   font-size: 0.9em;
   padding: 8px 8px 8px 12px;
 `;
@@ -305,14 +304,14 @@ const GroupFeatureList = styled(({features, className}: GroupListProps) => (
   padding: 0;
   margin: 0;
   list-style: none;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const FeatureDescription = styled('li')`
   padding: 8px 12px;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.gray200};
+    border-bottom: 1px solid ${p => p.theme.colors.gray200};
   }
 `;
 

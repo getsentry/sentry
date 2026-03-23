@@ -1,8 +1,7 @@
-import {
-  CompositeSelect,
-  type CompositeSelectProps,
-} from 'sentry/components/core/compactSelect/composite';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
+import {CompositeSelect, type CompositeSelectProps} from '@sentry/scraps/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -77,12 +76,16 @@ export function SortSelector({onChangeOrder, onChangeSort, order, sort, size}: P
   return (
     <CompositeSelect
       size={size}
-      triggerProps={{
-        prefix: t('Sort By'),
-        'aria-label': t('Sort Cron Monitors'),
-        icon: <IconSort />,
-        children: `${label} \u2014 ${orderLabel}`,
-      }}
+      trigger={props => (
+        <OverlayTrigger.Button
+          aria-label={t('Sort Cron Monitors')}
+          icon={<IconSort />}
+          prefix={t('Sort By')}
+          {...props}
+        >
+          {`${label} \u2014 ${orderLabel}`}
+        </OverlayTrigger.Button>
+      )}
     >
       <CompositeSelect.Region
         aria-label={t('Sort Options')}

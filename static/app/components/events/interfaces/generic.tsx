@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';

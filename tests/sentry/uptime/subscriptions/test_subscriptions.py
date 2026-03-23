@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest import mock
 
 import pytest
@@ -6,11 +7,12 @@ from django.test import override_settings
 from pytest import raises
 
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
@@ -32,6 +34,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     enable_uptime_detector,
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
+    set_response_capture_enabled,
     update_uptime_detector,
     update_uptime_subscription,
 )
@@ -40,8 +43,10 @@ from sentry.uptime.types import (
     DEFAULT_RECOVERY_THRESHOLD,
     UptimeMonitorMode,
 )
+from sentry.uptime.utils import build_last_interval_change_timestamp_key, get_cluster
 from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 pytestmark = [requires_kafka]
@@ -143,6 +148,9 @@ class UpdateUptimeSubscriptionTest(UptimeTestCase):
         uptime_sub.refresh_from_db()
         prev_subscription_id = uptime_sub.subscription_id
 
+        # Create a detector for this subscription
+        detector = self.create_uptime_detector(uptime_subscription=uptime_sub)
+
         url = "https://santry.io"
         interval_seconds = 600
         timeout_ms = 1000
@@ -151,12 +159,13 @@ class UpdateUptimeSubscriptionTest(UptimeTestCase):
         trace_sampling = True
         with self.tasks():
             update_uptime_subscription(
-                uptime_sub,
-                url,
-                interval_seconds,
-                timeout_ms,
-                method,
-                [("something", "some_val")],
+                detector=detector,
+                subscription=uptime_sub,
+                url=url,
+                interval_seconds=interval_seconds,
+                timeout_ms=timeout_ms,
+                method=method,
+                headers=[("something", "some_val")],
                 body=body,
                 trace_sampling=trace_sampling,
             )
@@ -173,6 +182,55 @@ class UpdateUptimeSubscriptionTest(UptimeTestCase):
         assert uptime_sub.headers == [["something", "some_val"]]
         assert uptime_sub.body == body
         assert uptime_sub.trace_sampling == trace_sampling
+
+    def test_interval_change_sets_redis_timestamp(self) -> None:
+        """Verify that updating the interval sets the interval change timestamp in Redis."""
+        with self.tasks():
+            uptime_sub = create_uptime_subscription("https://sentry.io", 300, 500)
+        uptime_sub.refresh_from_db()
+
+        detector = self.create_uptime_detector(uptime_subscription=uptime_sub)
+        cluster = get_cluster()
+        interval_change_key = build_last_interval_change_timestamp_key(detector)
+
+        assert cluster.get(interval_change_key) is None
+
+        with self.tasks():
+            update_uptime_subscription(
+                detector=detector,
+                subscription=uptime_sub,
+                interval_seconds=600,
+            )
+
+        timestamp_ms = cluster.get(interval_change_key)
+        assert timestamp_ms is not None
+        assert int(timestamp_ms) > 0
+
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        assert abs(now_ms - int(timestamp_ms)) < 60000  # Within 60 seconds
+
+    def test_no_interval_change_no_redis_timestamp(self) -> None:
+        """Verify that updating without changing interval does not set Redis timestamp."""
+        with self.tasks():
+            uptime_sub = create_uptime_subscription("https://sentry.io", 300, 500)
+        uptime_sub.refresh_from_db()
+
+        # Create a detector for this subscription
+        detector = self.create_uptime_detector(uptime_subscription=uptime_sub)
+        cluster = get_cluster()
+        interval_change_key = build_last_interval_change_timestamp_key(detector)
+
+        # Update with the same interval (no change)
+        with self.tasks():
+            update_uptime_subscription(
+                detector=detector,
+                subscription=uptime_sub,
+                url="https://santry.io",  # Change something else
+                interval_seconds=300,  # Same as original
+            )
+
+        # Verify no timestamp was set
+        assert cluster.get(interval_change_key) is None
 
 
 class DeleteUptimeSubscriptionTest(UptimeTestCase):
@@ -818,7 +876,11 @@ class DeleteUptimeDetectorTest(UptimeTestCase):
             detector.refresh_from_db()
 
         assert UptimeSubscription.objects.filter(id=other_uptime_subscription.id).exists()
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
+        # Use assert_any_call because remove_seat is called from multiple
+        # places (delete_uptime_detector, UptimeSubscriptionDeletionTask, and
+        # DetectorDeletionTask). The last call's reference gets mutated when
+        # instance.delete() sets pk=None, so assert_called_with would fail.
+        mock_remove_seat.assert_any_call(seat_object=detector)
 
     @mock.patch("sentry.quotas.backend.remove_seat")
     def test_single_subscriptions(self, mock_remove_seat: mock.MagicMock) -> None:
@@ -841,7 +903,11 @@ class DeleteUptimeDetectorTest(UptimeTestCase):
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
             uptime_subscription.refresh_from_db()
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
+        # Use assert_any_call because remove_seat is called from multiple
+        # places (delete_uptime_detector, UptimeSubscriptionDeletionTask, and
+        # DetectorDeletionTask). The last call's reference gets mutated when
+        # instance.delete() sets pk=None, so assert_called_with would fail.
+        mock_remove_seat.assert_any_call(seat_object=detector)
 
 
 class IsUrlMonitoredForProjectTest(UptimeTestCase):
@@ -907,7 +973,7 @@ class DisableUptimeDetectorTest(UptimeTestCase):
 
         uptime_subscription.refresh_from_db()
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_disable_seat.assert_called_with(seat_object=detector)
 
         detector.refresh_from_db()
         assert not detector.enabled
@@ -948,7 +1014,7 @@ class DisableUptimeDetectorTest(UptimeTestCase):
         assert not detector_state.is_triggered
         assert detector_state.priority_level == DetectorPriorityLevel.OK
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_disable_seat.assert_called_with(seat_object=detector)
 
         detector.refresh_from_db()
         assert not detector.enabled
@@ -1036,7 +1102,7 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         assert uptime_subscription.status == UptimeSubscription.Status.ACTIVE.value
 
         # Seat assignment was called
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
         detector.refresh_from_db()
         assert detector.enabled
@@ -1079,8 +1145,8 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         detector.refresh_from_db()
         assert not detector.enabled
 
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
-        mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
+        mock_check_assign_seat.assert_called_with(seat_object=detector)
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
@@ -1202,7 +1268,7 @@ class EnableUptimeDetectorTest(UptimeTestCase):
             assert detector2.enabled is True
 
             # Verify quota backend was called for seat assignment
-            mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector2)
+            mock_assign_seat.assert_called_with(seat_object=detector2)
 
             # Verify we still have 1 enabled and 1 disabled
             enabled_count = Detector.objects.filter(
@@ -1298,3 +1364,117 @@ class CheckAndUpdateRegionsTest(UptimeTestCase):
             },
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
         )
+
+
+class SetResponseCaptureEnabledTest(UptimeTestCase):
+    def test_toggle_disabled(self) -> None:
+        sub = self.create_uptime_subscription(region_slugs=["default"])
+        sub.update(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            subscription_id="test-sub-id",
+        )
+        assert sub.capture_response_on_failure is True
+
+        set_response_capture_enabled(sub, enabled=False)
+        sub.refresh_from_db()
+        assert sub.capture_response_on_failure is False
+
+    def test_toggle_enabled(self) -> None:
+        sub = self.create_uptime_subscription(region_slugs=["default"])
+        sub.update(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            subscription_id="test-sub-id",
+            capture_response_on_failure=False,
+        )
+        assert sub.capture_response_on_failure is False
+
+        set_response_capture_enabled(sub, enabled=True)
+        sub.refresh_from_db()
+        assert sub.capture_response_on_failure is True
+
+    def test_no_op_when_already_set(self) -> None:
+        sub = self.create_uptime_subscription(region_slugs=["default"])
+        sub.update(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            subscription_id="test-sub-id",
+        )
+        original_date_updated = sub.date_updated
+
+        set_response_capture_enabled(sub, enabled=True)
+        sub.refresh_from_db()
+        # Should not have updated since value was already True
+        assert sub.date_updated == original_date_updated
+
+
+class UptimeDetectorCacheInvalidationTest(UptimeTestCase):
+    @with_feature("organizations:cache-detectors-by-data-source")
+    @mock.patch("sentry.quotas.backend.disable_seat")
+    def test_disable_detector_invalidates_cache(self, mock_disable_seat: mock.MagicMock) -> None:
+        """
+        Testing billing-related code paths that disable detectors.
+        """
+        detector = create_uptime_detector(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=UptimeMonitorMode.MANUAL,
+        )
+
+        data_source = detector.data_sources.first()
+        assert data_source is not None
+
+        # Warm the cache
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].id == detector.id
+
+        with self.tasks():
+            disable_uptime_detector(detector)
+
+        detector.refresh_from_db()
+        assert not detector.enabled
+
+        # Cache should now return empty since detector is disabled
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 0
+
+    @with_feature("organizations:cache-detectors-by-data-source")
+    @mock.patch(
+        "sentry.quotas.backend.assign_seat",
+        return_value=Outcome.ACCEPTED,
+    )
+    def test_enable_detector_invalidates_cache(self, mock_assign_seat: mock.MagicMock) -> None:
+        # Mock to avoid quota side effects during creation
+        with mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector"):
+            detector = create_uptime_detector(
+                self.project,
+                self.environment,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=UptimeMonitorMode.MANUAL,
+            )
+            uptime_subscription = get_uptime_subscription(detector)
+
+        detector.update(enabled=False)
+        uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
+
+        data_source = detector.data_sources.first()
+        assert data_source is not None
+
+        # Warm the cache (empty since detector is disabled)
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 0
+
+        with self.tasks():
+            enable_uptime_detector(detector)
+
+        detector.refresh_from_db()
+        assert detector.enabled
+
+        # Cache should now include the enabled detector
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].id == detector.id

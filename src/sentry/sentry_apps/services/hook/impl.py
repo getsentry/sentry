@@ -51,38 +51,6 @@ class DatabaseBackedHookService(HookService):
                 deletions.exec_sync_many(list(hooks))
                 return []
 
-    def update_webhook_and_events_for_app_by_region(
-        self,
-        *,
-        application_id: int | None,
-        webhook_url: str | None,
-        events: list[str],
-        region_name: str,
-    ) -> list[RpcServiceHook]:
-        with transaction.atomic(router.db_for_write(ServiceHook)):
-            hooks = ServiceHook.objects.filter(application_id=application_id)
-            hook_count = hooks.count()
-            if webhook_url:
-                expanded_events = expand_events(events)
-                updated_hook_count = hooks.update(url=webhook_url, events=expanded_events)
-
-                if hook_count != updated_hook_count:
-                    sentry_sdk.set_context(
-                        "hook info",
-                        {
-                            "application_id": application_id,
-                            "updated_hook_count": updated_hook_count,
-                            "expected_hook_count": hook_count,
-                        },
-                    )
-                    sentry_sdk.capture_message(
-                        "failed_to_update_all_hooks_for_app", level="warning"
-                    )
-                return [serialize_service_hook(h) for h in hooks]
-            else:
-                deletions.exec_sync_many(list(hooks))
-                return []
-
     def create_or_update_webhook_and_events_for_installation(
         self,
         *,
@@ -94,38 +62,37 @@ class DatabaseBackedHookService(HookService):
     ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             if webhook_url:
-                hook, created = ServiceHook.objects.update_or_create(
+                hooks = ServiceHook.objects.filter(
                     installation_id=installation_id,
                     application_id=application_id,
-                    defaults={
-                        "application_id": application_id,
-                        "actor_id": installation_id,
-                        "installation_id": installation_id,
-                        "url": webhook_url,
-                        "events": expand_events(events),
-                    },
+                )
+                deletions.exec_sync_many(list(hooks))
+
+                new_hook = ServiceHook.objects.create(
+                    installation_id=installation_id,
+                    application_id=application_id,
+                    actor_id=installation_id,
+                    organization_id=organization_id,
+                    url=webhook_url,
+                    events=expand_events(events),
                 )
                 logger.info(
                     "create_or_update_webhook_and_events_for_installation.created_or_updated_hook",
                     extra={
-                        "hook_id": hook.id,
-                        "created_hook": created,
+                        "hook_id": new_hook.id,
                         "organization_id": organization_id,
                         "installation_id": installation_id,
                         "application_id": application_id,
                         "events": events,
                     },
                 )
-                return [serialize_service_hook(hook)]
+                return [serialize_service_hook(new_hook)]
             else:
-                # If no webhook_url, try to find and delete existing hook
-                try:
-                    hook = ServiceHook.objects.get(
-                        installation_id=installation_id, application_id=application_id
-                    )
-                    deletions.exec_sync(hook)
-                except ServiceHook.DoesNotExist:
-                    pass
+                # If no webhook_url, try to find and delete existing hooks
+                hooks = ServiceHook.objects.filter(
+                    installation_id=installation_id, application_id=application_id
+                )
+                deletions.exec_sync_many(list(hooks))
                 return []
 
     def create_service_hook(
@@ -161,7 +128,7 @@ class DatabaseBackedHookService(HookService):
     def bulk_create_service_hooks_for_app(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         application_id: int,
         events: list[str],
         installation_organization_ids: list[RpcInstallationOrganizationPair],

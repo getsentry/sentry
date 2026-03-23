@@ -2,15 +2,15 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
-from django.db.models import Max
+from django.db.models import Max, OuterRef, Subquery
+from taskbroker_client.retry import Retry
 
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS, bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
-from sentry.models.grouphistory import GroupHistoryStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
@@ -26,7 +26,7 @@ CHILD_TASK_COUNT = 250
     name="sentry.tasks.schedule_auto_transition_to_ongoing",
     namespace=issues_tasks,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_auto_transition_to_ongoing() -> None:
     """
@@ -56,7 +56,7 @@ def schedule_auto_transition_to_ongoing() -> None:
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_auto_transition_issues_new_to_ongoing(
     first_seen_lte: int,
@@ -119,7 +119,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_auto_transition_issues_new_to_ongoing(
     group_ids: list[int],
@@ -144,7 +144,7 @@ def run_auto_transition_issues_new_to_ongoing(
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_auto_transition_issues_regressed_to_ongoing(
     date_added_lte: int,
@@ -163,14 +163,28 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
         nonlocal total_count
         total_count += len(results)
 
+    date_threshold = datetime.fromtimestamp(date_added_lte, timezone.utc)
+
+    # Use a subquery to get the most recent REGRESSED history date for each group.
+    # This ensures we only transition groups whose MOST RECENT regressed history
+    # is older than the threshold, not just any regressed history.
+    latest_regressed_subquery = (
+        GroupHistory.objects.filter(group_id=OuterRef("id"), status=GroupHistoryStatus.REGRESSED)
+        .values("group_id")
+        .annotate(max_date=Max("date_added"))
+        .values("max_date")[:1]
+    )
+
     base_queryset = (
         Group.objects.filter(
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.REGRESSED,
-            grouphistory__status=GroupHistoryStatus.REGRESSED,
         )
-        .annotate(recent_regressed_history=Max("grouphistory__date_added"))
-        .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
+        .annotate(recent_regressed_history=Subquery(latest_regressed_subquery))
+        .filter(
+            recent_regressed_history__lte=date_threshold,
+            recent_regressed_history__isnull=False,
+        )
     )
 
     with sentry_sdk.start_span(name="iterate_chunked_group_ids"):
@@ -200,7 +214,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_auto_transition_issues_regressed_to_ongoing(
     group_ids: list[int],
@@ -225,7 +239,7 @@ def run_auto_transition_issues_regressed_to_ongoing(
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_auto_transition_issues_escalating_to_ongoing(
     date_added_lte: int,
@@ -244,14 +258,30 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
         nonlocal total_count
         total_count += len(results)
 
+    from django.db.models import Max, OuterRef, Subquery
+
+    date_threshold = datetime.fromtimestamp(date_added_lte, timezone.utc)
+
+    # Use a subquery to get the most recent ESCALATING history date for each group.
+    # This ensures we only transition groups whose MOST RECENT escalating history
+    # is older than the threshold, not just any escalating history.
+    latest_escalating_subquery = (
+        GroupHistory.objects.filter(group_id=OuterRef("id"), status=GroupHistoryStatus.ESCALATING)
+        .values("group_id")
+        .annotate(max_date=Max("date_added"))
+        .values("max_date")[:1]
+    )
+
     base_queryset = (
         Group.objects.filter(
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.ESCALATING,
-            grouphistory__status=GroupHistoryStatus.ESCALATING,
         )
-        .annotate(recent_escalating_history=Max("grouphistory__date_added"))
-        .filter(recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
+        .annotate(recent_escalating_history=Subquery(latest_escalating_subquery))
+        .filter(
+            recent_escalating_history__lte=date_threshold,
+            recent_escalating_history__isnull=False,
+        )
     )
 
     with sentry_sdk.start_span(name="iterate_chunked_group_ids"):
@@ -281,7 +311,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_auto_transition_issues_escalating_to_ongoing(
     group_ids: list[int],

@@ -1,5 +1,3 @@
-import type {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
-
 export enum RuleType {
   PATTERN = 'pattern',
   CREDITCARD = 'creditcard',
@@ -75,6 +73,7 @@ export type RuleDefault = RuleBase & {
 
 type RulePattern = RuleBase & {
   pattern: string;
+  replaceCaptured: boolean;
   type: RuleType.PATTERN;
 } & Pick<RuleDefault, 'method'>;
 
@@ -94,11 +93,11 @@ export type EventId = {
   value: string;
 };
 
-export type EditableRule = Omit<Record<KeysOfUnion<Rule>, string>, 'id'>;
-
-export type AttributeResults = Record<
-  AllowedDataScrubbingDatasets,
-  ReturnType<typeof useTraceItemAttributeKeys> | null
+export type EditableRule = Omit<
+  {
+    [K in KeysOfUnion<Rule>]: K extends 'replaceCaptured' ? boolean : string;
+  },
+  'id'
 >;
 
 type PiiConfigDefault = {
@@ -122,6 +121,7 @@ type PiiConfigPattern = {
     method: RulePattern['method'];
   };
   type: RulePattern['type'];
+  replaceGroups?: number[];
 };
 
 type PiiConfigReplaceAndPattern = Omit<PiiConfigPattern, 'redaction'> &

@@ -4,8 +4,8 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import {Setup} from 'sentry/views/replays/detail/network/details/onboarding';
 
@@ -16,14 +16,17 @@ const [MOCK_ITEM] = hydrateSpans(ReplayRecordFixture(), [
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
   }),
 ]);
 
 describe('Setup', () => {
-  jest
-    .mocked(useProjectSdkNeedsUpdate)
-    .mockReturnValue({isError: false, isFetching: false, needsUpdate: false});
+  jest.mocked(useProjectSdkNeedsUpdate).mockReturnValue({
+    isError: false,
+    isFetching: false,
+    needsUpdate: false,
+    data: [],
+  });
 
   describe('Setup is not complete', () => {
     it('should render the full snippet when no setup is done yet', () => {
@@ -44,7 +47,7 @@ describe('Setup', () => {
         `Sentry.init({`,
         `  integrations: [`,
         `    Sentry.replayIntegration({`,
-        `      networkDetailAllowUrls: ['/api/0/issues/1234'],`,
+        `      networkDetailAllowUrls: ['/api/0/organizations/1/issues/1234'],`,
         `      networkRequestHeaders: ['X-Custom-Header'],`,
         `      networkResponseHeaders: ['X-Custom-Header'],`,
         `    }),`,

@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import Prism from 'prismjs';
 
-import {Alert} from 'sentry/components/core/alert';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import List from 'sentry/components/list';
+import {Alert} from '@sentry/scraps/alert';
+
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {List} from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EntryRequestDataGraphQl, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -74,7 +74,7 @@ function ErrorsAlert({errors}: {errors: GraphQlError[]}) {
   return (
     <Alert.Container>
       <StyledAlert
-        type="error"
+        variant="danger"
         expand={
           <List symbol="bullet">
             {errorsWithMessage.map((error, i) => (
@@ -140,5 +140,5 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
 }
 
 const StyledAlert = styled(Alert)`
-  margin-top: -${space(1)};
+  margin-top: -${p => p.theme.space.md};
 `;

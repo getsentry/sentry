@@ -1,17 +1,18 @@
 import {useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
-import fetchReplayList from 'sentry/utils/replays/fetchReplayList';
-import useApi from 'sentry/utils/useApi';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {fetchReplayList} from 'sentry/utils/replays/fetchReplayList';
+import {useApi} from 'sentry/utils/useApi';
 import type {
   ReplayListLocationQuery,
   ReplayListQueryReferrer,
 } from 'sentry/views/replays/types';
 
 type Options = {
+  enabled: boolean;
   eventView: EventView;
   location: Location<ReplayListLocationQuery>;
   organization: Organization;
@@ -23,7 +24,12 @@ type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean}
 
 type Result = State;
 
-function useReplayList({
+/**
+ * @deprecated due to its reliance on EventView which is unpleasant to work with
+ * Use useApiQuery instead
+ */
+export function useReplayList({
+  enabled = true,
   eventView,
   location,
   organization,
@@ -46,6 +52,13 @@ function useReplayList({
       ...prev,
       isFetching: true,
     }));
+    if (!enabled) {
+      setData(prev => ({
+        ...prev,
+        isFetching: false,
+      }));
+      return;
+    }
     const response = await fetchReplayList({
       api,
       organization,
@@ -57,7 +70,16 @@ function useReplayList({
     });
 
     setData({...response, isFetching: false});
-  }, [api, organization, location, eventView, queryReferrer, perPage, selection]);
+  }, [
+    api,
+    organization,
+    location,
+    eventView,
+    queryReferrer,
+    perPage,
+    selection,
+    enabled,
+  ]);
 
   useEffect(() => {
     loadReplays();
@@ -65,5 +87,3 @@ function useReplayList({
 
   return data;
 }
-
-export default useReplayList;

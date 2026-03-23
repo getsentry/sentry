@@ -13,6 +13,7 @@ from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry import features, quotas
@@ -29,15 +30,27 @@ from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import (
+    DatasetSourcesTypes,
+    DiscoverSavedQuery,
+    DiscoverSavedQueryTypes,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
-from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
+from sentry.models.dashboard_widget import (
+    DatasetSourcesTypes as DashboardDatasetSourcesTypes,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.search.eap.constants import SAMPLING_MODE_MAP, VALID_GRANULARITIES
+from sentry.search.eap.constants import (
+    EXTRAPOLATION_MODE_MAP,
+    SAMPLING_MODE_MAP,
+    VALID_GRANULARITIES,
+)
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import AdditionalQueries, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
@@ -49,7 +62,11 @@ from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
-from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
+from sentry.utils.dates import (
+    get_interval_from_range,
+    get_rollup_from_request,
+    parse_stats_period,
+)
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 
@@ -88,14 +105,16 @@ def resolve_axis_column(
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
             features.has("organizations:discover-basic", organization, actor=request.user)
             or features.has("organizations:performance-view", organization, actor=request.user)
             or features.has(
-                "organizations:visibility-explore-view", organization, actor=request.user
+                "organizations:visibility-explore-view",
+                organization,
+                actor=request.user,
             )
         )
 
@@ -126,6 +145,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_dataset(self, request: Request) -> Any:
         dataset_label = request.GET.get("dataset", Dataset.Discover.value)
+        # Feature flag the occurrence endpoint
+        if (
+            dataset_label == SupportedTraceItemType.OCCURRENCES.value
+            and not EAPOccurrencesComparator.should_use_experiment("api.events.endpoints")
+        ):
+            raise ParseError(detail=f"{dataset_label} is not supported currently")
         result = get_dataset(dataset_label)
         if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
@@ -158,12 +183,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
                 sentry_sdk.set_tag("sampling_mode", sampling_mode)
 
-                # kill switch: disable the highest accuracy flex time strategy to avoid hammering snuba
-                if sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME" and not features.has(
-                    "organizations:ourlogs-high-fidelity", organization, actor=request.user
-                ):
-                    raise ParseError(f"sampling mode: {sampling_mode} is not supported")
-
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
@@ -178,7 +197,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 organization=organization,
                 query_string=query,
                 sampling_mode=sampling_mode,
-                debug=request.user.is_superuser and "debug" in request.GET,
+                debug=request.user.is_superuser and request.GET.get("debug", False),
                 case_insensitive=request.GET.get("caseInsensitive", "0") == "1",
             )
             return params
@@ -201,11 +220,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if "statsPeriod" not in request.GET:
             return params
         results = params.copy()
-        duration = (params["end"] - params["start"]).total_seconds()
+        duration = params["end"] - params["start"]
         # Only perform rounding on durations longer than an hour
-        if duration > 3600:
-            # Round to 15 minutes if over 30 days, otherwise round to the minute
-            round_to = 15 * 60 if duration >= 30 * 24 * 3600 else 60
+        if duration > timedelta(hours=1):
+            minutes = 3 if duration >= timedelta(days=30) else 1
+            round_to = int(timedelta(minutes=minutes).total_seconds())
+
             key = params.get("organization_id", 0)
 
             results["start"] = snuba.quantize_time(
@@ -215,10 +235,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 params["end"], key, duration=round_to, rounding=snuba.ROUND_UP
             )
         return results
-
-
-class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    owner = ApiOwner.VISIBILITY
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
@@ -328,20 +344,36 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             units[key], meta[key] = self.get_unit_and_type(key, value)
         return meta, units
 
+    def _get_rate_unit(self, field: str) -> str | None:
+        """Get the rate unit for a field by checking for known rate functions."""
+        # Only use the opening parenthesis to identify rate functions because
+        # some functions may contain arguments, making a direct string match not work.
+        per_second_fns = {"eps(", "sps(", "tps(", "sample_eps(", "per_second("}
+        per_minute_fns = {"epm(", "spm(", "tpm(", "sample_epm(", "per_minute("}
+
+        if any(field.startswith(fn) for fn in per_second_fns):
+            return "1/second"
+        if any(field.startswith(fn) for fn in per_minute_fns):
+            return "1/minute"
+        # For equation fields, check if any known rate function appears in the expression
+        if field.startswith("equation|"):
+            for fn in per_second_fns:
+                if fn in field:
+                    return "1/second"
+            for fn in per_minute_fns:
+                if fn in field:
+                    return "1/minute"
+        return None
+
     def get_unit_and_type(self, field: str, field_type: str) -> tuple[str | None, str]:
         if field_type in SIZE_UNITS:
             return field_type, "size"
         elif field_type in DURATION_UNITS:
             return field_type, "duration"
         elif field_type == "rate":
-            if field in ["eps()", "sps()", "tps()", "sample_eps()"]:
-                return "1/second", field_type
-            elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
-                return "1/minute", field_type
-            elif field in ["per_second()"]:
-                return "1/second", field_type
-            elif field in ["per_minute()"]:
-                return "1/minute", field_type
+            unit = self._get_rate_unit(field)
+            if unit is not None:
+                return unit, field_type
             else:
                 logger.warning(
                     "sentry.api.bases.organization_events.get_unit_and_type encountered an unknown rate type",
@@ -467,7 +499,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             convert_fields_for_upsampling(data, fields_meta)
 
     def handle_issues(
-        self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
+        self,
+        results: Sequence[Any],
+        project_ids: Sequence[int],
+        organization: Organization,
     ) -> None:
         issue_ids = {row.get("issue.id") for row in results if row.get("issue.id")}
         issues = Group.objects.get_issues_mapping(issue_ids, project_ids, organization)
@@ -476,7 +511,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 result["issue"] = issues.get(result["issue.id"], "unknown")
 
     def handle_readable_device(
-        self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
+        self,
+        results: Sequence[Any],
+        project_ids: Sequence[int],
+        organization: Organization,
     ) -> None:
         for result in results:
             if "device" in result:
@@ -485,7 +523,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     result["readable"] = readable_value
 
     def get_rollup(
-        self, request: Request, snuba_params: SnubaParams, top_events: int, use_rpc: bool
+        self,
+        request: Request,
+        snuba_params: SnubaParams,
+        top_events: int,
+        use_rpc: bool,
     ) -> int:
         """TODO: we should eventually rely on `SnubaParams.granularity_secs` instead"""
         try:
@@ -519,6 +561,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             comparison_start = snuba_params.start_date - comparison_delta
             if retention and comparison_start < timezone.now() - timedelta(days=retention):
                 raise ValidationError("Comparison period is outside your retention window")
+
+    def get_extrapolation_mode(self, request: Request) -> ExtrapolationMode.ValueType | None:
+        requested_mode = request.GET.get("extrapolationMode", None)
+        if requested_mode is not None and requested_mode not in EXTRAPOLATION_MODE_MAP:
+            raise InvalidSearchQuery(f"Unknown extrapolation mode: {requested_mode}")
+
+        extrapolation_mode = EXTRAPOLATION_MODE_MAP[requested_mode] if requested_mode else None
+
+        return extrapolation_mode
 
     def get_event_stats_data(
         self,
@@ -569,7 +620,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 query_columns = get_query_columns(columns, rollup)
             with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query"):
                 result = get_event_stats(
-                    query_columns, query, snuba_params, rollup, zerofill_results, comparison_delta
+                    query_columns,
+                    query,
+                    snuba_params,
+                    rollup,
+                    zerofill_results,
+                    comparison_delta,
                 )
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
@@ -603,7 +659,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             )
                     else:
                         column = resolve_axis_column(
-                            query_columns[0], 0, transform_alias_to_input_format, use_rpc
+                            query_columns[0],
+                            0,
+                            transform_alias_to_input_format,
+                            use_rpc,
                         )
                         results[key] = serializer.serialize(
                             event_result,
@@ -767,8 +826,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 )
         return serialized_values
 
+    def get_additional_queries(self, request: Request) -> AdditionalQueries:
+        return AdditionalQueries(
+            span=request.GET.getlist("spanQuery"),
+            log=request.GET.getlist("logQuery"),
+            metric=request.GET.getlist("metricQuery"),
+        )
 
-class KeyTransactionBase(OrganizationEventsV2EndpointBase):
+
+class KeyTransactionBase(OrganizationEventsEndpointBase):
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:performance-view", organization, actor=request.user)
 

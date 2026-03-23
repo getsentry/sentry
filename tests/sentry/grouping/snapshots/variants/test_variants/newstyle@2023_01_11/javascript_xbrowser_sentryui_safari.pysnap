@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:48.878511+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "4a3cf3893b6485428dd02da116c8370e"
@@ -145,7 +143,7 @@ app:
         type*
           "NotFoundError"
         value (ignored because stacktrace takes precedence)
-          "GET /issues/<int>/events/latest/ <int>"
+          "GET /issues/<hex>/events/latest/ <int>"
 --------------------------------------------------------------------------
 system:
   hash: "0b81da6ea3d7cc82b1d4825b7aac0b8d"
@@ -289,4 +287,4 @@ system:
         type*
           "NotFoundError"
         value (ignored because stacktrace takes precedence)
-          "GET /issues/<int>/events/latest/ <int>"
+          "GET /issues/<hex>/events/latest/ <int>"

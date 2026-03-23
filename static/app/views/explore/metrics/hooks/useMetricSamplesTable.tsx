@@ -1,15 +1,16 @@
 import {useCallback, useMemo} from 'react';
 import moment from 'moment-timezone';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
@@ -22,9 +23,13 @@ import {
   useMetricsFrozenSearch,
   useMetricsFrozenTracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
-import {type TraceMetricEventsResponseItem} from 'sentry/views/explore/metrics/types';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {
-  useQueryParamsQuery,
+  TraceMetricKnownFieldKey,
+  type TraceMetricEventsResponseItem,
+} from 'sentry/views/explore/metrics/types';
+import {
+  useQueryParamsSearch,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
@@ -74,7 +79,7 @@ function useMetricsQueryKey({
   traceMetric?: TraceMetric;
 }) {
   const organization = useOrganization();
-  const query = useQueryParamsQuery();
+  const userSearch = useQueryParamsSearch();
   const frozenSearch = useMetricsFrozenSearch();
   const frozenTracePeriod = useMetricsFrozenTracePeriod();
   const sortBys = useQueryParamsSortBys();
@@ -86,20 +91,33 @@ function useMetricsQueryKey({
     [fields]
   );
   const queryString = useMemo(() => {
-    const queryStr = query;
-    const frozenSearchStr = frozenSearch?.formatString() ?? '';
+    const newSearch = userSearch.copy();
 
-    const parts = [frozenSearchStr, queryStr].filter(Boolean);
-
-    if (parts.length === 0) {
-      return '';
-    }
-    if (parts.length === 1) {
-      return parts[0];
+    if (frozenSearch) {
+      newSearch.tokens.push(...frozenSearch.tokens);
     }
 
-    return parts.join(' ');
-  }, [query, frozenSearch]);
+    if (traceMetric) {
+      newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, traceMetric.name);
+      newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_TYPE, traceMetric.type);
+      if (traceMetric.unit && traceMetric.unit !== '-') {
+        if (traceMetric.unit !== NONE_UNIT) {
+          newSearch.addFilterValue(
+            TraceMetricKnownFieldKey.METRIC_UNIT,
+            traceMetric.unit
+          );
+        } else if (traceMetric.unit === NONE_UNIT) {
+          newSearch.addOp('(');
+          newSearch.addFilterValue('!has', TraceMetricKnownFieldKey.METRIC_UNIT);
+          newSearch.addOp('OR');
+          newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_UNIT, NONE_UNIT);
+          newSearch.addOp(')');
+        }
+      }
+    }
+
+    return newSearch.formatString();
+  }, [userSearch, frozenSearch, traceMetric]);
 
   const adjustedDatetime = useMemo(() => {
     const baseDatetime = frozenTracePeriod
@@ -158,10 +176,8 @@ function useMetricsQueryKey({
       orderby: orderby.length > 0 ? orderby : undefined,
       per_page: limit,
       referrer,
-      metricName: traceMetric?.name,
-      metricType: traceMetric?.type,
       sampling: queryExtras?.samplingMode ?? SAMPLING_MODE.NORMAL,
-      caseInsensitive: queryExtras?.caseInsensitive,
+      caseInsensitive: queryExtras?.caseInsensitive ? '1' : undefined,
       disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation
         ? '1'
         : undefined,
@@ -170,7 +186,12 @@ function useMetricsQueryKey({
     eventView,
   };
 
-  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
+  const queryKey: ApiQueryKey = [
+    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+    params,
+  ];
 
   return {
     queryKey,
@@ -206,10 +227,7 @@ export function useMetricSamplesTable({
       traceMetric,
       fields,
       ingestionDelaySeconds,
-      queryExtras: {
-        ...queryExtras,
-        traceMetric,
-      },
+      queryExtras,
     },
     queryOptions: {
       canTriggerHighAccuracy,

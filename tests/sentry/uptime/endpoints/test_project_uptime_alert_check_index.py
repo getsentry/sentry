@@ -2,9 +2,10 @@ import uuid
 from abc import abstractmethod
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import UptimeResultEAPTestCase
+from sentry.testutils.cases import SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
+from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
@@ -83,7 +84,9 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
                 "regionName",
                 "checkStatus",
                 "checkStatusReason",
+                "assertionFailureData",
                 "traceId",
+                "traceItemId",
                 "httpStatusCode",
                 "incidentStatus",
             ]:
@@ -92,6 +95,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert most_recent["uptimeCheckId"]
             assert most_recent["regionName"] == "Default Region"
             assert most_recent["checkStatusReason"] == "failure"
+            assert most_recent["assertionFailureData"] == MOCK_ASSERTION_FAILURE_DATA
 
             assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
             assert any(v for v in response.data if v["checkStatusReason"] is None)
@@ -177,10 +181,10 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert response.data == []
 
 
-@region_silo_test
+@cell_silo_test
 @freeze_time(MOCK_DATETIME)
 class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
-    ProjectUptimeAlertCheckIndexBaseTest, UptimeResultEAPTestCase
+    ProjectUptimeAlertCheckIndexBaseTest, SnubaTestCase, UptimeResultEAPTestCase
 ):
     __test__ = True
 
@@ -202,6 +206,9 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
             "status_reason_type": "failure" if check_status == "failure" else None,
             "region": "default",
             "http_status_code": http_status,
+            "assertion_failure_data": (
+                MOCK_ASSERTION_FAILURE_DATA if check_status == "failure" else None
+            ),
         }
         uptime_result = self.create_eap_uptime_result(**create_params)
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])

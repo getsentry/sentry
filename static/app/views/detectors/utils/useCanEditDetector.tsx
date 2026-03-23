@@ -1,9 +1,15 @@
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useProjects} from 'sentry/utils/useProjects';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
+
+export function useCanEditDetectorWorkflowConnections({projectId}: {projectId: string}) {
+  const organization = useOrganization();
+  const project = useProjectFromId({project_id: projectId});
+  return hasEveryAccess(['alerts:write'], {organization, project});
+}
 
 export function useCanEditDetector({
   projectId,

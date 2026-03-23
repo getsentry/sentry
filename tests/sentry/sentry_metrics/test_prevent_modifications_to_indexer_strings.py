@@ -1,7 +1,7 @@
 from hashlib import sha256
 
 LOCKED_FILE = "src/sentry/sentry_metrics/indexer/strings.py"
-LOCKED_DIGEST = "a0395ac3cc5c59712f1875c69b107575a13a5c79b730a37508eea0aa4ab73675"
+LOCKED_DIGEST = "f984bf497f587f7d52665714cb9a049cf9f515f0bbb288f8782cc018484e65ea"
 MESSAGE = f"""{LOCKED_FILE} is locked.
 
 * We have detected you made changes to this file.

@@ -2,11 +2,11 @@ import {useTheme} from '@emotion/react';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {axisLabelFormatter, getDurationUnit} from 'sentry/utils/discover/charts';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 
 type Props = React.ComponentPropsWithoutRef<typeof AreaChart>;
 
-function Chart(props: Props) {
+export function Chart(props: Props) {
   const theme = useTheme();
 
   const durationUnit = getDurationUnit(props.series);
@@ -30,7 +30,7 @@ function Chart(props: Props) {
         minInterval: durationUnit,
         type: 'value' as const,
         axisLabel: {
-          color: theme.chartLabel,
+          color: theme.tokens.content.secondary,
           // Use p50() to force time formatting.
           formatter: (value: number) =>
             axisLabelFormatter(value, 'duration', undefined, durationUnit),
@@ -41,5 +41,3 @@ function Chart(props: Props) {
     />
   );
 }
-
-export default Chart;

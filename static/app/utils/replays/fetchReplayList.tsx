@@ -2,15 +2,13 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {ReplayListQueryReferrer, ReplayListRecord} from 'sentry/views/replays/types';
-
-export const DEFAULT_SORT = '-started_at';
 
 type State = {
   fetchError: undefined | RequestError;
@@ -30,7 +28,7 @@ type Props = {
   queryReferrer?: ReplayListQueryReferrer;
 };
 
-async function fetchReplayList({
+export async function fetchReplayList({
   api,
   organization,
   location,
@@ -76,13 +74,7 @@ async function fetchReplayList({
     return {
       fetchError: undefined,
       pageLinks,
-      replays: payload.query ? data.map(mapResponseToReplayRecord) : [],
-      // for the replay tab in transactions, if payload.query is undefined,
-      // this means the transaction has no related replays.
-      // but because we cannot query for an empty list of IDs (e.g. `id:[]` breaks our search endpoint),
-      // and leaving query empty results in ALL replays being returned for a specified project
-      // (which doesn't make sense as we want to show no replays),
-      // we essentially want to hardcode no replays being returned.
+      replays: data.map(mapResponseToReplayRecord),
     };
   } catch (error: any) {
     if (error.responseJSON?.detail) {
@@ -100,5 +92,3 @@ async function fetchReplayList({
     };
   }
 }
-
-export default fetchReplayList;

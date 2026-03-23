@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {NewQuery} from 'sentry/types/organization';
 import {useDiscoverQuery, type TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useMetricsFrozenTracePeriod} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
@@ -52,20 +52,23 @@ export function useTraceTelemetry({
     return selection;
   }, [selection, frozenTracePeriod]);
 
+  const traceFilter = useMemo(() => {
+    return new MutableSearch('').addFilterValueList('trace', traceIds).formatString();
+  }, [traceIds]);
+
   // Query for error count
   const errorsEventView = useMemo(() => {
-    const traceFilter = new MutableSearch('').addFilterValueList('trace', traceIds);
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Error Count',
       fields: ['trace', 'count()'],
       orderby: '-count',
-      query: traceFilter.formatString(),
+      query: traceFilter,
       version: 2,
       dataset: DiscoverDatasets.ERRORS,
     };
     return EventView.fromNewQueryWithPageFilters(discoverQuery, pageFilters);
-  }, [traceIds, pageFilters]);
+  }, [traceFilter, pageFilters]);
 
   const errorsResult = useDiscoverQuery({
     eventView: errorsEventView,
@@ -80,20 +83,18 @@ export function useTraceTelemetry({
 
   // Query for spans count
   const spansEventView = useMemo(() => {
-    const traceFilter = new MutableSearch('').addFilterValueList('trace', traceIds);
-
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Trace Spans Count',
       fields: ['trace', 'count(span.duration)'],
       orderby: '-count_span_duration',
-      query: traceFilter.formatString(),
+      query: traceFilter,
       version: 2,
       dataset: DiscoverDatasets.SPANS,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, pageFilters);
-  }, [traceIds, pageFilters]);
+  }, [traceFilter, pageFilters]);
 
   const spansResult = useSpansQuery({
     enabled: enabled && spansEventView !== null,
@@ -102,24 +103,25 @@ export function useTraceTelemetry({
     limit: traceIds.length,
     referrer: 'api.explore.trace-spans-count',
     trackResponseAnalytics: false,
+    queryExtras: {
+      disableAggregateExtrapolation: '1',
+    },
   });
 
   // Query for logs count
   const logsEventView = useMemo(() => {
-    const traceFilter = new MutableSearch('').addFilterValueList('trace', traceIds);
-
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Trace Logs Count',
       fields: ['trace', 'count(message)'],
       orderby: '-count_message',
-      query: traceFilter.formatString(),
+      query: traceFilter,
       version: 2,
       dataset: DiscoverDatasets.OURLOGS,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, pageFilters);
-  }, [traceIds, pageFilters]);
+  }, [traceFilter, pageFilters]);
 
   const logsResult = useSpansQuery({
     enabled: enabled && logsEventView !== null,
@@ -128,6 +130,9 @@ export function useTraceTelemetry({
     limit: traceIds.length,
     referrer: 'api.explore.trace-logs-count',
     trackResponseAnalytics: false,
+    queryExtras: {
+      disableAggregateExtrapolation: '1',
+    },
   });
 
   const telemetryData = useMemo(() => {

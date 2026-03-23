@@ -2,47 +2,39 @@ from __future__ import annotations
 
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import Factories
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodArtifactSizeMetricsTest(TestCase):
     """Tests for PreprodArtifact size metrics related methods."""
 
-    def setUp(self):
-        super().setUp()
-        self.organization = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.organization)
-        self.project = self.create_project(
-            teams=[self.team], organization=self.organization, name="test_project"
-        )
-
     def test_get_size_metrics_filtering(self):
         """Test the get_size_metrics method with various filters."""
-        artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.filtering",
-        )
+        artifact = self.create_preprod_artifact(app_id="com.example.filtering")
 
-        main_metrics = Factories.create_preprod_artifact_size_metrics(
+        main_metrics = self.create_preprod_artifact_size_metrics(
             artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        watch_metrics = Factories.create_preprod_artifact_size_metrics(
+        watch_metrics = self.create_preprod_artifact_size_metrics(
             artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
         )
-        feature_metrics = Factories.create_preprod_artifact_size_metrics(
+        feature_metrics = self.create_preprod_artifact_size_metrics(
             artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
             identifier="test_feature",
         )
+        app_clip_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            identifier="test_app_clip",
+        )
 
         # Test getting all metrics (no filters)
         all_metrics = artifact.get_size_metrics()
-        assert all_metrics.count() == 3
+        assert all_metrics.count() == 4
 
         # Test filtering by metrics type
         main_only = artifact.get_size_metrics(
@@ -78,32 +70,38 @@ class PreprodArtifactSizeMetricsTest(TestCase):
         assert feature_typed_first is not None
         assert feature_typed_first.id == feature_metrics.id
 
+        app_clip_only = artifact.get_size_metrics(
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            identifier="test_app_clip",
+        )
+        assert app_clip_only.count() == 1
+        app_clip_first = app_clip_only.first()
+        assert app_clip_first is not None
+        assert app_clip_first.id == app_clip_metrics.id
+
         # Test no matches
         no_matches = artifact.get_size_metrics(identifier="nonexistent")
         assert no_matches.count() == 0
 
     def test_get_size_metrics_for_artifacts_bulk(self):
         """Test the bulk get_size_metrics_for_artifacts classmethod."""
-        artifact1 = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.bulk1",
-        )
-        artifact2 = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.bulk2",
-        )
+        artifact1 = self.create_preprod_artifact(app_id="com.example.bulk1")
+        artifact2 = self.create_preprod_artifact(app_id="com.example.bulk2")
 
-        artifact1_main = Factories.create_preprod_artifact_size_metrics(
+        artifact1_main = self.create_preprod_artifact_size_metrics(
             artifact1,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        artifact1_watch = Factories.create_preprod_artifact_size_metrics(
+        artifact1_watch = self.create_preprod_artifact_size_metrics(
             artifact1,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
         )
-        artifact2_main = Factories.create_preprod_artifact_size_metrics(
+        artifact1_app_clip = self.create_preprod_artifact_size_metrics(
+            artifact1,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            identifier="clip.one",
+        )
+        artifact2_main = self.create_preprod_artifact_size_metrics(
             artifact2,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
@@ -113,7 +111,7 @@ class PreprodArtifactSizeMetricsTest(TestCase):
 
         assert artifact1.id in results
         assert artifact2.id in results
-        assert results[artifact1.id].count() == 2  # main + watch
+        assert results[artifact1.id].count() == 3  # main + watch + app clip
         assert results[artifact2.id].count() == 1  # main only
 
         # Test bulk retrieval with type filter (should get only main metrics)
@@ -143,66 +141,90 @@ class PreprodArtifactSizeMetricsTest(TestCase):
         assert artifact1_watch_first is not None
         assert artifact1_watch_first.id == artifact1_watch.id
 
+        app_clip_results = PreprodArtifact.get_size_metrics_for_artifacts(
+            [artifact1, artifact2],
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            identifier="clip.one",
+        )
+
+        assert app_clip_results[artifact1.id].count() == 1
+        assert app_clip_results[artifact2.id].count() == 0
+        artifact1_app_clip_first = app_clip_results[artifact1.id].first()
+        assert artifact1_app_clip_first is not None
+        assert artifact1_app_clip_first.id == artifact1_app_clip.id
+
         # Test with empty list
         empty_results = PreprodArtifact.get_size_metrics_for_artifacts([])
         assert empty_results == {}
 
     def test_get_size_metrics_ignores_other_artifacts(self):
         """Test that get_size_metrics only returns metrics for the specific artifact."""
-        artifact1 = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app1",
-        )
-        artifact2 = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app2",
-        )
+        artifact1 = self.create_preprod_artifact(app_id="com.example.app1")
+        artifact2 = self.create_preprod_artifact(app_id="com.example.app2")
 
-        artifact1_main = Factories.create_preprod_artifact_size_metrics(
+        artifact1_main = self.create_preprod_artifact_size_metrics(
             artifact1,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        artifact1_watch = Factories.create_preprod_artifact_size_metrics(
+        artifact1_watch = self.create_preprod_artifact_size_metrics(
             artifact1,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
         )
-        artifact1_feature = Factories.create_preprod_artifact_size_metrics(
+        artifact1_feature = self.create_preprod_artifact_size_metrics(
             artifact1,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
             identifier="feature_a",
         )
+        artifact1_app_clip = self.create_preprod_artifact_size_metrics(
+            artifact1,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            identifier="clip_a",
+        )
 
-        artifact2_main = Factories.create_preprod_artifact_size_metrics(
+        artifact2_main = self.create_preprod_artifact_size_metrics(
             artifact2,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        artifact2_watch = Factories.create_preprod_artifact_size_metrics(
+        artifact2_watch = self.create_preprod_artifact_size_metrics(
             artifact2,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
         )
-        artifact2_feature = Factories.create_preprod_artifact_size_metrics(
+        artifact2_feature = self.create_preprod_artifact_size_metrics(
             artifact2,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
             identifier="feature_a",  # Same identifier as artifact1 but different artifact
         )
+        artifact2_app_clip = self.create_preprod_artifact_size_metrics(
+            artifact2,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            identifier="clip_a",
+        )
 
         # Test artifact1's metrics - should only get artifact1 metrics, not artifact2
         artifact1_metrics = artifact1.get_size_metrics()
-        assert artifact1_metrics.count() == 3
+        assert artifact1_metrics.count() == 4
 
         artifact1_ids = {m.id for m in artifact1_metrics}
-        expected_artifact1_ids = {artifact1_main.id, artifact1_watch.id, artifact1_feature.id}
+        expected_artifact1_ids = {
+            artifact1_main.id,
+            artifact1_watch.id,
+            artifact1_feature.id,
+            artifact1_app_clip.id,
+        }
         assert artifact1_ids == expected_artifact1_ids
 
         # Ensure none of artifact2's metrics are included
-        artifact2_ids = {artifact2_main.id, artifact2_watch.id, artifact2_feature.id}
+        artifact2_ids = {
+            artifact2_main.id,
+            artifact2_watch.id,
+            artifact2_feature.id,
+            artifact2_app_clip.id,
+        }
         assert artifact1_ids.isdisjoint(artifact2_ids)
 
         # Test artifact2's metrics - should only get artifact2 metrics, not artifact1
         artifact2_metrics = artifact2.get_size_metrics()
-        assert artifact2_metrics.count() == 3
+        assert artifact2_metrics.count() == 4
 
         artifact2_result_ids = {m.id for m in artifact2_metrics}
         assert artifact2_result_ids == artifact2_ids

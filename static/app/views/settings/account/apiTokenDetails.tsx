@@ -1,28 +1,30 @@
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {ExternalLink} from 'sentry/components/core/link';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useMutateApiToken from 'sentry/utils/useMutateApiToken';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useMutateApiToken} from 'sentry/utils/useMutateApiToken';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
@@ -33,16 +35,17 @@ type FetchApiTokenParameters = {
 type FetchApiTokenResponse = InternalAppApiToken;
 
 const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
-  [`/api-tokens/${tokenId}/`] as const;
+  [getApiUrl(`/api-tokens/$tokenId/`, {path: {tokenId}})] as const;
 
 function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
+  const navigate = useNavigate();
   const initialData = {
     name: token.name,
     tokenPreview: tokenPreview(token.tokenLastCharacters || '****'),
   };
 
   const handleGoBack = () => {
-    browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
+    navigate(normalizeUrl(API_INDEX_ROUTE));
   };
 
   const onSuccess = () => {

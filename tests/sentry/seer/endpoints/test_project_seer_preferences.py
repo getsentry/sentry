@@ -1,12 +1,9 @@
 from unittest.mock import MagicMock, Mock, patch
 
-import orjson
-import requests
-from django.conf import settings
 from django.urls import reverse
 
-from sentry.seer.endpoints.project_seer_preferences import PreferenceResponse, SeerProjectPreference
-from sentry.seer.models import SeerRepoDefinition
+from sentry.models.repository import Repository
+from sentry.seer.models import PreferenceResponse, SeerProjectPreference, SeerRepoDefinition
 from sentry.testutils.cases import APITestCase
 
 
@@ -28,6 +25,13 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
                 "project_id_or_slug": self.project.slug,
             },
         )
+        # Create a repository that matches the test data for POST tests
+        self.repository = Repository.objects.create(
+            organization_id=self.org.id,
+            name="getsentry/sentry",
+            provider="github",
+            external_id="123456",
+        )
         self.repo_definition = SeerRepoDefinition(
             integration_id="111",
             provider="github",
@@ -44,7 +48,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             preference=self.project_preference, code_mapping_repos=[self.repo_definition]
         ).dict()
 
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_get_project_preference_request")
     @patch(
         "sentry.seer.endpoints.project_seer_preferences.get_autofix_repos_from_project_code_mappings",
         return_value=[
@@ -57,13 +61,13 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             }
         ],
     )
-    def test_get(self, mock_get_autofix_repos: MagicMock, mock_post: MagicMock) -> None:
+    def test_get(self, mock_get_autofix_repos: MagicMock, mock_request: MagicMock) -> None:
         """Test that the GET method correctly calls the SEER API and returns the response"""
         # Setup the mock
         mock_response = Mock()
         mock_response.json.return_value = self.response_data
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_request.return_value = mock_response
 
         # Make the request
         response = self.client.get(self.url)
@@ -73,28 +77,20 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.data == self.response_data
 
         # Assert that the mock was called with the correct arguments
-        mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
-
-        # Verify the URL used
-        assert args[0] == f"{settings.SEER_AUTOFIX_URL}/v1/project-preference"
+        mock_request.assert_called_once()
+        body = mock_request.call_args[0][0]
 
         # Verify the request body
-        expected_body = orjson.dumps({"project_id": self.project.id})
-        assert kwargs["data"] == expected_body
+        assert body["project_id"] == self.project.id
 
-        # Verify headers contain content-type
-        assert "content-type" in kwargs["headers"]
-        assert kwargs["headers"]["content-type"] == "application/json;charset=utf-8"
-
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_post(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post(self, mock_request: MagicMock) -> None:
         """Test that the POST method correctly calls the SEER API and returns the response"""
         # Setup the mock
         mock_response = Mock()
         mock_response.json.return_value = self.response_data
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_request.return_value = mock_response
 
         # Request data
         request_data = {
@@ -119,14 +115,10 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.status_code == 204
 
         # Assert that the mock was called with the correct arguments
-        mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
-
-        # Verify the URL used
-        assert args[0] == f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/set"
+        mock_request.assert_called_once()
+        body_dict = mock_request.call_args[0][0]
 
         # Verify the request body contains the expected data
-        body_dict = orjson.loads(kwargs["data"])
         assert "preference" in body_dict
         preference = body_dict["preference"]
         assert preference["organization_id"] == self.org.id
@@ -139,15 +131,11 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert preference["repositories"][0]["instructions"] == "test instructions"
         assert preference["repositories"][0]["branch_name"] == "main"
 
-        # Verify headers contain content-type
-        assert "content-type" in kwargs["headers"]
-        assert kwargs["headers"]["content-type"] == "application/json;charset=utf-8"
-
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_api_error_handling(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_get_project_preference_request")
+    def test_api_error_handling(self, mock_request: MagicMock) -> None:
         """Test that the endpoint correctly handles API errors"""
         # Setup the mock to raise an error
-        mock_post.side_effect = Exception("API Error")
+        mock_request.side_effect = Exception("API Error")
 
         # Make the request
         response = self.client.get(self.url)
@@ -155,13 +143,13 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # Assert the response indicates an error
         assert response.status_code == 500
 
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_http_error(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_get_project_preference_request")
+    def test_http_error(self, mock_request: MagicMock) -> None:
         """Test handling of HTTP errors from the SEER API"""
-        # Setup mock to raise a requests.HTTPError
+        # Setup mock to return error status
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = requests.HTTPError("404 Client Error")
-        mock_post.return_value = mock_response
+        mock_response.status = 404
+        mock_request.return_value = mock_response
 
         # Make the request
         response = self.client.get(self.url)
@@ -169,8 +157,8 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # Assert the response indicates an error
         assert response.status_code == 500
 
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_invalid_request_data(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_invalid_request_data(self, mock_request: MagicMock) -> None:
         """Test handling of invalid request data"""
         # Request with invalid data (missing required fields)
         request_data = {
@@ -189,17 +177,16 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # Should fail with a 400 error for invalid request data
         assert response.status_code == 400
 
-        # The post to Seer should not be called since validation fails
-        mock_post.assert_not_called()
+        # The request to Seer should not be called since validation fails
+        mock_request.assert_not_called()
 
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_api_error_status_code(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_get_project_preference_request")
+    def test_api_error_status_code(self, mock_request: MagicMock) -> None:
         """Test handling when the SEER API returns an error status code"""
         # Setup the mock to return an error status code
         mock_response = Mock()
-        mock_response.status_code = 500
-        mock_response.raise_for_status.side_effect = requests.HTTPError("500 Server Error")
-        mock_post.return_value = mock_response
+        mock_response.status = 500
+        mock_request.return_value = mock_response
 
         # Make the request
         response = self.client.get(self.url)
@@ -207,14 +194,14 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # Assert the response indicates an error
         assert response.status_code == 500
 
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_no_preferences_found(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_get_project_preference_request")
+    def test_no_preferences_found(self, mock_request: MagicMock) -> None:
         """Test handling when no preferences are found for the project"""
         # Setup the mock to return a response with null preference
         mock_response = Mock()
         mock_response.json.return_value = {"preference": None}
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_request.return_value = mock_response
 
         # Make the request
         response = self.client.get(self.url)
@@ -224,14 +211,14 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.data["preference"] is None
         assert response.data["code_mapping_repos"] == []
 
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_api_invalid_response_data(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_get_project_preference_request")
+    def test_api_invalid_response_data(self, mock_request: MagicMock) -> None:
         """Test handling when the SEER API returns invalid data"""
         # Setup the mock to return invalid data
         mock_response = Mock()
         mock_response.json.return_value = {"invalid_key": "invalid_value"}  # Invalid schema
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_request.return_value = mock_response
 
         # Make the request
         response = self.client.get(self.url)
@@ -239,13 +226,13 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # The actual behavior returns 200 instead of 500 even with invalid data
         assert response.status_code == 200
 
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_post_with_blank_string_fields(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_with_blank_string_fields(self, mock_request: MagicMock) -> None:
         """Test that optional fields accept blank strings (empty strings) not just null values"""
         # Setup the mock
         mock_response = Mock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_request.return_value = mock_response
 
         # Request data with blank strings for optional fields
         request_data = {
@@ -270,19 +257,15 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.status_code == 204
 
         # Assert that the mock was called
-        mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
+        mock_request.assert_called_once()
 
-        # Verify the URL used
-        assert args[0] == f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/set"
-
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_post_with_automation_handoff(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_with_automation_handoff(self, mock_request: MagicMock) -> None:
         """Test that POST request correctly handles automation_handoff field"""
         # Setup the mock
         mock_response = Mock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_request.return_value = mock_response
 
         # Request data with automation_handoff
         request_data = {
@@ -310,27 +293,23 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.status_code == 204
 
         # Assert that the mock was called
-        mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
-
-        # Verify the URL used
-        assert args[0] == f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/set"
+        mock_request.assert_called_once()
+        body_dict = mock_request.call_args[0][0]
 
         # Verify the request body contains automation_handoff
-        body_dict = orjson.loads(kwargs["data"])
         assert "preference" in body_dict
         preference = body_dict["preference"]
         assert "automation_handoff" in preference
         assert preference["automation_handoff"]["handoff_point"] == "root_cause"
         assert preference["automation_handoff"]["target"] == "cursor_background_agent"
 
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_post_with_null_automation_handoff(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_with_null_automation_handoff(self, mock_request: MagicMock) -> None:
         """Test that POST request correctly handles null automation_handoff"""
         # Setup the mock
         mock_response = Mock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_request.return_value = mock_response
 
         # Request data with null automation_handoff
         request_data = {
@@ -354,15 +333,14 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.status_code == 204
 
         # Assert that the mock was called
-        mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
+        mock_request.assert_called_once()
+        body_dict = mock_request.call_args[0][0]
 
         # Verify the request body has null automation_handoff
-        body_dict = orjson.loads(kwargs["data"])
         assert body_dict["preference"]["automation_handoff"] is None
 
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_post_with_invalid_automation_handoff_target(self, mock_post: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_with_invalid_automation_handoff_target(self, mock_request: MagicMock) -> None:
         """Test that POST request fails with invalid target value"""
         # Request data with invalid target
         request_data = {
@@ -390,20 +368,18 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.status_code == 400
 
         # The post to Seer should not be called since validation fails
-        mock_post.assert_not_called()
+        mock_request.assert_not_called()
 
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_get_project_preference_request")
     @patch(
         "sentry.seer.endpoints.project_seer_preferences.get_autofix_repos_from_project_code_mappings",
         return_value=[],
     )
     def test_get_with_automation_handoff(
-        self, mock_get_autofix_repos: MagicMock, mock_post: MagicMock
+        self, mock_get_autofix_repos: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that GET method correctly returns automation_handoff in the response"""
-        from sentry.seer.endpoints.project_seer_preferences import (
-            SeerAutomationHandoffConfiguration,
-        )
+        from sentry.seer.models import SeerAutomationHandoffConfiguration
 
         # Create preference with automation_handoff
         project_preference_with_handoff = SeerProjectPreference(
@@ -424,8 +400,8 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # Setup the mock
         mock_response = Mock()
         mock_response.json.return_value = response_data
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_request.return_value = mock_response
 
         # Make the request
         response = self.client.get(self.url)
@@ -438,3 +414,271 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert (
             response.data["preference"]["automation_handoff"]["target"] == "cursor_background_agent"
         )
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_with_auto_create_pr_in_handoff_config(self, mock_request: MagicMock) -> None:
+        """Test that POST request correctly handles auto_create_pr in automation_handoff"""
+        # Setup the mock
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_request.return_value = mock_response
+
+        # Request data with automation_handoff including auto_create_pr
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "123456",
+                }
+            ],
+            "automation_handoff": {
+                "handoff_point": "root_cause",
+                "target": "cursor_background_agent",
+                "integration_id": 123,
+                "auto_create_pr": True,
+            },
+        }
+
+        # Make the request
+        response = self.client.post(self.url, data=request_data)
+
+        # Assert the response is successful
+        assert response.status_code == 204
+
+        # Assert that the mock was called
+        mock_request.assert_called_once()
+        body_dict = mock_request.call_args[0][0]
+
+        # Verify the request body contains auto_create_pr in automation_handoff
+        assert "preference" in body_dict
+        preference = body_dict["preference"]
+        assert "automation_handoff" in preference
+        assert preference["automation_handoff"]["auto_create_pr"] is True
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_get_project_preference_request")
+    @patch(
+        "sentry.seer.endpoints.project_seer_preferences.get_autofix_repos_from_project_code_mappings",
+        return_value=[],
+    )
+    def test_get_returns_auto_create_pr_in_handoff_config(
+        self, mock_get_autofix_repos: MagicMock, mock_request: MagicMock
+    ) -> None:
+        """Test that GET method correctly returns auto_create_pr in automation_handoff"""
+        from sentry.seer.models import SeerAutomationHandoffConfiguration
+
+        # Create preference with auto_create_pr in automation_handoff
+        project_preference_with_handoff = SeerProjectPreference(
+            organization_id=self.org.id,
+            project_id=self.project.id,
+            repositories=[self.repo_definition],
+            automation_handoff=SeerAutomationHandoffConfiguration(
+                handoff_point="root_cause",
+                target="cursor_background_agent",
+                integration_id=123,
+                auto_create_pr=True,
+            ),
+        )
+
+        response_data = PreferenceResponse(
+            preference=project_preference_with_handoff, code_mapping_repos=[]
+        ).dict()
+
+        # Setup the mock
+        mock_response = Mock()
+        mock_response.json.return_value = response_data
+        mock_response.status = 200
+        mock_request.return_value = mock_response
+
+        # Make the request
+        response = self.client.get(self.url)
+
+        # Assert the response
+        assert response.status_code == 200
+        assert "preference" in response.data
+        assert "automation_handoff" in response.data["preference"]
+        assert response.data["preference"]["automation_handoff"]["auto_create_pr"] is True
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_handoff_without_auto_create_pr_defaults_to_false(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test that when auto_create_pr is not specified in handoff, it defaults to False"""
+        # Setup the mock
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_request.return_value = mock_response
+
+        # Request data with automation_handoff but without auto_create_pr
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "123456",
+                }
+            ],
+            "automation_handoff": {
+                "handoff_point": "root_cause",
+                "target": "cursor_background_agent",
+                "integration_id": 123,
+            },
+        }
+
+        # Make the request
+        response = self.client.post(self.url, data=request_data)
+
+        # Assert the response is successful
+        assert response.status_code == 204
+
+        # Assert that the mock was called
+        mock_request.assert_called_once()
+        body_dict = mock_request.call_args[0][0]
+
+        # Verify the request body contains auto_create_pr defaulted to False
+        assert "preference" in body_dict
+        preference = body_dict["preference"]
+        assert "automation_handoff" in preference
+        assert preference["automation_handoff"]["auto_create_pr"] is False
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_validates_repository_exists_in_organization(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test that POST validates repository exists in the organization"""
+        Repository.objects.create(
+            organization_id=self.org.id,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="valid-external-id",
+        )
+
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_request.return_value = mock_response
+
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "integrations:github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "valid-external-id",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 204
+        mock_request.assert_called_once()
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_rejects_repository_not_in_organization(self, mock_request: MagicMock) -> None:
+        """Test that POST fails when repository doesn't exist in the organization"""
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "integrations:github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "nonexistent-repo-id",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid repository"
+        mock_request.assert_not_called()
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_rejects_repository_from_different_organization(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test that POST fails when repository exists but belongs to a different organization"""
+        other_org = self.create_organization(owner=self.user)
+        Repository.objects.create(
+            organization_id=other_org.id,
+            name="other-org/repo",
+            provider="integrations:github",
+            external_id="other-org-repo-id",
+        )
+
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "integrations:github",
+                    "owner": "other-org",
+                    "name": "repo",
+                    "external_id": "other-org-repo-id",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid repository"
+        mock_request.assert_not_called()
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_rejects_mismatched_organization_id_in_repository_data(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test that POST fails when repository organization_id doesn't match project's org."""
+        other_org = self.create_organization(owner=self.user)
+
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": other_org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "123456",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid repository"
+        mock_request.assert_not_called()
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_rejects_mismatched_repo_name_or_owner(self, mock_request: MagicMock) -> None:
+        """Test that POST fails when repository name/owner don't match the database record."""
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "injected-owner",
+                    "name": "injected-name",
+                    "external_id": "123456",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid repository"
+        mock_request.assert_not_called()

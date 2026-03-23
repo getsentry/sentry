@@ -2,13 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {space} from 'sentry/styles/space';
-import divide from 'sentry/utils/number/divide';
-import toPercent from 'sentry/utils/number/toPercent';
-import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import {divide} from 'sentry/utils/number/divide';
+import {toPercent} from 'sentry/utils/number/toPercent';
+import {useTimelineScale} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
-export default function ZoomTriangles() {
+export function ZoomTriangles() {
   const replay = useReplayReader();
   const {currentTime} = useReplayContext();
 
@@ -50,7 +49,7 @@ const ZoomIndicatorContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   translate: -50% -12px;
 `;
 
@@ -59,5 +58,5 @@ const ZoomTriangleDown = styled('div')`
   height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-top: 4px solid ${p => p.theme.gray500};
+  border-top: 4px solid ${p => p.theme.colors.gray800};
 `;

@@ -1,18 +1,19 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {LinkButton} from '@sentry/scraps/button';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
-export default function IntegrationAlertRules() {
+export function IntegrationAlertRules() {
   const organization = useOrganization();
   const {projects} = useProjects();
   return (
@@ -20,7 +21,7 @@ export default function IntegrationAlertRules() {
       <PanelHeader>{t('Project Configuration')}</PanelHeader>
       <PanelBody>
         {projects.length === 0 && (
-          <EmptyMessage size="large">
+          <EmptyMessage size="lg">
             {t('You have no projects to add Alert Rules to')}
           </EmptyMessage>
         )}

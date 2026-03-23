@@ -1,11 +1,12 @@
+import {Alert} from '@sentry/scraps/alert';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
@@ -70,7 +71,7 @@ export function RenameIssueViewModal({
       <Body>
         {isError && (
           <Alert.Container>
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {t('Something went wrong. Please try again.')}
             </Alert>
           </Alert.Container>

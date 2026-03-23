@@ -8,7 +8,6 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {IconArrow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const RELATIVE_DATE_INPUT_REGEX = /^(\d+)\s*([mhdw]?)/;
 const RELATIVE_DATE_UNITS = ['m', 'h', 'd', 'w'] as const;
@@ -118,10 +117,10 @@ export function getRelativeDateSuggestions(
 
 const AbsoluteDateOption = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 
   svg {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

@@ -7,30 +7,35 @@ How reprocessing works
 ======================
 
 1. In `start_group_reprocessing`, the group is put into REPROCESSING state. In
-   this state it must not be modified or receive events. Much like with group
-   merging, all its hashes are detached, they are moved to a new, empty group.
+   this state it must not be modified or receive events. A new group is created
+   with duplicate attributes, and all group-level models (GROUP_MODELS_TO_MIGRATE),
+   including group hashes, are migrated immediately to the new group.
 
-   The group gets a new activity entry that contains metadata about who
-   triggered reprocessing with how many events. This is purely to serve UI.
+   The old group gets a new activity entry that contains metadata about who
+   triggered reprocessing with how many events. This is purely to serve the UI.
 
-   If a user at this point navigates to the group, they will not be able to
+   If a user at this point navigates to the old group, they will not be able to
    interact with it at all, but only watch the progress of reprocessing.
 
-2. All events from the group are iterated through and enqueued into
+2. All events from the old group are iterated through and enqueued into
    preprocess_event. The event payload is taken from a backup that was made on
    first ingestion in preprocess_event.
 
-3. `mark_event_reprocessed` will decrement the pending event counter in Redis
+   Each event falls into one of three modes:
+   - **Reprocess**: Re-run symbolication and grouping, re-insert into Snuba
+   - **Keep**: Move to new group without reprocessing
+   - **Delete**: Remove from nodestore, Postgres, and Snuba (via tombstone)
+
+3. `mark_event_reprocessed` decrements the pending event counter in Redis
    to see if reprocessing is done.
 
-   When the counter reaches zero, it will trigger the `finish_reprocessing` task,
-   which will move all associated models like assignee and activity into the new group.
+   When the counter reaches zero, it triggers the `finish_reprocessing` task,
+   which moves the reprocessing activity to the new group and creates a
+   GroupRedirect from old_group_id -> new_group_id. The old group is then
+   deleted from Postgres.
 
-   A group redirect is installed. The old group is deleted, while the new group
-   is unresolved. This effectively unsets the REPROCESSING status.
-
-   A user looking at the progress bar on the old group's URL is supposed to be
-   redirected at this point. The new group can either:
+   A user looking at the progress bar on the old group's URL is redirected
+   at this point. The new group can either:
 
    a. Have events by itself, but also show a success message based on the data in activity.
    b. Be totally empty but suggest a search for original_issue_id based on data in activity.
@@ -90,6 +95,7 @@ from typing import Any, Literal, overload
 import sentry_sdk
 from django.conf import settings
 from django.db import router
+from django.utils import timezone
 
 from sentry import models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
@@ -97,13 +103,17 @@ from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
-from sentry.objectstore import get_attachments_client
+from sentry.objectstore import get_attachments_session
 from sentry.options.rollout import in_random_rollout
+from sentry.search.eap.occurrences.common_queries import count_occurrences
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.services.eventstore.reprocessing import reprocessing_store
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
+from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics, snuba
 from sentry.utils.cache import cache_key_for_event
@@ -233,7 +243,7 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
             )
 
     if attachment_objects:
-        store_attachments_for_event(data, attachment_objects, timeout=CACHE_TIMEOUT)
+        store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
 
     # Step 2: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
@@ -404,31 +414,21 @@ def _maybe_copy_attachment_into_cache(
     stored_id = None
     chunks = None
 
-    if in_random_rollout("objectstore.enable_for.attachments"):
-        blob_path = attachment.blob_path or ""
-        if blob_path.startswith(V2_PREFIX):
-            # in case the attachment is already stored in objectstore, there is nothing to do
-            stored_id = blob_path.removeprefix(V2_PREFIX)
-        else:
-            # otherwise, we store it in objectstore
-            with attachment.getfile() as fp:
-                stored_id = (
-                    get_attachments_client()
-                    .for_project(project.organization_id, project.id)
-                    .put(fp)
-                )
-            # but we then also make that storage permanent, as otherwise
-            # the codepaths won’t be cleaning up this stored file.
-            # essentially this means we are moving the file from the previous storage
-            # into objectstore at this point.
-            attachment.blob_path = V2_PREFIX + stored_id
-            attachment.save()
-            if blob_path.startswith(V1_PREFIX):
-                storage = get_storage()
-                storage.delete(blob_path)
-
+    blob_path = attachment.blob_path or ""
+    if blob_path.startswith(V2_PREFIX):
+        # attachment is already in objectstore (regardless of flag)
+        stored_id = blob_path.removeprefix(V2_PREFIX)
+    elif in_random_rollout("objectstore.enable_for.attachments"):
+        # move the attachment into objectstore and update the record
+        with attachment.getfile() as fp:
+            stored_id = get_attachments_session(project.organization_id, project.id).put(fp)
+        attachment.blob_path = V2_PREFIX + stored_id
+        attachment.save()
+        if blob_path.startswith(V1_PREFIX):
+            storage = get_storage()
+            storage.delete(blob_path)
     else:
-        # when not using objectstore, store chunks in the attachment cache
+        # store chunks in the attachment cache
         with attachment.getfile() as fp:
             chunk_index = 0
             size = 0
@@ -491,9 +491,14 @@ def buffered_handle_remaining_events(
     Ideally we'd have batching implemented via a service like buffers, but for
     more than counters.
     """
-    llen = reprocessing_store.get_remaining_event_count(project_id, old_group_id, datetime_to_event)
+    buffered_event_count = reprocessing_store.get_remaining_event_count(
+        project_id, old_group_id, datetime_to_event
+    )
 
-    if force_flush_batch or llen > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
+    if (
+        force_flush_batch
+        or buffered_event_count > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE
+    ):
         new_key = reprocessing_store.rename_key(project_id, old_group_id)
         if not new_key:
             return
@@ -567,6 +572,9 @@ def start_group_reprocessing(
 
     with transaction.atomic(router.db_for_write(models.Group)):
         group = models.Group.objects.get(id=group_id)
+        project = group.project
+        organization = project.organization
+        group_first_seen = group.first_seen
         original_status = group.status
         original_substatus = group.substatus
         if original_status == models.GroupStatus.REPROCESSING:
@@ -575,6 +583,11 @@ def start_group_reprocessing(
             #
             # During reprocessing the button is greyed out.
             raise RuntimeError("Cannot reprocess group that is currently being reprocessed")
+
+        # TODO: Replace this with a special group.status rather than using data.
+        # Check the marker to avoid reprocessing B if there is a reprocessing A -> B going on at the moment
+        if "_reprocessing_old_group_id" in (group.data or {}):
+            raise RuntimeError("Cannot reprocess group that is being reprocessed to")
 
         original_short_id = group.short_id
         group.status = models.GroupStatus.REPROCESSING
@@ -587,9 +600,16 @@ def start_group_reprocessing(
 
         # Create a duplicate row that has the same attributes by nulling out
         # the primary key and saving
-        group.pk = group.id = None  # type: ignore[assignment]  # XXX: intentional resetting pk
+        group.pk = group.id = None  # XXX: intentional resetting pk
         new_group = group  # rename variable just to avoid confusion
         del group
+
+        # Set a marker indicating that the new group is currently being reprocessed to.
+        try:
+            new_group.data["_reprocessing_old_group_id"] = group_id
+        except Exception as e:
+            logger.exception(str(e))
+
         new_group.status = original_status
         new_group.substatus = original_substatus
         new_group.short_id = original_short_id
@@ -610,14 +630,45 @@ def start_group_reprocessing(
         for model in GROUP_MODELS_TO_MIGRATE:
             model.objects.filter(group_id=group_id).update(group_id=new_group.id)
 
-    # Get event counts of issue (for all environments etc). This was copypasted
+    # Get event counts of issue (for all environments etc). This was copy-pasted
     # and simplified from groupserializer.
-    event_count = sync_count = snuba.aliased_query(
+    referrer = Referrer.REPROCESSING2_START_GROUP_REPROCESSING.value
+    snuba_count = snuba.aliased_query(
         aggregations=[["count()", "", "times_seen"]],  # select
         dataset=Dataset.Events,  # from
         conditions=[["group_id", "=", group_id], ["project_id", "=", project_id]],  # where
-        referrer="reprocessing2.start_group_reprocessing",
+        referrer=referrer,
     )["data"][0]["times_seen"]
+    event_count = sync_count = snuba_count
+
+    callsite = "reprocessing2.start_group_reprocessing"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        count_end = timezone.now()
+        eap_count = count_occurrences(
+            organization=organization,
+            projects=[project],
+            start=group_first_seen,
+            end=count_end,
+            referrer=referrer,
+            group_id=group_id,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        event_count = sync_count = EAPOccurrencesComparator.check_and_choose(
+            control_data=snuba_count,
+            experimental_data=eap_count,
+            callsite=callsite,
+            is_experimental_data_a_null_result=eap_count == 0,
+            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            debug_context={
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "group_id": group_id,
+                "group_first_seen": (
+                    group_first_seen.isoformat() if group_first_seen is not None else None
+                ),
+                "count_end": count_end.isoformat(),
+            },
+        )
 
     sentry_sdk.set_extra("event_count", event_count)
 
@@ -629,7 +680,7 @@ def start_group_reprocessing(
     #
     # Later the activity is migrated to the new group where it is used to serve
     # the success message.
-    new_activity = models.Activity.objects.create(
+    reprocessing_activity = models.Activity.objects.create(
         type=ActivityType.REPROCESS.value,
         project=new_group.project,
         ident=str(group_id),
@@ -637,9 +688,7 @@ def start_group_reprocessing(
         user_id=acting_user_id,
         data={"eventCount": event_count, "oldGroupId": group_id, "newGroupId": new_group.id},
     )
-
-    # New Activity Timestamp
-    date_created = new_activity.datetime
+    date_created = reprocessing_activity.datetime
 
     reprocessing_store.start_reprocessing(group_id, date_created, sync_count, event_count)
 

@@ -1,27 +1,24 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {space} from 'sentry/styles/space';
+import {Stack} from '@sentry/scraps/layout';
+
 import {DataCategory} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 import ResultGrid from 'admin/components/resultGrid';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {
-  BillingHistory,
-  ReservedBudget,
-  ReservedBudgetMetricHistory,
-} from 'getsentry/types';
+import type {BillingHistory, ReservedBudgetMetricHistory} from 'getsentry/types';
 import {formatReservedWithUnits, formatUsageWithUnits} from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
 };
 
-function CustomerHistory({orgId, ...props}: Props) {
+export function CustomerHistory({orgId, ...props}: Props) {
   return (
     <ResultGrid
       path={`/_admin/customers/${orgId}/`}
@@ -46,7 +43,7 @@ function CustomerHistory({orgId, ...props}: Props) {
       ]}
       columnsForRow={(row: BillingHistory) => {
         const sortedCategories = sortCategories(row.categories);
-        const reservedBudgets: ReservedBudget[] = row.reservedBudgets ?? [];
+        const reservedBudgets = row.reservedBudgets ?? [];
         const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> =
           {};
         const reservedBudgetNameMapping: Record<string, string> = {};
@@ -99,7 +96,7 @@ function CustomerHistory({orgId, ...props}: Props) {
               : formatCurrency(row.onDemandMaxSpend)}
           </td>,
           <td key="reserved" style={{textAlign: 'right'}}>
-            <UsageColumn>
+            <Stack gap="xs">
               {sortedCategories
                 .filter(({reserved}) => reserved !== RESERVED_BUDGET_QUOTA)
                 .map(({category, reserved}) => (
@@ -122,10 +119,10 @@ function CustomerHistory({orgId, ...props}: Props) {
                   </div>
                 );
               })}
-            </UsageColumn>
+            </Stack>
           </td>,
           <td key="gifted" style={{textAlign: 'right'}}>
-            <UsageColumn>
+            <Stack gap="xs">
               {sortedCategories
                 .filter(category => category.reserved !== RESERVED_BUDGET_QUOTA)
                 .map(({category, free}) => (
@@ -150,10 +147,10 @@ function CustomerHistory({orgId, ...props}: Props) {
                   </div>
                 );
               })}
-            </UsageColumn>
+            </Stack>
           </td>,
           <td key="usage" style={{textAlign: 'right'}}>
-            <UsageColumn>
+            <Stack gap="xs">
               {sortedCategories.map(({category, usage}) => (
                 <div key={category}>
                   {formatUsageWithUnits(usage, category, {
@@ -177,7 +174,7 @@ function CustomerHistory({orgId, ...props}: Props) {
                   )}
                 </div>
               ))}
-            </UsageColumn>
+            </Stack>
           </td>,
         ];
       }}
@@ -186,14 +183,6 @@ function CustomerHistory({orgId, ...props}: Props) {
   );
 }
 
-const UsageColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const DisplayName = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
-
-export default CustomerHistory;

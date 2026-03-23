@@ -29,6 +29,18 @@ describe('UptimeDetectorDetails', () => {
       url: '/organizations/org-slug/uptime-summary/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/detectors/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/workflows/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [],
+    });
   });
 
   it('renders the detector details sections', async () => {
@@ -111,5 +123,18 @@ describe('UptimeDetectorDetails', () => {
     });
 
     expect(await screen.findByText('95%')).toBeInTheDocument();
+  });
+
+  it('displays disabled alert with enable button when detector is disabled', async () => {
+    const detector = UptimeDetectorFixture({id: '3', enabled: false});
+
+    render(<UptimeDetectorDetails detector={detector} project={project} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText('This monitor is disabled and not recording uptime checks.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Enable'})).toBeInTheDocument();
   });
 });

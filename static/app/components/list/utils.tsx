@@ -1,14 +1,11 @@
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
-import {space} from 'sentry/styles/space';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
-
 const bulletStyle = (theme: Theme) => css`
-  padding-left: ${space(3)};
+  padding-left: ${theme.space['2xl']};
   list-style-type: circle;
   & > li::marker {
-    color: ${theme.subText};
+    color: ${theme.tokens.content.secondary};
   }
 `;
 
@@ -23,7 +20,7 @@ const numericStyle = (
   {isSolid = false, initialCounterValue = 0}: Options
 ) => css`
   & > li {
-    padding-left: ${space(4)};
+    padding-left: ${theme.space['3xl']};
     :before {
       border-radius: 50%;
       position: absolute;
@@ -39,20 +36,18 @@ const numericStyle = (
         ? css`
             width: 24px;
             height: 24px;
-            font-weight: ${theme.fontWeight.normal};
-            font-size: ${theme.fontSize.sm};
-            background-color: ${isChonkTheme(theme)
-              ? theme.colors.chonk.yellow400
-              : theme.yellow300};
-            color: ${theme.black};
+            font-weight: ${theme.font.weight.sans.regular};
+            font-size: ${theme.font.size.sm};
+            background-color: ${theme.tokens.background.warning.vibrant};
+            color: ${theme.tokens.content.onVibrant.dark};
           `
         : css`
             top: 3px;
             width: 18px;
             height: 18px;
-            font-weight: ${theme.fontWeight.bold};
+            font-weight: ${theme.font.weight.sans.medium};
             font-size: 10px;
-            border: 1px solid ${theme.border};
+            border: 1px solid ${theme.tokens.border.primary};
           `}
     }
   }

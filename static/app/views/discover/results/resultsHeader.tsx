@@ -5,18 +5,17 @@ import type {Location} from 'history';
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import type {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import withApi from 'sentry/utils/withApi';
-import DiscoverBreadcrumb from 'sentry/views/discover/breadcrumb';
-import EventInputName from 'sentry/views/discover/eventInputName';
+import {withApi} from 'sentry/utils/withApi';
+import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
+import {EventInputName} from 'sentry/views/discover/eventInputName';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
@@ -211,10 +210,10 @@ class ResultsHeader extends Component<Props, State> {
 }
 
 const Subtitle = styled('h4')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
-  margin: ${space(0.5)} 0 0 0;
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin: ${p => p.theme.space.xs} 0 0 0;
 `;
 
 export default withApi(ResultsHeader);

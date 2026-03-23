@@ -1,0 +1,39 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_thread_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because it contains neither a single thread nor multiple threads with exactly one crashing or current thread; instead contains 0 crashing, 2 current, and 2 total threads",
+            "id": "threads",
+            "name": "thread",
+            "values": []
+          }
+        ]
+      },
+      "contributes": false,
+      "description": "thread stacktrace — in-app frames",
+      "hash": null,
+      "hint": null,
+      "key": "app_thread_stacktrace",
+      "type": "component"
+    },
+    "fallback": {
+      "contributes": true,
+      "description": "fallback grouping",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "hint": null,
+      "key": "fallback",
+      "type": "fallback"
+    }
+  }
+}

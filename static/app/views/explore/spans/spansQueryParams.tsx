@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -8,6 +7,7 @@ import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsCon
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
+import {getCrossEventsFromLocation} from 'sentry/views/explore/queryParams/crossEvent';
 import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
 import {getExtrapolateFromLocation} from 'sentry/views/explore/queryParams/extrapolate';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
@@ -49,6 +49,7 @@ const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
 const SPANS_EXTRAPOLATE_KEY = 'extrapolate';
 const SPANS_ID_KEY = ID_KEY;
 const SPANS_TITLE_KEY = TITLE_KEY;
+const SPANS_CROSS_EVENTS_KEY = 'crossEvents';
 
 export function useSpansDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
@@ -59,16 +60,14 @@ export function isDefaultFields(location: Location): boolean {
 }
 
 export function getReadableQueryParamsFromLocation(
-  location: Location,
-  organization: Organization
+  location: Location
 ): ReadableQueryParams {
   const extrapolate = getExtrapolateFromLocation(location, SPANS_EXTRAPOLATE_KEY);
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
   const query = getQueryFromLocation(location, SPANS_QUERY_KEY) ?? '';
 
   const cursor = getCursorFromLocation(location, SPANS_CURSOR_KEY);
-  const fields =
-    getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields(organization);
+  const fields = getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();
   const sortBys =
     getSortBysFromLocation(location, SPANS_SORT_KEY, fields) ?? defaultSortBys(fields);
 
@@ -83,6 +82,8 @@ export function getReadableQueryParamsFromLocation(
 
   const id = getIdFromLocation(location, SPANS_ID_KEY);
   const title = getTitleFromLocation(location, SPANS_TITLE_KEY);
+
+  const crossEvents = getCrossEventsFromLocation(location, SPANS_CROSS_EVENTS_KEY);
 
   return new ReadableQueryParams({
     extrapolate,
@@ -99,6 +100,8 @@ export function getReadableQueryParamsFromLocation(
 
     id,
     title,
+
+    crossEvents,
   });
 }
 
@@ -120,7 +123,13 @@ export function getTargetWithReadableQueryParams(
   updateNullableLocation(target, SPANS_QUERY_KEY, writableQueryParams.query);
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
 
-  updateNullableLocation(target, SPANS_FIELD_KEY, writableQueryParams.fields);
+  updateNullableLocation(
+    target,
+    SPANS_FIELD_KEY,
+    writableQueryParams.fields === null
+      ? null
+      : writableQueryParams.fields?.filter(Boolean)
+  );
   updateNullableLocation(
     target,
     SPANS_SORT_KEY,
@@ -148,28 +157,25 @@ export function getTargetWithReadableQueryParams(
         )
   );
 
+  updateNullableLocation(
+    target,
+    SPANS_CROSS_EVENTS_KEY,
+    writableQueryParams?.crossEvents === null
+      ? null
+      : JSON.stringify(writableQueryParams.crossEvents)
+  );
+
   return target;
 }
 
-function defaultFields(organization: Organization): string[] {
-  if (organization.features.includes('performance-otel-friendly-ui')) {
-    return [
-      SpanFields.ID,
-      SpanFields.NAME,
-      SpanFields.SPAN_DESCRIPTION,
-      SpanFields.SPAN_DURATION,
-      SpanFields.TRANSACTION,
-      SpanFields.TIMESTAMP,
-    ];
-  }
-
+function defaultFields(): string[] {
   return [
-    'id',
-    'span.op',
-    'span.description',
-    'span.duration',
-    'transaction',
-    'timestamp',
+    SpanFields.ID,
+    SpanFields.NAME,
+    SpanFields.SPAN_DESCRIPTION,
+    SpanFields.SPAN_DURATION,
+    SpanFields.TRANSACTION,
+    SpanFields.TIMESTAMP,
   ];
 }
 

@@ -1,8 +1,8 @@
-import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import NamedTuple
 
-from django.db import models
+from django.db import IntegrityError, connections, models, router, transaction
 from django.db.models import Case, Value, When
 from django.utils import timezone
 
@@ -20,6 +20,7 @@ from sentry.models.project import Project
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.rules.actions.services import PluginService
+from sentry.utils import metrics
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -28,15 +29,21 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowActionGroupStatus,
 )
-from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import scopedstats
+from sentry.workflow_engine.utils import log_context, scopedstats
 
-logger = logging.getLogger(__name__)
+logger = log_context.get_logger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
+DroppedStatuses = list[tuple[int, int]]  # (workflow_id, action_id)
+
+
+class StatusUpdateResult(NamedTuple):
+    updated: int
+    created: int
+    not_created: DroppedStatuses
 
 
 def get_workflow_action_group_statuses(
@@ -72,13 +79,13 @@ def process_workflow_action_group_statuses(
     workflows: BaseQuerySet[Workflow],
     group: Group,
     now: datetime,
-) -> tuple[dict[int, int], set[int], list[WorkflowActionGroupStatus]]:
+) -> tuple[dict[int, set[int]], set[int], list[WorkflowActionGroupStatus]]:
     """
     Determine which workflow actions should be fired based on their statuses.
     Prepare the statuses to update and create.
     """
 
-    action_to_workflow_ids: dict[int, int] = {}  # will dedupe because there can be only 1
+    updated_action_to_workflows_ids: dict[int, set[int]] = defaultdict(set)
     workflow_frequencies: dict[int, timedelta] = {
         workflow.id: workflow.config.get("frequency", 0) * timedelta(minutes=1)
         for workflow in workflows
@@ -92,7 +99,7 @@ def process_workflow_action_group_statuses(
                 status.workflow_id, zero_timedelta
             ):
                 # we should fire the workflow for this action
-                action_to_workflow_ids[action_id] = status.workflow_id
+                updated_action_to_workflows_ids[action_id].add(status.workflow_id)
                 statuses_to_update.add(status.id)
 
     missing_statuses: list[WorkflowActionGroupStatus] = []
@@ -108,54 +115,157 @@ def process_workflow_action_group_statuses(
                     workflow_id=workflow_id, action_id=action_id, group=group, date_updated=now
                 )
             )
-            action_to_workflow_ids[action_id] = workflow_id
+            updated_action_to_workflows_ids[action_id].add(workflow_id)
 
-    return action_to_workflow_ids, statuses_to_update, missing_statuses
+    return updated_action_to_workflows_ids, statuses_to_update, missing_statuses
+
+
+def _bulk_insert_workflow_action_group_statuses(
+    missing_statuses: list[WorkflowActionGroupStatus],
+    now: datetime,
+    *,
+    exists_checks: bool,
+) -> set[tuple[int, int]]:
+    """Execute a batch INSERT and return the set of (workflow_id, action_id) rows created.
+
+    When exists_checks=True the INSERT filters out rows whose FK targets have been
+    deleted, avoiding IntegrityErrors at the cost of 3 correlated EXISTS subqueries
+    per row.  Use exists_checks=False for the fast path and only retry with
+    exists_checks=True after an IntegrityError.
+    """
+    # XXX: the query does not currently include batch size limit like bulk_create does
+    values_placeholders = []
+    values_data = []
+    for s in missing_statuses:
+        values_placeholders.append("(%s, %s, %s, %s, %s)")
+        values_data.extend([s.workflow_id, s.action_id, s.group_id, now, now])
+
+    values_clause = ", ".join(values_placeholders)
+
+    if exists_checks:
+        source = f"""
+            SELECT v.workflow_id, v.action_id, v.group_id, v.date_added, v.date_updated
+            FROM (VALUES {values_clause})
+                AS v(workflow_id, action_id, group_id, date_added, date_updated)
+            WHERE EXISTS (SELECT 1 FROM workflow_engine_workflow w WHERE w.id = v.workflow_id)
+              AND EXISTS (SELECT 1 FROM workflow_engine_action a WHERE a.id = v.action_id)
+              AND EXISTS (SELECT 1 FROM sentry_groupedmessage g WHERE g.id = v.group_id)
+        """
+    else:
+        source = f"VALUES {values_clause}"
+
+    sql = f"""
+        INSERT INTO workflow_engine_workflowactiongroupstatus
+        (workflow_id, action_id, group_id, date_added, date_updated)
+        {source}
+        ON CONFLICT (workflow_id, action_id, group_id) DO NOTHING
+        RETURNING workflow_id, action_id
+    """
+
+    with connections[router.db_for_write(WorkflowActionGroupStatus)].cursor() as cursor:
+        cursor.execute(sql, values_data)
+        return set(cursor.fetchall())
 
 
 def update_workflow_action_group_statuses(
     now: datetime, statuses_to_update: set[int], missing_statuses: list[WorkflowActionGroupStatus]
-) -> None:
-    WorkflowActionGroupStatus.objects.filter(
+) -> StatusUpdateResult:
+    updated_count = WorkflowActionGroupStatus.objects.filter(
         id__in=statuses_to_update, date_updated__lt=now
     ).update(date_updated=now)
 
-    WorkflowActionGroupStatus.objects.bulk_create(
-        missing_statuses,
-        batch_size=1000,
-        ignore_conflicts=True,
+    if not missing_statuses:
+        return StatusUpdateResult(updated=updated_count, created=0, not_created=[])
+
+    try:
+        with transaction.atomic(router.db_for_write(WorkflowActionGroupStatus)):
+            created_rows = _bulk_insert_workflow_action_group_statuses(
+                missing_statuses, now, exists_checks=False
+            )
+    except IntegrityError:
+        # A referenced workflow/action/group was deleted between our read and this
+        # insert.  Retry with EXISTS checks to silently skip the orphaned rows.
+        created_rows = _bulk_insert_workflow_action_group_statuses(
+            missing_statuses, now, exists_checks=True
+        )
+
+    # Rows not returned were either unique conflicts or FK-missing (dropped)
+    dropped_statuses: DroppedStatuses = [
+        (s.workflow_id, s.action_id)
+        for s in missing_statuses
+        if (s.workflow_id, s.action_id) not in created_rows
+    ]
+
+    # Log action_ids for debugging
+    attempted_action_ids = {s.action_id for s in missing_statuses}
+    created_action_ids = {action_id for _, action_id in created_rows}
+    logger.debug(
+        "workflow_action_group_status.creation",
+        extra={
+            "attempted_action_ids": list(attempted_action_ids),
+            "created_action_ids": list(created_action_ids),
+        },
+    )
+
+    return StatusUpdateResult(
+        updated=updated_count,
+        created=len(created_rows),
+        not_created=dropped_statuses,
     )
 
 
 def get_unique_active_actions(
     actions_queryset: BaseQuerySet[Action],  # decorated with the workflow_ids
+    group: Group,
 ) -> BaseQuerySet[Action]:
     """
     Returns a queryset of unique active actions based on their handler's dedup_key method.
+    Group is used for logging only.
     """
     dedup_key_to_action_id: dict[str, int] = {}
+
+    dropped = defaultdict[str, set[int]](set)
 
     for action in actions_queryset:
         # We only want to fire active actions
         if action.status != ObjectStatus.ACTIVE:
             continue
 
-        # workflow_id is annotated in the queryset
-        workflow_id = getattr(action, "workflow_id")
-        dedup_key = action.get_dedup_key(workflow_id)
+        dedup_key = action.get_dedup_key()
+        previous_action_id = dedup_key_to_action_id.get(dedup_key)
+        if previous_action_id is not None:
+            dropped[dedup_key].add(previous_action_id)
         dedup_key_to_action_id[dedup_key] = action.id
+
+    for dedup_key, action_ids in dropped.items():
+        group_type = group.issue_type.slug
+        logger.info(
+            "workflow_engine.action.dedup.dropped",
+            extra={
+                "dedup_key": dedup_key,
+                "dropped_action_ids": sorted(action_ids),
+                "replacement_action_id": dedup_key_to_action_id[dedup_key],
+                "group_id": group.id,
+                "group_type": group_type,
+            },
+        )
+        metrics.incr(
+            "workflow_engine.action.dedup.dropped", len(action_ids), tags={"group_type": group_type}
+        )
 
     return actions_queryset.filter(id__in=dedup_key_to_action_id.values())
 
 
 @scopedstats.timer()
 def fire_actions(
-    actions: BaseQuerySet[Action], detector: Detector, event_data: WorkflowEventData
+    actions: BaseQuerySet[Action],
+    event_data: WorkflowEventData,
+    workflow_uuid_map: dict[int, str],
 ) -> None:
-    deduped_actions = get_unique_active_actions(actions)
+    deduped_actions = get_unique_active_actions(actions, event_data.group)
 
     for action in deduped_actions:
-        task_params = build_trigger_action_task_params(action, detector, event_data)
+        task_params = build_trigger_action_task_params(action, event_data, workflow_uuid_map)
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 
@@ -174,8 +284,10 @@ def filter_recently_fired_workflow_actions(
     workflow_ids: set[int] = set()
 
     for action_id, workflow_id in data_condition_group_actions:
-        action_to_workflows_ids[action_id].add(workflow_id)
-        workflow_ids.add(workflow_id)
+        # If we are mid-deletion, the workflow_id can be none.
+        if workflow_id is not None:
+            action_to_workflows_ids[action_id].add(workflow_id)
+            workflow_ids.add(workflow_id)
 
     workflows = Workflow.objects.filter(id__in=workflow_ids)
 
@@ -185,7 +297,7 @@ def filter_recently_fired_workflow_actions(
         workflow_ids=workflow_ids,
     )
     now = timezone.now()
-    action_to_workflow_ids, statuses_to_update, missing_statuses = (
+    action_to_workflows_ids, statuses_to_update, missing_statuses = (
         process_workflow_action_group_statuses(
             action_to_workflows_ids=action_to_workflows_ids,
             action_to_statuses=action_to_statuses,
@@ -194,14 +306,22 @@ def filter_recently_fired_workflow_actions(
             now=now,
         )
     )
-    update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
+    update_result = update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
 
-    actions_queryset = Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
+    # if statuses were not created for some reason, we should not fire for them
+    for workflow_id, action_id in update_result.not_created:
+        action_to_workflows_ids[action_id].remove(workflow_id)
+        if not action_to_workflows_ids[action_id]:
+            action_to_workflows_ids.pop(action_id)
+
+    actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
 
     # annotate actions with workflow_id they are firing for (deduped)
     workflow_id_cases = [
-        When(id=action_id, then=Value(workflow_id))
-        for action_id, workflow_id in action_to_workflow_ids.items()
+        When(
+            id=action_id, then=Value(min(list(workflow_ids)))
+        )  # select 1 workflow to fire for, this is arbitrary but deterministic
+        for action_id, workflow_ids in action_to_workflows_ids.items()
     ]
 
     return actions_queryset.annotate(

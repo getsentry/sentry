@@ -169,6 +169,7 @@ export enum UserIdentityCategory {
   SOCIAL_IDENTITY = 'social-identity',
   GLOBAL_IDENTITY = 'global-identity',
   ORG_IDENTITY = 'org-identity',
+  GITHUB_COPILOT_IDENTITY = 'github-copilot-identity',
 }
 
 export enum UserIdentityStatus {

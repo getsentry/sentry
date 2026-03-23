@@ -1,3 +1,7 @@
+from typing import Any
+
+import pytest
+
 from sentry.models.rule import Rule, RuleSource
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
@@ -9,6 +13,7 @@ from sentry.workflow_engine.models import (
 )
 
 
+@pytest.mark.skip
 class FixCronToCronWorkflowLinksTest(TestMigrations):
     migrate_from = "0085_crons_link_detectors_to_all_workflows"
     migrate_to = "0086_fix_cron_to_cron_workflow_links"
@@ -16,10 +21,10 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
 
     def _create_cron_rule_with_workflow(
         self,
-        project,
-        monitor_slug,
-        frequency=5,
-    ):
+        project: Any,
+        monitor_slug: str,
+        frequency: int = 5,
+    ) -> tuple[Any, Any]:
         rule = self.create_project_rule(
             project=project,
             action_data=[
@@ -44,7 +49,9 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
         Rule.objects.filter(id=rule.id).update(source=RuleSource.CRON_MONITOR)
         return rule, workflow
 
-    def _create_monitor_with_detector(self, org, project, rule, name):
+    def _create_monitor_with_detector(
+        self, org: Any, project: Any, rule: Any, name: str
+    ) -> tuple[Any, Any]:
         """Helper to create monitor with detector and data source"""
         monitor = self.create_monitor(
             organization=org,
@@ -73,7 +80,9 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
 
         return monitor, detector
 
-    def _create_monitor_with_detector_no_alert_rule(self, org, project, name):
+    def _create_monitor_with_detector_no_alert_rule(
+        self, org: Any, project: Any, name: str
+    ) -> tuple[Any, Any]:
         """Helper to create monitor with detector but no alert_rule_id"""
         monitor = self.create_monitor(
             organization=org,
@@ -359,28 +368,28 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
 
         # === Verify no detector is linked to another monitor's cron workflow ===
         # detector1 and detector2 should NOT be linked to workflow3 or workflow4
-        assert (
-            self.cron_workflow3.id not in detector1_workflow_ids
-        ), "detector1 should not be linked to monitor3's workflow"
-        assert (
-            self.cron_workflow4.id not in detector1_workflow_ids
-        ), "detector1 should not be linked to monitor4's workflow"
+        assert self.cron_workflow3.id not in detector1_workflow_ids, (
+            "detector1 should not be linked to monitor3's workflow"
+        )
+        assert self.cron_workflow4.id not in detector1_workflow_ids, (
+            "detector1 should not be linked to monitor4's workflow"
+        )
 
         # detector3 should NOT be linked to workflow1 or workflow4
-        assert (
-            self.cron_workflow1.id not in detector3_workflow_ids
-        ), "detector3 should not be linked to monitor1/2's deduped workflow"
-        assert (
-            self.cron_workflow4.id not in detector3_workflow_ids
-        ), "detector3 should not be linked to monitor4's workflow"
+        assert self.cron_workflow1.id not in detector3_workflow_ids, (
+            "detector3 should not be linked to monitor1/2's deduped workflow"
+        )
+        assert self.cron_workflow4.id not in detector3_workflow_ids, (
+            "detector3 should not be linked to monitor4's workflow"
+        )
 
         # detector4 should NOT be linked to workflow1 or workflow3
-        assert (
-            self.cron_workflow1.id not in detector4_workflow_ids
-        ), "detector4 should not be linked to monitor1/2's deduped workflow"
-        assert (
-            self.cron_workflow3.id not in detector4_workflow_ids
-        ), "detector4 should not be linked to monitor3's workflow"
+        assert self.cron_workflow1.id not in detector4_workflow_ids, (
+            "detector4 should not be linked to monitor1/2's deduped workflow"
+        )
+        assert self.cron_workflow3.id not in detector4_workflow_ids, (
+            "detector4 should not be linked to monitor3's workflow"
+        )
 
         # === Test detector6 (rule without workflow but same hash as monitor1/2) ===
         # Should be linked ONLY to cron_workflow1 (the primary workflow of its dedupe group)

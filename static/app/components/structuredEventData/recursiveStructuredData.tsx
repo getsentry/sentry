@@ -1,14 +1,14 @@
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import AnnotatedValue from 'sentry/components/structuredEventData/annotatedValue';
+import {AnnotatedValue} from 'sentry/components/structuredEventData/annotatedValue';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
-import LinkHint from 'sentry/components/structuredEventData/linkHint';
+import {LinkHint} from 'sentry/components/structuredEventData/linkHint';
 import {
   looksLikeStrippedValue,
   naturalCaseInsensitiveSort,
 } from 'sentry/components/structuredEventData/utils';
-import containsCRLF from 'sentry/utils/string/containsCRLF';
+import {containsCRLF} from 'sentry/utils/string/containsCRLF';
 
 type Config = {
   isBoolean?: (value: unknown) => boolean;
@@ -252,12 +252,12 @@ export function RecursiveStructuredData({
 }
 
 const ValueNull = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-property);
 `;
 
 const ValueBoolean = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-property);
 `;
 
@@ -275,11 +275,11 @@ const ValueMultiLineString = styled('pre')`
   border-radius: 4px;
   padding: 2px 4px;
   background-color: transparent;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ValueStrippedString = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-keyword);
 `;
 

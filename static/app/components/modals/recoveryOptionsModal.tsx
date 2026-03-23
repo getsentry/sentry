@@ -1,17 +1,17 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 type Props = ModalRenderProps & {
   authenticatorName: string;
@@ -24,14 +24,18 @@ function RecoveryOptionsModal({
   Header,
   Footer,
 }: Props) {
+  const theme = useTheme();
   const {
     isPending,
     isError,
     refetch: refetchAuthenticators,
     data: authenticators = [],
-  } = useApiQuery<Authenticator[]>(['/users/me/authenticators/'], {
-    staleTime: 5000, // expire after 5 seconds
-  });
+  } = useApiQuery<Authenticator[]>(
+    [getApiUrl('/users/$userId/authenticators/', {path: {userId: 'me'}})],
+    {
+      staleTime: 5000, // expire after 5 seconds
+    }
+  );
   const [skipSms, setSkipSms] = useState<boolean>(false);
 
   const {recovery, sms} = authenticators.reduce<Record<string, Authenticator>>(
@@ -78,14 +82,14 @@ function RecoveryOptionsModal({
         {displaySmsPrompt ? (
           // set up backup phone number
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               {t('We recommend adding a phone number as a backup 2FA method.')}
             </Alert>
           </Alert.Container>
         ) : (
           // get recovery codes
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               {t(
                 `Recovery codes are the only way to access your account if you lose
                   your device and cannot receive two-factor authentication codes.`
@@ -106,7 +110,7 @@ function RecoveryOptionsModal({
             onClick={closeModal}
             to={`/settings/account/security/mfa/${sms.id}/enroll/`}
             css={css`
-              margin-left: ${space(1)};
+              margin-left: ${theme.space.md};
             `}
             autoFocus
           >

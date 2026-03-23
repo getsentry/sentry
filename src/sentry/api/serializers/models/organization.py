@@ -25,17 +25,20 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.serializers.types import SerializedAvatarFields
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTO_ENABLE_CODE_REVIEW,
+    AUTO_OPEN_PRS_DEFAULT,
+    CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
     ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
@@ -54,6 +57,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -77,6 +81,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -393,10 +398,6 @@ class OrganizationSerializer(Serializer):
             feature_set.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_set.add("shared-issues")
-        if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:
-            feature_set.remove("mep-rollout-flag")
-        if options.get("performance.hide-metrics-ui") and "mep-rollout-flag" in feature_set:
-            feature_set.remove("mep-rollout-flag")
 
         return sorted(feature_set)
 
@@ -438,7 +439,7 @@ class OrganizationSerializer(Serializer):
             "allowSuperuserAccess": not obj.flags.prevent_superuser_access,
             "links": {
                 "organizationUrl": generate_organization_url(obj.slug),
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
             },
             "hasAuthProvider": has_auth_provider,
         }
@@ -509,11 +510,12 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
+    consoleSdkInviteQuota: int
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
-    experiments: Any
+    experiments: dict[str, str]
     isDefault: bool
     defaultRole: str  # TODO: replace with enum/literal
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
@@ -540,10 +542,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     codecovAccess: bool
     hideAiFeatures: bool
     githubPRBot: bool
-    githubOpenPRBot: bool
     githubNudgeInvite: bool
     gitlabPRBot: bool
-    gitlabOpenPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -554,16 +554,48 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
-    enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
+    defaultCodingAgent: str | None
+    defaultCodingAgentIntegrationId: int | None
+    autoEnableCodeReview: bool
+    autoOpenPrs: bool
+    defaultCodeReviewTriggers: list[str]
+    hasGranularReplayPermissions: bool
+    replayAccessMembers: list[int]
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
-        return super().get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
+
+        replay_permissions = {
+            opt.organization_id: opt.value
+            for opt in OrganizationOption.objects.filter(
+                organization__in=item_list, key="sentry:granular-replay-permissions"
+            )
+        }
+
+        enabled_org_ids = [org_id for org_id, enabled in replay_permissions.items() if enabled]
+        replay_access_by_org: dict[int, list[int]] = {}
+        if enabled_org_ids:
+            for org_id, user_id in OrganizationMemberReplayAccess.objects.filter(
+                organizationmember__organization__in=enabled_org_ids
+            ).values_list("organizationmember__organization_id", "organizationmember__user_id"):
+                if user_id is not None:
+                    replay_access_by_org.setdefault(org_id, []).append(user_id)
+
+        for item in item_list:
+            attrs[item]["replay_permissions_enabled"] = replay_permissions.get(item.id, False)
+            attrs[item]["replay_access_members"] = (
+                replay_access_by_org.get(item.id, [])
+                if replay_permissions.get(item.id, False)
+                else []
+            )
+
+        return attrs
 
     def serialize(  # type: ignore[override]
         self,
@@ -606,9 +638,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context: DetailedOrganizationSerializerResponse = {
             **base,
-            # TODO(epurkhiser): This can be removed once we confirm the
-            # frontend does not use it
-            "experiments": {},
+            "experiments": features.get_experiment_assignments(obj, actor=user),
             "isDefault": obj.is_default,
             "defaultRole": obj.default_role,
             "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],  # Deprecated
@@ -662,16 +692,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
             "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
-            "githubOpenPRBot": bool(
-                obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
-            ),
             "githubNudgeInvite": bool(
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
             "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
-            "gitlabOpenPRBot": bool(
-                obj.get_option("sentry:gitlab_open_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)
-            ),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
@@ -695,12 +719,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
             ),
-            "enablePrReviewTestGeneration": bool(
-                obj.get_option(
-                    "sentry:enable_pr_review_test_generation",
-                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-                )
-            ),
             "enableSeerEnhancedAlerts": bool(
                 obj.get_option(
                     "sentry:enable_seer_enhanced_alerts",
@@ -713,6 +731,29 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     ENABLE_SEER_CODING_DEFAULT,
                 )
             ),
+            "defaultCodingAgent": obj.get_option(
+                "sentry:seer_default_coding_agent",
+                SEER_DEFAULT_CODING_AGENT_DEFAULT,
+            ),
+            "defaultCodingAgentIntegrationId": obj.get_option(
+                "sentry:seer_default_coding_agent_integration_id",
+                None,
+            ),
+            "autoOpenPrs": bool(
+                obj.get_option(
+                    "sentry:auto_open_prs",
+                    AUTO_OPEN_PRS_DEFAULT,
+                )
+            ),
+            "autoEnableCodeReview": bool(
+                obj.get_option(
+                    "sentry:auto_enable_code_review",
+                    AUTO_ENABLE_CODE_REVIEW,
+                )
+            ),
+            "defaultCodeReviewTriggers": obj.get_option(
+                "sentry:default_code_review_triggers", DEFAULT_CODE_REVIEW_TRIGGERS
+            ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
@@ -724,6 +765,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 team__organization=obj
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
+            "hasGranularReplayPermissions": bool(attrs.get("replay_permissions_enabled")),
+            "replayAccessMembers": attrs.get("replay_access_members", []),
         }
 
         if has_custom_dynamic_sampling(obj, actor=user):
@@ -743,6 +786,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context["enabledConsolePlatforms"] = obj.get_option(
             "sentry:enabled_console_platforms",
             ENABLED_CONSOLE_PLATFORMS_DEFAULT,
+        )
+
+        context["consoleSdkInviteQuota"] = obj.get_option(
+            "sentry:console_sdk_invite_quota_limit",
+            CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
         )
 
         if access.role is not None:
@@ -775,6 +823,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "consoleSdkInviteQuota",
+        "hasGranularReplayPermissions",
+        "replayAccessMembers",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

@@ -1,26 +1,19 @@
-from collections.abc import Sequence
+from collections import defaultdict
+from collections.abc import Collection, Iterable, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
-from typing import DefaultDict
 
 import sentry_sdk
-from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
-from sentry.utils import json
-from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
-from sentry.workflow_engine.models import (
-    Action,
-    DataConditionGroup,
-    Detector,
-    DetectorWorkflow,
-    Workflow,
-)
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
+from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
+from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
@@ -28,19 +21,21 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContextData,
 )
 from sentry.workflow_engine.processors.data_condition_group import (
+    TriggerResult,
     get_data_conditions_for_group,
     process_data_condition_group,
 )
-from sentry.workflow_engine.processors.detector import get_detector_by_event
+from sentry.workflow_engine.processors.detector import get_detectors_for_event_data
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import (
+    WorkflowEvaluation,
+    WorkflowEvaluationData,
+    WorkflowEventData,
+)
 from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
 logger = log_context.get_logger(__name__)
-
-DetectorId = int | None
-DataConditionGroupId = int
 
 
 class WorkflowDataConditionGroupType(StrEnum):
@@ -48,60 +43,35 @@ class WorkflowDataConditionGroupType(StrEnum):
     WORKFLOW_TRIGGER = "workflow_trigger"
 
 
-def delete_workflow(workflow: Workflow) -> bool:
-    with transaction.atomic(router.db_for_write(Workflow)):
-        action_filters = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow=workflow
+@dataclass(frozen=True)
+class EvaluationStats:
+    """
+    Counts of fully-evaluated workflows by result reliability.
+    Tainted results may be incorrect due to errors during evaluation.
+    """
+
+    tainted: int = 0
+    untainted: int = 0
+
+    @classmethod
+    def from_results(cls, results: Iterable[TriggerResult]) -> "EvaluationStats":
+        tainted, untainted = 0, 0
+        for result in results:
+            if result.is_tainted():
+                tainted += 1
+            else:
+                untainted += 1
+        return cls(tainted=tainted, untainted=untainted)
+
+    def __add__(self, other: "EvaluationStats") -> "EvaluationStats":
+        return EvaluationStats(
+            tainted=self.tainted + other.tainted,
+            untainted=self.untainted + other.untainted,
         )
 
-        actions = Action.objects.filter(
-            dataconditiongroupaction__condition_group__in=action_filters
-        )
-
-        # Delete the actions associated with a workflow, this is not a cascade delete
-        # because we want to create a UI to maintain notification actions separately
-        if actions:
-            actions.delete()
-
-        if action_filters:
-            action_filters.delete()
-
-        if workflow.when_condition_group:
-            workflow.when_condition_group.delete()
-
-        workflow.delete()
-
-    return True
-
-
-@dataclass
-class DelayedWorkflowItem:
-    workflow: Workflow
-    event: GroupEvent
-    delayed_when_group_id: DataConditionGroupId | None
-    delayed_if_group_ids: list[DataConditionGroupId]
-    passing_if_group_ids: list[DataConditionGroupId]
-
-    # Used to pick the end of the time window in snuba querying.
-    # Should be close to when fast conditions were evaluated to try to be consistent.
-    timestamp: datetime
-
-    def buffer_key(self) -> str:
-        when_condition_group_str = (
-            str(self.delayed_when_group_id) if self.delayed_when_group_id else ""
-        )
-        if_condition_groups = ",".join(str(id) for id in sorted(self.delayed_if_group_ids))
-        passing_if_groups = ",".join(str(id) for id in sorted(self.passing_if_group_ids))
-        return f"{self.workflow.id}:{self.event.group.id}:{when_condition_group_str}:{if_condition_groups}:{passing_if_groups}"
-
-    def buffer_value(self) -> str:
-        return json.dumps(
-            {
-                "event_id": self.event.event_id,
-                "occurrence_id": self.event.occurrence_id,
-                "timestamp": self.timestamp,
-            }
-        )
+    def report_metrics(self, metric_name: str) -> None:
+        metrics_incr(metric_name, self.tainted, tags={"tainted": True})
+        metrics_incr(metric_name, self.untainted, tags={"tainted": False})
 
 
 @scopedstats.timer()
@@ -109,11 +79,11 @@ def enqueue_workflows(
     client: DelayedWorkflowClient,
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
-    items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
+    items_by_project_id = defaultdict[int, list[DelayedWorkflowItem]](list)
     for queue_item in items_by_workflow.values():
         if not queue_item.delayed_if_group_ids and not queue_item.passing_if_group_ids:
             # Skip because there are no IF groups we could possibly fire actions for if
-            # the WHEN/IF delayed condtions are met
+            # the WHEN/IF delayed conditions are met
             continue
         project_id = queue_item.event.project_id
         items_by_project_id[project_id].append(queue_item)
@@ -165,15 +135,16 @@ def evaluate_workflow_triggers(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
     event_start_time: datetime,
-) -> tuple[set[Workflow], dict[Workflow, DelayedWorkflowItem]]:
+) -> tuple[dict[Workflow, TriggerResult], dict[Workflow, DelayedWorkflowItem], EvaluationStats]:
     """
-    Returns a tuple of (triggered_workflows, queue_items_by_workflow)
-    - triggered_workflows: set of workflows that were triggered
+    Returns a tuple of (triggered_workflows, queue_items_by_workflow, stats)
+    - triggered_workflows: mapping of workflows that triggered to their evaluation result
     - queue_items_by_workflow: mapping of workflow to the delayed workflow item, used
       in the next step (evaluate action filters) to enqueue workflows with slow conditions
       within that function
+    - stats: tainted/untainted counts for workflows that didn't trigger (fully evaluated)
     """
-    triggered_workflows: set[Workflow] = set()
+    triggered_workflows: dict[Workflow, TriggerResult] = {}
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem] = {}
 
     dcg_ids = [
@@ -190,6 +161,7 @@ def evaluate_workflow_triggers(
         project.organization,
     )
 
+    tainted_untriggered, untainted_untriggered = 0, 0
     for workflow in workflows:
         when_data_conditions = None
         if dcg_id := workflow.when_condition_group_id:
@@ -210,11 +182,8 @@ def evaluate_workflow_triggers(
                     timestamp=event_start_time,
                 )
             else:
-                """
-                Tracking when we try to enqueue a slow condition for an activity.
-                Currently, we are assuming those cases are evaluating as True since
-                an activity update is meant to respond to a previous event.
-                """
+                # Activity updates with slow conditions are not enqueued because an activity
+                # update is meant to respond to a previous event.
                 metrics_incr("process_workflows.enqueue_workflow.activity")
                 logger.debug(
                     "workflow_engine.process_workflows.enqueue_workflow.activity",
@@ -224,8 +193,8 @@ def evaluate_workflow_triggers(
                     },
                 )
         else:
-            if evaluation:
-                triggered_workflows.add(workflow)
+            if evaluation.triggered:
+                triggered_workflows[workflow] = evaluation
                 if dual_processing_logs_enabled:
                     try:
                         detector = WorkflowEventContext.get().detector
@@ -242,11 +211,14 @@ def evaluate_workflow_triggers(
                         )
                     except DetectorWorkflow.DoesNotExist:
                         continue
+            else:
+                if evaluation.is_tainted():
+                    tainted_untriggered += 1
+                else:
+                    untainted_untriggered += 1
 
-    metrics_incr(
-        "process_workflows.triggered_workflows",
-        len(triggered_workflows),
-    )
+    stats = EvaluationStats(tainted=tainted_untriggered, untainted=untainted_untriggered)
+    metrics_incr("process_workflows.triggered_workflows", len(triggered_workflows))
 
     # TODO - Remove `environment` access once it's in the shared logger.
     environment = WorkflowEventContext.get().environment
@@ -254,7 +226,7 @@ def evaluate_workflow_triggers(
         try:
             environment = get_environment_by_event(event_data)
         except Environment.DoesNotExist:
-            return set(), {}
+            return {}, {}, stats
 
     event_id = (
         event_data.event.event_id
@@ -273,27 +245,31 @@ def evaluate_workflow_triggers(
         },
     )
 
-    return triggered_workflows, queue_items_by_workflow
+    return triggered_workflows, queue_items_by_workflow, stats
 
 
 @sentry_sdk.trace
 @scopedstats.timer()
 def evaluate_workflows_action_filters(
-    workflows: set[Workflow],
+    triggered_workflows: dict[Workflow, TriggerResult],
     event_data: WorkflowEventData,
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem],
     event_start_time: datetime,
-) -> tuple[set[DataConditionGroup], dict[Workflow, DelayedWorkflowItem]]:
+) -> tuple[set[DataConditionGroup], dict[Workflow, DelayedWorkflowItem], EvaluationStats]:
     """
     Evaluate the action filters for the given workflows.
-    Returns a set of DataConditionGroups that were evaluated to True.
-    Enqueues workflows with slow conditions to be evaluated in a batched task.
+    Returns a tuple of (filtered_action_groups, queue_items_by_workflow, stats)
+    - filtered_action_groups: set of DataConditionGroups that were evaluated to True
+    - queue_items_by_workflow: updated with workflows that have slow conditions
+    - stats: tainted/untainted counts for fully-evaluated workflows
     """
     # Collect all workflows, including those with pending slow condition results (queue_items_by_workflow)
     # to evaluate all fast conditions
-    all_workflows = workflows.union(set(queue_items_by_workflow.keys()))
+    all_workflows: set[Workflow] = set(triggered_workflows.keys()) | set(
+        queue_items_by_workflow.keys()
+    )
 
-    action_conditions_to_workflow = {
+    action_conditions_to_workflow: dict[DataConditionGroup, Workflow] = {
         wdcg.condition_group: wdcg.workflow
         for wdcg in WorkflowDataConditionGroup.objects.select_related(
             "workflow", "condition_group"
@@ -318,6 +294,9 @@ def evaluate_workflows_action_filters(
         )
     }
 
+    workflow_to_result: dict[int, TriggerResult] = {
+        wf.id: result for wf, result in triggered_workflows.items()
+    }
     for action_condition_group, workflow in action_conditions_to_workflow.items():
         env = env_by_id.get(workflow.environment_id) if workflow.environment_id else None
         workflow_event_data = replace(event_data, workflow_env=env)
@@ -357,7 +336,13 @@ def evaluate_workflows_action_filters(
                     },
                 )
         else:
-            if group_evaluation.logic_result:
+            # Only accumulate taint for triggered workflows (not those with slow WHEN conditions)
+            if workflow.id in workflow_to_result:
+                workflow_to_result[workflow.id] = TriggerResult.choose_tainted(
+                    workflow_to_result[workflow.id], group_evaluation.logic_result
+                )
+
+            if group_evaluation.logic_result.triggered:
                 if delayed_workflow_item := queue_items_by_workflow.get(workflow):
                     if delayed_workflow_item.delayed_when_group_id:
                         # If there are already delayed when conditions,
@@ -365,6 +350,12 @@ def evaluate_workflows_action_filters(
                         delayed_workflow_item.passing_if_group_ids.append(action_condition_group.id)
                 else:
                     filtered_action_groups.add(action_condition_group)
+
+    # Count tainted/untainted only for fully-evaluated workflows (not delayed)
+    fully_evaluated_workflows = triggered_workflows.keys() - queue_items_by_workflow.keys()
+    stats = EvaluationStats.from_results(
+        workflow_to_result[wf.id] for wf in fully_evaluated_workflows
+    )
 
     event_id = (
         event_data.event.event_id
@@ -377,7 +368,7 @@ def evaluate_workflows_action_filters(
         extra={
             "group_id": event_data.group.id,
             "event_id": event_id,
-            "workflow_ids": [workflow.id for workflow in action_conditions_to_workflow.values()],
+            "workflow_ids": [wf.id for wf in action_conditions_to_workflow.values()],
             "action_conditions": [
                 action_condition_group.id
                 for action_condition_group in action_conditions_to_workflow.keys()
@@ -387,7 +378,7 @@ def evaluate_workflows_action_filters(
         },
     )
 
-    return filtered_action_groups, queue_items_by_workflow
+    return filtered_action_groups, queue_items_by_workflow, stats
 
 
 def get_environment_by_event(event_data: WorkflowEventData) -> Environment | None:
@@ -395,9 +386,9 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
         try:
             environment = event_data.event.get_environment()
         except Environment.DoesNotExist:
-            metrics_incr("process_workflows.error")
-            logger.exception(
-                "Missing environment for event", extra={"event_id": event_data.event.event_id}
+            logger.info(
+                "workflow_engine.process_workflows.environment_not_found",
+                extra={"event_id": event_data.event.event_id},
             )
             raise Environment.DoesNotExist("Environment does not exist for the event")
 
@@ -408,34 +399,109 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
     raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
 
 
-@scopedstats.timer()
 def _get_associated_workflows(
-    detector: Detector, environment: Environment | None, event_data: WorkflowEventData
+    detectors: Collection[Detector], environment: Environment | None
 ) -> set[Workflow]:
     """
-    This is a wrapper method to get the workflows associated with a detector and environment.
-    Used in process_workflows to wrap the query + logging into a single method
+    Get workflows associated with detectors and environment via direct DB query.
+    Used as fallback when cache is disabled via feature flag.
     """
+    detector_ids = [detector.id for detector in detectors]
+
     environment_filter = (
         (Q(environment_id=None) | Q(environment_id=environment.id))
         if environment
         else Q(environment_id=None)
     )
-    workflows = set(
+    return set(
         Workflow.objects.filter(
             environment_filter,
-            detectorworkflow__detector_id=detector.id,
+            detectorworkflow__detector_id__in=detector_ids,
             enabled=True,
         )
         .select_related("environment")
         .distinct()
     )
 
-    if workflows:
-        metrics_incr(
-            "process_workflows",
-            len(workflows),
+
+@log_context.root()
+def process_workflows(
+    batch_client: DelayedWorkflowClient,
+    event_data: WorkflowEventData,
+    event_start_time: datetime,
+    detector: Detector | None = None,
+) -> WorkflowEvaluation:
+    """
+    This method will get the detector based on the event, and then gather the associated workflows.
+    Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
+    the workflow will be added to a unique list of triggered workflows.
+
+    Finally, each of the triggered workflows will have their actions evaluated and executed.
+    """
+    from sentry.workflow_engine.processors.action import (
+        filter_recently_fired_workflow_actions,
+        fire_actions,
+    )
+
+    organization = event_data.event.project.organization
+    workflow_evaluation_data = WorkflowEvaluationData(
+        event=event_data.event, organization=organization
+    )
+
+    try:
+        event_detectors = get_detectors_for_event_data(event_data, detector)
+
+        if not event_detectors:
+            raise Detector.DoesNotExist("No Detectors associated with the issue were found")
+
+        log_context.add_extras(
+            detector_id=event_detectors.preferred_detector.id, group_id=event_data.group.id
         )
+
+        # set the detector / org information asap, this is used in `get_environment_by_event` as well.
+        WorkflowEventContext.set(
+            WorkflowEventContextData(
+                detector=event_detectors.preferred_detector,
+                organization=organization,
+            )
+        )
+    except Detector.DoesNotExist:
+        return WorkflowEvaluation(
+            tainted=True,
+            msg="No Detectors associated with the issue were found",
+            data=workflow_evaluation_data,
+        )
+
+    workflow_evaluation_data.associated_detector = event_detectors.preferred_detector
+
+    try:
+        environment = get_environment_by_event(event_data)
+
+        # Set the full context now that we've gotten everything.
+        WorkflowEventContext.set(
+            WorkflowEventContextData(
+                detector=event_detectors.preferred_detector,
+                environment=environment,
+                organization=organization,
+            )
+        )
+    except Environment.DoesNotExist:
+        return WorkflowEvaluation(
+            tainted=True,
+            msg="Environment for event not found",
+            data=workflow_evaluation_data,
+        )
+
+    if features.has("organizations:workflow-engine-process-workflows-logs", organization):
+        log_context.set_verbose(True)
+
+    if features.has("organizations:workflow-engine-process-workflows-cache", organization):
+        workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
+    else:
+        workflows = _get_associated_workflows(event_detectors.detectors, environment)
+
+    if workflows:
+        metrics_incr("process_workflows", len(workflows))
 
         event_id = (
             event_data.event.event_id
@@ -451,103 +517,76 @@ def _get_associated_workflows(
                 "event_data": asdict(event_data),
                 "event_environment_id": environment.id if environment else None,
                 "workflows": [workflow.id for workflow in workflows],
-                "detector_type": detector.type,
+                "detector_types": [d.type for d in event_detectors.detectors],
             },
         )
 
-    return workflows
+    workflow_evaluation_data.workflows = workflows
 
-
-@log_context.root()
-def process_workflows(
-    batch_client: DelayedWorkflowClient,
-    event_data: WorkflowEventData,
-    event_start_time: datetime,
-    detector: Detector | None = None,
-) -> set[Workflow]:
-    """
-    This method will get the detector based on the event, and then gather the associated workflows.
-    Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
-    the workflow will be added to a unique list of triggered workflows.
-
-    Finally, each of the triggered workflows will have their actions evaluated and executed.
-    """
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-    from sentry.workflow_engine.processors.action import (
-        filter_recently_fired_workflow_actions,
-        fire_actions,
-    )
-
-    try:
-        if detector is None and isinstance(event_data.event, GroupEvent):
-            detector = get_detector_by_event(event_data)
-
-        if detector is None:
-            raise ValueError("Unable to determine the detector for the event")
-
-        log_context.add_extras(detector_id=detector.id)
-        organization = event_data.event.project.organization
-
-        # set the detector / org information asap, this is used in `get_environment_by_event` as well.
-        WorkflowEventContext.set(
-            WorkflowEventContextData(
-                detector=detector,
-                organization=organization,
-            )
-        )
-    except Detector.DoesNotExist:
-        return set()
-
-    try:
-        environment = get_environment_by_event(event_data)
-
-        # Set the full context now that we've gotten everything.
-        WorkflowEventContext.set(
-            WorkflowEventContextData(
-                detector=detector,
-                environment=environment,
-                organization=organization,
-            )
-        )
-    except Environment.DoesNotExist:
-        return set()
-
-    if features.has("organizations:workflow-engine-process-workflows-logs", organization):
-        log_context.set_verbose(True)
-
-    workflows = _get_associated_workflows(detector, environment, event_data)
     if not workflows:
-        # If there aren't any workflows, there's nothing to evaluate
-        return set()
+        return WorkflowEvaluation(
+            tainted=True,
+            msg="No workflows are associated with the detector in the event",
+            data=workflow_evaluation_data,
+        )
 
-    triggered_workflows, queue_items_by_workflow_id = evaluate_workflow_triggers(
+    triggered_workflows, queue_items_by_workflow_id, trigger_stats = evaluate_workflow_triggers(
         workflows, event_data, event_start_time
     )
-    if not triggered_workflows and not queue_items_by_workflow_id:
-        # if there aren't any triggered workflows, there's no action filters to evaluate
-        return set()
 
-    actions_to_trigger, queue_items_by_workflow_id = evaluate_workflows_action_filters(
-        triggered_workflows, event_data, queue_items_by_workflow_id, event_start_time
+    workflow_evaluation_data.triggered_workflows = set(triggered_workflows.keys())
+
+    if not triggered_workflows and not queue_items_by_workflow_id:
+        trigger_stats.report_metrics("process_workflows.workflows_evaluated")
+        # TODO - re-think tainted once the actions are removed from process_workflows.
+        return WorkflowEvaluation(
+            tainted=True,
+            msg="No items were triggered or queued for slow evaluation",
+            data=workflow_evaluation_data,
+        )
+
+    # TODO - we should probably return here and have the rest from here be
+    # `process_actions`, this will take a list of "triggered_workflows"
+    actions_to_trigger, queue_items_by_workflow_id, action_stats = (
+        evaluate_workflows_action_filters(
+            triggered_workflows, event_data, queue_items_by_workflow_id, event_start_time
+        )
     )
+    (trigger_stats + action_stats).report_metrics("process_workflows.workflows_evaluated")
+
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
+
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
-    sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
+
+    workflow_evaluation_data.action_groups = actions_to_trigger
+    workflow_evaluation_data.triggered_actions = set(actions)
+    workflow_evaluation_data.delayed_conditions = queue_items_by_workflow_id
+
+    sentry_sdk.set_tag(
+        "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
+    )
 
     if not actions:
-        # If there aren't any actions on the associated workflows, there's nothing to trigger
-        return triggered_workflows
+        return WorkflowEvaluation(
+            tainted=True,
+            msg="No actions to evaluate; filtered or not triggered",
+            data=workflow_evaluation_data,
+        )
 
-    should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
-    create_workflow_fire_histories(
-        detector,
+    fire_histories = create_workflow_fire_histories(
         actions,
         event_data,
-        should_trigger_actions,
         is_delayed=False,
         start_timestamp=event_start_time,
     )
 
-    fire_actions(actions, detector, event_data)
+    # Create mapping: workflow_id -> notification_uuid for propagation
+    workflow_uuid_map: dict[int, str] = {}
+    if fire_histories:
+        workflow_uuid_map = {
+            history.workflow_id: str(history.notification_uuid) for history in fire_histories
+        }
 
-    return triggered_workflows
+    fire_actions(actions, event_data, workflow_uuid_map=workflow_uuid_map)
+
+    return WorkflowEvaluation(tainted=False, data=workflow_evaluation_data)

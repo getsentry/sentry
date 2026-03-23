@@ -1,20 +1,21 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import Hook from 'sentry/components/hook';
 import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type SentryLogoProps = SVGIconProps & {
   /**
@@ -42,8 +43,18 @@ function BaseFooter({className}: Props) {
   const {state: appState} = useFrontendVersion();
   const organization = useOrganization({allowNull: true});
 
+  const secondaryNavigation = useContext(SecondaryNavigationContext);
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
-    <Container as="footer" background="primary" className={className}>
+    <Container
+      as="footer"
+      background="primary"
+      className={className}
+      borderLeft={
+        hasPageFrame && secondaryNavigation?.view === 'expanded' ? 'secondary' : undefined
+      }
+    >
       <LeftLinks>
         {isSelfHosted && (
           <Fragment>
@@ -64,12 +75,14 @@ function BaseFooter({className}: Props) {
       <RightLinks>
         {appState === 'stale' && (
           <Button
-            borderless
+            priority="transparent"
             size="xs"
             onClick={() => window.location.reload()}
-            title={t(
-              "An improved version of Sentry's Frontend Application is now available. Click to update now."
-            )}
+            tooltipProps={{
+              title: t(
+                "An improved version of Sentry's Frontend Application is now available. Click to update now."
+              ),
+            }}
             aria-label={t('Reload frontend')}
           >
             <WaitingIndicator />
@@ -93,7 +106,7 @@ function BaseFooter({className}: Props) {
 }
 
 const WaitingIndicator = styled('div')`
-  --pulsingIndicatorRing: ${p => p.theme.gray200};
+  --pulsingIndicatorRing: ${p => p.theme.tokens.border.transparent.neutral.muted};
   ${pulsingIndicatorStyles};
   contain: layout;
 `;
@@ -104,7 +117,7 @@ const LeftLinks = styled('div')`
   grid-auto-columns: max-content;
   align-items: center;
   justify-self: flex-start;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const RightLinks = styled('div')`
@@ -113,14 +126,14 @@ const RightLinks = styled('div')`
   grid-auto-columns: max-content;
   align-items: center;
   justify-self: flex-end;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const FooterLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   &:focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue300} 0 2px 0;
+    box-shadow: ${p => p.theme.tokens.focus.default} 0 2px 0;
   }
 `;
 
@@ -128,33 +141,31 @@ const SentryLogoLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   margin: 0 auto;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Build = styled('span')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-left: ${space(1)};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  margin-left: ${p => p.theme.space.md};
 `;
 
-const Footer = styled(BaseFooter)`
+export const Footer = styled(BaseFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-  border-top: 1px solid ${p => p.theme.border};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   align-content: center;
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
   margin-top: auto; /* pushes footer to the bottom of the page when loading */
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)};
+    padding: ${p => p.theme.space.xl};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;
-
-export default Footer;

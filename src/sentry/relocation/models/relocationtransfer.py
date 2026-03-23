@@ -6,15 +6,15 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import control_silo_model, region_silo_model
+from sentry.db.models import cell_silo_model, control_silo_model
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.uuid import UUIDField
 
 RETRY_BACKOFF = timedelta(minutes=5)
 """After each failed attempt we wait 5 minutes between retries."""
 
-MAX_AGE = timedelta(hours=1)
-"""Give up on retries after 1 hour."""
+MAX_AGE = timedelta(minutes=80)
+"""Give up on retries after 80 minutes."""
 
 
 class RelocationTransferState(models.TextChoices):
@@ -59,7 +59,7 @@ class ControlRelocationTransfer(BaseRelocationTransfer):
         db_table = "sentry_controlrelocationtransfer"
 
 
-@region_silo_model
+@cell_silo_model
 class RegionRelocationTransfer(BaseRelocationTransfer):
     __relocation_scope__ = RelocationScope.Excluded
 

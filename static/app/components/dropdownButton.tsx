@@ -1,13 +1,16 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {DistributedOmit} from 'type-fest';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
-export interface DropdownButtonProps
-  extends Omit<ButtonProps, 'type' | 'prefix' | 'onClick'> {
+export type DropdownButtonProps = DistributedOmit<
+  ButtonProps,
+  'type' | 'prefix' | 'onClick'
+> & {
   /**
    * Whether or not the button should render as open
    */
@@ -20,9 +23,9 @@ export interface DropdownButtonProps
    * Should a chevron icon be shown?
    */
   showChevron?: boolean;
-}
+};
 
-function DropdownButton({
+export function DropdownButton({
   children,
   prefix,
   size,
@@ -48,8 +51,8 @@ function DropdownButton({
       {showChevron && (
         <ChevronWrap>
           <IconChevron
-            color={
-              !props.priority || props.priority === 'default' ? 'subText' : undefined
+            variant={
+              !props.priority || props.priority === 'default' ? 'muted' : undefined
             }
             direction={isOpen ? 'up' : 'down'}
             size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
@@ -64,12 +67,13 @@ const ChevronWrap = styled('div')`
   display: flex;
   align-items: center;
   margin-left: auto;
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
 `;
 
-interface StyledButtonProps
-  extends Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled'>> {
+interface StyledButtonProps extends Required<
+  Pick<DropdownButtonProps, 'isOpen' | 'disabled'>
+> {
   hasPrefix?: boolean;
 }
 
@@ -85,7 +89,7 @@ const StyledButton = styled(Button)<StyledButtonProps>`
   ${p =>
     p.hasPrefix &&
     css`
-      font-weight: ${p.theme.fontWeight.normal};
+      font-weight: ${p.theme.font.weight.sans.regular};
     `}
 `;
 
@@ -94,8 +98,6 @@ const LabelText = styled('span')`
     content: ':';
   }
 
-  font-weight: ${p => p.theme.fontWeight.bold};
-  padding-right: ${space(0.75)};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  padding-right: ${p => p.theme.space.sm};
 `;
-
-export default DropdownButton;

@@ -1,6 +1,8 @@
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
 import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import {Button} from 'sentry/components/core/button';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -8,12 +10,13 @@ import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -58,7 +61,9 @@ const useCrashFreeRate = (props: Props) => {
 
   const currentQuery = useApiQuery<SessionApiResponse>(
     [
-      `/organizations/${organization.slug}/sessions/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...commonQuery,
@@ -77,7 +82,9 @@ const useCrashFreeRate = (props: Props) => {
 
   const previousQuery = useApiQuery<SessionApiResponse>(
     [
-      `/organizations/${organization.slug}/sessions/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...commonQuery,
@@ -105,7 +112,7 @@ const useCrashFreeRate = (props: Props) => {
   };
 };
 
-function ProjectStabilityScoreCard(props: Props) {
+export function ProjectStabilityScoreCard(props: Props) {
   const {hasSessions} = props;
   const organization = useOrganization();
 
@@ -176,7 +183,11 @@ function ProjectStabilityScoreCard(props: Props) {
             </Button>
           </Widget.WidgetToolbar>
         }
-        Visualization={<Widget.WidgetError error={error} />}
+        Visualization={
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError error={error} />
+          </Container>
+        }
       />
     );
   }
@@ -202,5 +213,3 @@ function ProjectStabilityScoreCard(props: Props) {
     />
   );
 }
-
-export default ProjectStabilityScoreCard;

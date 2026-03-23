@@ -1,14 +1,15 @@
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import hydratedSelectorData from 'sentry/utils/replays/hydrateSelectorData';
+import {hydratedSelectorData} from 'sentry/utils/replays/hydrateSelectorData';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   DeadRageSelectorListResponse,
   DeadRageSelectorQueryParams,
 } from 'sentry/views/replays/types';
 
-export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams) {
+export function useDeadRageSelectors(params: DeadRageSelectorQueryParams) {
   const organization = useOrganization();
   const location = useLocation();
   const {query} = location;
@@ -16,7 +17,9 @@ export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams
   const {isPending, isError, error, data, getResponseHeader} =
     useApiQuery<DeadRageSelectorListResponse>(
       [
-        `/organizations/${organization.slug}/replay-selectors/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replay-selectors/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             query: '!count_dead_clicks:0',

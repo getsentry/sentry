@@ -1,22 +1,23 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   OrganizationIntegration,
   ServerlessFunction,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IntegrationServerlessRowProps {
   integration: OrganizationIntegration;
@@ -120,13 +121,13 @@ export function IntegrationServerlessRow({
   return (
     <Item>
       <NameWrapper>
-        <NameRuntimeVersionWrapper>
+        <Stack>
           <Name>{serverlessFunction.name}</Name>
           <RuntimeAndVersion>
             <DetailWrapper>{serverlessFunction.runtime}</DetailWrapper>
             <DetailWrapper>{versionText}</DetailWrapper>
           </RuntimeAndVersion>
-        </NameRuntimeVersionWrapper>
+        </Stack>
       </NameWrapper>
       <LayerStatusWrapper>{layerStatus}</LayerStatusWrapper>
       <StyledSwitch
@@ -140,14 +141,14 @@ export function IntegrationServerlessRow({
 }
 
 const Item = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   align-items: center;
   grid-template-columns: 2fr 1fr 0.5fr;
   grid-template-areas: 'function-name layer-status enable-switch';
@@ -174,19 +175,14 @@ const StyledSwitch = styled(Switch)`
 
 const UpdateButton = styled(Button)``;
 
-const NameRuntimeVersionWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const Name = styled(`span`)`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 `;
 
 const RuntimeAndVersion = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DetailWrapper = styled('div')`

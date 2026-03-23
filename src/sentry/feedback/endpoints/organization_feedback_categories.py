@@ -7,10 +7,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from urllib3 import Retry
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
@@ -19,18 +18,20 @@ from sentry.feedback.lib.label_query import (
     query_recent_feedbacks_with_ai_labels,
     query_top_ai_labels_by_feedback_count,
 )
-from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
+from sentry.feedback.lib.seer_api import (
+    LabelGroupFeedbacksContext,
+    LabelGroupsRequest,
+    make_label_groups_request,
+)
 from sentry.grouping.utils import hash_from_values
 from sentry.models.organization import Organization
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
 
-SEER_LABEL_GROUPS_ENDPOINT_PATH = "/v1/automation/summarize/feedback/label-groups"
 SEER_TIMEOUT_S = 30
 SEER_RETRIES = Retry(total=1, backoff_factor=3)  # 1 retry after a 3 second delay.
 
@@ -54,21 +55,6 @@ CATEGORIES_CACHE_TIMEOUT = 172800
 THRESHOLD_TO_GET_ASSOCIATED_LABELS = 50
 
 
-class LabelGroupFeedbacksContext(TypedDict):
-    """Corresponds to LabelGroupFeedbacksContext in Seer."""
-
-    feedback: str
-    labels: list[str]
-
-
-class LabelGroupsRequest(TypedDict):
-    """Corresponds to GenerateFeedbackLabelGroupsRequest in Seer."""
-
-    labels: list[str]
-    # Providing the LLM context so it knows what labels are used in the same context and are direct children
-    feedbacks_context: list[LabelGroupFeedbacksContext]
-
-
 class FeedbackLabelGroup(TypedDict):
     """Corresponds to FeedbackLabelGroup in Seer."""
 
@@ -76,7 +62,7 @@ class FeedbackLabelGroup(TypedDict):
     associatedLabels: list[str]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FEEDBACK
     publish_status = {
@@ -117,14 +103,12 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         :auth: required
         """
 
-        if not features.has(
-            "organizations:user-feedback-ai-categorization-features",
-            organization,
-            actor=request.user,
-        ) or not has_seer_access(organization, actor=request.user):
+        if not has_seer_access(organization, actor=request.user):
             return Response(
                 {"detail": "AI categorization is not available for this organization."}, status=403
             )
+
+        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
 
         try:
             start, end = get_date_range_from_stats_period(
@@ -149,20 +133,15 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             # Day granularity date range. Date range is long enough that the categories won't change much (as long as the same day is selected)
             categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
 
-        has_cache = features.has(
-            "organizations:user-feedback-ai-summaries-cache", organization, actor=request.user
-        )
-
-        if has_cache:
-            cache_entry = cache.get(categorization_cache_key)
-            if cache_entry:
-                return Response(
-                    {
-                        "categories": cache_entry["categories"],
-                        "success": True,
-                        "numFeedbacksContext": cache_entry["numFeedbacksContext"],
-                    }
-                )
+        cache_entry = cache.get(categorization_cache_key)
+        if cache_entry:
+            return Response(
+                {
+                    "categories": cache_entry["categories"],
+                    "success": True,
+                    "numFeedbacksContext": cache_entry["numFeedbacksContext"],
+                }
+            )
 
         recent_feedbacks = query_recent_feedbacks_with_ai_labels(
             organization_id=organization.id,
@@ -212,14 +191,12 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
 
         if len(context_feedbacks) >= THRESHOLD_TO_GET_ASSOCIATED_LABELS:
             try:
-                response = make_signed_seer_api_request(
-                    connection_pool=seer_summarization_connection_pool,
-                    path=SEER_LABEL_GROUPS_ENDPOINT_PATH,
-                    body=json.dumps(seer_request).encode("utf-8"),
+                response = make_label_groups_request(
+                    seer_request,
                     timeout=SEER_TIMEOUT_S,
                     retries=SEER_RETRIES,
+                    viewer_context=viewer_context,
                 )
-                response_data = response.json()
             except Exception:
                 logger.exception("Seer failed to generate user feedback label groups")
                 return Response(
@@ -233,7 +210,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
                 return Response(
                     {"detail": "Failed to generate user feedback label groups"}, status=500
                 )
-            label_groups = response_data["data"]
+            label_groups = response.json()["data"]
         else:
             # If there are less than THRESHOLD_TO_GET_ASSOCIATED_LABELS feedbacks, we don't ask for associated labels
             # The more feedbacks there are, the LLM does a better job of generating associated labels since it has more context
@@ -328,12 +305,11 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         categories.sort(key=lambda x: x["feedbackCount"], reverse=True)
         categories = categories[:MAX_RETURN_CATEGORIES]
 
-        if has_cache:
-            cache.set(
-                categorization_cache_key,
-                {"categories": categories, "numFeedbacksContext": len(context_feedbacks)},
-                timeout=CATEGORIES_CACHE_TIMEOUT,
-            )
+        cache.set(
+            categorization_cache_key,
+            {"categories": categories, "numFeedbacksContext": len(context_feedbacks)},
+            timeout=CATEGORIES_CACHE_TIMEOUT,
+        )
 
         return Response(
             {

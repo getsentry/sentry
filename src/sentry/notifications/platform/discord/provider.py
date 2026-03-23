@@ -1,13 +1,26 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
+from sentry.notifications.platform.provider import (
+    NotificationProvider,
+    NotificationProviderError,
+    SendResult,
+    SendSuccessResult,
+    integration_error_result,
+)
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
     PreparedIntegrationNotificationTarget,
 )
+from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
+    NotificationBodyFormattingBlock,
+    NotificationBodyFormattingBlockType,
+    NotificationBodyTextBlock,
+    NotificationBodyTextBlockType,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -15,6 +28,7 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import IntegrationError
 
 if TYPE_CHECKING:
     from sentry.integrations.discord.message_builder.base.base import DiscordMessage
@@ -51,10 +65,12 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         components: list[DiscordMessageComponent] = []
         embeds = []
 
+        body_blocks = cls.render_body_blocks(rendered_template.body)
+
         embeds.append(
             DiscordMessageEmbed(
                 title=rendered_template.subject,
-                description=rendered_template.body,
+                description=body_blocks,
                 image=(
                     DiscordMessageEmbedImage(url=rendered_template.chart.url)
                     if rendered_template.chart
@@ -82,6 +98,28 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
 
         return builder.build()
 
+    @classmethod
+    def render_body_blocks(cls, body: list[NotificationBodyFormattingBlock]) -> str:
+        description = []
+        for block in body:
+            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+                description.append(f"\n{cls.render_text_blocks(block.blocks)}")
+            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+                description.append(f"\n```{cls.render_text_blocks(block.blocks)}```")
+        return "".join(description)
+
+    @classmethod
+    def render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+        texts = []
+        for block in blocks:
+            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+                texts.append(block.text)
+            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+                texts.append(f"**{block.text}**")
+            elif block.type == NotificationBodyTextBlockType.CODE:
+                texts.append(f"`{block.text}`")
+        return " ".join(texts)
+
 
 @provider_registry.register(NotificationProviderKey.DISCORD)
 class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
@@ -99,7 +137,13 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
         return False
 
     @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: DiscordRenderable) -> None:
+    def send(
+        cls,
+        *,
+        target: NotificationTarget,
+        renderable: DiscordRenderable,
+        thread_context: ThreadContext | None = None,
+    ) -> SendResult:
         from sentry.integrations.discord.integration import DiscordIntegration
 
         if not isinstance(target, cls.target_class):
@@ -110,4 +154,11 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
         discord_target = PreparedIntegrationNotificationTarget[DiscordIntegration](
             target=target, installation_cls=DiscordIntegration
         )
-        discord_target.integration_installation.send_notification(target=target, payload=renderable)
+        try:
+            discord_target.integration_installation.send_notification(
+                target=target, payload=renderable
+            )
+        except IntegrationError as e:
+            return integration_error_result(e)
+
+        return SendSuccessResult()

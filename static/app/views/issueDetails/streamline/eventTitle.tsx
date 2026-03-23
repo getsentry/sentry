@@ -1,14 +1,15 @@
-import {Fragment, useCallback, useMemo, type CSSProperties} from 'react';
+import {Fragment, useCallback, type CSSProperties} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -19,14 +20,13 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {issueAndEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {IssueDetailsJumpTo} from 'sentry/views/issueDetails/streamline/issueDetailsJumpTo';
 
 type EventNavigationProps = {
@@ -42,46 +42,6 @@ type EventNavigationProps = {
 };
 
 export const MIN_NAV_HEIGHT = 44;
-
-function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
-  const organization = useOrganization();
-
-  // Get data for markdown copy functionality
-  const {data: groupSummaryData} = useGroupSummaryData(group);
-  const {data: autofixData} = useAutofixData({groupId: group.id});
-
-  const markdownText = useMemo(() => {
-    return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
-  }, [group, event, groupSummaryData, autofixData]);
-
-  const {copy} = useCopyToClipboard();
-
-  const handleCopyMarkdown = useCallback(() => {
-    copy(markdownText, {successMessage: t('Copied issue to clipboard as Markdown')}).then(
-      () => {
-        trackAnalytics('issue_details.copy_issue_details_as_markdown', {
-          organization,
-          groupId: group.id,
-          eventId: event?.id,
-          hasAutofix: Boolean(autofixData),
-          hasSummary: Boolean(groupSummaryData),
-        });
-      }
-    );
-  }, [
-    copy,
-    markdownText,
-    organization,
-    group.id,
-    event?.id,
-    autofixData,
-    groupSummaryData,
-  ]);
-
-  return (
-    <MarkdownButton onClick={handleCopyMarkdown}>{t('Copy to Clipboard')}</MarkdownButton>
-  );
-}
 
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();
@@ -99,8 +59,8 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
   });
 
   const grayText = css`
-    color: ${theme.subText};
-    font-weight: ${theme.fontWeight.normal};
+    color: ${theme.tokens.content.secondary};
+    font-weight: ${theme.font.weight.sans.regular};
   `;
 
   const host = organization.links.regionUrl;
@@ -129,11 +89,11 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             </span>
             <Button
               aria-label={t('Copy Event ID')}
-              title={t('Copy Event ID')}
+              tooltipProps={{title: t('Copy Event ID')}}
               onClick={handleCopyEventId}
               size="zero"
-              borderless
-              icon={<IconCopy size="xs" color="subText" />}
+              priority="transparent"
+              icon={<IconCopy size="xs" variant="muted" />}
             />
           </EventIdWrapper>
           <StyledTimeSince
@@ -143,7 +103,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             css={grayText}
             aria-label={t('Event timestamp')}
           />
-          <JsonLinkWrapper className="hidden-xs">
+          <Flex align="center" gap="xs" className="hidden-xs">
             <Divider />
             <JsonLink
               href={jsonUrl}
@@ -157,19 +117,19 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             >
               {t('JSON')}
             </JsonLink>
-            <Divider />
-            <GroupMarkdownButton group={group} event={event} />
-          </JsonLinkWrapper>
+          </Flex>
           {actionableItems && actionableItems.length > 0 && (
             <Fragment>
               <Divider />
               <ProcessingErrorButton
-                title={t(
-                  'Sentry has detected configuration issues with this event. Click for more info.'
-                )}
-                borderless
+                tooltipProps={{
+                  title: t(
+                    'Sentry has detected configuration issues with this event. Click for more info.'
+                  ),
+                }}
+                priority="transparent"
                 size="zero"
-                icon={<IconWarning color="red300" />}
+                icon={<IconWarning variant="danger" />}
                 onClick={() => {
                   document
                     .getElementById(SectionKey.PROCESSING_ERROR)
@@ -189,8 +149,8 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 }
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   white-space: nowrap;
 `;
 
@@ -201,7 +161,7 @@ const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
   align-items: center;
   padding: 0 ${p => p.theme.space.lg};
   min-height: ${MIN_NAV_HEIGHT}px;
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (max-width: ${p =>
       p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
@@ -224,47 +184,23 @@ const EventInfo = styled('div')`
 `;
 
 const ProcessingErrorButton = styled(Button)`
-  color: ${p => p.theme.red300};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.colors.red400};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
   :hover {
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
   }
-`;
-
-const JsonLinkWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const JsonLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
+  text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     text-decoration: underline;
-    text-decoration-color: ${p => p.theme.subText};
-  }
-`;
-
-const MarkdownButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  color: ${p => p.theme.subText};
-  text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
-  font-size: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-
-  :hover {
-    color: ${p => p.theme.subText};
-    text-decoration: underline;
-    text-decoration-color: ${p => p.theme.subText};
+    text-decoration-color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -272,7 +208,7 @@ const EventIdWrapper = styled('div')`
   display: flex;
   gap: ${p => p.theme.space['2xs']};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
 
   button {

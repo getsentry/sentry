@@ -1,26 +1,30 @@
 import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
-import dbQueryConfig from 'sentry/utils/issueTypeConfig/dbQueryConfig';
+import {aiDetectedConfig} from 'sentry/utils/issueTypeConfig/aiDetectedConfig';
+import {configurationIssuesConfig} from 'sentry/utils/issueTypeConfig/configurationIssuesConfig';
+import {cronConfig} from 'sentry/utils/issueTypeConfig/cronConfig';
+import {dbQueryConfig} from 'sentry/utils/issueTypeConfig/dbQueryConfig';
 import {
   errorConfig,
   getErrorHelpResource,
 } from 'sentry/utils/issueTypeConfig/errorConfig';
-import feedbackConfig from 'sentry/utils/issueTypeConfig/feedbackConfig';
-import frontendConfig from 'sentry/utils/issueTypeConfig/frontendConfig';
-import httpClientConfig from 'sentry/utils/issueTypeConfig/httpClientConfig';
-import metricConfig from 'sentry/utils/issueTypeConfig/metricConfig';
-import metricIssueConfig from 'sentry/utils/issueTypeConfig/metricIssueConfig';
-import mobileConfig from 'sentry/utils/issueTypeConfig/mobileConfig';
-import outageConfig from 'sentry/utils/issueTypeConfig/outageConfig';
-import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
-import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
+import {feedbackConfig} from 'sentry/utils/issueTypeConfig/feedbackConfig';
+import {frontendConfig} from 'sentry/utils/issueTypeConfig/frontendConfig';
+import {httpClientConfig} from 'sentry/utils/issueTypeConfig/httpClientConfig';
+import {instrumentationConfig} from 'sentry/utils/issueTypeConfig/instrumentationConfig';
+import {metricConfig} from 'sentry/utils/issueTypeConfig/metricConfig';
+import {metricIssueConfig} from 'sentry/utils/issueTypeConfig/metricIssueConfig';
+import {mobileConfig} from 'sentry/utils/issueTypeConfig/mobileConfig';
+import {outageConfig} from 'sentry/utils/issueTypeConfig/outageConfig';
+import {performanceConfig} from 'sentry/utils/issueTypeConfig/performanceConfig';
+import {preprodConfig} from 'sentry/utils/issueTypeConfig/preprodConfig';
+import {replayConfig} from 'sentry/utils/issueTypeConfig/replayConfig';
 import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
-import uptimeConfig from 'sentry/utils/issueTypeConfig/uptimeConfig';
+import {uptimeConfig} from 'sentry/utils/issueTypeConfig/uptimeConfig';
 import {Tab} from 'sentry/views/issueDetails/types';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
@@ -46,7 +50,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   },
   defaultTimePeriod: {sinceFirstSeen: true},
   header: {
-    filterBar: {enabled: true, fixedEnvironment: false},
+    filterBar: {enabled: true, fixedEnvironment: false, searchBar: {enabled: true}},
     graph: {enabled: true, type: 'discover-events'},
     tagDistribution: {enabled: true},
     occurrenceSummary: {enabled: false},
@@ -86,6 +90,8 @@ const BASE_CONFIG: IssueTypeConfig = {
   usesIssuePlatform: true,
   issueSummary: {enabled: false},
   useOpenPeriodChecks: false,
+  groupingInfo: {enabled: true},
+  instrumentationFixSection: {enabled: false},
 };
 
 const issueTypeConfig: Config = {
@@ -102,6 +108,10 @@ const issueTypeConfig: Config = {
   [IssueCategory.DB_QUERY]: dbQueryConfig,
   [IssueCategory.MOBILE]: mobileConfig,
   [IssueCategory.METRIC]: metricConfig,
+  [IssueCategory.AI_DETECTED]: aiDetectedConfig,
+  [IssueCategory.PREPROD]: preprodConfig,
+  [IssueCategory.INSTRUMENTATION]: instrumentationConfig,
+  [IssueCategory.CONFIGURATION]: configurationIssuesConfig,
 };
 
 /**
@@ -109,7 +119,7 @@ const issueTypeConfig: Config = {
  * errors that may otherwise be difficult to debug. For example, common framework
  * errors that have no stack trace.
  */
-export function shouldShowCustomErrorResourceConfig(
+function shouldShowCustomErrorResourceConfig(
   params: GetConfigForIssueTypeParams,
   project: Project
 ): boolean {
@@ -153,10 +163,9 @@ export const getConfigForIssueType = (
       ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
 
-  const refinedIssueType: IssueType | undefined = issueType?.replace(
-    '_experimental',
-    ''
-  ) as IssueType | undefined;
+  const refinedIssueType = issueType?.replace('_experimental', '') as
+    | IssueType
+    | undefined;
 
   const categoryMap = issueTypeConfig[issueCategory];
 

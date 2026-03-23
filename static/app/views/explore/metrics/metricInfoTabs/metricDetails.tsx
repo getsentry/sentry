@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
 import {
@@ -52,7 +52,7 @@ export function MetricDetails({
     return (
       <MetricsDetailsWrapper ref={ref}>
         <EmptyStreamWrapper>
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </EmptyStreamWrapper>
       </MetricsDetailsWrapper>
     );

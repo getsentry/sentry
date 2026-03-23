@@ -12,10 +12,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'sentry/components/globalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
-import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {GroupActions} from 'sentry/views/issueDetails/actions';
@@ -193,6 +193,12 @@ describe('GroupActions', () => {
         method: 'DELETE',
         body: {},
       });
+      const initialRouterConfig = {
+        location: {
+          pathname: `/organizations/${org.slug}/issues/${group.id}/`,
+        },
+        route: `/organizations/:orgId/issues/:groupId/`,
+      };
       const {router} = render(
         <Fragment>
           <GlobalModal />
@@ -200,6 +206,7 @@ describe('GroupActions', () => {
         </Fragment>,
         {
           organization: org,
+          initialRouterConfig,
         }
       );
 
@@ -237,6 +244,12 @@ describe('GroupActions', () => {
         method: 'DELETE',
         body: {},
       });
+      const initialRouterConfig = {
+        location: {
+          pathname: `/organizations/${org.slug}/issues/${issuePlatformGroup.id}/`,
+        },
+        route: `/organizations/:orgId/issues/:groupId/`,
+      };
       const {router} = render(
         <Fragment>
           <GlobalModal />
@@ -249,6 +262,7 @@ describe('GroupActions', () => {
         </Fragment>,
         {
           organization: org,
+          initialRouterConfig,
         }
       );
 
@@ -329,7 +343,6 @@ describe('GroupActions', () => {
       <GroupActions group={group} project={project} disabled={false} event={null} />,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 

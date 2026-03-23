@@ -285,6 +285,11 @@ explicit_number_tag_key
       return tc.tokenKeyExplicitNumberTag(prefix, key)
     }
 
+explicit_boolean_tag_key
+  = prefix:"tags" open_bracket key:escaped_key spaces comma spaces 'boolean' closed_bracket {
+      return tc.tokenKeyExplicitBooleanTag(prefix, key)
+    }
+
 aggregate_key
   = name:key open_paren s1:spaces args:function_args? s2:spaces closed_paren {
       return tc.tokenKeyAggregate(name, args, s1, s2);
@@ -310,12 +315,12 @@ quoted_aggregate_param
     }
 
 explicit_tag_aggregate_param
-  = key:(explicit_tag_key / explicit_string_tag_key / explicit_number_tag_key) {
+  = key:(explicit_tag_key / explicit_string_tag_key / explicit_number_tag_key / explicit_boolean_tag_key) {
       return tc.tokenKeyAggregateParam(key.text, false);
     }
 
 search_key
-  = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
+  = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key / key / quoted_key
 
 text_key
   = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
@@ -371,6 +376,8 @@ numeric_in_list
       return tc.tokenValueNumberList(item1, items);
     }
 
+// NOTE: These wildcard operators are internal implementation details and
+// should not be included in product docs. Users should use `*` instead.
 wildcard_op
   = wildcard_unicode
     (contains / starts_with / ends_with )
@@ -449,6 +456,8 @@ open_bracket   = "["
 closed_bracket = "]"
 sep            = ":"
 negation       = "!"
+// NOTE: These wildcard operators are internal implementation details and
+// should not be included in product docs. Users should use `*` instead.
 wildcard_unicode     = [\uF00D]
 contains             = "Contains"
 starts_with          = "StartsWith"

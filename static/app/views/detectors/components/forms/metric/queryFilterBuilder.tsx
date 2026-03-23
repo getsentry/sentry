@@ -1,12 +1,12 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import FormContext from 'sentry/components/forms/formContext';
-import FormField from 'sentry/components/forms/formField';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {FormContext} from 'sentry/components/forms/formContext';
+import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -44,6 +44,7 @@ export function DetectorQueryFilterBuilder() {
       name={METRIC_DETECTOR_FORM_FIELDS.query}
       inline={false}
       flexibleControlStateSize
+      preserveOnUnmount
       label={t('Filter')}
       hideLabel
       disabled={dataset === DetectorDataset.TRANSACTIONS}
@@ -86,7 +87,7 @@ const NoPaddingFormField = styled(FormField)`
 const QueryFieldRowWrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
 `;

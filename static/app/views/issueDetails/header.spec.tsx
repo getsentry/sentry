@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {IssueCategory, PriorityLevel} from 'sentry/types/group';
-import GroupHeader from 'sentry/views/issueDetails/header';
+import {GroupHeader} from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
@@ -67,7 +67,7 @@ describe('GroupHeader', () => {
         expect(router.location.query).toEqual({});
       };
 
-      expectLocation(`${baseUrl}`);
+      expectLocation(baseUrl);
 
       await userEvent.click(screen.getByRole('tab', {name: /activity/i}));
       expectLocation(`${baseUrl}activity/`);
@@ -91,7 +91,7 @@ describe('GroupHeader', () => {
       expectLocation(`${baseUrl}replays/`);
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
-      expectLocation(`${baseUrl}`);
+      expectLocation(baseUrl);
 
       expect(screen.getByRole('tab', {name: /replays/i})).toBeInTheDocument();
     });
@@ -190,7 +190,7 @@ describe('GroupHeader', () => {
         expect(router.location.query).toEqual({});
       };
 
-      expectLocation(`${baseUrl}`);
+      expectLocation(baseUrl);
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expectLocation(`${baseUrl}distributions/`);

@@ -1,69 +1,230 @@
 import json  # noqa: S003
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, cast
+from datetime import datetime
+from typing import Any, TypedDict
 
-from rest_framework import serializers
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers.rest_framework import OrganizationAIConversationsSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.events.constants import NON_FAILURE_STATUS
+from sentry.search.events.types import SAMPLING_MODES
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
 
-class OrganizationAIConversationsSerializer(serializers.Serializer):
-    """Serializer for validating query parameters."""
-
-    sort = serializers.CharField(required=False, default="-timestamp")
-    query = serializers.CharField(required=False, allow_blank=True)
-
-    def validate_sort(self, value):
-        allowed_sorts = {
-            "timestamp",
-            "-timestamp",
-            "duration",
-            "-duration",
-            "errors",
-            "-errors",
-            "llmCalls",
-            "-llmCalls",
-            "toolCalls",
-            "-toolCalls",
-            "totalTokens",
-            "-totalTokens",
-            "totalCost",
-            "-totalCost",
-        }
-        if value not in allowed_sorts:
-            raise serializers.ValidationError(f"Invalid sort option: {value}")
-        return value
+def _build_conversation_query(base_query: str, user_query: str) -> str:
+    if user_query and user_query.strip():
+        return f"{base_query} {user_query.strip()}"
+    return base_query
 
 
-@region_silo_endpoint
-class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
-    """Endpoint for fetching AI agent conversation traces."""
+def _extract_conversation_ids(results: EAPResponse) -> list[str]:
+    return [
+        conv_id for row in results.get("data", []) if (conv_id := row.get("gen_ai.conversation.id"))
+    ]
 
+
+def _to_timestamp_float(ts: Any) -> float:
+    """Convert timestamp to float (seconds since epoch)."""
+    if ts is None:
+        return 0.0
+    if isinstance(ts, (int, float)):
+        return float(ts)
+    if hasattr(ts, "timestamp"):
+        return ts.timestamp()
+    if isinstance(ts, str):
+        try:
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            return dt.timestamp()
+        except (ValueError, TypeError):
+            return 0.0
+    return 0.0
+
+
+def _compute_timestamp_ms(finish_ts: float) -> int:
+    return int(finish_ts * 1000) if finish_ts else 0
+
+
+def _parse_messages(messages: str | list | None) -> list | None:
+    if not messages:
+        return None
+    if isinstance(messages, str):
+        try:
+            messages = json.loads(messages)
+        except (json.JSONDecodeError, TypeError):
+            return None
+    if not isinstance(messages, list):
+        return None
+    return messages
+
+
+def _extract_content_from_parts(msg: dict) -> str | None:
+    """Extract text content from a message with parts format, concatenating multiple text parts."""
+    parts = msg.get("parts", [])
+    if not isinstance(parts, list):
+        return None
+
+    text_contents = []
+    for part in parts:
+        if isinstance(part, dict) and part.get("type") == "text":
+            content = part.get("content")
+            if content:
+                text_contents.append(content)
+
+    return "\n".join(text_contents) if text_contents else None
+
+
+def _extract_first_user_message(messages: str | list | None) -> str | None:
+    """Extract first user message, handling both old (content) and new (parts) formats."""
+    parsed = _parse_messages(messages)
+    if not parsed:
+        return None
+    for msg in parsed:
+        if isinstance(msg, dict) and msg.get("role") == "user":
+            # Try old format first (content field)
+            content = msg.get("content")
+            if content:
+                return content
+            # Try new parts format
+            return _extract_content_from_parts(msg)
+    return None
+
+
+def _get_first_input_message(row: dict) -> str | None:
+    """
+    Gets first user message from input attributes, checking in priority order.
+    Priority: gen_ai.input.messages > gen_ai.request.messages
+    """
+    # 1. Check new format first (gen_ai.input.messages)
+    input_messages = row.get("gen_ai.input.messages")
+    if input_messages:
+        first_user = _extract_first_user_message(input_messages)
+        if first_user:
+            return first_user
+
+    # 2. Check current format (gen_ai.request.messages)
+    request_messages = row.get("gen_ai.request.messages")
+    if request_messages:
+        return _extract_first_user_message(request_messages)
+
+    return None
+
+
+def _get_last_output(row: dict) -> str | None:
+    """
+    Gets output text from output attributes, checking in priority order.
+    Priority: gen_ai.output.messages > gen_ai.response.text
+    """
+    # 1. Check new format first (gen_ai.output.messages)
+    output_messages = row.get("gen_ai.output.messages")
+    if output_messages:
+        # Extract text from the last assistant message
+        parsed = _parse_messages(output_messages)
+        if parsed:
+            for msg in reversed(parsed):
+                if isinstance(msg, dict) and msg.get("role") == "assistant":
+                    # Try old format first (content field)
+                    content = msg.get("content")
+                    if content:
+                        return content
+                    # Try new parts format
+                    parts_content = _extract_content_from_parts(msg)
+                    if parts_content:
+                        return parts_content
+
+    # 2. Check current format (gen_ai.response.text)
+    response_text = row.get("gen_ai.response.text")
+    if response_text:
+        return response_text
+
+    return None
+
+
+class UserResponse(TypedDict):
+    id: str | None
+    email: str | None
+    username: str | None
+    ip_address: str | None
+
+
+def _build_user_response(
+    user_id: str | None,
+    user_email: str | None,
+    user_username: str | None,
+    user_ip: str | None,
+) -> UserResponse | None:
+    """Build user response object, returning None if no user data is available."""
+    if not any([user_id, user_email, user_username, user_ip]):
+        return None
+    return {
+        "id": user_id,
+        "email": user_email,
+        "username": user_username,
+        "ip_address": user_ip,
+    }
+
+
+def _build_conversation_response(
+    conv_id: str,
+    start_timestamp: int,
+    end_timestamp: int,
+    errors: int,
+    llm_calls: int,
+    tool_calls: int,
+    total_tokens: int,
+    total_cost: float,
+    trace_ids: list[str],
+    flow: list[str],
+    first_input: str | None,
+    last_output: str | None,
+    user: dict[str, str | None] | None = None,
+    tool_names: list[str] | None = None,
+    tool_errors: int = 0,
+) -> dict[str, Any]:
+    return {
+        "conversationId": conv_id,
+        "flow": flow,
+        "errors": errors,
+        "llmCalls": llm_calls,
+        "toolCalls": tool_calls,
+        "totalTokens": total_tokens,
+        "totalCost": total_cost,
+        "startTimestamp": start_timestamp,
+        "endTimestamp": end_timestamp,
+        "traceCount": len(trace_ids),
+        "traceIds": trace_ids,
+        "firstInput": first_input,
+        "lastOutput": last_output,
+        "user": user,
+        "toolNames": tool_names or [],
+        "toolErrors": tool_errors,
+    }
+
+
+@cell_silo_endpoint
+class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
-        """
-        Retrieve AI conversation traces for an organization.
-        """
         if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
             return Response(status=404)
 
@@ -78,14 +239,13 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
 
         validated_data = serializer.validated_data
 
-        # Create paginator with data function
         def data_fn(offset: int, limit: int):
             return self._get_conversations(
                 snuba_params=snuba_params,
                 offset=offset,
                 limit=limit,
-                _sort=validated_data.get("sort", "-timestamp"),
-                _query=validated_data.get("query", ""),
+                user_query=validated_data.get("query", ""),
+                sampling_mode=validated_data.get("samplingMode", "NORMAL"),
             )
 
         with handle_query_errors():
@@ -97,124 +257,98 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
                 max_per_page=100,
             )
 
+    @sentry_sdk.trace
     def _get_conversations(
-        self, snuba_params, offset: int, limit: int, _sort: str, _query: str
+        self,
+        snuba_params,
+        offset: int,
+        limit: int,
+        user_query: str,
+        sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
-        """
-        Fetch conversation data by querying spans grouped by gen_ai.conversation.id.
+        base_filter = (
+            "has:gen_ai.conversation.id"
+            " (has:gen_ai.input.messages OR has:gen_ai.request.messages)"
+            " (has:gen_ai.output.messages OR has:gen_ai.response.text)"
+        )
+        query_string = _build_conversation_query(base_filter, user_query)
 
-        This is a two-step process:
-        1. Find conversation IDs that have spans in the time range (with pagination/sorting)
-        2. Get complete aggregations for those conversations (all spans, ignoring time filter)
+        conversation_ids_results = self._fetch_conversation_ids(
+            snuba_params, query_string, offset, limit, sampling_mode
+        )
+        conversation_ids = _extract_conversation_ids(conversation_ids_results)
 
-        Args:
-            snuba_params: Snuba parameters including projects, time range, etc.
-            offset: Starting index for pagination
-            limit: Number of results to return
-            _sort: Sort field and direction (currently only supports timestamp sorting, unused for now)
-            _query: Search query (not yet implemented)
-        """
+        sentry_sdk.set_tag("ai_conversations.count", len(conversation_ids))
 
-        # Step 1: Find conversation IDs with spans in the time range
-        conversation_ids_results = Spans.run_table_query(
+        if not conversation_ids:
+            return []
+
+        return self._get_conversations_data(snuba_params, conversation_ids)
+
+    @sentry_sdk.trace
+    def _fetch_conversation_ids(
+        self,
+        snuba_params,
+        query_string: str,
+        offset: int,
+        limit: int,
+        sampling_mode: SAMPLING_MODES,
+    ) -> EAPResponse:
+        return Spans.run_table_query(
             params=snuba_params,
-            query_string="has:gen_ai.conversation.id",
-            selected_columns=[
-                "gen_ai.conversation.id",
-                "max(precise.finish_ts)",
-            ],
+            query_string=query_string,
+            selected_columns=["gen_ai.conversation.id", "max(precise.finish_ts)"],
             orderby=["-max(precise.finish_ts)"],
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
             config=SearchResolverConfig(auto_fields=True),
-            sampling_mode="NORMAL",
+            sampling_mode=sampling_mode,
         )
 
-        logger.info(
-            "[ai-conversations] Got Conversation IDs results",
-            extra={"conversation_ids_results": conversation_ids_results},
-        )
+    @sentry_sdk.trace
+    def _get_conversations_data(self, snuba_params, conversation_ids: list[str]) -> list[dict]:
+        config = SearchResolverConfig(auto_fields=True)
+        resolver = Spans.get_resolver(snuba_params, config)
 
-        conversation_ids: list[str] = [
-            conv_id
-            for row in conversation_ids_results.get("data", [])
-            if (conv_id := row.get("gen_ai.conversation.id"))
+        # Build queries
+        queries = [
+            self._build_aggregations_query(resolver, conversation_ids),
+            self._build_enrichment_query(resolver, conversation_ids),
+            self._build_first_last_io_query(resolver, conversation_ids),
         ]
 
-        if not conversation_ids:
-            return []
+        # Execute all queries in a single bulk RPC call
+        with sentry_sdk.start_span(
+            op="ai_conversations.bulk_rpc", name="Execute bulk table queries"
+        ):
+            results = Spans.run_bulk_table_queries(queries)
 
-        # Step 2 & 3: Run aggregation and enrichment queries in parallel
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            future_aggregations = executor.submit(
-                self._get_aggregations, snuba_params, conversation_ids
-            )
-            future_enrichment = executor.submit(
-                self._get_enrichment_data, snuba_params, conversation_ids
-            )
+        # Process results
+        with sentry_sdk.start_span(op="ai_conversations.process", name="Process query results"):
+            conversations_map = self._build_conversations_from_aggregations(results["aggregations"])
+            self._apply_enrichment(conversations_map, results["enrichment"])
+            self._apply_first_last_io(conversations_map, results["first_last_io"])
 
-            results = future_aggregations.result()
-            enrichment_data = future_enrichment.result()
-
-        # Create a map of conversation data by ID
-        conversations_map = {}
-        for row in results.get("data", []):
-            start_ts = row.get("min(precise.start_ts)", 0)
-            finish_ts = row.get("max(precise.finish_ts)", 0)
-            duration_ms = int((finish_ts - start_ts) * 1000) if finish_ts and start_ts else 0
-            timestamp_ms = int(finish_ts * 1000) if finish_ts else 0
-
-            conv_id = row.get("gen_ai.conversation.id", "")
-            conversations_map[conv_id] = {
-                "conversationId": conv_id,
-                "flow": [],
-                "duration": duration_ms,
-                "errors": int(row.get("failure_count()") or 0),
-                "llmCalls": int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
-                "toolCalls": int(row.get("count_if(span.op,equals,gen_ai.execute_tool)") or 0),
-                "totalTokens": int(row.get("sum(gen_ai.usage.total_tokens)") or 0),
-                "totalCost": float(row.get("sum(gen_ai.usage.total_cost)") or 0),
-                "timestamp": timestamp_ms,
-                "traceCount": 0,  # Will be set in _apply_enrichment
-                "traceIds": [],
-            }
-
-        logger.info(
-            "[ai-conversations] Got conversations map",
-            extra={"conversations_map": json.dumps(conversations_map)},
-        )
-
-        # Preserve the order from step 1
-        conversations = [
+        return [
             conversations_map[conv_id]
             for conv_id in conversation_ids
             if conv_id in conversations_map
         ]
 
-        if conversations:
-            self._apply_enrichment(conversations, enrichment_data)
-
-        return conversations
-
-    def _get_aggregations(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
-        """
-        Get aggregated metrics for conversations (query 2).
-        """
-        logger.info(
-            "[ai-conversations] Getting complete aggregations for conversations",
-            extra={"conversation_ids": conversation_ids},
-        )
-        results = Spans.run_table_query(
-            params=snuba_params,
+    def _build_aggregations_query(
+        self, resolver: SearchResolver, conversation_ids: list[str]
+    ) -> TableQuery:
+        return TableQuery(
+            name="aggregations",
             query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
             selected_columns=[
                 "gen_ai.conversation.id",
                 "failure_count()",
                 "count_if(gen_ai.operation.type,equals,ai_client)",
-                "count_if(span.op,equals,gen_ai.execute_tool)",
-                "sum(gen_ai.usage.total_tokens)",
-                "sum(gen_ai.usage.total_cost)",
+                "count_if(gen_ai.operation.type,equals,tool)",
+                "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
                 "min(precise.start_ts)",
                 "max(precise.finish_ts)",
             ],
@@ -222,81 +356,192 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             offset=0,
             limit=len(conversation_ids),
             referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
-            config=SearchResolverConfig(auto_fields=True),
             sampling_mode="HIGHEST_ACCURACY",
+            resolver=resolver,
         )
 
-        logger.info(
-            "[ai-conversations] Got complete aggregations for conversations",
-            extra={"results": json.dumps(results)},
-        )
-        return cast(dict[str, Any], results)
-
-    def _get_enrichment_data(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
-        """
-        Get enrichment data (flows and trace IDs) for conversations (query 3).
-        """
-        logger.info(
-            "[ai-conversations] Enriching conversations",
-            extra={"conversation_ids": conversation_ids},
-        )
-        all_spans_results = Spans.run_table_query(
-            params=snuba_params,
+    def _build_enrichment_query(
+        self, resolver: SearchResolver, conversation_ids: list[str]
+    ) -> TableQuery:
+        return TableQuery(
+            name="enrichment",
             query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
             selected_columns=[
                 "gen_ai.conversation.id",
-                "span.op",
+                "gen_ai.operation.type",
                 "gen_ai.agent.name",
+                "gen_ai.tool.name",
+                "span.status",
                 "trace",
-                "precise.start_ts",
+                "timestamp",
+                "user.id",
+                "user.email",
+                "user.username",
+                "user.ip",
             ],
-            orderby=["precise.start_ts"],
+            orderby=["timestamp"],
             offset=0,
             limit=10000,
             referrer=Referrer.API_AI_CONVERSATIONS_ENRICHMENT.value,
-            config=SearchResolverConfig(auto_fields=True),
             sampling_mode="HIGHEST_ACCURACY",
+            resolver=resolver,
         )
-        logger.info(
-            "[ai-conversations] Got all spans results",
-            extra={"all_spans_results": json.dumps(all_spans_results)},
+
+    def _build_first_last_io_query(
+        self, resolver: SearchResolver, conversation_ids: list[str]
+    ) -> TableQuery:
+        return TableQuery(
+            name="first_last_io",
+            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] gen_ai.operation.type:ai_client",
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "gen_ai.input.messages",
+                "gen_ai.output.messages",
+                "gen_ai.request.messages",
+                "gen_ai.response.text",
+                "timestamp",
+            ],
+            orderby=["timestamp"],
+            offset=0,
+            limit=10000,
+            referrer=Referrer.API_AI_CONVERSATIONS_FIRST_LAST_IO.value,
+            sampling_mode="HIGHEST_ACCURACY",
+            resolver=resolver,
         )
-        return cast(dict[str, Any], all_spans_results)
 
-    def _apply_enrichment(self, conversations: list[dict], enrichment_data: dict) -> None:
-        """
-        Apply enrichment data (flows and trace IDs) to conversations.
-        """
-        flows_by_conversation = defaultdict(list)
-        traces_by_conversation = defaultdict(set)
-        logger.info(
-            "[ai-conversations] Collecting traces and flows",
-            extra={"enrichment_data": json.dumps(enrichment_data)},
-        )
-        for row in enrichment_data.get("data", []):
-            conv_id = row.get("gen_ai.conversation.id", "")
-            if not conv_id:
-                continue
+    def _build_conversations_from_aggregations(
+        self, aggregations: EAPResponse
+    ) -> dict[str, dict[str, Any]]:
+        with sentry_sdk.start_span(
+            op="ai_conversations.build_from_aggregations",
+            name="Build conversations from aggregations",
+        ):
+            conversations_map: dict[str, dict[str, Any]] = {}
 
-            # Collect trace IDs
-            trace_id = row.get("trace", "")
-            if trace_id:
-                traces_by_conversation[conv_id].add(trace_id)
+            for row in aggregations.get("data", []):
+                conv_id = row.get("gen_ai.conversation.id", "")
+                start_ts = row.get("min(precise.start_ts)", 0)
+                finish_ts = row.get("max(precise.finish_ts)", 0)
 
-            # Collect agent flow (only from invoke_agent spans)
-            if row.get("span.op") == "gen_ai.invoke_agent":
-                agent_name = row.get("gen_ai.agent.name", "")
-                if agent_name:
-                    flows_by_conversation[conv_id].append(agent_name)
+                conversations_map[conv_id] = _build_conversation_response(
+                    conv_id=conv_id,
+                    start_timestamp=_compute_timestamp_ms(start_ts),
+                    end_timestamp=_compute_timestamp_ms(finish_ts),
+                    errors=int(row.get("failure_count()") or 0),
+                    llm_calls=int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
+                    tool_calls=int(row.get("count_if(gen_ai.operation.type,equals,tool)") or 0),
+                    total_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
+                    total_cost=float(
+                        row.get(
+                            "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
+                    trace_ids=[],
+                    flow=[],
+                    first_input=None,
+                    last_output=None,
+                )
 
-        for conversation in conversations:
-            conv_id = conversation["conversationId"]
-            traces = traces_by_conversation.get(conv_id, set())
-            conversation["flow"] = flows_by_conversation.get(conv_id, [])
-            conversation["traceIds"] = list(traces)
-            conversation["traceCount"] = len(traces)
+            return conversations_map
 
-        logger.info(
-            "[ai-conversations] Enriched conversations",
-            extra={"conversations": json.dumps(conversations)},
-        )
+    def _apply_enrichment(
+        self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
+    ) -> None:
+        with sentry_sdk.start_span(
+            op="ai_conversations.apply_enrichment",
+            name="Apply enrichment data",
+        ) as span:
+            enrichment_rows = enrichment_data.get("data", [])
+            span.set_data("rows_count", len(enrichment_rows))
+
+            flows_by_conversation: dict[str, list[str]] = defaultdict(list)
+            traces_by_conversation: dict[str, set[str]] = defaultdict(set)
+            tool_names_by_conversation: dict[str, set[str]] = defaultdict(set)
+            tool_errors_by_conversation: dict[str, int] = defaultdict(int)
+            # Track first user data per conversation (data is sorted by timestamp, so first occurrence wins)
+            user_by_conversation: dict[str, UserResponse] = {}
+
+            for row in enrichment_rows:
+                conv_id = row.get("gen_ai.conversation.id", "")
+                if not conv_id:
+                    continue
+
+                trace_id = row.get("trace", "")
+                if trace_id:
+                    traces_by_conversation[conv_id].add(trace_id)
+
+                if row.get("gen_ai.operation.type") == "invoke_agent":
+                    agent_name = row.get("gen_ai.agent.name", "")
+                    if agent_name:
+                        flows_by_conversation[conv_id].append(agent_name)
+
+                if row.get("gen_ai.operation.type") == "tool":
+                    tool_name = row.get("gen_ai.tool.name")
+                    if tool_name:
+                        tool_names_by_conversation[conv_id].add(tool_name)
+                    status = row.get("span.status", "ok")
+                    if status and status not in NON_FAILURE_STATUS:
+                        tool_errors_by_conversation[conv_id] += 1
+
+                # Capture user from the first span (earliest timestamp) for each conversation
+                if conv_id not in user_by_conversation:
+                    user_data = _build_user_response(
+                        user_id=row.get("user.id"),
+                        user_email=row.get("user.email"),
+                        user_username=row.get("user.username"),
+                        user_ip=row.get("user.ip"),
+                    )
+                    if user_data:
+                        user_by_conversation[conv_id] = user_data
+
+            for conv_id, conversation in conversations_map.items():
+                traces = traces_by_conversation.get(conv_id, set())
+                conversation["flow"] = flows_by_conversation.get(conv_id, [])
+                conversation["traceIds"] = list(traces)
+                conversation["traceCount"] = len(traces)
+                conversation["user"] = user_by_conversation.get(conv_id)
+                conversation["toolNames"] = sorted(tool_names_by_conversation.get(conv_id, set()))
+                conversation["toolErrors"] = tool_errors_by_conversation.get(conv_id, 0)
+
+    def _apply_first_last_io(
+        self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
+    ) -> None:
+        with sentry_sdk.start_span(
+            op="ai_conversations.apply_first_last_io",
+            name="Apply first/last IO data",
+        ) as span:
+            io_rows = first_last_io_data.get("data", [])
+            span.set_data("rows_count", len(io_rows))
+
+            first_input_by_conv: dict[str, str] = {}
+            last_output_by_conv: dict[str, tuple[float, str]] = {}
+
+            for row in io_rows:
+                conv_id = row.get("gen_ai.conversation.id", "")
+                if not conv_id:
+                    continue
+
+                ts = _to_timestamp_float(row.get("timestamp"))
+
+                # Use the new helper functions for priority-based extraction
+                if conv_id not in first_input_by_conv:
+                    first_user_content = _get_first_input_message(row)
+                    if first_user_content:
+                        first_input_by_conv[conv_id] = first_user_content
+
+                output_content = _get_last_output(row)
+                if output_content:
+                    current = last_output_by_conv.get(conv_id)
+                    if current is None or ts > current[0]:
+                        last_output_by_conv[conv_id] = (ts, output_content)
+
+            for conv_id, conversation in conversations_map.items():
+                conversation["firstInput"] = first_input_by_conv.get(conv_id)
+                last_tuple = last_output_by_conv.get(conv_id)
+                conversation["lastOutput"] = last_tuple[1] if last_tuple else None

@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import Count from 'sentry/components/count';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
+import {Count} from 'sentry/components/count';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
@@ -76,7 +76,7 @@ export function getGroupReleaseChartMarkers(
       name: t('First seen'),
       value: bucketStart ?? firstSeenX,
       displayValue: firstSeenX,
-      color: theme.pink300,
+      color: theme.colors.pink400,
     });
   }
 
@@ -85,7 +85,7 @@ export function getGroupReleaseChartMarkers(
       name: t('Last seen'),
       value: lastSeenX,
       displayValue: lastSeenX,
-      color: theme.green300,
+      color: theme.colors.green400,
     });
   }
 
@@ -121,13 +121,13 @@ export function getGroupReleaseChartMarkers(
       symbolSize: 8,
       itemStyle: {
         color: marker.color,
-        borderColor: theme.background,
+        borderColor: theme.tokens.background.primary,
       },
     })),
   };
 }
 
-function GroupReleaseChart(props: Props) {
+export function GroupReleaseChart(props: Props) {
   const {
     group,
     lastSeen,
@@ -193,7 +193,14 @@ function GroupReleaseChart(props: Props) {
           showTimeInTooltip
           showMarkLineLabel
           height={42}
-          colors={environment ? undefined : [theme.purple300, theme.purple300]}
+          colors={
+            environment
+              ? undefined
+              : [
+                  theme.tokens.dataviz.semantic.accent,
+                  theme.tokens.dataviz.semantic.accent,
+                ]
+          }
           series={series}
           grid={{
             top: 6,
@@ -209,7 +216,5 @@ function GroupReleaseChart(props: Props) {
 
 const EventNumber = styled('div')`
   line-height: 1;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
-
-export default GroupReleaseChart;

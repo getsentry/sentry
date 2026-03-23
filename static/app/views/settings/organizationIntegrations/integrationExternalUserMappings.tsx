@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {
   ExternalActorMapping,
@@ -12,25 +12,32 @@ import type {
   Integration,
 } from 'sentry/types/integrations';
 import type {Member} from 'sentry/types/organization';
-import {sentryNameToOption} from 'sentry/utils/integrationUtil';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
-import IntegrationExternalMappings from './integrationExternalMappings';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
+import {IntegrationExternalMappings} from './integrationExternalMappings';
 
 type Props = {
   integration: Integration;
 };
 
-function IntegrationExternalUserMappings(props: Props) {
+export function IntegrationExternalUserMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
 
-  const DATA_ENDPOINT = `/organizations/${organization.slug}/members/`;
-  const BASE_FORM_ENDPOINT = `/organizations/${organization.slug}/external-users/`;
+  const DATA_ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
+  const BASE_FORM_ENDPOINT = getApiUrl(
+    '/organizations/$organizationIdOrSlug/external-users/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+    }
+  );
   // We paginate on this query, since we're filtering by hasExternalTeams:true
   const {
     data: members = [],
@@ -52,8 +59,7 @@ function IntegrationExternalUserMappings(props: Props) {
   } = useApiQuery<Member[]>([DATA_ENDPOINT], {staleTime: 0});
 
   const fetchData = () => {
-    refetchMembers();
-    refetchInitialResults();
+    return Promise.all([refetchMembers(), refetchInitialResults()]);
   };
 
   if (isMembersPending || isInitialResultsPending) {
@@ -100,38 +106,27 @@ function IntegrationExternalUserMappings(props: Props) {
     return externalUserMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   };
 
-  const sentryNamesMapper = (membersList: Member[]) => {
-    return membersList
-      .filter(member => member.user)
-      .map(({user, email, name}) => {
-        const label = email === name ? `${email}` : `${name} - ${email}`;
-        return {id: user?.id!, name: label};
-      });
-  };
-
-  const defaultUserOptions = sentryNamesMapper(initialResults).map(sentryNameToOption);
+  const defaultUserOptions = initialResults
+    .filter(member => member.user)
+    .map(({user, email, name}) => {
+      const label = email === name ? email : `${name} - ${email}`;
+      return {
+        value: {id: user?.id!, name: label},
+        label,
+      };
+    });
 
   const openMembersModal = (mapping?: ExternalActorMappingOrSuggestion) => {
-    openModal(({Body, Header, closeModal}) => (
-      <Fragment>
-        <Header closeButton>{t('Configure External User Mapping')}</Header>
-        <Body>
-          <IntegrationExternalMappingForm
-            type="user"
-            integration={integration}
-            dataEndpoint={DATA_ENDPOINT}
-            getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
-            defaultOptions={defaultUserOptions}
-            mapping={mapping}
-            sentryNamesMapper={sentryNamesMapper}
-            onCancel={closeModal}
-            onSubmitSuccess={() => {
-              handleSubmitSuccess();
-              closeModal();
-            }}
-          />
-        </Body>
-      </Fragment>
+    openModal(modalProps => (
+      <IntegrationExternalMappingForm
+        {...modalProps}
+        type="user"
+        integration={integration}
+        getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
+        defaultOptions={defaultUserOptions}
+        mapping={mapping}
+        onSubmitSuccess={handleSubmitSuccess}
+      />
     ));
   };
 
@@ -141,16 +136,15 @@ function IntegrationExternalUserMappings(props: Props) {
         type="user"
         integration={integration}
         mappings={mappings()}
-        dataEndpoint={DATA_ENDPOINT}
         getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
         defaultOptions={defaultUserOptions}
-        sentryNamesMapper={sentryNamesMapper}
         onCreate={openMembersModal}
         onDelete={handleDelete}
+        onSubmitSuccess={async () => {
+          await fetchData();
+        }}
         pageLinks={membersPageLinks}
       />
     </Fragment>
   );
 }
-
-export default IntegrationExternalUserMappings;

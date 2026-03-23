@@ -1,0 +1,18 @@
+---
+source: tests/sentry/event_manager/interfaces/test_contexts.py
+---
+errors: null
+tags:
+- - unity.install_mode
+  - Store
+- - unity.is_main_thread
+  - 'yes'
+to_json:
+  unity:
+    active_scene_name: MainScene
+    editor_version: 2022.3.1f1
+    install_mode: Store
+    is_main_thread: true
+    rendering_threading_mode: MultiThreaded
+    target_frame_rate: '60'
+    type: unity

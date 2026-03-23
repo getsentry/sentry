@@ -104,6 +104,15 @@ class BaseApiClient:
         if self.integration_type:
             log_params[self.integration_type] = self.name
 
+        # Capture useful response headers for debugging
+        if resp is not None and resp.headers:
+            if github_request_id := resp.headers.get("X-GitHub-Request-Id"):
+                log_params["github_request_id"] = github_request_id
+            if rate_limit_remaining := resp.headers.get("X-RateLimit-Remaining"):
+                log_params["rate_limit_remaining"] = rate_limit_remaining
+            if retry_after := resp.headers.get("Retry-After"):
+                log_params["retry_after"] = retry_after
+
         log_params.update(getattr(self, "logging_context", None) or {})
         self.logger.info("%s.http_response", self.integration_type, extra=log_params)
 

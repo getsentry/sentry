@@ -1,23 +1,27 @@
-import type {Client} from 'sentry/api';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
-import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {IssuesSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {
   ISSUE_FIELD_TO_HEADER_MAP,
-  ISSUE_FIELDS,
+  ISSUE_TABLE_FIELDS,
 } from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboards/widgetBuilder/issueWidget/utils';
+import {
+  useIssuesSeriesQuery,
+  useIssuesTableQuery,
+} from 'sentry/views/dashboards/widgetCard/hooks/useIssuesWidgetQuery';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useIssueListSearchBarDataProvider} from 'sentry/views/issueList/searchBar';
 import {
@@ -28,7 +32,7 @@ import {
 
 import type {DatasetConfig} from './base';
 
-const DEFAULT_WIDGET_QUERY: WidgetQuery = {
+const DEFAULT_TABLE_WIDGET_QUERY: WidgetQuery = {
   name: '',
   fields: ['issue', 'assignee', 'title'] as string[],
   columns: ['issue', 'assignee', 'title'],
@@ -38,43 +42,60 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: IssueSortOptions.DATE,
 };
 
-const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_EXPAND = ['owners'];
+const DEFAULT_ISSUE_SERIES_WIDGET_QUERY: WidgetQuery = {
+  name: '',
+  fields: ['count(new_issues)'],
+  columns: [],
+  fieldAliases: [],
+  aggregates: ['count(new_issues)'],
+  conditions: '',
+  orderby: '-count(new_issues)',
+};
 
 const DEFAULT_FIELD: QueryFieldValue = {
   field: 'issue',
   kind: FieldValueKind.FIELD,
 };
 
-type EndpointParams = Partial<PageFilters['datetime']> & {
-  environment: string[];
-  project: number[];
-  collapse?: string[];
-  cursor?: string;
-  expand?: string[];
-  groupStatsPeriod?: string | null;
-  limit?: number;
-  page?: number | string;
-  query?: string;
-  sort?: string;
-  statsPeriod?: string | null;
+const DEFAULT_SERIES_FIELD: QueryFieldValue = {
+  function: ['count', 'new_issues', undefined, undefined],
+  kind: FieldValueKind.FUNCTION,
 };
 
-export const IssuesConfig: DatasetConfig<never, Group[]> = {
+export type IssuesSeriesResponse = {
+  timeSeries: TimeSeries[];
+  meta?: {
+    dataset: string;
+    end: number;
+    start: number;
+  };
+};
+
+export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {
   defaultField: DEFAULT_FIELD,
-  defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  defaultSeriesField: DEFAULT_SERIES_FIELD,
+  defaultWidgetQuery: DEFAULT_TABLE_WIDGET_QUERY,
+  defaultSeriesWidgetQuery: DEFAULT_ISSUE_SERIES_WIDGET_QUERY,
   enableEquations: false,
   disableSortOptions,
-  getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
   SearchBar: IssuesSearchBar,
   useSearchBarDataProvider: useIssueListSearchBarDataProvider,
+  transformSeries: transformIssuesResponseToSeries,
+  filterYAxisOptions,
   getTableSortOptions,
-  getTableFieldOptions: (_organization: Organization) =>
-    generateIssueWidgetFieldOptions(),
+  getTableFieldOptions: (organization, _tags, _customMeasurements, _api, displayType) =>
+    generateIssueWidgetFieldOptions(organization, displayType),
   getFieldHeaderMap: () => ISSUE_FIELD_TO_HEADER_MAP,
-  supportedDisplayTypes: [DisplayType.TABLE],
+  supportedDisplayTypes: [
+    DisplayType.TABLE,
+    DisplayType.AREA,
+    DisplayType.LINE,
+    DisplayType.BAR,
+  ],
   transformTable: transformIssuesResponseToTable,
+  useSeriesQuery: useIssuesSeriesQuery,
+  useTableQuery: useIssuesTableQuery,
 };
 
 function disableSortOptions(_widgetQuery: WidgetQuery) {
@@ -105,7 +126,6 @@ export function transformIssuesResponseToTable(
   _organization: Organization,
   pageFilters: PageFilters
 ): TableData {
-  GroupStore.add(data);
   const transformedTableResults: TableDataRow[] = [];
   data.forEach(
     ({
@@ -174,50 +194,22 @@ export function transformIssuesResponseToTable(
 
   return {
     data: transformedTableResults,
-    meta: {fields: ISSUE_FIELDS},
+    meta: {fields: ISSUE_TABLE_FIELDS},
   };
 }
 
-function getTableRequest(
-  api: Client,
-  _: Widget,
-  query: WidgetQuery,
-  organization: Organization,
-  pageFilters: PageFilters,
-  __?: OnDemandControlContext,
-  limit?: number,
-  cursor?: string
-) {
-  const groupListUrl = `/organizations/${organization.slug}/issues/`;
-
-  const params: EndpointParams = {
-    project: pageFilters.projects ?? [],
-    environment: pageFilters.environments ?? [],
-    query: query.conditions,
-    sort: query.orderby || DEFAULT_SORT,
-    expand: DEFAULT_EXPAND,
-    limit: limit ?? DEFAULT_TABLE_LIMIT,
-    cursor,
+function filterYAxisOptions() {
+  return function (option: FieldValueOption) {
+    return option.value.kind === FieldValueKind.FUNCTION;
   };
+}
 
-  if (pageFilters.datetime.period) {
-    params.statsPeriod = pageFilters.datetime.period;
-  }
-  if (pageFilters.datetime.end) {
-    params.end = getUtcDateString(pageFilters.datetime.end);
-  }
-  if (pageFilters.datetime.start) {
-    params.start = getUtcDateString(pageFilters.datetime.start);
-  }
-  if (pageFilters.datetime.utc) {
-    params.utc = pageFilters.datetime.utc;
-  }
-
-  return api.requestPromise(groupListUrl, {
-    includeAllArgs: true,
-    method: 'GET',
-    data: {
-      ...params,
-    },
-  });
+export function transformIssuesResponseToSeries(data: IssuesSeriesResponse): Series[] {
+  return data.timeSeries.map(timeSeries => ({
+    seriesName: timeSeries.yAxis,
+    data: timeSeries.values.map(item => ({
+      name: item.timestamp,
+      value: item.value ?? 0,
+    })),
+  }));
 }

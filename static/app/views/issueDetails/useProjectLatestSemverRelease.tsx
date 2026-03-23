@@ -1,15 +1,18 @@
 import {ReleaseStatus, type Release} from 'sentry/types/release';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export default function useProjectLatestSemverRelease({enabled}: {enabled: boolean}) {
+export function useProjectLatestSemverRelease({enabled}: {enabled: boolean}) {
   const organization = useOrganization();
   const location = useLocation();
 
   const {data, isError, isPending} = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           per_page: 1,

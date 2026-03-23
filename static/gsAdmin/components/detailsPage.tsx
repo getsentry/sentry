@@ -1,16 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import {space} from 'sentry/styles/space';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 
 import type {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import DropdownActions from 'admin/components/dropdownActions';
-import PageHeader from 'admin/components/pageHeader';
+import {DropdownActions} from 'admin/components/dropdownActions';
+import {PageHeader} from 'admin/components/pageHeader';
 
 export type ActionItem = {
   key: string;
@@ -61,7 +62,7 @@ export type BadgeItem = {
   /**
    * Tag type
    */
-  level?: React.ComponentProps<typeof Tag>['type'];
+  level?: TagProps['variant'];
   /**
    * If set to false will hide the badge
    */
@@ -119,7 +120,7 @@ type Props = {
   sections?: SectionItem[];
 };
 
-function DetailsPage({
+export function DetailsPage({
   rootName,
   name,
   crumbs = [],
@@ -133,16 +134,16 @@ function DetailsPage({
         title={rootName}
         breadcrumbs={[
           ...crumbs,
-          <NameWithBadges key="page">
+          <Flex gap="md" key="page">
             {name}
             {badges
               .filter(badge => badge.visible !== false)
               .map(badge => (
                 <Tooltip key={badge.name} disabled={!badge.help} title={badge.help}>
-                  <Tag type={badge.level}>{badge.name}</Tag>
+                  <Tag variant={badge.level ?? 'muted'}>{badge.name}</Tag>
                 </Tooltip>
               ))}
-          </NameWithBadges>,
+          </Flex>,
         ]}
       >
         {actions.some(a => a.visible !== false) && (
@@ -170,13 +171,6 @@ function DetailsPage({
   );
 }
 
-const NameWithBadges = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
-
 const SectionBody = styled('div')<{withPadding?: boolean}>`
-  ${p => p.withPadding && `padding: ${space(2)}`};
+  ${p => p.withPadding && `padding: ${p.theme.space.xl}`};
 `;
-
-export default DetailsPage;

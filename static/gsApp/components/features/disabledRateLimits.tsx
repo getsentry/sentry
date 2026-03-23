@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {Button} from '@sentry/scraps/button';
+
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import LearnMoreButton from 'getsentry/components/features/learnMoreButton';
+import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
@@ -22,7 +22,7 @@ function DisabledAlert({organization, features}: Props) {
   return (
     <PlanFeature {...{organization, features}}>
       {({plan}) => (
-        <StyledPanelAlert type="muted">
+        <StyledPanelAlert variant="muted">
           <Container>
             <span>
               {plan === null
@@ -45,7 +45,6 @@ function DisabledAlert({organization, features}: Props) {
                 openUpsellModal({
                   organization,
                   source: 'feature.rate_limits',
-                  defaultSelection: 'event-volume',
                 })
               }
             >
@@ -74,13 +73,13 @@ const StyledPanelAlert = styled(PanelAlert)`
 const Container = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
 type HookProps = Parameters<Hooks['feature-disabled:rate-limits']>[0];
 
-function DisabledRateLimits(props: HookProps) {
+export function DisabledRateLimits(props: HookProps) {
   if (typeof props.children === 'function') {
     return props.children({
       ...props,
@@ -89,5 +88,3 @@ function DisabledRateLimits(props: HookProps) {
   }
   return props.children;
 }
-
-export default DisabledRateLimits;

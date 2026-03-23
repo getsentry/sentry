@@ -2,18 +2,20 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type Dispatch,
 } from 'react';
+import * as Sentry from '@sentry/react';
 
-import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import type {
-  CaseInsensitive,
-  SetCaseInsensitive,
-} from 'sentry/components/searchQueryBuilder/hooks';
+  GetTagKeys,
+  GetTagValues,
+  SearchQueryBuilderProps,
+} from 'sentry/components/searchQueryBuilder';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
@@ -25,14 +27,17 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  aiSearchBadgeType: 'alpha' | 'beta';
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
   autoSubmitSeer: boolean;
@@ -40,6 +45,7 @@ interface SearchQueryBuilderContextData {
   currentInputValueRef: React.RefObject<string>;
   disabled: boolean;
   disallowFreeText: boolean;
+  disallowLogicalOperators: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   displayAskSeer: boolean;
@@ -49,10 +55,11 @@ interface SearchQueryBuilderContextData {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
-  gaveSeerConsent: boolean;
+  // @deprecated: remove this, it's constant now
+  gaveSeerConsent: true;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
-  getTagValues: (tag: Tag, query: string) => Promise<string[]>;
+  getTagValues: GetTagValues;
   handleSearch: (query: string) => void;
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
@@ -65,9 +72,10 @@ interface SearchQueryBuilderContextData {
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   caseInsensitive?: CaseInsensitive;
   filterKeyAliases?: TagCollection;
+  getTagKeys?: GetTagKeys;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
-  onCaseInsensitiveClick?: SetCaseInsensitive;
+  onCaseInsensitiveClick?: (value: CaseInsensitive) => void;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.
@@ -92,6 +100,7 @@ export const SearchQueryBuilderContext =
 
 export function SearchQueryBuilderProvider({
   children,
+  aiSearchBadgeType = 'beta',
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
@@ -105,6 +114,7 @@ export function SearchQueryBuilderProvider({
   filterKeyMenuWidth = 460,
   filterKeySections,
   getSuggestedFilterKey,
+  getTagKeys,
   getTagValues,
   onSearch,
   placeholder,
@@ -134,19 +144,8 @@ export function SearchQueryBuilderProvider({
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
 
-  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
-
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
-
-  const {state, dispatch} = useQueryBuilderState({
-    initialQuery,
-    getFieldDefinition: fieldDefinitionGetter,
-    disabled,
-    displayAskSeerFeedback,
-    setDisplayAskSeerFeedback,
-    replaceRawSearchKeys,
-  });
 
   const stableFieldDefinitionGetter = useMemo(
     () => fieldDefinitionGetter,
@@ -186,7 +185,47 @@ export function SearchQueryBuilderProvider({
       filterKeyAliases,
     ]
   );
+
+  const {state, dispatch} = useQueryBuilderState({
+    initialQuery,
+    getFieldDefinition: fieldDefinitionGetter,
+    disabled,
+    displayAskSeerFeedback,
+    setDisplayAskSeerFeedback,
+    replaceRawSearchKeys,
+    parseQuery,
+  });
+
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
+
+  const previousQuery = usePrevious(state.query);
+  const firstRender = useRef(true);
+  useEffect(() => {
+    // on the first render, we want to check the currently parsed query,
+    // then on subsequent renders, we want to ensure the parsedQuery hasnt changed
+    if (!firstRender.current && state.query === previousQuery) {
+      return;
+    }
+    firstRender.current = false;
+
+    const warnings = parsedQuery?.filter(
+      token => 'warning' in token && defined(token.warning)
+    )?.length;
+    if (warnings) {
+      Sentry.metrics.distribution('search-query-builder.token.warnings', warnings, {
+        attributes: {searchSource},
+      });
+    }
+
+    const invalids = parsedQuery?.filter(
+      token => 'invalid' in token && defined(token.invalid)
+    )?.length;
+    if (invalids) {
+      Sentry.metrics.distribution('search-query-builder.token.invalids', invalids, {
+        attributes: {searchSource},
+      });
+    }
+  }, [parsedQuery, state.query, previousQuery, searchSource]);
 
   const handleSearch = useHandleSearch({
     parsedQuery,
@@ -202,8 +241,10 @@ export function SearchQueryBuilderProvider({
   const contextValue = useMemo((): SearchQueryBuilderContextData => {
     return {
       ...state,
+      aiSearchBadgeType,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
+      disallowLogicalOperators: Boolean(disallowLogicalOperators),
       disallowWildcard: Boolean(disallowWildcard),
       enableAISearch,
       parseQuery,
@@ -213,6 +254,7 @@ export function SearchQueryBuilderProvider({
       filterKeys: stableFilterKeys,
       getSuggestedFilterKey: stableGetSuggestedFilterKey,
       getTagValues,
+      getTagKeys,
       getFieldDefinition: stableFieldDefinitionGetter,
       dispatch,
       wrapperRef,
@@ -231,7 +273,7 @@ export function SearchQueryBuilderProvider({
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases,
-      gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
+      gaveSeerConsent: true,
       currentInputValueRef,
       displayAskSeerFeedback,
       setDisplayAskSeerFeedback,
@@ -241,10 +283,12 @@ export function SearchQueryBuilderProvider({
       onCaseInsensitiveClick,
     };
   }, [
+    aiSearchBadgeType,
     autoSubmitSeer,
     caseInsensitive,
     disabled,
     disallowFreeText,
+    disallowLogicalOperators,
     disallowWildcard,
     dispatch,
     displayAskSeer,
@@ -253,6 +297,7 @@ export function SearchQueryBuilderProvider({
     filterKeyAliases,
     filterKeyMenuWidth,
     filterKeySections,
+    getTagKeys,
     getTagValues,
     handleSearch,
     matchKeySuggestions,
@@ -265,7 +310,6 @@ export function SearchQueryBuilderProvider({
     namespace,
     replaceRawSearchKeys,
     searchSource,
-    setupAcknowledgement.orgHasAcknowledged,
     size,
     stableFieldDefinitionGetter,
     stableFilterKeys,

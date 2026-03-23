@@ -1,0 +1,266 @@
+from datetime import UTC, datetime
+from unittest.mock import Mock, patch
+
+from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
+from sentry.integrations.github_copilot.models import GithubCopilotTask
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
+from sentry.seer.models import SeerRepoDefinition
+from sentry.testutils.cases import TestCase
+
+
+class GithubCopilotAgentClientTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.access_token = "test_access_token"
+        self.copilot_client = GithubCopilotAgentClient(user_access_token=self.access_token)
+
+    def test_encode_agent_id(self) -> None:
+        """Test that encode_agent_id correctly formats the agent ID"""
+        agent_id = GithubCopilotAgentClient.encode_agent_id(
+            owner="getsentry", repo="sentry", task_id="task-123"
+        )
+        assert agent_id == "getsentry:sentry:task-123"
+
+    def test_decode_agent_id_valid(self) -> None:
+        """Test that decode_agent_id correctly parses a valid agent ID"""
+        result = GithubCopilotAgentClient.decode_agent_id("getsentry:sentry:task-123")
+        assert result == ("getsentry", "sentry", "task-123")
+
+    def test_decode_agent_id_with_colons_in_task_id(self) -> None:
+        """Test that decode_agent_id handles task IDs containing colons"""
+        result = GithubCopilotAgentClient.decode_agent_id("getsentry:sentry:task:with:colons")
+        assert result == ("getsentry", "sentry", "task:with:colons")
+
+    def test_decode_agent_id_invalid_format(self) -> None:
+        """Test that decode_agent_id returns None for invalid formats"""
+        assert GithubCopilotAgentClient.decode_agent_id("invalid") is None
+        assert GithubCopilotAgentClient.decode_agent_id("only:two") is None
+        assert GithubCopilotAgentClient.decode_agent_id("") is None
+
+    def test_encode_decode_roundtrip(self) -> None:
+        """Test that encode and decode are inverses of each other"""
+        owner, repo, job_id = "getsentry", "sentry", "task-abc-123"
+        encoded = GithubCopilotAgentClient.encode_agent_id(owner, repo, job_id)
+        decoded = GithubCopilotAgentClient.decode_agent_id(encoded)
+        assert decoded == (owner, repo, job_id)
+
+    @patch.object(GithubCopilotAgentClient, "get")
+    def test_get_task_status(self, mock_get: Mock) -> None:
+        """Test that get_task_status correctly fetches and parses task status"""
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "task-123",
+            "state": "completed",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T01:00:00Z",
+            "artifacts": [
+                {
+                    "provider": "github",
+                    "type": "github_resource",
+                    "data": {"id": 456, "type": "pull", "global_id": "PR_abc123"},
+                }
+            ],
+        }
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        result = self.copilot_client.get_task_status(
+            owner="getsentry", repo="sentry", task_id="task-123"
+        )
+
+        assert isinstance(result, GithubCopilotTask)
+        assert result.id == "task-123"
+        assert result.state == "completed"
+        assert result.artifacts is not None
+        assert len(result.artifacts) == 1
+        assert result.artifacts[0].data is not None
+        assert result.artifacts[0].data.type == "pull"
+        assert result.artifacts[0].data.global_id == "PR_abc123"
+
+        mock_get.assert_called_once_with(
+            "/agents/repos/getsentry/sentry/tasks/task-123",
+            headers={"Authorization": "Bearer test_access_token", "User-Agent": "sentry"},
+            timeout=30,
+        )
+
+    @patch.object(GithubCopilotAgentClient, "get")
+    def test_get_task_status_no_artifacts(self, mock_get: Mock) -> None:
+        """Test that get_task_status handles responses without artifacts"""
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "task-123",
+            "state": "in_progress",
+        }
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        result = self.copilot_client.get_task_status(
+            owner="getsentry", repo="sentry", task_id="task-123"
+        )
+
+        assert result.id == "task-123"
+        assert result.state == "in_progress"
+        assert result.artifacts is None
+
+    def _make_launch_request(self, prompt: str = "Fix the bug") -> CodingAgentLaunchRequest:
+        return CodingAgentLaunchRequest(
+            prompt=prompt,
+            repository=SeerRepoDefinition(
+                provider="github",
+                owner="getsentry",
+                name="sentry",
+                external_id="123",
+            ),
+            branch_name="main",
+        )
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_created_at(self, mock_post: Mock) -> None:
+        """Test launch correctly parses created_at from a direct task response"""
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "task-123",
+            "status": "in_progress",
+            "created_at": "2024-06-01T12:00:00Z",
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+
+        assert result.id == "getsentry:sentry:task-123"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert result.provider == CodingAgentProviderType.GITHUB_COPILOT_AGENT
+        assert result.started_at == datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_missing_created_at(self, mock_post: Mock) -> None:
+        """Test launch falls back to now() when created_at is missing"""
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "task-456",
+            "status": "in_progress",
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        before = datetime.now(UTC)
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+        after = datetime.now(UTC)
+
+        assert result.id == "getsentry:sentry:task-456"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert before <= result.started_at <= after
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_legacy_task_envelope(self, mock_post: Mock) -> None:
+        """Test launch handles the legacy {"task": {...}} response envelope"""
+        mock_response = Mock()
+        mock_response.json = {
+            "task": {
+                "id": "task-789",
+                "status": "in_progress",
+                "created_at": "2024-06-01T12:00:00Z",
+            }
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+
+        assert result.id == "getsentry:sentry:task-789"
+        assert result.status == CodingAgentStatus.RUNNING
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_get_pr_from_graphql_success(self, mock_post: Mock) -> None:
+        """Test that get_pr_from_graphql correctly fetches PR info"""
+        mock_response = Mock()
+        mock_response.json = {
+            "data": {
+                "node": {
+                    "number": 12345,
+                    "title": "Fix the bug",
+                    "url": "https://github.com/getsentry/sentry/pull/12345",
+                }
+            }
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        result = self.copilot_client.get_pr_from_graphql(global_id="PR_abc123")
+
+        assert result is not None
+        assert result.number == 12345
+        assert result.title == "Fix the bug"
+        assert result.url == "https://github.com/getsentry/sentry/pull/12345"
+
+        mock_post.assert_called_once()
+        call_kwargs = mock_post.call_args[1]
+        assert call_kwargs["data"]["variables"]["id"] == "PR_abc123"
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_get_pr_from_graphql_not_found(self, mock_post: Mock) -> None:
+        """Test that get_pr_from_graphql returns None when PR is not found"""
+        mock_response = Mock()
+        mock_response.json = {"data": {"node": None}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        result = self.copilot_client.get_pr_from_graphql(global_id="PR_invalid")
+
+        assert result is None
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_get_pr_from_graphql_empty_node(self, mock_post: Mock) -> None:
+        """Test that get_pr_from_graphql handles empty node response"""
+        mock_response = Mock()
+        mock_response.json = {"data": {"node": {}}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        result = self.copilot_client.get_pr_from_graphql(global_id="PR_invalid")
+
+        assert result is None
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_truncates_long_prompt(self, mock_post: Mock) -> None:
+        """Prompts exceeding 25,000 chars are truncated"""
+        prompt = "a" * 30000
+        request = self._make_launch_request(prompt)
+
+        mock_response = Mock()
+        mock_response.json = {"id": "t-1", "created_at": "2024-01-01T00:00:00Z"}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        self.copilot_client.launch(webhook_url="https://example.com/hook", request=request)
+
+        call_data = mock_post.call_args[1]["data"]
+        sent_prompt = call_data["problem_statement"]
+        assert len(sent_prompt) == 25000
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_does_not_truncate_short_prompt(self, mock_post: Mock) -> None:
+        """Short prompts are sent as-is without truncation"""
+        prompt = "Fix this bug please."
+        request = self._make_launch_request(prompt)
+
+        mock_response = Mock()
+        mock_response.json = {"id": "t-1", "created_at": "2024-01-01T00:00:00Z"}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        self.copilot_client.launch(webhook_url="https://example.com/hook", request=request)
+
+        call_data = mock_post.call_args[1]["data"]
+        assert call_data["problem_statement"] == prompt

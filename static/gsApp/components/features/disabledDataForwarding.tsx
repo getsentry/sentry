@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
+import {Button} from '@sentry/scraps/button';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconArrow, IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import LearnMoreButton from 'getsentry/components/features/learnMoreButton';
+import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
@@ -18,31 +18,15 @@ type Props = {
   organization: Organization;
 };
 
-function DisabledDataForwarding({organization, features}: Props) {
+export function DisabledDataForwarding({organization, features}: Props) {
   return (
     <PlanFeature {...{organization, features}}>
       {({plan}) => (
         <Panel dashedBorder data-test-id="disabled-data-forwarding">
           <EmptyMessage
-            size="large"
-            icon={<IconArrow direction="right" size="xl" />}
+            size="lg"
+            icon={<IconArrow direction="right" />}
             title={t('Your business intelligence workflow is missing crucial data')}
-            description={
-              plan === null
-                ? t(
-                    'Data forwarding is not available on your plan. Contact us to migrate to a plan that supports sending your events for processing with your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk.'
-                  )
-                : tct(
-                    '[strong:Data Forwarding] allows you to send processed events to your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk. This feature [planRequirement] or above.',
-
-                    {
-                      strong: <strong />,
-                      planRequirement: (
-                        <strong>{t('requires a %s Plan', displayPlanName(plan))}</strong>
-                      ),
-                    }
-                  )
-            }
             action={
               <ButtonGroup>
                 <Button
@@ -64,7 +48,22 @@ function DisabledDataForwarding({organization, features}: Props) {
                 </LearnMoreButton>
               </ButtonGroup>
             }
-          />
+          >
+            {plan === null
+              ? t(
+                  'Data forwarding is not available on your plan. Contact us to migrate to a plan that supports sending your events for processing with your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk.'
+                )
+              : tct(
+                  '[strong:Data Forwarding] allows you to send processed events to your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk. This feature [planRequirement] or above.',
+
+                  {
+                    strong: <strong />,
+                    planRequirement: (
+                      <strong>{t('requires a %s Plan', displayPlanName(plan))}</strong>
+                    ),
+                  }
+                )}
+          </EmptyMessage>
         </Panel>
       )}
     </PlanFeature>
@@ -74,7 +73,5 @@ function DisabledDataForwarding({organization, features}: Props) {
 const ButtonGroup = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 `;
-
-export default DisabledDataForwarding;

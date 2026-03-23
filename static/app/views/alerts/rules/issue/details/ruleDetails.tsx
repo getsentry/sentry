@@ -2,52 +2,52 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
-import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
+import {Access} from 'sentry/components/acl/access';
+import {SnoozeAlert} from 'sentry/components/alerts/snoozeAlert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 import {UserSnoozeDeprecationBanner} from 'sentry/views/alerts/rules/userSnoozeDeprecationBanner';
 
 import {IssueAlertDetailsChart} from './alertChart';
-import AlertRuleIssuesList from './issuesList';
-import Sidebar from './sidebar';
-
-interface AlertRuleDetailsProps
-  extends RouteComponentProps<{projectId: string; ruleId: string}> {}
+import {AlertRuleIssuesList} from './issuesList';
+import {Sidebar} from './sidebar';
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -66,14 +66,23 @@ const getIssueAlertDetailsQueryKey = ({
   projectSlug: string;
   ruleId: string;
 }): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/rules/${ruleId}/`,
+  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      projectIdOrSlug: projectSlug,
+      ruleId,
+    },
+  }),
   {query: {expand: 'lastTriggered'}},
 ];
 
-function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
+export default function AlertRuleDetails() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const api = useApi();
+  const location = useLocation();
+  const params = useParams<{projectId: string; ruleId: string}>();
+  const navigate = useNavigate();
   const {projects, fetching: projectIsLoading} = useProjects();
   const project = projects.find(({slug}) => slug === params.projectId);
   const {projectId: projectSlug, ruleId} = params;
@@ -140,7 +149,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     pageUtc?: boolean | null;
     team?: string;
   }) {
-    return router.push({
+    return navigate({
       ...location,
       query: {
         ...location.query,
@@ -284,7 +293,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) {
       return (
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {tct(
               'The conditions in this alert rule conflict and might not be working properly. [link:Edit alert rule]',
               {
@@ -310,7 +319,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (rule?.status === 'disabled' && moment(new Date()).isAfter(rule.disableDate)) {
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {tct(
               'This alert was disabled due to lack of activity. Please [keepAlive] to enable this alert.',
               {
@@ -330,7 +339,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (rule?.status === 'disabled') {
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {rule.actions?.length === 0
               ? t(
                   'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
@@ -347,7 +356,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (rule?.disableDate && moment(rule.disableDate).isAfter(new Date())) {
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {tct(
               'This alert is scheduled to be disabled [date] due to lack of activity. Please [keepAlive] to keep this alert active. [docs:Learn more]',
               {
@@ -371,7 +380,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   }
 
   const {period, start, end, utc} = getDataDatetime();
-  const {cursor} = location.query;
+  const cursor = decodeScalar(location.query.cursor);
   return (
     <PageFiltersContainer
       skipInitializeUrlParams
@@ -412,7 +421,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
                 <SnoozeAlert
@@ -450,7 +459,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             >
               {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
             </LinkButton>
-          </ButtonBar>
+          </Grid>
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
@@ -460,7 +469,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           {rule.snooze && (
             <Alert.Container>
               {rule.snoozeForEveryone ? (
-                <Alert type="info">
+                <Alert variant="info">
                   {tct(
                     "[creator] muted this alert for everyone so you won't get these notifications in the future.",
                     {
@@ -508,16 +517,14 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   );
 }
 
-export default AlertRuleDetails;
-
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledLoadingError = styled(LoadingError)`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space.xl};
 `;
 
 const BoldButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

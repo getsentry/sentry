@@ -15,17 +15,17 @@ import sessionHealthPreviewImg from 'sentry-images/insights/module-upsells/insig
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Panel from 'sentry/components/panels/panel';
-import platforms from 'sentry/data/platforms';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -38,9 +38,20 @@ import {
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
+export type ModulesWithOnboarding = Exclude<
+  ModuleName,
+  | ModuleName.AGENT_MODELS
+  | ModuleName.AGENT_TOOLS
+  | ModuleName.MCP_TOOLS
+  | ModuleName.MCP_RESOURCES
+  | ModuleName.MCP_PROMPTS
+  | ModuleName.MOBILE_UI
+  | ModuleName.OTHER
+>;
+
 type ModuleOnboardingProps = {
   children: React.ReactNode;
-  moduleName: ModuleName;
+  moduleName: ModulesWithOnboarding;
 };
 
 export function ModulesOnboarding({children, moduleName}: ModuleOnboardingProps) {
@@ -78,7 +89,11 @@ export function ModulesOnboarding({children, moduleName}: ModuleOnboardingProps)
   return children;
 }
 
-export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
+export function ModulesOnboardingPanel({
+  moduleName,
+}: {
+  moduleName: ModulesWithOnboarding;
+}) {
   const {view} = useDomainViewFilters();
   const docLink =
     typeof MODULE_PRODUCT_DOC_LINKS[moduleName] === 'string'
@@ -86,12 +101,11 @@ export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
       : view && MODULE_PRODUCT_DOC_LINKS[moduleName][view]
         ? MODULE_PRODUCT_DOC_LINKS[moduleName][view]
         : '';
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
     <Panel>
       <Container>
-        <SplitMainContent>
+        <Flex align="stretch" wrap="wrap-reverse" gap="3xl">
           <ModuleInfo>
             <Fragment>
               <Header>{emptyStateContent.heading}</Header>
@@ -112,7 +126,7 @@ export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
           <Sidebar>
             <PerfImage src={emptyStateImg} />
           </Sidebar>
-        </SplitMainContent>
+        </Flex>
         <LinkButton priority="primary" external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
@@ -121,7 +135,7 @@ export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
   );
 }
 
-type ModulePreviewProps = {moduleName: ModuleName};
+type ModulePreviewProps = {moduleName: ModulesWithOnboarding};
 
 function getSDKName(sdk: PlatformKey) {
   const currentPlatform = platforms.find(p => p.id === sdk);
@@ -129,7 +143,6 @@ function getSDKName(sdk: PlatformKey) {
 }
 
 function ModulePreview({moduleName}: ModulePreviewProps) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
@@ -139,7 +152,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
       {emptyStateContent.supportedSdks && (
         <SupportedSdkContainer>
           <div>{t('Supported Today: ')}</div>
-          <SupportedSdkList>
+          <Flex justify="center" wrap="wrap" gap="xs">
             {emptyStateContent.supportedSdks.map((sdk: PlatformKey) => (
               <Tooltip title={getSDKName(sdk) ?? startCase(sdk)} key={sdk} position="top">
                 <SupportedSdkIconContainer
@@ -153,7 +166,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
                 </SupportedSdkIconContainer>
               </Tooltip>
             ))}
-          </SupportedSdkList>
+          </Flex>
         </SupportedSdkContainer>
       )}
     </ModulePreviewContainer>
@@ -174,18 +187,11 @@ const Container = styled('div')`
   position: relative;
   overflow: hidden;
   min-height: 160px;
-  padding: ${space(4)};
-`;
-
-const SplitMainContent = styled('div')`
-  display: flex;
-  align-items: stretch;
-  flex-wrap: wrap-reverse;
-  gap: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Header = styled('h3')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SplitContainer = styled(Panel)`
@@ -203,50 +209,43 @@ const ModulePreviewImage = styled('img')`
   max-width: 100%;
   display: block;
   margin: auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   object-fit: contain;
 `;
 
 const ModulePreviewContainer = styled('div')`
   flex: 2;
   width: 100%;
-  padding: ${space(3)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  padding: ${p => p.theme.space['2xl']};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SupportedSdkContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const SupportedSdkList = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-  justify-content: center;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SupportedSdkIconContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   width: 42px;
   height: 42px;
   border-radius: 3px;
   &:hover {
-    box-shadow: 0 0 0 1px ${p => p.theme.gray200};
+    box-shadow: 0 0 0 1px ${p => p.theme.colors.gray200};
   }
 `;
 
 const ValueProp = styled('div')`
   flex: 1;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   ul {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 
@@ -259,8 +258,8 @@ type EmptyStateContent = {
   supportedSdks?: PlatformKey[];
 };
 
-const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
-  app_start: {
+const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
+  [ModuleName.APP_START]: {
     heading: t(`Don't lose your user's attention before your app loads`),
     description: tct(
       'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing to regressions.',
@@ -280,44 +279,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: appStartPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
-
-  agents: {
-    heading: t('TODO'),
-    description: t('TODO'),
-    valuePropDescription: t('Mobile UI load insights include:'),
-    valuePropPoints: [],
-    imageSrc: screenLoadsPreviewImg,
-  },
-  mcp: {
-    heading: t('Model Context Providers'),
-    description: t(
-      'Monitor your MCP servers to ensure your AI applications have reliable access to tools, resources, and data sources they depend on.'
-    ),
-    imageSrc: screenLoadsPreviewImg,
-    valuePropDescription: t('MCP monitoring gives you visibility into:'),
-    valuePropPoints: [
-      t('Tool execution success rates and failure patterns.'),
-      t('Resource access performance and availability.'),
-      t('Usage patterns across different tools and prompts.'),
-    ],
-  },
-  'ai-generations': {
-    heading: t('AI Generations'),
-    description: t(
-      'Monitor your AI generations to ensure your AI applications are performing as expected.'
-    ),
-    valuePropDescription: t('AI generations insights include:'),
-    valuePropPoints: [],
-    imageSrc: screenLoadsPreviewImg,
-  },
-  'mobile-ui': {
-    heading: t('TODO'),
-    description: t('TODO'),
-    valuePropDescription: t('Mobile UI load insights include:'),
-    valuePropPoints: [],
-    imageSrc: screenLoadsPreviewImg,
-  },
-  'mobile-vitals': {
+  [ModuleName.MOBILE_VITALS]: {
     heading: t('Mobile Vitals'),
     description: t(
       'Key metrics for for mobile development that help you ensure a great mobile user experience.'
@@ -331,7 +293,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: screenLoadsPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
-  cache: {
+  [ModuleName.CACHE]: {
     heading: t('Bringing you one less hard problem in computer science'),
     description: t(
       'We’ll tell you if the parts of your application that interact with caches are hitting cache as often as intended, and whether caching is providing the performance improvements expected.'
@@ -349,7 +311,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: cachesPreviewImg,
     supportedSdks: ['python', 'javascript', 'php', 'java', 'ruby', 'dotnet'],
   },
-  db: {
+  [ModuleName.DB]: {
     heading: tct(
       'Fix the slow [dataTypePlural] you honestly intended to get back to later',
       {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase()}
@@ -372,7 +334,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     ],
     imageSrc: queriesPreviewImg,
   },
-  http: {
+  [ModuleName.HTTP]: {
     heading: t(
       'Are your API dependencies working as well as their landing page promised? '
     ),
@@ -389,7 +351,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     ],
     imageSrc: requestPreviewImg,
   },
-  resource: {
+  [ModuleName.RESOURCE]: {
     heading: t('Is your favorite animated gif worth the time it takes to load?'),
     description: tct(
       'Find large and slow-to-load [dataTypePlurl] used by your application and understand their impact on page performance.',
@@ -426,7 +388,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       'javascript-vue',
     ],
   },
-  vital: {
+  [ModuleName.VITAL]: {
     heading: t('Finally answer, is this page slow for everyone or just me?'),
     description: t(
       'Get industry standard metrics telling you the quality of user experience on a web page and see what needs improving.'
@@ -441,7 +403,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     ],
     imageSrc: webVitalsPreviewImg,
   },
-  queue: {
+  [ModuleName.QUEUE]: {
     heading: t('Ensure your background jobs aren’t being sent to /dev/null'),
     description: tct(
       'Understand the health and performance impact that [dataTypePlural] have on your application and diagnose errors tied to jobs.',
@@ -460,7 +422,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: queuesPreviewImg,
     supportedSdks: ['python', 'javascript', 'php', 'java', 'ruby', 'dotnet'],
   },
-  screen_load: {
+  [ModuleName.SCREEN_LOAD]: {
     heading: t(`Don’t lose your user's attention once your app loads`),
     description: tct(
       'View the most active [dataTypePlural] in your mobile application and monitor your releases for screen load performance.',
@@ -480,7 +442,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: screenLoadsPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
-  'screen-rendering': {
+  [ModuleName.SCREEN_RENDERING]: {
     description: t(
       'Screen Rendering identifies slow and frozen interactions, helping you find and fix problems that might cause users to complain, or uninstall.'
     ),
@@ -500,7 +462,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
-  sessions: {
+  [ModuleName.SESSIONS]: {
     heading: t(`Get insights about your application's session health`),
     description: tct(
       'Understand the frequency of handled errors and crashes compared to healthy sessions.',

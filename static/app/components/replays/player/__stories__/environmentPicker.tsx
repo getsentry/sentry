@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
 import uniq from 'lodash/uniq';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import useProjects from 'sentry/utils/useProjects';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-export default function EnvironmentPicker({
+import {useProjects} from 'sentry/utils/useProjects';
+
+export function EnvironmentPicker({
   environment,
   onChange,
   project,
@@ -29,9 +31,11 @@ export default function EnvironmentPicker({
     <CompactSelect
       onChange={selected => onChange(selected.value)}
       options={options}
-      searchable
+      search
       size="xs"
-      triggerProps={{prefix: 'Environment'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix="Environment" />
+      )}
       value={environment}
     />
   );

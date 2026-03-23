@@ -9,7 +9,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.utils.http import absolute_uri, create_redirect_url
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, all_silo_view
 
 # The request doesn't contain the pipeline type (pipeline information is stored
 # in redis keyed by the pipeline name), so we try to construct multiple pipelines
@@ -17,6 +17,7 @@ from sentry.web.frontend.base import BaseView
 PIPELINE_CLASSES = (IntegrationPipeline, IdentityPipeline)
 
 
+@all_silo_view
 class PipelineAdvancerView(BaseView):
     """Gets the current pipeline from the request and executes the current step."""
 

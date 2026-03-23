@@ -2,21 +2,18 @@ import type React from 'react';
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import type {TracePeriod} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
-  SingleMetricQueryParamsProvider,
-  useSingleMetricQueryParams,
-} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {
   useQueryParamsSearch,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type UseTraceViewMetricsDataProps = {
@@ -24,7 +21,7 @@ type UseTraceViewMetricsDataProps = {
   traceSlug: string;
 };
 
-export function TraceViewMetricsDataProvider({
+export function TraceViewMetricsProviderWrapper({
   children,
   traceSlug,
 }: UseTraceViewMetricsDataProps) {
@@ -61,37 +58,29 @@ export function TraceViewMetricsDataProvider({
   ]);
 
   return (
-    <SingleMetricQueryParamsProvider>
-      <TraceViewMetricsDataProviderInner traceSlug={traceSlug} tracePeriod={tracePeriod}>
-        {children}
-      </TraceViewMetricsDataProviderInner>
-    </SingleMetricQueryParamsProvider>
-  );
-}
-
-function TraceViewMetricsDataProviderInner({
-  children,
-  traceSlug,
-  tracePeriod,
-}: {
-  children: React.ReactNode;
-  traceSlug: string;
-  tracePeriod?: TracePeriod;
-}) {
-  const {queryParams, setQueryParams, metric, setTraceMetric, removeMetric} =
-    useSingleMetricQueryParams();
-
-  return (
     <MetricsQueryParamsProvider
-      queryParams={queryParams}
-      setQueryParams={setQueryParams}
-      traceMetric={metric}
-      setTraceMetric={setTraceMetric}
-      removeMetric={removeMetric}
+      queryParams={
+        new ReadableQueryParams({
+          extrapolate: true,
+          mode: Mode.SAMPLES,
+          query: '',
+          cursor: '',
+          fields: ['id', 'timestamp'],
+          sortBys: [{field: 'timestamp', kind: 'desc'}],
+          aggregateCursor: '',
+          aggregateFields: [],
+          aggregateSortBys: [],
+        })
+      }
+      setQueryParams={() => {}}
+      traceMetric={{name: '', type: ''}}
+      setTraceMetric={() => {}}
+      removeMetric={() => {}}
       freeze={{
         traceIds: [traceSlug],
         tracePeriod,
       }}
+      isStateBased
     >
       {children}
     </MetricsQueryParamsProvider>
@@ -128,10 +117,10 @@ function MetricsSectionContent() {
 }
 
 const TableContainer = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   margin: 0;
 `;

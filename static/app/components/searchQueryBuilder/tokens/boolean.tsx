@@ -15,7 +15,6 @@ import {
   BaseGridCell,
   FilterWrapper,
 } from 'sentry/components/searchQueryBuilder/tokens/components';
-import {DeletableToken} from 'sentry/components/searchQueryBuilder/tokens/deletableToken';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
@@ -27,7 +26,6 @@ import type {
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryBuilderBooleanProps = {
   item: Node<ParseResultToken>;
@@ -35,47 +33,13 @@ type SearchQueryBuilderBooleanProps = {
   token: TokenResult<Token.LOGIC_BOOLEAN>;
 };
 
-export function SearchQueryBuilderBoolean({
-  item,
-  state,
-  token,
-}: SearchQueryBuilderBooleanProps) {
-  const showBooleanOpSelector = useOrganization().features.includes(
-    'search-query-builder-add-boolean-operator-select'
-  );
-
-  if (showBooleanOpSelector) {
-    return <SearchQueryBuilderBooleanSelect item={item} state={state} token={token} />;
-  }
-
-  return <SearchQueryBuilderBooleanDeletable item={item} state={state} token={token} />;
-}
-
-function SearchQueryBuilderBooleanDeletable({
-  item,
-  state,
-  token,
-}: SearchQueryBuilderBooleanProps) {
-  return (
-    <DeletableToken
-      item={item}
-      state={state}
-      token={token}
-      label={token.value}
-      invalid={token.invalid}
-    >
-      {token.text}
-    </DeletableToken>
-  );
-}
-
 function FilterDelete({token, state, item}: SearchQueryBuilderBooleanProps) {
   const {dispatch, disabled} = useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
   return (
     <DeleteButton
-      aria-label={t('Remove boolean: %s', token.text)}
+      aria-label={t('Remove logic operator: %s', token.text)}
       onClick={() => {
         dispatch({type: 'DELETE_TOKEN', token});
       }}
@@ -88,12 +52,12 @@ function FilterDelete({token, state, item}: SearchQueryBuilderBooleanProps) {
   );
 }
 
-const BOOLEAN_OPERATOR_OPTIONS = [
+const LOGIC_OPERATOR_OPTIONS = [
   {value: 'AND', label: 'AND'},
   {value: 'OR', label: 'OR'},
 ];
 
-function SearchQueryBuilderBooleanSelect({
+export function SearchQueryBuilderBoolean({
   item,
   state,
   token,
@@ -152,12 +116,13 @@ function SearchQueryBuilderBooleanSelect({
             disabled={disabled}
             size="sm"
             value={tokenText}
-            options={BOOLEAN_OPERATOR_OPTIONS}
+            options={LOGIC_OPERATOR_OPTIONS}
             trigger={triggerProps => {
               return (
+                // @ts-expect-error we don't allow arbitrary buttons as triggers
                 <OpButton
                   disabled={disabled}
-                  aria-label={t('Edit boolean operator: %s', tokenText)}
+                  aria-label={t('Edit logic operator: %s', tokenText)}
                   {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
                 >
                   <InteractionStateLayer />
@@ -167,7 +132,7 @@ function SearchQueryBuilderBooleanSelect({
             }}
             onOpenChange={setFilterMenuOpen}
             onChange={option => {
-              dispatch({type: 'UPDATE_BOOLEAN_OPERATOR', token, value: option.value});
+              dispatch({type: 'UPDATE_LOGIC_OPERATOR', token, value: option.value});
             }}
           />
         </BaseGridCell>
@@ -181,27 +146,27 @@ function SearchQueryBuilderBooleanSelect({
 
 const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})`
   padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 100%;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   border-radius: 3px 0 0 3px;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.colors.gray100};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const DeleteButton = styled(UnstyledButton)`
   padding: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
   border-radius: 0 3px 3px 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-left: 1px solid transparent;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.colors.gray100};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;

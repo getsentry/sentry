@@ -1,7 +1,7 @@
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Project} from 'sentry/types/project';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const excludedModuleNames = [
@@ -22,10 +22,12 @@ const modulePropertyMap: Record<
   [ModuleName.VITAL]: 'hasInsightsVitals',
   [ModuleName.QUEUE]: 'hasInsightsQueues',
   [ModuleName.SCREEN_LOAD]: 'hasInsightsScreenLoad',
-  [ModuleName.AGENTS]: 'hasInsightsAgentMonitoring',
-  [ModuleName.AI_GENERATIONS]: 'hasInsightsAgentMonitoring',
+  [ModuleName.AGENT_MODELS]: 'hasInsightsAgentMonitoring',
+  [ModuleName.AGENT_TOOLS]: 'hasInsightsAgentMonitoring',
   [ModuleName.APP_START]: 'hasInsightsAppStart',
-  [ModuleName.MCP]: 'hasInsightsMCP',
+  [ModuleName.MCP_TOOLS]: 'hasInsightsMCP',
+  [ModuleName.MCP_RESOURCES]: 'hasInsightsMCP',
+  [ModuleName.MCP_PROMPTS]: 'hasInsightsMCP',
   // Renamed resource to assets
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
   [ModuleName.SCREEN_RENDERING]: 'hasInsightsScreenLoad', // Screen rendering and screen loads share similar spans

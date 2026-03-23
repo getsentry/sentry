@@ -23,15 +23,22 @@ from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.retry import Retry
 
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
-from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
+from sentry.lang.native.symbolicator import (
+    FrameOrder,
+    Symbolicator,
+    SymbolicatorPlatform,
+    SymbolicatorTaskKind,
+)
 from sentry.lang.native.utils import native_images_from_data
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -57,11 +64,10 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -132,7 +138,7 @@ def encode_payload(message: dict[str, Any]) -> str:
     processing_deadline_duration=60,
     retry=Retry(times=2, delay=5),
     compression_type=CompressionType.ZSTD,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_profile_task(
     profile: Profile | None = None,
@@ -235,14 +241,13 @@ def process_profile_task(
         set_span_attribute("profile.stacks.processed", len(profile["profile"]["stacks"]))
         set_span_attribute("profile.frames.processed", len(profile["profile"]["frames"]))
 
-    if options.get("profiling.stack_trace_rules.enabled"):
-        try:
-            with metrics.timer("process_profile.apply_stack_trace_rules"):
-                rules_config = project.get_option("sentry:grouping_enhancements")
-                if rules_config is not None and rules_config != "":
-                    apply_stack_trace_rules_to_profile(profile, rules_config)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+    try:
+        with metrics.timer("process_profile.apply_stack_trace_rules"):
+            rules_config = project.get_option("sentry:grouping_enhancements")
+            if rules_config is not None and rules_config != "":
+                apply_stack_trace_rules_to_profile(profile, rules_config)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
     if not _process_vroomrs_profile(profile, project):
         return
@@ -283,9 +288,6 @@ def process_profile_task(
 
 
 def _is_deprecated(profile: Profile, project: Project, organization: Organization) -> bool:
-    if not features.has("organizations:profiling-sdks", organization):
-        return False
-
     try:
         event_type = determine_profile_type(profile)
     except UnknownProfileTypeException:
@@ -339,9 +341,7 @@ def _is_deprecated(profile: Profile, project: Project, organization: Organizatio
         )
         return True
 
-    if features.has("organizations:profiling-deprecate-sdks", organization) and is_sdk_deprecated(
-        event_type, sdk_name, sdk_version
-    ):
+    if is_sdk_deprecated(event_type, sdk_name, sdk_version):
         _track_outcome(
             profile=profile,
             project=project,
@@ -425,6 +425,9 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                     profile=profile,
                     modules=raw_modules,
                     stacktraces=raw_stacktraces,
+                    # Frames in a profile aren't inherently ordered,
+                    # but returned inlinees should be ordered callee first.
+                    frame_order=FrameOrder.callee_first,
                     platform=platform,
                 )
 
@@ -492,7 +495,10 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
 
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
-    profile["retention_days"] = quotas.backend.get_event_retention(organization=organization) or 90
+    profile["retention_days"] = quotas.backend.get_event_retention(
+        organization=organization,
+        category=_get_duration_category(profile),
+    )
     platform = profile["platform"]
     version = profile.get("version")
 
@@ -597,6 +603,7 @@ def symbolicate(
     profile: Profile,
     modules: list[Any],
     stacktraces: list[Any],
+    frame_order: FrameOrder,
     platform: str,
 ) -> Any:
     if platform in SHOULD_SYMBOLICATE_JS:
@@ -606,6 +613,7 @@ def symbolicate(
             modules=modules,
             release=profile.get("release"),
             dist=profile.get("dist"),
+            frame_order=frame_order,
             apply_source_context=False,
         )
     elif platform == "android":
@@ -615,6 +623,7 @@ def symbolicate(
             stacktraces=stacktraces,
             modules=modules,
             release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
+            frame_order=frame_order,
             apply_source_context=False,
             classes=[],
         )
@@ -622,6 +631,7 @@ def symbolicate(
         platform=platform,
         stacktraces=stacktraces,
         modules=modules,
+        frame_order=frame_order,
         apply_source_context=False,
     )
 
@@ -636,6 +646,7 @@ def run_symbolicate(
     profile: Profile,
     modules: list[Any],
     stacktraces: list[Any],
+    frame_order: FrameOrder,
     platform: str,
 ) -> tuple[list[Any], list[Any], bool]:
     symbolication_start_time = time()
@@ -663,12 +674,13 @@ def run_symbolicate(
                 profile=profile,
                 stacktraces=stacktraces,
                 modules=modules,
+                frame_order=frame_order,
                 platform=platform,
             )
 
             if not response:
                 profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                    "type": EventErrorType.NATIVE_INTERNAL_FAILURE,
                 }
                 return modules, stacktraces, False
             elif response["status"] == "completed":
@@ -679,7 +691,7 @@ def run_symbolicate(
                 )
             elif response["status"] == "failed":
                 profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                    "type": EventErrorType.NATIVE_SYMBOLICATOR_FAILED,
                     "status": response.get("status"),
                     "message": response.get("message"),
                 }
@@ -687,7 +699,7 @@ def run_symbolicate(
             else:
                 profile["symbolicator_error"] = {
                     "status": response.get("status"),
-                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                    "type": EventErrorType.NATIVE_INTERNAL_FAILURE,
                 }
                 return modules, stacktraces, False
     except SymbolicationTimeout:
@@ -941,6 +953,9 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                         )
                     },
                 ],
+                # Methods in a profile aren't inherently ordered, but the order of returned
+                # inlinees should be caller first.
+                frame_order=FrameOrder.caller_first,
                 platform=profile["platform"],
             )
             if response:
@@ -1156,13 +1171,15 @@ def _track_duration_outcome(
         key_id=None,
         outcome=Outcome.ACCEPTED,
         timestamp=datetime.now(timezone.utc),
-        category=(
-            DataCategory.PROFILE_DURATION_UI
-            if profile["platform"] in UI_PROFILE_PLATFORMS
-            else DataCategory.PROFILE_DURATION
-        ),
+        category=_get_duration_category(profile),
         quantity=duration_ms,
     )
+
+
+def _get_duration_category(profile: Profile) -> DataCategory:
+    if profile["platform"] in UI_PROFILE_PLATFORMS:
+        return DataCategory.PROFILE_DURATION_UI
+    return DataCategory.PROFILE_DURATION
 
 
 def _calculate_profile_duration_ms(profile: Profile) -> int:
@@ -1704,7 +1721,7 @@ def build_chunk_functions_eap_trace_items(
                 organization_id=chunk.get_organization_id(),
                 project_id=chunk.get_project_id(),
                 trace_id=chunk.get_profiler_id(),  # until we actually get a trace_id from the SDKs
-                item_id=int(chunk.get_profiler_id(), 16).to_bytes(16, "little"),
+                item_id=hex_to_item_id(chunk.get_profiler_id()),
                 item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
                 timestamp=_timestamp(chunk.start_timestamp()),
                 attributes=attributes,
@@ -1780,7 +1797,7 @@ def build_profile_functions_eap_trace_items(
                 organization_id=profile.get_organization_id(),
                 project_id=profile.get_project_id(),
                 trace_id=profile.get_profile_id(),  # until we actually get a trace_id from the SDKs
-                item_id=int(profile.get_profile_id(), 16).to_bytes(16, "little"),
+                item_id=hex_to_item_id(profile.get_profile_id()),
                 item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
                 timestamp=_timestamp(profile.get_timestamp()),
                 attributes=attributes,

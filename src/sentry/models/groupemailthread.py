@@ -2,10 +2,10 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 
 
-@region_silo_model
+@cell_silo_model
 class GroupEmailThread(Model):
     """
     Keep track of the original Message-Id that was sent
@@ -26,6 +26,9 @@ class GroupEmailThread(Model):
         app_label = "sentry"
         db_table = "sentry_groupemailthread"
         unique_together = (("email", "group"), ("email", "msgid"))
-        indexes = [models.Index(fields=["date", "project", "id"])]
+        indexes = [
+            models.Index(fields=["date", "project", "id"]),
+            models.Index(fields=["project", "date"]),
+        ]
 
     __repr__ = sane_repr("email", "group_id", "msgid")

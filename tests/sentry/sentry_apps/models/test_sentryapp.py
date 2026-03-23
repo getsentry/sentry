@@ -4,10 +4,11 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.apiapplication import ApiApplication
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import control_silo_test, create_test_cells
 
 
-@control_silo_test(regions=create_test_regions("us", "eu"))
+@control_silo_test(cells=create_test_cells("us", "eu"))
 class SentryAppTest(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
@@ -31,6 +32,13 @@ class SentryAppTest(TestCase):
         self.sentry_app.delete()
         assert self.sentry_app.date_deleted is not None
         assert self.sentry_app not in SentryApp.objects.all()
+
+    @override_options({"sentry-apps.disable-paranoia": True})
+    def test_paranoid_querying_disabled(self) -> None:
+        self.sentry_app.save()
+        self.sentry_app.delete()
+        assert self.sentry_app.date_deleted is not None
+        assert self.sentry_app in SentryApp.objects.all()
 
     def test_date_updated(self) -> None:
         self.sentry_app.save()
@@ -83,17 +91,17 @@ class SentryAppTest(TestCase):
         outboxes = ControlOutbox.objects.filter(category=OutboxCategory.SENTRY_APP_UPDATE).all()
         assert len(outboxes) == 2
         assert outboxes[0].shard_identifier == self.sentry_app.id
-        assert outboxes[0].region_name
+        assert outboxes[0].cell_name
 
-    def test_regions_with_installations(self) -> None:
+    def test_cells_with_installations(self) -> None:
         self.us_org = self.create_organization(name="us test name", region="us")
         self.create_sentry_app_installation(
             organization=self.us_org, slug=self.sentry_app.slug, prevent_token_exchange=True
         )
-        assert self.sentry_app.regions_with_installations() == {"us"}
+        assert self.sentry_app.cells_with_installations() == {"us"}
 
         self.eu_org = self.create_organization(name="eu test name", region="eu")
         self.create_sentry_app_installation(
             organization=self.eu_org, slug=self.sentry_app.slug, prevent_token_exchange=True
         )
-        assert self.sentry_app.regions_with_installations() == {"us", "eu"}
+        assert self.sentry_app.cells_with_installations() == {"us", "eu"}

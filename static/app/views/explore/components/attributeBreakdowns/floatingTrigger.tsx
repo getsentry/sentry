@@ -1,40 +1,38 @@
 import {useCallback} from 'react';
-import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import type {SelectionCallbackParams} from 'sentry/components/charts/useChartXRangeSelection';
+import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import useRouter from 'sentry/utils/useRouter';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useRouter} from 'sentry/utils/useRouter';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 
 import {useChartSelection} from './chartSelectionContext';
 
 type Props = {
-  boxSelectOptions: BoxSelectOptions;
-  chartInfo: ChartInfo;
+  chartIndex: number;
+  params: SelectionCallbackParams;
   setTab: (tab: Mode | Tab) => void;
-  triggerWrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
-export function FloatingTrigger({
-  boxSelectOptions,
-  chartInfo,
-  triggerWrapperRef,
-  setTab,
-}: Props) {
+export function FloatingTrigger({chartIndex, params, setTab}: Props) {
   const router = useRouter();
-  const triggerPosition = boxSelectOptions.floatingTriggerPosition;
+  const organization = useOrganization();
   const {setChartSelection} = useChartSelection();
+  const {selectionState, setSelectionState, clearSelection} = params;
 
   const handleZoomIn = useCallback(() => {
-    const coordRange = boxSelectOptions.xRange;
-    let startTimestamp = coordRange?.[0];
-    let endTimestamp = coordRange?.[1];
+    if (!selectionState) return;
+
+    trackAnalytics('explore.floating_trigger.zoom_in', {organization});
+
+    const coordRange = selectionState.selection.range;
+    let startTimestamp = coordRange[0];
+    let endTimestamp = coordRange[1];
 
     if (!startTimestamp || !endTimestamp) {
       return;
@@ -55,37 +53,50 @@ export function FloatingTrigger({
       router,
       {save: true}
     );
-    boxSelectOptions.clearSelection();
-  }, [boxSelectOptions, router]);
+
+    clearSelection();
+  }, [clearSelection, selectionState, router, organization]);
 
   const handleFindAttributeBreakdowns = useCallback(() => {
+    if (!selectionState) return;
+
+    trackAnalytics('explore.floating_trigger.compare_attribute_breakdowns', {
+      organization,
+    });
+
+    setSelectionState({
+      ...selectionState,
+      isActionMenuVisible: false,
+    });
     setChartSelection({
-      boxSelectOptions,
-      chartInfo,
+      selection: selectionState.selection,
+      chartIndex,
     });
     setTab(Tab.ATTRIBUTE_BREAKDOWNS);
-  }, [boxSelectOptions, chartInfo, setChartSelection, setTab]);
+  }, [
+    selectionState,
+    setSelectionState,
+    chartIndex,
+    setChartSelection,
+    setTab,
+    organization,
+  ]);
 
-  if (!triggerPosition) return null;
-
-  return createPortal(
-    <div
-      ref={triggerWrapperRef}
-      style={{
-        position: 'absolute',
-        top: triggerPosition.top,
-        left: triggerPosition.left,
-        zIndex: 1000,
-      }}
-    >
-      <List>
-        <ListItem onClick={handleZoomIn}>{t('Zoom in')}</ListItem>
-        <ListItem onClick={handleFindAttributeBreakdowns}>
-          {t('Compare Attribute Breakdowns')}
-        </ListItem>
-      </List>
-    </div>,
-    document.body
+  return (
+    <List>
+      <ListItem onClick={handleZoomIn}>{t('Zoom in')}</ListItem>
+      <ListItem onClick={handleFindAttributeBreakdowns}>
+        {t('Compare Attribute Breakdowns')}
+      </ListItem>
+      <ListItem
+        onClick={() => {
+          trackAnalytics('explore.floating_trigger.clear_selection', {organization});
+          clearSelection();
+        }}
+      >
+        {t('Clear Selection')}
+      </ListItem>
+    </List>
   );
 }
 
@@ -95,20 +106,26 @@ const List = styled('ul')`
   padding: 0;
   margin-bottom: 0 !important;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-  background: ${p => p.theme.backgroundElevated};
-  color: ${p => p.theme.textColor};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
+  transform: translateY(-20px);
 `;
 
 const ListItem = styled('li')`
-  font-size: ${p => p.theme.fontSize.md};
-  padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  font-size: ${p => p.theme.font.size.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   cursor: pointer;
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
   &:last-child {
     border-bottom: 0;

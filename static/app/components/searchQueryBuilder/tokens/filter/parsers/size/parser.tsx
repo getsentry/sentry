@@ -1,4 +1,4 @@
-import grammar from './grammar.pegjs';
+import {parse} from './grammar.pegjs';
 
 type SizeTokenValue = {
   value: string;
@@ -14,7 +14,7 @@ type SizeTokenValue = {
  */
 export function parseFilterValueSize(query: string): SizeTokenValue | null {
   try {
-    return grammar.parse(query);
+    return parse(query);
   } catch (e) {
     return null;
   }

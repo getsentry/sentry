@@ -12,7 +12,7 @@ from sentry.users.services.user.service import user_service
 
 class GroupSearchViewSerializerResponse(TypedDict):
     id: str
-    createdBy: UserSerializerResponse
+    createdBy: UserSerializerResponse | None
     name: str
     query: str
     querySort: SORT_LITERALS
@@ -54,6 +54,7 @@ class GroupSearchViewSerializer(Serializer):
                 filter={"user_ids": [view.user_id for view in item_list if view.user_id]},
                 as_user=user,
             )
+            if user is not None
         }
 
         for item in item_list:

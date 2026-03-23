@@ -3,9 +3,9 @@ import {Fragment, useState} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import useApi from 'sentry/utils/useApi';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -39,7 +39,7 @@ function RefundVercelRequestModal({
       reason,
     };
 
-    api.request(`/_admin/${orgSlug}/refund-vercel/`, {
+    api.request(`/customers/${orgSlug}/refund-vercel/`, {
       method: 'POST',
       data,
       success: () => {
@@ -86,9 +86,7 @@ function RefundVercelRequestModal({
 
 type Options = Pick<Props, 'onSuccess' | 'subscription'>;
 
-const refundVercelRequest = (opts: Options) =>
+export const refundVercelRequest = (opts: Options) =>
   openModal(deps => <RefundVercelRequestModal {...deps} {...opts} />, {
     closeEvents: 'escape-key',
   });
-
-export default refundVercelRequest;

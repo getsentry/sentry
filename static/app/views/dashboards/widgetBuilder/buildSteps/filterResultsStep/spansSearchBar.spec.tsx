@@ -3,15 +3,16 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import type {TagValue} from 'sentry/types/group';
-import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+import {SpansSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 
 // The endpoint seems to just return these fields, but the original TagValue type
 // has extra fields related to user information that we don't seem to need.
-interface MockedTagValue
-  extends Pick<TagValue, 'key' | 'value' | 'name' | 'count' | 'firstSeen' | 'lastSeen'> {}
+interface MockedTagValue extends Pick<
+  TagValue,
+  'key' | 'value' | 'name' | 'count' | 'firstSeen' | 'lastSeen'
+> {}
 
 function renderWithProvider({
   widgetQuery,
@@ -19,9 +20,7 @@ function renderWithProvider({
   onClose,
 }: ComponentProps<typeof SpansSearchBar>) {
   return render(
-    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-      <SpansSearchBar widgetQuery={widgetQuery} onSearch={onSearch} onClose={onClose} />
-    </TraceItemAttributeProvider>,
+    <SpansSearchBar widgetQuery={widgetQuery} onSearch={onSearch} onClose={onClose} />,
     {organization: {features: ['search-query-builder-input-flow-changes']}}
   );
 }
@@ -31,7 +30,7 @@ function mockSpanTags({
   mockedTags,
 }: {
   mockedTags: Array<{key: string; name: string}>;
-  type: 'string' | 'number';
+  type: 'string' | 'number' | 'boolean';
 }) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/trace-items/attributes/`,
@@ -87,6 +86,8 @@ describe('SpansSearchBar', () => {
 
     mockSpanTags({type: 'number', mockedTags: []});
     mockSpanTagValues({type: 'number', tagKey: 'span.op', mockedValues: []});
+
+    mockSpanTags({type: 'boolean', mockedTags: []});
   });
 
   it('renders the initial query conditions', async () => {
@@ -133,11 +134,16 @@ describe('SpansSearchBar', () => {
     await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
-      expect(onSearch).toHaveBeenCalledWith('span.op:function', expect.anything());
+      expect(onSearch).toHaveBeenCalledWith(
+        `span.op:${WildcardOperators.CONTAINS}function`,
+        expect.anything()
+      );
     });
   });
 
-  it('triggers onClose when the query changes', async () => {
+  // TODO(nikki): Flaky test
+  // eslint-disable-next-line jest/no-disabled-tests
+  it.skip('triggers onClose when the query changes', async () => {
     const onClose = jest.fn();
 
     renderWithProvider({

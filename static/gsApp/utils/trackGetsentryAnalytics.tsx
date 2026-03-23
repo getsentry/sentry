@@ -1,7 +1,7 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
+import {makeAnalyticsFunction} from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {AddOnCategory, CheckoutType, Subscription} from 'getsentry/types';
@@ -23,7 +23,6 @@ type AddEventCTA = HasSub & {
   event_types?: string;
 };
 type BillingInfoUpdateEvent = {
-  isStripeComponent: boolean;
   referrer?: string;
 };
 type ManualPaymentEvent = BillingInfoUpdateEvent;
@@ -79,7 +78,6 @@ type GetsentryEventParameters = {
   'checkout.data_slider_changed': {data_type: string; quantity: number};
   // no sub here;
   'checkout.data_sliders_viewed': Record<PropertyKey, unknown>;
-  // only used for checkout v3
   'checkout.exit': HasSub;
   'checkout.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;
@@ -102,9 +100,19 @@ type GetsentryEventParameters = {
   'checkout.updated_billing_details': BillingInfoUpdateEvent;
   'checkout.updated_cc': BillingInfoUpdateEvent;
   // no sub here
-  'checkout.upgrade': Partial<
-    Record<DataCategory | `previous_${DataCategory}`, number | undefined>
-  > & {previous_plan: string} & Checkout;
+  'checkout.upgrade': {
+    previous_plan: string;
+    categories?: Partial<
+      Record<
+        DataCategory,
+        {
+          previous_reserved: number | undefined;
+          reserved: number | undefined;
+        }
+      >
+    >;
+  } & Partial<Record<DataCategory | `previous_${DataCategory}`, number | undefined>> &
+    Checkout;
   'data_consent_modal.learn_more': Record<PropertyKey, unknown>;
   'data_consent_priority.viewed': Record<PropertyKey, unknown>;
   'data_consent_settings.updated': {setting: string; value: FieldValue};
@@ -123,9 +131,6 @@ type GetsentryEventParameters = {
   'growth.clicked_enter_sandbox': {
     scenario: string;
   };
-  'growth.codecov_promotion_accept': HasSub;
-  'growth.codecov_promotion_decline': HasSub;
-  'growth.codecov_promotion_opened': HasSub;
   'growth.disabled_dashboard.viewed': Record<PropertyKey, unknown>;
   'growth.issue_open_in_discover_upsell_clicked': Record<PropertyKey, unknown>;
   'growth.metric_alert_banner.clicked': HasSub;
@@ -191,6 +196,21 @@ type GetsentryEventParameters = {
   'sales.contact_us_clicked': {
     source: string;
   } & HasSub;
+  'seer.onboarding.code_review_updated': {
+    added_repositories: number;
+    removed_repositories: number;
+  };
+  'seer.onboarding.defaults_updated': {
+    auto_create_pr: boolean;
+    enable_code_review: boolean;
+    enable_root_cause_analysis: boolean;
+  };
+  'seer.onboarding.root_cause_analysis_updated': {
+    auto_create_pr: boolean;
+    projects_mapped: number;
+  };
+  'seer.onboarding.started': {stepNumber: number};
+  'seer.onboarding.step_changed': {stepNumber: number};
   'spend_allocations.open_form': {create_or_edit: string} & HasSub;
   'spend_allocations.submit': {create_or_edit: string} & HasSub;
   'subscription_page.display_mode.changed': {
@@ -203,9 +223,13 @@ type GetsentryEventParameters = {
     addOnCategory: AddOnCategory;
     isOpen: boolean;
   } & HasSub;
-  'subscription_page.usage_overview.row_clicked': {
-    dataCategory: DataCategory;
-  } & HasSub;
+  'subscription_page.usage_overview.row_clicked': (
+    | {
+        dataCategory: DataCategory;
+      }
+    | {addOnCategory: AddOnCategory}
+  ) &
+    HasSub;
   'subscription_page.usage_overview.transform_changed': {
     transform: string;
   } & HasSub;
@@ -243,7 +267,7 @@ type UpdateProps = Pick<Subscription, 'planTier' | 'canSelfServe' | 'channel'> &
 
 export type GetsentryEventKey = keyof GetsentryEventParameters;
 
-export const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
+const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'power_icon.clicked': 'Clicked Power Icon',
   'github.multi_org.upsell': 'Github Multi-Org Upsell Clicked',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
@@ -262,9 +286,6 @@ export const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'growth.promo_reminder_modal_keep': 'Growth: Promo Reminder Modal Keep',
   'growth.promo_reminder_modal_continue_downgrade':
     'Growth: Promo Reminder Modal Continue Downgrade',
-  'growth.codecov_promotion_accept': 'Growth: Codecov Promotion Accept',
-  'growth.codecov_promotion_decline': 'Growth: Codecov Promotion Decline',
-  'growth.codecov_promotion_opened': 'Growth: Codecov Promotion Opened',
   'quota_alert.shown': 'Quota Alert: Shown',
   'quota_alert.clicked_snooze': 'Quota Alert: Clicked Snooze',
   'quota_alert.clicked_unsnooze': 'Quota Alert: Clicked Unsnooze',
@@ -333,6 +354,12 @@ export const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'replay.list_page.open_modal': 'Replay E2E Checkout: Opened Modal from List Page',
   'replay.list_page.sent_email': 'Replay E2E Checkout: Sent Email from List Page',
   'replay.list_page.viewed': 'Replay E2E Checkout: Viewed List Page',
+  'seer.onboarding.started': 'Seer Onboarding: Started',
+  'seer.onboarding.step_changed': 'Seer Onboarding: Step Changed',
+  'seer.onboarding.code_review_updated': 'Seer Onboarding: Code Review Updated',
+  'seer.onboarding.root_cause_analysis_updated':
+    'Seer Onboarding: Root Cause Analysis Updated',
+  'seer.onboarding.defaults_updated': 'Seer Onboarding: Defaults Updated',
   'upgrade_now.alert.dismiss': 'Upgrade Now Alert: Dismissed',
   'upgrade_now.alert.manage_sub': 'Upgrade Now Alert: Clicked Managed Subscription',
   'upgrade_now.alert.open_modal': 'Upgrade Now Alert: Opened Modal',
@@ -367,9 +394,7 @@ export const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
     'Subscription Page: Usage Overview Add On Toggled',
 };
 
-const trackGetsentryAnalytics = makeAnalyticsFunction<
+export const trackGetsentryAnalytics = makeAnalyticsFunction<
   GetsentryEventParameters,
   {organization: Organization}
 >(GETSENTRY_EVENT_MAP);
-
-export default trackGetsentryAnalytics;

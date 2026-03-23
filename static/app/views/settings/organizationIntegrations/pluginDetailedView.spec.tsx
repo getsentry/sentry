@@ -1,7 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PluginFixture} from 'sentry-fixture/plugin';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -37,13 +36,14 @@ describe('PluginDetailedView', () => {
   });
 
   it('shows the Integration name and install status', async () => {
-    const router = RouterFixture({
-      params: {orgId: organization.slug, integrationSlug: plugin.slug},
-    });
     render(<PluginDetailedView />, {
+      initialRouterConfig: {
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/${plugin.slug}/`,
+        },
+      },
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText(plugin.name)).toBeInTheDocument();
@@ -51,15 +51,15 @@ describe('PluginDetailedView', () => {
   });
 
   it('view configurations', async () => {
-    const router = RouterFixture({
-      params: {orgId: organization.slug, integrationSlug: plugin.slug},
-      location: {query: {tab: 'configurations'}},
-    });
-
     render(<PluginDetailedView />, {
-      router,
+      initialRouterConfig: {
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/${plugin.slug}/`,
+          query: {tab: 'configurations'},
+        },
+      },
       organization,
-      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText(plugin.name)).toBeInTheDocument();

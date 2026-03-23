@@ -2,25 +2,33 @@ from collections.abc import Sequence
 from typing import Any
 from unittest import mock
 
+import responses
+
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import (
     Action,
+    DataConditionGroup,
     DetectorWorkflow,
     Workflow,
-    WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
-from tests.sentry.workflow_engine.test_base import MockActionValidatorTranslator
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
+from tests.sentry.workflow_engine.test_base import (
+    BaseWorkflowTest,
+    MockActionValidatorTranslator,
+    ProjectAccessTestMixin,
+)
 
 
 class OrganizationWorkflowAPITestCase(APITestCase):
@@ -31,7 +39,7 @@ class OrganizationWorkflowAPITestCase(APITestCase):
         self.login_as(user=self.user)
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -52,7 +60,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
                 workflow=workflow,
                 group=self.group,
                 event_id=self.event.event_id,
-                is_single_written=True,
             )
 
     def test_simple(self) -> None:
@@ -63,6 +70,20 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert "X-Hits" in response
         hits = int(response["X-Hits"])
         assert hits == 3
+
+    def test_only_returns_workflows_from_organization(self) -> None:
+        other_org = self.create_organization()
+        self.create_workflow(organization_id=other_org.id, name="Other Org Workflow")
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 3
+        workflow_names = {w["name"] for w in response.data}
+        assert "Other Org Workflow" not in workflow_names
+        assert workflow_names == {
+            self.workflow.name,
+            self.workflow_two.name,
+            self.workflow_three.name,
+        }
 
     def test_empty_result(self) -> None:
         response = self.get_success_response(
@@ -94,7 +115,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             qs_params={"id": "not-an-id"},
             status_code=400,
         )
-        assert response.data == {"id": ["Invalid ID format"]}
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_sort_by_name(self) -> None:
         response = self.get_success_response(self.organization.slug, qs_params={"sortBy": "-name"})
@@ -125,7 +147,9 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
     def test_sort_by_connected_detectors(self) -> None:
         detector = self.create_detector(project=self.project, name="A Test Detector")
-        detector_two = self.create_detector(project=self.project, name="B Test Detector 2")
+        detector_two = self.create_detector(
+            project=self.project, name="B Test Detector 2", type=MetricIssue.slug
+        )
 
         self.create_detector_workflow(
             workflow=self.workflow,
@@ -153,6 +177,57 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.workflow_three.name,
             self.workflow_two.name,
         ]
+
+    def test_priority_detector(self) -> None:
+        """Test priorityDetector param - workflows connected to the specified detector appear first."""
+        fresh_org = self.create_organization(name="Fresh Org", owner=self.user)
+        fresh_project = self.create_project(organization=fresh_org)
+
+        workflow_a = self.create_workflow(organization_id=fresh_org.id, name="Workflow A")
+        workflow_b = self.create_workflow(organization_id=fresh_org.id, name="Workflow B")
+        workflow_c = self.create_workflow(organization_id=fresh_org.id, name="Workflow C")
+
+        detector_x = self.create_detector(
+            project=fresh_project, name="Detector X", type=MetricIssue.slug
+        )
+        detector_y = self.create_detector(
+            project=fresh_project, name="Detector Y", type=ErrorGroupType.slug
+        )
+
+        # workflow_a is connected to detector_x
+        self.create_detector_workflow(workflow=workflow_a, detector=detector_x)
+        # workflow_b is connected to detector_y
+        self.create_detector_workflow(workflow=workflow_b, detector=detector_y)
+        # workflow_c has no detector connection
+
+        # Priority detector_x - workflow_a should come first
+        response = self.get_success_response(
+            fresh_org.slug, qs_params={"priorityDetector": str(detector_x.id)}
+        )
+        assert response.data[0]["name"] == workflow_a.name
+
+        # Priority detector_y - workflow_b should come first
+        response2 = self.get_success_response(
+            fresh_org.slug, qs_params={"priorityDetector": str(detector_y.id)}
+        )
+        assert response2.data[0]["name"] == workflow_b.name
+
+        # Can combine with sortBy - priority detector still comes first, then sorted by name
+        response3 = self.get_success_response(
+            fresh_org.slug,
+            qs_params={"priorityDetector": str(detector_x.id), "sortBy": "-name"},
+        )
+        # workflow_a (priority) first, then others sorted by -name (C before B)
+        assert response3.data[0]["name"] == workflow_a.name
+        assert response3.data[1]["name"] == workflow_c.name
+        assert response3.data[2]["name"] == workflow_b.name
+
+    def test_priority_detector_invalid_format(self) -> None:
+        """Test error handling for invalid priorityDetector format."""
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"priorityDetector": "not-a-number"}
+        )
+        assert "priorityDetector" in response.data
 
     def test_invalid_sort_by(self) -> None:
         response = self.get_error_response(
@@ -208,13 +283,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         ][0]
 
     def test_sort_by_last_triggered(self) -> None:
-        # Fresh fire for self.workflow that would impact sorting if not ignored.
-        WorkflowFireHistory.objects.create(
-            workflow=self.workflow,
-            group=self.group,
-            event_id=self.event.event_id,
-            is_single_written=False,
-        )
         response = self.get_success_response(
             self.organization.slug, qs_params={"sortBy": "lastTriggered"}
         )
@@ -266,6 +334,13 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params={"query": "Chicago"}
         )
         assert len(response3.data) == 0
+
+    def test_query_invalid_key(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"query": "invalid_key:value"}, status_code=400
+        )
+        assert "query" in response.data
+        assert "Invalid key for this search: invalid_key" in str(response.data["query"])
 
     def test_filter_by_project(self) -> None:
         self.create_detector_workflow(
@@ -350,52 +425,53 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert len(response3.data) == 2
         assert {self.workflow.name, self.workflow_two.name} == {w["name"] for w in response3.data}
 
-    def test_sort_by_last_triggered_with_non_single_written_only(self) -> None:
-        workflow_never_fired = self.create_workflow(
-            organization_id=self.organization.id, name="Never Fired"
-        )
+    def test_filter_by_detector(self) -> None:
+        project_1 = self.create_project(organization=self.organization)
+        project_2 = self.create_project(organization=self.organization)
+        project_3 = self.create_project(organization=self.organization)
 
-        workflow_non_single_written_only = self.create_workflow(
-            organization_id=self.organization.id, name="Non Single Written Only"
-        )
-        WorkflowFireHistory.objects.create(
-            workflow=workflow_non_single_written_only,
-            group=self.group,
-            event_id=self.event.event_id,
-            is_single_written=False,
-        )
+        detector_1 = self.create_detector(project=project_1, name="Detector 1")
+        detector_2 = self.create_detector(project=project_2, name="Detector 2")
+        detector_3 = self.create_detector(project=project_3, name="Detector 3")
 
-        # Test ascending order (lastTriggered)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector_1)
+        self.create_detector_workflow(workflow=self.workflow_two, detector=detector_2)
+        self.create_detector_workflow(workflow=self.workflow_three, detector=detector_3)
+
+        # Filter by single detector
         response = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "lastTriggered"}
+            self.organization.slug,
+            qs_params={"detector": str(detector_1.id)},
         )
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == self.workflow.name
 
-        # Workflows without single-written history should come first, then those with it
-        expected_ascending_order = [
-            self.workflow_three.name,
-            workflow_never_fired.name,
-            workflow_non_single_written_only.name,
-            self.workflow.name,
-            self.workflow_two.name,
-        ]
-
-        assert [w["name"] for w in response.data] == expected_ascending_order
-
-        # Test descending order (-lastTriggered)
-        response_desc = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "-lastTriggered"}
+        # Filter by multiple detectors
+        response2 = self.get_success_response(
+            self.organization.slug,
+            qs_params=[
+                ("detector", str(detector_1.id)),
+                ("detector", str(detector_2.id)),
+            ],
         )
+        assert len(response2.data) == 2
+        assert {w["name"] for w in response2.data} == {self.workflow.name, self.workflow_two.name}
 
-        # In descending order, workflows with single-written history should come first
-        expected_descending_order = [
-            self.workflow_two.name,
-            self.workflow.name,
-            workflow_non_single_written_only.name,
-            workflow_never_fired.name,
-            self.workflow_three.name,
-        ]
+        # Filter by non-existent detector ID returns no results
+        response3 = self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector": "999999"},
+        )
+        assert len(response3.data) == 0
 
-        assert [w["name"] for w in response_desc.data] == expected_descending_order
+        # Invalid detector ID format returns error
+        response4 = self.get_error_response(
+            self.organization.slug,
+            qs_params={"detector": "not-an-id"},
+            status_code=400,
+        )
+        assert "detector" in response4.data
+        assert "not a valid integer id" in str(response4.data["detector"])
 
     def test_compound_query(self) -> None:
         self.create_detector_workflow(
@@ -423,8 +499,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert len(response.data) == 1
 
 
-@region_silo_test
-class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
+@cell_silo_test
+class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkflowTest):
     method = "POST"
 
     def setUp(self) -> None:
@@ -446,6 +522,28 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             role="member",
             organization=self.organization,
         )
+        self.basic_condition = [
+            {
+                "type": Condition.EQUAL.value,
+                "comparison": 1,
+                "conditionResult": True,
+            }
+        ]
+        self.basic_trigger = [
+            {
+                "type": Condition.FIRST_SEEN_EVENT,
+                "comparison": True,
+                "conditionResult": True,
+            }
+        ]
+        self.sentry_app, _ = self.create_sentry_app_with_schema()
+        self.sentry_app_settings = [
+            {"name": "alert_prefix", "value": "[Not Good]"},
+            {"name": "channel", "value": "#ignored-errors"},
+            {"name": "best_emoji", "value": ":fire:"},
+            {"name": "teamId", "value": "1"},
+            {"name": "assigneeId", "value": "3"},
+        ]
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
@@ -466,6 +564,32 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             data=new_workflow.get_audit_log_data(),
         )
 
+    def test_create_workflow__with_owner(self) -> None:
+        self.valid_workflow["owner"] = f"user:{self.user.id}"
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+        assert response.data["owner"] == f"user:{self.user.id}"
+        assert new_workflow.owner_user_id == self.user.id
+
+    def test_create_workflow__with_environment(self) -> None:
+        self.valid_workflow["environment"] = self.environment.name
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+        assert response.data["environment"] == self.environment.name
+        assert new_workflow.environment_id == self.environment.id
+
     def test_create_workflow__with_config(self) -> None:
         self.valid_workflow["config"] = {"frequency": 100}
         response = self.get_success_response(
@@ -475,18 +599,14 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
-        assert new_workflow.config == self.valid_workflow["config"]
+        assert response.data == serialize(new_workflow)
 
     def test_create_workflow__with_triggers(self) -> None:
+        # TODO: the basic condition is not actually a trigger, it's an actionFilter
+        # we should restrict the Condition types to be passed through a trigger
         self.valid_workflow["triggers"] = {
             "logicType": "any",
-            "conditions": [
-                {
-                    "type": "eq",
-                    "comparison": 1,
-                    "conditionResult": True,
-                }
-            ],
+            "conditions": self.basic_condition,
         }
 
         response = self.get_success_response(
@@ -496,10 +616,33 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
-        assert new_workflow.when_condition_group is not None
-        assert str(new_workflow.when_condition_group.id) == response.data.get("triggers", {}).get(
-            "id"
+        assert response.data == serialize(new_workflow)
+
+    def test_create_workflow__with_triggers_valid_logic_type(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": self.basic_trigger,
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
         )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+
+    def test_create_workflow__with_triggers_invalid_logic_type(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "all",
+            "conditions": self.basic_trigger,
+        }
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+        assert "logic type must be 'any-short'" in str(response.data).lower()
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.action_validator_registry.get",
@@ -509,13 +652,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         self.valid_workflow["actionFilters"] = [
             {
                 "logicType": "any",
-                "conditions": [
-                    {
-                        "type": "eq",
-                        "comparison": 1,
-                        "conditionResult": True,
-                    }
-                ],
+                "conditions": self.basic_condition,
                 "actions": [
                     {
                         "type": Action.Type.SLACK,
@@ -538,11 +675,152 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
-        new_action_filters = WorkflowDataConditionGroup.objects.filter(workflow=new_workflow)
-        assert len(new_action_filters) == len(response.data.get("actionFilters", []))
-        assert str(new_action_filters[0].condition_group.id) == response.data.get(
-            "actionFilters", []
-        )[0].get("id")
+        assert response.data == serialize(new_workflow)
+
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_create_workflow__with_fallthrough_type_action(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "type": Action.Type.EMAIL,
+                        "config": {
+                            "targetType": "issue_owners",
+                        },
+                        "data": {"fallthroughType": "ActiveMembers"},
+                    },
+                ],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+
+    @responses.activate
+    def test_create_workflow_with_sentry_app_action(self) -> None:
+        """
+        Test that you can add a sentry app with settings
+        (e.g. a sentry app that makes a ticket in some 3rd party system as opposed to one without settings)
+        """
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+        )
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "config": {
+                            "targetIdentifier": str(self.sentry_app.id),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {"settings": self.sentry_app_settings},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+        updated_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(updated_workflow)
+
+    @responses.activate
+    def test_create_sentry_app_action_missing_settings(self) -> None:
+        """
+        Test that if you forget to pass settings to your sentry app action it will fail and tell you why.
+        Settings are only required if the sentry app schema is not an empty dict
+        """
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+        )
+
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "config": {
+                            "targetIdentifier": str(self.sentry_app.id),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+        response = self.get_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 400
+        assert "'settings' is a required property" in str(response.data).lower()
+
+    @responses.activate
+    def test_create_sentry_app_action_no_settings(self) -> None:
+        """
+        Test that if you are creating a sentry app action for a sentry app that has no schema it works as expected when settings are not passed
+        because settings are not expected
+        """
+        sentry_app = self.create_sentry_app(
+            name="Moo Deng's Wind Sentry App",
+            organization=self.organization,
+            is_alertable=True,
+        )
+        self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.organization)
+
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+        )
+
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "config": {
+                            "targetIdentifier": str(sentry_app.id),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+        updated_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(updated_workflow)
 
     def test_create_invalid_workflow(self) -> None:
         self.valid_workflow["name"] = ""
@@ -673,7 +951,13 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert Workflow.objects.count() == 0
 
-    def test_create_workflow_with_unauthorized_detectors(self) -> None:
+    def test_create_workflow_with_inaccessible_project_detector(self) -> None:
+        """
+        Test that users cannot connect detectors from projects they don't have access to.
+        Even with alerts:write enabled org-wide, users must have project-level access
+        to connect a detector to a workflow.
+        """
+        self.organization.update_option("sentry:alerts_member_write", True)
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
@@ -700,8 +984,130 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         created_detector_workflows = DetectorWorkflow.objects.all()
         assert created_detector_workflows.count() == 0
 
+    def test_create_workflow_with_accessible_project_detector(self) -> None:
+        """
+        Test that users CAN connect detectors from projects they have access to.
+        """
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
 
-@region_silo_test
+        self.login_as(user=self.member_user)
+
+        # Create a detector in a project the member HAS access to (via their team)
+        accessible_detector = self.create_detector(
+            project=self.project,  # member_user has access via self.team
+            created_by_id=self.user.id,
+        )
+
+        workflow_data = {
+            **self.valid_workflow,
+            "detectorIds": [accessible_detector.id],
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+        )
+
+        # Verify detector-workflow connection was created
+        created_detector_workflows = DetectorWorkflow.objects.all()
+        assert created_detector_workflows.count() == 1
+
+    def test_cannot_create_workflow_without_alerts_write(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.member_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+            status_code=403,
+        )
+
+    def test_create_trigger_condition_from_different_organization(self) -> None:
+        """Test that conditionGroupId in trigger conditions cannot reference another org's group"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        original_condition_count = other_dcg.conditions.count()
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {
+                        "conditionGroupId": other_dcg.id,
+                        "type": "first_seen_event",
+                        "comparison": True,
+                        "conditionResult": True,
+                    }
+                ],
+            },
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=data,
+            status_code=201,
+        )
+
+        # Workflow should be created successfully, but the conditionGroupId should be ignored
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert new_workflow.when_condition_group is not None
+        assert new_workflow.when_condition_group.organization_id == self.organization.id
+
+        # Verify the other org's condition group was not modified
+        other_dcg.refresh_from_db()
+        assert other_dcg.conditions.count() == original_condition_count
+
+    def test_create_action_filter_condition_from_different_organization(self) -> None:
+        """Test that conditionGroupId in action filter conditions cannot reference another org's group"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        original_condition_count = other_dcg.conditions.count()
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "logicType": "any-short",
+                    "conditions": [
+                        {
+                            "conditionGroupId": other_dcg.id,
+                            "type": "first_seen_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        }
+                    ],
+                    "actions": [],
+                }
+            ],
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=data,
+            status_code=201,
+        )
+
+        # Workflow should be created successfully, but the conditionGroupId should be ignored
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        action_filter_dcgs = new_workflow.workflowdataconditiongroup_set.all()
+        for dcg_wrapper in action_filter_dcgs:
+            assert dcg_wrapper.condition_group.organization_id == self.organization.id
+
+        # Verify the other org's condition group was not modified
+        other_dcg.refresh_from_db()
+        assert other_dcg.conditions.count() == original_condition_count
+
+
+@cell_silo_test
 class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
     method = "PUT"
 
@@ -849,7 +1255,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         assert self.workflow_three.enabled is False
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
     method = "DELETE"
 
@@ -884,11 +1290,11 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         self.workflow_two.refresh_from_db()
         assert self.workflow.status == ObjectStatus.PENDING_DELETION
         assert self.workflow_two.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow_two.id,
         ).exists()
@@ -915,7 +1321,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         # Ensure the workflow is scheduled for deletion
         self.workflow.refresh_from_db()
         assert self.workflow.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -953,11 +1359,11 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         self.workflow_two.refresh_from_db()
         assert self.workflow.status == ObjectStatus.PENDING_DELETION
         assert self.workflow_two.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow_two.id,
         ).exists()
@@ -1016,7 +1422,8 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
             status_code=400,
         )
 
-        assert "Invalid ID format" in str(response.data["id"])
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_delete_workflows_filtering_ignored_with_ids(self) -> None:
         # Link workflow to project via detector
@@ -1037,7 +1444,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         # Ensure the workflow is scheduled for deletion
         self.workflow_two.refresh_from_db()
         assert self.workflow_two.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow_two.id,
         ).exists()
@@ -1066,3 +1473,229 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
             target_object=self.workflow.id,
             actor=self.user,
         )
+
+
+@cell_silo_test
+class OrganizationWorkflowProjectAccessTest(
+    OrganizationWorkflowAPITestCase, ProjectAccessTestMixin
+):
+    """
+    Security tests to verify that project filtering is properly enforced.
+
+    These tests ensure that users cannot access workflows connected to projects
+    they don't have access to, even when specifying workflow IDs directly.
+    This is a regression test for an IDOR vulnerability.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+
+    def test_get_cannot_access_workflows_from_inaccessible_projects_by_id(self) -> None:
+        """
+        Test that users cannot GET workflows connected to projects they don't have access to,
+        even when specifying the workflow ID directly.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to get the other workflow by ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.other_workflow.id)},
+        )
+        # The workflow should not be in the results
+        assert len(response.data) == 0
+
+    def test_get_can_access_workflows_from_accessible_projects_by_id(self) -> None:
+        """
+        Test that users CAN GET workflows connected to projects they have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to get their own workflow by ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.user_workflow.id)},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.user_workflow.id)
+
+    def test_get_can_access_unattached_workflows_by_id(self) -> None:
+        """
+        Test that users can access workflows with no detector connections (org-level workflows).
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to get unattached workflows
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.unattached_workflow.id)},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.unattached_workflow.id)
+
+    def test_get_filters_workflows_by_project_access(self) -> None:
+        """
+        Test that listing workflows only returns those connected to accessible projects.
+        """
+        self.login_as(self.limited_user)
+
+        # List all workflows - should only see user's workflow and unattached workflow
+        response = self.get_success_response(self.organization.slug)
+        workflow_ids = {w["id"] for w in response.data}
+
+        assert str(self.user_workflow.id) in workflow_ids
+        assert str(self.unattached_workflow.id) in workflow_ids
+        assert str(self.other_workflow.id) not in workflow_ids
+
+    def test_get_user_with_no_project_access_only_sees_org_level_workflows(self) -> None:
+        """
+        Regression test: Users with org-level permissions but NO project access
+        (e.g., org member not on any teams with open membership disabled) should
+        only see org-level workflows (those with no detector connections).
+
+        Previously, when get_projects() returned an empty list, the project filter
+        was skipped entirely due to `if projects:` being falsy, which exposed
+        all workflows including those connected to projects the user shouldn't access.
+        """
+        # Create a user who is a member of the org but NOT on any team
+        no_access_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=no_access_user,
+            organization=self.organization,
+            role="member",
+            teams=[],  # No team membership = no project access
+        )
+
+        self.login_as(no_access_user)
+
+        # List all workflows - should ONLY see the unattached workflow
+        response = self.get_success_response(self.organization.slug)
+        workflow_ids = {w["id"] for w in response.data}
+
+        # User should NOT see workflows connected to projects (even by listing all)
+        assert str(self.user_workflow.id) not in workflow_ids
+        assert str(self.other_workflow.id) not in workflow_ids
+        # User SHOULD see org-level workflows with no detector connections
+        assert str(self.unattached_workflow.id) in workflow_ids
+
+
+@cell_silo_test
+class OrganizationWorkflowPutProjectAccessTest(
+    OrganizationWorkflowAPITestCase, ProjectAccessTestMixin
+):
+    """
+    Security tests for PUT endpoint project access filtering.
+    """
+
+    method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+        # Set workflows to disabled for PUT tests
+        self.user_workflow.enabled = False
+        self.user_workflow.save()
+        self.other_workflow.enabled = False
+        self.other_workflow.save()
+
+    def test_put_cannot_modify_workflows_from_inaccessible_projects(self) -> None:
+        """
+        Test that users cannot PUT (modify) workflows connected to projects they don't have
+        access to, even when specifying the workflow ID directly.
+        This is a regression test for an IDOR vulnerability.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to modify the other workflow
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.other_workflow.id)},
+            raw_data={"enabled": True},
+        )
+        # Should return "No workflows found" because the workflow was filtered out
+        assert "No workflows found" in str(response.data.get("detail", ""))
+
+        # Verify the workflow was NOT modified
+        self.other_workflow.refresh_from_db()
+        assert self.other_workflow.enabled is False
+
+    def test_put_can_modify_workflows_from_accessible_projects(self) -> None:
+        """
+        Test that users CAN PUT (modify) workflows connected to projects they have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to modify their own workflow
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.user_workflow.id)},
+            raw_data={"enabled": True},
+        )
+
+        # Verify the workflow WAS modified
+        self.user_workflow.refresh_from_db()
+        assert self.user_workflow.enabled is True
+
+
+@cell_silo_test
+class OrganizationWorkflowDeleteProjectAccessTest(
+    OrganizationWorkflowAPITestCase, ProjectAccessTestMixin
+):
+    """
+    Security tests for DELETE endpoint project access filtering.
+    """
+
+    method = "DELETE"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+
+    def test_delete_cannot_delete_workflows_from_inaccessible_projects(self) -> None:
+        """
+        Test that users cannot DELETE workflows connected to projects they don't have
+        access to, even when specifying the workflow ID directly.
+        This is a regression test for an IDOR vulnerability.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to delete the other workflow
+        # Returns 200 (not 204) with "No workflows found" when filtered out
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.other_workflow.id)},
+            status_code=200,
+        )
+        # Should return "No workflows found" because the workflow was filtered out
+        assert "No workflows found" in str(response.data.get("detail", ""))
+
+        # Verify the workflow was NOT deleted
+        self.other_workflow.refresh_from_db()
+        assert self.other_workflow.status != ObjectStatus.PENDING_DELETION
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id=self.other_workflow.id,
+        ).exists()
+
+    def test_delete_can_delete_workflows_from_accessible_projects(self) -> None:
+        """
+        Test that users CAN DELETE workflows connected to projects they have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to delete their own workflow
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"id": str(self.user_workflow.id)},
+                status_code=204,
+            )
+
+        # Verify the workflow WAS scheduled for deletion
+        self.user_workflow.refresh_from_db()
+        assert self.user_workflow.status == ObjectStatus.PENDING_DELETION
+        assert CellScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id=self.user_workflow.id,
+        ).exists()

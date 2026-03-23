@@ -44,7 +44,6 @@ class OrganizationEventsMetaEndpoint(
         self.features = {"organizations:discover-basic": True}
 
     def test_simple(self) -> None:
-
         self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id)
 
         with self.feature(self.features):
@@ -54,7 +53,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.data["count"] == 1
 
     def test_spans_dataset(self) -> None:
-        self.store_spans([self.create_span(start_ts=self.min_ago)], is_eap=True)
+        self.store_spans([self.create_span(start_ts=self.min_ago)])
 
         with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"dataset": "spans"})
@@ -63,7 +62,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.data["count"] == 1
 
     def test_logs_dataset(self) -> None:
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo"},
@@ -520,7 +519,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
 
         def request():
-
             return self.client.get(
                 url,
                 {
@@ -540,7 +538,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         assert response.status_code == 200, response.content
 
         with mock.patch("sentry.search.events.builder.base.raw_snql_query") as mock_raw_snql_query:
-
             response = request()
             assert response.status_code == 200, response.content
 
@@ -550,7 +547,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             override_options({"insights.span-samples-query.sample-rate": 100_000_000.0}),
             mock.patch("sentry.search.events.builder.base.raw_snql_query") as mock_raw_snql_query,
         ):
-
             response = request()
             assert response.status_code == 200, response.content
 
@@ -577,7 +573,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             duration=200,
             start_ts=self.ten_mins_ago,
         )
-        self.store_span(span, is_eap=True)
+        self.store_span(span)
 
         response = self.client.get(
             url,
@@ -625,7 +621,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             ),
         ]
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         response = self.client.get(
             url,
@@ -712,7 +708,6 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
 
         self.store_spans(
             spans,
-            is_eap=True,
         )
 
         response = self.do_request(

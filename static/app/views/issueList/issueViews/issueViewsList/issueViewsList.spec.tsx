@@ -61,10 +61,6 @@ describe('IssueViewsList', () => {
         }),
       ],
     });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/prompts-activity/',
-    });
   });
 
   it('displays views from myself and others', async () => {
@@ -112,7 +108,7 @@ describe('IssueViewsList', () => {
       ],
     });
 
-    render(<IssueViewsList />, {organization, deprecatedRouterMocks: false});
+    render(<IssueViewsList />, {organization});
 
     // By default, sorts by popularity (desc) then visited (desc) then created (desc)
     await waitFor(() => {

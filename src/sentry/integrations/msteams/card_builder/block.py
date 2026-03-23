@@ -120,6 +120,11 @@ class ColumnBlock(_ColumnBlockNotRequired):
     width: ColumnWidth | str
 
 
+class CodeBlock(TypedDict):
+    type: Literal["CodeBlock"]
+    codeSnippet: str
+
+
 class ColumnSetBlock(TypedDict):
     type: Literal["ColumnSet"]
     columns: list[ColumnBlock]
@@ -147,7 +152,13 @@ class InputChoiceSetBlock(_InputChoiceSetBlockNotRequired):
 
 ItemBlock: TypeAlias = str | TextBlock | ImageBlock
 Block: TypeAlias = (
-    ActionSet | TextBlock | ImageBlock | ColumnSetBlock | ContainerBlock | InputChoiceSetBlock
+    ActionSet
+    | TextBlock
+    | ImageBlock
+    | ColumnSetBlock
+    | ContainerBlock
+    | InputChoiceSetBlock
+    | CodeBlock
 )
 
 
@@ -170,6 +181,13 @@ def create_text_block(text: str | None, **kwargs: Unpack[_TextBlockNotRequired])
         "type": "TextBlock",
         "text": escape_markdown_special_chars(text) if text else "",
         **kwargs,
+    }
+
+
+def create_code_block(text: str) -> CodeBlock:
+    return {
+        "type": "CodeBlock",
+        "codeSnippet": escape_markdown_special_chars(text),
     }
 
 

@@ -21,7 +21,13 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.metrics.base import Tags
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import (
+    ApiForbiddenError,
+    ApiHostError,
+    ApiRateLimitedError,
+    ApiTimeoutError,
+    ApiUnauthorized,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
@@ -397,9 +403,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
 
     @patch.object(Integration, "get_installation")
-    @patch.object(metrics, "incr")
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test_successful_response(self, mock_metrics, mock_get_installation):
+    def test_successful_response(self, mock_get_installation):
         header_kwargs = SiloHttpHeaders(
             HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
         )
@@ -408,9 +413,6 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         request = self.factory.get(self.path, **header_kwargs)
         assert self.endpoint_cls._validate_request(request)
-
-        # We don't expect there to be any metrics recorded for successful requests
-        mock_metrics.assert_not_called()
 
     def raise_exception(self, exc_type: type[Exception], *args, **kwargs):
         raise exc_type(*args)
@@ -531,6 +533,130 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR,
+            count=1,
+            mock_metrics=mock_metrics,
+        )
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
+            count=0,
+            mock_metrics=mock_metrics,
+        )
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_handles_api_unauthorized_error(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        signature_path = f"/{self.proxy_path}"
+        headers = self.create_request_headers(
+            signature_path=signature_path, integration_id=self.org_integration.id
+        )
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(
+            side_effect=lambda *args, **kwargs: self.raise_exception(
+                ApiUnauthorized, "Unauthorized"
+            )
+        )
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 401
+        assert proxy_response.data is None
+
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+        )
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.UNAUTHORIZED_ERROR,
+            count=1,
+            mock_metrics=mock_metrics,
+        )
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
+            count=0,
+            mock_metrics=mock_metrics,
+        )
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_handles_api_rate_limited_error(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        signature_path = f"/{self.proxy_path}"
+        headers = self.create_request_headers(
+            signature_path=signature_path, integration_id=self.org_integration.id
+        )
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(
+            side_effect=lambda *args, **kwargs: self.raise_exception(
+                ApiRateLimitedError, "Rate limited"
+            )
+        )
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 429
+        assert proxy_response.data is None
+
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+        )
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.RATE_LIMITED_ERROR,
+            count=1,
+            mock_metrics=mock_metrics,
+        )
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
+            count=0,
+            mock_metrics=mock_metrics,
+        )
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_handles_api_forbidden_error(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        signature_path = f"/{self.proxy_path}"
+        headers = self.create_request_headers(
+            signature_path=signature_path, integration_id=self.org_integration.id
+        )
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(
+            side_effect=lambda *args, **kwargs: self.raise_exception(ApiForbiddenError, "Forbidden")
+        )
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 403
+        assert proxy_response.data is None
+
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+        )
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.FORBIDDEN_ERROR,
             count=1,
             mock_metrics=mock_metrics,
         )

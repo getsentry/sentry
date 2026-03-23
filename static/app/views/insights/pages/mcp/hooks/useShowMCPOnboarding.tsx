@@ -1,0 +1,14 @@
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {useProjects} from 'sentry/utils/useProjects';
+
+export function useShowMCPOnboarding() {
+  const {projects} = useProjects();
+  const pageFilters = usePageFilters();
+  const selectedProjects = getSelectedProjectList(
+    pageFilters.selection.projects,
+    projects
+  );
+
+  return !selectedProjects.some(p => p.hasInsightsMCP);
+}

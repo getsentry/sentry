@@ -1,9 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
-import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -12,9 +11,12 @@ import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
+import {openMainBinaryExportedSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/mainBinaryExportedSymbolsModal';
 import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
 import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
 import {openStripDebugSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/stripDebugSymbolsModal';
@@ -41,7 +43,9 @@ export function formatUpside(percentage: number): string {
 
 const INSIGHTS_WITH_MORE_INFO_MODAL = [
   'image_optimization',
+  'webp_optimization',
   'alternate_icons_optimization',
+  'main_binary_exported_symbols',
   'localized_strings_minify',
   'strip_binary',
 ];
@@ -54,14 +58,17 @@ export function AppSizeInsightsSidebarRow({
   onToggleExpanded,
   platform,
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
+  projectType,
 }: {
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
   itemsPerPage?: number;
   platform?: Platform;
+  projectType?: string | null;
 }) {
   const theme = useTheme();
+  const organization = useOrganization();
   const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -72,10 +79,21 @@ export function AppSizeInsightsSidebarRow({
   const showPagination = insight.files.length > itemsPerPage;
 
   const handleOpenModal = () => {
+    trackAnalytics('preprod.builds.details.open_insight_details_modal', {
+      organization,
+      insight_key: insight.key,
+      platform: platform ?? null,
+      project_type: projectType,
+    });
     if (insight.key === 'alternate_icons_optimization') {
       openAlternativeIconsInsightModal();
-    } else if (insight.key === 'image_optimization') {
+    } else if (
+      insight.key === 'image_optimization' ||
+      insight.key === 'webp_optimization'
+    ) {
       openOptimizeImagesModal(platform);
+    } else if (insight.key === 'main_binary_exported_symbols') {
+      openMainBinaryExportedSymbolsModal();
     } else if (insight.key === 'localized_strings_minify') {
       openMinifyLocalizedStringsModal();
     } else if (insight.key === 'strip_binary') {
@@ -93,17 +111,29 @@ export function AppSizeInsightsSidebarRow({
     }
   }, [isExpanded]);
 
+  const handleToggleExpanded = () => {
+    if (!isExpanded) {
+      trackAnalytics('preprod.builds.details.expand_insight', {
+        organization,
+        insight_key: insight.key,
+        platform: platform ?? null,
+        project_type: projectType,
+      });
+    }
+    onToggleExpanded();
+  };
+
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
       <Flex align="start" justify="between">
         <Text variant="primary" size="md" bold>
           {insight.name}
         </Text>
-        <Flex align="center" gap="sm" style={{flexShrink: 0}}>
+        <Flex align="center" gap="sm" flexShrink={0}>
           <Text size="sm" tabular>
             {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
           </Text>
-          <Tag type="success" style={{minWidth: '56px', justifyContent: 'center'}}>
+          <Tag variant="success" style={{minWidth: '56px', justifyContent: 'center'}}>
             <Text size="sm" tabular variant="success">
               {formatUpside(insight.percentage / 100)}
             </Text>
@@ -126,7 +156,7 @@ export function AppSizeInsightsSidebarRow({
         <Container paddingTop="md">
           <Button
             size="sm"
-            onClick={onToggleExpanded}
+            onClick={handleToggleExpanded}
             style={{marginBottom: isExpanded ? '16px' : '0'}}
             icon={
               <IconChevron
@@ -152,7 +182,7 @@ export function AppSizeInsightsSidebarRow({
                   width: '100%',
                   overflow: 'hidden',
                   '& > :nth-child(odd)': {
-                    backgroundColor: theme.backgroundSecondary,
+                    backgroundColor: theme.tokens.background.secondary,
                   },
                 })}
               >
@@ -166,7 +196,7 @@ export function AppSizeInsightsSidebarRow({
                   <Text size="sm" variant="muted">
                     {t('Page %s of %s', currentPage + 1, totalPages)}
                   </Text>
-                  <ButtonBar merged gap="0">
+                  <ButtonBar>
                     <Button
                       icon={<IconChevron direction="left" />}
                       aria-label={t('Previous')}
@@ -209,9 +239,7 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
       padding="xs sm"
       radius="sm"
       overflow="hidden"
-      style={{
-        minWidth: 0,
-      }}
+      minWidth={0}
     >
       <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
@@ -239,9 +267,7 @@ function DuplicateGroupFileRow({
         padding="xs sm"
         radius="sm"
         overflow="hidden"
-        style={{
-          minWidth: 0,
-        }}
+        minWidth={0}
       >
         <Text size="sm" ellipsis style={{flex: 1}} bold>
           {group.name}
@@ -284,9 +310,9 @@ function OptimizableImageFileRow({
   }
 
   const hasMinifySavings =
-    originalFile.minified_size !== null && originalFile.minify_savings > 0;
+    typeof originalFile.minified_size === 'number' && originalFile.minify_savings > 0;
   const hasHeicSavings =
-    originalFile.heic_size !== null && originalFile.conversion_savings > 0;
+    typeof originalFile.heic_size === 'number' && originalFile.conversion_savings > 0;
 
   const maxSavings = Math.max(
     originalFile.minify_savings || 0,
@@ -329,18 +355,16 @@ function OptimizableImageFileRow({
         padding="xs sm"
         radius="sm"
         overflow="hidden"
-        style={{
-          minWidth: 0,
-        }}
+        minWidth={0}
       >
-        <Flex align="center" gap="xs" overflow="hidden" style={{minWidth: 0}}>
+        <Flex align="center" gap="xs" overflow="hidden" minWidth={0}>
           <Text size="sm" ellipsis style={{flex: 1}}>
             {file.path}
           </Text>
           {hasMetadata && (
             <Tooltip title={tooltipContent} isHoverable skipWrapper>
-              <Flex align="center" style={{flexShrink: 0}}>
-                <IconFlag size="xs" color="subText" />
+              <Flex align="center" flexShrink={0}>
+                <IconFlag size="xs" variant="muted" />
               </Flex>
             </Tooltip>
           )}

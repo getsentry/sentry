@@ -13,7 +13,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -132,7 +132,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 if isinstance(monitor_object, Monitor):
                     new_slug = get_random_string(length=24)
                     # we disable the monitor seat so that it can be re-used for another monitor
-                    quotas.backend.disable_monitor_seat(monitor=monitor)
+                    quotas.backend.disable_seat(seat_object=monitor)
                     quotas.backend.update_monitor_slug(monitor.slug, new_slug, monitor.project_id)
                     monitor_object.update(slug=new_slug)
 
@@ -149,7 +149,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             for monitor_object in monitor_objects_list:
                 if isinstance(monitor_object, Monitor):
                     ensure_cron_detector_deletion(monitor_object)
-                schedule = RegionScheduledDeletion.schedule(
+                schedule = CellScheduledDeletion.schedule(
                     monitor_object, days=0, actor=request.user
                 )
                 self.create_audit_entry(
@@ -180,7 +180,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                     RuleActivity.objects.create(
                         rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
                     )
-                    scheduled_rule = RegionScheduledDeletion.schedule(
+                    scheduled_rule = CellScheduledDeletion.schedule(
                         rule, days=0, actor=request.user
                     )
                     self.create_audit_entry(

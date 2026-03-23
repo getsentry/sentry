@@ -2,11 +2,13 @@ import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconChevron,
   IconDocs,
@@ -16,16 +18,16 @@ import {
   IconSpan,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import testableTransition from 'sentry/utils/testableTransition';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
 export interface GroupSummaryData {
@@ -49,7 +51,12 @@ const makeGroupSummaryQueryKey = (
   groupId: string,
   eventId?: string
 ): ApiQueryKey => [
-  `/organizations/${organizationSlug}/issues/${groupId}/summarize/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/summarize/', {
+    path: {
+      organizationIdOrSlug: organizationSlug,
+      issueId: groupId,
+    },
+  }),
   {
     method: 'POST',
     data: eventId ? {event_id: eventId} : undefined,
@@ -71,7 +78,7 @@ export function useGroupSummaryData(group: Group) {
   return {data, isPending};
 }
 
-function useGroupSummary(
+export function useGroupSummary(
   group: Group,
   event: Event | null | undefined,
   project: Project,
@@ -204,8 +211,8 @@ function GroupSummaryPreview({
   return (
     <div data-testid="group-summary-preview">
       {isError ? <div>{t('Error loading summary')}</div> : null}
-      <Content>
-        <InsightGrid>
+      <Stack gap="md" position="relative">
+        <Stack gap="md">
           {insightCards.map(card => {
             if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
               return null;
@@ -214,9 +221,11 @@ function GroupSummaryPreview({
               <InsightCard key={card.id}>
                 <CardTitle>
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
-                  <CardTitleText>{card.title}</CardTitleText>
+                  <AiPrivacyTooltip showUnderline isHoverable>
+                    <CardTitleText>{card.title}</CardTitleText>
+                  </AiPrivacyTooltip>
                 </CardTitle>
-                <CardContentContainer>
+                <Flex align="center" gap="md">
                   <CardLineDecorationWrapper>
                     <CardLineDecoration />
                   </CardLineDecorationWrapper>
@@ -231,12 +240,12 @@ function GroupSummaryPreview({
                       )}
                     </CardContent>
                   )}
-                </CardContentContainer>
+                </Flex>
               </InsightCard>
             );
           })}
-        </InsightGrid>
-      </Content>
+        </Stack>
+      </Stack>
     </div>
   );
 }
@@ -274,9 +283,9 @@ function GroupSummaryCollapsed({
     <div data-testid="group-summary-collapsed">
       {isError ? <div>{t('Error loading summary')}</div> : null}
       {!isError && (
-        <CollapsedContent>
+        <Stack position="relative">
           <CollapsedHeader onClick={handleToggle}>
-            <CollapsedHeaderContent>
+            <Flex justify="between" align="center" gap="md">
               {isPending ? (
                 <Placeholder height="1.5rem" width="80%" />
               ) : (
@@ -291,7 +300,7 @@ function GroupSummaryCollapsed({
                   <IconChevron direction="down" size="sm" />
                 )}
               </ChevronIcon>
-            </CollapsedHeaderContent>
+            </Flex>
           </CollapsedHeader>
 
           <ExpandableContent
@@ -318,7 +327,7 @@ function GroupSummaryCollapsed({
               />
             </Flex>
           </ExpandableContent>
-        </CollapsedContent>
+        </Stack>
       )}
     </div>
   );
@@ -387,10 +396,10 @@ function GroupSummaryFull({
   ];
 
   return (
-    <div data-testid="group-summary">
+    <Container data-testid="group-summary" width="100%">
       {isError ? <div>{t('Error loading summary')}</div> : null}
-      <Content>
-        <InsightGrid>
+      <Stack gap="md" position="relative">
+        <Stack gap="md">
           {insightCards.map(card => {
             if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
               return null;
@@ -401,7 +410,7 @@ function GroupSummaryFull({
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
                   <CardTitleText>{card.title}</CardTitleText>
                 </CardTitle>
-                <CardContentContainer>
+                <Flex align="center" gap="md">
                   <CardLineDecorationWrapper>
                     <CardLineDecoration />
                   </CardLineDecorationWrapper>
@@ -417,13 +426,13 @@ function GroupSummaryFull({
                       )}
                     </CardContent>
                   )}
-                </CardContentContainer>
+                </Flex>
               </InsightCard>
             );
           })}
-        </InsightGrid>
+        </Stack>
         {data?.eventId && !isPending && event && event.id !== data?.eventId && (
-          <ResummarizeWrapper>
+          <Flex align="center" flexShrink={0} marginTop="md">
             <Button
               onClick={() => setForceEvent(true)}
               disabled={isPending}
@@ -432,30 +441,17 @@ function GroupSummaryFull({
             >
               {t('Summarize current event')}
             </Button>
-          </ResummarizeWrapper>
+          </Flex>
         )}
-      </Content>
-    </div>
+      </Stack>
+    </Container>
   );
 }
-
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  position: relative;
-`;
-
-const InsightGrid = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
 
 const InsightCard = styled('div')`
   display: flex;
   flex-direction: column;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: 100%;
   min-height: 0;
 `;
@@ -463,27 +459,21 @@ const InsightCard = styled('div')`
 const CardTitle = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  color: ${p => p.theme.subText};
-  padding-bottom: ${space(0.5)};
+  gap: ${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const CardTitleText = styled('p')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const CardContentContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const CardLineDecorationWrapper = styled('div')`
@@ -498,7 +488,8 @@ const CardLineDecorationWrapper = styled('div')`
 const CardLineDecoration = styled('div')`
   width: 1px;
   align-self: stretch;
-  background-color: ${p => p.theme.border};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background-color: ${p => p.theme.tokens.border.primary};
 `;
 
 const CardContent = styled('div')`
@@ -514,35 +505,15 @@ const CardContent = styled('div')`
   flex: 1;
 `;
 
-const ResummarizeWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-top: ${space(1)};
-  flex-shrink: 0;
-`;
-
-const CollapsedContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  position: relative;
-`;
-
 const CollapsedHeader = styled('div')`
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 `;
 
-const CollapsedHeaderContent = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;
-
 const ChevronIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   transition: transform 0.2s ease-in-out;
   flex-shrink: 0;
 `;

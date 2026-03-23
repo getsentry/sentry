@@ -2,18 +2,17 @@ import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
+import {TraceAiSpans} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
-  TraceViewMetricsDataProvider,
+  TraceViewMetricsProviderWrapper,
   TraceViewMetricsSection,
 } from 'sentry/views/performance/newTraceDetails/traceMetrics';
 import {
@@ -22,6 +21,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
 import {TraceTabsAndVitals} from 'sentry/views/performance/newTraceDetails/traceTabsAndVitals';
+import {PartialTraceDataWarning} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/partialTraceDataWarning';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {
   TraceLayoutTabKeys,
@@ -42,7 +42,7 @@ import {TraceMetaDataHeader} from './traceHeader';
 import {useInitialTraceMetricData} from './useInitialTraceMetricData';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';
-import useTraceStateAnalytics from './useTraceStateAnalytics';
+import {useTraceStateAnalytics} from './useTraceStateAnalytics';
 
 function decodeTraceSlug(maybeSlug: string | undefined): string {
   if (!maybeSlug || maybeSlug === 'null' || maybeSlug === 'undefined') {
@@ -74,14 +74,12 @@ export default function TraceView() {
 
   return (
     <TraceViewLogsDataProvider traceSlug={traceSlug}>
-      <TraceViewMetricsDataProvider traceSlug={traceSlug}>
-        <TraceStateProvider
-          initialPreferences={preferences}
-          preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
-        >
-          <TraceViewImpl traceSlug={traceSlug} />
-        </TraceStateProvider>
-      </TraceViewMetricsDataProvider>
+      <TraceStateProvider
+        initialPreferences={preferences}
+        preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
+      >
+        <TraceViewImpl traceSlug={traceSlug} />
+      </TraceStateProvider>
     </TraceViewLogsDataProvider>
   );
 }
@@ -116,7 +114,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
-  const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
+  const trace = useTrace({
+    traceSlug,
+    timestamp: queryParams.timestamp,
+    additionalAttributes: ['thread.id', 'tags[performance.timeOrigin,number]'],
+  });
   const tree = useTraceTree({traceSlug, trace, replay: null});
 
   useTraceStateAnalytics({
@@ -163,6 +165,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               traceSlug={traceSlug}
               organization={organization}
             />
+            <PartialTraceDataWarning
+              timestamp={queryParams.timestamp}
+              logs={logsData}
+              tree={tree}
+            />
             <TraceTabsAndVitals
               tabsConfig={{
                 tabOptions,
@@ -193,7 +200,9 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
             ) : null}
             {currentTab === TraceLayoutTabKeys.METRICS ? (
-              <TraceViewMetricsSection />
+              <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
+                <TraceViewMetricsSection />
+              </TraceViewMetricsProviderWrapper>
             ) : null}
             {currentTab === TraceLayoutTabKeys.SUMMARY ? (
               <TraceSummarySection traceSlug={traceSlug} />
@@ -222,11 +231,11 @@ const TraceExternalLayout = styled('div')`
 const FlexBox = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TraceInnerLayout = styled(FlexBox)`
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   flex-grow: 1;
   overflow-y: auto;
 `;

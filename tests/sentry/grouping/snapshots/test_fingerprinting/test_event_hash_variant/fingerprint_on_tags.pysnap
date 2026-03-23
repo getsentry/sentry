@@ -1,7 +1,5 @@
 ---
-created: '2025-10-06T17:30:32.969493+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_fingerprinting.py
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
 ---
 config:
   rules:
@@ -19,10 +17,10 @@ fingerprint:
 - '{{ tags.barfoo }}'
 title: Hello my sweet Love
 variants:
-  custom_fingerprint:
+  custom_server_fingerprint:
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: tags.foobar:"*stuff*" -> "foobar-matched-stuff-{{ tags.barfoo }}"
     type: custom_fingerprint
     values:

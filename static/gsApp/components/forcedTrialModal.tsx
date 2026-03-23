@@ -2,20 +2,21 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import HighlightModalContainer from 'sentry/components/highlightModalContainer';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft, getTrialLength} from 'getsentry/utils/billing';
 
@@ -35,7 +36,9 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
     isError,
   } = useApiQuery<Integration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           includeConfig: 0,
@@ -142,10 +145,10 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
 }
 
 const TrialCheckInfo = styled('div')`
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
 
   p {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     margin: 0;
   }
 
@@ -166,15 +169,17 @@ export const modalCss = css`
 `;
 
 const Subheader = styled('h4')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.purple300};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.content.accent};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
-  margin-top: ${space(2)};
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
+  margin-top: ${p => p.theme.space.xl};
   max-width: fit-content;
 `;
 

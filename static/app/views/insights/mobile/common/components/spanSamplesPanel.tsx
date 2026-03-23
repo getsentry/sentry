@@ -1,21 +1,22 @@
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Link} from 'sentry/components/core/link';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {SpanSamplesContainer} from 'sentry/views/insights/mobile/common/components/spanSamplesPanelContainer';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
@@ -27,7 +28,6 @@ type Props = {
 };
 
 const PRIMARY_SPAN_QUERY_KEY = 'primarySpanSearchQuery';
-const SECONDARY_SPAN_QUERY_KEY = 'secondarySpanSearchQuery';
 
 export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props) {
   const organization = useOrganization();
@@ -58,7 +58,7 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
 
   transactionRoute ??= getTransactionSummaryBaseUrl(organization, view);
 
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const {primaryRelease} = useReleaseSelection();
 
   const {query} = useLocation();
   const {project} = useCrossPlatformProject();
@@ -98,47 +98,34 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
           </TitleContainer>
         </HeaderContainer>
         <PageAlert />
-        <ChartsContainer>
-          <ChartsContainerItem key="release1">
+        <Flex gap="xl">
+          <ChartsContainerItem>
             <SpanSamplesContainer
               groupId={groupId}
               moduleName={moduleName}
               transactionName={transactionName}
               transactionMethod={transactionMethod}
               release={primaryRelease}
-              sectionTitle={t('Release 1')}
+              sectionTitle={t('Release')}
               searchQueryKey={PRIMARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
           </ChartsContainerItem>
-          <ChartsContainerItem key="release2">
-            <SpanSamplesContainer
-              groupId={groupId}
-              moduleName={moduleName}
-              transactionName={transactionName}
-              transactionMethod={transactionMethod}
-              release={secondaryRelease}
-              sectionTitle={t('Release 2')}
-              searchQueryKey={SECONDARY_SPAN_QUERY_KEY}
-              spanOp={spanOp}
-              additionalFilters={additionalFilters}
-            />
-          </ChartsContainerItem>
-        </ChartsContainer>
+        </Flex>
       </SampleDrawerBody>
     </PageAlertProvider>
   );
 }
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space.md};
 `;
 
 const HeaderContainer = styled('div')`
   width: 100%;
-  padding-bottom: ${space(2)};
-  padding-top: ${space(1)};
+  padding-bottom: ${p => p.theme.space.xl};
+  padding-top: ${p => p.theme.space.md};
 
   display: grid;
   grid-template-rows: auto auto auto;
@@ -167,13 +154,6 @@ const SpanDescription = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 35vw;
-`;
-
-const ChartsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(2)};
-  align-items: top;
 `;
 
 const ChartsContainerItem = styled('div')`

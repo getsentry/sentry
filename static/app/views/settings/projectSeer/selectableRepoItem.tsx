@@ -1,11 +1,12 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 
 interface Props {
@@ -35,11 +36,11 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
         showUnderline={false}
         disabled={isSupportedProvider}
       >
-        <RepoHeader>
-          <RepoInfoWrapper>
+        <Flex justify="between" align="center" padding="md lg">
+          <Flex justify="between" align="center" width="100%">
             <RepoName>{repo.name}</RepoName>
 
-            <SelectionWrapper>
+            <Flex align="center" gap="md">
               <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
 
               <StyledCheckbox
@@ -48,9 +49,9 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
                 readOnly
                 disabled={!isSupportedProvider}
               />
-            </SelectionWrapper>
-          </RepoInfoWrapper>
-        </RepoHeader>
+            </Flex>
+          </Flex>
+        </Flex>
       </Tooltip>
     </RepoListItemContainer>
   );
@@ -66,54 +67,39 @@ const RepoListItemContainer = styled('div')<{
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   transition: background-color 0.1s ease;
   opacity: ${p => (p.disabled ? 0.65 : 1)};
-  padding-left: ${space(1.5)};
+  padding-left: ${p => p.theme.space.lg};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   ${p =>
     p.selected &&
     css`
-      background-color: ${p.theme.surface100};
+      background-color: ${p.theme.colors.surface200};
 
       &:hover {
-        background-color: ${p.theme.surface100};
+        background-color: ${p.theme.colors.surface200};
       }
     `}
 `;
 
-const RepoHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${space(1)} ${space(1.5)};
-`;
-
-const RepoInfoWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  width: 100%;
-  justify-content: space-between;
-`;
-
 const RepoName = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const RepoProvider = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  margin-top: ${space(0.25)};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const StyledCheckbox = styled(Checkbox)`
   margin: 0;
-`;
-
-const SelectionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;

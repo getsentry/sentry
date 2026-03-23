@@ -1,29 +1,27 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
-import {loadStats} from 'sentry/actionCreators/projects';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import TeamStore from 'sentry/stores/teamStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {AccessRequest} from 'sentry/types/organization';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import OrganizationTeams from './organizationTeams';
+import {OrganizationTeams} from './organizationTeams';
 
 export default function OrganizationTeamsContainer() {
-  const api = useApi();
   const organization = useOrganization({allowNull: true});
   const queryClient = useQueryClient();
 
-  const queryKey: ApiQueryKey = useMemo(
-    () => [`/organizations/${organization?.slug}/access-requests/`],
+  const queryKey = useMemo(
+    () =>
+      [
+        getApiUrl(`/organizations/$organizationIdOrSlug/access-requests/`, {
+          path: {organizationIdOrSlug: organization?.slug!},
+        }),
+      ] as const,
     [organization?.slug]
   );
 
@@ -36,20 +34,6 @@ export default function OrganizationTeamsContainer() {
     retry: false,
     enabled: !!organization?.slug,
   });
-
-  useEffect(() => {
-    if (!organization?.slug) {
-      return;
-    }
-    loadStats(api, {
-      orgId: organization?.slug,
-      query: {
-        since: (Date.now() / 1000 - 3600 * 24).toString(),
-        stat: 'generated',
-        group: 'project',
-      },
-    });
-  }, [organization?.slug, api]);
 
   const handleRemoveAccessRequest = useCallback(
     (id: string, isApproved: boolean) => {

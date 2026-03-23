@@ -1,18 +1,18 @@
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
-from sentry.models.organizationmember import OrganizationMember
-from sentry.seer.explorer.client_utils import collect_user_org_context
-from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerExplorerChatEndpointTest(APITestCase):
     def setUp(self):
         super().setUp()
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
 
@@ -22,8 +22,8 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 404
         assert response.data == {"session": None}
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_run")
-    def test_get_with_run_id_calls_client(self, mock_get_seer_run: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_get_with_run_id_calls_client(self, mock_client_class: MagicMock) -> None:
         from sentry.seer.explorer.client_models import SeerRunState
 
         # Mock client response
@@ -33,14 +33,16 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
         )
-        mock_get_seer_run.return_value = mock_state
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = mock_state
+        mock_client_class.return_value = mock_client
 
         response = self.client.get(f"{self.url}123/")
 
         assert response.status_code == 200
         assert response.data["session"]["run_id"] == 123
         assert response.data["session"]["status"] == "completed"
-        assert mock_get_seer_run.call_count == 1
+        mock_client.get_run.assert_called_once_with(run_id=123)
 
     def test_post_without_query_returns_400(self) -> None:
         data: dict[str, Any] = {}
@@ -54,28 +56,59 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
         assert response.status_code == 400
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.start_seer_run")
-    def test_post_new_conversation_calls_client(self, mock_start_seer_run: MagicMock):
-        mock_start_seer_run.return_value = 456
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = 456
+        mock_client_class.return_value = mock_client
 
         data = {"query": "What is this error about?"}
         response = self.client.post(self.url, data, format="json")
 
         assert response.status_code == 200
         assert response.data == {"run_id": 456}
+        mock_client_class.assert_called_once_with(
+            self.organization, ANY, is_interactive=True, enable_coding=False
+        )
+        mock_client.start_run.assert_called_once_with(
+            prompt="What is this error about?",
+            on_page_context=None,
+            override_ce_enable=True,
+        )
 
-        # Verify client was called
-        assert mock_start_seer_run.call_count == 1
-        call_kwargs = mock_start_seer_run.call_args[1]
-        assert call_kwargs["organization"] == self.organization
-        assert call_kwargs["prompt"] == "What is this error about?"
-        assert call_kwargs["on_page_context"] is None
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_new_conversation_enable_coding(self, mock_client_class: MagicMock):
+        for i, (feature_enabled, option_enabled) in enumerate(
+            [(True, True), (True, False), (False, True)]
+        ):
+            self.organization.update_option("sentry:enable_seer_coding", option_enabled)
+            mock_client = MagicMock()
+            mock_client.start_run.return_value = 456
+            mock_client_class.return_value = mock_client
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.continue_seer_run")
-    def test_post_continue_conversation_calls_client(
-        self, mock_continue_seer_run: MagicMock
-    ) -> None:
-        mock_continue_seer_run.return_value = 789
+            data = {"query": "What is this error about?"}
+            features_ctx = (
+                self.feature("organizations:seer-explorer-chat-coding")
+                if feature_enabled
+                else self.feature({"organizations:seer-explorer-chat-coding": False})
+            )
+            with features_ctx:
+                response = self.client.post(self.url, data, format="json")
+
+            assert response.status_code == 200
+            assert mock_client_class.call_count == i + 1
+            mock_client_class.assert_called_with(
+                self.organization,
+                ANY,
+                is_interactive=True,
+                enable_coding=feature_enabled and option_enabled,
+            )
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_continue_conversation_calls_client(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.continue_run.return_value = 789
+        mock_client_class.return_value = mock_client
 
         data = {
             "query": "Follow up question",
@@ -85,86 +118,109 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"run_id": 789}
+        mock_client_class.assert_called_once_with(
+            self.organization, ANY, is_interactive=True, enable_coding=False
+        )
+        mock_client.continue_run.assert_called_once_with(
+            run_id=789,
+            prompt="Follow up question",
+            insert_index=2,
+            on_page_context=None,
+        )
 
-        # Verify client was called
-        assert mock_continue_seer_run.call_count == 1
-        call_kwargs = mock_continue_seer_run.call_args[1]
-        assert call_kwargs["organization"] == self.organization
-        assert call_kwargs["prompt"] == "Follow up question"
-        assert call_kwargs["run_id"] == 789
-        assert call_kwargs["insert_index"] == 2
-        assert call_kwargs["on_page_context"] is None
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_continue_conversation_enable_coding(self, mock_client_class: MagicMock) -> None:
+        for i, (feature_enabled, option_enabled) in enumerate(
+            [(True, True), (True, False), (False, True), (False, False)]
+        ):
+            mock_client = MagicMock()
+            mock_client.continue_run.return_value = 789
+            mock_client_class.return_value = mock_client
+
+            data = {"query": "Follow up question", "insert_index": 2}
+            self.organization.update_option("sentry:enable_seer_coding", option_enabled)
+            with self.feature({"organizations:seer-explorer-chat-coding": feature_enabled}):
+                response = self.client.post(f"{self.url}789/", data, format="json")
+
+            assert response.status_code == 200
+            assert mock_client_class.call_count == i + 1
+            mock_client_class.assert_called_with(
+                self.organization,
+                ANY,
+                is_interactive=True,
+                enable_coding=feature_enabled and option_enabled,
+            )
 
 
-class CollectUserOrgContextTest(APITestCase):
-    """Test the collect_user_org_context helper function"""
+@with_feature("organizations:seer-explorer")
+@with_feature("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-consent-flow-removal")
+class OrganizationSeerExplorerChatContextEngineTest(APITestCase):
+    """End-to-end tests verifying is_context_engine_enabled reaches make_explorer_chat_request."""
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
-        self.project1 = self.create_project(
-            organization=self.organization, teams=[self.team], slug="project-1"
-        )
-        self.project2 = self.create_project(
-            organization=self.organization, teams=[self.team], slug="project-2"
-        )
-        self.other_team = self.create_team(organization=self.organization, slug="other-team")
-        self.other_project = self.create_project(
-            organization=self.organization, teams=[self.other_team], slug="other-project"
-        )
+        self.login_as(user=self.user)
+        self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
 
-    def test_collect_context_with_member(self):
-        """Test context collection for a user who is an organization member"""
-        context = collect_user_org_context(self.user, self.organization)
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_override_ce_enable_false_sets_context_engine_disabled(
+        self, mock_collect_context, mock_access, mock_chat_request
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": 123}
+        mock_chat_request.return_value = mock_response
 
-        assert context is not None
-        assert context["org_slug"] == self.organization.slug
-        assert context["user_id"] == self.user.id
-        assert context["user_name"] == self.user.name
-        assert context["user_email"] == self.user.email
+        data = {"query": "What is this error about?", "override_ce_enable": False}
+        with self.feature("organizations:seer-explorer-context-engine-allow-fe-override"):
+            response = self.client.post(self.url, data, format="json")
 
-        # Should have exactly one team
-        assert len(context["user_teams"]) == 1
-        assert context["user_teams"][0]["slug"] == self.team.slug
+        assert response.status_code == 200
+        body = mock_chat_request.call_args[0][0]
+        assert body["is_context_engine_enabled"] is False
 
-        # User projects should include project1 and project2 (both on self.team)
-        user_project_slugs = {p["slug"] for p in context["user_projects"]}
-        assert user_project_slugs == {"project-1", "project-2"}
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_override_ce_enable_true_sets_context_engine_enabled(
+        self, mock_collect_context, mock_access, mock_chat_request
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": 123}
+        mock_chat_request.return_value = mock_response
 
-        # All org projects should include all 3 projects
-        all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
-        assert all_project_slugs == {"project-1", "project-2", "other-project"}
-        all_project_ids = {p["id"] for p in context["all_org_projects"]}
-        assert all_project_ids == {self.project1.id, self.project2.id, self.other_project.id}
+        data = {"query": "What is this error about?", "override_ce_enable": True}
+        with self.feature("organizations:seer-explorer-context-engine-allow-fe-override"):
+            response = self.client.post(self.url, data, format="json")
 
-    def test_collect_context_with_multiple_teams(self):
-        """Test context collection for a user in multiple teams"""
-        team2 = self.create_team(organization=self.organization, slug="team-2")
-        member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
-        with unguarded_write(using="default"):
-            member.teams.add(team2)
+        assert response.status_code == 200
+        body = mock_chat_request.call_args[0][0]
+        assert body["is_context_engine_enabled"] is True
 
-        context = collect_user_org_context(self.user, self.organization)
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_override_ce_enable_ignored_without_feature_flag(
+        self, mock_collect_context, mock_access, mock_chat_request
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": 123}
+        mock_chat_request.return_value = mock_response
 
-        assert context is not None
-        team_slugs = {t["slug"] for t in context["user_teams"]}
-        assert team_slugs == {self.team.slug, "team-2"}
+        data = {"query": "What is this error about?", "override_ce_enable": False}
+        response = self.client.post(self.url, data, format="json")
 
-    def test_collect_context_with_no_teams(self):
-        """Test context collection for a member with no team membership"""
-        member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
-        # Remove user from all teams
-        with unguarded_write(using="default"):
-            member.teams.clear()
-
-        context = collect_user_org_context(self.user, self.organization)
-
-        assert context is not None
-        assert context["user_teams"] == []
-        assert context["user_projects"] == []
-        # All org projects should still be present
-        all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
-        assert all_project_slugs == {"project-1", "project-2", "other-project"}
+        assert response.status_code == 200
+        body = mock_chat_request.call_args[0][0]
+        assert body.get("is_context_engine_enabled") is not False

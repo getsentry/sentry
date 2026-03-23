@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
@@ -13,7 +14,6 @@ import {
 } from 'sentry/components/events/viewHierarchy/utils';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 
@@ -29,10 +29,17 @@ type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
   onNodeSelect: (node?: ViewHierarchyWindow) => void;
   platform?: string;
+  positioning?: 'absolute' | 'relative';
   selectedNode?: ViewHierarchyWindow;
 };
 
-function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeProps) {
+function Wireframe({
+  hierarchy,
+  selectedNode,
+  onNodeSelect,
+  positioning,
+  platform,
+}: WireframeProps) {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
@@ -49,9 +56,10 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
     () =>
       getHierarchyDimensions(
         hierarchy,
-        ['flutter', 'dart-flutter'].includes(platform ?? '')
+        positioning === 'absolute' ||
+          (!positioning && ['flutter', 'dart-flutter'].includes(platform ?? ''))
       ),
-    [hierarchy, platform]
+    [hierarchy, platform, positioning]
   );
   const nodeLookupMap = useMemo(() => {
     const map = new Map<ViewHierarchyWindow, ViewNode>();
@@ -81,7 +89,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
     const xCenter = Math.abs(canvasSize.width - hierarchyData.maxWidth * scale) / 2;
     const yCenter = Math.abs(canvasSize.height - hierarchyData.maxHeight * scale) / 2;
 
-    // prettier-ignore
+    // oxfmt-ignore
     return mat3.fromValues(scale, 0, 0, 0, scale, 0, xCenter, yCenter, 1);
   }, [
     canvasSize.height,
@@ -113,7 +121,8 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
       const overlay = overlayRef?.getContext('2d');
       if (overlay) {
         setupCanvasContext(overlay, modelToView);
-        overlay.fillStyle = theme.blue200;
+        overlay.fillStyle =
+          theme.tokens.interactive.transparent.accent.selected.background.rest;
 
         if (selectedRect) {
           overlay.fillRect(
@@ -125,12 +134,18 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
         }
 
         if (hoverRect) {
-          overlay.fillStyle = theme.blue100;
+          overlay.fillStyle =
+            theme.tokens.interactive.transparent.accent.selected.background.hover;
           overlay.fillRect(hoverRect.x, hoverRect.y, hoverRect.width, hoverRect.height);
         }
       }
     },
-    [overlayRef, setupCanvasContext, theme.blue100, theme.blue200]
+    [
+      overlayRef,
+      setupCanvasContext,
+      theme.tokens.interactive.transparent.accent.selected.background.rest,
+      theme.tokens.interactive.transparent.accent.selected.background.hover,
+    ]
   );
 
   const drawViewHierarchy = useCallback(
@@ -138,8 +153,8 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
       const canvas = canvasRef?.getContext('2d');
       if (canvas) {
         setupCanvasContext(canvas, modelToView);
-        canvas.fillStyle = theme.gray100;
-        canvas.strokeStyle = theme.gray300;
+        canvas.fillStyle = theme.colors.gray100;
+        canvas.strokeStyle = theme.colors.gray400;
 
         for (const node of hierarchyData.nodes) {
           canvas.strokeRect(node.rect.x, node.rect.y, node.rect.width, node.rect.height);
@@ -147,7 +162,13 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
         }
       }
     },
-    [canvasRef, setupCanvasContext, theme.gray100, theme.gray300, hierarchyData.nodes]
+    [
+      canvasRef,
+      setupCanvasContext,
+      theme.colors.gray100,
+      theme.colors.gray400,
+      hierarchyData.nodes,
+    ]
   );
 
   useEffect(() => {
@@ -157,8 +178,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
 
     let start: vec2 | null;
     let isDragging = false;
-    const selectedRect: Rect | null =
-      (selectedNode && nodeLookupMap.get(selectedNode)?.rect) ?? null;
+    const selectedRect = (selectedNode && nodeLookupMap.get(selectedNode)?.rect) ?? null;
     let hoveredRect: Rect | null = null;
     const currTransformationMatrix = mat3.clone(transformationMatrix);
     const lastMousePosition = vec2.create();
@@ -349,11 +369,11 @@ const InteractionContainer = styled('div')`
 
 const Controls = styled('div')`
   position: absolute;
-  top: ${space(2)};
-  right: ${space(2)};
+  top: ${p => p.theme.space.xl};
+  right: ${p => p.theme.space.xl};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const InteractionOverlayCanvas = styled('canvas')`
@@ -362,7 +382,7 @@ const InteractionOverlayCanvas = styled('canvas')`
 `;
 
 const WireframeCanvas = styled('canvas')`
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.colors.surface200};
   width: 100%;
   height: 100%;
 `;

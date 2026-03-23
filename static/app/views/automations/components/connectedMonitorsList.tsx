@@ -1,11 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import LoadingError from 'sentry/components/loadingError';
+import {Button} from '@sentry/scraps/button';
+
+import {LoadingError} from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
+import {Pagination} from 'sentry/components/pagination';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {t, tct} from 'sentry/locale';
@@ -30,6 +31,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   emptyMessage?: string;
   limit?: number | null;
   openInNewTab?: boolean;
+  projectIds?: number[];
   query?: string;
   toggleConnected?: (params: {detector: Detector}) => void;
 };
@@ -65,7 +67,7 @@ function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: num
   );
 }
 
-export default function ConnectedMonitorsList({
+export function ConnectedMonitorsList({
   detectorIds,
   connectedDetectorIds,
   toggleConnected,
@@ -75,6 +77,7 @@ export default function ConnectedMonitorsList({
   limit = DEFAULT_DETECTORS_PER_PAGE,
   query,
   openInNewTab,
+  projectIds,
   ...props
 }: Props) {
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
@@ -86,7 +89,14 @@ export default function ConnectedMonitorsList({
     isSuccess,
     getResponseHeader,
   } = useDetectorsQuery(
-    {ids: detectorIds ?? undefined, limit: limit ?? undefined, cursor, query},
+    {
+      ids: detectorIds ?? undefined,
+      limit: limit ?? undefined,
+      cursor,
+      query,
+      includeIssueStreamDetectors: true,
+      projects: projectIds,
+    },
     {enabled: detectorIds === null || detectorIds.length > 0}
   );
 
@@ -143,6 +153,7 @@ export default function ConnectedMonitorsList({
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
         {isSuccess &&
+          (detectorIds === null || detectorIds.length > 0) &&
           detectors.map(detector => (
             <SimpleTable.Row key={detector.id}>
               <SimpleTable.RowCell>

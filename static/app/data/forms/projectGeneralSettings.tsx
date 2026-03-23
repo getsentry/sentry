@@ -1,20 +1,20 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
 import {Hovercard} from 'sentry/components/hovercard';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
-import getDynamicText from 'sentry/utils/getDynamicText';
-import slugify from 'sentry/utils/slugify';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
+import {slugify} from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';
@@ -46,32 +46,28 @@ const ORG_DISABLED_REASON = t(
 );
 
 const StyledPlatformIcon = styled(PlatformIcon)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 export const fields = {
-  name: {
-    name: 'name',
+  slug: {
+    name: 'slug',
     type: 'string',
     required: true,
     label: t('Slug'),
-    placeholder: t('my-awesome-project'),
     help: t('A unique ID used to identify this project'),
-    transformInput: slugify,
-    getData: (data: {name?: string}) => {
+    transformInput: slugify as (str: string) => string,
+    getData: (data: {slug?: string}) => {
       return {
-        name: data.name,
-        slug: data.name,
+        slug: data.slug,
       };
     },
-
     saveOnBlur: false,
-    saveMessageAlertType: 'warning',
+    saveMessageAlertVariant: 'warning',
     saveMessage: t(
       "Changing a project's slug can break your build scripts! Please proceed carefully."
     ),
   },
-
   platform: {
     name: 'platform',
     type: 'select',
@@ -130,7 +126,7 @@ export const fields = {
         strong: <strong />,
       }
     ),
-    saveMessageAlertType: 'warning',
+    saveMessageAlertVariant: 'warning',
   },
   allowedDomains: {
     name: 'allowedDomains',
@@ -156,8 +152,8 @@ export const fields = {
         </Hovercard>
       ),
     }),
-    getValue: val => extractMultilineFields(val),
-    setValue: val => convertMultilineFieldValue(val),
+    getValue: extractMultilineFields,
+    setValue: convertMultilineFieldValue,
   },
   scrapeJavaScript: {
     name: 'scrapeJavaScript',

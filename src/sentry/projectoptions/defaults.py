@@ -33,9 +33,10 @@ register(
     epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x", 15: "10.x"},
 )
 
-# Default symbol sources.  The ios source does not exist by default and
-# will be skipped later.  The microsoft source exists by default and is
-# unlikely to be disabled.
+# Default symbol sources. The ios source does not exist by default and
+# will be skipped later. The microsoft source exists by default and is
+# unlikely to be disabled. Platform-specific sources may be added via
+# set_default_symbol_sources() when a project is created.
 register(
     key="sentry:builtin_symbol_sources",
     epoch_defaults={
@@ -101,7 +102,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "transaction_duration_regression_detection_enabled": True,
     "function_duration_regression_detection_enabled": True,
     "db_query_injection_detection_enabled": False,
-    "web_vitals_detection_enabled": False,
+    "web_vitals_detection_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
@@ -176,11 +177,30 @@ register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 # Should tempest fetch screenshots for this project
 register(key="sentry:tempest_fetch_screenshots", default=False)
 
-# Should tempest fetch dumps for this project
-register(key="sentry:tempest_fetch_dumps", default=False)
-
 # Should autofix run automatically on new issues
 register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuningSettings.OFF)
 
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
+
+# Seer project preferences
+register(key="sentry:seer_automated_run_stopping_point", default="code_changes")
+register(key="sentry:seer_automation_handoff_point", default=None)
+register(key="sentry:seer_automation_handoff_target", default=None)
+register(key="sentry:seer_automation_handoff_integration_id", default=None)
+register(key="sentry:seer_automation_handoff_auto_create_pr", default=False)
+
+# Boolean to enable/disable preprod size analysis for this project.
+register(key="sentry:preprod_size_enabled_by_customer", default=True)
+
+# Structured search filter to determine which preprod builds get size analysis.
+register(key="sentry:preprod_size_enabled_query", default="")
+
+# Boolean to enable/disable preprod build distribution for this project.
+register(key="sentry:preprod_distribution_enabled_by_customer", default=True)
+
+# Structured search filter to determine which preprod builds get build distribution.
+register(key="sentry:preprod_distribution_enabled_query", default="")
+
+# Boolean to enable/disable build distribution PR comments for this project.
+register(key="sentry:preprod_distribution_pr_comments_enabled_by_customer", default=True)

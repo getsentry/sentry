@@ -4,17 +4,18 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {
@@ -35,15 +36,15 @@ import {
   getPlanCategoryName,
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
-import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
+import {CheckoutOption} from 'getsentry/views/amCheckout/components/checkoutOption';
+import {renderPerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
-import {renderPerformanceHovercard} from 'getsentry/views/amCheckout/steps/volumeSliders';
 import {
   displayPrice,
   displayPriceWithCents,
   getBucket,
 } from 'getsentry/views/amCheckout/utils';
-import {convertOnDemandBudget} from 'getsentry/views/onDemandBudgets/utils';
+import {convertOnDemandBudget} from 'getsentry/views/spendLimits/utils';
 
 const LARGE_INPUT_WIDTH = '300px';
 
@@ -64,20 +65,20 @@ export interface SpendLimitSettingsProps {
   isOpen?: boolean;
 }
 
-interface BudgetModeSettingsProps
-  extends Omit<
-    SpendLimitSettingsProps,
-    'header' | 'currentReserved' | 'organization' | 'addOns' | 'subscription'
-  > {}
+interface BudgetModeSettingsProps extends Omit<
+  SpendLimitSettingsProps,
+  'header' | 'currentReserved' | 'organization' | 'addOns' | 'subscription'
+> {}
 
-interface InnerSpendLimitSettingsProps
-  extends Omit<SpendLimitSettingsProps, 'header' | 'subscription'> {}
+interface InnerSpendLimitSettingsProps extends Omit<
+  SpendLimitSettingsProps,
+  'header' | 'subscription'
+> {}
 
-interface SharedSpendLimitPriceTableProps
-  extends Pick<
-    SpendLimitSettingsProps,
-    'activePlan' | 'currentReserved' | 'organization'
-  > {
+interface SharedSpendLimitPriceTableProps extends Pick<
+  SpendLimitSettingsProps,
+  'activePlan' | 'currentReserved' | 'organization'
+> {
   includedAddOns: AddOnCategory[];
 }
 interface SpendLimitInputProps extends Pick<SpendLimitSettingsProps, 'activePlan'> {
@@ -185,13 +186,7 @@ export function SharedSpendLimitPriceTable({
 
   return (
     <Stack borderTop="primary">
-      <Flex
-        borderBottom="primary"
-        padding="md xl"
-        background="secondary"
-        justify="between"
-        align="center"
-      >
+      <Flex padding="md xl" background="secondary" justify="between" align="center">
         <Text bold>{t('Product')}</Text>
         <Text bold>{t('Price')}</Text>
       </Flex>
@@ -267,7 +262,14 @@ export function SharedSpendLimitPriceTable({
         if (!addOnInfo) {
           return null;
         }
-        const dataCategories = addOnInfo.dataCategories;
+
+        const canUsePayg = addOnInfo.dataCategories.some(category =>
+          activePlan.onDemandCategories.includes(category)
+        );
+
+        if (!canUsePayg) {
+          return null;
+        }
 
         const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
         const includedBudget = reservedBudgetCategory
@@ -276,12 +278,10 @@ export function SharedSpendLimitPriceTable({
           : 0;
         const tooltipText = getProductCheckoutDescription({
           product: apiName,
-          isNewCheckout: true,
           withPunctuation: true,
-          includedBudget: includedBudget
-            ? displayPrice({cents: includedBudget})
-            : undefined,
         });
+
+        const dataCategories = addOnInfo.dataCategories;
 
         return (
           <Flex justify="between" key={apiName} borderTop="primary" padding="md xl">
@@ -347,7 +347,18 @@ function InnerSpendLimitSettings({
   organization,
 }: InnerSpendLimitSettingsProps) {
   const includedAddOns = Object.entries(addOns)
-    .filter(([_, addOn]) => addOn.enabled)
+    .filter(([apiName, addOn]) => {
+      const addOnInfo = activePlan.addOnCategories[apiName as AddOnCategory];
+      if (!addOnInfo) {
+        return false;
+      }
+      return (
+        addOn.enabled &&
+        addOnInfo.dataCategories.some(category =>
+          activePlan.onDemandCategories.includes(category)
+        )
+      );
+    })
     .map(([apiName]) => apiName) as AddOnCategory[];
   const handleUpdate = ({newData}: {newData: PartialSpendLimitUpdate}) => {
     if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
@@ -495,10 +506,7 @@ function InnerSpendLimitSettings({
             );
           })}
           {includedAddOns.map((apiName, index) => {
-            const addOnInfo = activePlan.addOnCategories[apiName];
-            if (!addOnInfo) {
-              return null;
-            }
+            const addOnInfo = activePlan.addOnCategories[apiName]!;
             const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
             const includedBudget = reservedBudgetCategory
               ? (activePlan.availableReservedBudgetTypes[reservedBudgetCategory]
@@ -507,11 +515,7 @@ function InnerSpendLimitSettings({
             const isLastInList = index === Object.keys(includedAddOns).length - 1;
             const tooltipText = getProductCheckoutDescription({
               product: apiName,
-              isNewCheckout: true,
               withPunctuation: true,
-              includedBudget: includedBudget
-                ? displayPrice({cents: includedBudget})
-                : undefined,
             });
 
             return (
@@ -617,7 +621,7 @@ function BudgetModeSettings({
   }
 
   return (
-    <Grid columns={{xs: '1fr', md: 'repeat(2, 1fr)'}} gap="xl">
+    <Grid columns={{xs: '1fr', lg: 'repeat(2, 1fr)'}} gap="lg">
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;
@@ -634,38 +638,26 @@ function BudgetModeSettings({
                 onDemandBudgets: nextOnDemandBudget,
               });
             }}
-          >
-            <Flex align="start" gap="md" padding="xl">
-              <Container paddingTop="2xs">
-                <RadioMarker
-                  width="16px"
-                  height="16px"
-                  border={isSelected ? 'accent' : 'primary'}
-                  radius="full"
-                  background="primary"
-                  isSelected={isSelected}
-                />
-              </Container>
+            optionHeader={
               <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
                 {budgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? t('Set a spending limit for each product')
                   : t('Set a spending limit shared across all products')}
               </Heading>
-            </Flex>
-          </CheckoutOption>
+            }
+          />
         );
       })}
     </Grid>
   );
 }
 
-function SpendLimitSettings({
+export function SpendLimitSettings({
   header,
   activePlan,
   onDemandBudgets,
   onUpdate,
   currentReserved,
-  isOpen,
   addOns,
   footer,
   organization,
@@ -674,54 +666,46 @@ function SpendLimitSettings({
   return (
     <Flex direction="column" gap="sm">
       {header}
-      {isOpen && (
-        <Grid gap="2xl">
-          <Text variant="muted">
-            {tct(
-              "[budgetTerm] lets you go beyond what's included in your plan. It applies across all products on a first-come, first-served basis, and you're only charged for what you use -- if your monthly usage stays within your plan, you won't pay extra.[partnerMessage]",
-              {
-                budgetTerm:
-                  activePlan.budgetTerm === 'pay-as-you-go'
-                    ? `${displayBudgetName(activePlan, {title: true})} (PAYG)`
-                    : displayBudgetName(activePlan, {title: true}),
-                partnerMessage: subscription.isSelfServePartner
-                  ? tct(' This will be part of your [partnerName] bill.', {
-                      partnerName: subscription.partner?.partnership.displayName,
-                    })
-                  : '',
-              }
-            )}
-          </Text>
-          <BudgetModeSettings
+      <Grid gap="2xl">
+        <Text variant="muted">
+          {tct(
+            "[budgetTerm] lets you go beyond what's included in your plan. It applies across all products on a first-come, first-served basis, and you're only charged for what you use -- if your monthly usage stays within your plan, you won't pay extra.[partnerMessage]",
+            {
+              budgetTerm:
+                activePlan.budgetTerm === 'pay-as-you-go'
+                  ? `${displayBudgetName(activePlan, {title: true})} (PAYG)`
+                  : displayBudgetName(activePlan, {title: true}),
+              partnerMessage: subscription.isSelfServePartner
+                ? tct(' This will be part of your [partnerName] bill.', {
+                    partnerName: subscription.partner?.partnership.displayName,
+                  })
+                : '',
+            }
+          )}
+        </Text>
+        <BudgetModeSettings
+          activePlan={activePlan}
+          onDemandBudgets={onDemandBudgets}
+          onUpdate={onUpdate}
+        />
+        <InnerContainer direction="column" gap="xl" border="primary" radius="md">
+          <InnerSpendLimitSettings
             activePlan={activePlan}
             onDemandBudgets={onDemandBudgets}
             onUpdate={onUpdate}
+            currentReserved={currentReserved}
+            addOns={addOns}
+            organization={organization}
           />
-          <InnerContainer direction="column" gap="xl" border="primary" radius="md">
-            <InnerSpendLimitSettings
-              activePlan={activePlan}
-              onDemandBudgets={onDemandBudgets}
-              onUpdate={onUpdate}
-              currentReserved={currentReserved}
-              addOns={addOns}
-              organization={organization}
-            />
-            {footer}
-          </InnerContainer>
-        </Grid>
-      )}
+          {footer}
+        </InnerContainer>
+      </Grid>
     </Flex>
   );
 }
 
-export default SpendLimitSettings;
-
-const RadioMarker = styled(Container)<{isSelected: boolean}>`
-  border-width: ${p => (p.isSelected ? '4px' : '1px')};
-`;
-
 const InnerContainer = styled(Flex)`
-  border-bottom: ${p => (p.theme.isChonk ? '3px' : '1px')} solid ${p => p.theme.border};
+  border-bottom: 3px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
 `;
 
@@ -739,7 +723,7 @@ const Currency = styled('div')`
     position: absolute;
     padding: 9px ${p => p.theme.space.lg};
     content: '$';
-    color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSize.md};
+    color: ${p => p.theme.tokens.content.secondary};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;

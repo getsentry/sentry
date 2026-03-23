@@ -3,9 +3,10 @@ import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout/flex';
-import Panel from 'sentry/components/panels/panel';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
+
+import {Panel} from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 
@@ -14,6 +15,7 @@ interface TableProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 interface RowProps extends HTMLAttributes<HTMLDivElement> {
+  ref?: RefObject<HTMLDivElement | null>;
   variant?: 'default' | 'faded';
 }
 
@@ -71,9 +73,9 @@ function HeaderCell({
   );
 }
 
-function Row({children, variant = 'default', ...props}: RowProps) {
+function Row({children, variant = 'default', ref, ...props}: RowProps) {
   return (
-    <StyledRow variant={variant} role="row" {...props}>
+    <StyledRow variant={variant} role="row" ref={ref} {...props}>
       {children}
     </StyledRow>
   );
@@ -100,10 +102,10 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledPanelHeader = styled('div')`
-  background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: calc(${p => p.theme.borderRadius} + 1px)
-    calc(${p => p.theme.borderRadius} + 1px) 0 0;
+  background: ${p => p.theme.tokens.background.secondary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: calc(${p => p.theme.radius.md} + 1px)
+    calc(${p => p.theme.radius.md} + 1px) 0 0;
   justify-content: left;
   padding: 0;
   min-height: 40px;
@@ -124,7 +126,7 @@ const StyledRow = styled('div', {
   align-items: center;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   ${p =>
@@ -139,9 +141,9 @@ const StyledRow = styled('div', {
 const HeaderDivider = styled('div')`
   position: absolute;
   left: 0;
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.colors.gray200};
   width: 1px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: 14px;
 `;
 
@@ -151,10 +153,10 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   border: none;
   padding: 0 ${p => p.theme.space.xl};
   text-transform: inherit;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-align: left;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
 
   position: relative;
   display: flex;
@@ -172,7 +174,7 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   ${p =>
     p.isSorted &&
     css`
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 
@@ -210,8 +212,8 @@ const StyledEmptyMessage = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 SimpleTable.Header = Header;

@@ -3,20 +3,21 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import LoadingError from 'sentry/components/loadingError';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import OrganizationApiKeysList from './organizationApiKeysList';
+import {OrganizationApiKeysList} from './organizationApiKeysList';
 import type {DeprecatedApiKey} from './types';
 
 /**
@@ -32,9 +33,16 @@ function OrganizationApiKeys() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<DeprecatedApiKey[]>([`/organizations/${organization.slug}/api-keys/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<DeprecatedApiKey[]>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/api-keys/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const removeMutation = useMutation({
     mutationFn: ({removedId}: {removedId: string}) => {
@@ -52,7 +60,11 @@ function OrganizationApiKeys() {
     onSuccess: (_data, {removedId}) => {
       setApiQueryData<DeprecatedApiKey[]>(
         queryClient,
-        [`/organizations/${organization.slug}/api-keys/`],
+        [
+          getApiUrl(`/organizations/$organizationIdOrSlug/api-keys/`, {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
         oldData => {
           if (!oldData) {
             return oldData;

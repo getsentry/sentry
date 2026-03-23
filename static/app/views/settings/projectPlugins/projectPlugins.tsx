@@ -1,11 +1,12 @@
-import Access from 'sentry/components/acl/access';
-import {Link} from 'sentry/components/core/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {Link} from '@sentry/scraps/link';
+
+import {Access} from 'sentry/components/acl/access';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -24,7 +25,7 @@ type Props = {
   project: Project;
 };
 
-export default function ProjectPlugins({
+export function ProjectPlugins({
   plugins,
   loading,
   error,
@@ -55,7 +56,7 @@ export default function ProjectPlugins({
             <div />
           </PanelHeader>
           <PanelBody>
-            <PanelAlert type="warning">
+            <PanelAlert variant="warning">
               {hasAccess
                 ? tct(
                     "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the [link:organization integrations] settings to manage them.",

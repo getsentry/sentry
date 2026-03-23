@@ -1,17 +1,23 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import type {Location, Query} from 'history';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   SelectedReplayIndexProvider,
   useSelectedReplayIndex,
 } from 'sentry/components/replays/queryParams/selectedReplayIndex';
+import {
+  ReplayAccess,
+  ReplayAccessFallbackAlert,
+} from 'sentry/components/replays/replayAccess';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayTable from 'sentry/components/replays/table/replayTable';
+import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import {
   ReplayActivityColumn,
   ReplayBrowserColumn,
@@ -22,26 +28,26 @@ import {
   ReplayPlayPauseColumn,
   ReplaySessionColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
+import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
+import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
+import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
-import useReplaysFromIssue from './useReplaysFromIssue';
+import {useReplaysFromIssue} from './useReplaysFromIssue';
 
 type Props = {
   group: Group;
@@ -75,7 +81,15 @@ function ReplayFilterMessage() {
   );
 }
 
-export default function GroupReplays({group}: Props) {
+export function GroupReplays({group}: Props) {
+  return (
+    <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+      <GroupReplaysContent group={group} />
+    </ReplayAccess>
+  );
+}
+
+function GroupReplaysContent({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -108,17 +122,17 @@ export default function GroupReplays({group}: Props) {
     // Shown on load and no replay data available
     return (
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
-        <ReplayHeader>
+        <Stack>
           {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
-          <ReplayCountHeader>
+          <Flex align="center" gap="md">
             <IconUser size="sm" />
             {isFetching ? (
               <Placeholder height="18px" width="400px" />
             ) : (
               t('No replay data available.')
             )}
-          </ReplayCountHeader>
-        </ReplayHeader>
+          </Flex>
+        </Stack>
         <ReplayTable
           columns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           error={fetchError}
@@ -135,9 +149,9 @@ export default function GroupReplays({group}: Props) {
   return (
     <SelectedReplayIndexProvider>
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
-        <ReplayHeader>
+        <Stack>
           {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
-          <ReplayCountHeader>
+          <Flex align="center" gap="md">
             <IconUser size="sm" />
             {replayCount > 50
               ? tn(
@@ -150,8 +164,8 @@ export default function GroupReplays({group}: Props) {
                   tn('is %s replay', 'are %s replays', replayCount),
                   tn('%s event', '%s events', group.count)
                 )}
-          </ReplayCountHeader>
-        </ReplayHeader>
+          </Flex>
+        </Stack>
 
         <GroupReplaysTable
           eventView={eventView}
@@ -165,6 +179,7 @@ export default function GroupReplays({group}: Props) {
 
 function SelectedReplayWrapper({
   children,
+  query,
   group,
   replaySlug,
   overlayContent,
@@ -175,6 +190,7 @@ function SelectedReplayWrapper({
   overlayContent: React.ReactNode;
   replaySlug: string;
   replays: ReplayListRecord[] | undefined;
+  query?: Query;
 }) {
   const organization = useOrganization();
   const readerResult = useLoadReplayReader({
@@ -195,6 +211,7 @@ function SelectedReplayWrapper({
       autoStart
     >
       <GroupReplaysPlayer
+        query={query}
         replayReaderResult={readerResult}
         overlayContent={overlayContent}
         handleForwardClick={
@@ -234,6 +251,7 @@ function GroupReplaysTable({
   });
 
   const replayListData = useReplayList({
+    enabled: true,
     eventView,
     location: useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []),
     organization,
@@ -241,9 +259,11 @@ function GroupReplaysTable({
   });
   const {replays} = replayListData;
   const selectedReplay = replays?.[selectedReplayIndex];
+  const playlistQuery = usePlaylistQuery('issueReplays', eventView);
 
   const replayTable = (
     <ReplayTable
+      query={playlistQuery}
       columns={[
         ...(selectedReplay ? [ReplayPlayPauseColumn] : []),
         ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
@@ -264,6 +284,7 @@ function GroupReplaysTable({
         group={group}
         replaySlug={selectedReplay.id}
         replays={replays}
+        query={playlistQuery}
       >
         {replayTable}
       </SelectedReplayWrapper>
@@ -284,7 +305,7 @@ function ReplayOverlay({
 
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
-    ? `${nextReplay.user.display_name || t('Anonymous User')}`
+    ? nextReplay.user.display_name || t('Anonymous User')
     : undefined;
 
   if (!nextReplayText || !replayCount) {
@@ -308,41 +329,30 @@ function ReplayOverlay({
 }
 
 const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
-  background-color: ${p => p.theme.background};
-  gap: ${space(1.5)};
+  background-color: ${p => p.theme.tokens.background.primary};
+  gap: ${p => p.theme.space.lg};
 
   ${p =>
     p.hasStreamlinedUI &&
     css`
-      border: 1px solid ${p.theme.border};
-      border-radius: ${p.theme.borderRadius};
-      padding: ${space(1.5)};
+      border: 1px solid ${p.theme.tokens.border.primary};
+      border-radius: ${p.theme.radius.md};
+      padding: ${p.theme.space.lg};
     `}
 `;
 
-const ReplayCountHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const ReplayHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const StyledBreak = styled('hr')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1.5)};
-  border-color: ${p => p.theme.border};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.lg};
+  border-color: ${p => p.theme.tokens.border.primary};
 `;
 
 const ReplayFilterText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const OverlayText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const UpNext = styled('div')`

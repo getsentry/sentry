@@ -1,7 +1,5 @@
 ---
-created: '2025-11-05T23:19:04.057278+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
   "grouping_config": "newstyle:2023-01-11",
@@ -804,12 +802,12 @@ source: tests/sentry/grouping/test_grouping_info.py
       "key": "app_exception_stacktrace",
       "type": "component"
     },
-    "custom_fingerprint": {
+    "custom_server_fingerprint": {
       "contributes": true,
-      "description": "custom fingerprint",
+      "description": "custom server fingerprint",
       "hash": "554e214208f0372603dc9fa6c1c0965f",
       "hint": null,
-      "key": "custom_fingerprint",
+      "key": "custom_server_fingerprint",
       "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\"",
       "type": "custom_fingerprint",
       "values": [

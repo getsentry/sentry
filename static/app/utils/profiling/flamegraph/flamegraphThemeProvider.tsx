@@ -2,16 +2,13 @@ import {createContext, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import cloneDeep from 'lodash/cloneDeep';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
-  makeDarkChonkFlamegraphTheme,
   makeDarkFlamegraphTheme,
-  makeLightChonkFlamegraphTheme,
   makeLightFlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 export const FlamegraphThemeContext = createContext<FlamegraphTheme | null>(null);
 
@@ -40,17 +37,10 @@ function FlamegraphThemeProvider(
   }, []);
 
   const activeFlamegraphTheme = useMemo(() => {
-    let flamegraphTheme =
+    const flamegraphTheme =
       colorMode === 'light'
         ? makeLightFlamegraphTheme(theme)
         : makeDarkFlamegraphTheme(theme);
-
-    if (isChonkTheme(theme)) {
-      flamegraphTheme =
-        colorMode === 'light'
-          ? makeLightChonkFlamegraphTheme(theme)
-          : makeDarkChonkFlamegraphTheme(theme);
-    }
 
     if (!mutation) {
       return flamegraphTheme;

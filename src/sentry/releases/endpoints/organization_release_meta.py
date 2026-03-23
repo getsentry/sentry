@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release import expose_version_info
@@ -29,7 +29,7 @@ class _ProjectDict(TypedDict):
     platforms: list[str]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -84,7 +84,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         if parsed_version and release_project_ids:
             number_of_preprod_builds = PreprodArtifact.objects.filter(
                 app_id=parsed_version.app_id,
-                build_version=parsed_version.build_version,
+                mobile_app_info__build_version=parsed_version.build_version,
                 project_id__in=release_project_ids,
             ).count()
         else:

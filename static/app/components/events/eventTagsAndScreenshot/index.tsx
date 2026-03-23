@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {DataSection} from 'sentry/components/events/styles';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {EventTagsDataSection} from './tags';
 
@@ -73,7 +73,7 @@ const Wrapper = styled(DataSection)<{
 
 const StyledScreenshotDataSection = styled(ScreenshotDataSection)`
   h3 a {
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
   }
 `;
 

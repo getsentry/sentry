@@ -1,0 +1,38 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [["module", "do_dog_stuff"]],
+      "fingerprint": ["{{ function }}"],
+      "attributes": {
+        "title": "Dogs are great ({{ function }})"
+      }
+    }
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "fetch",
+              "module": "do_dog_stuff",
+              "in_app": true
+            },
+            {
+              "function": "throw_ball",
+              "module": "do_dog_stuff",
+              "in_app": true
+            },
+            {
+              "function": "compute_ball_arc",
+              "module": "physics",
+              "in_app": false
+            }
+          ]
+        },
+        "type": "MathError",
+        "value": "Missing necessary formulas"
+      }
+    ]
+  }
+}

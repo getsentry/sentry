@@ -63,6 +63,14 @@ const numberTags: TagCollection = {
   },
 };
 
+const booleanTags: TagCollection = {
+  'feature.enabled': {
+    key: 'feature.enabled',
+    name: 'feature.enabled',
+    kind: FieldKind.BOOLEAN,
+  },
+};
+
 describe('AggregateColumnEditorModal', () => {
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
@@ -78,6 +86,7 @@ describe('AggregateColumnEditorModal', () => {
             onColumnsChange={() => {}}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose}
@@ -108,6 +117,7 @@ describe('AggregateColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}
@@ -156,6 +166,53 @@ describe('AggregateColumnEditorModal', () => {
     ]);
   });
 
+  it('handles duplicate visualize columns without collapsing rows', async () => {
+    const onColumnsChange = jest.fn();
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <AggregateColumnEditorModal
+            {...modalProps}
+            columns={[
+              {groupBy: 'geo.country'},
+              new VisualizeFunction('count(span.duration)'),
+              new VisualizeFunction('count(span.duration)'),
+            ]}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    let rows = await screen.findAllByTestId('editor-row');
+    expectRows(rows).toHaveAggregateFields([
+      {groupBy: 'geo.country'},
+      new VisualizeFunction('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
+    ]);
+
+    await userEvent.click(screen.getAllByLabelText('Remove Column')[2]!);
+
+    rows = await screen.findAllByTestId('editor-row');
+    expectRows(rows).toHaveAggregateFields([
+      {groupBy: 'geo.country'},
+      new VisualizeFunction('count(span.duration)'),
+    ]);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith([
+      {groupBy: 'geo.country'},
+      {yAxes: ['count(span.duration)']},
+    ]);
+  });
+
   it('allows adding a column', async () => {
     const onColumnsChange = jest.fn();
 
@@ -173,6 +230,7 @@ describe('AggregateColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}
@@ -239,6 +297,7 @@ describe('AggregateColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}
@@ -255,21 +314,27 @@ describe('AggregateColumnEditorModal', () => {
 
     const options: string[] = [
       '\u2014',
-      'foo',
       'geo.city',
-      'geo.country',
       'project',
       'span.duration',
       'span.op',
       'span.self_time',
+      'feature.enabled',
+      'foo',
+      'geo.country',
     ];
-    await userEvent.click(screen.getByRole('button', {name: 'Group By geo.country'}));
+
+    const row = screen.getAllByTestId('editor-row')[0]!;
+
+    await userEvent.click(
+      within(row).getByRole('button', {name: 'Group By geo.country'})
+    );
     const groupByOptions = await screen.findAllByRole('option');
     groupByOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i]!);
     });
 
-    await userEvent.click(groupByOptions[2]!);
+    await userEvent.click(groupByOptions[1]!);
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.city'},
@@ -284,11 +349,7 @@ describe('AggregateColumnEditorModal', () => {
   });
 
   it('allows adding an equation', async () => {
-    const {organization} = initializeOrg({
-      organization: {
-        features: ['visibility-explore-equations'],
-      },
-    });
+    const {organization} = initializeOrg();
 
     const onColumnsChange = jest.fn();
 
@@ -306,6 +367,7 @@ describe('AggregateColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}

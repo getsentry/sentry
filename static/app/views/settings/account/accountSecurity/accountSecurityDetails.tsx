@@ -7,31 +7,37 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
-import RecoveryCodes from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
-import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
+import {RecoveryCodes} from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
+import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {AuthenticatorHeader} from './components/authenticatorHeader';
 
 const ENDPOINT = '/users/me/authenticators/';
-const getAuthenticatorQueryKey = (authId: string) => [`${ENDPOINT}${authId}/`] as const;
+const getAuthenticatorQueryKey = (authId: string) =>
+  [
+    getApiUrl('/users/$userId/authenticators/$authId/', {
+      path: {userId: 'me', authId},
+    }),
+  ] as const;
 
 interface AuthenticatorDateProps {
   /**
@@ -150,7 +156,7 @@ export default function AccountSecurityDetails() {
           />
         }
         action={
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
               <LinkButton
                 to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}
@@ -161,20 +167,20 @@ export default function AccountSecurityDetails() {
             {authenticator.isEnrolled && authenticator.removeButton && (
               <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
                 <Button
-                  title={
-                    deleteDisabled
+                  tooltipProps={{
+                    title: deleteDisabled
                       ? t(
                           "Two-factor authentication is required for at least one organization you're a member of."
                         )
-                      : undefined
-                  }
+                      : undefined,
+                  }}
                   priority="danger"
                 >
                   {authenticator.removeButton}
                 </Button>
               </RemoveConfirm>
             )}
-          </ButtonBar>
+          </Grid>
         }
       />
 
@@ -216,7 +222,7 @@ const AuthenticatorDates = styled('div')`
 `;
 
 const DateLabel = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const PhoneWrapper = styled('div')`
@@ -224,6 +230,6 @@ const PhoneWrapper = styled('div')`
 `;
 
 const Phone = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-left: ${p => p.theme.space.md};
 `;

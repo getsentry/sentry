@@ -36,7 +36,6 @@ class DiscordMetricAlertHandler(BaseMetricAlertHandler):
         organization: Organization,
         project: Project,
     ) -> None:
-
         from sentry.integrations.discord.actions.metric_alert import (
             send_incident_alert_notification,
         )

@@ -5,9 +5,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import ProjectTransactionThresholdOverridePermission
-from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.models.transaction_threshold import (
@@ -56,8 +56,8 @@ class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
         return data
 
 
-@region_silo_endpoint
-class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBase):
+@cell_silo_endpoint
+class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

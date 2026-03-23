@@ -1,24 +1,26 @@
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import {LoadingError} from 'sentry/components/loadingError';
+import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
+import {getNoPermissionToEditMonitorTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
+import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 type ErrorDetectorFormData = {
   workflowIds: string[];
@@ -27,9 +29,10 @@ type ErrorDetectorFormData = {
 function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: detector.projectId});
+  const theme = useTheme();
 
   return (
-    <FormStack>
+    <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <Container>
         <Section title={t('Detect')}>
           <Text as="p">
@@ -93,7 +96,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         </Section>
       </Container>
       <AutomateSection />
-    </FormStack>
+    </Stack>
   );
 }
 
@@ -113,6 +116,11 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
   const project = useProjectFromId({project_id: detector.projectId});
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
+
+  // Error monitors only allow editing workflow connections right now, so that's the only permission we need to check
+  const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
+    projectId: detector.projectId,
+  });
 
   const handleFormSubmit = useEditDetectorFormSubmit({
     detector,
@@ -151,17 +159,20 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
       </EditLayout.Body>
 
       <EditLayout.Footer maxWidth={maxWidth}>
-        <Button type="submit" priority="primary" size="sm">
+        <Button
+          type="submit"
+          priority="primary"
+          size="sm"
+          disabled={!canEditWorkflowConnections}
+          tooltipProps={{
+            title: canEditWorkflowConnections
+              ? undefined
+              : getNoPermissionToEditMonitorTooltip(),
+          }}
+        >
           {t('Save')}
         </Button>
       </EditLayout.Footer>
     </EditLayout>
   );
 }
-
-const FormStack = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-  max-width: ${p => p.theme.breakpoints.xl};
-`;

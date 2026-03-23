@@ -8,3 +8,45 @@ export {
   type SelectSection,
   type SelectKey,
 } from './compactSelect';
+
+export {CompositeSelect, type CompositeSelectProps} from './composite';
+
+export {ControlContext} from './control';
+
+export {MenuComponents} from './menuComponents';
+
+export {
+  LeadWrap,
+  SectionSeparator,
+  SectionGroup,
+  SectionHeader,
+  SectionTitle,
+  SectionWrap,
+  SizeLimitMessage,
+  ListLabel,
+  ListSeparator,
+  ListWrap,
+} from './styles';
+
+export type {
+  SelectOptionOrSectionWithKey,
+  SelectOptionWithKey,
+  SelectSectionWithKey,
+  SearchMatchResult,
+} from './types';
+
+export {
+  getItemsWithKeys,
+  getDisabledOptions,
+  getHiddenOptions,
+  itemIsSectionWithKey,
+  SectionToggle,
+  getEscapedKey,
+} from './utils';
+
+export {useVirtualizedItems} from './useVirtualizedItems';
+
+export {SelectFilterContext} from './list';
+export {TriggerLabel} from './control';
+
+export {ListBox} from './listBox';

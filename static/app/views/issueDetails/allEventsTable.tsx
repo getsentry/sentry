@@ -2,7 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {
   PlatformCategory,
   profiling as PROFILING_PLATFORMS,
@@ -13,6 +13,7 @@ import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -22,7 +23,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface Props {
   excludedTags: string[];
@@ -30,11 +31,22 @@ interface Props {
   organization: Organization;
 }
 
-const makeGroupPreviewRequestUrl = ({groupId}: {groupId: string}) => {
-  return `/issues/${groupId}/events/latest/`;
+const makeGroupPreviewRequestUrl = ({
+  orgSlug,
+  groupId,
+}: {
+  groupId: string;
+  orgSlug: string;
+}) => {
+  return getApiUrl(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+    {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId, eventId: 'latest'},
+    }
+  );
 };
 
-function AllEventsTable({organization, excludedTags, group}: Props) {
+export function AllEventsTable({organization, excludedTags, group}: Props) {
   const location = useLocation();
   const theme = useTheme();
   const config = getConfigForIssueType(group, group.project);
@@ -44,6 +56,7 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
   const now = useMemo(() => Date.now(), []);
 
   const endpointUrl = makeGroupPreviewRequestUrl({
+    orgSlug: organization.slug,
     groupId: group.id,
   });
 
@@ -53,7 +66,7 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
     enabled: isRegressionIssue,
   });
 
-  const eventView: EventView = EventView.fromLocation(location);
+  const eventView = EventView.fromLocation(location);
   if (config.usesIssuePlatform) {
     eventView.dataset = DiscoverDatasets.ISSUE_PLATFORM;
   }
@@ -226,5 +239,3 @@ const getPlatformColumns = (
 
   return platformColumns;
 };
-
-export default AllEventsTable;

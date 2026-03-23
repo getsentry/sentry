@@ -3,11 +3,11 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type HTMLMotionProps} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import * as Storybook from 'sentry/stories';
 
 type Motion = Theme['motion'];
@@ -44,10 +44,12 @@ export function MotionPlayground() {
         <Grid columns="160px 192px" gap="lg" align="center" justify="center">
           <Control label="Easing">
             <CompactSelect
-              options={(['smooth', 'snap', 'enter', 'exit'] as const).map(value => ({
-                value,
-                label: value,
-              }))}
+              options={(['smooth', 'snap', 'spring', 'enter', 'exit'] as const).map(
+                value => ({
+                  value,
+                  label: value,
+                })
+              )}
               value={easing}
               onChange={opt => setEasing(opt.value)}
             />
@@ -64,7 +66,7 @@ export function MotionPlayground() {
           </Control>
         </Grid>
         <Control label="Animation">
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             {animations.map(value => (
               <Button
                 key={value}
@@ -85,9 +87,10 @@ const Box = styled(motion.div)`
   display: block;
   width: 128px;
   height: 128px;
-  background: ${p => p.theme.tokens.border.accent};
-  border: 1px solid ${p => p.theme.tokens.border.accent};
-  border-radius: ${p => p.theme.borderRadius};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.accent.vibrant};
+  border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 function Control({label, children}: React.PropsWithChildren<{label: string}>) {
@@ -156,12 +159,14 @@ interface TargetStateOptions {
 const TARGET_OPACITY: TargetConfig = {
   smooth: {start: 1, end: 1},
   snap: {start: 1, end: 1},
+  spring: {start: 1, end: 1},
   enter: {start: 0, end: 1},
   exit: {start: 1, end: 0},
 };
 const TARGET_AXIS: TargetConfig = {
   smooth: {start: -16, end: 16},
   snap: {start: -16, end: 16},
+  spring: {start: -16, end: 16},
   enter: {start: -16, end: 0},
   exit: {start: 0, end: 16},
 };
@@ -169,12 +174,14 @@ const TARGET_CONFIGS: Record<string, TargetConfig> = {
   rotate: {
     smooth: {start: 0, end: 90},
     snap: {start: 0, end: 90},
+    spring: {start: 0, end: 90},
     enter: {start: -90, end: 0},
     exit: {start: 0, end: 90},
   },
   scale: {
     smooth: {start: 1, end: 1.125},
     snap: {start: 1, end: 1.125},
+    spring: {start: 1, end: 1.125},
     enter: {start: 1.125, end: 1},
     exit: {start: 1, end: 0.8},
   },

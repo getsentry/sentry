@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {HistogramQuery} from 'sentry/utils/performance/histogram/histogramQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/histogramChart';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
@@ -96,6 +96,6 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
 }
 
 const Subtitle = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;

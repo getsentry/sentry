@@ -125,7 +125,6 @@ def _create_file_blame_info(commit: CommitInfo, file: SourceLineInfo) -> FileBla
 def _handle_file_blame_error(
     error: ApiError, file: SourceLineInfo, extra: Mapping[str, Any]
 ) -> None:
-
     # Ignore expected error codes
     if error.code in (401, 403, 404):
         logger.warning(
@@ -192,5 +191,5 @@ def _create_commit_from_blame(
             committedDate=datetime.fromisoformat(committed_date).replace(tzinfo=timezone.utc),
         )
     except Exception:
-        logger.exception("get_blame_for_files.invalid_commit_response", extra=extra)
+        logger.warning("get_blame_for_files.invalid_commit_response", extra=extra)
         return None

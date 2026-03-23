@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import type {MobileVital, WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
@@ -24,7 +25,6 @@ import {
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {isEAPTraceNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TRACE_VIEW_MOBILE_VITALS,
@@ -56,9 +56,8 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
     ? TRACE_VIEW_WEB_VITALS
     : TRACE_VIEW_MOBILE_VITALS;
 
-  const isEAPTrace = isEAPTraceNode(traceNode);
   const collectedVitals =
-    isEAPTrace && tree.vital_types.has('mobile')
+    traceNode.isEAPEvent && tree.vital_types.has('mobile')
       ? getMobileVitalsFromRootEventResults(rootEventResults.data)
       : Array.from(tree.vitals.values()).flat();
 
@@ -82,7 +81,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
         return (
           <div key={vitalKey}>
             <strong>
-              {`${vitalDetails.acronym ? vitalDetails.acronym : vitalDetails.name}`}:
+              {vitalDetails.acronym ? vitalDetails.acronym : vitalDetails.name}:
             </strong>{' '}
             <span>{formattedValue}</span>
             {vital?.score !== undefined &&
@@ -94,7 +93,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
   );
 
   return (
-    <VitalMetersContainer>
+    <Flex align="center" gap="md">
       {primaryVitals.map(vitalKey => {
         const {vitalDetails, vital} = getVitalInfo(vitalKey, collectedVitals);
         return <VitalPill key={vitalKey} vitalDetails={vitalDetails} vital={vital} />;
@@ -106,7 +105,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
           </SecondaryVitalsCount>
         </Tooltip>
       )}
-    </VitalMetersContainer>
+    </Flex>
   );
 }
 
@@ -143,24 +142,14 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
 
   const acronym = vitalDetails.acronym ?? vitalDetails.name;
   return (
-    <VitalPillContainer>
+    <Flex>
       <VitalPillName status={status}>
-        <Tooltip title={toolTipTitle}>{`${acronym}`}</Tooltip>
+        <Tooltip title={toolTipTitle}>{acronym}</Tooltip>
       </VitalPillName>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
-    </VitalPillContainer>
+    </Flex>
   );
 }
-
-const VitalMetersContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const VitalPillContainer = styled('div')`
-  display: flex;
-`;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`
   display: flex;
@@ -169,43 +158,43 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
   border: solid 1px
     ${p =>
       p.status === 'none'
-        ? p.theme.border
+        ? p.theme.tokens.border.primary
         : makePerformanceScoreColors(p.theme)[p.status].border};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
-  text-underline-offset: ${space(0.25)};
+  text-underline-offset: ${p => p.theme.space['2xs']};
   text-decoration-thickness: 1px;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
 `;
 
 const VitalPillValue = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-left: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.lg};
-  padding: 0 ${space(1)};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.lg};
+  padding: 0 ${p => p.theme.space.md};
 `;
 
 const SecondaryVitalsCount = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const SecondaryVitalsCountContainer = styled('div')`
   display: flex;
   flex-direction: column;
   white-space: nowrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   text-align: left;
 `;
 

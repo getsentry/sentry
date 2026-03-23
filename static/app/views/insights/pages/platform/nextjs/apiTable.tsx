@@ -6,11 +6,11 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   HeadSortCell,
   useTableSort,
-} from 'sentry/views/insights/agents/components/headSortCell';
-import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -26,7 +26,7 @@ import type {SpanProperty} from 'sentry/views/insights/types';
 
 const getP95Threshold = (avg: number) => {
   return {
-    error: avg * 3,
+    danger: avg * 3,
     warning: avg * 2,
   };
 };

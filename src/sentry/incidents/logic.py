@@ -23,7 +23,7 @@ from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.incidents import tasks
 from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.models.alert_rule import (
@@ -83,7 +83,12 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import (
+    ExtrapolationMode,
+    QuerySubscription,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.subscriptions import (
@@ -543,6 +548,7 @@ def create_alert_rule(
     sensitivity: AlertRuleSensitivity | None = None,
     seasonality: AlertRuleSeasonality | None = None,
     detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
+    extrapolation_mode: ExtrapolationMode | None = None,
     **kwargs: Any,
 ) -> AlertRule:
     """
@@ -626,6 +632,7 @@ def create_alert_rule(
             resolution=timedelta(minutes=resolution),
             environment=environment,
             event_types=event_types,
+            extrapolation_mode=extrapolation_mode,
         )
 
         alert_rule = AlertRule.objects.create(
@@ -697,7 +704,7 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
 
         TODO: Refactor to not violate the type system
         """
-        model.id = None  # type: ignore[assignment]
+        model.id = None
 
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
@@ -755,6 +762,30 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
         )
 
 
+def delete_anomaly_detection_rule(snuba_query: SnubaQuery, alert_rule: AlertRule) -> None:
+    """
+    Delete accompanying data in Seer for anomaly detection rules
+    """
+    try:
+        source_id = QuerySubscription.objects.get(snuba_query_id=snuba_query.id).id
+        success = delete_rule_in_seer(
+            organization=alert_rule.organization,
+            source_id=source_id,
+        )
+        if not success:
+            logger.error(
+                "Call to delete rule data in Seer failed",
+                extra={
+                    "source_id": source_id,
+                },
+            )
+    except QuerySubscription.DoesNotExist:
+        logger.exception(
+            "Snuba query missing query subscription",
+            extra={"snuba_query_id": snuba_query.id},
+        )
+
+
 def update_alert_rule(
     alert_rule: AlertRule,
     query_type: SnubaQuery.Type | None = None,
@@ -776,6 +807,7 @@ def update_alert_rule(
     sensitivity: AlertRuleSensitivity | None | NotSet = NOT_SET,
     seasonality: AlertRuleSeasonality | None | NotSet = NOT_SET,
     detection_type: AlertRuleDetectionType | None = None,
+    extrapolation_mode: ExtrapolationMode | None = None,
     **kwargs: Any,
 ) -> AlertRule:
     """
@@ -836,6 +868,8 @@ def update_alert_rule(
         updated_query_fields["query_type"] = query_type
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
+    if extrapolation_mode is not None:
+        updated_query_fields["extrapolation_mode"] = extrapolation_mode
     if owner is not NOT_SET:
         updated_fields["owner"] = owner
     if comparison_delta is not NOT_SET:
@@ -921,18 +955,8 @@ def update_alert_rule(
                 alert_rule, project, snuba_query, updated_fields, updated_query_fields
             )
         else:
-            # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                success = delete_rule_in_seer(
-                    alert_rule=alert_rule,
-                )
-                if not success:
-                    logger.error(
-                        "Call to delete rule data in Seer failed",
-                        extra={
-                            "rule_id": alert_rule.id,
-                        },
-                    )
+                delete_anomaly_detection_rule(snuba_query, alert_rule)
             # if this alert was previously a dynamic alert, then we should update the rule to be ready
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)
@@ -955,6 +979,9 @@ def update_alert_rule(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
             updated_query_fields.setdefault("event_types", None)
+            updated_query_fields.setdefault(
+                "extrapolation_mode", ExtrapolationMode(snuba_query.extrapolation_mode)
+            )
             if (
                 detection_type == AlertRuleDetectionType.DYNAMIC
                 and alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
@@ -1088,27 +1115,18 @@ def delete_alert_rule(
             )
         subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
 
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+            delete_anomaly_detection_rule(alert_rule.snuba_query, alert_rule)
+
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
-            # if this was a dynamic rule, delete the data in Seer
-            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                success = delete_rule_in_seer(
-                    alert_rule=alert_rule,
-                )
-                if not success:
-                    logger.error(
-                        "Call to delete rule data in Seer failed",
-                        extra={
-                            "rule_id": alert_rule.id,
-                        },
-                    )
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule,
                 user_id=user.id if user else None,
                 type=AlertRuleActivityType.DELETED.value,
             )
         else:
-            RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
+            CellScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
 
         bulk_delete_snuba_subscriptions(subscriptions)
         schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
@@ -1730,7 +1748,7 @@ def delete_alert_rule_trigger_action(trigger_action: AlertRuleTriggerAction) -> 
     Schedules a deletion for a AlertRuleTriggerAction, and marks it as pending deletion.
     Marking it as pending deletion should filter out the object through the manager when querying.
     """
-    RegionScheduledDeletion.schedule(instance=trigger_action, days=0)
+    CellScheduledDeletion.schedule(instance=trigger_action, days=0)
     trigger_action.update(status=ObjectStatus.PENDING_DELETION)
 
 
@@ -1835,9 +1853,11 @@ EAP_FUNCTIONS = [
     "min",
     "sum",
     "epm",
+    "failure_count",
     "failure_rate",
     "eps",
     "apdex",
+    "user_misery",
 ]
 
 
@@ -1977,7 +1997,7 @@ def get_slack_channel_ids(
     slack_actions = get_slack_actions_with_async_lookups(organization, data)
     mapped_slack_channels = {}
     for action in slack_actions:
-        if not action["target_identifier"] in mapped_slack_channels:
+        if action["target_identifier"] not in mapped_slack_channels:
             target = get_target_identifier_display_for_integration(
                 action["type"].value,
                 action["target_identifier"],

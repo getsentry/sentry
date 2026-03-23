@@ -2,10 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LazyRender} from 'sentry/components/lazyRender';
-import {space} from 'sentry/styles/space';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -30,7 +29,7 @@ type Props = {
 };
 
 export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
-  const {groupBys, query, yAxes, sortBys} = queryParts;
+  const {groupBys, query, yAxes, sortBys, caseInsensitive} = queryParts;
   const mode = getQueryMode(groupBys);
 
   const aggregatesTableResult = useMultiQueryTableAggregateMode({
@@ -39,6 +38,9 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     yAxes,
     sortBys,
     enabled: mode === Mode.AGGREGATE,
+    queryExtras: {
+      caseInsensitive: caseInsensitive ? true : undefined,
+    },
   });
 
   const spansTableResult = useMultiQueryTableSampleMode({
@@ -47,11 +49,17 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     yAxes,
     sortBys,
     enabled: mode === Mode.SAMPLES,
+    queryExtras: {
+      caseInsensitive: caseInsensitive ? true : undefined,
+    },
   });
 
   const {result: timeseriesResult} = useMultiQueryTimeseries({
     index,
     enabled: true,
+    queryExtras: {
+      caseInsensitive: caseInsensitive ? true : undefined,
+    },
   });
 
   const [interval] = useChartInterval();
@@ -101,8 +109,8 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
 
 const QueryConstructionSection = styled('div')`
   display: grid;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(400px, 1fr) 1fr;
@@ -113,12 +121,12 @@ const DropDownGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, auto)) min-content;
   align-items: end;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const QueryVisualizationSection = styled('div')`
   display: grid;
   grid-template-columns: 2fr 1.2fr;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

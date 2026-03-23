@@ -1,8 +1,7 @@
-import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {space} from 'sentry/styles/space';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -10,7 +9,7 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
 };
 
-function CustomerPlatforms({orgId, ...props}: Props) {
+export function CustomerPlatforms({orgId, ...props}: Props) {
   return (
     <ResultGrid
       path={`/_admin/customers/${orgId}/`}
@@ -31,21 +30,13 @@ function CustomerPlatforms({orgId, ...props}: Props) {
           </ExternalLink>
         </td>,
         <td key="platform">
-          <PlatformName>
+          <Flex align="center" gap="md">
             <PlatformIcon platform={row.platform} size={16} />
             {row.platform}
-          </PlatformName>
+          </Flex>
         </td>,
       ]}
       {...props}
     />
   );
 }
-
-const PlatformName = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-export default CustomerPlatforms;

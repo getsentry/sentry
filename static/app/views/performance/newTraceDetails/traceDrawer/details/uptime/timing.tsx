@@ -1,16 +1,16 @@
 import {useTheme} from '@emotion/react';
 
-import {Text} from 'sentry/components/core/text';
+import {Text} from '@sentry/scraps/text';
+
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {UptimeCheckTimingNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckTimingNode';
 
 const UPTIME_PHASE_DESCRIPTIONS = {
   'dns.lookup.duration': t(
@@ -32,7 +32,7 @@ const UPTIME_PHASE_DESCRIPTIONS = {
 };
 
 export function UptimeTimingDetails(
-  props: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.UptimeCheckTiming>>
+  props: TraceTreeNodeDetailsProps<UptimeCheckTimingNode>
 ) {
   const {node} = props;
   const {op, description, duration, start_timestamp, end_timestamp} = node.value;

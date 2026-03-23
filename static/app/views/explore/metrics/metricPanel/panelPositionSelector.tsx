@@ -21,19 +21,19 @@ export function PanelPositionSelector({
         size="zero"
         aria-label={t('Table bottom')}
         icon={<IconPanel direction="down" />}
-        borderless
+        priority="transparent"
         onClick={() => setOrientation('bottom')}
         disabled={disabled || orientation === 'bottom'}
-        title={t('Table bottom')}
+        tooltipProps={{title: t('Table bottom')}}
       />
       <Button
         size="zero"
         aria-label={t('Table right')}
         icon={<IconPanel direction="right" />}
-        borderless
+        priority="transparent"
         onClick={() => setOrientation('right')}
         disabled={disabled || orientation === 'right'}
-        title={t('Table right')}
+        tooltipProps={{title: t('Table right')}}
       />
     </Fragment>
   );

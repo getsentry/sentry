@@ -6,8 +6,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
@@ -24,7 +24,8 @@ jest
     getConfigFromTimeRange(
       startTime,
       new Date(startTime.getTime() + 1000 * 60 * 60),
-      1000
+      1000,
+      'UTC'
     )
   );
 

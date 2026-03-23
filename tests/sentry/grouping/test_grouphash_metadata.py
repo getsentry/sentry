@@ -170,7 +170,7 @@ def _assert_and_snapshot_results(
 class GroupHashMetadataTest(TestCase):
     def test_check_grouphashes_for_positive_fingerprint_match(self) -> None:
         grouphash1 = GroupHash.objects.create(hash="dogs", project_id=self.project.id)
-        grouphash2 = GroupHash.objects.create(hash="are great", project_id=self.project.id)
+        grouphash2 = GroupHash.objects.create(hash="are_great", project_id=self.project.id)
 
         for fingerprint1, fingerprint2, expected_result in [
             # All combos of default, hybrid (matching or not), custom (matching or not), and missing

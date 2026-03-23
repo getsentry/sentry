@@ -35,6 +35,9 @@ def convert_to_dict(obj: object) -> object | dict[str, Any]:
 
     d: dict[str, Any] = {}
     for key, value in obj.__dict__.items():
+        if key == "custom_rule_strings":
+            key += " (sorted for snapshot stability - not in application order)"
+
         if key.startswith("_"):
             continue
         elif key in [
@@ -48,6 +51,8 @@ def convert_to_dict(obj: object) -> object | dict[str, Any]:
             "run_split_enhancements",
         ]:
             continue
+        elif isinstance(value, set):
+            d[key] = [convert_to_dict(x) for x in sorted(value)]
         elif isinstance(value, list):
             d[key] = [convert_to_dict(x) for x in value]
         elif isinstance(value, dict):
@@ -771,7 +776,6 @@ class EnhancementsTest(TestCase):
 # Note: This primarily tests `assemble_stacktrace_component`'s handling of `contributes` values, as
 # hints are tested separately in `test_hints.py`.
 class AssembleStacktraceComponentTest(TestCase):
-
     @dataclass
     class DummyRustFrame:
         contributes: bool | None
@@ -832,13 +836,13 @@ class AssembleStacktraceComponentTest(TestCase):
             stacktrace_component.values,
             expected_frame_results,
         ):
-            assert (
-                frame_component.contributes is expected_contributes
-            ), f"frame {i} has incorrect `contributes` value. Expected {expected_contributes} but got {frame_component.contributes}."
+            assert frame_component.contributes is expected_contributes, (
+                f"frame {i} has incorrect `contributes` value. Expected {expected_contributes} but got {frame_component.contributes}."
+            )
 
-            assert (
-                frame_component.hint == expected_hint
-            ), f"frame {i} has incorrect `hint` value. Expected '{expected_hint}' but got '{frame_component.hint}'."
+            assert frame_component.hint == expected_hint, (
+                f"frame {i} has incorrect `hint` value. Expected '{expected_hint}' but got '{frame_component.hint}'."
+            )
 
     def test_marks_system_frames_non_contributing_in_app_variant(self) -> None:
         # For the app variant, out-of-app frames are automatically marked non-contributing when

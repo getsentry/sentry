@@ -1,21 +1,23 @@
 import type React from 'react';
-import {Fragment, memo, useCallback, useRef, useState} from 'react';
-import {AutoSizer, List, type ListRowRenderer} from 'react-virtualized';
+import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import useOrganization from 'sentry/utils/useOrganization';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
@@ -36,6 +38,10 @@ interface ProjectItem {
   error?: string;
 }
 
+interface ProjectTableItem extends ProjectItem {
+  isExpanded: boolean;
+}
+
 interface Props {
   emptyMessage: React.ReactNode;
   isLoading: boolean;
@@ -47,8 +53,8 @@ interface Props {
   onChange?: (projectId: string, value: string) => void;
 }
 
-const COLUMN_COUNT = 4;
-const BASE_ROW_HEIGHT = 68;
+const BASE_ROW_HEIGHT = 63;
+const MAX_SCROLL_HEIGHT = 400;
 
 export function ProjectsTable({
   items,
@@ -64,7 +70,7 @@ export function ProjectsTable({
   const [tableSort, setTableSort] = useState<'asc' | 'desc'>('desc');
   // We store the expanded items at list level to allow calculating item height
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const listRef = useRef<List | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const handleToggleItemExpanded = useCallback((id: string) => {
     setExpandedItems(value => {
@@ -76,62 +82,58 @@ export function ProjectsTable({
       }
       return newSet;
     });
-    listRef.current?.recomputeRowHeights();
   }, []);
 
   const handleTableSort = useCallback(() => {
     setTableSort(value => (value === 'asc' ? 'desc' : 'asc'));
-    listRef.current?.recomputeRowHeights();
   }, []);
 
-  const itemsWithExpanded = items.map(item => ({
-    ...item,
-    isExpanded: expandedItems.has(item.project.id),
-  }));
+  const sortedItems = useMemo(() => {
+    const itemsWithExpanded: ProjectTableItem[] = items.map(item => ({
+      ...item,
+      isExpanded: expandedItems.has(item.project.id),
+    }));
 
-  const sortedItems = itemsWithExpanded.toSorted((a: any, b: any) => {
-    if (a.count === b.count) {
-      return a.project.slug.localeCompare(b.project.slug);
-    }
-    if (tableSort === 'asc') {
-      return a.count - b.count;
-    }
-    return b.count - a.count;
+    itemsWithExpanded.sort((a, b) => {
+      if (a.count === b.count) {
+        return a.project.slug.localeCompare(b.project.slug);
+      }
+      if (tableSort === 'asc') {
+        return a.count - b.count;
+      }
+      return b.count - a.count;
+    });
+
+    return itemsWithExpanded;
+  }, [items, expandedItems, tableSort]);
+
+  const virtualizer = useVirtualizer({
+    count: sortedItems.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: index =>
+      sortedItems[index]?.isExpanded
+        ? BASE_ROW_HEIGHT + (sortedItems[index].subProjects.length + 1) * 21
+        : BASE_ROW_HEIGHT,
+    overscan: 5,
+    getItemKey: index => sortedItems[index]?.project.id ?? index,
   });
-
-  const rowRenderer: ListRowRenderer = ({key, index, style}) => {
-    const item = sortedItems[index];
-    if (!item) {
-      return null;
-    }
-    return (
-      <TableRow
-        key={key}
-        style={style}
-        canEdit={canEdit}
-        onChange={onChange}
-        inputTooltip={inputTooltip}
-        toggleExpanded={handleToggleItemExpanded}
-        hasAccess={hasAccess}
-        {...item}
-      />
-    );
-  };
-
-  const estimatedListSize = sortedItems.length * BASE_ROW_HEIGHT;
 
   return (
     <Fragment>
-      <TableHeader>
-        <HeaderCell>{t('Originating Project')}</HeaderCell>
+      <TableHeader background="secondary" overflow="hidden">
+        <Cell direction="column" padding="xl">
+          {t('Originating Project')}
+        </Cell>
         <SortableHeader type="button" key="spans" onClick={handleTableSort}>
           {t('Accepted Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>
-        <HeaderCell data-align="right">
+        <Cell direction="column" padding="xl" align="end">
           {period === '24h' ? t('Stored Spans (24h)') : t('Stored Spans (30d)')}
-        </HeaderCell>
-        <HeaderCell data-align="right">{rateHeader}</HeaderCell>
+        </Cell>
+        <Cell direction="column" padding="xl" align="end">
+          {rateHeader}
+        </Cell>
       </TableHeader>
       {isLoading && <LoadingIndicator />}
 
@@ -141,27 +143,43 @@ export function ProjectsTable({
         </EmptyStateWarning>
       )}
       {!isLoading && items.length > 0 && (
-        <SizingWrapper style={{height: `${estimatedListSize}px`}}>
-          <AutoSizer>
-            {({width, height}) => (
-              <List
-                ref={list => {
-                  listRef.current = list;
-                }}
-                width={width}
-                height={height}
-                rowCount={sortedItems.length}
-                rowRenderer={rowRenderer}
-                rowHeight={({index}) =>
-                  sortedItems[index]?.isExpanded
-                    ? BASE_ROW_HEIGHT + (sortedItems[index]?.subProjects.length + 1) * 21
-                    : BASE_ROW_HEIGHT
-                }
-                columnCount={COLUMN_COUNT}
-              />
-            )}
-          </AutoSizer>
-        </SizingWrapper>
+        <Container
+          ref={scrollContainerRef}
+          overflowY="auto"
+          style={{height: Math.min(virtualizer.getTotalSize(), MAX_SCROLL_HEIGHT)}}
+        >
+          <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
+            {virtualizer.getVirtualItems().map(virtualRow => {
+              const item = sortedItems[virtualRow.index];
+              if (!item) {
+                return null;
+              }
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <TableRow
+                    canEdit={canEdit}
+                    onChange={onChange}
+                    inputTooltip={inputTooltip}
+                    toggleExpanded={handleToggleItemExpanded}
+                    hasAccess={hasAccess}
+                    {...item}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </Container>
       )}
     </Fragment>
   );
@@ -173,7 +191,9 @@ function getSubProjectContent(
   isExpanded: boolean
 ) {
   let subProjectContent: React.ReactNode = (
-    <Ellipsis>{t('No distributed traces')}</Ellipsis>
+    <Text variant="muted" ellipsis>
+      {t('No distributed traces')}
+    </Text>
   );
   if (subProjects.length > 0) {
     const truncatedSubProjects = subProjects.slice(0, MAX_PROJECTS_COLLAPSED);
@@ -192,7 +212,9 @@ function getSubProjectContent(
         ))}
       </Fragment>
     ) : (
-      <Ellipsis>{t('Including spans in ') + stringifiedSubProjects}</Ellipsis>
+      <Text variant="muted" ellipsis>
+        {t('Including spans in ') + stringifiedSubProjects}
+      </Text>
     );
   }
 
@@ -273,7 +295,6 @@ const TableRow = memo(function TableRow({
   error,
   inputTooltip: inputTooltipProp,
   onChange,
-  style,
 }: {
   count: number;
   hasAccess: boolean;
@@ -282,7 +303,6 @@ const TableRow = memo(function TableRow({
   ownCount: number;
   project: Project;
   sampleRate: string;
-  style: React.CSSProperties;
   subProjects: SubProject[];
   toggleExpanded: (id: string) => void;
   canEdit?: boolean;
@@ -312,9 +332,13 @@ const TableRow = memo(function TableRow({
 
   const storedSpans = Math.floor(count * parsePercent(sampleRate));
   return (
-    <TableRowWrapper style={style}>
-      <Cell>
-        <FirstCellLine data-has-chevron={isExpandable}>
+    <TableRowWrapper overflow="hidden">
+      <Cell direction="column" padding="md xl">
+        <FirstCellLine
+          align="center"
+          height="32px"
+          paddingLeft={isExpandable ? undefined : 'xl'}
+        >
           <HiddenButton
             type="button"
             disabled={!isExpandable}
@@ -331,23 +355,25 @@ const TableRow = memo(function TableRow({
           {hasProjectAccess && (
             <SettingsButton
               tabIndex={-1}
-              title={t('Open Project Settings')}
+              tooltipProps={{title: t('Open Project Settings')}}
               aria-label={t('Open Project Settings')}
               size="xs"
               priority="link"
               icon={<IconSettings />}
-              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance/`}
+              to={`/settings/${organization.slug}/projects/${project.slug}/performance/`}
             />
           )}
         </FirstCellLine>
         <SubProjects data-is-first-column>{subProjectContent}</SubProjects>
       </Cell>
-      <Cell>
-        <FirstCellLine data-align="right">{formatAbbreviatedNumber(count)}</FirstCellLine>
+      <Cell direction="column" padding="md xl" align="end">
+        <FirstCellLine align="center" height="32px" justify="end">
+          {formatAbbreviatedNumber(count)}
+        </FirstCellLine>
         <SubContent>{subSpansContent}</SubContent>
       </Cell>
-      <Cell>
-        <FirstCellLine data-align="right">
+      <Cell direction="column" padding="md xl" align="end">
+        <FirstCellLine align="center" height="32px" justify="end">
           {formatAbbreviatedNumber(storedSpans)}
         </FirstCellLine>
         <SubContent data-is-last-column>
@@ -359,8 +385,8 @@ const TableRow = memo(function TableRow({
           )}
         </SubContent>
       </Cell>
-      <Cell>
-        <FirstCellLine>
+      <Flex direction="column" padding="xl xl md xl" style={{minWidth: 0}}>
+        <FirstCellLine align="center" height="32px">
           <Tooltip disabled={!inputTooltip} title={inputTooltip}>
             <PercentInput
               type="number"
@@ -372,39 +398,18 @@ const TableRow = memo(function TableRow({
           </Tooltip>
         </FirstCellLine>
         {error ? (
-          <ErrorMessage>{error}</ErrorMessage>
+          <Text size="xs" variant="danger" align="right">
+            {error}
+          </Text>
         ) : sampleRate === initialSampleRate ? null : (
-          <SmallPrint>{t('previous: %s%%', initialSampleRate)}</SmallPrint>
+          <Text size="xs" variant="secondary" align="right">
+            {t('previous: %s%%', initialSampleRate)}
+          </Text>
         )}
-      </Cell>
+      </Flex>
     </TableRowWrapper>
   );
 });
-
-const SizingWrapper = styled('div')`
-  max-height: 400px;
-`;
-
-const SmallPrint = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
-  line-height: 1.5;
-  text-align: right;
-`;
-
-const Ellipsis = styled('span')`
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const ErrorMessage = styled('span')`
-  color: ${p => p.theme.error};
-  font-size: ${p => p.theme.fontSize.xs};
-  line-height: 1.5;
-  text-align: right;
-`;
 
 const SortableHeader = styled('button')`
   border: none;
@@ -414,87 +419,62 @@ const SortableHeader = styled('button')`
   text-transform: inherit;
   align-items: center;
   justify-content: flex-end;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
-const TableRowWrapper = styled('div')`
-  display: grid;
+const TableRowWrapper = styled(Grid)`
   grid-template-columns: 1fr 165px 165px 152px;
-  overflow: hidden;
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-  }
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
-const Cell = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
-  padding: ${space(1)} ${space(2)};
+const Cell = styled(Flex)`
   min-width: 0;
-
-  &[data-align='right'] {
-    align-items: flex-end;
-  }
 `;
 
-const HeaderCell = styled(Cell)`
-  padding: ${space(2)};
-`;
-
-const FirstCellLine = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 32px;
+const FirstCellLine = styled(Flex)`
   & > * {
     flex-shrink: 0;
-  }
-  &[data-align='right'] {
-    justify-content: flex-end;
-  }
-  &[data-has-chevron='false'] {
-    padding-left: ${space(2)};
   }
 `;
 
 const SubContent = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   text-align: right;
   white-space: nowrap;
 
   & > div {
     line-height: 2;
-    margin-left: -${space(2)};
-    padding-left: ${space(2)};
-    margin-right: -${space(2)};
-    padding-right: ${space(2)};
+    margin-left: -${p => p.theme.space.xl};
+    padding-left: ${p => p.theme.space.xl};
+    margin-right: -${p => p.theme.space.xl};
+    padding-right: ${p => p.theme.space.xl};
     text-overflow: ellipsis;
     overflow: hidden;
 
     &:nth-child(odd) {
-      background: ${p => p.theme.backgroundSecondary};
+      background: ${p => p.theme.tokens.background.secondary};
     }
   }
 
   &[data-is-first-column] > div {
-    margin-left: -${space(1)};
-    padding-left: ${space(1)};
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    margin-left: -${p => p.theme.space.md};
+    padding-left: ${p => p.theme.space.md};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 
   &[data-is-last-column] > div {
-    margin-right: -${space(1)};
-    padding-right: ${space(1)};
-    border-top-right-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    margin-right: -${p => p.theme.space.md};
+    padding-right: ${p => p.theme.space.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 `;
 
 const SubProjects = styled(SubContent)`
   text-align: left;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
 `;
 
 const HiddenButton = styled('button')`
@@ -514,13 +494,13 @@ const HiddenButton = styled('button')`
 const StyledIconChevron = styled(IconChevron)`
   height: 12px;
   width: 12px;
-  margin-right: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  margin-right: ${p => p.theme.space.xs};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SettingsButton = styled(LinkButton)`
-  margin-left: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  margin-left: ${p => p.theme.space.xs};
+  color: ${p => p.theme.tokens.content.secondary};
   visibility: hidden;
 
   &:focus {
@@ -532,12 +512,11 @@ const SettingsButton = styled(LinkButton)`
 `;
 
 const TableHeader = styled(TableRowWrapper)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   white-space: nowrap;
   line-height: 1;
   height: 45px;

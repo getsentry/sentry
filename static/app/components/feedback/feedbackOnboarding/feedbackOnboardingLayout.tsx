@@ -1,19 +1,25 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
+import {Stack} from '@sentry/scraps/layout';
+
+import {FeedbackConfigToggle} from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function FeedbackOnboardingLayout({
   docsConfig,
@@ -35,6 +41,7 @@ export function FeedbackOnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
@@ -105,53 +112,68 @@ export function FeedbackOnboardingLayout({
     />
   );
 
+  // TODO(aknaus): Move inserting the toggle into the docs definitions
+  // once the content blocks migration is done. This logic here is very brittle.
+  const transformedSteps = steps.map(step => {
+    if (
+      step.type !== StepType.CONFIGURE ||
+      configType !== 'feedbackOnboardingNpm' ||
+      hideFeedbackConfigToggle
+    ) {
+      return step;
+    }
+
+    if (step.content) {
+      // Insert the feedback config toggle before the code block
+      const codeIndex = step.content?.findIndex(b => b.type === 'code');
+      if (codeIndex === -1) {
+        return step;
+      }
+      const newContent = [...step.content];
+      if (codeIndex !== undefined) {
+        newContent.splice(codeIndex, 0, {
+          type: 'custom',
+          bottomMargin: false,
+          content: feedbackConfigToggle,
+        });
+      }
+      return {
+        ...step,
+        content: newContent,
+      };
+    }
+
+    return {
+      ...step,
+      codeHeader: feedbackConfigToggle,
+    };
+  });
+
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
-      <Wrapper>
-        {introduction && <Introduction>{introduction}</Introduction>}
-        <Steps>
-          {steps
-            // TODO(aknaus): Move inserting the toggle into the docs definitions
-            // once the content blocks migration is done. This logic here is very brittle.
-            .map(step => {
-              if (
-                step.type !== StepType.CONFIGURE ||
-                configType !== 'feedbackOnboardingNpm' ||
-                hideFeedbackConfigToggle
-              ) {
-                return step;
-              }
-
-              if (step.content) {
-                // Insert the feedback config toggle before the code block
-                const codeIndex = step.content?.findIndex(b => b.type === 'code');
-                if (codeIndex === -1) {
-                  return step;
+      <TabSelectionScope>
+        <Wrapper>
+          {introduction && <Stack marginBottom="3xl">{introduction}</Stack>}
+          <Steps>
+            {transformedSteps.map((step, index) => (
+              <Step
+                key={step.title ?? step.type}
+                stepIndex={index}
+                {...step}
+                trailingItems={
+                  index === 0 && copyEnabled ? (
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={transformedSteps}
+                      source="feedback_onboarding"
+                    />
+                  ) : undefined
                 }
-                const newContent = [...step.content];
-                if (codeIndex !== undefined) {
-                  newContent.splice(codeIndex, 0, {
-                    type: 'custom',
-                    bottomMargin: false,
-                    content: feedbackConfigToggle,
-                  });
-                }
-                return {
-                  ...step,
-                  content: newContent,
-                };
-              }
-
-              return {
-                ...step,
-                codeHeader: feedbackConfigToggle,
-              };
-            })
-            .map(step => (
-              <Step key={step.title ?? step.type} {...step} />
+              />
             ))}
-        </Steps>
-      </Wrapper>
+          </Steps>
+        </Wrapper>
+      </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }
@@ -174,10 +196,4 @@ const Wrapper = styled('div')`
       margin-bottom: 0;
     }
   }
-`;
-
-const Introduction = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-bottom: ${space(4)};
 `;

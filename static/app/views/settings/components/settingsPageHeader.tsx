@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   /**
@@ -81,38 +80,39 @@ const TitleWrapper = styled('div')`
 `;
 
 const Title = styled('div')<TitleProps>`
-  ${p => !p.styled && `font-size: 20px; font-weight: ${p.theme.fontWeight.bold};`};
-  margin: ${space(4)} ${space(2)} ${space(3)} 0;
+  ${p =>
+    !p.styled && `font-size: 20px; font-weight: ${p.theme.font.weight.sans.medium};`};
+  margin: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl}
+    ${p => p.theme.space['2xl']} 0;
 `;
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
-  color: ${p => (p.colorSubtitle ? p.theme.purple400 : p.theme.gray400)};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
-  padding: ${space(1.5)} 0 0;
+  color: ${p =>
+    p.colorSubtitle ? p.theme.tokens.content.accent : p.theme.colors.gray500};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
+  padding: ${p => p.theme.space.lg} 0 0;
 `;
 
 const Icon = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Action = styled('div')<{isNarrow?: boolean}>`
-  margin-top: ${p => (p.isNarrow ? '0' : space(4))};
+  margin-top: ${p => (p.isNarrow ? '0' : p.theme.space['3xl'])};
 `;
 
-const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
+export const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
   Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props
 >`
   font-size: 14px;
-  margin-top: -${space(4)};
+  margin-top: -${p => p.theme.space['3xl']};
 `;
 
 const BodyWrapper = styled('div')`
   flex: 1;
-  margin: 0 0 ${space(3)};
+  margin: 0 0 ${p => p.theme.space['2xl']};
 `;
 const TabsWrapper = styled('div')`
   flex: 1;
   margin: 0;
 `;
-
-export default SettingsPageHeader;

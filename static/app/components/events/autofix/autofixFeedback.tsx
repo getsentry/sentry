@@ -1,35 +1,32 @@
-import {useRef} from 'react';
+import {type ComponentProps} from 'react';
 
-import {Button} from 'sentry/components/core/button';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
-function AutofixFeedback() {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
-
-  return (
-    <Button
-      ref={buttonRef}
-      size="xs"
-      onClick={() =>
-        openForm({
-          formTitle: t('Give feedback to the devs'),
-          messagePlaceholder: t('How can we make Seer better for you?'),
-          tags: {
-            ['feedback.source']: 'issue_details_ai_autofix',
-            ['feedback.owner']: 'ml-ai',
-          },
-        })
-      }
-    >
-      {t('Give Us Feedback')}
-    </Button>
-  );
+interface AutofixFeedbackProps extends ComponentProps<typeof FeedbackButton> {
+  iconOnly?: boolean;
 }
 
-export default AutofixFeedback;
+export function AutofixFeedback({
+  children,
+  iconOnly = false,
+  ...buttonProps
+}: AutofixFeedbackProps) {
+  return (
+    <FeedbackButton
+      size="xs"
+      feedbackOptions={{
+        formTitle: t('Give feedback to the devs'),
+        messagePlaceholder: t('How can we make Seer better for you?'),
+        tags: {
+          ['feedback.source']: 'issue_details_ai_autofix',
+          ['feedback.owner']: 'ml-ai',
+        },
+      }}
+      tooltipProps={{title: t('Give feedback to the devs')}}
+      {...buttonProps}
+    >
+      {iconOnly ? null : children}
+    </FeedbackButton>
+  );
+}

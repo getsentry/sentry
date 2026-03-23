@@ -1,49 +1,43 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import type {DistributedOmit} from 'type-fest';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import type {ControlProps, GeneralSelectValue, StylesConfig} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/core/button';
-import type {
-  ControlProps,
-  GeneralSelectValue,
-  StylesConfig,
-} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
-const UnassignedWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const StyledIconUser = styled(IconUser)`
-  margin-left: ${space(0.25)};
-  margin-right: ${space(1)};
-  color: ${p => p.theme.gray400};
+  margin-left: ${p => p.theme.space['2xs']};
+  margin-right: ${p => p.theme.space.md};
+  color: ${p => p.theme.colors.gray500};
 `;
 
 // An option to be unassigned on the team dropdown
 const unassignedOption = {
   value: null,
   label: (
-    <UnassignedWrapper>
+    <Flex align="center">
       <StyledIconUser size="md" />
       {t('Unassigned')}
-    </UnassignedWrapper>
+    </Flex>
   ),
   searchKey: 'unassigned',
   actor: null,
@@ -60,48 +54,37 @@ const filterOption = (canditate: any, input: any) =>
   // Never filter out the create team option
   canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input);
 
-const getOptionValue = (option: TeamOption) => option.value;
-
 // Ensures that the svg icon is white when selected
-const unassignedSelectStyles: StylesConfig = {
-  option: (provided, state) => {
-    // XXX: The `state.theme` is an emotion theme object, but it is not typed
-    // as the emotion theme object in react-select
-    const theme = state.theme as unknown as Theme;
+const getUnassignedSelectStyles = (theme: Theme): StylesConfig => ({
+  option: (provided, state) => ({
+    ...provided,
+    svg: {color: state.isSelected ? theme.colors.white : undefined},
+  }),
+});
 
-    return {...provided, svg: {color: state.isSelected ? theme.white : undefined}};
-  },
-};
-
-const placeholderSelectStyles: StylesConfig = {
-  input: (provided, state) => {
-    // XXX: The `state.theme` is an emotion theme object, but it is not typed
-    // as the emotion theme object in react-select
-    const theme = state.theme as unknown as Theme;
-
-    return {
-      ...provided,
-      display: 'grid',
-      gridTemplateColumns: 'max-content 1fr',
-      alignItems: 'center',
-      gridGap: space(1),
-      ':before': {
-        backgroundColor: theme.backgroundSecondary,
-        height: 24,
-        width: 24,
-        borderRadius: 3,
-        content: '""',
-        display: 'block',
-      },
-    };
-  },
+const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
+  input: provided => ({
+    ...provided,
+    display: 'grid',
+    gridTemplateColumns: 'max-content 1fr',
+    alignItems: 'center',
+    gridGap: theme.space.md,
+    ':before': {
+      backgroundColor: theme.tokens.background.secondary,
+      height: 24,
+      width: 24,
+      borderRadius: 3,
+      content: '""',
+      display: 'block',
+    },
+  }),
   placeholder: provided => ({
     ...provided,
     paddingLeft: 32,
   }),
-};
+});
 
-interface Props extends ControlProps {
+type Props = DistributedOmit<ControlProps, 'onChange'> & {
   onChange: (value: any) => any;
   /**
    * Controls whether the dropdown allows to create a new team
@@ -128,7 +111,7 @@ interface Props extends ControlProps {
    * Flag that lets the caller decide to use the team value by default if there is only one option
    */
   useTeamDefaultIfOnlyOne?: boolean;
-}
+};
 
 type TeamActor = {
   id: string;
@@ -142,6 +125,7 @@ export interface TeamOption extends GeneralSelectValue {
 }
 
 export function TeamSelector(props: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {
     allowCreate,
@@ -295,10 +279,10 @@ export function TeamSelector(props: Props) {
           >
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               disabled={!canAddTeam}
               onClick={() => handleAddTeamToProject(team)}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
               aria-label={t('Add %s to project', `#${team.slug}`)}
             />
           </Tooltip>
@@ -315,7 +299,7 @@ export function TeamSelector(props: Props) {
     const createOption = {
       value: CREATE_TEAM_VALUE,
       label: t('Create team'),
-      leadingItems: <IconAdd isCircled />,
+      leadingItems: <IconAdd />,
       searchKey: 'create',
       actor: null,
       disabled: !canCreateTeam,
@@ -364,11 +348,11 @@ export function TeamSelector(props: Props) {
 
   const styles = useMemo(
     () => ({
-      ...(includeUnassigned ? unassignedSelectStyles : {}),
-      ...(multiple ? {} : placeholderSelectStyles),
+      ...(includeUnassigned ? getUnassignedSelectStyles(theme) : {}),
+      ...(multiple ? {} : getPlaceholderSelectStyles(theme)),
       ...stylesProp,
     }),
-    [includeUnassigned, multiple, stylesProp]
+    [includeUnassigned, multiple, stylesProp, theme]
   );
 
   useEffect(() => {
@@ -379,9 +363,7 @@ export function TeamSelector(props: Props) {
 
     // If there is only one team, and our flow wants to enable using that team as a default, update the parent state
     if (options.length === 1 && useTeamDefaultIfOnlyOne) {
-      const castedValue = multiple
-        ? (options as TeamOption[])
-        : (options[0] as TeamOption);
+      const castedValue = multiple ? options : (options[0] as TeamOption);
       handleChange(castedValue);
     }
     // We only want to do this once when the component is finished loading for teams and mounted.
@@ -393,11 +375,11 @@ export function TeamSelector(props: Props) {
       ref={selectRef}
       options={options}
       onInputChange={handleInputChange}
-      getOptionValue={getOptionValue}
+      getOptionValue={option => option.value}
       filterOption={filterOption}
       styles={styles}
       isLoading={fetching}
-      onChange={handleChange}
+      onChange={handleChange as never}
       {...extraProps}
     />
   );

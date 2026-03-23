@@ -4,7 +4,6 @@ import logging
 import random
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
-from time import time
 from typing import Any
 
 import orjson
@@ -12,7 +11,7 @@ import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import options, reprocessing2
-from sentry.attachments import delete_ratelimited_attachments, get_attachments_for_event
+from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
@@ -368,7 +367,7 @@ def do_process_event(
         has_changed = True
         data = new_data
 
-    attachments = data.pop("_attachments", None)
+    attachments = data.get("_attachments", None)
 
     # Second round of datascrubbing after stacktrace and language-specific
     # processing. First round happened as part of ingest.
@@ -439,7 +438,7 @@ def do_process_event(
     name="sentry.tasks.store.process_event",
     namespace=ingest_errors_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_event(
     cache_key: str,
@@ -475,7 +474,7 @@ def process_event(
     name="sentry.tasks.store.process_event_from_reprocessing",
     namespace=issues_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_event_from_reprocessing(
     cache_key: str,
@@ -533,7 +532,7 @@ def _do_save_event(
         event_data=data,
     )
 
-    with metrics.global_tags(event_type=event_type):
+    with metrics.global_tags(tags={"event_type": event_type}):
         if event_id is None and data is not None:
             event_id = data["event_id"]
 
@@ -627,19 +626,7 @@ def _do_save_event(
 
             reprocessing2.mark_event_reprocessed(data)
             if all_attachments and project:
-                delete_ratelimited_attachments(project, data, all_attachments)
-
-            if start_time:
-                metrics.timing(
-                    "events.time-to-process",
-                    time() - start_time,
-                    instance=data["platform"],
-                    tags={
-                        "is_reprocessing2": (
-                            "true" if reprocessing2.is_reprocessed_event(data) else "false"
-                        ),
-                    },
-                )
+                delete_cached_and_ratelimited_attachments(project, all_attachments)
 
             track_event_since_received(
                 step="end_save_event",
@@ -651,7 +638,7 @@ def _do_save_event(
     name="sentry.tasks.store.save_event",
     namespace=ingest_errors_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def save_event(
     cache_key: str | None = None,
@@ -676,7 +663,7 @@ def save_event(
     name="sentry.tasks.store.save_event_transaction",
     namespace=ingest_transactions_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def save_event_transaction(
     cache_key: str | None = None,
@@ -709,7 +696,7 @@ def save_event_transaction(
     name="sentry.tasks.store.save_event_feedback",
     namespace=issues_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @metrics.wraps("feedback_consumer.save_event_feedback_task")
 def save_event_feedback(
@@ -728,7 +715,7 @@ def save_event_feedback(
     name="sentry.tasks.store.save_event_attachments",
     namespace=ingest_attachments_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def save_event_attachments(
     cache_key: str | None = None,

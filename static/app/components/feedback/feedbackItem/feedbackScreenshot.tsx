@@ -1,14 +1,14 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {ImageVisualization} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -21,7 +21,7 @@ type Props = {
   onClick?: () => void;
 };
 
-export default function FeedbackScreenshot({
+export function FeedbackScreenshot({
   className,
   organization,
   projectSlug,
@@ -83,7 +83,7 @@ const StyledPanel = styled(Panel)`
   align-items: center;
   margin-bottom: 0;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledLoadingIndicator = styled('div')`
@@ -91,7 +91,7 @@ const StyledLoadingIndicator = styled('div')`
   align-items: center;
   justify-content: center;
   height: 100%;
-  background: ${p => p.theme.purple100};
+  background: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;
 
 const StyledImageButton = styled('button')`
@@ -105,7 +105,7 @@ const StyledImageButton = styled('button')`
 const StyledImageVisualization = styled(ImageVisualization)`
   z-index: 1;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   img {
     width: auto;
@@ -115,7 +115,7 @@ const StyledImageVisualization = styled(ImageVisualization)`
 `;
 const FileDownload = styled('a')`
   cursor: pointer;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   text-decoration: underline;
   color: inherit;
   :hover {
@@ -125,17 +125,17 @@ const FileDownload = styled('a')`
 `;
 
 const File = styled(StyledPanel)`
-  background: ${p => p.theme.purple100};
-  padding: ${space(2)};
+  background: ${p => p.theme.tokens.background.transparent.accent.muted};
+  padding: ${p => p.theme.space.xl};
   max-width: 300px;
 `;
 
 const NoPreviewFound = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-content: center;
   margin: 0;
 `;

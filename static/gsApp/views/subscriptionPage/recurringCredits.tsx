@@ -4,14 +4,12 @@ import moment from 'moment-timezone';
 
 import {Container} from '@sentry/scraps/layout';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 
 import {useRecurringCredits} from 'getsentry/hooks/useRecurringCredits';
-import type {Plan, RecurringCredit} from 'getsentry/types';
-import {CreditType} from 'getsentry/types';
+import type {CreditType, Plan, RecurringCredit} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {getCreditDataCategory, getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
@@ -25,7 +23,7 @@ const isExpired = (date: moment.MomentInput) => {
 const getActiveDiscounts = (recurringCredits: RecurringCredit[]) =>
   recurringCredits.filter(
     credit =>
-      (credit.type === CreditType.DISCOUNT || credit.type === CreditType.PERCENT) &&
+      (credit.type === 'discount' || credit.type === 'percent') &&
       credit.totalAmountRemaining > 0 &&
       !isExpired(credit.periodEnd)
   );
@@ -35,7 +33,7 @@ type Props = {
   planDetails: Plan;
 };
 
-function RecurringCredits({displayType, planDetails}: Props) {
+export function RecurringCredits({displayType, planDetails}: Props) {
   const {recurringCredits, isLoading} = useRecurringCredits();
   if (isLoading) {
     return null;
@@ -58,7 +56,7 @@ function RecurringCredits({displayType, planDetails}: Props) {
   }
 
   const getTooltipTitle = (credit: RecurringCredit) => {
-    return credit.type === CreditType.DISCOUNT || credit.type === CreditType.PERCENT
+    return credit.type === 'discount' || credit.type === 'percent'
       ? tct('[amount] per month or [annualAmount] remaining towards an annual plan.', {
           amount: displayPrice({cents: credit.amount}),
           annualAmount: displayPrice({
@@ -69,7 +67,7 @@ function RecurringCredits({displayType, planDetails}: Props) {
   };
 
   const getAmount = (credit: RecurringCredit, category: DataCategory | CreditType) => {
-    if (credit.type === CreditType.DISCOUNT || credit.type === CreditType.PERCENT) {
+    if (credit.type === 'discount' || credit.type === 'percent') {
       return (
         <Fragment>
           {tct('[amount]/mo', {
@@ -142,17 +140,15 @@ function RecurringCredits({displayType, planDetails}: Props) {
   );
 }
 
-export default RecurringCredits;
-
 const StyledPanelBody = styled(PanelBodyWithTable)`
   h4 {
-    margin-bottom: ${space(1.5)};
+    margin-bottom: ${p => p.theme.space.lg};
   }
 `;
 
 const SubText = styled('p')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Title = styled('td')`
@@ -160,5 +156,5 @@ const Title = styled('td')`
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;

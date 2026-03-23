@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS
@@ -17,9 +17,9 @@ class ProjectPerformanceGeneralSettingsSerializer(serializers.Serializer):
     enable_images = serializers.BooleanField(required=False)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

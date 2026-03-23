@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
+
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {
   IconAdd,
   IconAsana,
@@ -28,7 +28,6 @@ import {
   IconUnsubscribed,
   IconUser,
 } from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {
   GroupActivity,
   GroupActivityCreateIssue,
@@ -138,6 +137,6 @@ export const groupActivityTypeIconMapping: Record<
 
 const StyledUserAvatar = styled(UserAvatar)`
   svg {
-    margin: ${space(0.25)};
+    margin: ${p => p.theme.space['2xs']};
   }
 `;

@@ -4,7 +4,7 @@ import type {AriaPopoverProps} from '@react-aria/overlays';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {Overlay} from 'sentry/components/overlay';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
 
@@ -54,7 +54,7 @@ const ListBoxOverlay = styled(Overlay)`
 `;
 
 const BackgroundColorWrapper = styled('div')`
-  background-color: ${p => p.theme.purple100};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`

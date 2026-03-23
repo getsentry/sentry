@@ -3,13 +3,12 @@ import type {BarSeriesOption} from 'echarts';
 
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 
-import BarSeries from './series/barSeries';
+import {BarSeries} from './series/barSeries';
 import type {BaseChartProps} from './baseChart';
-import BaseChart from './baseChart';
+import {BaseChart} from './baseChart';
 
 export interface BarChartSeries
-  extends Omit<BarSeriesOption, 'data' | 'color' | 'id'>,
-    Series {}
+  extends Omit<BarSeriesOption, 'data' | 'color' | 'id'>, Series {}
 
 export interface BarChartProps extends BaseChartProps {
   series: BarChartSeries[];
@@ -81,6 +80,12 @@ export function BarChart({
   }, [xAxis]);
 
   return (
-    <BaseChart {...props} ref={ref} xAxis={xAxisOptions} series={transformedSeries} />
+    <BaseChart
+      {...props}
+      animation={animation}
+      ref={ref}
+      xAxis={xAxisOptions}
+      series={transformedSeries}
+    />
   );
 }

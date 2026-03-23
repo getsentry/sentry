@@ -3,18 +3,19 @@ import styled from '@emotion/styled';
 
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -58,7 +59,7 @@ export default function ReplayInlineOnboardingPanel({
           <BannerDescription>
             {t('Watch the errors and latency issues your users face')}
           </BannerDescription>
-          <ActionButton>
+          <Flex gap="md">
             <Button
               type="button"
               analyticsEventName="Clicked Replay Onboarding CTA Set Up Button in Issue Details"
@@ -68,15 +69,15 @@ export default function ReplayInlineOnboardingPanel({
             >
               {t('Set Up Now')}
             </Button>
-          </ActionButton>
+          </Flex>
         </div>
         {!isScreenSmall && <Background image={replayInlineOnboarding} />}
         <CloseDropdownMenu
           position="bottom-end"
           triggerProps={{
             showChevron: false,
-            borderless: true,
-            icon: <IconClose color="subText" />,
+            priority: 'transparent',
+            icon: <IconClose variant="muted" />,
           }}
           size="xs"
           items={[
@@ -110,41 +111,41 @@ export default function ReplayInlineOnboardingPanel({
 }
 
 const PurpleText = styled('span')`
-  color: ${p => p.theme.purple300};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.accent};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerWrapper = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
-  margin: ${space(1)} 0;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space.xl};
+  margin: ${p => p.theme.space.md} 0;
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  margin-bottom: ${p => p.theme.space.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
   max-width: 340px;
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`
   position: absolute;
   display: block;
-  top: ${space(1)};
-  right: ${space(1)};
-  color: ${p => p.theme.white};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.md};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;
@@ -161,9 +162,4 @@ const Background = styled('div')<{image: any}>`
   background-image: url(${p => p.image});
   background-repeat: no-repeat;
   background-size: contain;
-`;
-
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;

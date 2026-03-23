@@ -10,7 +10,6 @@ from sentry.models.group import Group
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import get_issue_summary
 from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +30,11 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         return None
     if not group.organization.get_option("sentry:enable_seer_enhanced_alerts", default=True):
         return None
-    if not get_seer_org_acknowledgement(group.organization):
-        return None
 
     from sentry import quotas
     from sentry.constants import DataCategory
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
     )
     if not has_budget:
@@ -62,5 +59,5 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
     except concurrent.futures.TimeoutError:
         return None
     except Exception as e:
-        logger.exception("Error generating issue summary: %s", e)
+        logger.warning("Error generating issue summary: %s", e)
         return None

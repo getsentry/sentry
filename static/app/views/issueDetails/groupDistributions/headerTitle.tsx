@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {t, tct} from 'sentry/locale';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 
-export default function HeaderTitle({
+export function HeaderTitle({
   includeFeatureFlagsTab,
   tab,
   tagKey,
@@ -28,8 +28,12 @@ export default function HeaderTitle({
 }
 
 const Header = styled('h3')`
-  ${p => p.theme.overflowEllipsis};
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0;
 `;

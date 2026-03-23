@@ -18,11 +18,17 @@ from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
+from sentry.search.eap.occurrences.common_queries import get_group_to_trace_ids_map
+from sentry.search.eap.occurrences.query_utils import build_snuba_params_from_ids
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.services.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
 from sentry.signals import (
     cron_monitor_created,
     first_cron_checkin_received,
     first_cron_monitor_created,
 )
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
+from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -120,17 +126,17 @@ def get_checkin_margin(checkin_margin: int | None) -> timedelta:
     return timedelta(minutes=int(checkin_margin or DEFAULT_CHECKIN_MARGIN))
 
 
-def fetch_associated_groups(
-    trace_ids: list[str], organization_id: int, project_id: int, start: datetime, end
-) -> dict[str, list[dict[str, int | str]]]:
+def _fetch_associated_groups_snuba(
+    trace_ids: list[str],
+    organization_id: int,
+    project_id: int,
+    start: datetime,
+    end: datetime,
+) -> dict[int, set[str]]:
     """
-    Returns serializer appropriate group_ids corresponding with check-in trace ids
-    :param trace_ids: list of trace_ids from the given check-ins
-    :param organization_id: organization id
-    :param project_id: project id
-    :param start: timestamp of the beginning of the specified date range
-    :param end: timestamp of the end of the specified date range
-    :return:
+    Snuba implementation of fetch_associated_groups.
+
+    Returns a mapping of group_id to set of trace_ids.
     """
     from snuba_sdk import (
         Column,
@@ -146,7 +152,6 @@ def fetch_associated_groups(
     )
 
     from sentry.services.eventstore.base import EventStorage
-    from sentry.services.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
     from sentry.snuba.dataset import Dataset
     from sentry.snuba.events import Columns
     from sentry.utils.snuba import DATASETS, raw_snql_query
@@ -202,7 +207,6 @@ def fetch_associated_groups(
     )
 
     group_id_data: dict[int, set[str]] = defaultdict(set)
-    trace_groups: dict[str, list[dict[str, int | str]]] = defaultdict(list)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
     # if query completes successfully, add an array of objects with group id and short id
@@ -215,8 +219,84 @@ def fetch_associated_groups(
             # create dict with group_id and trace_id
             group_id_data[event["group_id"]].add(event[trace_id_event_name])
 
+    return dict(group_id_data)
+
+
+def _fetch_associated_groups_eap(
+    trace_ids: list[str],
+    organization_id: int,
+    project_id: int,
+    start: datetime,
+    end: datetime,
+) -> dict[int, set[str]]:
+    """
+    EAP implementation of fetch_associated_groups.
+
+    Returns a mapping of group_id to set of trace_ids.
+    """
+    query_start = start - timedelta(minutes=30)
+    query_end = end + timedelta(minutes=30)
+
+    snuba_params = build_snuba_params_from_ids(
+        organization_id=organization_id,
+        project_ids=[project_id],
+        start=query_start,
+        end=query_end,
+    )
+    if snuba_params is None:
+        return {}
+
+    return get_group_to_trace_ids_map(
+        snuba_params=snuba_params,
+        trace_ids=trace_ids,
+        referrer=Referrer.API_SERIALIZER_CHECKINS_TRACE_IDS.value,
+        limit=DEFAULT_LIMIT,
+        occurrence_category=OccurrenceCategory.ERROR,
+        orderby=["-timestamp"],
+        offset=DEFAULT_OFFSET,
+    )
+
+
+def fetch_associated_groups(
+    trace_ids: list[str], organization_id: int, project_id: int, start: datetime, end: datetime
+) -> dict[str, list[dict[str, int | str]]]:
+    """
+    Returns groups associated with check-in trace ids, formatted for the serializer.
+    """
+    snuba_result = _fetch_associated_groups_snuba(
+        trace_ids, organization_id, project_id, start, end
+    )
+    group_id_data = snuba_result
+
+    callsite = "monitors.fetch_associated_groups"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_result = _fetch_associated_groups_eap(
+            trace_ids, organization_id, project_id, start, end
+        )
+        group_id_data = EAPOccurrencesComparator.check_and_choose(
+            snuba_result,
+            eap_result,
+            callsite,
+            is_experimental_data_a_null_result=len(eap_result) == 0,
+            reasonable_match_comparator=lambda snuba, eap: (
+                eap.keys() <= snuba.keys() and all(eap[gid] <= snuba[gid] for gid in eap)
+            ),
+            debug_context={
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "trace_ids_count": len(trace_ids),
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+            },
+        )
+
+    trace_groups: dict[str, list[dict[str, int | str]]] = defaultdict(list)
+    if group_id_data:
         group_ids = group_id_data.keys()
-        for group in Group.objects.filter(project_id=project_id, id__in=group_ids):
+        groups_queryset = Group.objects.filter(
+            project_id=project_id, id__in=group_ids
+        ).select_related("project")
+        for group in groups_queryset:
             for trace_id in group_id_data[group.id]:
                 trace_groups[trace_id].append({"id": group.id, "shortId": group.qualified_short_id})
 
@@ -392,7 +472,9 @@ def update_issue_alert_rule(
     return issue_alert_rule.id
 
 
-def ensure_cron_detector(monitor: Monitor):
+def ensure_cron_detector(monitor: Monitor) -> Detector | None:
+    from sentry.monitors.grouptype import MonitorIncidentType
+
     try:
         with atomic_transaction(using=router.db_for_write(DataSource)):
             data_source, created = DataSource.objects.get_or_create(
@@ -401,8 +483,6 @@ def ensure_cron_detector(monitor: Monitor):
                 source_id=str(monitor.id),
             )
             if created:
-                from sentry.monitors.grouptype import MonitorIncidentType
-
                 detector = Detector.objects.create(
                     type=MonitorIncidentType.slug,
                     project_id=monitor.project_id,
@@ -412,8 +492,18 @@ def ensure_cron_detector(monitor: Monitor):
                     config={},
                 )
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+                return detector
+            else:
+                return Detector.objects.get(
+                    type=MonitorIncidentType.slug,
+                    project_id=monitor.project_id,
+                    data_sources=data_source,
+                )
+
     except Exception:
         logger.exception("Error creating cron detector")
+
+    return None
 
 
 def ensure_cron_detector_deletion(monitor: Monitor):

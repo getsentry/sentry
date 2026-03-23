@@ -1,15 +1,15 @@
 import {useNavigate} from 'react-router-dom';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
@@ -47,8 +47,8 @@ export default function SavedQueriesView() {
             <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar>
-              <FeedbackWidgetButton />
+            <Grid flow="column" align="center" gap="md">
+              <FeedbackButton />
               {hasLogsFeature ? (
                 <DropdownMenu
                   items={items}
@@ -80,7 +80,7 @@ export default function SavedQueriesView() {
                   {t('Create Query')}
                 </LinkButton>
               )}
-            </ButtonBar>
+            </Grid>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>

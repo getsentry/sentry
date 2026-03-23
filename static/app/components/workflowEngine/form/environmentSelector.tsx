@@ -1,19 +1,16 @@
-import {useMemo} from 'react';
+import {useContext, useMemo} from 'react';
 
-import type {
-  SelectOption,
-  SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
+import {FormContext} from 'sentry/components/forms/formContext';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
-interface EnvironmentSelectorProps {
-  onChange: (value: string) => void;
-  value: string;
-}
-
-export function EnvironmentSelector({value, onChange}: EnvironmentSelectorProps) {
+export function EnvironmentSelector() {
+  const value = useFormField<string | null>('environment');
+  const {form} = useContext(FormContext);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const options = useMemo<Array<SelectOptionOrSection<string>>>(() => {
@@ -48,15 +45,15 @@ export function EnvironmentSelector({value, onChange}: EnvironmentSelectorProps)
   }, [projects]);
 
   return (
-    <CompactSelect<string>
+    <CompactSelect
       size="md"
       options={options}
-      searchable
+      search
       disabled={!projectsLoaded}
       sizeLimit={20}
       multiple={false}
-      value={value}
-      onChange={selected => onChange(selected.value)}
+      value={value ?? ''}
+      onChange={selected => form?.setValue('environment', selected.value || null)}
     />
   );
 }

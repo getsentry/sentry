@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -9,13 +10,13 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   HeadSortCell,
   useTableSort,
-} from 'sentry/views/insights/agents/components/headSortCell';
-import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
-import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {WEB_VITALS_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';

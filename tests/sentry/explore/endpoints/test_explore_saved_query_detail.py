@@ -144,7 +144,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
                 {
                     "name": "New query",
                     "projects": self.project_ids,
-                    "query": [{"fields": [], "mode": "samples"}],
+                    "query": [{"caseInsensitive": False, "fields": [], "mode": "samples"}],
                     "range": "24h",
                     "orderby": "-timestamp",
                 },
@@ -153,7 +153,9 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.query_id)
         assert set(response.data["projects"]) == set(self.project_ids)
-        assert response.data["query"] == [{"fields": [], "mode": "samples"}]
+        assert response.data["query"] == [
+            {"caseInsensitive": False, "fields": [], "mode": "samples"}
+        ]
 
     def test_put_with_interval(self) -> None:
         with self.feature(self.feature_name):
@@ -176,7 +178,11 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["interval"] == "10m"
         assert response.data["query"] == [
-            {"fields": ["span.op", "count(span.duration)"], "mode": "samples"}
+            {
+                "caseInsensitive": False,
+                "fields": ["span.op", "count(span.duration)"],
+                "mode": "samples",
+            }
         ]
 
     def test_put_query_without_access(self) -> None:
@@ -216,7 +222,13 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             )
 
             response = self.client.put(
-                url, {"name": "New query", "projects": [], "range": "24h", "mode": "samples"}
+                url,
+                {
+                    "name": "New query",
+                    "projects": [],
+                    "range": "24h",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                },
             )
 
             assert response.status_code == 200
@@ -277,6 +289,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
                     "projects": self.project_ids,
                     "range": "24h",
                     "dataset": "spans",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
                 },
             )
             assert response.status_code == 200

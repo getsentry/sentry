@@ -6,28 +6,28 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, options
+from sentry import analytics, options
 from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.seer.similarity.config import get_grouping_model_version
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
-from sentry.seer.similarity.types import (
-    GroupingVersion,
-    SeerSimilarIssueData,
-    SimilarIssuesEmbeddingsRequest,
-)
+from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     ReferrerOptions,
     event_content_has_stacktrace,
     get_stacktrace_string,
-    has_too_many_contributing_frames,
     killswitch_enabled,
+    stacktrace_exceeds_limits,
 )
 from sentry.users.models.user import User
 from sentry.utils.safe import get_path
@@ -40,7 +40,7 @@ class FormattedSimilarIssuesEmbeddingsData(TypedDict):
     shouldBeGrouped: str
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -67,6 +67,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         }
         for similar_issue_data in similar_issues_data:
             if parent_hashes_group_ids[similar_issue_data.parent_hash] != group.id:
+                # Results are sorted by ascending distance, so the first occurrence of each
+                # group has the best (lowest distance / highest similarity) score. Skip
+                # duplicates to avoid overwriting a better score with a worse one while
+                # keeping the dict insertion position from the first (best) entry.
+                if similar_issue_data.parent_group_id in group_data:
+                    continue
                 formatted_response: FormattedSimilarIssuesEmbeddingsData = {
                     "exception": round(1 - similar_issue_data.stacktrace_distance, 4),
                     "shouldBeGrouped": "Yes" if similar_issue_data.should_group else "No",
@@ -82,6 +88,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         return [(serialized_groups[group_id], group_data[group_id]) for group_id in group_data]
 
+    @deprecated(
+        CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-similar-issues-embeddings"]
+    )
     def get(self, request: Request, group: Group) -> Response:
         if killswitch_enabled(group.project.id, ReferrerOptions.SIMILAR_ISSUES_TAB):
             return Response([])
@@ -89,11 +98,13 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         latest_event = group.get_latest_event()
         stacktrace_string = ""
 
+        model_version = get_grouping_model_version(group.project)
+
         if latest_event and event_content_has_stacktrace(latest_event):
             variants = latest_event.get_grouping_variants(normalize_stacktraces=True)
 
-            if not has_too_many_contributing_frames(
-                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB
+            if not stacktrace_exceeds_limits(
+                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB, model_version
             ):
                 grouping_info = get_grouping_info_from_variants_legacy(variants)
                 try:
@@ -103,11 +114,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
-
-        # Get model configuration from feature flags
-        use_v2_model = features.has("projects:similarity-grouping-v2-model", group.project)
-        model_version = GroupingVersion.V2 if use_v2_model else GroupingVersion.V1
-        training_mode = False  # TODO: currently hardcoded, follow up PR will add the logic
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "event_id": latest_event.event_id,
@@ -119,7 +125,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "referrer": "similar_issues",
             "use_reranking": options.get("seer.similarity.similar_issues.use_reranking"),
             "model": model_version,
-            "training_mode": training_mode,
+            "training_mode": False,
         }
         # Add optional parameters
         if request.GET.get("k"):
@@ -133,7 +139,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
 
-        results = get_similarity_data_from_seer(similar_issues_params)
+        viewer_context = SeerViewerContext(
+            organization_id=group.project.organization.id, user_id=request.user.id
+        )
+        results, _model_used = get_similarity_data_from_seer(
+            similar_issues_params, viewer_context=viewer_context
+        )
 
         analytics.record(
             GroupSimilarIssuesEmbeddingsCountEvent(

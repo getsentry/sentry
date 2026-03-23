@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -36,7 +36,7 @@ def should_create_open_periods(type_id: int) -> bool:
     return True
 
 
-@region_silo_model
+@cell_silo_model
 class GroupOpenPeriod(DefaultFieldsModel):
     """
     A GroupOpenPeriod is a period of time where a group is considered "open",
@@ -142,28 +142,45 @@ def get_open_periods_for_group(
     group: Group,
     query_start: datetime | None = None,
     query_end: datetime | None = None,
-    limit: int | None = None,
 ) -> BaseQuerySet[GroupOpenPeriod]:
+    """
+    Get open periods for a group that overlap with the query time range.
+
+    To overlap with [query_start, query_end], an open period must:
+    1. Start before the query ends
+    2. End after the query starts (or still be open)
+
+    This covers all overlap cases:
+    - Period starts before query and ends within query range
+    - Period starts before query and ends after query (open period spans entire query range)
+    - Period starts within query and ends within query (open period completely inside query range)
+    - Period starts within query and ends after query
+    - Period starts before query and is still open
+    - Period starts within query and is still open
+    """
     if not should_create_open_periods(group.type):
         return GroupOpenPeriod.objects.none()
 
     if not query_start:
         # use whichever date is more recent to reduce the query range. first_seen could be > 90 days ago
         query_start = max(group.first_seen, timezone.now() - timedelta(days=90))
+    if not query_end:
+        query_end = timezone.now()
 
-    group_open_periods = GroupOpenPeriod.objects.filter(
-        group=group,
-        date_started__gte=query_start,
-    ).order_by("-date_started")
-    if query_end:
-        group_open_periods = group_open_periods.filter(
-            Q(date_ended__lte=query_end) | Q(date_ended__isnull=True)
+    started_before_query_ends = Q(date_started__lte=query_end)
+    ended_after_query_starts = Q(date_ended__gte=query_start)
+    still_open = Q(date_ended__isnull=True)
+
+    return (
+        GroupOpenPeriod.objects.filter(
+            group=group,
         )
+        .filter(started_before_query_ends & (ended_after_query_starts | still_open))
+        .order_by("-date_started")
+    )
 
-    return group_open_periods[:limit]
 
-
-def create_open_period(group: Group, start_time: datetime) -> None:
+def create_open_period(group: Group, start_time: datetime, event_id: str | None = None) -> None:
     # no-op if the group does not create open periods
     if not should_create_open_periods(group.type):
         return None
@@ -197,6 +214,7 @@ def create_open_period(group: Group, start_time: datetime) -> None:
                 group_open_period=open_period,
                 type=OpenPeriodActivityType.OPENED,
                 value=group.priority,
+                event_id=event_id,
             )
 
 

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import TypeVar
 
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.group import DEFAULT_TYPE_ID
@@ -13,14 +12,13 @@ from sentry.workflow_engine.types import (
     DetectorSettings,
 )
 
-T = TypeVar("T")
 
+class ErrorDetectorHandler(DetectorHandler[object]):
+    """Placeholder handler for error group types."""
 
-class ErrorDetectorHandler(DetectorHandler):
     def evaluate(
-        self, data_packet: DataPacket[T]
+        self, data_packet: DataPacket[object]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
-        # placeholder
         return {}
 
 

@@ -2,14 +2,14 @@ import React, {Children, useRef, useState, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
@@ -218,18 +218,18 @@ function Container({children}: {children: React.ReactNode}) {
 }
 
 export const CardPanel = styled(Panel)`
-  padding: ${space(0.75)};
+  padding: ${p => p.theme.space.sm};
   display: grid;
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space.lg};
   grid-template-columns: fit-content(50%) 1fr;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Title = styled('div')`
   grid-column: span 2;
-  padding: ${space(0.25)} ${space(0.75)};
-  color: ${p => p.theme.headingColor};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
+  color: ${p => p.theme.tokens.content.primary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ContentWrapper = styled('div')<{
@@ -240,31 +240,35 @@ const ContentWrapper = styled('div')<{
   display: grid;
   grid-template-columns: ${p => (p.expandLeft ? '2fr 0.8fr' : 'subgrid')};
   grid-column: span 2;
-  column-gap: ${space(1.5)};
-  padding: ${space(0.25)} ${space(0.75)};
+  column-gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   border-radius: 4px;
   color: ${p =>
     p.hasErrors
-      ? p.theme.alert.error.color
+      ? p.theme.colors.red500
       : p.isSuspectFlag
-        ? p.theme.yellow400
-        : p.theme.subText};
+        ? p.theme.colors.yellow500
+        : p.theme.tokens.content.secondary};
   box-shadow: inset 0 0 0 1px
     ${p =>
-      p.hasErrors ? p.theme.red100 : p.isSuspectFlag ? p.theme.yellow100 : 'transparent'};
+      p.hasErrors
+        ? p.theme.colors.red100
+        : p.isSuspectFlag
+          ? p.theme.colors.yellow100
+          : 'transparent'};
   background-color: ${p =>
     p.hasErrors
-      ? p.theme.alert.error.backgroundLight
+      ? p.theme.colors.red100
       : p.isSuspectFlag
-        ? p.theme.yellow100
-        : p.theme.background};
+        ? p.theme.colors.yellow100
+        : p.theme.tokens.background.primary};
   &:nth-child(odd) {
     background-color: ${p =>
       p.hasErrors
-        ? p.theme.alert.error.backgroundLight
+        ? p.theme.colors.red100
         : p.isSuspectFlag
-          ? p.theme.yellow100
-          : p.theme.backgroundSecondary};
+          ? p.theme.colors.yellow100
+          : p.theme.tokens.background.secondary};
   }
 
   .invisible {
@@ -280,19 +284,19 @@ const ContentWrapper = styled('div')<{
 
 export const Subject = styled('div')`
   grid-column: span 1;
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   word-break: break-word;
   min-width: 100px;
 `;
 
 export const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   word-break: break-word;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
   grid-column: ${p => (p.hasEmptySubject ? '1 / -1' : 'span 1')};
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-column-gap: ${space(0.5)};
+  grid-column-gap: ${p => p.theme.space.xs};
 `;
 
 const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
@@ -305,9 +309,9 @@ const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
 const TruncateWrapper = styled('a')`
   display: flex;
   grid-column: 1 / -1;
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space.xs} 0;
   justify-content: center;
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const CardWrapper = styled('div')<{columnCount: number}>`
@@ -322,7 +326,7 @@ const CardColumn = styled('div')`
 `;
 
 export const ValueLink = styled(Link)`
-  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
+  text-decoration: ${p => p.theme.tokens.interactive.link.accent.rest} underline dotted;
 `;
 
 const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>`

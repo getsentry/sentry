@@ -171,6 +171,25 @@ describe('Dashboards - DashboardTable', () => {
     );
   });
 
+  it('does not forward search query parameter to dashboard links', async () => {
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={dashboards}
+        location={{
+          ...LocationFixture(),
+          query: {query: 'agent', statsPeriod: '7d'},
+        }}
+      />
+    );
+
+    expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/1/?statsPeriod=7d'
+    );
+  });
+
   it('can delete dashboards', async () => {
     render(
       <DashboardTable
@@ -294,7 +313,7 @@ describe('Dashboards - DashboardTable', () => {
 
     expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(5);
     expect(screen.getByText('Access')).toBeInTheDocument();
-    await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]!);
+    await userEvent.click(screen.getByText('All'));
     expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
   });
 

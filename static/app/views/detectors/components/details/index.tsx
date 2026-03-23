@@ -1,4 +1,7 @@
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {Alert} from '@sentry/scraps/alert';
+
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -6,6 +9,7 @@ import {CronDetectorDetails} from 'sentry/views/detectors/components/details/cro
 import {ErrorDetectorDetails} from 'sentry/views/detectors/components/details/error';
 import {FallbackDetectorDetails} from 'sentry/views/detectors/components/details/fallback';
 import {MetricDetectorDetails} from 'sentry/views/detectors/components/details/metric';
+import {MobileBuildDetectorDetails} from 'sentry/views/detectors/components/details/mobileBuild';
 import {UptimeDetectorDetails} from 'sentry/views/detectors/components/details/uptime';
 
 type DetectorDetailsContentProps = {
@@ -35,6 +39,20 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
       return (
         <PageFiltersContainer>
           <CronDetectorDetails detector={detector} project={project} />
+        </PageFiltersContainer>
+      );
+    case 'issue_stream':
+      return (
+        <Alert.Container>
+          <Alert variant="danger">
+            {t('Issue stream monitors do not support detail views.')}
+          </Alert>
+        </Alert.Container>
+      );
+    case 'preprod_size_analysis':
+      return (
+        <PageFiltersContainer>
+          <MobileBuildDetectorDetails detector={detector} project={project} />
         </PageFiltersContainer>
       );
     default:

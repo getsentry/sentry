@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 
-import Access from 'sentry/components/acl/access';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+
+import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {descopeFeatureName} from 'sentry/utils';
@@ -35,7 +35,7 @@ type Props = {
   onConfigure?: (providerKey: string, e: React.MouseEvent) => void;
 };
 
-function ProviderItem({provider, active, onConfigure}: Props) {
+export function ProviderItem({provider, active, onConfigure}: Props) {
   const handleConfigure = (e: React.MouseEvent) => {
     onConfigure?.(provider.key, e);
   };
@@ -137,13 +137,11 @@ function ProviderItem({provider, active, onConfigure}: Props) {
   );
 }
 
-export default ProviderItem;
-
 const ProviderInfo = styled('div')`
   flex: 1;
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const ProviderLogo = styled('div')`
@@ -155,12 +153,12 @@ const ProviderLogo = styled('div')`
 `;
 
 const ProviderName = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ProviderDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FeatureBadge = styled('div')`
@@ -168,9 +166,9 @@ const FeatureBadge = styled('div')`
 `;
 
 const ActiveIndicator = styled('div')`
-  background: ${p => p.theme.green300};
-  color: ${p => p.theme.white};
-  padding: ${space(1)} ${space(1.5)};
+  background: ${p => p.theme.colors.green400};
+  color: ${p => p.theme.colors.white};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-radius: 2px;
   font-size: 0.8em;
 `;
@@ -192,7 +190,7 @@ function LockedFeature({provider, features, className}: LockedFeatureProps) {
         />
       }
     >
-      <Tag role="status" icon={<IconLock locked />}>
+      <Tag variant="muted" role="status" icon={<IconLock locked />}>
         {t('disabled')}
       </Tag>
     </DisabledHovercard>

@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_UNAUTHORIZED
@@ -20,11 +20,11 @@ from sentry.workflow_engine.models import Detector
 
 class DetectorCountResponse(TypedDict):
     active: int
-    deactive: int
+    inactive: int
     total: int
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Workflows"])
 class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -54,12 +54,12 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
         except NoProjects:
             empty_response: DetectorCountResponse = {
                 "active": 0,
-                "deactive": 0,
+                "inactive": 0,
                 "total": 0,
             }
             return self.respond(empty_response)
 
-        queryset = Detector.objects.filter(
+        queryset = Detector.objects.with_type_filters().filter(
             status=ObjectStatus.ACTIVE,
             project__organization_id=organization.id,
             project_id__in=filter_params["project_id"],
@@ -77,7 +77,7 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
                     output_field=IntegerField(),
                 )
             ),
-            deactive=Count(
+            inactive=Count(
                 Case(
                     When(enabled=False, then=1),
                     output_field=IntegerField(),
@@ -88,7 +88,7 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
 
         response_data: DetectorCountResponse = {
             "active": counts["active"],
-            "deactive": counts["deactive"],
+            "inactive": counts["inactive"],
             "total": counts["total"],
         }
         return self.respond(response_data)

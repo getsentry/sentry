@@ -11,8 +11,8 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.models.organization import Organization
 from sentry.search.events import fields
 from sentry.search.events.types import SnubaParams
@@ -51,8 +51,8 @@ class StatsQualityEstimation(Enum):
     )
 
 
-@region_silo_endpoint
-class OrganizationOnDemandMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBase):
+@cell_silo_endpoint
+class OrganizationOnDemandMetricsEstimationStatsEndpoint(OrganizationEventsEndpointBase):
     """Gets the estimated volume of an organization's metric events."""
 
     publish_status = {

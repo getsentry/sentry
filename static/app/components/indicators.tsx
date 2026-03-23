@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {Toast} from 'sentry/components/core/toast';
-import IndicatorStore from 'sentry/stores/indicatorStore';
+import {Toast} from '@sentry/scraps/toast';
+
+import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 type Props = {

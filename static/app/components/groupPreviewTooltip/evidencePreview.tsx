@@ -1,15 +1,14 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
 import {
   useDelayedLoadingState,
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type SpanEvidencePreviewProps = {
   children: React.ReactNode;
@@ -101,9 +100,9 @@ export function EvidencePreview({children, groupId, query}: SpanEvidencePreviewP
 }
 
 const EmptyWrapper = styled('div')`
-  color: ${p => p.theme.subText};
-  padding: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: ${p => p.theme.space.lg};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -112,5 +111,5 @@ const EmptyWrapper = styled('div')`
 
 const SpanEvidencePreviewWrapper = styled('div')`
   width: 700px;
-  padding: ${space(1.5)} ${space(1.5)} 0 ${space(1.5)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} 0 ${p => p.theme.space.lg};
 `;

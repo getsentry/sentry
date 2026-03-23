@@ -5,7 +5,9 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
@@ -62,6 +64,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
       const items = token.value.items;
+      const multiValueJoiner = token.negated ? 'and' : 'or';
 
       if (items.length === 1 && items[0]!.value) {
         return (
@@ -74,19 +77,19 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const maxItems = size === 'small' ? 1 : 3;
 
       return (
-        <FilterValueList>
+        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
                 {formatFilterValue({token: item.value!})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
-                <FilterValueOr> or </FilterValueOr>
+                <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
               ) : null}
             </Fragment>
           ))}
           {items.length > maxItems && <span>+{items.length - maxItems}</span>}
-        </FilterValueList>
+        </Flex>
       );
     }
     case Token.VALUE_ISO_8601_DATE: {
@@ -293,65 +296,63 @@ const FilterValueGridCell = styled(BaseGridCell)`
 
 const ValueButton = styled(UnstyledButton)`
   padding: 0 ${p => p.theme.space['2xs']};
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   width: 100%;
   max-width: 400px;
 
   :focus {
-    background-color: ${p => p.theme.purple100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const ValueEditing = styled('div')`
   padding: 0 ${p => p.theme.space['2xs']};
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   max-width: 100%;
 
   :focus-within {
-    background-color: ${p => p.theme.purple100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const DeleteButton = styled(UnstyledButton)`
   padding: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
   border-radius: 0 3px 3px 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-left: 1px solid transparent;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.colors.gray100};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
-const FilterValueList = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: ${p => p.theme.space.xs};
-  max-width: 400px;
-`;
-
-const FilterValueOr = styled('span')`
-  color: ${p => p.theme.subText};
+const FilterValueJoiner = styled('span')`
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FilterMultiValueTruncated = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 110px;
   width: min-content;
 `;
 
 const FilterValueSingleTruncatedValue = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 100%;
   width: min-content;
 `;

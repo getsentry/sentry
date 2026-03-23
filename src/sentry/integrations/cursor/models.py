@@ -3,6 +3,12 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class CursorApiKeyMetadata(BaseModel):
+    apiKeyName: str
+    createdAt: str
+    userEmail: str
+
+
 class CursorAgentLaunchRequestPrompt(BaseModel):
     text: str
     images: list[dict] = []
@@ -33,9 +39,9 @@ class CursorAgentLaunchRequestBody(BaseModel):
 
 
 class CursorAgentResponseTarget(BaseModel):
-    autoCreatePr: bool
-    branchName: str
     url: str
+    branchName: str | None = None
+    autoCreatePr: bool | None = None
 
 
 class CursorAgentLaunchResponse(BaseModel):
@@ -45,3 +51,7 @@ class CursorAgentLaunchResponse(BaseModel):
     target: CursorAgentResponseTarget
     name: str | None = None
     createdAt: datetime
+
+
+class CursorModelsResponse(BaseModel):
+    models: list[str]

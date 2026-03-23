@@ -50,6 +50,19 @@ function isParen(token: Token, character: '(' | ')') {
   );
 }
 
+function hasUnquotedOpenParen(s: string): boolean {
+  let inQuotes = false;
+  for (let i = 0; i < s.length; i++) {
+    const char = s[i];
+    if (char === '"' && (i === 0 || s[i - 1] !== '\\')) {
+      inQuotes = !inQuotes;
+    } else if (char === '(' && !inQuotes) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isProperlyBracketed(value: string): boolean {
   return /^\[.*\]$/.test(value);
 }
@@ -193,7 +206,7 @@ export class MutableSearch {
       }
 
       let trailingParen = '';
-      if (token.endsWith(')') && !token.includes('(')) {
+      if (token.endsWith(')') && !hasUnquotedOpenParen(token)) {
         const parenMatch = token.match(/\)+$/g);
         if (parenMatch) {
           trailingParen = parenMatch[0];
@@ -404,6 +417,21 @@ export class MutableSearch {
 
   hasFilter(key: string): boolean {
     return this.getFilterValues(key).length > 0;
+  }
+
+  /**
+   * Renames all filter tokens matching `oldKey` to `newKey` in-place,
+   * preserving operators, negation, position, and filter type.
+   */
+  renameFilter(oldKey: string, newKey: string) {
+    for (const token of this.tokens) {
+      if (token.key === oldKey) {
+        token.key = newKey;
+      } else if (token.key === `!${oldKey}`) {
+        token.key = `!${newKey}`;
+      }
+    }
+    return this;
   }
 
   removeFilter(key: string) {

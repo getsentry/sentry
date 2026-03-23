@@ -4,14 +4,13 @@ import * as Sentry from '@sentry/react';
 import type {Client} from 'sentry/api';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 
 import {TraceTree} from './traceModels/traceTree';
 import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
-import {isEAPTraceNode, isEAPTransactionNode, isTransactionNode} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
@@ -35,27 +34,26 @@ async function maybeAutoExpandTrace(
 
   if (
     !(
-      tree.transactions_count < AUTO_EXPAND_TRANSACTIONS_THRESHOLD ||
+      tree.collapsed_nodes < AUTO_EXPAND_TRANSACTIONS_THRESHOLD ||
       // We only collect the spans count for EAP traces atm, so we can't auto expand non-EAP traces
       // by spans count.
-      (isEAPTraceNode(traceNode) && tree.eap_spans_count < AUTO_EXPAND_SPANS_THRESHOLD)
+      (tree.eap_spans_count && tree.eap_spans_count < AUTO_EXPAND_SPANS_THRESHOLD)
     )
   ) {
     return tree;
   }
 
-  const transactions = TraceTree.FindAll(
-    tree.root,
-    node => isTransactionNode(node) || isEAPTransactionNode(node)
+  const collapsedNodes = tree.root.findAllChildren(
+    node => node.canFetchChildren || !node.expanded
   );
   // Expand each transaction, either by zooming (if it has spans to fetch)
   // or just expanding in place. Note that spans are always expanded by default.
   const promises: Array<Promise<any>> = [];
-  for (const transaction of transactions) {
-    if (transaction.canFetch) {
-      promises.push(tree.zoom(transaction, true, options));
+  for (const node of collapsedNodes) {
+    if (node.canFetchChildren) {
+      promises.push(tree.fetchNodeSubTree(true, node, options));
     } else {
-      tree.expand(transaction, true);
+      node.expand(true, tree);
     }
   }
 

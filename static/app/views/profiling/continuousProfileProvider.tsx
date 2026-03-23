@@ -7,7 +7,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {ContinuousProfileProvider, ProfileTransactionContext} from './profilesProvider';
@@ -43,14 +43,17 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
     };
   }, [location.query.start, location.query.end, location.query.profilerId]);
 
+  const eventId = decodeScalar(location.query.eventId) || null;
+
   const [profile, setProfile] = useState<RequestState<Profiling.ProfileInput>>({
-    type: 'initial',
+    type: eventId ? 'initial' : 'empty',
   });
 
   const profileTransaction = useSentryEvent<EventTransaction>(
     organization.slug,
     projectSlug,
-    decodeScalar(location.query.eventId) || null
+    eventId,
+    !eventId // disable if no event id
   );
 
   return (

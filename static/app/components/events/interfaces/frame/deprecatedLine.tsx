@@ -1,23 +1,23 @@
 import {Fragment, useMemo, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
+import {LeadHint} from 'sentry/components/events/interfaces/frame/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
-import StrictClick from 'sentry/components/strictClick';
+import {StrictClick} from 'sentry/components/strictClick';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   SentryAppComponent,
@@ -26,12 +26,12 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
-import Context from './context';
-import DefaultTitle from './defaultTitle';
+import {Context} from './context';
+import {DefaultTitle} from './defaultTitle';
 import {OpenInContextLine} from './openInContextLine';
 import {
   getPlatform,
@@ -108,12 +108,11 @@ function DeprecatedLine({
   registersMeta,
   components,
 }: Props) {
-  const theme = useTheme();
   const organization = useOrganization();
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
   const platform = getPlatform(data.platform, propPlatform ?? 'other');
-  const leadsToApp: boolean = !data.inApp && (nextFrame?.inApp || !nextFrame);
+  const leadsToApp = !data.inApp && (nextFrame?.inApp || !nextFrame);
 
   const isExpandable = useMemo((): boolean => {
     return !!(
@@ -223,10 +222,10 @@ function DeprecatedLine({
               </div>
             </LeftLineTitle>
           </DefaultLineTitleWrapper>
-          <DefaultLineTagWrapper>
+          <FrameActions>
             <RepeatsIndicator timesRepeated={timesRepeated} />
-            {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
-              <Tag type="warning" onClick={scrollToSuspectRootCause}>
+            {anrCulprit ? (
+              <Tag variant="warning" onClick={scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
@@ -258,7 +257,7 @@ function DeprecatedLine({
                   is_frame_expanded: isShowFramesToggleExpanded,
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
                 onClick={e => {
                   onShowFramesToggle?.(e);
                 }}
@@ -273,9 +272,11 @@ function DeprecatedLine({
                 <SourceMapDebuggerModalButton
                   size="zero"
                   priority="default"
-                  title={t(
-                    'Click to learn how to show the original source code for this stack frame.'
-                  )}
+                  tooltipProps={{
+                    title: t(
+                      'Click to learn how to show the original source code for this stack frame.'
+                    ),
+                  }}
                   onClick={e => {
                     e.stopPropagation();
 
@@ -316,23 +317,21 @@ function DeprecatedLine({
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
-            {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+            {data.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             {isExpandable ? (
               <ToggleContextButton
                 data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
                 size="zero"
                 aria-label={t('Toggle Context')}
                 onClick={toggleContext}
-                borderless
+                priority="transparent"
               >
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
-              <div
-                style={theme.isChonk ? {width: 26, height: 20} : {width: 20, height: 20}}
-              />
+              <div style={{width: 26, height: 20}} />
             )}
-          </DefaultLineTagWrapper>
+          </FrameActions>
         </DefaultLine>
       </StrictClick>
       <Context
@@ -383,17 +382,28 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  min-width: 0;
+  flex: 1;
+  color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
 `;
 
 const LeftLineTitle = styled('div')`
   display: flex;
   align-items: center;
+  min-width: 0;
 `;
 
 const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
+`;
+
+const FrameActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  flex-shrink: 0;
+  margin-left: auto;
 `;
 
 const DefaultLine = styled('div')<{
@@ -405,50 +415,63 @@ const DefaultLine = styled('div')<{
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : `${p.theme.surface200}`)};
-  min-height: ${p => (p.theme.isChonk ? '40px' : '38px')};
+  background: ${p =>
+    p.isSubFrame ? p.theme.colors.surface200 : p.theme.tokens.background.tertiary};
+  min-height: 40px;
   word-break: break-word;
-  padding: ${space(0.75)} ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   code {
-    font-family: ${p => p.theme.text.family};
+    font-family: ${p => p.theme.font.family.sans};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    &:has([data-has-setup]) {
+      flex-wrap: wrap;
+      row-gap: ${p => p.theme.space.xs};
+
+      > ${DefaultLineTitleWrapper} {
+        flex-basis: 100%;
+      }
+
+      > ${FrameActions} {
+        flex-basis: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        row-gap: ${p => p.theme.space.xs};
+      }
+    }
   }
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
-  margin-right: ${space(0.25)};
-`;
-
-const DefaultLineTagWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
+  margin-right: ${p => p.theme.space['2xs']};
 `;
 
 const ToggleContextButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ToggleButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  padding: ${space(0.25)} ${space(0.5)};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const SourceMapDebuggerButtonText = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 const SourceMapDebuggerModalButton = styled(Button)`
   height: 20px;
-  padding: 0 ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.sm};
+  padding: 0 ${p => p.theme.space.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

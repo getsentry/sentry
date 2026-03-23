@@ -10,20 +10,21 @@ import type {VisualMapComponentOption} from 'echarts';
 import type {Location, LocationDescriptor} from 'history';
 import memoize from 'lodash/memoize';
 
-import HeatMapChart from 'sentry/components/charts/heatMapChart';
+import {Flex} from '@sentry/scraps/layout';
+
+import {HeatMapChart} from 'sentry/components/charts/heatMapChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import MenuItem from 'sentry/components/menuItem';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {MenuItem} from 'sentry/components/menuItem';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import Panel from 'sentry/components/panels/panel';
-import PerformanceDuration from 'sentry/components/performanceDuration';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import Truncate from 'sentry/components/truncate';
+import {Panel} from 'sentry/components/panels/panel';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -31,12 +32,12 @@ import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {
   TableDataRow,
   TableData as TagTableData,
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
-import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
+import {TagTransactionsQuery} from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -94,7 +95,7 @@ const getPortal = memoize((): HTMLElement => {
   return portal;
 });
 
-function TagsHeatMap(
+export function TagsHeatMap(
   props: Props & {
     isLoading: boolean;
     tableData: TagTableData | null;
@@ -111,6 +112,7 @@ function TagsHeatMap(
     aggregateColumn,
   } = props;
 
+  const theme = useTheme();
   const {view} = useDomainViewFilters();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartElement, setChartElement] = useState<VirtualReference | undefined>();
@@ -199,10 +201,10 @@ function TagsHeatMap(
     },
 
     grid: {
-      left: space(3),
-      right: space(3),
+      left: theme.space['2xl'],
+      right: theme.space['2xl'],
       top: '25px', // Need to bump top spacing past space(3) so the chart title doesn't overlap.
-      bottom: space(4),
+      bottom: theme.space['3xl'],
     },
   };
 
@@ -306,7 +308,6 @@ function TagsHeatMap(
     }
   );
 
-  const theme = useTheme();
   const portaledContent =
     !chartElement || !overlayState.isOpen ? null : (
       <PositionWrapper
@@ -334,9 +335,9 @@ function TagsHeatMap(
               {({isLoading: isTransactionsLoading, tableData: transactionTableData}) => {
                 if (isTransactionsLoading) {
                   return (
-                    <LoadingContainer>
+                    <Flex justify="center" align="center" width="200px" height="100px">
                       <LoadingIndicator size={40} />
-                    </LoadingContainer>
+                    </Flex>
                   );
                 }
 
@@ -372,7 +373,7 @@ function TagsHeatMap(
 
                       return (
                         <DropdownItem width="small" key={row.id} to={target}>
-                          <DropdownItemContainer>
+                          <Flex justify="between" width="100%">
                             <Truncate value={row.id} maxLength={12} />
                             <SectionSubtext>
                               <PerformanceDuration
@@ -380,7 +381,7 @@ function TagsHeatMap(
                                 abbreviation
                               />
                             </SectionSubtext>
-                          </DropdownItemContainer>
+                          </Flex>
                         </DropdownItem>
                       );
                     })}
@@ -388,9 +389,9 @@ function TagsHeatMap(
                     transactionTableData &&
                     transactionTableData.data.length > 3 ? (
                       <DropdownItem width="small" to={moreEventsTarget}>
-                        <DropdownItemContainer>
+                        <Flex justify="between" width="100%">
                           {t('View all events')}
-                        </DropdownItemContainer>
+                        </Flex>
                       </DropdownItem>
                     ) : null}
                   </div>
@@ -440,25 +441,9 @@ function TagsHeatMap(
   );
 }
 
-const LoadingContainer = styled('div')`
-  width: 200px;
-  height: 100px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const DropdownItemContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-
-  justify-content: space-between;
-`;
-
 const StyledPanel = styled(Panel)`
-  padding: ${space(3)} ${space(3)} 0 ${space(3)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']} 0
+    ${p => p.theme.space['2xl']};
   margin-bottom: 0;
   border-bottom: 0;
   border-bottom-left-radius: 0;
@@ -468,22 +453,16 @@ const StyledPanel = styled(Panel)`
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)``;
 
 const SectionSubtext = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledMenuItem = styled(MenuItem)<{width: 'small' | 'large'}>`
   width: ${p => (p.width === 'large' ? '350px' : '200px')};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const MenuItemContent = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
 `;
 
 type DropdownItemProps = {
@@ -509,9 +488,9 @@ function DropdownItem({
       width={width}
       allowDefaultEvent={allowDefaultEvent}
     >
-      <MenuItemContent>{children}</MenuItemContent>
+      <Flex justify="between" width="100%">
+        {children}
+      </Flex>
     </StyledMenuItem>
   );
 }
-
-export default TagsHeatMap;

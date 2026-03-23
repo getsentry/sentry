@@ -1,16 +1,28 @@
 import logging
+from datetime import datetime, timedelta
 from unittest import mock
 from uuid import uuid4
 
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.issues.grouptype import (
+    PerformanceFileIOMainThreadGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
+from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group
 from sentry.search.events.types import SnubaParams
-from sentry.testutils.cases import UptimeResultEAPTestCase
+from sentry.snuba.trace import _run_errors_query_eap
+from sentry.testutils.cases import OccurrenceTestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -18,7 +30,9 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
 
 logger = logging.getLogger(__name__)
 
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue as ProtoAttributeValue
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeValue as ProtoAttributeValue,
+)
 
 from sentry.snuba.trace import _serialize_columnar_uptime_item
 from sentry.testutils.cases import TestCase
@@ -179,7 +193,6 @@ class OrganizationEventsTraceEndpointTest(
     OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase
 ):
     url_name = "sentry-api-0-organization-trace"
-    FEATURES = ["organizations:trace-spans-format"]
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
@@ -262,16 +275,35 @@ class OrganizationEventsTraceEndpointTest(
             kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
         )
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                url,
-                format="json",
-            )
+        response = self.client.get(
+            url,
+            format="json",
+        )
 
         assert response.status_code == 404, response.content
 
     def test_simple(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+
+    @override_options(
+        {
+            "performance.traces.pagination.max-iterations": 30,
+            "performance.traces.pagination.max-timeout": 15,
+            "performance.traces.pagination.query-limit": 1,
+        }
+    )
+    def test_pagination(self) -> None:
+        """Test is identical to test_simple, but with the limit override, we'll need to make multiple requests to get
+        all of the trace"""
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={"timestamp": self.day_ago},
@@ -282,7 +314,7 @@ class OrganizationEventsTraceEndpointTest(
         self.assert_trace_data(data[0])
 
     def test_ignore_project_param(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             # The trace endpoint should ignore the project param
             response = self.client_get(
@@ -294,7 +326,7 @@ class OrganizationEventsTraceEndpointTest(
         self.assert_trace_data(data[0])
 
     def test_with_errors_data(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
             "javascript",
@@ -325,8 +357,34 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event["issue_id"] == error.group_id
         assert error_event["start_timestamp"] == error_data["timestamp"]
 
+    def test_with_missing_group(self) -> None:
+        self.load_trace()
+        _, start = self.get_start_end_from_day_ago(123)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.root_event.data["contexts"]["trace"]["span_id"],
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        self.store_event(error_data, project_id=self.gen1_project.id)
+
+        with self.feature(self.FEATURES):
+            with mock.patch("sentry.snuba.trace.Group.objects.get", side_effect=Group.DoesNotExist):
+                response = self.client_get(
+                    data={"timestamp": self.day_ago},
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+        assert len(data[0]["errors"]) == 0
+
     def test_with_errors_data_with_overlapping_span_id(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
             "javascript",
@@ -357,7 +415,7 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event_1["event_id"] != error_event_2["event_id"]
 
     def test_with_performance_issues(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={"timestamp": self.day_ago},
@@ -401,7 +459,7 @@ class OrganizationEventsTraceEndpointTest(
         assert data[0]["event_id"] == error.event_id
 
     def test_with_additional_attributes(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={
@@ -467,7 +525,7 @@ class OrganizationEventsTraceEndpointTest(
         assert response.status_code == 400, response.content
 
     def test_orphan_trace(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         orphan_event = self.create_event(
             trace_id=self.trace_id,
             transaction="/transaction/orphan",
@@ -476,7 +534,6 @@ class OrganizationEventsTraceEndpointTest(
             # Random span id so there's no parent
             parent_span_id=uuid4().hex[:16],
             milliseconds=500,
-            is_eap=True,
         )
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -532,9 +589,9 @@ class OrganizationEventsTraceEndpointTest(
             expected = self._trace_item_to_api_span(expected_item)
             actual_without_children = {k: v for k, v in actual.items() if k != "children"}
             expected_without_children = {k: v for k, v in expected.items() if k != "children"}
-            assert (
-                actual_without_children == expected_without_children
-            ), f"Span {i} differs (excluding children)"
+            assert actual_without_children == expected_without_children, (
+                f"Span {i} differs (excluding children)"
+            )
 
         if expected_children_ids:
             final_span = max(
@@ -542,15 +599,15 @@ class OrganizationEventsTraceEndpointTest(
                 key=lambda s: s.get("additional_attributes", {}).get("request_sequence", -1),
             )
             actual_children = final_span.get("children", [])
-            assert len(actual_children) == len(
-                expected_children_ids
-            ), f"Expected {len(expected_children_ids)} children, got {len(actual_children)}"
+            assert len(actual_children) == len(expected_children_ids), (
+                f"Expected {len(expected_children_ids)} children, got {len(actual_children)}"
+            )
 
             actual_child_txns = {child.get("transaction") for child in actual_children}
             for expected_id in expected_children_ids:
-                assert (
-                    expected_id in actual_child_txns
-                ), f"Expected '{expected_id}' transaction in children"
+                assert expected_id in actual_child_txns, (
+                    f"Expected '{expected_id}' transaction in children"
+                )
 
     def _trace_item_to_api_span(self, trace_item: TraceItem, children=None) -> dict:
         """Convert a TraceItem to the exact format returned by the API."""
@@ -584,7 +641,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_with_uptime_results(self):
         """Test that uptime results are included when include_uptime=1"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
         features = self.FEATURES
         redirect_result = self._create_uptime_result_with_original_url(
@@ -615,7 +672,7 @@ class OrganizationEventsTraceEndpointTest(
             check_duration_us=500000,
         )
 
-        self.store_uptime_results([redirect_result, final_result])
+        self.store_eap_items([redirect_result, final_result])
 
         with self.feature(features):
             response = self.client_get(
@@ -631,7 +688,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_without_uptime_results(self):
         """Test that uptime results are not queried when include_uptime is not set"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
         uptime_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
             project=self.project,
@@ -645,7 +702,7 @@ class OrganizationEventsTraceEndpointTest(
             scheduled_check_time=self.day_ago,
         )
 
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])
 
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -662,7 +719,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_uptime_root_tree_with_orphaned_spans(self):
         """Test that orphaned spans are parented to the final uptime request"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
         self.create_event(
             trace_id=self.trace_id,
@@ -671,7 +728,6 @@ class OrganizationEventsTraceEndpointTest(
             project_id=self.project.id,
             parent_span_id=uuid4().hex[:16],
             milliseconds=500,
-            is_eap=True,
         )
         redirect_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
@@ -700,7 +756,7 @@ class OrganizationEventsTraceEndpointTest(
 
         features = self.FEATURES
 
-        self.store_uptime_results([redirect_result, final_result])
+        self.store_eap_items([redirect_result, final_result])
 
         with self.feature(features):
             response = self.client_get(
@@ -718,7 +774,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_uptime_root_tree_without_orphans(self):
         """Test uptime results when there are no orphaned spans"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
         uptime_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
@@ -735,7 +791,7 @@ class OrganizationEventsTraceEndpointTest(
 
         features = self.FEATURES
 
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])
 
         with self.feature(features):
             response = self.client_get(
@@ -746,3 +802,239 @@ class OrganizationEventsTraceEndpointTest(
         data = response.data
 
         self.assert_expected_results(data, [uptime_result], expected_children_ids=["root"])
+
+    def test_uptime_occurrences(self):
+        """Test that uptime occurrences are included in the response"""
+        self.load_trace()
+
+        check_id = "check-occur-1"
+        uptime_result = self._create_uptime_result_with_original_url(
+            organization=self.organization,
+            project=self.project,
+            trace_id=self.trace_id,
+            guid=check_id,
+            check_id=check_id,
+            subscription_id="sub-occur-1",
+            check_status="failure",
+            http_status_code=500,
+            request_sequence=0,
+            request_url="https://test.com",
+            scheduled_check_time=self.day_ago,
+            check_duration_us=200000,
+        )
+        self.store_eap_items([uptime_result])
+
+        occurrence = IssueOccurrence(
+            id=uuid4().hex,
+            resource_id=None,
+            project_id=self.project.id,
+            event_id=self.root_event.event_id,
+            fingerprint=[uuid4().hex],
+            type=UptimeDomainCheckFailure,
+            issue_title="Downtime detected for https://test.com",
+            subtitle="Your monitored domain is down",
+            evidence_display=[],
+            evidence_data={"check_id": check_id},
+            culprit="",
+            detection_time=timezone.now(),
+            level="error",
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), self.root_event)
+        assert group_info is not None
+
+        with self.feature(self.FEATURES):
+            response = self.client_get(data={"timestamp": self.day_ago, "include_uptime": "1"})
+
+        assert response.status_code == 200, response.content
+        data = response.data
+
+        uptime_checks = self._find_uptime_checks(data)
+        assert len(uptime_checks) == 1
+
+        occurrences = uptime_checks[0]["occurrences"]
+        assert len(occurrences) == 1
+        occurrence = occurrences[0]
+        assert occurrence["transaction"] == "uptime.check"
+        assert occurrence["level"] == "error"
+
+    def _count_occurrences_by_type(self, data: list[dict]) -> tuple[int, dict[int, int]]:
+        """Count occurrences from trace children, grouped by issue type."""
+        counts: dict[int, int] = {}
+        for child in data[0].get("children", []):
+            for o in child.get("occurrences", []):
+                issue_type = o.get("issue_type")
+                counts[issue_type] = counts.get(issue_type, 0) + 1
+        return sum(counts.values()), counts
+
+    def test_trace_filters_unreleased_issue_types(self) -> None:
+        """Test that unreleased issue types are filtered from trace results"""
+        self.load_trace()  # load_trace() creates both FileIO and SlowDB issues
+
+        file_io_visible_flag = PerformanceFileIOMainThreadGroupType.build_visible_feature_name()[0]
+        file_io_type = PerformanceFileIOMainThreadGroupType.type_id
+        slow_db_type = PerformanceSlowDBQueryGroupType.type_id
+
+        # Mock FileIO as unreleased
+        with mock.patch.object(PerformanceFileIOMainThreadGroupType, "released", False):
+            # Without feature flag - FileIO should be filtered out
+            with self.feature({**{f: True for f in self.FEATURES}, file_io_visible_flag: False}):
+                response = self.client_get(data={"timestamp": self.day_ago})
+
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 1
+            total, counts = self._count_occurrences_by_type(response.data)
+            assert total == 1
+            assert counts.get(file_io_type, 0) == 0
+            assert counts.get(slow_db_type, 0) == 1
+
+            # With feature flag - FileIO should appear
+            with self.feature({**{f: True for f in self.FEATURES}, file_io_visible_flag: True}):
+                response = self.client_get(data={"timestamp": self.day_ago})
+
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 1
+            total, counts = self._count_occurrences_by_type(response.data)
+            assert total == 2
+            assert counts.get(file_io_type, 0) == 1
+            assert counts.get(slow_db_type, 0) == 1
+
+
+class TestTracingErrorsQueryEAP(TestCase, SnubaTestCase, OccurrenceTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        now = datetime.now()
+        self.start = now - timedelta(hours=1)
+        self.end = now + timedelta(hours=1)
+        self.trace_id = uuid4().hex
+
+    def test_transforms_eap_results_to_legacy_format(self) -> None:
+        group = self.create_group(project=self.project)
+        event_id = uuid4().hex
+
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id,
+                    title="test error",
+                    level="error",
+                    transaction="/api/test",
+                ),
+            ]
+        )
+
+        snuba_params = SnubaParams(
+            start=self.start,
+            end=self.end,
+            organization=self.organization,
+            projects=[self.project],
+        )
+
+        results = _run_errors_query_eap(
+            snuba_params=snuba_params,
+            trace_id=self.trace_id,
+            referrer="test.trace.errors_eap",
+        )
+
+        assert len(results) == 1
+        row = results[0]
+        # Verify legacy field names are present
+        assert row["id"] == event_id
+        assert row["project.id"] is not None
+        assert row["project.name"] is not None
+        assert row["timestamp"] is not None
+        assert row["timestamp_ms"] is not None
+        assert "trace.span" in row
+        assert row["transaction"] == "/api/test"
+        assert row["issue"] == group.id
+        assert row["issue.id"] == group.id
+        assert row["title"] == "test error"
+        assert "message" in row
+        assert row["tags[level]"] == "error"
+        assert row["event_type"] == "error"
+
+    def test_excludes_issue_platform_occurrences(self) -> None:
+        group_error = self.create_group(project=self.project)
+        group_perf = self.create_group(project=self.project)
+
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=group_error.id,
+                    trace_id=self.trace_id,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group_error.id,
+                    trace_id=self.trace_id,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group_error.id,
+                    trace_id=uuid4().hex,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group_perf.id,
+                    trace_id=self.trace_id,
+                    issue_occurrence_id=uuid4().hex,
+                ),
+            ]
+        )
+
+        snuba_params = SnubaParams(
+            start=self.start,
+            end=self.end,
+            organization=self.organization,
+            projects=[self.project],
+        )
+
+        results = _run_errors_query_eap(
+            snuba_params=snuba_params,
+            trace_id=self.trace_id,
+            referrer="test.trace.errors_eap",
+        )
+
+        assert len(results) == 2
+        assert results[0]["issue"] == group_error.id
+
+    def test_error_id_bias(self) -> None:
+        group = self.create_group(project=self.project)
+        event_id_1 = uuid4().hex
+        event_id_2 = uuid4().hex
+        event_id_3 = uuid4().hex
+
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id_1,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id_2,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id_3,
+                ),
+            ]
+        )
+
+        snuba_params = SnubaParams(
+            start=self.start,
+            end=self.end,
+            organization=self.organization,
+            projects=[self.project],
+        )
+
+        results = _run_errors_query_eap(
+            snuba_params=snuba_params,
+            trace_id=self.trace_id,
+            referrer="test.trace.errors_eap",
+            error_id=event_id_3,
+        )
+
+        assert len(results) == 3
+        assert results[0]["id"] == event_id_3

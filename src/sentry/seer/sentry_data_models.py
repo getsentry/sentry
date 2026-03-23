@@ -30,6 +30,11 @@ class TraceData(BaseModel):
     spans: list[Span]
 
 
+class TraceMetadata(BaseModel):
+    trace_id: str
+    transaction_name: str
+
+
 class EAPTrace(BaseModel):
     """
     Based on the Seer model. `trace` can contain both span and error events (see `SerializedEvent`).
@@ -58,7 +63,6 @@ class ExecutionTreeNode(BaseModel):
 
 class ProfileData(BaseModel):
     profile_id: str
-    span_id: str
     transaction_name: str | None
     execution_tree: list[ExecutionTreeNode]
     project_id: int
@@ -76,11 +80,15 @@ class TraceProfiles(BaseModel):
 class IssueDetails(BaseModel):
     id: int
     title: str
+    short_id: str | None = None
     culprit: str | None
     transaction: str | None
     events: list[dict[str, Any]]
     metadata: dict[str, Any] = {}
     message: str = ""
+    project: int | None = None
+    filename: str | None = None
+    function: str | None = None
 
 
 class TransactionIssues(BaseModel):

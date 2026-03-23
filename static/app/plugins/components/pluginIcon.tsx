@@ -4,6 +4,7 @@ import aws from 'sentry-logos/logo-aws.svg';
 import vsts from 'sentry-logos/logo-azure.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
 import bitbucket from 'sentry-logos/logo-bitbucket.svg';
+import claude_code from 'sentry-logos/logo-claude.svg';
 import cursor from 'sentry-logos/logo-cursor.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
 import discord from 'sentry-logos/logo-discord.svg';
@@ -17,12 +18,14 @@ import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-logos/logo-pagerduty.svg';
+import perforce from 'sentry-logos/logo-perforce.svg';
 import pivotal from 'sentry-logos/logo-pivotaltracker.svg';
 import pushover from 'sentry-logos/logo-pushover.svg';
 import redmine from 'sentry-logos/logo-redmine.svg';
 import segment from 'sentry-logos/logo-segment.svg';
 import sentry from 'sentry-logos/logo-sentry.svg';
 import slack from 'sentry-logos/logo-slack.svg';
+import splunk from 'sentry-logos/logo-splunk.svg';
 import trello from 'sentry-logos/logo-trello.svg';
 import twilio from 'sentry-logos/logo-twilio.svg';
 import vercel from 'sentry-logos/logo-vercel.svg';
@@ -39,8 +42,10 @@ const PLUGIN_ICONS = {
   os: sentry,
   urls: sentry,
   webhooks: sentry,
+  sqs: aws,
   'amazon-sqs': aws,
   aws_lambda: aws,
+  claude_code,
   cursor,
   asana,
   bitbucket,
@@ -48,6 +53,7 @@ const PLUGIN_ICONS = {
   bitbucket_server: bitbucketserver,
   discord,
   github,
+  github_copilot: github,
   github_enterprise: githubEnterprise,
   gitlab,
   heroku,
@@ -57,11 +63,13 @@ const PLUGIN_ICONS = {
   msteams,
   opsgenie,
   pagerduty,
+  perforce,
   pivotal,
   pushover,
   redmine,
   segment,
   slack,
+  splunk,
   trello,
   twilio,
   visualstudio,
@@ -93,7 +101,7 @@ const StyledPluginIconContainer = styled('div')<{
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   min-width: ${p => p.size}px;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.colors.white};
   border-radius: 2px;
   display: flex;
   align-items: center;

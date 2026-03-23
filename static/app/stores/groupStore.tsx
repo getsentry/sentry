@@ -2,12 +2,12 @@ import {createStore} from 'reflux';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import IndicatorStore from 'sentry/stores/indicatorStore';
+import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types/group';
-import toArray from 'sentry/utils/array/toArray';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {toArray} from 'sentry/utils/array/toArray';
+import {parseApiError} from 'sentry/utils/parseApiError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-import SelectedGroupStore from './selectedGroupStore';
 import type {StrictStoreDefinition} from './types';
 
 function showAlert(msg: string, type: Indicator['type']) {
@@ -146,22 +146,21 @@ const storeConfig: GroupStoreDefinition = {
     const idSet = new Set(itemIds);
     this.state = mergePendingChanges(this.items, this.pendingChanges);
     this.trigger(idSet);
-    SelectedGroupStore.onGroupChange(idSet);
   },
 
   mergeItems(items: Item[]) {
-    const itemsById = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+    const itemsById = items.reduce<Record<string, Item>>((acc, item) => {
+      acc[item.id] = item;
+      return acc;
+    }, {});
 
     // Merge these items into the store and return a mapping of any that aren't already in the store
     this.items.forEach((item, itemIndex) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (itemsById[item.id]) {
         this.items[itemIndex] = {
           ...item,
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           ...itemsById[item.id],
         };
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         delete itemsById[item.id];
       }
     });
@@ -188,9 +187,11 @@ const storeConfig: GroupStoreDefinition = {
    */
   addToFront(items) {
     items = toArray(items);
-    const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+    const itemMap = items.reduce<Record<string, Item>>((acc, item) => {
+      acc[item.id] = item;
+      return acc;
+    }, {});
 
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
 
     this.updateItems(items.map(item => item.id));
@@ -323,8 +324,13 @@ const storeConfig: GroupStoreDefinition = {
   // TODO(dcramer): This is not really the best place for this
   onAssignToError(_changeId, itemId, error) {
     this.clearStatus(itemId, 'assignTo');
-    if (error.responseJSON?.detail === 'Cannot assign to non-team member') {
-      showAlert(t('Cannot assign to non-team member'), 'error');
+    const assignedToError = error.responseJSON?.assignedTo;
+    if (Array.isArray(assignedToError) && assignedToError.length > 0) {
+      showAlert(assignedToError[0], 'error');
+    } else if (typeof assignedToError === 'string') {
+      showAlert(assignedToError, 'error');
+    } else if (error.responseJSON?.detail) {
+      showAlert(parseApiError(error), 'error');
     } else {
       showAlert(t('Unable to change assignee. Please try again.'), 'error');
     }
@@ -430,9 +436,7 @@ const storeConfig: GroupStoreDefinition = {
     // Looks like the `PUT /api/0/projects/:orgId/:projectId/issues/` endpoint
     // actually returns a 204, so there is no `response` body
     this.items = this.items.filter(
-      item =>
-        !mergedIdSet.has(item.id) ||
-        (response?.merge && item.id === response.merge.parent)
+      item => !mergedIdSet.has(item.id) || item.id === response?.merge?.parent
     );
 
     if (ids.length > 0) {
@@ -484,10 +488,10 @@ const storeConfig: GroupStoreDefinition = {
 
   onPopulateStats(itemIds, response) {
     // Organize stats by id
-    const groupStatsMap = response.reduce<Record<string, GroupStats>>(
-      (map, stats) => ({...map, [stats.id]: stats}),
-      {}
-    );
+    const groupStatsMap = response.reduce<Record<string, GroupStats>>((map, stats) => {
+      map[stats.id] = stats;
+      return map;
+    }, {});
 
     this.items.forEach((item, idx) => {
       if (itemIds?.includes(item.id)) {
@@ -501,5 +505,4 @@ const storeConfig: GroupStoreDefinition = {
   },
 };
 
-const GroupStore = createStore(storeConfig);
-export default GroupStore;
+export const GroupStore = createStore(storeConfig);

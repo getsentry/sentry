@@ -20,7 +20,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -36,7 +36,6 @@ from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
 )
-from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
 from sentry.types.actor import Actor
 from sentry.utils import metrics
@@ -140,20 +139,8 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                 for sub_id in subscription_ids
             )
 
-    @classmethod
-    def delete_data_in_seer(cls, instance: AlertRule, **kwargs: Any) -> None:
-        if instance.detection_type == AlertRuleDetectionType.DYNAMIC:
-            success = delete_rule_in_seer(alert_rule=instance)
-            if not success:
-                logger.error(
-                    "Call to delete rule data in Seer failed",
-                    extra={
-                        "rule_id": instance.id,
-                    },
-                )
 
-
-@region_silo_model
+@cell_silo_model
 class AlertRuleProjects(Model):
     """
     Specify a project for the AlertRule
@@ -185,7 +172,7 @@ class ComparisonDeltaChoices(models.IntegerChoices):
     ONE_MONTH = (2592000, "1 month ago")
 
 
-@region_silo_model
+@cell_silo_model
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -302,7 +289,7 @@ class AlertRuleThresholdType(Enum):
     ABOVE_AND_BELOW = 2
 
 
-@region_silo_model
+@cell_silo_model
 class AlertRuleTrigger(Model):
     """
     This model represents the *threshold* trigger for an AlertRule
@@ -406,7 +393,7 @@ class _FactoryRegistry:
         self.by_slug[factory.slug] = factory
 
 
-@region_silo_model
+@cell_silo_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
     This model represents an action that occurs when a trigger (over/under) is fired. This is
@@ -602,7 +589,7 @@ class AlertRuleActivityType(Enum):
     DEACTIVATED = 8
 
 
-@region_silo_model
+@cell_silo_model
 class AlertRuleActivity(Model):
     """
     Provides an audit log of activity for the alert rule
@@ -624,7 +611,6 @@ class AlertRuleActivity(Model):
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
-post_delete.connect(AlertRuleManager.delete_data_in_seer, sender=AlertRule)
 post_save.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_save.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
 post_delete.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)

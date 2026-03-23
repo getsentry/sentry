@@ -48,6 +48,14 @@ def generate_security_email(
     elif type == "org-auth-token-created":
         template = "sentry/emails/org-auth-token-created.txt"
         html_template = "sentry/emails/org-auth-token-created.html"
+    elif type == "user.removed":
+        subject = "Your Sentry account has been deleted"
+        template = "sentry/emails/user-deleted.txt"
+        html_template = "sentry/emails/user-deleted.html"
+    elif type == "user.deactivated":
+        subject = "Your Sentry account has been deactivated"
+        template = "sentry/emails/user-deactivated.txt"
+        html_template = "sentry/emails/user-deactivated.html"
     else:
         raise ValueError(f"unknown type: {type}")
 

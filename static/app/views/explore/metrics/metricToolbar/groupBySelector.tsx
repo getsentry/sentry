@@ -1,8 +1,11 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
@@ -46,6 +49,13 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
       enabled: Boolean(traceMetricFilter),
       query: traceMetricFilter,
     });
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} =
+    useTraceItemAttributeKeys({
+      traceItemType: TraceItemDataset.TRACEMETRICS,
+      type: 'boolean',
+      enabled: Boolean(traceMetricFilter),
+      query: traceMetricFilter,
+    });
 
   const visibleNumberTags = useMemo(() => {
     return Object.fromEntries(
@@ -63,30 +73,58 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
     );
   }, [stringTags]);
 
-  const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
+  const visibleBooleanTags = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(booleanTags ?? {}).filter(
+        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+      )
+    );
+  }, [booleanTags]);
+
+  const enabledOptions = useGroupByFields({
     groupBys,
     numberTags: visibleNumberTags ?? {},
     stringTags: visibleStringTags ?? {},
+    booleanTags: visibleBooleanTags ?? {},
     traceItemType: TraceItemDataset.TRACEMETRICS,
     hideEmptyOption: true,
   });
 
-  const isLoading = numberTagsLoading || stringTagsLoading;
+  const isLoading = numberTagsLoading || stringTagsLoading || booleanTagsLoading;
+
+  const handleChange = useCallback(
+    (selectedOptions: Array<SelectOption<string>>) => {
+      const newGroupBys = selectedOptions.map(option => option.value);
+      // Check if any new items were added (not present in the old groupBys)
+      const hasNewItems = newGroupBys.some(value => !groupBys.includes(value));
+      // Automatically switch to aggregates mode when a group by is inserted/updated
+      if (hasNewItems) {
+        setGroupBys(newGroupBys, Mode.AGGREGATE);
+      } else {
+        setGroupBys(newGroupBys);
+      }
+    },
+    [groupBys, setGroupBys]
+  );
 
   return (
-    <CompactSelect<string>
+    <CompactSelect
       multiple
-      searchable
-      triggerProps={{
-        prefix: t('Group by'),
-      }}
+      search
+      clearable
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={t('Group by')}
+          style={{width: '100%'}}
+        />
+      )}
       options={enabledOptions}
       value={[...groupBys]}
       loading={isLoading}
       disabled={enabledOptions.length === 0}
-      onChange={selectedOptions => {
-        setGroupBys(selectedOptions.map(option => option.value));
-      }}
+      onChange={handleChange}
+      style={{width: '100%'}}
     />
   );
 }

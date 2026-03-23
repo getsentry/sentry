@@ -7,9 +7,9 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, region_silo_model
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.replica import control_replica_service
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
@@ -18,8 +18,8 @@ from sentry.notifications.services import notifications_service
 logger = logging.getLogger(__name__)
 
 
-@region_silo_model
-class ExternalActor(ReplicatedRegionModel):
+@cell_silo_model
+class ExternalActor(ReplicatedCellModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     category = OutboxCategory.EXTERNAL_ACTOR_UPDATE
@@ -41,6 +41,7 @@ class ExternalActor(ReplicatedRegionModel):
             (ExternalProviders.GITHUB_ENTERPRISE, IntegrationProviderSlug.GITHUB_ENTERPRISE.value),
             (ExternalProviders.GITLAB, IntegrationProviderSlug.GITLAB.value),
             (ExternalProviders.JIRA_SERVER, IntegrationProviderSlug.JIRA_SERVER.value),
+            (ExternalProviders.PERFORCE, IntegrationProviderSlug.PERFORCE.value),
             # TODO: do migration to delete this from database
             (ExternalProviders.CUSTOM, "custom_scm"),
         ),

@@ -11,7 +11,7 @@ import {
   getFormattedDate,
 } from 'sentry/utils/dates';
 
-import TimeRangeItemLabel from './timeRangeItemLabel';
+import {TimeRangeItemLabel} from './timeRangeItemLabel';
 import type {TimeRangeItem} from './types';
 
 type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
@@ -90,7 +90,8 @@ const parseStatsPeriodString = (statsPeriodString: string) => {
  */
 export function parseStatsPeriod(
   statsPeriod: string,
-  outputFormat: string | null = DATE_TIME_FORMAT
+  outputFormat: string | null = DATE_TIME_FORMAT,
+  utc = false
 ): {end: string; start: string} {
   const {value, unit} = parseStatsPeriodString(statsPeriod);
 
@@ -98,9 +99,11 @@ export function parseStatsPeriod(
 
   const format = outputFormat === null ? undefined : outputFormat;
 
+  const momentFn = utc ? moment.utc : moment;
+
   return {
-    start: moment().subtract(value, momentUnit).format(format),
-    end: moment().format(format),
+    start: momentFn().subtract(value, momentUnit).format(format),
+    end: momentFn().format(format),
   };
 }
 
@@ -199,7 +202,7 @@ function filterItems(items: TimeRangeItem[], inputValue: string): TimeRangeItem[
   return items.filter(item =>
     (typeof item.textValue === 'string' && item.textValue.length > 0
       ? item.textValue
-      : `${item.value}`
+      : item.value
     )
       .toLowerCase()
       .includes(inputValue.toLowerCase())

@@ -2,8 +2,7 @@ import type {ReactNode} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
@@ -117,7 +116,7 @@ export function openOptimizeImagesModal(platform?: Platform) {
   const title =
     platform === 'android'
       ? t('Optimize Images (Android)')
-      : platform === 'ios'
+      : platform === 'apple'
         ? t('Optimize Images (iOS)')
         : t('Optimize Images');
 

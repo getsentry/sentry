@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
 from sentry.models.transaction_threshold import (
@@ -40,9 +40,9 @@ class ProjectTransactionThresholdSerializer(serializers.Serializer):
         return threshold
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

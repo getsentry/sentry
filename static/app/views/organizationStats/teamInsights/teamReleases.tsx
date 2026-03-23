@@ -4,23 +4,24 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 import moment from 'moment-timezone';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {BarChart} from 'sentry/components/charts/barChart';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import LoadingError from 'sentry/components/loadingError';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {LoadingError} from 'sentry/components/loadingError';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import toArray from 'sentry/utils/array/toArray';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {toArray} from 'sentry/utils/array/toArray';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -38,7 +39,7 @@ export type ProjectReleaseCount = {
   release_counts: Record<string, number>;
 };
 
-function TeamReleases({
+export function TeamReleases({
   organization,
   projects,
   teamSlug,
@@ -57,7 +58,9 @@ function TeamReleases({
     refetch: refetchPeriodReleases,
   } = useApiQuery<ProjectReleaseCount>(
     [
-      `/teams/${organization.slug}/${teamSlug}/release-count/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           ...normalizeDateTimeParams(datetime),
@@ -74,7 +77,9 @@ function TeamReleases({
     refetch: refetchWeekReleases,
   } = useApiQuery<ProjectReleaseCount>(
     [
-      `/teams/${organization.slug}/${teamSlug}/release-count/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           statsPeriod: '7d',
@@ -153,10 +158,10 @@ function TeamReleases({
     }
 
     return (
-      <SubText color={trend >= 0 ? 'successText' : 'errorText'}>
+      <Text variant={trend >= 0 ? 'success' : 'danger'}>
         {`${round(Math.abs(trend), 3)}`}
         <PaddedIconArrow direction={trend >= 0 ? 'up' : 'down'} size="xs" />
-      </SubText>
+      </Text>
     );
   }
 
@@ -199,7 +204,7 @@ function TeamReleases({
               data: seriesData,
               markLine: MarkLine({
                 silent: true,
-                lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+                lineStyle: {color: theme.colors.gray200, type: 'dashed', width: 1},
                 data: [{yAxis: totalPeriodAverage}],
                 label: {
                   show: false,
@@ -293,11 +298,9 @@ function TeamReleases({
   );
 }
 
-export default TeamReleases;
-
 const ChartWrapper = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
@@ -305,18 +308,18 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   box-shadow: unset;
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
   ${p =>
     p.isEmpty &&
     css`
       & > div:last-child {
-        padding: 48px ${space(2)};
+        padding: 48px ${p.theme.space.xl};
       }
     `}
 `;
@@ -333,9 +336,5 @@ const ScoreWrapper = styled('div')`
 `;
 
 const PaddedIconArrow = styled(IconArrow)`
-  margin: 0 ${space(0.5)};
-`;
-
-const SubText = styled('div')<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
+  margin: 0 ${p => p.theme.space.xs};
 `;

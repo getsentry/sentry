@@ -1,12 +1,12 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ConfirmDelete from 'sentry/components/confirmDelete';
-import {Button} from 'sentry/components/core/button';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Button} from '@sentry/scraps/button';
+
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {Rule} from './types';
 import {getRuleDescription} from './utils';
@@ -19,7 +19,7 @@ type Props = {
   ref?: React.Ref<HTMLUListElement>;
 };
 
-function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
+export function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
   return (
     <List ref={ref} isDisabled={disabled} data-test-id="advanced-data-scrubbing-rules">
       {rules.map(rule => {
@@ -35,9 +35,11 @@ function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
                 onClick={() => onEditRule(id)}
                 icon={<IconEdit />}
                 disabled={disabled}
-                title={
-                  disabled ? t('You do not have permission to edit rules') : undefined
-                }
+                tooltipProps={{
+                  title: disabled
+                    ? t('You do not have permission to edit rules')
+                    : undefined,
+                }}
               />
             )}
             {onDeleteRule && (
@@ -54,9 +56,11 @@ function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
                   size="sm"
                   icon={<IconDelete />}
                   disabled={disabled}
-                  title={
-                    disabled ? t('You do not have permission to delete rules') : undefined
-                  }
+                  tooltipProps={{
+                    title: disabled
+                      ? t('You do not have permission to delete rules')
+                      : undefined,
+                  }}
                 />
               </ConfirmDelete>
             )}
@@ -66,8 +70,6 @@ function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
     </List>
   );
 }
-
-export default Rules;
 
 const List = styled('ul')<{
   isDisabled?: boolean;
@@ -79,21 +81,18 @@ const List = styled('ul')<{
   ${p =>
     p.isDisabled &&
     css`
-      color: ${p.theme.gray200};
-      background: ${p.theme.backgroundSecondary};
+      color: ${p.theme.tokens.content.disabled};
+      background: ${p.theme.tokens.background.secondary};
     `}
 `;
 
 const ListItem = styled('li')`
   display: grid;
   grid-template-columns: auto max-content max-content;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   align-items: center;
-  padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   &:last-child {
     border-bottom: 0;
   }

@@ -2,17 +2,18 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import startCase from 'lodash/startCase';
 
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import Placeholder from 'sentry/components/placeholder';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 
 type Props = {
@@ -24,7 +25,7 @@ function formatData(rawData: UsageSeries | undefined, theme: Theme) {
     return [];
   }
 
-  const fallbackColor = theme.gray200;
+  const fallbackColor = theme.colors.gray200;
   const statOpsColors = theme.chart.getColorPalette(rawData.groups.length);
 
   const formattedData = rawData.groups.map((group, index) => {
@@ -48,7 +49,9 @@ export function ProjectFiltersChart({project}: Props) {
 
   const {data, isError, isPending, refetch} = useApiQuery<UsageSeries>(
     [
-      `/organizations/${organization.slug}/stats_v2/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: project.id,
@@ -91,12 +94,9 @@ export function ProjectFiltersChart({project}: Props) {
           />
         )}
         {hasLoaded && blankStats && (
-          <EmptyMessage
-            title={t('Nothing filtered in the last 30 days.')}
-            description={t(
-              'Issues filtered as a result of your settings below will be shown here.'
-            )}
-          />
+          <EmptyMessage title={t('Nothing filtered in the last 30 days.')}>
+            {t('Issues filtered as a result of your settings below will be shown here.')}
+          </EmptyMessage>
         )}
       </PanelBody>
     </Panel>

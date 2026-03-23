@@ -1,22 +1,23 @@
 import {useCallback} from 'react';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   HeadSortCell,
   useTableSort,
-} from 'sentry/views/insights/agents/components/headSortCell';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';

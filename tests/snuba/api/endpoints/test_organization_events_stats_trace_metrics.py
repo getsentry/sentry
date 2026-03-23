@@ -28,7 +28,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
             for metric_name in ["foo", "bar"]
             for i, metric_value in enumerate(metric_values)
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -56,7 +56,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
             for metric_name in ["foo", "bar"]
             for i, metric_value in enumerate(metric_values)
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -85,7 +85,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                     "test_metric", 1.0, "counter", timestamp=self.start + timedelta(hours=0)
                 )
             )
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         response = self.do_request(
             {
@@ -94,7 +94,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
-                "yAxis": "per_second(test_metric, counter)",
+                "yAxis": "per_second(value, test_metric, counter, -)",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -144,7 +144,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                     attributes={"key": "value2"},
                 )
             )
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -186,7 +186,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
             for metric_name in ["foo", "bar"]
             for i, metric_value in enumerate(metric_values)
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {

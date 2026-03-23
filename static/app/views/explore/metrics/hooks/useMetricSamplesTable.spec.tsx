@@ -2,12 +2,12 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('useMetricSamplesTable', () => {
   beforeEach(() => {
@@ -129,7 +129,7 @@ describe('useMetricSamplesTable', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: '',
+          query: 'metric.name:test.metric metric.type:counter',
           caseInsensitive: undefined,
           dataset: 'tracemetrics',
           disableAggregateExtrapolation: undefined,
@@ -150,8 +150,6 @@ describe('useMetricSamplesTable', () => {
           referrer: 'api.explore.metric-samples-table',
           sampling: SAMPLING_MODE.NORMAL,
           sort: '-timestamp',
-          metricName: 'test.metric',
-          metricType: 'counter',
         }),
       })
     );

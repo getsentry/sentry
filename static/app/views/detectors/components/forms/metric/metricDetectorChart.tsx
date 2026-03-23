@@ -1,36 +1,45 @@
 import {Fragment, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
+
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   MetricCondition,
   MetricDetectorConfig,
 } from 'sentry/types/workflowEngine/detectors';
+import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
+import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
+import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getBackendDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
 import type {IncidentPeriod} from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
+import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
+import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 
@@ -71,7 +80,7 @@ function ChartError() {
   return (
     <Flex justify="center" align="center" height={CHART_HEIGHT}>
       <ErrorPanel>
-        <IconWarning color="gray300" size="lg" />
+        <IconWarning variant="muted" size="lg" />
         <div>{t('Error loading chart data')}</div>
       </ErrorPanel>
     </Flex>
@@ -133,6 +142,11 @@ interface MetricDetectorChartProps {
    * Used in anomaly detection
    */
   thresholdType: AlertRuleThresholdType | undefined;
+  /**
+   * Detector ID - only available when editing an existing detector
+   */
+  detectorId?: string;
+  extrapolationMode?: ExtrapolationMode | undefined;
 }
 
 export function MetricDetectorChart({
@@ -149,14 +163,33 @@ export function MetricDetectorChart({
   comparisonDelta,
   sensitivity,
   thresholdType,
+  extrapolationMode,
+  detectorId,
 }: MetricDetectorChartProps) {
+  const theme = useTheme();
   const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
     useTimePeriodSelection({
       dataset: getBackendDataset(detectorDataset),
       interval,
     });
 
-  const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
+  const shouldAlterExtrapolationMode = useIsMigratedExtrapolation({
+    dataset: detectorDataset,
+    extrapolationMode,
+  });
+
+  const adjustedExtrapolationMode = shouldAlterExtrapolationMode
+    ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
+    : extrapolationMode;
+
+  const {
+    series,
+    comparisonSeries,
+    isLoading,
+    error,
+    unit,
+    outputType: serverOutputType,
+  } = useMetricDetectorSeries({
     detectorDataset,
     dataset,
     aggregate,
@@ -167,10 +200,12 @@ export function MetricDetectorChart({
     statsPeriod: selectedTimePeriod,
     comparisonDelta,
     eventTypes,
+    extrapolationMode: adjustedExtrapolationMode,
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
+      aggregate,
       conditions,
       detectionType,
       comparisonSeries,
@@ -212,33 +247,31 @@ export function MetricDetectorChart({
     markLineTooltip: anomalyMarklineTooltip,
   });
 
-  // Calculate y-axis bounds to ensure all thresholds are visible
-  const maxValue = useMemo(() => {
-    // Get max from series data
-    let seriesMax = 0;
-    if (series.length > 0) {
-      const allSeriesValues = series.flatMap(s =>
-        s.data
-          .map(point => point.value)
-          .filter(val => typeof val === 'number' && !isNaN(val))
-      );
-      seriesMax = allSeriesValues.length > 0 ? Math.max(...allSeriesValues) : 0;
-    }
+  const metricTimestamps = useMetricTimestamps(series);
 
-    // Combine with threshold max and round to nearest whole number
-    const combinedMax = thresholdMaxValue
-      ? Math.max(seriesMax, thresholdMaxValue)
-      : seriesMax;
+  const shouldFetchThresholds = Boolean(detectorId && isAnomalyDetection);
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: detectorId ?? '',
+    detectionType,
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
+    series: shouldFetchThresholds ? series : [],
+  });
 
-    const roundedMax = Math.round(combinedMax);
+  const filteredAnomalyThresholdSeries = useFilteredAnomalyThresholdSeries({
+    anomalyThresholdSeries: detectorId ? anomalyThresholdSeries : [],
+    isAnomalyDetection,
+    thresholdType,
+  });
 
-    // Add padding to the bounds
-    const padding = roundedMax * 0.1;
-    return roundedMax + padding;
-  }, [series, thresholdMaxValue]);
+  const {maxValue, minValue} = useDetectorChartAxisBounds({
+    series,
+    thresholdMaxValue,
+    aggregate,
+  });
 
   const additionalSeries = useMemo(() => {
-    const baseSeries = [...thresholdAdditionalSeries];
+    const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
 
     if (isAnomalyDetection && anomalyMarkerResult.incidentMarkerSeries) {
       // Line series not working well with the custom series type
@@ -249,23 +282,46 @@ export function MetricDetectorChart({
   }, [
     isAnomalyDetection,
     thresholdAdditionalSeries,
+    filteredAnomalyThresholdSeries,
     anomalyMarkerResult.incidentMarkerSeries,
   ]);
 
   const yAxes = useMemo(() => {
-    const {formatYAxisLabel} = getDetectorChartFormatters({
+    const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
       detectionType,
       aggregate,
+      unit,
+      serverOutputType,
     });
 
+    const isPercentage = outputType === 'percentage';
+    // Use calculated max/min values from data and thresholds for appropriate scaling
+    const yAxisMax = maxValue > 0 ? maxValue : undefined;
+    const yAxisMin = minValue;
+
+    // For percentages, use 2 decimal places (consistent with metric alerts)
+    const customFormatter = (value: number): string => {
+      if (isPercentage) {
+        return axisLabelFormatterUsingAggregateOutputType(
+          value,
+          outputType,
+          true,
+          undefined,
+          undefined,
+          2 // Fixed 2 decimal places for percentages
+        );
+      }
+      return formatYAxisLabel(value);
+    };
+
     const mainYAxis: YAXisComponentOption = {
-      max: maxValue > 0 ? maxValue : undefined,
-      min: 0,
+      max: yAxisMax,
+      min: yAxisMin,
       axisLabel: {
-        // Hide the maximum y-axis label to avoid showing arbitrary threshold values
-        showMaxLabel: false,
+        // Show max label for percentage but hide for other types to avoid arbitrary values
+        showMaxLabel: isPercentage,
         // Format the axis labels with units
-        formatter: formatYAxisLabel,
+        formatter: customFormatter,
       },
       // Disable the y-axis grid lines
       splitLine: {show: false},
@@ -281,19 +337,22 @@ export function MetricDetectorChart({
     return axes;
   }, [
     maxValue,
+    minValue,
     isAnomalyDetection,
     anomalyMarkerResult.incidentMarkerYAxis,
     detectionType,
     aggregate,
+    unit,
+    serverOutputType,
   ]);
 
   // Prepare grid with anomaly marker adjustments
   const grid = useMemo(() => {
     const baseGrid = {
-      left: space(0.25),
-      right: space(0.25),
-      top: space(1.5),
-      bottom: space(1),
+      left: theme.space['2xs'],
+      right: theme.space['2xs'],
+      top: theme.space.lg,
+      bottom: theme.space.md,
     };
 
     // Apply anomaly marker grid adjustments if available
@@ -305,7 +364,7 @@ export function MetricDetectorChart({
     }
 
     return baseGrid;
-  }, [isAnomalyDetection, anomalyMarkerResult.incidentMarkerGrid]);
+  }, [isAnomalyDetection, anomalyMarkerResult.incidentMarkerGrid, theme.space]);
 
   return (
     <ChartContainer>
@@ -327,8 +386,12 @@ export function MetricDetectorChart({
           xAxis={isAnomalyDetection ? anomalyMarkerResult.incidentMarkerXAxis : undefined}
           onChartReady={isAnomalyDetection ? anomalyMarkerResult.onChartReady : undefined}
           tooltip={{
-            valueFormatter: getDetectorChartFormatters({detectionType, aggregate})
-              .formatTooltipValue,
+            valueFormatter: getDetectorChartFormatters({
+              detectionType,
+              aggregate,
+              unit,
+              serverOutputType,
+            }).formatTooltipValue,
           }}
         />
       )}
@@ -358,10 +421,13 @@ export function MetricDetectorChart({
           options={timePeriodOptions}
           value={selectedTimePeriod}
           onChange={opt => setSelectedTimePeriod(opt.value)}
-          triggerProps={{
-            borderless: true,
-            prefix: t('Display'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              priority="transparent"
+              prefix={t('Display')}
+            />
+          )}
         />
       </ChartFooter>
     </ChartContainer>
@@ -370,7 +436,7 @@ export function MetricDetectorChart({
 
 const ChartContainer = styled('div')`
   max-width: 1440px;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const ChartFooter = styled('div')`
@@ -378,7 +444,7 @@ const ChartFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${p => `${p.theme.space.sm} 0 ${p.theme.space.sm} ${p.theme.space.lg}`};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AnomalyLoadingIndicator = styled(LoadingIndicator)`

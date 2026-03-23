@@ -1,0 +1,57 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "csp_url": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "default",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "csp",
+            "name": null,
+            "values": [
+              {
+                "contributes": true,
+                "hint": "a static salt",
+                "id": "salt",
+                "name": null,
+                "values": [
+                  "img-src"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because it's not a local script violation",
+                "id": "violation",
+                "name": "violation",
+                "values": []
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "uri",
+                "name": "URL",
+                "values": [
+                  "data:"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "directive and URL",
+      "hash": "4e6f2bce9d121aa89f4dc5e5da08afb5",
+      "hint": null,
+      "key": "csp_url",
+      "type": "component"
+    }
+  }
+}

@@ -5,20 +5,22 @@ import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import useDrawer from 'sentry/components/globalDrawer';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
 import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   replayBackendPlatforms,
   replayFrontendPlatforms,
@@ -27,17 +29,17 @@ import {
   replayOnboardingPlatforms,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useReplaysOnboardingDrawer() {
   const organization = useOrganization();
@@ -155,19 +157,23 @@ function SidebarContent() {
               onChange={opt =>
                 setCurrentProject(allProjects.find(p => p.id === opt.value))
               }
-              triggerProps={{
-                'aria-label': currentProject?.slug,
-                children: currentProject ? (
-                  <StyledIdBadge
-                    project={currentProject}
-                    avatarSize={16}
-                    hideOverflow
-                    disableLink
-                  />
-                ) : (
-                  t('Select a project')
-                ),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  aria-label={currentProject?.slug}
+                >
+                  {currentProject ? (
+                    <StyledIdBadge
+                      project={currentProject}
+                      avatarSize={16}
+                      hideOverflow
+                      disableLink
+                    />
+                  ) : (
+                    t('Select a project')
+                  )}
+                </OverlayTrigger.Button>
+              )}
               options={projectSelectOptions}
               position="bottom-end"
             />
@@ -274,7 +280,11 @@ function OnboardingContent({
                     platformSelect: (
                       <CompactSelect
                         size="xs"
-                        triggerProps={{children: jsFramework.label}}
+                        trigger={triggerProps => (
+                          <OverlayTrigger.Button {...triggerProps}>
+                            {jsFramework.label ?? triggerProps.children}
+                          </OverlayTrigger.Button>
+                        )}
                         value={jsFramework.value}
                         onChange={setJsFramework}
                         options={jsFrameworkSelectOptions}
@@ -407,7 +417,7 @@ function OnboardingContent({
 }
 
 const Header = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;
 
 const TopRightBackgroundImage = styled('img')`
@@ -422,18 +432,19 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: 100%;
-  gap: ${space(1)};
-  margin: 50px ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space.md};
+  margin: 50px ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']}
+    ${p => p.theme.space['3xl']};
 `;
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-size: ${p => p.theme.font.size.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -443,5 +454,5 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 const StyledRadioGroup = styled(RadioGroup)`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;

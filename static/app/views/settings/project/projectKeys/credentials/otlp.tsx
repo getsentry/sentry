@@ -1,10 +1,11 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 
 interface OtlpTabProps {
@@ -55,12 +56,12 @@ export function OtlpTab({
     <Fragment>
       <FieldGroup
         label={t('OTLP Endpoint')}
-        help={t('This is the base OTLP endpoint.')}
+        help={t('The base OTLP endpoint for your project.')}
         inline={false}
         flexibleControlStateSize
       >
         <TextCopyInput aria-label={t('OTLP Endpoint')}>
-          {`${integrationEndpoint}/otlp`}
+          {`${integrationEndpoint}otlp`}
         </TextCopyInput>
       </FieldGroup>
       {showOtlpLogs && (
@@ -137,10 +138,16 @@ export function OtlpTab({
         inline={false}
         flexibleControlStateSize
       >
-        <CodeBlock language="yaml" filename="config.yaml">
+        <UnsetHeightCodeBlock language="yaml" filename="config.yaml" isRounded>
           {buildCollectorConfig}
-        </CodeBlock>
+        </UnsetHeightCodeBlock>
       </FieldGroup>
     </Fragment>
   );
 }
+
+const UnsetHeightCodeBlock = styled(CodeBlock)`
+  pre {
+    height: unset;
+  }
+`;

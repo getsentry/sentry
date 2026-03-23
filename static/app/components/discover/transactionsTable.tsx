@@ -3,28 +3,27 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Alignments} from 'sentry/utils/discover/fields';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
-import CellAction from 'sentry/views/discover/table/cellAction';
+import {CellAction} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import type {TrendsDataEvents} from 'sentry/views/performance/trends/types';
@@ -52,7 +51,7 @@ type Props = {
   titles?: string[];
 };
 
-function TransactionsTable(props: Props) {
+export function TransactionsTable(props: Props) {
   const {
     eventView,
     titles,
@@ -79,7 +78,7 @@ function TransactionsTable(props: Props) {
 
     const headers = tableTitles.map((title, index) => {
       const column = columnOrder[index]!;
-      const align: Alignments = fieldAlignment(column.name, column.type, tableMeta);
+      const align = fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
@@ -269,12 +268,16 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
 }
 
 const HeadCellContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const BodyCellContainer = styled('div')`
-  padding: ${space(1)} ${space(2)};
-  ${p => p.theme.overflowEllipsis};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledIconQuestion = styled(QuestionTooltip)`
@@ -282,5 +285,3 @@ const StyledIconQuestion = styled(QuestionTooltip)`
   top: 1px;
   left: 4px;
 `;
-
-export default TransactionsTable;

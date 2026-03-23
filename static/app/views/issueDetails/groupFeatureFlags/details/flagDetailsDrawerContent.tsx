@@ -1,26 +1,27 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -37,7 +38,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
 
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
   const {
     data: flagLog,
@@ -78,7 +79,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
 
   if (!flagLog.data.length) {
     return (
-      <EmptyStateContainer>
+      <Stack align="center">
         <StyledEmptyStateWarning withIcon={false} small>
           {t('No audit logs were found for this feature flag.')}
         </StyledEmptyStateWarning>
@@ -91,7 +92,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
         >
           {t('See all flags')}
         </LinkButton>
-      </EmptyStateContainer>
+      </Stack>
     );
   }
 
@@ -220,19 +221,19 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
 const Table = styled('div')`
   display: grid;
   grid-template-columns: 0.4fr 0.7fr 0.3fr 0.5fr min-content;
-  column-gap: ${space(1)};
-  row-gap: ${space(0.5)};
-  margin: 0 -${space(1)};
+  column-gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.xs};
+  margin: 0 -${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    column-gap: ${space(2)};
+    column-gap: ${p => p.theme.space.xl};
   }
 `;
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Body = styled('div')`
@@ -242,17 +243,17 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.border};
-  margin: 0 ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  margin: 0 ${p => p.theme.space.md};
 `;
 
 const Row = styled(Body)`
   &:nth-child(even) {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
   }
   align-items: center;
   border-radius: 4px;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {
     visibility: hidden;
@@ -269,12 +270,6 @@ const LeftAlignedValue = styled('div')`
   text-align: left;
 `;
 
-const EmptyStateContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;

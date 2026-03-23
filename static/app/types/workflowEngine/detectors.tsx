@@ -9,9 +9,19 @@ import type {
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
+import type {
+  UptimeAssertion,
+  UptimeMonitorMode,
+} from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
+import type {
+  MetricType as PreprodMeasurement,
+  MeasurementType as PreprodThresholdType,
+} from 'sentry/views/settings/project/preprod/types';
+
+export type {PreprodMeasurement, PreprodThresholdType};
 
 /**
  * See SnubaQuerySerializer
@@ -27,6 +37,7 @@ export interface SnubaQuery {
    */
   timeWindow: number;
   environment?: string;
+  extrapolationMode?: ExtrapolationMode;
 }
 
 /**
@@ -57,6 +68,7 @@ export interface UptimeSubscriptionDataSource extends BaseDataSource {
    * See UptimeSubscriptionSerializer
    */
   queryObj: {
+    assertion: UptimeAssertion | null;
     body: string | null;
     headers: Array<[string, string]>;
     intervalSeconds: number;
@@ -78,23 +90,20 @@ export type DetectorType =
   | 'metric_issue'
   | 'monitor_check_in_failure'
   | 'uptime_domain_failure'
-  | 'issue_stream';
-
-interface BaseMetricDetectorConfig {
-  thresholdPeriod: number;
-}
+  | 'issue_stream'
+  | 'preprod_size_analysis';
 
 /**
  * Configuration for static/threshold-based detection
  */
-interface MetricDetectorConfigStatic extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigStatic {
   detectionType: 'static';
 }
 
 /**
  * Configuration for percentage-based change detection
  */
-interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigPercent {
   comparisonDelta: number;
   detectionType: 'percent';
 }
@@ -102,11 +111,8 @@ interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
 /**
  * Configuration for dynamic/anomaly detection
  */
-interface MetricDetectorConfigDynamic extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigDynamic {
   detectionType: 'dynamic';
-  seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
-  sensitivity?: AlertRuleSensitivity;
-  thresholdType?: AlertRuleThresholdType;
 }
 
 export type MetricDetectorConfig =
@@ -161,7 +167,33 @@ export interface ErrorDetector extends BaseDetector {
   readonly type: 'error';
 }
 
-export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
+export interface IssueStreamDetector extends BaseDetector {
+  // TODO: Add issue stream detector type fields
+  readonly type: 'issue_stream';
+}
+
+/**
+ * Configuration for preprod/mobile builds detection
+ */
+interface PreprodDetectorConfig {
+  measurement: PreprodMeasurement;
+  thresholdType: PreprodThresholdType;
+  query?: string;
+}
+
+export interface PreprodDetector extends BaseDetector {
+  readonly conditionGroup: MetricConditionGroup | null;
+  readonly config: PreprodDetectorConfig;
+  readonly type: 'preprod_size_analysis';
+}
+
+export type Detector =
+  | MetricDetector
+  | UptimeDetector
+  | CronDetector
+  | ErrorDetector
+  | IssueStreamDetector
+  | PreprodDetector;
 
 interface UpdateConditionGroupPayload {
   conditions: Array<Omit<MetricCondition, 'id'>>;
@@ -176,6 +208,7 @@ interface UpdateSnubaDataSourcePayload {
   query: string;
   queryType: number;
   timeWindow: number;
+  extrapolationMode?: string;
 }
 
 interface UpdateUptimeDataSourcePayload {
@@ -184,6 +217,9 @@ interface UpdateUptimeDataSourcePayload {
   timeoutMs: number;
   traceSampling: boolean;
   url: string;
+  assertion?: UptimeAssertion | null;
+  body?: string | null;
+  headers?: Array<[string, string]>;
 }
 
 export interface BaseDetectorUpdatePayload {
@@ -217,6 +253,16 @@ export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   type: 'monitor_check_in_failure';
 }
 
+export interface PreprodDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  conditionGroup: UpdateConditionGroupPayload;
+  config: {
+    measurement: PreprodMeasurement;
+    thresholdType: PreprodThresholdType;
+    query?: string;
+  };
+  type: 'preprod_size_analysis';
+}
+
 export interface MetricConditionGroup {
   conditions: MetricCondition[];
   id: string;
@@ -233,7 +279,7 @@ export interface MetricCondition {
 /**
  * See AnomalyDetectionHandler
  */
-interface AnomalyDetectionComparison {
+export interface AnomalyDetectionComparison {
   seasonality:
     | 'auto'
     | 'hourly'
@@ -243,8 +289,8 @@ interface AnomalyDetectionComparison {
     | 'hourly_weekly'
     | 'hourly_daily_weekly'
     | 'daily_weekly';
-  sensitivity: 'low' | 'medium' | 'high';
-  threshold_type: 0 | 1 | 2;
+  sensitivity: AlertRuleSensitivity;
+  thresholdType: AlertRuleThresholdType;
 }
 
 type MetricDataCondition = AnomalyDetectionComparison | number;

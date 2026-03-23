@@ -2,13 +2,16 @@ import {useRef} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import SplitPanel from 'sentry/components/splitPanel';
+import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import type {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
-import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
-import {SAMPLES_PANEL_MIN_WIDTH} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
+import {MetricInfoTabs} from 'sentry/views/explore/metrics/metricInfoTabs';
+import {
+  SAMPLES_PANEL_MIN_WIDTH,
+  WIDTH_WITH_TELEMETRY_ICONS_VISIBLE,
+} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {HideContentButton} from 'sentry/views/explore/metrics/metricPanel/hideContentButton';
 import {PanelPositionSelector} from 'sentry/views/explore/metrics/metricPanel/panelPositionSelector';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -16,12 +19,12 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 const MIN_LEFT_WIDTH = 400;
 
 // Defined by the size of the expected samples tab component
-const PADDING_SIZE = 16;
+const PADDING_SIZE = 20;
+const DIVIDER_WIDTH = 16;
 const MIN_RIGHT_WIDTH = SAMPLES_PANEL_MIN_WIDTH + PADDING_SIZE;
 
 export function SideBySideOrientation({
   timeseriesResult,
-  queryIndex,
   traceMetric,
   orientation,
   setOrientation,
@@ -32,7 +35,6 @@ export function SideBySideOrientation({
   infoContentHidden: boolean;
   isMetricOptionsEmpty: boolean;
   orientation: TableOrientation;
-  queryIndex: number;
   setInfoContentHidden: (hidden: boolean) => void;
   setOrientation: (orientation: TableOrientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
@@ -42,11 +44,11 @@ export function SideBySideOrientation({
   const {width} = useDimensions({elementRef: measureRef});
 
   const hasSize = width > 0;
-  // Default split is 65% of the available width, but not less than MIN_LEFT_WIDTH
-  // and at most the maximum size allowed for the left panel (i.e. width - MIN_RIGHT_WIDTH)
+  // Default split is 65% of the available width but not less than MIN_LEFT_WIDTH
+  // while also accommodating the desired right panel width to show all of the telemetry icons.
   const defaultSplit = Math.min(
     Math.max(width * 0.65, MIN_LEFT_WIDTH),
-    width - MIN_RIGHT_WIDTH
+    width - (WIDTH_WITH_TELEMETRY_ICONS_VISIBLE + PADDING_SIZE + DIVIDER_WIDTH)
   );
 
   const additionalActions = (
@@ -69,7 +71,6 @@ export function SideBySideOrientation({
       <div ref={measureRef}>
         <MetricsGraph
           timeseriesResult={timeseriesResult}
-          queryIndex={queryIndex}
           orientation={orientation}
           additionalActions={additionalActions}
           infoContentHidden={infoContentHidden}
@@ -88,7 +89,6 @@ export function SideBySideOrientation({
             content: (
               <MetricsGraph
                 timeseriesResult={timeseriesResult}
-                queryIndex={queryIndex}
                 orientation={orientation}
                 isMetricOptionsEmpty={isMetricOptionsEmpty}
               />

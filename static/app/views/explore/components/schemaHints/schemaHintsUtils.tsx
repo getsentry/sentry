@@ -34,7 +34,18 @@ const LOGS_HINT_KEYS = [
   OurLogKnownFieldKey.SERVER_ADDRESS,
 ];
 
+const CONVERSATIONS_HINT_KEYS = [
+  SpanFields.GEN_AI_CONVERSATION_ID,
+  SpanFields.GEN_AI_REQUEST_MODEL,
+  SpanFields.TRANSACTION,
+  SpanFields.RELEASE,
+];
+
 const SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS = [...new Set([...LOGS_HINT_KEYS])];
+
+const SCHEMA_HINTS_LIST_ORDER_KEYS_CONVERSATIONS = [
+  ...new Set([...CONVERSATIONS_HINT_KEYS]),
+];
 
 const SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE = [
   ...new Set([...FRONTEND_HINT_KEYS, ...MOBILE_HINT_KEYS, ...COMMON_HINT_KEYS]),
@@ -54,11 +65,15 @@ const SCHEMA_HINTS_HIDDEN_KEYS: string[] = [
 export enum SchemaHintsSources {
   EXPLORE = 'explore',
   LOGS = 'logs',
+  CONVERSATIONS = 'conversations',
 }
 
 export const getSchemaHintsListOrder = (source: SchemaHintsSources) => {
   if (source === SchemaHintsSources.LOGS) {
     return SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS;
+  }
+  if (source === SchemaHintsSources.CONVERSATIONS) {
+    return SCHEMA_HINTS_LIST_ORDER_KEYS_CONVERSATIONS;
   }
 
   return SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE;

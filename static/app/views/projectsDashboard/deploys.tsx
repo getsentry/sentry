@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import type {Deploy as DeployType} from 'sentry/types/release';
 
@@ -87,12 +87,16 @@ const DeployRows = styled('div')`
   display: grid;
   grid-template-columns: minmax(30px, 1fr) 1fr 1fr;
   grid-template-rows: auto;
-  gap: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
+  gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
 
 const DeployTime = styled('div')`
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis}
+  color: ${p => p.theme.tokens.content.secondary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

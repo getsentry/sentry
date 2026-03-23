@@ -12,9 +12,9 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
 from sentry.models.organization import Organization
@@ -28,6 +28,11 @@ MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = "sha1"
 SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
 API_PREFIX = "/api/0"
+# IMPORTANT: All values in CHUNK_UPLOAD_ACCEPT must be maintained for backwards compatibility
+# with Sentry CLI 2.x and older. Sentry CLI 3.x completely ignores the CHUNK_UPLOAD_ACCEPT
+# field (starting with 3.1.0), but older CLI versions still depend on these values being
+# present in the server's response. Removing any of these values would break functionality
+# for CLI 2.x and older.
 CHUNK_UPLOAD_ACCEPT = (
     "debug_files",  # DIF assemble
     "release_files",  # Release files assemble
@@ -80,7 +85,7 @@ class ChunkUploadPermission(OrganizationReleasePermission):
         return super().has_object_permission(request, view, organization)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -135,7 +140,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             else:
                 # We need to generate region specific upload URLs when possible to avoid hitting the API proxy
                 # which tends to cause timeouts and performance issues for uploads.
-                url = absolute_uri(relative_url, generate_region_url())
+                url = absolute_uri(relative_url, generate_locality_url())
         else:
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)

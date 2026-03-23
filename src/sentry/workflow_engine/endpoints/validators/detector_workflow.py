@@ -1,7 +1,7 @@
 from collections.abc import Sequence
-from typing import Literal
+from typing import Any, Literal
 
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.db.models import QuerySet
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -10,12 +10,14 @@ from rest_framework.request import Request
 from sentry import audit_log
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issue_detection.performance_detection import PERFORMANCE_WFE_DETECTOR_TYPES
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 # Only those with organization write permissions can edit system-created detectors (e.g. error detectors).
 SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write"}
@@ -23,7 +25,10 @@ USER_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write", "alerts:write"}
 
 
 def is_system_created_detector(detector: Detector) -> bool:
-    return detector.type in (ErrorGroupType.slug,)
+    return (
+        detector.type in (ErrorGroupType.slug, IssueStreamGroupType.slug)
+        or detector.type in PERFORMANCE_WFE_DETECTOR_TYPES
+    )
 
 
 def can_edit_system_created_detectors(request: Request, project: Project) -> bool:
@@ -69,12 +74,39 @@ def can_edit_detector(detector: Detector, request: Request) -> bool:
     return can_edit_user_created_detectors(request, detector.project)
 
 
+def can_delete_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
+    """
+    Determine if the requesting user has access to delete the given detectors.
+    Only user-created detectors can be deleted, and require "alerts:write" permission.
+    """
+    if any(is_system_created_detector(detector) for detector in detectors):
+        return False
+
+    projects = Project.objects.filter(
+        id__in=detectors.values_list("project_id", flat=True).distinct()
+    )
+    return all(can_edit_user_created_detectors(request, project) for project in projects)
+
+
+def can_delete_detector(detector: Detector, request: Request) -> bool:
+    """
+    Determine if the requesting user has access to delete the given detector.
+    Only user-created detectors can be deleted, and require "alerts:write" permission.
+    """
+    if is_system_created_detector(detector):
+        return False
+
+    return can_edit_user_created_detectors(request, detector.project)
+
+
 def can_edit_detector_workflow_connections(detector: Detector, request: Request) -> bool:
     """
     Anyone with alert write access to the project can connect/disconnect detectors of any type,
     which is slightly different from full edit access which differs by detector type.
     """
-    return can_edit_user_created_detectors(request, detector.project)
+    return request.access.has_any_project_scope(
+        detector.project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
+    )
 
 
 def validate_detectors_exist_and_have_permissions(
@@ -114,7 +146,7 @@ def perform_bulk_detector_workflow_operations(
     detector_workflows_to_remove: Sequence[DetectorWorkflow],
     request: Request,
     organization: Organization,
-):
+) -> list[DetectorWorkflow]:
     created_detector_workflows: list[DetectorWorkflow] = []
 
     with transaction.atomic(router.db_for_write(DetectorWorkflow)):
@@ -151,45 +183,10 @@ def perform_bulk_detector_workflow_operations(
             data=detector_workflow.get_audit_log_data(),
         )
 
-
-class DetectorWorkflowValidator(CamelSnakeSerializer):
-    detector_id = serializers.IntegerField(required=True)
-    workflow_id = serializers.IntegerField(required=True)
-
-    def create(self, validated_data):
-        with transaction.atomic(router.db_for_write(DetectorWorkflow)):
-            try:
-                detector = Detector.objects.get(
-                    project__organization=self.context["organization"],
-                    id=validated_data["detector_id"],
-                )
-                if not can_edit_detector_workflow_connections(detector, self.context["request"]):
-                    raise PermissionDenied
-                workflow = Workflow.objects.get(
-                    organization=self.context["organization"], id=validated_data["workflow_id"]
-                )
-            except (Detector.DoesNotExist, Workflow.DoesNotExist) as e:
-                raise serializers.ValidationError(str(e))
-
-            try:
-                detector_workflow = DetectorWorkflow.objects.create(
-                    detector=detector, workflow=workflow
-                )
-            except IntegrityError as e:
-                raise serializers.ValidationError(str(e))
-
-            create_audit_entry(
-                request=self.context["request"],
-                organization=self.context["organization"],
-                target_object=detector_workflow.id,
-                event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
-                data=detector_workflow.get_audit_log_data(),
-            )
-
-        return detector_workflow
+    return created_detector_workflows
 
 
-class BulkDetectorWorkflowsValidator(CamelSnakeSerializer):
+class BulkDetectorWorkflowsValidator(CamelSnakeSerializer[Any]):
     """
     Connect/disconnect multiple workflows to a single detector all at once.
     """
@@ -197,7 +194,7 @@ class BulkDetectorWorkflowsValidator(CamelSnakeSerializer):
     detector_id = serializers.IntegerField(required=True)
     workflow_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> list[DetectorWorkflow]:
         validate_workflows_exist(validated_data["workflow_ids"], self.context["organization"])
         validate_detectors_exist_and_have_permissions(
             [validated_data["detector_id"]], self.context["organization"], self.context["request"]
@@ -232,7 +229,7 @@ class BulkDetectorWorkflowsValidator(CamelSnakeSerializer):
         return list(DetectorWorkflow.objects.filter(detector_id=validated_data["detector_id"]))
 
 
-class BulkWorkflowDetectorsValidator(CamelSnakeSerializer):
+class BulkWorkflowDetectorsValidator(CamelSnakeSerializer[Any]):
     """
     Connect/disconnect multiple detectors to a single workflow all at once.
     """
@@ -240,7 +237,7 @@ class BulkWorkflowDetectorsValidator(CamelSnakeSerializer):
     workflow_id = serializers.IntegerField(required=True)
     detector_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> list[DetectorWorkflow]:
         validate_workflows_exist([validated_data["workflow_id"]], self.context["organization"])
         validate_detectors_exist_and_have_permissions(
             validated_data["detector_ids"], self.context["organization"], self.context["request"]

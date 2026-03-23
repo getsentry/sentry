@@ -3,23 +3,23 @@ import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
-import NotAvailable from 'sentry/components/notAvailable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {NotAvailable} from 'sentry/components/notAvailable';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ScoreCard} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   DataCategory,
   DataCategoryExact,
@@ -28,13 +28,15 @@ import type {
 } from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouter from 'sentry/utils/useRouter';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -45,13 +47,14 @@ import {
 import {mapSeriesToChart} from './mapSeriesToChart';
 import type {UsageSeries} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
-import UsageChart, {
+import {
   CHART_OPTIONS_DATA_TRANSFORM,
   ChartDataTransform,
   SeriesTypes,
+  UsageChart,
 } from './usageChart';
-import UsageStatsPerMin from './usageStatsPerMin';
-import {isContinuousProfiling, isDisplayUtc} from './utils';
+import {UsageStatsPerMin} from './usageStatsPerMin';
+import {isDisplayUtc} from './utils';
 
 type ChartData = {
   cardStats: {
@@ -110,12 +113,6 @@ export function getEndpointQuery({
     groupBy.push('category');
     category.push('span_indexed');
   }
-  if (['profile_duration', 'profile_duration_ui'].includes(dataCategoryApiName)) {
-    groupBy.push('category');
-    category.push(
-      dataCategoryApiName === 'profile_duration' ? 'profile_chunk' : 'profile_chunk_ui'
-    );
-  }
 
   return {
     ...queryDatetime,
@@ -149,7 +146,6 @@ export function getChartProps({
     | 'chartDateStartDisplay'
     | 'chartDateTimezoneDisplay'
     | 'chartDateEndDisplay'
-    | 'chartStats'
     | 'cardStats'
   >;
   dataCategory: DataCategory;
@@ -175,7 +171,7 @@ export function getChartProps({
   footer: React.ReactNode;
   title: React.ReactNode;
 } {
-  const errors: Record<string, Error> | undefined =
+  const errors =
     error || dataError
       ? {
           ...(error ? {error} : {}),
@@ -293,7 +289,6 @@ function ScoreCards({
       score={loading ? undefined : card.score}
       help={card.help}
       trend={card.trend}
-      isEstimate={card.isEstimate}
       isTooltipHoverable
     />
   ));
@@ -330,7 +325,7 @@ export interface UsageStatsOrganizationProps {
     ) => void;
     orgStats: UseApiQueryResult<UsageSeries | undefined, RequestError>;
     usageChart: React.ReactNode;
-  }) => React.ReactNode | React.ReactNode;
+  }) => React.ReactNode;
   clientDiscard?: boolean;
   clock24Hours?: boolean;
   endpointQuery?: ReturnType<typeof getEndpointQuery>;
@@ -342,13 +337,12 @@ type CardMetadata = Record<
   {
     title: React.ReactNode;
     help?: React.ReactNode;
-    isEstimate?: boolean;
     score?: string;
     trend?: React.ReactNode;
   }
 >;
 
-function UsageStatsOrganization({
+export function UsageStatsOrganization({
   dataDatetime,
   projectIds,
   dataCategoryApiName,
@@ -361,7 +355,8 @@ function UsageStatsOrganization({
   children,
   endpointQuery,
 }: UsageStatsOrganizationProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const orgStatsQuery = useMemo(() => {
     return (
       endpointQuery ??
@@ -377,7 +372,9 @@ function UsageStatsOrganization({
 
   const orgStatsReponse = useApiQuery<UsageSeries | undefined>(
     [
-      `/organizations/${organization.slug}/stats_v2/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: orgStatsQuery,
       },
@@ -410,14 +407,12 @@ function UsageStatsOrganization({
     (event: ReactMouseEvent) => {
       event.preventDefault();
       const url = `/settings/${organization.slug}/projects/:projectId/filters/data-filters/`;
-      if (router) {
-        navigateTo(url, router);
-      }
+      navigateTo(url, navigate, location);
     },
-    [router, organization]
+    [navigate, location, organization]
   );
 
-  const chartDataTransform: {chartTransform: ChartDataTransform} = useMemo(() => {
+  const chartDataTransform = useMemo(() => {
     switch (chartTransform) {
       case ChartDataTransform.CUMULATIVE:
       case ChartDataTransform.PERIODIC:
@@ -486,28 +481,7 @@ function UsageStatsOrganization({
     };
   }, [orgStatsReponse.data, dataDatetime]);
 
-  const chartData: {
-    cardStats: {
-      accepted?: string;
-      accepted_stored?: string;
-      clientDiscard?: string;
-      filtered?: string;
-      invalid?: string;
-      rateLimited?: string;
-      total?: string;
-    };
-    chartDateEnd: string;
-    chartDateEndDisplay: string;
-    chartDateInterval: IntervalPeriod;
-    chartDateStart: string;
-    chartDateStartDisplay: string;
-    chartDateTimezoneDisplay: string;
-    chartDateUtc: boolean;
-    chartStats: ChartStats;
-    chartSubLabels: TooltipSubLabel[];
-    chartTransform: ChartDataTransform;
-    dataError?: Error;
-  } = useMemo(() => {
+  const chartData = useMemo(() => {
     return {
       ...mapSeriesToChart({
         orgStats: orgStatsReponse.data,
@@ -530,7 +504,6 @@ function UsageStatsOrganization({
   const cardMetadata: CardMetadata = useMemo(() => {
     const {total, accepted, accepted_stored, invalid, rateLimited, filtered} =
       chartData.cardStats;
-    const shouldShowEstimate = isContinuousProfiling(dataCategory);
 
     return {
       total: {
@@ -582,7 +555,6 @@ function UsageStatsOrganization({
           }
         ),
         score: filtered,
-        isEstimate: shouldShowEstimate,
       },
       rateLimited: {
         title: tct('Rate Limited [dataCategory]', {dataCategory: dataCategoryName}),
@@ -599,7 +571,6 @@ function UsageStatsOrganization({
           }
         ),
         score: rateLimited,
-        isEstimate: shouldShowEstimate,
       },
       invalid: {
         title: tct('Invalid [dataCategory]', {dataCategory: dataCategoryName}),
@@ -616,7 +587,6 @@ function UsageStatsOrganization({
           }
         ),
         score: invalid,
-        isEstimate: shouldShowEstimate,
       },
     };
   }, [
@@ -668,12 +638,10 @@ function UsageStatsOrganization({
   );
 }
 
-export default UsageStatsOrganization;
-
 const PageGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, 1fr);
@@ -697,9 +665,9 @@ const Footer = styled('div')`
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(1.5)};
-  padding: ${space(1)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.border};
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   > *:first-child {
     flex-grow: 1;
   }
@@ -711,12 +679,12 @@ const FooterDate = styled('div')`
   align-items: center;
 
   > ${SectionHeading} {
-    margin-right: ${space(1.5)};
+    margin-right: ${p => p.theme.space.lg};
   }
 
   > span:last-child {
-    font-weight: ${p => p.theme.fontWeight.normal};
-    font-size: ${p => p.theme.fontSize.md};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 
@@ -740,10 +708,10 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
           <StyledSettingsButton
-            borderless
+            priority="transparent"
             size="zero"
-            icon={<IconSettings color="subText" />}
-            title={t('Dynamic Sampling Settings')}
+            icon={<IconSettings variant="muted" />}
+            tooltipProps={{title: t('Dynamic Sampling Settings')}}
             aria-label={t('Dynamic Sampling Settings')}
             to={`/settings/${organization.slug}/dynamic-sampling/`}
           />

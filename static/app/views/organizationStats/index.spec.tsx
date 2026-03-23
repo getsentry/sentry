@@ -4,12 +4,12 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import OrganizationStats, {PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
 
@@ -112,10 +112,6 @@ describe('OrganizationStats', () => {
 
     expect(screen.getAllByText('Invalid')[0]).toBeInTheDocument();
     expect(screen.getAllByText('15')[0]).toBeInTheDocument();
-
-    expect(
-      screen.queryByText('*This is an estimation, and may not be 100% accurate.')
-    ).not.toBeInTheDocument();
 
     // Correct API Calls
     const mockExpectations = {
@@ -464,9 +460,9 @@ describe('OrganizationStats', () => {
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
 
-  it('shows Seer categories when seer-billing feature flag is enabled', async () => {
+  it('shows Seer categories for old usage-based Seer plan (seer-added)', async () => {
     const newOrg = OrganizationFixture({
-      features: ['team-insights', 'seer-billing'],
+      features: ['team-insights', 'seer-billing', 'seer-added'],
     });
 
     render(<OrganizationStats />, {
@@ -492,9 +488,66 @@ describe('OrganizationStats', () => {
     expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
   });
 
-  it('shows Metrics category when tracemetrics-stats feature flag is enabled', async () => {
+  it('does not show Seer categories for seat-based Seer plan', async () => {
     const newOrg = OrganizationFixture({
-      features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats'],
+      features: ['team-insights', 'seer-billing', 'seat-based-seer-enabled'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.queryByRole('option', {name: 'Issue Fixes'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
+  });
+
+  it('always shows size analysis (GA)', async () => {
+    const newOrg = OrganizationFixture({
+      features: [],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(
+      screen.getByRole('option', {name: 'Size Analysis Builds'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows installable build when expose category feature flag is enabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['expose-category-installable-build'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.getByRole('option', {name: 'Build Distributions'})).toBeInTheDocument();
+  });
+
+  it('does not show installable build when expose category feature flag is disabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: [],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(
+      screen.queryByRole('option', {name: 'Build Distributions'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Metrics category when tracemetrics-enabled feature flag is enabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'tracemetrics-enabled'],
     });
 
     render(<OrganizationStats />, {
@@ -505,19 +558,6 @@ describe('OrganizationStats', () => {
     expect(screen.getByRole('option', {name: 'Metrics'})).toBeInTheDocument();
   });
 
-  it('does not show Metrics category when tracemetrics-stats feature flag is disabled', async () => {
-    const newOrg = OrganizationFixture({
-      features: ['team-insights'],
-    });
-
-    render(<OrganizationStats />, {
-      organization: newOrg,
-    });
-
-    await userEvent.click(await screen.findByText('Category'));
-    expect(screen.queryByRole('option', {name: 'Metrics'})).not.toBeInTheDocument();
-  });
-
   it('denies access on no projects', async () => {
     act(() => ProjectsStore.loadInitialData([]));
 
@@ -525,25 +565,6 @@ describe('OrganizationStats', () => {
 
     expect(
       await screen.findByText('You need at least one project to use this view')
-    ).toBeInTheDocument();
-  });
-
-  it('shows estimation text when profile duration category is selected', async () => {
-    const newOrg = OrganizationFixture({
-      features: ['team-insights', 'continuous-profiling-stats', 'continuous-profiling'],
-    });
-
-    render(<OrganizationStats />, {
-      organization: newOrg,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/stats/',
-          query: {dataCategory: DATA_CATEGORY_INFO.profile_duration.plural},
-        },
-      },
-    });
-    expect(
-      await screen.findByText('*This is an estimation, and may not be 100% accurate.')
     ).toBeInTheDocument();
   });
 

@@ -8,9 +8,8 @@ import {
   type Polarity,
 } from 'sentry/components/percentChange';
 import {IconArrow} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {
-  DEEMPHASIS_COLOR_NAME,
+  DEEMPHASIS_VARIANT,
   LOADING_PLACEHOLDER,
 } from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import {DEFAULT_FIELD} from 'sentry/views/dashboards/widgets/common/settings';
@@ -56,7 +55,7 @@ export function DifferenceToPreviousPeriodValue({
 
 const Difference = styled(ColorizedRating)`
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   margin-bottom: 6cqh;
 
   @container (min-height: 50px) {
@@ -73,7 +72,7 @@ const Text = styled('div')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  color: ${p => p.theme.tokens.content[DEEMPHASIS_VARIANT]};
 `;
 
 function getDifferenceDirectionMarker(difference: number) {

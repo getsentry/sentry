@@ -1,7 +1,7 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeClosableHeader,
@@ -9,7 +9,7 @@ import {
   ModalBody,
   ModalFooter,
 } from 'sentry/components/globalModal/components';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -54,6 +54,11 @@ describe('CreateIssueViewModal', () => {
       url: '/organizations/org-slug/tags/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issue-view-title/generate/',
+      method: 'POST',
+      body: {},
+    });
     const mockCreateViewEndpoint = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/',
       method: 'POST',
@@ -80,6 +85,7 @@ describe('CreateIssueViewModal', () => {
     });
 
     const nameInput = screen.getByRole('textbox', {name: 'Name'});
+    await userEvent.clear(nameInput);
     await userEvent.type(nameInput, 'foo');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create View'}));
@@ -109,4 +115,91 @@ describe('CreateIssueViewModal', () => {
       })
     );
   }, 10_000);
+
+  describe('AI name streaming animation', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('applies a generated title when name is empty', async () => {
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'Generated View Title'},
+      });
+
+      render(<CreateIssueViewModal {...defaultProps} />);
+
+      const nameInput = screen.getByRole('textbox', {name: 'Name'});
+
+      await waitFor(() => {
+        expect(mockGenerateTitle).toHaveBeenCalledWith(
+          '/organizations/org-slug/issue-view-title/generate/',
+          expect.objectContaining({
+            method: 'POST',
+            data: {query: 'is:unresolved foo'},
+          })
+        );
+      });
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      expect(nameInput).toHaveValue('Generated View Title');
+    });
+
+    it('does not override a pre-filled name', () => {
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'Generated View Title'},
+      });
+
+      render(<CreateIssueViewModal {...defaultProps} name="My Custom Name" />);
+
+      const nameInput = screen.getByRole('textbox', {name: 'Name'});
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      expect(nameInput).toHaveValue('My Custom Name');
+      expect(mockGenerateTitle).not.toHaveBeenCalled();
+    });
+
+    it('does not override user edits', async () => {
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'Generated View Title'},
+      });
+
+      render(<CreateIssueViewModal {...defaultProps} />);
+
+      const nameInput = screen.getByRole('textbox', {name: 'Name'});
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+
+      await waitFor(() => {
+        expect(mockGenerateTitle).toHaveBeenCalled();
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(80);
+      });
+
+      await user.clear(nameInput);
+      await user.type(nameInput, 'Custom Name');
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      expect(nameInput).toHaveValue('Custom Name');
+    });
+  });
 });

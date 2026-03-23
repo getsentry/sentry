@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 
 const TABS = {
   details: t('Details'),
@@ -25,7 +25,7 @@ function NetworkDetailsTabs() {
           setParamValue(tab);
         }}
       >
-        <TabList hideBorder>
+        <TabList>
           {Object.entries(TABS).map(([tab, label]) => (
             <TabList.Item key={tab}>{label}</TabList.Item>
           ))}
@@ -36,10 +36,10 @@ function NetworkDetailsTabs() {
 }
 
 const TabsContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
+export const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
   /*
   Use padding instead of margin so all the <li> will cover the <SplitDivider>
   without taking 100% width.
@@ -47,23 +47,21 @@ const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
 
   & > li {
     margin-right: 0;
-    padding-right: ${space(3)};
-    background: ${p => p.theme.surface400};
+    padding-right: ${p => p.theme.space['2xl']};
+    background: ${p => p.theme.tokens.background.primary};
     z-index: ${p => p.theme.zIndex.initial};
   }
   & > li:first-child {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
   }
   & > li:last-child {
-    padding-right: ${space(1)};
+    padding-right: ${p => p.theme.space.md};
   }
 
   & > li > a {
-    padding-top: ${space(1)};
-    padding-bottom: ${space(0.5)};
+    padding-top: ${p => p.theme.space.md};
+    padding-bottom: ${p => p.theme.space.xs};
     height: 100%;
-    border-bottom: ${space(0.5)} solid transparent;
+    border-bottom: ${p => p.theme.space.xs} solid transparent;
   }
 `;
-
-export default StyledNetworkDetailsTabs;

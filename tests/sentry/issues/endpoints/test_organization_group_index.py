@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from time import sleep
 from typing import Any
+from unittest import mock
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
@@ -23,9 +24,11 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
     FeedbackGroup,
+    NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
+from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.eventattachment import EventAttachment
@@ -500,16 +503,61 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(group2.id)
 
     def test_perf_issue(self) -> None:
-        perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
-        self.login_as(user=self.user)
-        with self.feature(
-            {
-                "organizations:issue-search-allow-postgres-only-search": True,
-            }
+        event = self.store_event(
+            data={
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            fingerprint=["perf-issue-occurrence"],
+            type=PerformanceNPlusOneGroupType.type_id,
+            project_id=self.project.id,
+        )
+        with mock.patch.object(
+            PerformanceNPlusOneGroupType,
+            "noise_config",
+            new=NoiseConfig(0, timedelta(minutes=1)),
         ):
-            response = self.get_success_response(query="issue.category:performance")
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(perf_group.id)
+            saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        perf_group = group_info.group
+        self.login_as(user=self.user)
+        response = self.get_success_response(query="issue.category:performance")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(perf_group.id)
+
+    def test_has_seer_last_run(self) -> None:
+        """Test filtering issues by whether they have seer_autofix_last_triggered set."""
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["seer-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_with_seer = event1.group
+        group_with_seer.update(seer_autofix_last_triggered=timezone.now())
+        event2 = self.store_event(
+            data={
+                "fingerprint": ["no-seer-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_without_seer = event2.group
+
+        self.login_as(user=self.user)
+        # Query for issues that have seer_autofix_last_triggered set
+        response = self.get_success_response(query="has:issue.seer_last_run")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group_with_seer.id)
+
+        # Query for issues that do NOT have seer_autofix_last_triggered set
+        response = self.get_success_response(query="!has:issue.seer_last_run")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group_without_seer.id)
 
     def test_lookup_by_event_id(self) -> None:
         project = self.project
@@ -945,6 +993,45 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(assigned_groups[0].id)
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
+
+    @patch("sentry.search.snuba.executors.PostgresSnubaQueryExecutor.calculate_hits")
+    def test_hits_capped_when_overestimated(self, mock_calculate_hits: MagicMock) -> None:
+        """
+        Test that when sampling overestimates the hit count and all results fit on one page,
+        the X-Hits header is capped to the actual number of results returned.
+
+        This prevents UI bugs like showing "(6-11) of 11" when there are only 6 results.
+        """
+        self.login_as(user=self.user)
+
+        # Create 6 groups
+        groups = []
+        for i in range(6):
+            event = self.store_event(
+                data={
+                    "timestamp": before_now(days=i).isoformat(),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            )
+            groups.append(event.group)
+
+        # Mock calculate_hits to return an overestimate (simulating sampling inaccuracy)
+        # This would happen when Snuba thinks there are 11 groups but Postgres only has 6
+        mock_calculate_hits.return_value = 11
+
+        # Make a request that returns all 6 groups on one page
+        response = self.get_success_response(limit=25, query="is:unresolved")
+
+        # Should return all 6 groups
+        assert len(response.data) == 6
+
+        # X-Hits should be corrected to 6, not the overestimated 11
+        assert response["X-Hits"] == "6"
+
+        # Verify no next page exists (we have all results)
+        links = self._parse_links(response["Link"])
+        assert links["next"]["results"] == "false"
 
     def test_assigned_me_none(self) -> None:
         self.login_as(user=self.user)
@@ -2051,36 +2138,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
-    def test_default_search_with_priority(self) -> None:
-        event1 = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        event1.group.priority = PriorityLevel.HIGH
-        event1.group.save()
-        event2 = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-3"]},
-            project_id=self.project.id,
-        )
-        event2.group.status = GroupStatus.RESOLVED
-        event2.group.substatus = None
-        event2.group.priority = PriorityLevel.HIGH
-        event2.group.save()
-
-        event3 = self.store_event(
-            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
-            project_id=self.project.id,
-        )
-        event3.group.priority = PriorityLevel.LOW
-        event3.group.save()
-
-        self.login_as(user=self.user)
-        sleep(1)
-
-        response = self.get_response(sort_by="date", limit=10, expand="inbox", collapse="stats")
-        assert response.status_code == 200
-        assert [int(r["id"]) for r in response.data] == [event1.group.id]
-
     def test_collapse_stats(self) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
@@ -2639,7 +2696,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 0
 
     def test_lookup_by_release_build(self) -> None:
-
         for i in range(3):
             j = 119 + i
             self.create_release(version=f"steve@1.2.{i}+{j}")
@@ -2719,7 +2775,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_feedback_filtered_by_default(self) -> None:
         with Feature(
             {
-                FeedbackGroup.build_visible_feature_name(): True,
+                **{f: True for f in FeedbackGroup.build_visible_feature_name()},
                 FeedbackGroup.build_ingest_feature_name(): True,
             }
         ):
@@ -2746,7 +2802,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_feedback_category_filter(self) -> None:
         with Feature(
             {
-                FeedbackGroup.build_visible_feature_name(): True,
+                **{f: True for f in FeedbackGroup.build_visible_feature_name()},
                 FeedbackGroup.build_ingest_feature_name(): True,
             }
         ):
@@ -2816,6 +2872,43 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         mock_query.side_effect = UserCancelError()
         response = self.get_response()
         assert response.status_code == 500
+
+    def test_wildcard_operator_with_backslash(self) -> None:
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "timestamp": before_now(seconds=1).isoformat(),
+                "user": {
+                    "id": "1",
+                    "email": "foo@example.com",
+                    "username": r"foo\bar",
+                    "ip_address": "192.168.0.1",
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+
+        response = self.get_success_response(query=r"user.username:foo\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query=r"user.username:*foo\\bar*")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dContains\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dStartsWith\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dEndsWith\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

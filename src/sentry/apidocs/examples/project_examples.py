@@ -33,6 +33,8 @@ KEY_RATE_LIMIT = {
         "hasReplay": True,
         "hasPerformance": True,
         "hasDebug": True,
+        "hasFeedback": False,
+        "hasLogsAndMetrics": False,
     },
 }
 
@@ -264,7 +266,6 @@ DETAILED_PROJECT = {
     ],
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
-    "tempestFetchDumps": False,
     "debugFilesRole": None,
     "isDynamicallySampled": True,
     "autofixAutomationTuning": "off",

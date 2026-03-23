@@ -35,7 +35,7 @@ export function determineSeriesSampleCountAndIsSampled(
   let hasUnsampledInterval = false;
   let dataScanned: 'full' | 'partial' | undefined;
 
-  const series: number[] = data[0]?.values?.map(item => item.sampleCount ?? 0) ?? [];
+  const series = data[0]?.values?.map(item => item.sampleCount ?? 0) ?? [];
 
   for (let i = 0; i < data.length; i++) {
     for (let j = 0; j < data[i]!.values.length; j++) {
@@ -44,7 +44,7 @@ export function determineSeriesSampleCountAndIsSampled(
       }
 
       const sampleRate = data[i]!.values[j]!.sampleRate;
-      if (sampleRate === 1) {
+      if (defined(sampleRate) && sampleRate >= 1) {
         hasUnsampledInterval = true;
       } else if (defined(sampleRate) && sampleRate < 1) {
         hasSampledInterval = true;

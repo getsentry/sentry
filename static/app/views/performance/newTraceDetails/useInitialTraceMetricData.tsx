@@ -1,11 +1,12 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
@@ -17,9 +18,11 @@ interface UseInitialTraceMetricDataProps {
   enabled?: boolean;
 }
 
+const COUNT_FIELD = `count(${TraceMetricKnownFieldKey.METRIC_NAME})`;
+
 interface TraceMetricCountResult {
   data: Array<{
-    'count()': number;
+    [COUNT_FIELD]: number;
   }>;
 }
 
@@ -39,7 +42,7 @@ function traceMetricCountQueryKey({
 
   const query: Record<string, string | string[] | number[]> = {
     dataset: DiscoverDatasets.TRACEMETRICS,
-    field: ['count()'],
+    field: [COUNT_FIELD],
     query: searchValue.formatString(),
     referrer: 'api.trace-details.initial-metric-data',
   };
@@ -48,18 +51,22 @@ function traceMetricCountQueryKey({
     query.project = projectIds.map(String);
   }
 
-  // Use the period from trace query params
-  if (queryParams.statsPeriod) {
-    query.statsPeriod = queryParams.statsPeriod;
-  } else if (queryParams.start && queryParams.end) {
-    query.start = queryParams.start;
-    query.end = queryParams.end;
-  } else {
-    // Default fallback
-    query.statsPeriod = '24h';
+  if (queryParams.timestamp) {
+    // Use the timestamp to set an interval of +/- 1 days.
+    query.start = new Date(
+      queryParams.timestamp * 1000 - 24 * 60 * 60 * 1000
+    ).toISOString();
+    query.end = new Date(
+      queryParams.timestamp * 1000 + 24 * 60 * 60 * 1000
+    ).toISOString();
   }
 
-  return [`/organizations/${orgSlug}/events/`, {query}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query},
+  ];
 }
 
 /**
@@ -99,7 +106,7 @@ export function useInitialTraceMetricData({
   });
 
   const metricsData = useMemo(() => {
-    const count = result.data?.data?.[0]?.['count()'] ?? 0;
+    const count = result.data?.data?.[0]?.[COUNT_FIELD] ?? 0;
     return {count};
   }, [result.data]);
 

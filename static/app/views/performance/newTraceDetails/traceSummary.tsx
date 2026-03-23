@@ -1,21 +1,22 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconMegaphone} from 'sentry/icons';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {IconLightning} from 'sentry/icons/iconLightning';
 import {IconStats} from 'sentry/icons/iconStats';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface SpanInsight {
@@ -37,7 +38,9 @@ const makeTraceSummaryQueryKey = (
   organizationSlug: string,
   traceSlug: string
 ): ApiQueryKey => [
-  `/organizations/${organizationSlug}/trace-summary/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/trace-summary/`, {
+    path: {organizationIdOrSlug: organizationSlug},
+  }),
   {method: 'POST', data: {traceSlug}},
 ];
 
@@ -72,7 +75,7 @@ function useTraceSummary(traceSlug: string) {
 
 export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
   const traceContent = useTraceSummary(traceSlug);
-  const openFeedbackForm = useFeedbackForm();
+  const {feedback} = useFeedbackSDKIntegration();
   const organization = useOrganization();
   const location = useLocation();
 
@@ -82,28 +85,19 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
 
   if (traceContent.isError) {
     return (
-      <ErrorContainer>
+      <Flex align="center" padding="xl" gap="md">
         <div>{t('Error loading Trace Summary')}</div>
-        {openFeedbackForm && (
-          <Button
-            size="xs"
-            icon={<IconMegaphone size="xs" />}
-            onClick={() =>
-              openFeedbackForm({
-                messagePlaceholder: t(
-                  'How can we make the trace summary better for you?'
-                ),
-                tags: {
-                  ['feedback.source']: 'trace-summary',
-                  ['feedback.owner']: 'ml-ai',
-                },
-              })
-            }
-          >
-            {t('Give Feedback')}
-          </Button>
-        )}
-      </ErrorContainer>
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{
+            messagePlaceholder: t('How can we make the trace summary better for you?'),
+            tags: {
+              ['feedback.source']: 'trace-summary',
+              ['feedback.owner']: 'ml-ai',
+            },
+          }}
+        />
+      </Flex>
     );
   }
 
@@ -165,86 +159,66 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
         <SectionContent text="" />
       )}
 
-      {openFeedbackForm && (
-        <FeedbackButtonContainer>
-          <Button
+      {feedback && (
+        <Flex justify="end" marginTop="xl">
+          <FeedbackButton
             size="xs"
-            icon={<IconMegaphone size="xs" />}
-            onClick={() =>
-              openFeedbackForm({
-                messagePlaceholder: t(
-                  'How can we make the trace summary better for you?'
-                ),
-                tags: {
-                  ['feedback.source']: 'trace-summary',
-                  ['feedback.owner']: 'ml-ai',
-                },
-              })
-            }
-          >
-            {t('Give Feedback')}
-          </Button>
-        </FeedbackButtonContainer>
+            feedbackOptions={{
+              messagePlaceholder: t('How can we make the trace summary better for you?'),
+              tags: {
+                ['feedback.source']: 'trace-summary',
+                ['feedback.owner']: 'ml-ai',
+              },
+            }}
+          />
+        </Flex>
       )}
     </SummaryContainer>
   );
 }
 
 const SummaryContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const SectionTitleWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledIcon = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
   display: flex;
   align-items: center;
 `;
 
 const SectionTitle = styled('h6')`
-  color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.colors.gray500};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   text-transform: uppercase;
   margin: 0;
 `;
 
 const SectionContent = styled(MarkedText)`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 
   code {
-    font-family: ${p => p.theme.text.familyMono};
-    padding: ${space(0.25)} ${space(0.5)};
-    background: ${p => p.theme.backgroundSecondary};
-    border-radius: ${p => p.theme.borderRadius};
+    font-family: ${p => p.theme.font.family.mono};
+    padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
+    background: ${p => p.theme.tokens.background.secondary};
+    border-radius: ${p => p.theme.radius.md};
     font-size: 0.9em;
   }
 
   strong {
     font-weight: 600;
   }
-`;
-
-const ErrorContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  padding: ${space(2)};
-`;
-
-const FeedbackButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${space(2)};
 `;
 
 const StyledList = styled('ul')`
@@ -258,7 +232,7 @@ const StyledListItem = styled('li')`
 
 const StyledLink = styled(Link)`
   text-decoration: none;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 600;
   margin-right: 6px;
 `;

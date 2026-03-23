@@ -2,10 +2,12 @@ import React from 'react';
 import keyBy from 'lodash/keyBy';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DataCategory} from 'sentry/types/core';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {CacheSamplePanel} from 'sentry/views/insights/cache/components/samplePanel';
 import {
   isAValidSort,
@@ -13,6 +15,7 @@ import {
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
+import {PlatformizedCachesOverview} from 'sentry/views/insights/cache/views/platformizedOverview';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -22,6 +25,7 @@ import CacheMissRateChartWidget from 'sentry/views/insights/common/components/wi
 import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
@@ -135,8 +139,21 @@ export function CacheLandingPage() {
 }
 
 function PageWithProviders() {
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
+  if (hasPlatformizedInsights) {
+    return <PlatformizedCachesOverview />;
+  }
+
   return (
-    <ModulePageProviders moduleName="cache" analyticEventName="insight.page_loads.cache">
+    <ModulePageProviders
+      moduleName="cache"
+      analyticEventName="insight.page_loads.cache"
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <CacheLandingPage />
     </ModulePageProviders>
   );

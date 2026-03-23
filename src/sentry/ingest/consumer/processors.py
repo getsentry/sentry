@@ -115,7 +115,7 @@ def process_event(
 
         if cached_value is not None:
             logger.warning(
-                "pre-process-forwarder detected a duplicated event" " with id:%s for project:%s.",
+                "pre-process-forwarder detected a duplicated event with id:%s for project:%s.",
                 event_id,
                 project_id,
             )
@@ -182,7 +182,7 @@ def process_event(
             for attachment in attachments
         ]
         if attachment_objects:
-            store_attachments_for_event(data, attachment_objects, timeout=CACHE_TIMEOUT)
+            store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
 
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = processing_store.store(data)

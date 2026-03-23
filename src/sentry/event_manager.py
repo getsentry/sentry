@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+import random
 import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, overload
 
 import orjson
 import psycopg2.errors
@@ -18,10 +19,13 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Max, Q
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
+from urllib3.connectionpool import HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.response import BaseHTTPResponse
 from usageaccountant import UsageUnit
 
 from sentry import (
+    analytics,
     audit_log,
     eventstore,
     eventstream,
@@ -32,6 +36,7 @@ from sentry import (
     reprocessing2,
     tsdb,
 )
+from sentry.analytics.events.event_processing_error_recorded import EventProcessingErrorRecorded
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
@@ -45,7 +50,7 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
 from sentry.eventstream.base import GroupState
-from sentry.eventtypes import EventType
+from sentry.eventtypes.base import BaseEvent as EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
@@ -65,7 +70,10 @@ from sentry.grouping.ingest.hashing import (
     run_primary_grouping,
 )
 from sentry.grouping.ingest.metrics import record_hash_calculation_metrics, record_new_group_metrics
-from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
+from sentry.grouping.ingest.seer import (
+    maybe_check_seer_for_matching_grouphash,
+    maybe_send_seer_for_new_model_training,
+)
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
     check_for_group_creation_load_shed,
@@ -112,7 +120,7 @@ from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
     first_event_received,
@@ -143,7 +151,10 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.workflow_engine.processors.detector import associate_new_group_with_detector
+from sentry.workflow_engine.processors.detector import (
+    associate_new_group_with_detector,
+    ensure_association_with_detector,
+)
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
@@ -537,10 +548,7 @@ class EventManager:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
         except HashDiscarded as e:
-            if features.has("organizations:grouptombstones-hit-counter", project.organization):
-                increment_group_tombstone_hit_counter(
-                    getattr(e, "tombstone_id", None), job["event"]
-                )
+            increment_group_tombstone_hit_counter(getattr(e, "tombstone_id", None), job["event"])
             discard_event(job, attachments)
             raise
 
@@ -915,7 +923,6 @@ def _get_or_create_group_environment(
     event_datetime: datetime,
 ) -> None:
     for group_info in groups:
-
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
@@ -1104,12 +1111,45 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
 
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
-
         if job["event"].project_id == settings.SENTRY_PROJECT:
             metrics.incr(
                 "internal.captured.eventstream_insert",
                 tags={"event_type": job["event"].data.get("type") or "null"},
             )
+
+        # Record processing errors to analytics at 1% sample rate
+        processing_errors = job["data"].get("errors", [])
+        event = job["event"]
+        if (
+            processing_errors
+            and features.has("organizations:processing-error-analytics", event.project.organization)
+            and random.random() < 0.01
+        ):
+            group_id = job["groups"][0].group.id if job["groups"] else None
+            for error in processing_errors:
+                try:
+                    error_type = error.get("type", "unknown")
+                    error_name = error.get("name")
+                    error_value = error.get("value")
+                    # Convert non-string values to JSON and truncate
+                    if error_value is not None:
+                        if not isinstance(error_value, str):
+                            error_value = orjson.dumps(error_value).decode()
+                        error_value = error_value[:256]
+                    analytics.record(
+                        EventProcessingErrorRecorded(
+                            organization_id=event.project.organization_id,
+                            project_id=event.project_id,
+                            event_id=event.event_id,
+                            group_id=group_id,
+                            error_type=error_type,
+                            platform=job["data"].get("platform"),
+                            name=error_name,
+                            value=error_value,
+                        )
+                    )
+                except Exception:
+                    logger.warning("Failed to save EventProcessingErrorRecorded", exc_info=True)
 
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
@@ -1287,6 +1327,7 @@ def assign_event_to_group(
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
+        maybe_send_seer_for_new_model_training(event, primary.existing_grouphash, primary.variants)
     # If we haven't, try again using the secondary config. (If there is no secondary config, or
     # we're out of the transition period, we'll get back the empty `NULL_GROUPHASH_INFO`.)
     else:
@@ -1298,6 +1339,9 @@ def assign_event_to_group(
                 job, secondary.existing_grouphash, all_grouphashes
             )
             result = "found_secondary"
+            maybe_send_seer_for_new_model_training(
+                event, secondary.existing_grouphash, secondary.variants
+            )
 
         # If we still haven't found a group, ask Seer for a match (if enabled for the event's platform)
         else:
@@ -1427,6 +1471,9 @@ def handle_existing_grouphash(
         release=job["release"],
     )
 
+    # Ensure the group has a DetectorGroup association for existing groups
+    ensure_association_with_detector(group)
+
     return GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
 
@@ -1505,7 +1552,6 @@ def _create_group(
     first_release: Release | None = None,
     **group_creation_kwargs: Any,
 ) -> Group:
-
     short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
@@ -1587,7 +1633,7 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    create_open_period(group=group, start_time=group.first_seen)
+    create_open_period(group=group, start_time=group.first_seen, event_id=event.event_id)
 
     return group
 
@@ -1688,8 +1734,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         )
         .exclude(
             # add to the regression window to account for races here
-            active_at__gte=date
-            - timedelta(seconds=5)
+            active_at__gte=date - timedelta(seconds=5)
         )
         .update(
             active_at=date,
@@ -1799,7 +1844,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        create_open_period(group, activity.datetime)
+        create_open_period(group, activity.datetime, event.event_id)
 
     return is_regression
 
@@ -1833,8 +1878,8 @@ def _get_updated_group_title(existing_container, incoming_container):
 
     return (
         incoming_title
+        # Real titles beat both placeholder and non-existent titles
         if (
-            # Real titles beat both placeholder and non-existent titles
             _is_real_title(incoming_title)
             or
             # Conversely, placeholder titles lose to both real titles and lack of a title (the
@@ -1905,7 +1950,7 @@ def _process_existing_aggregate(
     # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
     # increment rather than overwrite the existing value
     times_seen = 1
-    if group.project.id in options.get("issues.client_error_sampling.project_allowlist"):
+    if group.project_id in options.get("issues.client_error_sampling.project_allowlist"):
         times_seen = _get_error_weighted_times_seen(event)
 
     buffer_incr(Group, {"times_seen": times_seen}, {"id": group.id}, updated_group_values)
@@ -1918,6 +1963,36 @@ severity_connection_pool = connection_from_url(
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )
+
+
+class SeverityScoreRequest(TypedDict):
+    message: str
+    has_stacktrace: int
+    handled: bool | None
+    org_id: int
+    project_id: int
+    trigger_timeout: NotRequired[bool]
+    trigger_error: NotRequired[bool]
+
+
+def make_severity_score_request(
+    body: SeverityScoreRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    payload: SeverityScoreRequest = {**body}
+    if options.get("processing.severity-backlog-test.timeout"):
+        payload["trigger_timeout"] = True
+    if options.get("processing.severity-backlog-test.error"):
+        payload["trigger_error"] = True
+    return make_signed_seer_api_request(
+        connection_pool or severity_connection_pool,
+        "/v0/issues/severity-score",
+        body=orjson.dumps(payload),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
 
 
 def _get_severity_metadata_for_group(
@@ -2120,16 +2195,13 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         )
         return 0.0, "bad_title"
 
-    payload = {
+    payload: SeverityScoreRequest = {
         "message": title,
         "has_stacktrace": int(has_stacktrace(event.data)),
         "handled": is_handled(event.data),
+        "org_id": event.project.organization_id,
+        "project_id": event.project_id,
     }
-
-    if options.get("processing.severity-backlog-test.timeout"):
-        payload["trigger_timeout"] = True
-    if options.get("processing.severity-backlog-test.error"):
-        payload["trigger_error"] = True
 
     logger_data["payload"] = payload
 
@@ -2140,11 +2212,9 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timeout",
                     settings.SEER_SEVERITY_TIMEOUT,
                 )
-                response = make_signed_seer_api_request(
-                    severity_connection_pool,
-                    "/v0/issues/severity-score",
-                    body=orjson.dumps(payload),
-                    timeout=timeout,
+                viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
+                response = make_severity_score_request(
+                    payload, timeout=timeout, viewer_context=viewer_context
                 )
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
@@ -2370,7 +2440,7 @@ def save_attachment(
         timestamp = datetime.now(timezone.utc)
 
     try:
-        attachment.stored_id or attachment.data
+        attachment.stored_id or attachment.load_data(project)
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,
@@ -2385,39 +2455,43 @@ def save_attachment(
 
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
-    from sentry import ratelimits as ratelimiter
+    # Rate limits protect against filestore write abuse. When stored_id is set,
+    # the payload is already in objectstore and putfile will read from there —
+    # no filestore write occurs, so there is nothing to limit.
+    if not attachment.stored_id:
+        from sentry import ratelimits as ratelimiter
 
-    is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
-        key="event_attachment.save_per_sec",
-        limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
-        project=project,
-        window=1,
-    )
-    rate_limit_tag = "per_sec"
-    if not is_limited:
         is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
-            key="event_attachment.save_5_min",
-            limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
+            key="event_attachment.save_per_sec",
+            limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
             project=project,
-            window=5 * 60,
+            window=1,
         )
-        rate_limit_tag = "per_five_min"
-    if is_limited:
-        metrics.incr(
-            "event_manager.attachments.rate_limited", tags={"rate_limit_type": rate_limit_tag}
-        )
-        track_outcome(
-            org_id=project.organization_id,
-            project_id=project.id,
-            key_id=key_id,
-            outcome=Outcome.RATE_LIMITED,
-            reason="rate_limited",
-            timestamp=timestamp,
-            event_id=event_id,
-            category=DataCategory.ATTACHMENT,
-            quantity=attachment.size or 1,
-        )
-        return
+        rate_limit_tag = "per_sec"
+        if not is_limited:
+            is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
+                key="event_attachment.save_5_min",
+                limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
+                project=project,
+                window=5 * 60,
+            )
+            rate_limit_tag = "per_five_min"
+        if is_limited:
+            metrics.incr(
+                "event_manager.attachments.rate_limited", tags={"rate_limit_type": rate_limit_tag}
+            )
+            track_outcome(
+                org_id=project.organization_id,
+                project_id=project.id,
+                key_id=key_id,
+                outcome=Outcome.RATE_LIMITED,
+                reason="rate_limited",
+                timestamp=timestamp,
+                event_id=event_id,
+                category=DataCategory.ATTACHMENT,
+                quantity=attachment.size or 1,
+            )
+            return
 
     file = EventAttachment.putfile(project.id, attachment)
 

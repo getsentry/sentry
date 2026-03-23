@@ -1,7 +1,5 @@
 ---
-created: '2021-07-08T10:29:52.063676Z'
-creator: sentry
-source: tests/sentry/grouping/test_categorization.py
+source: tests/sentry/grouping/test_categorization.py::test_categorization
 ---
 
 

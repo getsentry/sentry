@@ -1,11 +1,13 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import Panel from 'sentry/components/panels/panel';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
+import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   description: ReactNode;
@@ -19,7 +21,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function PageBanner({
+export function PageBanner({
   button,
   className,
   description,
@@ -41,7 +43,7 @@ export default function PageBanner({
         />
       )}
       <Background image={image} />
-      <Stack>
+      <Stack justify="between" gap="md" maxWidth="50%">
         <TypeText>
           {icon}
           {title}
@@ -58,7 +60,7 @@ export default function PageBanner({
 
 const Wrapper = styled(Panel)`
   display: flex;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   min-height: 100px;
   justify-content: space-between;
   align-items: center;
@@ -68,11 +70,11 @@ const Wrapper = styled(Panel)`
 const CloseButton = styled(Button)`
   justify-content: center;
   position: absolute;
-  top: -${space(1)};
-  right: -${space(1)};
+  top: -${p => p.theme.space.md};
+  right: -${p => p.theme.space.md};
   border-radius: 50%;
-  height: ${p => p.theme.iconSizes.lg};
-  width: ${p => p.theme.iconSizes.lg};
+  height: ${() => SvgIcon.ICON_SIZES.lg};
+  width: ${() => SvgIcon.ICON_SIZES.lg};
   z-index: 1;
 `;
 
@@ -91,34 +93,26 @@ const Background = styled('div')<{image: any}>`
   background-size: cover;
 `;
 
-const Stack = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  max-width: 50%;
-  gap: ${space(1)};
-`;
-
 const TextContainer = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   z-index: 1;
   h4 {
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space.xs};
   }
 `;
 
 const SubText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
 const TypeText = styled(SubText)`
   align-items: center;
   display: flex;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  gap: ${space(0.5)};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  gap: ${p => p.theme.space.xs};
   text-transform: uppercase;
 `;

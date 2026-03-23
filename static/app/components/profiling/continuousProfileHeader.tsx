@@ -1,18 +1,18 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import {LinkButton} from '@sentry/scraps/button';
+
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ContinuousProfileHeader {
   transaction: Event | null;
@@ -51,7 +51,7 @@ export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) 
         </SmallerProfilingBreadcrumbsWrapper>
       </SmallerHeaderContent>
       <StyledHeaderActions>
-        <FeedbackWidgetButton />
+        <FeedbackButton />
         {transactionTarget && (
           <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
             {t('Go to Trace')}
@@ -65,19 +65,19 @@ export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) 
 const StyledHeaderActions = styled(Layout.HeaderActions)`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const SmallerHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const SmallerProfilingBreadcrumbsWrapper = styled('div')`
   nav {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const SmallerLayoutHeader = styled(Layout.Header)`
-  padding: ${space(1)} ${space(2)} 0 ${space(2)} !important;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl} !important;
 `;

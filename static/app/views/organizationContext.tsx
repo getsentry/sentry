@@ -8,13 +8,13 @@ import {
   useBootstrapProjectsQuery,
   useBootstrapTeamsQuery,
 } from 'sentry/bootstrap/bootstrapRequests';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -53,7 +53,7 @@ export function OrganizationContextProvider({children}: Props) {
   const configStore = useLegacyStore(ConfigStore);
   const {organizations} = useLegacyStore(OrganizationsStore);
   const {organization, error} = useLegacyStore(OrganizationStore);
-  const lastOrganizationSlug: string | null =
+  const lastOrganizationSlug =
     configStore.lastOrganization ?? organizations[0]?.slug ?? null;
   const params = useParams<{orgId?: string}>();
   const spanRef = useRef<Sentry.Span | null>(null);

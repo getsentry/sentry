@@ -2,18 +2,20 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import {uniqueId} from 'sentry/utils/guid';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {UptimeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/uptime';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
+import {TraceUptimeCheckNodeRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceUptimeCheckNode';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {UptimeCheckTimingNode} from './uptimeCheckTimingNode';
 
 export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
+  id: string;
+  type: TraceTree.NodeType;
+
   searchPriority = 1;
   constructor(
     parent: BaseNode | null,
@@ -24,6 +26,9 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     const timingNodes = this._createTimingNodes();
     timingNodes.forEach(timingNode => this.children.push(timingNode));
     this.isEAPEvent = true;
+    this.id = this.value.event_id;
+    this.type = 'uptime-check';
+    this.traceItemDataset = TraceItemDataset.UPTIME_RESULTS;
 
     this.parent?.children.push(this);
   }
@@ -83,7 +88,7 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
 
       const fakeSpan: TraceTree.UptimeCheckTiming = {
         event_type: 'uptime_check_timing',
-        event_id: uniqueId(),
+        event_id: `${uptimeCheck.event_id}-${phase.op}`,
         start_timestamp: startTimestamp,
         end_timestamp: startTimestamp + duration,
         duration,
@@ -107,15 +112,8 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     return fakeSpans;
   }
 
-  get type(): TraceTree.NodeType {
-    return 'uptime-check';
-  }
-
   get description(): string | undefined {
-    const otelFriendlyUi = this.extra?.organization.features.includes(
-      'performance-otel-friendly-ui'
-    );
-    return otelFriendlyUi ? this.value.name : this.value.description;
+    return this.value.name;
   }
 
   get drawerTabsTitle(): string {
@@ -140,19 +138,13 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
-    return <TraceSpanRow {...props} node={props.node} />;
+    return <TraceUptimeCheckNodeRow {...props} node={this} />;
   }
 
-  renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return (
-      <UptimeNodeDetails
-        {...props}
-        node={props.node as TraceTreeNode<TraceTree.UptimeCheck>}
-      />
-    );
+    return <UptimeNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {
@@ -163,5 +155,9 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
 
   makeBarColor(theme: Theme): string {
     return pickBarColor(this.op, theme);
+  }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
   }
 }

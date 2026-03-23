@@ -1,11 +1,12 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import Card from 'sentry/components/card';
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {Card} from 'sentry/components/card';
 import {IconAdd, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 
 type Props = {
@@ -15,19 +16,19 @@ type Props = {
   title: string;
 };
 
-function TemplateCard({title, description, onPreview, onAdd}: Props) {
+export function TemplateCard({title, description, onPreview, onAdd}: Props) {
   const [isAddingDashboardTemplate, setIsAddingDashboardTemplate] = useState(false);
 
   return (
     <StyledCard>
-      <Header>
+      <Flex gap="xl">
         <IconGeneric legacySize="48px" />
         <Title>
           {title}
           <Detail>{description}</Detail>
         </Title>
-      </Header>
-      <ButtonContainer>
+      </Flex>
+      <Flex wrap="wrap" gap="md">
         <DashboardCreateLimitWrapper>
           {({
             hasReachedDashboardLimit,
@@ -41,12 +42,12 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
                   setIsAddingDashboardTemplate(false);
                 });
               }}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
               busy={isAddingDashboardTemplate}
               disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-              title={limitMessage}
               tooltipProps={{
                 isHoverable: true,
+                title: limitMessage,
               }}
             >
               {t('Add Dashboard')}
@@ -56,19 +57,14 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
         <StyledButton priority="primary" onClick={onPreview}>
           {t('Preview')}
         </StyledButton>
-      </ButtonContainer>
+      </Flex>
     </StyledCard>
   );
 }
 
 const StyledCard = styled(Card)`
-  gap: ${space(1)};
-  padding: ${space(2)};
-`;
-
-const Header = styled('div')`
-  display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('div')`
@@ -78,19 +74,11 @@ const Title = styled('div')`
 `;
 
 const Detail = styled(Title)`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1)};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledButton = styled(Button)`
   flex-grow: 1;
 `;
-
-export default TemplateCard;

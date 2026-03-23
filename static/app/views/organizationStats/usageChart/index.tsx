@@ -3,28 +3,26 @@ import styled from '@emotion/styled';
 import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
-import BaseChart from 'sentry/components/charts/baseChart';
-import Legend from 'sentry/components/charts/components/legend';
-import xAxis from 'sentry/components/charts/components/xAxis';
-import barSeries from 'sentry/components/charts/series/barSeries';
+import {BaseChart} from 'sentry/components/charts/baseChart';
+import {Legend} from 'sentry/components/charts/components/legend';
+import {XAxis} from 'sentry/components/charts/components/xAxis';
+import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {Placeholder} from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {Theme} from 'sentry/utils/theme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';
 
-export type CategoryOption = {
+type CategoryOption = {
   /**
    * Scale of y-axis with no usage data.
    */
@@ -267,16 +265,7 @@ function chartMetadata({
 }
 
 const outputChartColors = (theme: Theme) => {
-  return isChonkTheme(theme)
-    ? theme.chart.getColorPalette(5)
-    : ([
-        theme.chart.colors[5][0],
-        theme.chart.colors[5][2],
-        theme.chart.colors[5][3],
-        theme.chart.colors[5][4],
-        theme.chart.colors[5][5],
-        theme.chartOther, // Projected
-      ] as const);
+  return theme.chart.getColorPalette(5);
 };
 
 function UsageChartBody({
@@ -380,7 +369,7 @@ function UsageChartBody({
   const colors = outputChartColors(theme);
 
   const series: SeriesOption[] = [
-    barSeries({
+    BarSeries({
       name: SeriesTypes.ACCEPTED,
       data: chartData.accepted,
       barMinHeight: 1,
@@ -389,7 +378,7 @@ function UsageChartBody({
     }),
     ...(chartData.accepted_stored
       ? [
-          barSeries({
+          BarSeries({
             name: SeriesTypes.ACCEPTED,
             data: chartData.accepted_stored,
             barMinHeight: 1,
@@ -399,7 +388,7 @@ function UsageChartBody({
             tooltip: {show: false},
             itemStyle: {
               decal: {
-                color: theme.subText,
+                color: theme.tokens.content.secondary,
                 dashArrayX: [1, 0],
                 dashArrayY: [3, 5],
                 rotation: -Math.PI / 4,
@@ -409,33 +398,33 @@ function UsageChartBody({
           }),
         ]
       : []),
-    barSeries({
+    BarSeries({
       name: SeriesTypes.FILTERED,
       data: chartData.filtered,
       barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    barSeries({
+    BarSeries({
       name: SeriesTypes.RATE_LIMITED,
       data: chartData.rateLimited,
       barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    barSeries({
+    BarSeries({
       name: SeriesTypes.INVALID,
       data: chartData.invalid,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    barSeries({
+    BarSeries({
       name: SeriesTypes.CLIENT_DISCARD,
       data: chartData.clientDiscard,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    barSeries({
+    BarSeries({
       name: SeriesTypes.PROJECTED,
       data: chartData.projected,
       barMinHeight: 1,
@@ -457,7 +446,7 @@ function UsageChartBody({
         },
       }}
       grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
-      xAxis={xAxis({
+      xAxis={XAxis({
         show: true,
         type: 'category',
         name: 'Date',
@@ -478,7 +467,7 @@ function UsageChartBody({
         minInterval: yAxisMinInterval,
         axisLabel: {
           formatter: yAxisLabelFormatter,
-          color: theme.chartLabel,
+          color: theme.tokens.content.secondary,
         },
       }}
       series={series}
@@ -509,7 +498,7 @@ interface UsageChartPanelProps extends UsageChartProps {
   title?: React.ReactNode;
 }
 
-function UsageChart({title, footer, ...props}: UsageChartPanelProps) {
+export function UsageChart({title, footer, ...props}: UsageChartPanelProps) {
   return (
     <Panel id="usage-chart" data-test-id="usage-chart">
       <ChartContainer>
@@ -521,12 +510,10 @@ function UsageChart({title, footer, ...props}: UsageChartPanelProps) {
   );
 }
 
-export default UsageChart;
-
 const ErrorMessages = styled('div')`
   display: flex;
   flex-direction: column;
 
-  margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  margin-top: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.sm};
 `;

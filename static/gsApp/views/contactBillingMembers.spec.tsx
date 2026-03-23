@@ -2,7 +2,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ContactBillingMembers from './contactBillingMembers';
+import {ContactBillingMembers} from './contactBillingMembers';
 
 describe('ContactBillingMembers', () => {
   it('renders helpful members', async () => {

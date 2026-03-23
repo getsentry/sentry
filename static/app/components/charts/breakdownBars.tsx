@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {space} from 'sentry/styles/space';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 type Point = {
@@ -22,7 +22,7 @@ type Props = {
   maxItems?: number;
 };
 
-function BreakdownBars({data, maxItems}: Props) {
+export function BreakdownBars({data, maxItems}: Props) {
   const total = data.reduce((sum, point) => point.value + sum, 0);
   return (
     <BreakdownGrid>
@@ -53,23 +53,21 @@ function BreakdownBars({data, maxItems}: Props) {
   );
 }
 
-export default BreakdownBars;
-
 const BreakdownGrid = styled('div')`
   display: grid;
   grid-template-columns: min-content auto;
-  column-gap: ${space(1)};
-  row-gap: ${space(1)};
+  column-gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.md};
 `;
 
 const Percentage = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   text-align: right;
 `;
 
 const BarContainer = styled('div')<{cursor: 'pointer' | 'default'}>`
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.md};
   position: relative;
   cursor: ${p => p.cursor};
   display: flex;
@@ -78,14 +76,17 @@ const BarContainer = styled('div')<{cursor: 'pointer' | 'default'}>`
 
 const Label = styled('span')`
   position: relative;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   z-index: 2;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Bar = styled('div')<{active?: boolean}>`
   border-radius: 2px;
-  background-color: ${p => (p.active ? p.theme.purple200 : p.theme.border)};
+  background-color: ${p =>
+    p.active
+      ? p.theme.tokens.dataviz.semantic.accent
+      : p.theme.tokens.dataviz.semantic.neutral};
   position: absolute;
   top: 0;
   left: 0;

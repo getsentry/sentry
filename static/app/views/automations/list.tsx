@@ -1,32 +1,30 @@
 import {useCallback} from 'react';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import Pagination from 'sentry/components/pagination';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import ListLayout from 'sentry/components/workflowEngine/layout/list';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Pagination} from 'sentry/components/pagination';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import AutomationListTable from 'sentry/views/automations/components/automationListTable';
+import {AutomationListTable} from 'sentry/views/automations/components/automationListTable';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
-import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 
 export default function AutomationsList() {
-  useWorkflowEngineFeatureGate({redirect: true});
-
   const location = useLocation();
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
@@ -85,7 +83,7 @@ export default function AutomationsList() {
         description={t(
           'Alerts are triggered when issue changes state, is created, or passes a threshold. They perform external actions like sending notifications, creating tickets, or calling webhooks and integrations.'
         )}
-        docsUrl="https://docs.sentry.io/product/automations/"
+        docsUrl="https://docs.sentry.io/product/new-monitors-and-alerts/alerts/"
       >
         <TableHeader />
         <div>
@@ -151,7 +149,7 @@ function Actions() {
     <Flex gap="sm">
       <AutomationFeedbackButton />
       <LinkButton
-        to={`${makeAutomationBasePathname(organization.slug)}new/`}
+        to={makeAutomationCreatePathname(organization.slug)}
         priority="primary"
         icon={<IconAdd />}
         size="sm"

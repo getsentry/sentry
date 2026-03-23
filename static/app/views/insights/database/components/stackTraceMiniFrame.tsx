@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {ExternalLink} from 'sentry/components/core/link';
-import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
 
 interface Props {
@@ -81,27 +81,27 @@ const FrameContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(0.5)};
-  padding: ${space(1.5)} ${space(2)};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
 
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
-  background: ${p => p.theme.surface200};
+  background: ${p => p.theme.tokens.background.tertiary};
 `;
 
 const ProjectAvatarContainer = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Emphasize = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const PushRight = styled('span')`
@@ -151,8 +151,8 @@ function SourceCodeIntegrationLink({
 const DeemphasizedExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
-  color: ${p => p.theme.subText};
+  gap: ${p => p.theme.space.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconWrapper = styled('span')`

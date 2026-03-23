@@ -1,6 +1,3 @@
-import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
@@ -8,21 +5,9 @@ import {SvgIcon} from './svgIcon';
  * @deprecated This icon will be removed in new UI.
  */
 export function IconExclamation(props: SVGIconProps) {
-  const theme = useTheme();
   return (
-    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
-      {theme.isChonk ? (
-        <Fragment>
-          <circle cx="8" cy="8" r="5.75" />
-          <circle cx="8" cy="10.75" r=".12" />
-          <line x1="8" y1="5.25" x2="8" y2="8.25" />
-        </Fragment>
-      ) : (
-        <Fragment>
-          <path d="M8.88588 1.41773L8.88588 10.0778C8.88588 10.4386 8.53153 10.6552 8.05907 10.6552C7.5866 10.6552 7.11414 10.4386 7.11414 10.0778L7.11414 1.41773C7.11414 1.12906 7.46848 0.840389 8.05907 0.840388C8.64965 0.840388 8.88588 1.12906 8.88588 1.41773Z" />
-          <path d="M7.99999 12.9559C7.32513 12.9559 6.77805 13.5018 6.77805 14.1752C6.77805 14.8485 7.32513 15.3944 7.99998 15.3944C8.67484 15.3944 9.22192 14.8485 9.22192 14.1752C9.22192 13.5018 8.67484 12.9559 7.99999 12.9559Z" />
-        </Fragment>
-      )}
+    <SvgIcon {...props}>
+      <path d="M8 0C12.42 0 16 3.58 16 8C16 12.42 12.42 16 8 16C3.58 16 0 12.42 0 8C0 3.58 3.58 0 8 0ZM8 1.5C4.41 1.5 1.5 4.41 1.5 8C1.5 11.59 4.41 14.5 8 14.5C11.59 14.5 14.5 11.59 14.5 8C14.5 4.41 11.59 1.5 8 1.5ZM8 10C8.55 10 9 10.45 9 11C9 11.55 8.55 12 8 12C7.45 12 7 11.55 7 11C7 10.45 7.45 10 8 10ZM8 4C8.41 4 8.75 4.34 8.75 4.75V8.25C8.75 8.66 8.41 9 8 9C7.59 9 7.25 8.66 7.25 8.25V4.75C7.25 4.34 7.59 4 8 4Z" />
     </SvgIcon>
   );
 }

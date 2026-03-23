@@ -5,11 +5,10 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import {IconFire, IconStats, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
@@ -24,7 +23,11 @@ import {
   isUnlimitedReserved,
   UsageAction,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+  sortCategoriesWithKeys,
+} from 'getsentry/utils/dataCategory';
 
 import {ButtonWrapper, SubscriptionBody} from './styles';
 
@@ -35,7 +38,7 @@ type Props = {
   usage: CustomerUsage;
 };
 
-function UsageAlert({subscription, usage}: Props) {
+export function UsageAlert({subscription, usage}: Props) {
   const organization = useOrganization();
 
   function getActionSentence() {
@@ -64,13 +67,16 @@ function UsageAlert({subscription, usage}: Props) {
       hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
     });
 
+    const categoryInfo = getCategoryInfoFromPlural(category);
+    const isAbbreviated = categoryInfo?.formatting.projectedAbbreviated ?? true;
+
     const formattedAmount = formatReservedWithUnits(projected, category, {
-      isAbbreviated: category !== DataCategory.ATTACHMENTS,
+      isAbbreviated,
     });
 
-    return category === DataCategory.ATTACHMENTS
-      ? `${formattedAmount} of attachments`
-      : `${formattedAmount} ${displayName}`;
+    return isAbbreviated
+      ? `${formattedAmount} ${displayName}`
+      : `${formattedAmount} of ${displayName}`;
   }
 
   function projectedCategoryOverages() {
@@ -125,7 +131,7 @@ function UsageAlert({subscription, usage}: Props) {
       >
         <SubscriptionBody withPadding>
           <UsageInfo>
-            <IconStats size="md" color="blue300" />
+            <IconStats size="md" variant="accent" />
             <div>
               <h3>{t('Projected Overage')}</h3>
               <Description>
@@ -153,7 +159,7 @@ function UsageAlert({subscription, usage}: Props) {
       >
         <SubscriptionBody withPadding>
           <UsageInfo>
-            <IconWarning size="md" color="yellow300" />
+            <IconWarning size="md" variant="warning" />
             <div>
               <h3>{t('Grace Period')}</h3>
               <Description>
@@ -212,7 +218,7 @@ function UsageAlert({subscription, usage}: Props) {
       >
         <SubscriptionBody withPadding>
           <UsageInfo>
-            <IconFire size="md" color="red300" />
+            <IconFire size="md" variant="danger" />
             <div>
               <h3>{t('Usage Exceeded')}</h3>
               <Description>
@@ -299,16 +305,14 @@ function UsageAlert({subscription, usage}: Props) {
   );
 }
 
-export default UsageAlert;
-
 const UsageInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
 `;

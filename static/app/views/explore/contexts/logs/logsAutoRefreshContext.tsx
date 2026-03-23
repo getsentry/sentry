@@ -30,6 +30,7 @@ export type AutoRefreshState =
 
 interface LogsAutoRefreshContextValue {
   autoRefresh: AutoRefreshState;
+  hasInitialized: boolean;
   isTableFrozen: boolean | undefined;
   pausedAt: number | undefined;
   refreshInterval: number;
@@ -65,7 +66,7 @@ export function LogsAutoRefreshProvider({
   }
 
   const rawState = decodeScalar(location.query[LOGS_AUTO_REFRESH_KEY]);
-  const autoRefresh: AutoRefreshState =
+  const autoRefresh =
     rawState && allowedStates.includes(rawState as AutoRefreshState)
       ? (rawState as AutoRefreshState)
       : 'idle';
@@ -87,6 +88,7 @@ export function LogsAutoRefreshProvider({
         isTableFrozen,
         pausedAt,
         setPausedAt,
+        hasInitialized: hasInitialized.current,
         ..._testContext,
       }}
     >

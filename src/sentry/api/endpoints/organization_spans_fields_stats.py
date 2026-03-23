@@ -11,8 +11,8 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -28,15 +28,14 @@ class OrganizationSpansFieldsStatsEndpointSerializer(serializers.Serializer):
     max_attributes = serializers.IntegerField(required=False, min_value=0)
 
 
-@region_silo_endpoint
-class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsV2EndpointBase):
+@cell_silo_endpoint
+class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         if not features.has(
             "organizations:performance-spans-fields-stats", organization, actor=request.user
         ):

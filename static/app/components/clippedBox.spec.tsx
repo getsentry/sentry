@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 
 function Child({height}: {height: number}) {
   return <div style={{height}} />;
@@ -135,6 +135,20 @@ describe('clipped box', () => {
         </ClippedBox>
       );
       expect(screen.queryByText(/show more/i)).not.toBeInTheDocument();
+    });
+
+    it('does not show collapse button for content that was never clipped', () => {
+      if (!enableResizeObserver) {
+        mockGetBoundingClientRect({height: 10});
+      }
+
+      render(
+        <ClippedBox clipHeight={100} clipFlex={0} collapsible>
+          <Child height={10} />
+        </ClippedBox>
+      );
+      expect(screen.queryByText(/show more/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/show less/i)).not.toBeInTheDocument();
     });
     it('preserves state on resize once it is open', async () => {
       if (!enableResizeObserver) {

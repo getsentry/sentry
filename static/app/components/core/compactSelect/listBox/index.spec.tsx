@@ -1,11 +1,93 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 describe('ListBox', () => {
+  it('does not reserve scrollbar gutter if the list never overflowed', async () => {
+    render(
+      <CompactSelect
+        search={{placeholder: 'Search here'}}
+        onChange={jest.fn()}
+        value={undefined}
+        options={[
+          {value: 'opt_one', label: 'Option One'},
+          {value: 'opt_two', label: 'Option Two'},
+          {value: 'opt_three', label: 'Option Three'},
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button'));
+
+    const listBox = screen.getByRole('listbox');
+    const scrollContainer = listBox.parentElement?.parentElement;
+    expect(scrollContainer).toBeInTheDocument();
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      value: 100,
+      configurable: true,
+    });
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      value: 60,
+      configurable: true,
+    });
+
+    await userEvent.type(screen.getByPlaceholderText('Search here'), 'Three');
+
+    expect(scrollContainer).not.toHaveStyle({scrollbarGutter: 'stable'});
+  });
+
+  it('keeps scrollbar gutter once the list has overflowed', async () => {
+    render(
+      <CompactSelect
+        search={{placeholder: 'Search here'}}
+        onChange={jest.fn()}
+        value={undefined}
+        options={[
+          {value: 'opt_one', label: 'Option One'},
+          {value: 'opt_two', label: 'Option Two'},
+          {value: 'opt_three', label: 'Option Three'},
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button'));
+
+    const listBox = screen.getByRole('listbox');
+    const scrollContainer = listBox.parentElement?.parentElement;
+    expect(scrollContainer).toBeInTheDocument();
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      value: 60,
+      configurable: true,
+    });
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      value: 120,
+      configurable: true,
+    });
+
+    await userEvent.type(screen.getByPlaceholderText('Search here'), 'Option');
+
+    await waitFor(() => {
+      expect(scrollContainer).toHaveStyle({scrollbarGutter: 'stable'});
+    });
+
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      value: 50,
+      configurable: true,
+    });
+
+    await userEvent.clear(screen.getByPlaceholderText('Search here'));
+    await userEvent.type(screen.getByPlaceholderText('Search here'), 'Three');
+
+    expect(scrollContainer).toHaveStyle({scrollbarGutter: 'stable'});
+  });
+
   it('hides details overlay when mouse leaves the list', async () => {
     render(
       <CompactSelect
+        onChange={jest.fn()}
+        value={undefined}
         options={[
           {
             value: 'opt_one',
@@ -42,6 +124,8 @@ describe('ListBox', () => {
   it('shows different details when hovering over different options', async () => {
     render(
       <CompactSelect
+        onChange={jest.fn()}
+        value={undefined}
         options={[
           {
             value: 'opt_one',
@@ -81,6 +165,8 @@ describe('ListBox', () => {
   it('does not show details overlay when showDetailsInOverlay is false', async () => {
     render(
       <CompactSelect
+        onChange={jest.fn()}
+        value={undefined}
         options={[
           {
             value: 'opt_one',
@@ -105,6 +191,8 @@ describe('ListBox', () => {
   it('maintains keyboard navigation focus when hovering', async () => {
     render(
       <CompactSelect
+        onChange={jest.fn()}
+        value={undefined}
         options={[
           {
             value: 'opt_one',

@@ -3,15 +3,16 @@ import {useQuery} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useApi} from 'sentry/utils/useApi';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
@@ -19,8 +20,7 @@ import type {EAPTraceMeta, TraceMeta} from './types';
 
 type TraceMetaQueryParams =
   | {
-      // demo has the format ${projectSlug}:${eventId}
-      // used to query a demo transaction event from the backend.
+      include_uptime: string;
       statsPeriod: string;
     }
   | {
@@ -28,22 +28,28 @@ type TraceMetaQueryParams =
       timestamp: number;
     };
 
+function isEmptyMeta(meta: TraceMeta | EAPTraceMeta): boolean {
+  return meta.span_count === 0 && meta.errors === 0 && meta.performance_issues === 0;
+}
+
 function getMetaQueryParams(
   row: ReplayTrace,
   normalizedParams: any,
-  filters: Partial<PageFilters> = {}
+  filters: Partial<PageFilters> = {},
+  statsPeriodOverride?: string
 ): TraceMetaQueryParams {
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
-  if (row.timestamp) {
-    return {
-      include_uptime: normalizedParams.includeUptime,
-      timestamp: row.timestamp,
-    };
-  }
-
   return {
-    statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
+    include_uptime: '1',
+    ...(row.timestamp
+      ? {timestamp: row.timestamp}
+      : {
+          statsPeriod:
+            statsPeriodOverride ??
+            (statsPeriod || filters?.datetime?.period) ??
+            DEFAULT_STATS_PERIOD,
+        }),
   };
 }
 
@@ -54,7 +60,7 @@ async function fetchSingleTraceMetaNew(
   replayTrace: ReplayTrace,
   queryParams: any
 ) {
-  const url: string =
+  const url =
     type === 'eap'
       ? `/organizations/${organization.slug}/trace-meta/${replayTrace.traceSlug}/`
       : `/organizations/${organization.slug}/events-trace-meta/${replayTrace.traceSlug}/`;
@@ -72,7 +78,8 @@ async function fetchTraceMetaInBatches(
   organization: Organization,
   replayTraces: ReplayTrace[],
   normalizedParams: any,
-  filters: Partial<PageFilters> = {}
+  filters: Partial<PageFilters> = {},
+  statsPeriodOverride?: string
 ) {
   const clonedTraceIds = [...replayTraces];
   const meta: TraceMeta | EAPTraceMeta =
@@ -102,7 +109,12 @@ async function fetchTraceMetaInBatches(
     const batch = clonedTraceIds.splice(0, 3);
     const results = await Promise.allSettled<TraceMeta | EAPTraceMeta>(
       batch.map(replayTrace => {
-        const queryParams = getMetaQueryParams(replayTrace, normalizedParams, filters);
+        const queryParams = getMetaQueryParams(
+          replayTrace,
+          normalizedParams,
+          filters,
+          statsPeriodOverride
+        );
         return fetchSingleTraceMetaNew(type, api, organization, replayTrace, queryParams);
       })
     );
@@ -157,6 +169,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   const filters = usePageFilters();
   const organization = useOrganization();
   const isEAP = useIsEAPTraceEnabled();
+  const maxPickableDays = useDefaultMaxPickableDays();
 
   const normalizedParams = useMemo(() => {
     const query = qs.parse(location.search);
@@ -178,15 +191,37 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   >({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
-    queryFn: () =>
-      fetchTraceMetaInBatches(
+    queryFn: async () => {
+      const result = await fetchTraceMetaInBatches(
         isEAP ? 'eap' : 'non-eap',
         api,
         organization,
         replayTraces,
         normalizedParams,
         filters.selection
-      ),
+      );
+
+      const hasStatsPeriodTrace = replayTraces.some(t => !t.timestamp);
+      const defaultStatsDays = parseInt(DEFAULT_STATS_PERIOD, 10);
+      if (
+        result.apiErrors.length === 0 &&
+        isEmptyMeta(result.meta) &&
+        hasStatsPeriodTrace &&
+        maxPickableDays > defaultStatsDays
+      ) {
+        return fetchTraceMetaInBatches(
+          isEAP ? 'eap' : 'non-eap',
+          api,
+          organization,
+          replayTraces,
+          normalizedParams,
+          filters.selection,
+          `${maxPickableDays}d`
+        );
+      }
+
+      return result;
+    },
     staleTime: 1000 * 60 * 10,
     enabled: replayTraces.length > 0,
   });

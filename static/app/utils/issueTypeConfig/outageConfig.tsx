@@ -3,13 +3,14 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const outageConfig: IssueCategoryConfigMapping = {
+export const outageConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     usesIssuePlatform: true,
     autofix: false,
     mergedIssues: {enabled: false},
     similarIssues: {enabled: false},
     issueSummary: {enabled: false},
+    groupingInfo: {enabled: false},
   },
   [IssueType.MONITOR_CHECK_IN_FAILURE]: {
     actions: {
@@ -95,5 +96,3 @@ const outageConfig: IssueCategoryConfigMapping = {
     stats: {enabled: false},
   },
 };
-
-export default outageConfig;

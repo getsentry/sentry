@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 
-import {Badge} from 'sentry/components/core/badge';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
-import LoadingError from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {Badge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+
+import {LoadingError} from 'sentry/components/loadingError';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReleaseMeta} from 'sentry/types/release';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseRepositories} from 'sentry/utils/useReleaseRepositories';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {
@@ -58,28 +59,28 @@ export function CommitsFilesSection({
     <Tabs disabled={isError}>
       <TabListWithSpace>
         <TabList.Item key="commits" textValue={t('Commits')}>
-          <TitleWithBadge>
+          <Flex>
             <span>{t('Commits')}</span>
-            <Badge type="default">
+            <Badge variant="muted">
               {isLoadingMeta
                 ? '-'
                 : isMetaError
                   ? 'x'
                   : (releaseMeta?.commitCount ?? '0')}
             </Badge>
-          </TitleWithBadge>
+          </Flex>
         </TabList.Item>
         <TabList.Item key="files" textValue={t('File Changes')}>
-          <TitleWithBadge>
+          <Flex>
             <span>{t('File Changes')}</span>
-            <Badge type="default">
+            <Badge variant="muted">
               {isLoadingMeta
                 ? '-'
                 : isMetaError
                   ? 'x'
                   : (releaseMeta?.commitFilesChanged ?? '0')}
             </Badge>
-          </TitleWithBadge>
+          </Flex>
         </TabList.Item>
       </TabListWithSpace>
       {isLoading ? (
@@ -117,10 +118,6 @@ export function CommitsFilesSection({
   );
 }
 
-const TitleWithBadge = styled('div')`
-  display: flex;
-`;
-
 const TabListWithSpace = styled(TabList)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

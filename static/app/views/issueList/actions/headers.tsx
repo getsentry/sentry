@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
-import ToolbarHeader from 'sentry/components/toolbarHeader';
+import {Flex} from '@sentry/scraps/layout';
+
+import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
+import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 
@@ -17,7 +17,7 @@ type Props = {
   isSavedSearchesOpen?: boolean;
 };
 
-function Headers({
+export function Headers({
   selection,
   statsPeriod,
   onSelectStatsPeriod,
@@ -78,8 +78,6 @@ function Headers({
   );
 }
 
-export default Headers;
-
 const GraphLabel = styled(IssueStreamHeaderLabel)`
   width: 175px;
   flex: 1;
@@ -89,19 +87,20 @@ const GraphLabel = styled(IssueStreamHeaderLabel)`
 `;
 
 const GraphToggles = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  margin-right: ${space(2)};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 const GraphToggle = styled('a')<{active: boolean}>`
   font-size: 13px;
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
 
   &,
   &:hover,
   &:focus,
   &:active {
-    color: ${p => (p.active ? p.theme.textColor : p.theme.disabled)};
+    color: ${p =>
+      p.active ? p.theme.tokens.content.primary : p.theme.tokens.content.disabled};
   }
 `;
 
@@ -127,8 +126,11 @@ const AssigneeLabel = styled(IssueStreamHeaderLabel)`
 
 // Reprocessing
 const StartedColumn = styled(ToolbarHeader)`
-  margin: 0 ${space(2)};
-  ${p => p.theme.overflowEllipsis};
+  margin: 0 ${p => p.theme.space.xl};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 85px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -137,8 +139,11 @@ const StartedColumn = styled(ToolbarHeader)`
 `;
 
 const EventsReprocessedColumn = styled(ToolbarHeader)`
-  margin: 0 ${space(2)};
-  ${p => p.theme.overflowEllipsis};
+  margin: 0 ${p => p.theme.space.xl};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 75px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -147,7 +152,7 @@ const EventsReprocessedColumn = styled(ToolbarHeader)`
 `;
 
 const ProgressColumn = styled(ToolbarHeader)`
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space.xl};
 
   display: none;
 

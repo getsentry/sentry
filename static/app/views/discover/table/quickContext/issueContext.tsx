@@ -1,14 +1,14 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Count} from 'sentry/components/count';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -26,7 +26,7 @@ import {
 import type {BaseContextProps} from './utils';
 import {ContextType} from './utils';
 
-function IssueContext(props: BaseContextProps) {
+export function IssueContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
 
   useEffect(() => {
@@ -93,15 +93,15 @@ function IssueContext(props: BaseContextProps) {
               {issue.status === 'ignored' ? (
                 <IconMute
                   data-test-id="quick-context-ignored-icon"
-                  color="gray500"
+                  variant="muted"
                   size="xs"
                 />
               ) : issue.status === 'resolved' ? (
-                <IconCheckmark color="gray500" size="xs" />
+                <IconCheckmark variant="primary" size="xs" />
               ) : (
                 <IconNot
                   data-test-id="quick-context-unresolved-icon"
-                  color="gray500"
+                  variant="primary"
                   size="xs"
                 />
               )}
@@ -152,25 +152,28 @@ function IssueContext(props: BaseContextProps) {
 const IssueTitleBody = styled(ContextBody)`
   margin: 0;
   max-width: 300px;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const IssueContextContainer = styled(ContextContainer)`
   & + & {
-    margin-top: ${space(2)};
+    margin-top: ${p => p.theme.space.xl};
   }
 `;
 
 const StatusText = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   text-transform: capitalize;
 `;
 
 const AssignedToBody = styled(ContextBody)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledIconWrapper = styled(IconWrapper)`
   margin: 0;
 `;
-export default IssueContext;

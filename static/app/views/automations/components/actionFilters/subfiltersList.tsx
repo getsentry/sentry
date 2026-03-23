@@ -2,14 +2,14 @@ import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {
   DataConditionType,
@@ -108,7 +108,12 @@ export function SubfiltersList() {
           );
         })}
       </div>
-      <PurpleTextButton borderless icon={<IconAdd />} size="xs" onClick={addSubfilter}>
+      <PurpleTextButton
+        priority="transparent"
+        icon={<IconAdd />}
+        size="xs"
+        onClick={addSubfilter}
+      >
         {t('Sub-filter')}
       </PurpleTextButton>
     </div>
@@ -132,7 +137,7 @@ function SubfilterRow({onRemove, isFirstRow, isLastRow}: SubfilterRowProps) {
           aria-label={t('Delete Subfilter')}
           size="sm"
           icon={<IconDelete />}
-          borderless
+          priority="transparent"
           onClick={onRemove}
         />
       </StyledRowLine>
@@ -334,7 +339,7 @@ export function validateSubfilters(subfilters: Subfilter[]): string | undefined 
 const RowWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   :first-child {
     margin-top: 3px;
@@ -358,6 +363,6 @@ const StyledRowLine = styled(RowLine)`
 const DetailsListWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
-  padding: ${space(1)} 0 0 ${space(2)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} 0 0 ${p => p.theme.space.xl};
 `;

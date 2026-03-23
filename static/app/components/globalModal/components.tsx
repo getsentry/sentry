@@ -1,25 +1,26 @@
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 const ModalHeader = styled('header')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   position: relative;
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(3)} ${space(3)};
-  margin: -${space(4)} -${space(2)} ${space(3)} -${space(3)};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']};
+  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space.xl}
+    ${p => p.theme.space['2xl']} -${p => p.theme.space['2xl']};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(3)} ${space(4)};
-    margin: -${space(4)} -${space(4)} ${space(3)} -${space(4)};
+    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
+    margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
+      ${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']};
   }
 
   h1,
@@ -29,48 +30,26 @@ const ModalHeader = styled('header')`
   h5,
   h6 {
     font-size: 20px;
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     margin-bottom: 0;
     line-height: 1.1;
   }
 `;
 
-function ChonkCloseButton(p: Omit<ButtonProps, 'aria-label'>) {
+function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
   return (
     <Button
       aria-label={t('Close Modal')}
       size="xs"
       icon={<IconClose size="xs" />}
-      borderless
+      priority="transparent"
       {...p}
     />
   );
 }
 
-const CloseButton = withChonk(
-  styled((p: Omit<ButtonProps, 'aria-label'>) => {
-    return (
-      <Button
-        aria-label={t('Close Modal')}
-        icon={<IconClose size="xs" />}
-        size="zero"
-        {...p}
-      />
-    );
-  })`
-    position: absolute;
-    top: 0;
-    right: 0;
-    transform: translate(50%, -50%);
-    border-radius: 50%;
-    height: 24px;
-    width: 24px;
-  `,
-  ChonkCloseButton
-);
-
 const ModalBody = styled('section')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   p:last-child {
     margin-bottom: 0;
@@ -82,15 +61,17 @@ const ModalBody = styled('section')`
 `;
 
 const ModalFooter = styled('footer')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   justify-content: flex-end;
-  padding: ${space(3)} ${space(2)};
-  margin: ${space(3)} -${space(3)} -${space(4)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
+  margin: ${p => p.theme.space['2xl']} -${p => p.theme.space['2xl']} -${p =>
+      p.theme.space['3xl']};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(3)} ${space(4)};
-    margin: ${space(3)} -${space(4)} -${space(4)};
+    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
+    margin: ${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']} -${p =>
+        p.theme.space['3xl']};
   }
 `;
 

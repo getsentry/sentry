@@ -2,21 +2,22 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import override_settings
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.registry import TaskRegistry
+from taskbroker_client.retry import Retry, RetryTaskError
+from taskbroker_client.state import CurrentTaskState
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.constants import CompressionType
+from sentry.taskworker.adapters import SentryMetricsBackend, SentryRouter, make_producer
 from sentry.taskworker.namespaces import exampletasks, test_tasks
-from sentry.taskworker.registry import TaskRegistry
-from sentry.taskworker.retry import Retry, RetryError
-from sentry.taskworker.state import CurrentTaskState
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 
 
 @instrumented_task(
     name="test.tasks.test_base.region_task",
     namespace=test_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def region_task(param) -> str:
     return f"Region task {param}"
@@ -85,7 +86,7 @@ def task_with_alias(param) -> str:
     namespace=test_tasks,
     alias="tests.tasks.test_base.region_alias_task",
     retry=Retry(times=3, on=(Exception,)),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def region_task_with_alias(param) -> str:
     return f"Region task with alias {param}"
@@ -111,7 +112,7 @@ def task_with_alias_and_alias_namespace(param) -> str:
     return f"Task with alias and alias namespace {param}"
 
 
-@override_settings(SILO_MODE=SiloMode.REGION)
+@override_settings(SILO_MODE=SiloMode.CELL)
 def test_task_silo_limit_call_region() -> None:
     result = region_task("hi")
     assert "Region task hi" == result
@@ -159,7 +160,7 @@ def test_exclude_exception_retry(capture_exception: MagicMock) -> None:
 @override_settings(SILO_MODE=SiloMode.CONTROL)
 @patch("sentry_sdk.capture_exception")
 def test_retry_on(capture_exception: MagicMock) -> None:
-    with pytest.raises(RetryError):
+    with pytest.raises(RetryTaskError):
         retry_on_task("bruh")
 
     assert capture_exception.call_count == 1
@@ -186,16 +187,15 @@ def test_retry_timeout_enabled_taskbroker(capture_exception) -> None:
     def timeout_retry_task():
         raise ProcessingDeadlineExceeded()
 
-    with pytest.raises(RetryError):
+    with pytest.raises(RetryTaskError):
         timeout_retry_task()
 
     assert capture_exception.call_count == 1
 
 
-@patch("sentry.taskworker.retry.current_task")
+@patch("taskbroker_client.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_timeout_disabled_taskbroker(capture_exception, current_task) -> None:
-
     @retry(timeouts=False)
     def timeout_no_retry_task():
         raise ProcessingDeadlineExceeded()
@@ -213,13 +213,13 @@ def test_retry_timeout_enabled(capture_exception) -> None:
     def soft_timeout_retry_task():
         raise ProcessingDeadlineExceeded()
 
-    with pytest.raises(RetryError):
+    with pytest.raises(RetryTaskError):
         soft_timeout_retry_task()
 
     assert capture_exception.call_count == 1
 
 
-@patch("sentry.taskworker.retry.current_task")
+@patch("taskbroker_client.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_timeout_disabled(capture_exception, current_task) -> None:
     current_task.retry.side_effect = ExpectedException("retry called")
@@ -236,7 +236,12 @@ def test_retry_timeout_disabled(capture_exception, current_task) -> None:
 
 
 def test_instrumented_task_parameters() -> None:
-    registry = TaskRegistry()
+    registry = TaskRegistry(
+        application="sentry",
+        producer_factory=make_producer,
+        router=SentryRouter(),
+        metrics=SentryMetricsBackend(),
+    )
     namespace = registry.create_namespace("registertest")
 
     @instrumented_task(
@@ -265,13 +270,13 @@ def test_retry_raise_if_no_retries_false(mock_current_task):
 
     @retry(on=(Exception,), raise_on_no_retries=False)
     def task_that_raises_retry_error():
-        raise RetryError("try again")
+        raise RetryTaskError("try again")
 
     # No exception.
     task_that_raises_retry_error()
 
     mock_task_state.retries_remaining = True
-    with pytest.raises(RetryError):
+    with pytest.raises(RetryTaskError):
         task_that_raises_retry_error()
 
 
@@ -295,7 +300,7 @@ def test_instrumented_task_with_alias_different_namespaces() -> None:
     )
 
 
-@override_settings(SILO_MODE=SiloMode.REGION)
+@override_settings(SILO_MODE=SiloMode.CELL)
 def test_instrumented_task_with_alias_silo_limit_call_region() -> None:
     assert test_tasks.contains("tests.tasks.test_base.region_primary_task")
     assert region_task_with_alias("test") == "Region task with alias test"

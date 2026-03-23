@@ -19,6 +19,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.models.rule import Rule
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode, SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.types.actor import Actor
@@ -176,6 +177,15 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
 
+    def test_eap_user_misery_aggregate(self) -> None:
+        alert_rule = self.create_alert_rule(
+            aggregate="user_misery(span.duration,300)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+        )
+        result = serialize(alert_rule)
+        self.assert_alert_rule_serialized(alert_rule, result)
+        assert result["aggregate"] == "user_misery(span.duration,300)"
+
     def test_created_by(self) -> None:
         user = self.create_user("foo@example.com")
         alert_rule = self.create_alert_rule(environment=self.environment, user=user)
@@ -290,6 +300,31 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         )
         serialized_uptime_monitor["type"] = "uptime"
         assert result[3] == serialized_uptime_monitor
+
+    @patch("sentry.api.serializers.models.rule.RuleSerializer.serialize")
+    @patch("sentry.api.serializers.base.logger")
+    def test_combined_serializer_failure(self, mock_logger, mock_serialize: MagicMock) -> None:
+        mock_serialize.side_effect = Exception
+
+        projects = [self.project, self.create_project()]
+        alert_rule = self.create_alert_rule(projects=projects)
+        issue_rule = self.create_issue_alert_rule(
+            data={
+                "project": self.project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+            }
+        )
+        result = serialize(
+            [alert_rule, issue_rule],
+            serializer=CombinedRuleSerializer(),
+        )
+        assert mock_logger.exception.call_count == 1
+        self.assert_alert_rule_serialized(alert_rule, result[0])
+        # we have limited data here because of the exception
+        assert result[1] == {"type": "rule"}
 
     def test_alert_snoozed(self) -> None:
         projects = [self.project, self.create_project()]

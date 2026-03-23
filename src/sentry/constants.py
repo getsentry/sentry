@@ -7,7 +7,7 @@ import logging
 import os.path
 from collections import namedtuple
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import cast
 
@@ -69,7 +69,7 @@ STATUS_IGNORED = 2
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-MAX_TAG_VALUE_LENGTH = 200
+MAX_TAG_VALUE_LENGTH = 256
 MAX_CULPRIT_LENGTH = 200
 MAX_EMAIL_FIELD_LENGTH = 75
 
@@ -82,7 +82,7 @@ PROJECT_SLUG_MAX_LENGTH = 100
 
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
-MAX_ROLLUP_POINTS = 10000
+MAX_ROLLUP_POINTS = 10100
 
 
 # Organization slugs which may not be used. Generally these are top level URL patterns
@@ -122,6 +122,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "corp",
         "customers",
         "de",
+        "de2",
         "debug",
         "devinfra",
         "docs",
@@ -140,9 +141,9 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "from",
         "get-cli",
         "github-deployment-gate",
-        "gsnlink",
         "go",
         "guide",
+        "healthcheck",
         "help",
         "ingest",
         "ingest-beta",
@@ -213,6 +214,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "themonitor",
         "trust",
         "us",
+        "us2",
         "vs",
         "welcome",
         "www",
@@ -309,6 +311,7 @@ _SENTRY_RULES = (
     "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
+    "sentry.rules.filters.issue_type.IssueTypeFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -704,8 +707,8 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 JOIN_REQUESTS_DEFAULT = True
 HIDE_AI_FEATURES_DEFAULT = False
-GITHUB_COMMENT_BOT_DEFAULT = True
-GITLAB_COMMENT_BOT_DEFAULT = True
+GITHUB_COMMENT_BOT_DEFAULT = False
+GITLAB_COMMENT_BOT_DEFAULT = False
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
 DATA_CONSENT_DEFAULT = False
@@ -717,9 +720,23 @@ DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
 ENABLE_SEER_ENHANCED_ALERTS_DEFAULT = True
 ENABLE_SEER_CODING_DEFAULT = True
+# Seer Org level default for automated_run_stopping_point in project preferences
+AUTO_OPEN_PRS_DEFAULT = False
+# Seer Org level setting to automatically enable code review for all new GitHub repo's that become connected
+AUTO_ENABLE_CODE_REVIEW = False
+# Seer Org level default for code review triggers
+DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
+    "on_ready_for_review",
+    "on_new_commit",
+]
+SEER_DEFAULT_CODING_AGENT_DEFAULT = "seer"
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
-ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
+CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
+
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
+
+# Repository owner for console SDK repositories. Helpful for testing: add your test org here
+CONSOLE_SDK_REPO_OWNER = "getsentry"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
@@ -780,6 +797,7 @@ DS_DENYLIST = frozenset(
 # Also it covers: livez, readyz
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
+    "*health-check*",
     "*heartbeat*",
     "*/health{/,}",
     "*/healthy{/,}",
@@ -1049,3 +1067,7 @@ EXTENSION_LANGUAGE_MAP = {
     "dsr": "visual basic 6.0",
     "frm": "visual basic 6.0",
 }
+
+# After this date APIs that are incompatible with cell routing
+# will begin periodic brownouts.
+CELL_API_DEPRECATION_DATE = datetime(2026, 5, 15, 0, 0, 0, tzinfo=UTC)

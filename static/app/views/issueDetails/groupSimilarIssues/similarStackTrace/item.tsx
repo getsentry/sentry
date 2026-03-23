@@ -1,32 +1,29 @@
 import {useCallback, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import type {Location} from 'history';
+
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import Count from 'sentry/components/count';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {Count} from 'sentry/components/count';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import {Hovercard} from 'sentry/components/hovercard';
-import PanelItem from 'sentry/components/panels/panelItem';
-import ScoreBar from 'sentry/components/scoreBar';
-import SimilarScoreCard from 'sentry/components/similarScoreCard';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {ScoreBar} from 'sentry/components/scoreBar';
+import {SimilarScoreCard} from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
-import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
+import {GroupingStore} from 'sentry/stores/groupingStore';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];
   hasSimilarityEmbeddingsFeature: boolean;
   issue: Group;
-  location: Location;
-  orgId: Organization['id'];
   project: Project;
   aggregate?: {
     exception: number;
@@ -85,24 +82,22 @@ export function SimilarStackTraceItem(props: Props) {
 
   const handleShowDiff = useCallback(
     (event: React.MouseEvent) => {
-      const {orgId, groupId: baseIssueId, project, location} = props;
+      const {groupId: baseIssueId, project} = props;
       const {id: targetIssueId} = issue;
 
       openDiffModal({
         baseIssueId,
         targetIssueId,
         project,
-        orgId,
-        location,
       });
       event.stopPropagation();
     },
     [issue, props]
   );
 
-  const similarInterfaces: Array<'exception' | 'message'> = hasSimilarityEmbeddingsFeature
-    ? ['exception']
-    : ['exception', 'message'];
+  const similarInterfaces = hasSimilarityEmbeddingsFeature
+    ? (['exception'] as const)
+    : (['exception', 'message'] as const);
 
   const cx = classNames('group', {
     isResolved: issue.status === 'resolved',
@@ -118,18 +113,18 @@ export function SimilarStackTraceItem(props: Props) {
       <Details>
         <Checkbox id={issue.id} value={issue.id} checked={checked} onChange={() => {}} />
         <EventDetails>
-          <EventOrGroupHeader data={issue} source="similar-issues" />
-          <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
+          <GroupHeaderRow data={issue} source="similar-issues" />
+          <GroupMetaRow data={{...issue, lastSeen: ''}} showAssignee />
         </EventDetails>
 
-        <Diff>
+        <Flex align="center" marginRight="2xs" height="100%">
           <Button onClick={handleShowDiff} size="sm">
             {t('Diff')}
           </Button>
-        </Diff>
+        </Flex>
       </Details>
 
-      <Columns>
+      <Flex align="center" flexShrink={0} width="350px" minWidth="350px">
         <StyledCount value={issue.count} />
         {similarInterfaces.map(interfaceName => {
           const avgScore = aggregate?.[interfaceName];
@@ -150,69 +145,66 @@ export function SimilarStackTraceItem(props: Props) {
 
           return (
             <Column key={interfaceName}>
-              {!hasSimilarityEmbeddingsFeature && (
+              {hasSimilarityEmbeddingsFeature ? (
+                <ScoreBar vertical score={scoreValue} />
+              ) : (
                 <Hovercard
-                  body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}
+                  body={
+                    scoreList.length > 0 ? (
+                      <SimilarScoreCard scoreList={scoreList} />
+                    ) : null
+                  }
                 >
                   <ScoreBar vertical score={Math.round(scoreValue * 5)} />
                 </Hovercard>
               )}
-              {hasSimilarityEmbeddingsFeature && <ScoreBar vertical score={scoreValue} />}
             </Column>
           );
         })}
-      </Columns>
+      </Flex>
     </StyledPanelItem>
   );
 }
 
 const Details = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   display: grid;
   align-items: start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: max-content auto max-content;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;
 
-const Columns = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  min-width: 350px;
-  width: 350px;
-`;
-
-const columnStyle = css`
+const columnStyle = (theme: Theme) => css`
   flex: 1;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: ${space(0.5)} 0;
+  padding: ${theme.space.xs} 0;
 `;
 
 const Column = styled('div')`
-  ${columnStyle}
+  ${p => columnStyle(p.theme)}
 `;
 
 const StyledCount = styled(Count)`
-  ${columnStyle}
+  ${p => columnStyle(p.theme)}
   font-variant-numeric: tabular-nums;
-`;
-
-const Diff = styled('div')`
-  height: 100%;
-  display: flex;
-  align-items: center;
-  margin-right: ${space(0.25)};
 `;
 
 const EventDetails = styled('div')`
   flex: 1;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

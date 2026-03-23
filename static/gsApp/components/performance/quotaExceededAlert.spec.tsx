@@ -5,13 +5,13 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {QuotaExceededAlert} from './quotaExceededAlert';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('Renders QuotaExceededAlert correctly for spans', () => {
   const {organization} = initializeOrg();
@@ -121,10 +121,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
 
     expect(
       screen.getByRole('link', {name: /increase your on-demand budget/})
-    ).toHaveAttribute(
-      'href',
-      '/settings/billing/checkout/?referrer=trace-view&skipBundles=true'
-    );
+    ).toHaveAttribute('href', '/checkout/?referrer=trace-view&skipBundles=true');
   });
 
   it('renders alert when quota is exceeded for logs', async () => {
@@ -176,9 +173,6 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
 
     expect(
       screen.getByRole('link', {name: /increase your on-demand budget/})
-    ).toHaveAttribute(
-      'href',
-      '/settings/billing/checkout/?referrer=trace-view&skipBundles=true'
-    );
+    ).toHaveAttribute('href', '/checkout/?referrer=trace-view&skipBundles=true');
   });
 });

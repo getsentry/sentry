@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Radio} from 'sentry/components/core/radio';
-import {space} from 'sentry/styles/space';
+import {Flex} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
 
 type RadioPanelGroupProps<C extends string> = {
   /**
@@ -22,7 +21,7 @@ type RadioPanelGroupProps<C extends string> = {
 type Props<C extends string> = RadioPanelGroupProps<C> &
   Omit<React.HTMLAttributes<HTMLDivElement>, keyof RadioPanelGroupProps<C>>;
 
-function RadioPanelGroup<C extends string>({
+export function RadioPanelGroup<C extends string>({
   value,
   choices,
   label,
@@ -52,11 +51,9 @@ function RadioPanelGroup<C extends string>({
   );
 }
 
-export default RadioPanelGroup;
-
 const Container = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: row;
   grid-auto-rows: max-content;
   grid-auto-columns: auto;
@@ -71,20 +68,20 @@ const RadioLineItem = styled('label')<{
   justify-content: space-between;
   cursor: pointer;
   outline: none;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   transition: color 0.3s ease-in;
   padding: 0;
   position: relative;
 
   &:hover,
   &:focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   &[aria-checked='true'] {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

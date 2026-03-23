@@ -1,6 +1,9 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {QRCodeCanvas} from 'qrcode.react';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -12,36 +15,34 @@ import {
   fetchOrganizationByMember,
   fetchOrganizations,
 } from 'sentry/actionCreators/organizations';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import NotFound from 'sentry/components/errors/notFound';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {NotFound} from 'sentry/components/errors/notFound';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {WebAuthnEnroll} from 'sentry/components/webAuthn/webAuthnEnroll';
 import {t} from 'sentry/locale';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {space} from 'sentry/styles/space';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {Authenticator} from 'sentry/types/auth';
 import {generateOrgSlugUrl} from 'sentry/utils';
-import getPendingInvite from 'sentry/utils/getPendingInvite';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPendingInvite} from 'sentry/utils/getPendingInvite';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {AuthenticatorHeader} from './components/authenticatorHeader';
 
@@ -80,7 +81,7 @@ const getFields = ({
     return [
       () => (
         <CodeContainer key="qrcode">
-          <StyledQRCode
+          <QuietZoneQRCode
             aria-label={t('Enrollment QR Code')}
             value={authenticator.qrcode}
             size={228}
@@ -116,12 +117,12 @@ const getFields = ({
       ...(hasSentCode ? [{...form[1]!, required: true}] : []),
       () => (
         <Actions key="sms-footer">
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {hasSentCode && <Button onClick={onSmsReset}>{t('Start Over')}</Button>}
             <Button priority="primary" type="submit">
               {hasSentCode ? t('Confirm') : t('Send Code')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Actions>
       ),
     ];
@@ -151,15 +152,19 @@ const getFields = ({
  */
 export default function AccountSecurityEnroll() {
   const api = useApi();
-  const {authId} = useParams();
+  const {authId} = useParams<{authId: string}>();
   const navigate = useNavigate();
 
   const [hasSentCode, setHasSentCode] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
   const [isMutationPending, setIsMutationPending] = useState(false);
 
-  const authenticatorEndpoint = `/users/me/authenticators/${authId}/`;
-  const enrollEndpoint = `${authenticatorEndpoint}enroll/`;
+  const authenticatorEndpoint = getApiUrl(`/users/$userId/authenticators/$authId/`, {
+    path: {userId: 'me', authId},
+  });
+  const enrollEndpoint = getApiUrl(`/users/$userId/authenticators/$interfaceId/enroll/`, {
+    path: {userId: 'me', interfaceId: authId},
+  });
 
   const formModel = useMemo(() => new FormModel(), []);
   const pendingInvitation = useMemo(getPendingInvite, []);
@@ -177,10 +182,7 @@ export default function AccountSecurityEnroll() {
   const authenticatorName = authenticator?.name ?? 'Authenticator';
 
   const alreadyEnrolled =
-    error &&
-    error.status === 400 &&
-    error.responseJSON &&
-    error.responseJSON.details === 'Already enrolled';
+    error?.status === 400 && error.responseJSON?.details === 'Already enrolled';
 
   useEffect(() => {
     if (!isError) {
@@ -455,7 +457,7 @@ export default function AccountSecurityEnroll() {
 
       {authenticator.rotationWarning && authenticator.status === 'rotation' && (
         <Alert.Container>
-          <Alert type="warning">{authenticator.rotationWarning}</Alert>
+          <Alert variant="warning">{authenticator.rotationWarning}</Alert>
         </Alert.Container>
       )}
 
@@ -481,9 +483,4 @@ const CodeContainer = styled(PanelItem)`
 
 const Actions = styled(PanelItem)`
   justify-content: flex-end;
-`;
-
-const StyledQRCode = styled(QRCodeCanvas)`
-  background: white;
-  padding: ${space(2)};
 `;

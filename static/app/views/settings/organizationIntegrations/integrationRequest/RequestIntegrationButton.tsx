@@ -1,13 +1,13 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IntegrationType} from 'sentry/types/integrations';
 
-import RequestIntegrationModal from './RequestIntegrationModal';
+import {RequestIntegrationModal} from './RequestIntegrationModal';
 
 type Props = {
   name: string;
@@ -15,7 +15,7 @@ type Props = {
   type: IntegrationType;
 };
 
-export default function RequestIntegrationButton(props: Props) {
+export function RequestIntegrationButton(props: Props) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isSent, setIsSent] = useState<boolean>(false);
 
@@ -58,5 +58,5 @@ export default function RequestIntegrationButton(props: Props) {
 }
 
 const StyledRequestIntegrationButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;

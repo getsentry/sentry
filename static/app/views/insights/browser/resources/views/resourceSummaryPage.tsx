@@ -2,13 +2,15 @@ import React from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useParams} from 'sentry/utils/useParams';
-import ResourceSummaryCharts from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
-import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
-import ResourceInfo from 'sentry/views/insights/browser/resources/components/resourceInfo';
-import SampleImages from 'sentry/views/insights/browser/resources/components/sampleImages';
-import ResourceSummaryTable from 'sentry/views/insights/browser/resources/components/tables/resourceSummaryTable';
+import {ResourceSummaryCharts} from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
+import {RenderBlockingSelector} from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
+import {ResourceInfo} from 'sentry/views/insights/browser/resources/components/resourceInfo';
+import {SampleImages} from 'sentry/views/insights/browser/resources/components/sampleImages';
+import {ResourceSummaryTable} from 'sentry/views/insights/browser/resources/components/tables/resourceSummaryTable';
 import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/insights/browser/resources/constants';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
@@ -24,7 +26,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -173,8 +175,16 @@ function ResourceSummary() {
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   return (
-    <ModulePageProviders moduleName="resource" pageTitle={`${DATA_TYPE} ${t('Summary')}`}>
+    <ModulePageProviders
+      moduleName="resource"
+      pageTitle={`${DATA_TYPE} ${t('Summary')}`}
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <ResourceSummary />
     </ModulePageProviders>
   );

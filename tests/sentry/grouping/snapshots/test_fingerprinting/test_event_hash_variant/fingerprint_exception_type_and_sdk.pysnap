@@ -1,7 +1,5 @@
 ---
-created: '2025-10-06T17:30:32.682169+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_fingerprinting.py
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
 ---
 config:
   rules:
@@ -27,13 +25,13 @@ variants:
     hint: ignored because custom server fingerprint takes precedence
     key: app_exception_message
     type: component
-  custom_fingerprint:
+  custom_server_fingerprint:
     client_values:
     - my-route
     - '{{ default }}'
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: sdk:"sentry.java" type:"DatabaseUnavailable" -> "database-unavailable"
     type: custom_fingerprint
     values:

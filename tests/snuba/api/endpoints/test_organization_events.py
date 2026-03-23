@@ -32,6 +32,7 @@ from sentry.testutils.cases import (
     APITransactionTestCase,
     OurLogTestCase,
     PerformanceIssueTestCase,
+    ProcessingErrorTestCase,
     ProfileFunctionsTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
@@ -44,6 +45,7 @@ from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
+from sentry.utils.snuba_rpc import SnubaRPCError
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
@@ -56,6 +58,7 @@ class OrganizationEventsEndpointTestBase(
     SnubaTestCase,
     SpanTestCase,
     OurLogTestCase,
+    ProcessingErrorTestCase,
     TraceMetricsTestCase,
     ProfileFunctionsTestCase,
 ):
@@ -590,6 +593,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_performance_short_group_id(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
@@ -603,6 +607,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     def test_multiple_performance_short_group_ids_filter(self) -> None:
         event1 = self.create_performance_issue()
         event2 = self.create_performance_issue()
+        assert event1.group is not None
+        assert event2.group is not None
 
         query = {
             "field": ["count()"],
@@ -2426,12 +2432,17 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data["transaction"] = "/aggregates/2"
         event2 = self.store_event(data, project_id=self.project.id)
 
+        # Derive start/end from the same base timestamp so the window is exactly
+        # 2 minutes, avoiding drift from separate before_now() calls in setUp.
+        start = (self.ten_mins_ago - timedelta(minutes=1)).isoformat()
+        end = (self.ten_mins_ago + timedelta(minutes=1)).isoformat()
+
         query = {
             "field": ["transaction", "epm()"],
             "query": "event.type:transaction",
             "orderby": ["transaction"],
-            "start": self.eleven_mins_ago_iso,
-            "end": self.nine_mins_ago,
+            "start": start,
+            "end": end,
         }
         response = self.do_request(query)
 
@@ -3112,6 +3123,50 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data = response.data["data"]
             assert len(data) == 1
             assert data[0]["count(id)"] == 0
+
+    def test_has_and_has_in_filter(self) -> None:
+        """Legacy path: single-key has: and multi-key has:[...] on discover dataset."""
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"tag_a": "1"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"tag_b": "2"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"tag_a": "3", "tag_c": "4"},
+            },
+            project_id=self.project.id,
+        )
+        features = {"organizations:discover-basic": True}
+        # Multi-key has:[...] (events that have tag_a OR tag_b)
+        response2 = self.do_request(
+            {
+                "field": ["id", "tag_a", "tag_b"],
+                "query": "has:[tag_a,tag_c]",
+                "sort": "id",
+                "statsPeriod": "24h",
+                "dataset": "discover",
+            },
+            features=features,
+        )
+        assert response2.status_code == 200, response2.content
+        data2 = response2.data["data"]
+        assert len(data2) == 2
+        ids2 = {r["id"] for r in data2}
+        assert ids2 == {"a" * 32, "c" * 32}
 
     def test_tag_that_looks_like_aggregation(self) -> None:
         data = {
@@ -5624,7 +5679,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["group_id"] == "this should just get returned"
 
-    @pytest.mark.skip(reason="flaky: #96444")
     def test_floored_epm(self) -> None:
         for _ in range(5):
             data = self.load_data(
@@ -5634,12 +5688,16 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data["transaction"] = "/aggregates/1"
             event1 = self.store_event(data, project_id=self.project.id)
 
+        # Derive start/end from the same base timestamp to ensure an exact
+        # 2-minute window, avoiding flakiness from separate before_now() calls.
+        start = (self.ten_mins_ago - timedelta(minutes=1)).replace(microsecond=0)
+        end = (self.ten_mins_ago + timedelta(minutes=1)).replace(microsecond=0)
         query = {
             "field": ["transaction", "floored_epm()", "epm()"],
             "query": "event.type:transaction",
             "orderby": ["transaction"],
-            "start": self.eleven_mins_ago_iso,
-            "end": self.nine_mins_ago,
+            "start": start.isoformat(),
+            "end": end.isoformat(),
         }
         response = self.do_request(query)
 
@@ -5659,12 +5717,16 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data["transaction"] = "/aggregates/1"
             event1 = self.store_event(data, project_id=self.project.id)
 
+        # Derive start/end from the same base timestamp to ensure an exact
+        # 2-minute window, avoiding flakiness from separate before_now() calls.
+        start = (self.ten_mins_ago - timedelta(minutes=1)).replace(microsecond=0)
+        end = (self.ten_mins_ago + timedelta(minutes=1)).replace(microsecond=0)
         query = {
             "field": ["transaction", "floored_epm()", "epm()"],
             "query": "event.type:transaction",
             "orderby": ["transaction"],
-            "start": self.eleven_mins_ago_iso,
-            "end": self.nine_mins_ago,
+            "start": start.isoformat(),
+            "end": end.isoformat(),
         }
         response = self.do_request(query)
 
@@ -5897,17 +5959,17 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         profile_id = uuid.uuid4().hex
         transaction_profile = load_data("transaction", timestamp=self.ten_mins_ago)
-        transaction_profile.setdefault("contexts", {}).setdefault("profile", {})[
-            "profile_id"
-        ] = profile_id
+        transaction_profile.setdefault("contexts", {}).setdefault("profile", {})["profile_id"] = (
+            profile_id
+        )
         transaction_profile["event_id"] = uuid.uuid4().hex
         self.store_event(transaction_profile, project_id=self.project.id)
 
         profiler_id = uuid.uuid4().hex
         continuous_profile = load_data("transaction", timestamp=self.ten_mins_ago)
-        continuous_profile.setdefault("contexts", {}).setdefault("profile", {})[
-            "profiler_id"
-        ] = profiler_id
+        continuous_profile.setdefault("contexts", {}).setdefault("profile", {})["profiler_id"] = (
+            profiler_id
+        )
         continuous_profile.setdefault("contexts", {}).setdefault("trace", {}).setdefault(
             "data", {}
         )["thread.id"] = "12345"
@@ -5974,6 +6036,46 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert "debug_info" in response.data["meta"]
         # We should get the snql query back in the query key
         assert "MATCH" in response.data["meta"]["debug_info"]["query"]
+
+    @mock.patch("sentry.utils.snuba_rpc.table_rpc")
+    def test_debug_param_with_error(self, mock_query) -> None:
+        mock_query.side_effect = SnubaRPCError("test")
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
+        self.create_team(organization=self.organization, members=[self.user])
+
+        response = self.do_request(
+            {
+                "field": ["spans.http"],
+                "project": [self.project.id],
+                "query": "event.type:transaction",
+                "dataset": "spans",
+                "debug": True,
+            },
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 500, response.content
+        assert "debug_info" in response.data["meta"]
+        # We should get the snql query back in the query key
+        assert "virtualColumnContexts" in response.data["meta"]["debug_info"]["query"]
+
+        # Need to reset the mock, otherwise previous query is still attached
+        mock_query.side_effect = SnubaRPCError("test")
+        response = self.do_request(
+            {
+                "field": ["spans.http"],
+                "project": [self.project.id],
+                "query": "event.type:transaction",
+                "dataset": "spans",
+            },
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 500, response.content
+        assert "meta" not in response.data
+        assert "debug_info" not in response.data
 
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
@@ -6286,6 +6388,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
     def test_performance_issue_id_filter(self) -> None:
         event = self.create_performance_issue()
 
+        assert event.group is not None
         query = {
             "field": ["count()"],
             "statsPeriod": "2h",
@@ -6353,6 +6456,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
 
     def test_performance_short_group_id(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
@@ -6366,6 +6470,8 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
     def test_multiple_performance_short_group_ids_filter(self) -> None:
         event1 = self.create_performance_issue()
         event2 = self.create_performance_issue()
+        assert event1.group is not None
+        assert event2.group is not None
 
         query = {
             "field": ["count()"],
@@ -6433,6 +6539,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             },
             user_data=user_data,
         )
+        assert event.group is not None
 
         query = {
             "field": [
@@ -6993,20 +7100,20 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
 
                 if expected_a_first:
                     # A should come first (higher upsampled values)
-                    assert (
-                        data[0]["issue.id"] == group_a_id
-                    ), f"Field {field}: Expected group A ({group_a_id}) first, but got {data[0]['issue.id']}"
-                    assert (
-                        data[1]["issue.id"] == group_b_id
-                    ), f"Field {field}: Expected group B ({group_b_id}) second, but got {data[1]['issue.id']}"
+                    assert data[0]["issue.id"] == group_a_id, (
+                        f"Field {field}: Expected group A ({group_a_id}) first, but got {data[0]['issue.id']}"
+                    )
+                    assert data[1]["issue.id"] == group_b_id, (
+                        f"Field {field}: Expected group B ({group_b_id}) second, but got {data[1]['issue.id']}"
+                    )
                 else:
                     # B should come first (higher raw values)
-                    assert (
-                        data[0]["issue.id"] == group_b_id
-                    ), f"Field {field}: Expected group B ({group_b_id}) first, but got {data[0]['issue.id']}"
-                    assert (
-                        data[1]["issue.id"] == group_a_id
-                    ), f"Field {field}: Expected group A ({group_a_id}) second, but got {data[1]['issue.id']}"
+                    assert data[0]["issue.id"] == group_b_id, (
+                        f"Field {field}: Expected group B ({group_b_id}) first, but got {data[0]['issue.id']}"
+                    )
+                    assert data[1]["issue.id"] == group_a_id, (
+                        f"Field {field}: Expected group A ({group_a_id}) second, but got {data[1]['issue.id']}"
+                    )
 
     def test_is_status(self) -> None:
         self.store_event(
@@ -7290,3 +7397,50 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert meta["fields"]["transaction.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
         assert meta["units"]["transaction.duration"] == "millisecond"
+
+    def test_error_received_filter(self) -> None:
+        """Test that error.received filter works correctly with datetime comparison."""
+        # Store an event 10 minutes ago
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group1"],
+                "message": "older event",
+            },
+            project_id=self.project.id,
+        )
+
+        # Store an event 9 minutes ago
+        nine_mins_ago_iso = self.nine_mins_ago.replace(microsecond=0).isoformat()
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": nine_mins_ago_iso,
+                "fingerprint": ["group2"],
+                "message": "newer event",
+            },
+            project_id=self.project.id,
+        )
+
+        # Query for events received after 10 mins ago (should only get the newer one)
+        query = {
+            "field": ["count()", "message"],
+            "statsPeriod": "1h",
+            "query": f"error.received:>{self.ten_mins_ago_iso}",
+            "dataset": "errors",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+        # Query for events received after 11 mins ago (should get both)
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"error.received:>{self.eleven_mins_ago_iso}",
+            "dataset": "errors",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 2

@@ -1,23 +1,22 @@
 import * as qs from 'query-string';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {uniqueId} from 'sentry/utils/guid';
-import localStorage from 'sentry/utils/localStorage';
-import sessionStorage from 'sentry/utils/sessionStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+import {readStorageValue} from 'sentry/utils/useSessionStorage';
 
 import type {Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
-import {GETSENTRY_EVENT_MAP} from 'getsentry/utils/trackGetsentryAnalytics';
-import {hasNewCheckout} from 'getsentry/views/amCheckout/utils';
 
-import trackAmplitudeEvent from './trackAmplitudeEvent';
-import trackMarketingEvent from './trackMarketingEvent';
-import trackPendoEvent from './trackPendoEvent';
-import trackReloadEvent from './trackReloadEvent';
+import {trackAmplitudeEvent} from './trackAmplitudeEvent';
+import {trackMarketingEvent} from './trackMarketingEvent';
+import {trackPendoEvent} from './trackPendoEvent';
+import {trackReloadEvent} from './trackReloadEvent';
 
 /**
  * Fields that are listed here which are passed to trackAnalyticsEvent's data
@@ -61,21 +60,29 @@ const ANALYTICS_SESSION = 'ANALYTICS_SESSION';
 
 const startAnalyticsSession = () => {
   const sessionId = uniqueId();
-  sessionStorage.setItem(ANALYTICS_SESSION, sessionId);
+  sessionStorageWrapper.setItem(ANALYTICS_SESSION, sessionId);
   return sessionId;
 };
 
-const getAnalyticsSessionId = () => sessionStorage.getItem(ANALYTICS_SESSION);
+const getAnalyticsSessionId = () => sessionStorageWrapper.getItem(ANALYTICS_SESSION);
 
-const hasAnalyticsDebug = () => localStorage.getItem('DEBUG_ANALYTICS_GETSENTRY') === '1';
+const hasAnalyticsDebug = () =>
+  localStorageWrapper.getItem('DEBUG_ANALYTICS_GETSENTRY') === '1';
 
 const getCustomReferrer = () => {
   try {
     // pull the referrer from the query parameter of the page
     const {referrer} = qs.parse(window.location.search) || {};
+    // pull the referrer from session storage.
+    const storedReferrer = readStorageValue<string | null>(CUSTOM_REFERRER_KEY, null);
+    // ?referrer takes precedence, but still unset session stored referrer.
+    if (storedReferrer) {
+      sessionStorageWrapper.removeItem(CUSTOM_REFERRER_KEY);
+    }
     if (referrer && typeof referrer === 'string') {
       return referrer;
     }
+    return storedReferrer;
   } catch {
     // ignore if this fails to parse
     // this can happen if we have an invalid query string
@@ -139,7 +146,7 @@ function isFullOrganization(
   return !!organization && typeof organization !== 'string';
 }
 
-export default function rawTrackAnalyticsEvent(
+export function rawTrackAnalyticsEvent(
   {eventKey, eventName, organization, subscription, ...data}: Params,
   options?: Options
 ) {
@@ -174,7 +181,7 @@ export default function rawTrackAnalyticsEvent(
     }
 
     // add in previous referrer if different than custom referrer
-    const prevReferrer = sessionStorage.getItem('previous_referrer');
+    const prevReferrer = sessionStorageWrapper.getItem('previous_referrer');
     if (prevReferrer && prevReferrer !== customReferrer) {
       data.previous_referrer = prevReferrer;
     }
@@ -182,11 +189,6 @@ export default function rawTrackAnalyticsEvent(
     // pass in properties if we have the full organization
     if (isFullOrganization(organization)) {
       data.role = organization.orgRole;
-
-      if (eventKey in GETSENTRY_EVENT_MAP) {
-        data.isNewCheckout = hasNewCheckout(organization);
-        data.isNewBillingUI = hasNewBillingUI(organization);
-      }
     }
 
     // add in plan information

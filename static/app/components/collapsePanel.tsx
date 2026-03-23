@@ -2,9 +2,10 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {IconChevron, IconList} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export const COLLAPSE_COUNT = 5;
 
@@ -29,7 +30,7 @@ type Props = {
  * expand button to be outside the list of children
  *
  */
-function CollapsePanel({
+export function CollapsePanel({
   items,
   children,
   buttonTitle,
@@ -78,45 +79,37 @@ function ShowMoreButton({
       data-test-id="collapse-show-more"
       disableBorder={disableBorder}
     >
-      <ShowMoreText>
-        <StyledIconList color="gray300" />
+      <Flex align="center" flexGrow={1}>
+        <StyledIconList variant="muted" />
         {tct('Show [count] [buttonTitle]', {count: items - collapseCount, buttonTitle})}
-      </ShowMoreText>
+      </Flex>
 
-      <IconChevron color="gray300" direction="down" />
+      <IconChevron variant="muted" direction="down" />
     </ShowMore>
   );
 }
 
-export default CollapsePanel;
-
 const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
   ${p =>
     !p.disableBorder &&
     css`
-      border-left: 1px solid ${p.theme.border};
-      border-right: 1px solid ${p.theme.border};
-      border-bottom: 1px solid ${p.theme.border};
-      border-bottom-left-radius: ${p.theme.borderRadius};
-      border-bottom-right-radius: ${p.theme.borderRadius};
-      margin-bottom: ${space(2)};
+      border-left: 1px solid ${p.theme.tokens.border.primary};
+      border-right: 1px solid ${p.theme.tokens.border.primary};
+      border-bottom: 1px solid ${p.theme.tokens.border.primary};
+      border-bottom-left-radius: ${p.theme.radius.md};
+      border-bottom-right-radius: ${p.theme.radius.md};
+      margin-bottom: ${p.theme.space.xl};
     `}
 `;
 
 const StyledIconList = styled(IconList)`
-  margin-right: ${space(1)};
-`;
-
-const ShowMoreText = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-grow: 1;
+  margin-right: ${p => p.theme.space.md};
 `;

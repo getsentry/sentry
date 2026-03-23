@@ -1,6 +1,6 @@
 import {useQueryState} from 'nuqs';
 
-import type {SelectKey} from 'sentry/components/core/compactSelect';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
 
 const DEFAULT_VALUE = 'ALL';
 

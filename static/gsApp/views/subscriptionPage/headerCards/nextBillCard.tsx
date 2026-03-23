@@ -1,16 +1,18 @@
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import Placeholder from 'sentry/components/placeholder';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import {InvoiceItemType, type PreviewData, type Subscription} from 'getsentry/types';
+import type {PreviewData, Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
   getCreditApplied,
@@ -18,9 +20,9 @@ import {
   getFees,
 } from 'getsentry/utils/billing';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
-import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
-function NextBillCard({
+export function NextBillCard({
   subscription,
   organization,
 }: {
@@ -32,7 +34,11 @@ function NextBillCard({
     isLoading,
     isError,
   } = useApiQuery<PreviewData>(
-    [`/customers/${organization.slug}/subscription/next-bill/`],
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/subscription/next-bill/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: 0,
       enabled: !!subscription.plan,
@@ -42,7 +48,7 @@ function NextBillCard({
   // recurring fees, PAYG, and credits are grouped together
   // only additional fees (ie. taxes) are listed individually
   const invoiceItems = nextBill?.invoiceItems ?? [];
-  const planItem = invoiceItems.find(item => item.type === InvoiceItemType.SUBSCRIPTION);
+  const planItem = invoiceItems.find(item => item.type === 'subscription');
   const plan = planItem?.data.plan;
   const isAnnualPlan = plan?.endsWith('_auf');
   const reservedTotal =
@@ -53,11 +59,9 @@ function NextBillCard({
   const paygTotal = invoiceItems
     .filter(item => item.type.startsWith('ondemand_'))
     .reduce((acc, item) => acc + item.amount, 0);
+  const seerItem = invoiceItems.find(item => item.type === 'activated_seer_users');
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems}); // these should all be negative already
-
-  // TODO(isabella): Update the getCreditApplied function to return a negative value
-  // and correct places where it's used
   const creditApplied =
     -1 *
     getCreditApplied({
@@ -89,7 +93,7 @@ function NextBillCard({
           {isLoading ? (
             <Placeholder height="20px" width="150px" />
           ) : (
-            <Tag type="info">
+            <Tag variant="info">
               {tct('[billDate]・in [daysLeft] days', {
                 billDate: nextBillDate.format('MMM D, YYYY'),
                 daysLeft,
@@ -100,7 +104,7 @@ function NextBillCard({
         isLoading ? (
           <Placeholder style={{flexGrow: 1}} />
         ) : isError ? (
-          <Alert type="error">
+          <Alert variant="danger">
             {t('Could not compute next bill. Please try again later.')}
           </Alert>
         ) : (
@@ -131,6 +135,16 @@ function NextBillCard({
                   </Text>
                 </Flex>
               )}
+              {seerItem && (
+                <Flex justify="between" align="center">
+                  <Text variant="muted" size="sm">
+                    {seerItem.description}
+                  </Text>
+                  <Text variant="muted" size="sm">
+                    {displayPriceWithCents({cents: seerItem.amount})}
+                  </Text>
+                </Flex>
+              )}
               {fees.map(item => (
                 <Flex justify="between" align="center" key={item.type}>
                   <Text variant="muted" size="sm">
@@ -158,5 +172,3 @@ function NextBillCard({
     />
   );
 }
-
-export default NextBillCard;

@@ -6,7 +6,7 @@ from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
+from typing import Any, Optional, TypedDict, TypeVar, cast
 
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse
@@ -18,8 +18,8 @@ from snuba_sdk import Column, Function
 
 from sentry import constants, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -27,11 +27,15 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.eap.occurrences.common_queries import count_occurrences_grouped_by_trace_ids
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import base32_encode, format_grouped_length
@@ -212,8 +216,16 @@ class TraceEvent:
         if len(self.event["issue.ids"]) > 0:
             if self.span_serialized:
                 self.load_span_serialized_performance_issues(light)
-            else:
+            elif snuba_params is not None:
                 self.load_performance_issues(light, snuba_params)
+            else:
+                logger.error(
+                    "Expected either span_serialized or snuba_params to be set",
+                    extra={
+                        "event_id": self.event["id"],
+                        "project_id": self.event["project.id"],
+                    },
+                )
 
     @property
     def nodestore_event(self) -> Event | GroupEvent | None:
@@ -283,7 +295,7 @@ class TraceEvent:
                     }
                 )
 
-    def load_performance_issues(self, light: bool, snuba_params: SnubaParams | None) -> None:
+    def load_performance_issues(self, light: bool, snuba_params: SnubaParams) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
         for group_id in self.event["issue.ids"]:
             group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
@@ -313,6 +325,49 @@ class TraceEvent:
                             query_source=self.query_source,
                         )
                     )["data"]
+
+                    callsite = "api.trace.load_performance_issues"
+                    if EAPOccurrencesComparator.should_check_experiment(callsite):
+                        try:
+                            eap_result = Occurrences.run_table_query(
+                                params=snuba_params,
+                                query_string=f"id:{self.event['id']}",
+                                selected_columns=["issue_occurrence_id"],
+                                orderby=None,
+                                offset=0,
+                                limit=len(occurrence_ids) + 100,
+                                referrer=Referrer.API_TRACE_VIEW_GET_OCCURRENCE_IDS.value,
+                                config=SearchResolverConfig(),
+                                occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+                            )
+                            eap_occurrence_ids = [
+                                {"occurrence_id": row["issue_occurrence_id"]}
+                                for row in eap_result.get("data", [])
+                                if row.get("issue_occurrence_id")
+                            ]
+                        except Exception:
+                            logger.exception(
+                                "Fetching occurrence IDs from EAP failed",
+                                extra={
+                                    "event_id": self.event["id"],
+                                    "project_id": self.event["project.id"],
+                                },
+                            )
+                            eap_occurrence_ids = []
+
+                        occurrence_ids = EAPOccurrencesComparator.check_and_choose(
+                            control_data=occurrence_ids,
+                            experimental_data=eap_occurrence_ids,
+                            callsite=callsite,
+                            is_experimental_data_a_null_result=len(eap_occurrence_ids) == 0,
+                            reasonable_match_comparator=lambda snuba, eap: {
+                                row["occurrence_id"] for row in eap
+                            }.issubset({row["occurrence_id"] for row in snuba}),
+                            debug_context={
+                                "event_id": self.event["id"],
+                                "project_id": self.event["project.id"],
+                            },
+                        )
 
                     issue_occurrences = IssueOccurrence.fetch_multi(
                         [str(occurrence.get("occurrence_id")) for occurrence in occurrence_ids],
@@ -483,24 +538,21 @@ def is_root(item: SnubaTransaction) -> bool:
     return item.get("root", "0") == "1"
 
 
-def child_sort_key(item: TraceEvent) -> list[int | str]:
+def child_sort_key(item: TraceEvent) -> tuple[int, int, str, str]:
     if item.fetched_nodestore and item.nodestore_event is not None:
-        return [
+        return (
             item.nodestore_event.data["start_timestamp"],
             item.nodestore_event.data["timestamp"],
-        ]
-    elif item.span_serialized:
-        return [
+            item.event["transaction"],
+            item.event["id"],
+        )
+    else:
+        return (
             item.event["precise.start_ts"],
             item.event["precise.finish_ts"],
             item.event["transaction"],
             item.event["id"],
-        ]
-    else:
-        return [
-            item.event["transaction"],
-            item.event["id"],
-        ]
+        )
 
 
 def count_performance_issues(
@@ -521,7 +573,34 @@ def count_performance_issues(
         referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
         query_source=query_source,
     )
-    return count["data"][0].get("total_groups", 0)
+    snuba_count = count["data"][0].get("total_groups", 0)
+    performance_issues_count = snuba_count
+
+    callsite = "api.trace.count_performance_issues"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_count = count_occurrences_grouped_by_trace_ids(
+            snuba_params=params,
+            trace_ids=[trace_id],
+            referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        ).get(trace_id, 0)
+        performance_issues_count = EAPOccurrencesComparator.check_and_choose(
+            snuba_count,
+            eap_count,
+            callsite,
+            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    params.organization.id if params.organization is not None else None
+                ),
+                "project_ids": [project.id for project in params.projects],
+                "start": params.start.isoformat() if params.start else None,
+                "end": params.end.isoformat() if params.end else None,
+            },
+        )
+
+    return performance_issues_count
 
 
 @sentry_sdk.tracing.trace
@@ -734,7 +813,7 @@ def pad_span_id(span: str | None) -> str:
     return span.rjust(16, "0")
 
 
-class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -924,7 +1003,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         raise NotImplementedError
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -1111,7 +1190,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def update_children(event: TraceEvent, limit: int) -> None:
@@ -1175,7 +1254,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         error_map = self.construct_error_map(errors)
         parent_events: dict[str, TraceEvent] = {}
         results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
-        to_check: Deque[SnubaTransaction] = deque()
+        to_check: deque[SnubaTransaction] = deque()
         snuba_params = self.get_snuba_params(self.request, self.request.organization)
         # The root of the orphan tree we're currently navigating through
         orphan_root: SnubaTransaction | None = None
@@ -1447,8 +1526,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             }
 
 
-@region_silo_endpoint
-class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
+@cell_silo_endpoint
+class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

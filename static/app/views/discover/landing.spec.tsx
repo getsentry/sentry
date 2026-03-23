@@ -2,9 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import DiscoverLanding from 'sentry/views/discover/landing';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -116,7 +116,7 @@ describe('Discover > Landing', () => {
       </OrganizationContext>
     );
 
-    expect(await screen.findByText('Discover')).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Discover'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/discover/homepage/'
     );

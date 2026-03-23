@@ -364,4 +364,23 @@ class MonitorAddAuditLogEvent(AuditLogEvent):
         name = entry_data.get("name")
         upsert = entry_data.get("upsert")
 
-        return f"added{" upsert " if upsert else " "}monitor {name}"
+        return f"added{' upsert ' if upsert else ' '}monitor {name}"
+
+
+class RepoSettingsEditAuditLogEvent(AuditLogEvent):
+    def __init__(self) -> None:
+        super().__init__(
+            event_id=1159,
+            name="REPO_SETTINGS_EDIT",
+            api_name="repo-settings.edit",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        data = audit_log_entry.data
+        if "repository_names" in data and "code_review_change" in data:
+            return "updated repository settings for {repository_names}{code_review_change}".format(
+                **data
+            )
+        return "updated repository settings for {repository_count} repositories".format(
+            repository_count=data.get("repository_count", 0),
+        )

@@ -1,20 +1,21 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {Access} from 'sentry/components/acl/access';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
-import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = {
   onClick: () => void;
 };
 
-function AddIntegrationRow({onClick}: Props) {
+export function AddIntegrationRow({onClick}: Props) {
   const organization = useOrganization();
   const {isSelfHosted} = ConfigStore.getState();
   const integration = useContext(IntegrationContext);
@@ -31,14 +32,14 @@ function AddIntegrationRow({onClick}: Props) {
     size: 'sm',
     priority: 'primary',
     'data-test-id': 'install-button',
-  };
+  } as const;
 
   return (
     <RowWrapper>
-      <IconTextWrapper>
+      <Flex align="center" gap="2xl">
         <PluginIcon pluginId={provider.slug} size={40} />
         <NameHeader>Connect {provider.name}</NameHeader>
-      </IconTextWrapper>
+      </Flex>
       <Access access={['org:integrations']} organization={organization}>
         {({hasAccess}) => {
           return isSelfHosted ? (
@@ -67,16 +68,10 @@ function AddIntegrationRow({onClick}: Props) {
 const RowWrapper = styled('div')`
   display: flex;
   border-radius: 4px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   justify-content: space-between;
   align-items: center;
-  padding: ${space(3)} ${space(4)};
-`;
-
-const IconTextWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(3)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
 `;
 
 const NameHeader = styled('h6')`
@@ -86,5 +81,3 @@ const NameHeader = styled('h6')`
 const StyledButton = styled(IntegrationButton)`
   margin: 0;
 `;
-
-export default AddIntegrationRow;

@@ -101,6 +101,17 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import format_grouped_length
 
 
+class InvalidIssueSearchQuery(InvalidSearchQuery):
+    """Raised when an issue filter references non-existent issue IDs."""
+
+    def __init__(self, invalid_ids: list[str]):
+        self.invalid_ids = invalid_ids
+        super().__init__(f"Issue IDs do not exist: {invalid_ids}")
+
+    def __str__(self) -> str:
+        return f"Issue IDs do not exist: {self.invalid_ids}"
+
+
 class DiscoverDatasetConfig(DatasetConfig):
     custom_threshold_columns = {
         "apdex()",
@@ -762,109 +773,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                     private=True,
                 ),
                 SnQLFunction(
-                    "spans_histogram",
-                    required_args=[
-                        SnQLStringArg("spans_op", True, True),
-                        SnQLStringArg("spans_group"),
-                        # the bucket_size and start_offset should already be adjusted
-                        # using the multiplier before it is passed here
-                        NumberRange("bucket_size", 0, None),
-                        NumberRange("start_offset", 0, None),
-                        NumberRange("multiplier", 1, None),
-                    ],
-                    snql_column=lambda args, alias: Function(
-                        "plus",
-                        [
-                            Function(
-                                "multiply",
-                                [
-                                    Function(
-                                        "floor",
-                                        [
-                                            Function(
-                                                "divide",
-                                                [
-                                                    Function(
-                                                        "minus",
-                                                        [
-                                                            Function(
-                                                                "multiply",
-                                                                [
-                                                                    Function(
-                                                                        "arrayJoin",
-                                                                        [
-                                                                            Function(
-                                                                                "arrayFilter",
-                                                                                [
-                                                                                    Lambda(
-                                                                                        [
-                                                                                            "x",
-                                                                                            "y",
-                                                                                            "z",
-                                                                                        ],
-                                                                                        Function(
-                                                                                            "and",
-                                                                                            [
-                                                                                                Function(
-                                                                                                    "equals",
-                                                                                                    [
-                                                                                                        Identifier(
-                                                                                                            "y"
-                                                                                                        ),
-                                                                                                        args[
-                                                                                                            "spans_op"
-                                                                                                        ],
-                                                                                                    ],
-                                                                                                ),
-                                                                                                Function(
-                                                                                                    "equals",
-                                                                                                    [
-                                                                                                        Identifier(
-                                                                                                            "z",
-                                                                                                        ),
-                                                                                                        args[
-                                                                                                            "spans_group"
-                                                                                                        ],
-                                                                                                    ],
-                                                                                                ),
-                                                                                            ],
-                                                                                        ),
-                                                                                    ),
-                                                                                    Column(
-                                                                                        "spans.exclusive_time"
-                                                                                    ),
-                                                                                    Column(
-                                                                                        "spans.op"
-                                                                                    ),
-                                                                                    Column(
-                                                                                        "spans.group"
-                                                                                    ),
-                                                                                ],
-                                                                            )
-                                                                        ],
-                                                                    ),
-                                                                    args["multiplier"],
-                                                                ],
-                                                            ),
-                                                            args["start_offset"],
-                                                        ],
-                                                    ),
-                                                    args["bucket_size"],
-                                                ],
-                                            ),
-                                        ],
-                                    ),
-                                    args["bucket_size"],
-                                ],
-                            ),
-                            args["start_offset"],
-                        ],
-                        alias,
-                    ),
-                    default_result_type="number",
-                    private=True,
-                ),
-                SnQLFunction(
                     "fn_span_count",
                     required_args=[
                         SnQLStringArg("spans_op", True, True),
@@ -929,64 +837,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="number",
-                ),
-                SnQLFunction(
-                    "fn_span_exclusive_time",
-                    required_args=[
-                        SnQLStringArg("spans_op", True, True),
-                        SnQLStringArg("spans_group"),
-                        SnQLStringArg("fn"),
-                    ],
-                    snql_column=lambda args, alias: Function(
-                        args["fn"],
-                        [
-                            Function(
-                                "arrayJoin",
-                                [
-                                    Function(
-                                        "arrayFilter",
-                                        [
-                                            Lambda(
-                                                [
-                                                    "x",
-                                                    "y",
-                                                    "z",
-                                                ],
-                                                Function(
-                                                    "and",
-                                                    [
-                                                        Function(
-                                                            "equals",
-                                                            [
-                                                                Identifier("y"),
-                                                                args["spans_op"],
-                                                            ],
-                                                        ),
-                                                        Function(
-                                                            "equals",
-                                                            [
-                                                                Identifier(
-                                                                    "z",
-                                                                ),
-                                                                args["spans_group"],
-                                                            ],
-                                                        ),
-                                                    ],
-                                                ),
-                                            ),
-                                            Column("spans.exclusive_time"),
-                                            Column("spans.op"),
-                                            Column("spans.group"),
-                                        ],
-                                    )
-                                ],
-                                "exclusive_time",
-                            )
-                        ],
-                        alias,
-                    ),
-                    default_result_type="number",
-                    private=True,
                 ),
                 SnQLFunction(
                     "performance_score",
@@ -1094,6 +944,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return {
             PROJECT_ALIAS: self._project_slug_orderby_converter,
             PROJECT_NAME_ALIAS: self._project_slug_orderby_converter,
+            DEVICE_CLASS_ALIAS: self._device_class_orderby_converter,
         }
 
     def _project_slug_orderby_converter(self, direction: Direction) -> OrderBy:
@@ -1119,6 +970,9 @@ class DiscoverDatasetConfig(DatasetConfig):
             ),
             direction,
         )
+
+    def _device_class_orderby_converter(self, direction: Direction) -> OrderBy:
+        return OrderBy(self.builder.column("tags[device.class]"), direction)
 
     # Field Aliases
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
@@ -1694,7 +1548,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             )
             if fixed_percentile == 1
             else Function(
-                f'quantile({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                f"quantile({fixed_percentile if fixed_percentile is not None else args['percentile']})",
                 [args["column"]],
                 alias,
             )
@@ -1859,6 +1713,8 @@ class DiscoverDatasetConfig(DatasetConfig):
                     self.builder.params.organization.id,
                     group_short_ids,
                 )
+            except Group.DoesNotExist:
+                raise InvalidIssueSearchQuery(group_short_ids)
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:

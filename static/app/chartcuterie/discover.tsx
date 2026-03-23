@@ -1,10 +1,10 @@
 import type {Theme} from '@emotion/react';
 import type {SeriesOption} from 'echarts';
 
-import XAxis from 'sentry/components/charts/components/xAxis';
-import AreaSeries from 'sentry/components/charts/series/areaSeries';
-import BarSeries from 'sentry/components/charts/series/barSeries';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {XAxis} from 'sentry/components/charts/components/xAxis';
+import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
+import {BarSeries} from 'sentry/components/charts/series/barSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {lightenHexToRgb} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
@@ -182,7 +182,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         ?.slice() as string[];
 
       if (hasOther) {
-        color.push(theme.chartOther);
+        color.push(theme.tokens.content.secondary);
       }
 
       const series = stats
@@ -245,7 +245,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         .getColorPalette(stats.length - 1 - (hasOther ? 1 : 0))
         ?.slice() as string[];
       if (hasOther) {
-        color.push(theme.chartOther);
+        color.push(theme.tokens.content.secondary);
       }
 
       const series = stats
@@ -307,7 +307,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         .getColorPalette(stats.length - 1 - (hasOther ? 1 : 0))
         ?.slice() as string[] | undefined;
       if (hasOther) {
-        color?.push(theme.chartOther);
+        color?.push(theme.tokens.content.secondary);
       }
 
       const series = stats
@@ -364,8 +364,8 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
             current[i]![0] * 1000,
             countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
           ]),
-          lineStyle: {color: theme.gray200, type: 'dotted'},
-          itemStyle: {color: theme.gray200},
+          lineStyle: {color: theme.colors.gray200, type: 'dotted'},
+          itemStyle: {color: theme.colors.gray200},
         });
 
         return {

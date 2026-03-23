@@ -59,7 +59,7 @@ class UserOptionManager(OptionManager["UserOption"]):
         """
         This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
         """
-        self.filter(user=user, project=project, key=key).delete()
+        self.filter(user=user, project_id=project.id, key=key).delete()
 
         if not hasattr(self, "_metadata"):
             return
@@ -164,8 +164,6 @@ class UserOption(Model):
         - unused
      - prefers_issue_details_streamlined_ui
         - Whether the user prefers the new issue details experience (boolean)
-     - prefers_chonk_ui
-        - Whether the user prefers the new Chonk UI experience (boolean)
      - language
         - which language to display the app in
      - mail:email

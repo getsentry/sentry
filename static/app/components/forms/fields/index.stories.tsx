@@ -1,26 +1,26 @@
-import ChoiceMapperField from 'sentry/components/forms/fields/choiceMapperField';
-import Form from 'sentry/components/forms/form';
+import {ChoiceMapperField} from 'sentry/components/forms/fields/choiceMapperField';
+import {Form} from 'sentry/components/forms/form';
 import * as Storybook from 'sentry/stories';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
-import BlankField from './blankField';
-import BooleanField from './booleanField';
-import CheckboxField from './checkboxField';
-import DateTimeField from './dateTimeField';
-import EmailField from './emailField';
-import FileField from './fileField';
-import HiddenField from './hiddenField';
-import NumberField from './numberField';
-import RadioField from './radioField';
-import RangeField from './rangeField';
-import SecretField from './secretField';
-import SegmentedRadioField from './segmentedRadioField';
-import SelectField from './selectField';
-import SentryMemberTeamSelectorField from './sentryMemberTeamSelectorField';
-import SentryProjectSelectorField from './sentryProjectSelectorField';
-import SeparatorField from './separatorField';
-import TextareaField from './textareaField';
-import TextField from './textField';
+import {BlankField} from './blankField';
+import {BooleanField} from './booleanField';
+import {CheckboxField} from './checkboxField';
+import {DateTimeField} from './dateTimeField';
+import {EmailField} from './emailField';
+import {FileField} from './fileField';
+import {HiddenField} from './hiddenField';
+import {NumberField} from './numberField';
+import {RadioField} from './radioField';
+import {RangeField} from './rangeField';
+import {SecretField} from './secretField';
+import {SegmentedRadioField} from './segmentedRadioField';
+import {SelectField} from './selectField';
+import {SentryMemberTeamSelectorField} from './sentryMemberTeamSelectorField';
+import {SentryProjectSelectorField} from './sentryProjectSelectorField';
+import {SeparatorField} from './separatorField';
+import {TextareaField} from './textareaField';
+import {TextField} from './textField';
 
 export default Storybook.story('Form', story => {
   story('Available fields', () => {
@@ -148,6 +148,8 @@ export default Storybook.story('Form', story => {
           columnLabels={{thing_1: 'Thing 1', thing_2: 'Thing 2'}}
           onChange={() => {}}
           addDropdown={{
+            value: undefined,
+            onChange: () => {},
             emptyMessage: 'All items mapped',
             noResultsMessage: 'No options found',
             items: [

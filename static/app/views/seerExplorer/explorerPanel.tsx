@@ -1,24 +1,57 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {useTheme} from '@emotion/react';
 
-import useOrganization from 'sentry/utils/useOrganization';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
+import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
+import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/askUserQuestionBlock';
+import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
+import {EmptyState} from 'sentry/views/seerExplorer/emptyState';
+import {useExplorerMenu} from 'sentry/views/seerExplorer/explorerMenu';
+import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/fileChangeApprovalBlock';
+import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
+import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
+import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
+import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {InputSection} from 'sentry/views/seerExplorer/inputSection';
+import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {
+  BlocksContainer,
+  PanelContainers,
+} from 'sentry/views/seerExplorer/panelContainers';
+import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
+import {SeerFab} from 'sentry/views/seerExplorer/seerFab';
+import {TopBar} from 'sentry/views/seerExplorer/topBar';
+import type {Block} from 'sentry/views/seerExplorer/types';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {
+  getExplorerUrl,
+  getLangfuseUrl,
+  isSeerExplorerEnabled,
+  useCopySessionDataToClipboard,
+  usePageReferrer,
+} from 'sentry/views/seerExplorer/utils';
 
-import {useBlockNavigation} from './hooks/useBlockNavigation';
-import {usePanelSizing} from './hooks/usePanelSizing';
-import {useSeerExplorer} from './hooks/useSeerExplorer';
-import BlockComponent from './blockComponents';
-import EmptyState from './emptyState';
-import InputSection from './inputSection';
-import PanelContainers, {BlocksContainer} from './panelContainers';
-import type {SlashCommand} from './slashCommands';
-import type {Block, ExplorerPanelProps} from './types';
-
-function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
+export function ExplorerPanel() {
+  const {isOpen: isVisible, openExplorerPanel} = useExplorerPanel();
+  const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
+  const {projects} = useProjects();
+  const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.md})`);
+  const isSeerDrawerOpen = !!location.query?.seerDrawer;
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
-  const [isSlashCommandsVisible, setIsSlashCommandsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false); // state for slide-down
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -29,46 +62,122 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const hoveredBlockIndex = useRef<number>(-1);
   const userScrolledUpRef = useRef<boolean>(false);
+  const allowHoverFocusChange = useRef<boolean>(true);
+  const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
+  const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Custom hooks
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
+
+  // Default to max size when Seer drawer is open
+  useEffect(() => {
+    if (isSeerDrawerOpen) {
+      handleMaxSize();
+    }
+  }, [isSeerDrawerOpen, handleMaxSize]);
+
+  // Panel opened analytic
+  useEffect(() => {
+    if (isVisible && !isMinimized) {
+      trackAnalytics('seer.explorer.global_panel.opened', {
+        referrer: getPageReferrer(),
+        organization,
+      });
+    }
+  }, [isVisible, isMinimized, organization, getPageReferrer]);
+
+  // Session data and management
   const {
+    runId,
     sessionData,
     sendMessage,
     deleteFromIndex,
     startNewSession,
     isPolling,
+    isError,
     interruptRun,
     interruptRequested,
+    wasJustInterrupted,
+    clearWasJustInterrupted,
+    switchToRun,
+    respondToUserInput,
+    createPR,
+    overrideCtxEngEnable,
+    setOverrideCtxEngEnable,
   } = useSeerExplorer();
+
+  const copySessionEnabled = Boolean(runId && organization?.slug);
+  const {copySessionToClipboard} = useCopySessionDataToClipboard({
+    blocks: sessionData?.blocks,
+    status: sessionData?.status,
+    organization,
+    projects,
+    enabled: copySessionEnabled,
+  });
+
+  // Handle external open events (from openSeerExplorer() calls)
+  const {isWaitingForSessionData} = useExternalOpen({
+    isVisible,
+    sendMessage,
+    startNewSession,
+    switchToRun,
+    sessionRunId: runId ?? undefined,
+    sessionBlocks: sessionData?.blocks,
+    onUnminimize: useCallback(() => setIsMinimized(false), []),
+  });
+
+  // Clear wasJustInterrupted when user starts typing
+  useEffect(() => {
+    if (inputValue.length > 0 && wasJustInterrupted) {
+      clearWasJustInterrupted();
+    }
+  }, [inputValue, wasJustInterrupted, clearWasJustInterrupted]);
+
+  // Extract repo_pr_states from session
+  const repoPRStates = useMemo(
+    () => sessionData?.repo_pr_states ?? {},
+    [sessionData?.repo_pr_states]
+  );
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
 
-  useBlockNavigation({
-    isOpen: isVisible,
-    focusedBlockIndex,
+  // Check owner id to determine edit permission. Defensive against any useUser return shape.
+  // Despite the type annotation, useUser can return null or undefined when not logged in.
+  // This component is in the top-level index so we have to guard against this.
+  const rawUser = useUser() as unknown;
+  const ownerUserId = sessionData?.owner_user_id ?? undefined;
+  const readOnly = useMemo(() => {
+    const isUser = (value: unknown): value is User =>
+      Boolean(
+        value &&
+        typeof value === 'object' &&
+        'id' in value &&
+        typeof value.id === 'string'
+      );
+    const userId = isUser(rawUser) ? rawUser.id : undefined;
+    return (
+      userId === undefined ||
+      (ownerUserId !== undefined && ownerUserId?.toString() !== userId)
+    );
+  }, [rawUser, ownerUserId]);
+
+  // Get PR widget data for menu
+  const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
     blocks,
-    blockRefs,
-    textareaRef,
-    setFocusedBlockIndex,
-    onDeleteFromIndex: deleteFromIndex,
-    onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
-      const handler = blockEnterHandlers.current.get(blockIndex);
-      const handled = handler?.(key) ?? false;
-
-      // If Enter was pressed and handled (navigation occurred), minimize the panel
-      if (key === 'Enter' && handled) {
-        setIsMinimized(true);
-      }
-
-      return handled;
-    },
-    onNavigate: () => {
-      setIsMinimized(false);
-      userScrolledUpRef.current = true;
-    },
+    repoPRStates,
+    onCreatePR: createPR,
   });
+
+  // Find the index of the last block that has todos (for special rendering)
+  const latestTodoBlockIndex = useMemo(() => {
+    for (let i = blocks.length - 1; i >= 0; i--) {
+      const block = blocks[i];
+      if (block && Array.isArray(block.todos) && block.todos.length > 0) {
+        return i;
+      }
+    }
+    return -1;
+  }, [blocks]);
 
   useEffect(() => {
     // Focus textarea when panel opens and reset focus
@@ -76,6 +185,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       setFocusedBlockIndex(-1);
       setIsMinimized(false); // Expand when opening
       userScrolledUpRef.current = false;
+      allowHoverFocusChange.current = false; // Disable hover until mouse moves
       setTimeout(() => {
         // Scroll to bottom when panel opens
         if (scrollContainerRef.current) {
@@ -86,9 +196,9 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     }
   }, [isVisible]);
 
-  // Detect clicks outside the panel to minimize it
+  // Detect clicks outside the panel to minimize it (but not when seer drawer is open)
   useEffect(() => {
-    if (!isVisible) {
+    if (!isVisible || isSeerDrawerOpen) {
       return undefined;
     }
 
@@ -102,7 +212,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isVisible]);
+  }, [isVisible, focusedBlockIndex, isSeerDrawerOpen]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -166,40 +276,20 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     }
   }, [focusedBlockIndex]);
 
-  // Auto-focus input when user starts typing while a block is focused
-  useEffect(() => {
-    if (!isVisible) {
-      return undefined;
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (readOnly) {
+      return;
     }
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (focusedBlockIndex !== -1) {
-        const isPrintableChar =
-          e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+    // While input is focused, prevent backtick from triggering superuser ViewAsHookMiddleware
+    if (e.key === '`') {
+      e.nativeEvent.stopImmediatePropagation();
+    }
 
-        if (isPrintableChar) {
-          e.preventDefault();
-          setFocusedBlockIndex(-1);
-          textareaRef.current?.focus();
-          setInputValue(prev => prev + e.key);
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isVisible, focusedBlockIndex]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Escape' && isPolling && !interruptRequested) {
-      e.preventDefault();
-      interruptRun();
-    } else if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {
-        sendMessage(inputValue.trim());
+        sendMessage(inputValue.trim(), undefined);
         setInputValue('');
         // Reset scroll state so we auto-scroll to show the response
         userScrolledUpRef.current = false;
@@ -228,33 +318,279 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   };
 
   const handleBlockClick = (index: number) => {
+    textareaRef.current?.blur();
     setFocusedBlockIndex(index);
     setIsMinimized(false);
   };
 
-  const handleInputClick = () => {
+  const focusInput = useCallback(() => {
     hoveredBlockIndex.current = -1;
     setFocusedBlockIndex(-1);
     textareaRef.current?.focus();
     setIsMinimized(false);
-  };
+  }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
-  const handlePanelBackgroundClick = () => {
-    setIsMinimized(false);
-  };
+  const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
+  const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
 
-  const handleCommandSelect = (command: SlashCommand) => {
-    // Execute the command
-    command.handler();
-
-    // Clear input
-    setInputValue('');
-
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+  const handleOpenLangfuse = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (langfuseUrl) {
+      window.open(langfuseUrl, '_blank');
     }
-  };
+  }, [langfuseUrl]);
+
+  const handleOpenConversations = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (conversationsUrl) {
+      window.open(conversationsUrl, '_blank');
+    }
+  }, [conversationsUrl]);
+
+  const openFeedbackForm = useFeedbackForm();
+
+  // Generic feedback handler
+  const handleFeedback = useCallback(() => {
+    if (openFeedbackForm) {
+      openFeedbackForm({
+        formTitle: 'Seer Explorer Feedback',
+        messagePlaceholder: 'How can we make Seer Explorer better for you?',
+        tags: {
+          ['feedback.source']: 'seer_explorer',
+          ['feedback.owner']: 'ml-ai',
+          ...(runId === null ? {} : {['seer.run_id']: runId}),
+          ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+          ...(conversationsUrl ? {['conversations_url']: conversationsUrl} : {}),
+        },
+      });
+    }
+  }, [openFeedbackForm, runId, langfuseUrl, conversationsUrl]);
+
+  const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
+    useExplorerMenu({
+      clearInput: () => setInputValue(''),
+      inputValue,
+      focusInput,
+      textAreaRef: textareaRef,
+      panelSize,
+      panelVisible: isVisible,
+      slashCommandHandlers: {
+        onMaxSize: handleMaxSize,
+        onMedSize: handleMedSize,
+        onNew: startNewSession,
+        onFeedback: openFeedbackForm ? handleFeedback : undefined,
+        onLangfuse: handleOpenLangfuse,
+        onConversations: handleOpenConversations,
+      },
+      onChangeSession: switchToRun,
+      menuAnchorRef: sessionHistoryButtonRef,
+      inputAnchorRef: textareaRef,
+      prWidgetAnchorRef: prWidgetButtonRef,
+      prWidgetItems,
+      prWidgetFooter,
+    });
+
+  const handlePanelBackgroundClick = useCallback(() => {
+    setIsMinimized(false);
+    closeMenu();
+  }, [closeMenu]);
+
+  // Close menu when clicking outside of it
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return undefined;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const menuElement = document.querySelector('[data-seer-menu-panel]');
+
+      // Don't close if clicking on the menu itself or the trigger buttons
+      if (
+        menuElement?.contains(target) ||
+        sessionHistoryButtonRef.current?.contains(target) ||
+        prWidgetButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      // Close menu when clicking anywhere else
+      closeMenu();
+    };
+
+    // Use capture phase to catch clicks before they bubble
+    document.addEventListener('mousedown', handleClickOutside, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
+  }, [isMenuOpen, closeMenu]);
+
+  const handleInputClick = useCallback(() => {
+    // Click handler for the input textarea.
+    focusInput();
+    closeMenu();
+  }, [closeMenu, focusInput]);
+
+  const handleUnminimize = useCallback(() => {
+    setIsMinimized(false);
+    // Disable hover focus changes until mouse actually moves
+    allowHoverFocusChange.current = false;
+    // Restore focus to the previously focused block if it exists and is valid
+    if (focusedBlockIndex >= 0 && focusedBlockIndex < blocks.length) {
+      setTimeout(() => {
+        blockRefs.current[focusedBlockIndex]?.scrollIntoView({block: 'nearest'});
+      }, 100);
+    } else {
+      // No valid block focus, focus input
+      setTimeout(() => {
+        setFocusedBlockIndex(-1);
+        textareaRef.current?.focus();
+      }, 100);
+    }
+  }, [focusedBlockIndex, blocks.length]);
+
+  const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
+  const pendingInput = sessionData?.pending_user_input;
+  const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+
+  const {
+    isFileApprovalPending,
+    fileApprovalIndex,
+    fileApprovalTotalPatches,
+    handleFileApprovalApprove,
+    handleFileApprovalReject,
+    // Question state
+    isQuestionPending,
+    questionIndex,
+    totalQuestions,
+    currentQuestion,
+    selectedOption,
+    isOtherSelected,
+    customText,
+    canSubmitQuestion,
+    handleQuestionNext,
+    handleQuestionBack,
+    handleQuestionSelectOption,
+    handleQuestionMoveUp,
+    handleQuestionMoveDown,
+    handleQuestionCustomTextChange,
+  } = usePendingUserInput({
+    isAwaitingUserInput,
+    pendingInput,
+    respondToUserInput,
+    scrollContainerRef,
+    userScrolledUpRef,
+  });
+
+  // Global keyboard event listeners for when the panel is open and menu is closed.
+  // Menu keyboard listeners are in the menu component.
+  useEffect(() => {
+    if (!isVisible || isMinimized || isMenuOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+      if (e.key === 'Escape') {
+        if (readOnly || !isFileApprovalPending) {
+          // Don't minimize if file approval is pending (Escape is used to reject)
+          e.preventDefault();
+          setIsMinimized(true);
+        }
+      }
+
+      if (isPrintableChar) {
+        // If a block is focused, auto-focus input when user starts typing.
+        // Don't do this if file approval or question is pending (textarea isn't visible)
+        if (
+          !readOnly &&
+          focusedBlockIndex !== -1 &&
+          !isFileApprovalPending &&
+          !isQuestionPending
+        ) {
+          e.preventDefault();
+          setFocusedBlockIndex(-1);
+          textareaRef.current?.focus();
+          setInputValue(prev => prev + e.key);
+        }
+      }
+    };
+
+    // Re-enable hover focus changes when mouse actually moves
+    const handleMouseMove = () => {
+      allowHoverFocusChange.current = true;
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [
+    isVisible,
+    isMenuOpen,
+    readOnly,
+    focusedBlockIndex,
+    isMinimized,
+    isFileApprovalPending,
+    isQuestionPending,
+  ]);
+
+  useBlockNavigation({
+    isOpen: isVisible,
+    focusedBlockIndex,
+    blocks,
+    blockRefs,
+    textareaRef,
+    setFocusedBlockIndex,
+    isMinimized,
+    isFileApprovalPending,
+    isPolling,
+    isQuestionPending,
+    onDeleteFromIndex: deleteFromIndex,
+    onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
+      const handler = blockEnterHandlers.current.get(blockIndex);
+      const handled = handler?.(key) ?? false;
+
+      // If Enter was pressed and handled (navigation occurred), minimize the panel
+      if (key === 'Enter' && handled) {
+        setIsMinimized(true);
+      }
+
+      return handled;
+    },
+    onNavigate: () => {
+      setIsMinimized(false);
+      userScrolledUpRef.current = true;
+    },
+  });
+
+  const handleSizeToggle = useCallback(() => {
+    if (panelSize === 'max') {
+      handleMedSize();
+    } else {
+      handleMaxSize();
+    }
+  }, [panelSize, handleMaxSize, handleMedSize]);
+
+  const handleCopyLink = useCallback(async () => {
+    if (!runId) {
+      return;
+    }
+
+    try {
+      const url = getExplorerUrl(runId);
+      await navigator.clipboard.writeText(url);
+      addSuccessMessage('Copied link to current chat');
+    } catch {
+      addErrorMessage('Failed to copy link to current chat');
+    }
+
+    trackAnalytics('seer.explorer.session_link_copied', {organization});
+  }, [runId, organization]);
 
   const panelContent = (
     <PanelContainers
@@ -262,74 +598,185 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       isOpen={isVisible}
       isMinimized={isMinimized}
       panelSize={panelSize}
-      onUnminimize={() => setIsMinimized(false)}
+      blocks={blocks}
+      isPolling={isPolling}
+      isSeerDrawerOpen={isSeerDrawerOpen}
+      isMobile={isMobile}
+      onUnminimize={handleUnminimize}
     >
+      <TopBar
+        isEmptyState={isEmptyState}
+        isPolling={isPolling}
+        isSeerDrawerOpen={isSeerDrawerOpen}
+        isMobile={isMobile}
+        isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
+        onFeedbackClick={handleFeedback}
+        onNewChatClick={() => {
+          startNewSession();
+          focusInput();
+        }}
+        onCopySessionClick={copySessionToClipboard}
+        onCopyLinkClick={handleCopyLink}
+        onSessionHistoryClick={openSessionHistory}
+        isCopySessionEnabled={copySessionEnabled}
+        isCopyLinkEnabled={!!runId}
+        onSizeToggleClick={handleSizeToggle}
+        panelSize={panelSize}
+        sessionHistoryButtonRef={sessionHistoryButtonRef}
+        overrideCtxEngEnable={overrideCtxEngEnable}
+        onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
+        showContextEngineToggle={
+          !!organization?.features.includes(
+            'seer-explorer-context-engine-fe-override-ui-flag'
+          )
+        }
+      />
+      {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
-        {blocks.length === 0 ? (
-          <EmptyState />
+        {isEmptyState ? (
+          <EmptyState
+            isLoading={isWaitingForSessionData}
+            isError={isError}
+            runId={runId}
+          />
         ) : (
-          blocks.map((block: Block, index: number) => (
-            <BlockComponent
-              key={block.id}
-              ref={el => {
-                blockRefs.current[index] = el;
-              }}
-              block={block}
-              blockIndex={index}
-              isLast={index === blocks.length - 1}
-              isFocused={focusedBlockIndex === index}
-              isPolling={isPolling}
-              onClick={() => handleBlockClick(index)}
-              onMouseEnter={() => {
-                // Don't change focus while slash commands menu is open or if already on this block
-                if (isSlashCommandsVisible || hoveredBlockIndex.current === index) {
-                  return;
+          <Fragment>
+            {blocks.map((block: Block, index: number) => (
+              <BlockComponent
+                key={block.id}
+                ref={el => {
+                  blockRefs.current[index] = el;
+                }}
+                block={block}
+                blockIndex={index}
+                runId={runId ?? undefined}
+                getPageReferrer={getPageReferrer}
+                isAwaitingFileApproval={isFileApprovalPending}
+                isAwaitingQuestion={isQuestionPending}
+                isLatestTodoBlock={index === latestTodoBlockIndex}
+                isLast={
+                  index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
                 }
+                isFocused={focusedBlockIndex === index}
+                isPolling={isPolling}
+                readOnly={readOnly}
+                onClick={() => handleBlockClick(index)}
+                onMouseEnter={() => {
+                  // Don't change focus while menu is open, if already on this block, or if hover is disabled
+                  if (
+                    isMenuOpen ||
+                    hoveredBlockIndex.current === index ||
+                    !allowHoverFocusChange.current
+                  ) {
+                    return;
+                  }
 
-                hoveredBlockIndex.current = index;
-                setFocusedBlockIndex(index);
-                if (document.activeElement === textareaRef.current) {
+                  hoveredBlockIndex.current = index;
+                  setFocusedBlockIndex(index);
                   textareaRef.current?.blur();
-                }
-              }}
-              onMouseLeave={() => {
-                if (hoveredBlockIndex.current === index) {
-                  hoveredBlockIndex.current = -1;
-                }
-              }}
-              onDelete={() => deleteFromIndex(index)}
-              onNavigate={() => setIsMinimized(true)}
-              onRegisterEnterHandler={handler => {
-                blockEnterHandlers.current.set(index, handler);
-              }}
-            />
-          ))
+                }}
+                onMouseLeave={() => {
+                  if (hoveredBlockIndex.current === index) {
+                    hoveredBlockIndex.current = -1;
+                  }
+                }}
+                onDelete={() => {
+                  deleteFromIndex(index);
+                  focusInput();
+                }}
+                onNavigate={() => {
+                  setIsMinimized(true);
+                  // child handles navigation
+                }}
+                onRegisterEnterHandler={handler => {
+                  blockEnterHandlers.current.set(index, handler);
+                }}
+              />
+            ))}
+            {!readOnly &&
+              isFileApprovalPending &&
+              fileApprovalIndex < fileApprovalTotalPatches && (
+                <FileChangeApprovalBlock
+                  currentIndex={fileApprovalIndex}
+                  isLast
+                  pendingInput={pendingInput!}
+                />
+              )}
+            {!readOnly && isQuestionPending && currentQuestion && (
+              <AskUserQuestionBlock
+                currentQuestion={currentQuestion}
+                customText={customText}
+                isLast
+                isOtherSelected={isOtherSelected}
+                onCustomTextChange={handleQuestionCustomTextChange}
+                onSelectOption={handleQuestionSelectOption}
+                questionIndex={questionIndex}
+                selectedOption={selectedOption}
+              />
+            )}
+          </Fragment>
         )}
       </BlocksContainer>
       <InputSection
-        ref={textareaRef}
-        inputValue={inputValue}
+        blocks={blocks}
+        enabled={!readOnly}
         focusedBlockIndex={focusedBlockIndex}
-        isPolling={isPolling}
+        inputValue={inputValue}
         interruptRequested={interruptRequested}
+        isMinimized={isMinimized}
+        isPolling={isPolling}
+        isVisible={isVisible}
+        wasJustInterrupted={wasJustInterrupted}
+        onClear={() => setInputValue('')}
+        onCreatePR={createPR}
         onInputChange={handleInputChange}
-        onKeyDown={handleKeyDown}
         onInputClick={handleInputClick}
-        onCommandSelect={handleCommandSelect}
-        onSlashCommandsVisibilityChange={setIsSlashCommandsVisible}
-        onMaxSize={handleMaxSize}
-        onMedSize={handleMedSize}
-        onClear={startNewSession}
+        onInterrupt={interruptRun}
+        onKeyDown={handleInputKeyDown}
+        onPRWidgetClick={openPRWidget}
+        prWidgetButtonRef={prWidgetButtonRef}
+        repoPRStates={repoPRStates}
+        textAreaRef={textareaRef}
+        fileApprovalActions={
+          isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
+            ? {
+                currentIndex: fileApprovalIndex,
+                totalPatches: fileApprovalTotalPatches,
+                onApprove: handleFileApprovalApprove,
+                onReject: handleFileApprovalReject,
+              }
+            : undefined
+        }
+        questionActions={
+          isQuestionPending && currentQuestion
+            ? {
+                currentIndex: questionIndex,
+                totalQuestions,
+                canSubmit: canSubmitQuestion,
+                onNext: handleQuestionNext,
+                onBack: handleQuestionBack,
+                onMoveUp: handleQuestionMoveUp,
+                onMoveDown: handleQuestionMoveDown,
+              }
+            : undefined
+        }
       />
     </PanelContainers>
   );
 
-  if (!organization?.features.includes('seer-explorer') || organization.hideAiFeatures) {
+  if (
+    !organization ||
+    organization.hideAiFeatures ||
+    !isSeerExplorerEnabled(organization)
+  ) {
     return null;
   }
 
-  // Render to portal for proper z-index management
-  return createPortal(panelContent, document.body);
+  return createPortal(
+    <Fragment>
+      {panelContent}
+      <SeerFab hide={isVisible || isSeerDrawerOpen} onOpen={openExplorerPanel} />
+    </Fragment>,
+    document.body
+  );
 }
-
-export default ExplorerPanel;

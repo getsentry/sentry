@@ -1,9 +1,10 @@
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import type {InsightEventKey} from 'sentry/utils/analytics/insightAnalyticEvents';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
@@ -18,6 +19,7 @@ interface Props {
   children: React.ReactNode;
   moduleName: TitleableModuleNames;
   analyticEventName?: InsightEventKey;
+  maxPickableDays?: DatePageFilterProps['maxPickableDays'];
   pageTitle?: string;
 }
 
@@ -26,6 +28,7 @@ export function ModulePageProviders({
   pageTitle,
   children,
   analyticEventName,
+  maxPickableDays,
 }: Props) {
   const organization = useOrganization();
   const moduleTitles = useModuleTitles();
@@ -45,7 +48,9 @@ export function ModulePageProviders({
 
   return (
     <PageFiltersContainer
-      maxPickableDays={hasDateRangeQueryLimit ? QUERY_DATE_RANGE_LIMIT : undefined}
+      maxPickableDays={
+        maxPickableDays ?? (hasDateRangeQueryLimit ? QUERY_DATE_RANGE_LIMIT : undefined)
+      }
       storageNamespace={view}
     >
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>

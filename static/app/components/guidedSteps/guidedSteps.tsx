@@ -10,14 +10,15 @@ import {
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
   children: React.ReactNode;
@@ -40,7 +41,9 @@ interface StepProps {
   stepKey: string;
   title: React.ReactNode;
   isCompleted?: boolean;
+  onClick?: () => void;
   optional?: boolean;
+  trailingItems?: React.ReactNode;
 }
 
 type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
@@ -100,16 +103,6 @@ function useGuidedStepsContentValue({
     }
   }, [getFirstIncompleteStep]);
 
-  // On initial load, set the current step to the first incomplete step
-  // if the initial step is not defined.
-  useEffect(() => {
-    if (defined(initialStep)) {
-      return;
-    }
-    const firstIncompleteStep = getFirstIncompleteStep();
-    setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
-  }, [getFirstIncompleteStep, initialStep]);
-
   const handleSetCurrentStep = useCallback(
     (step: number) => {
       setCurrentStep(step);
@@ -117,6 +110,25 @@ function useGuidedStepsContentValue({
     },
     [onStepChange]
   );
+
+  // On initial load, set the current step to the first incomplete step
+  // if the initial step is not defined. If initialStep exceeds the number
+  // of available steps (e.g. the guidedStep URL param persists from a
+  // project with more steps), reset to step 1.
+  useEffect(() => {
+    // Wait for steps to register before running initialization
+    if (totalSteps === 0) {
+      return;
+    }
+    if (defined(initialStep)) {
+      if (initialStep > totalSteps) {
+        handleSetCurrentStep(1);
+      }
+      return;
+    }
+    const firstIncompleteStep = getFirstIncompleteStep();
+    handleSetCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
+  }, [getFirstIncompleteStep, initialStep, totalSteps, handleSetCurrentStep]);
 
   return useMemo(
     () => ({
@@ -156,14 +168,44 @@ function Step(props: StepProps) {
     }
   }, [advanceToNextIncompleteStep, isActive, isCompleted, previousIsCompleted]);
 
-  return (
-    <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
-      <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
-      <StepDetails>
+  const headingContent = (
+    <StepButton
+      hasTrailingItems={!!props.trailingItems}
+      disabled={!props.onClick}
+      onClick={props.onClick}
+    >
+      <Flex align="center" gap="lg">
+        <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
         <StepHeading isActive={isActive}>
           {props.title}
           {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
         </StepHeading>
+        {props.onClick ? <InteractionStateLayer /> : null}
+      </Flex>
+    </StepButton>
+  );
+
+  return (
+    <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
+      {props.trailingItems ? (
+        <Flex
+          direction={{xs: 'column', md: 'row'}}
+          align={{xs: 'start', md: 'center'}}
+          paddingLeft={{xs: 'lg', md: '0'}}
+          justify="between"
+          gap="sm"
+          area="heading"
+        >
+          {headingContent}
+          <Flex align="center" onClick={e => e.stopPropagation()}>
+            {props.trailingItems}
+          </Flex>
+        </Flex>
+      ) : (
+        headingContent
+      )}
+
+      <StepDetails>
         {props.optional ? <StepOptionalLabel>Optional</StepOptionalLabel> : null}
         {isActive && (
           <ChildrenWrapper isActive={isActive}>{props.children}</ChildrenWrapper>
@@ -221,7 +263,9 @@ export function GuidedSteps({
 
   return (
     <GuidedStepsContext value={value}>
-      <StepsWrapper className={className}>{children}</StepsWrapper>
+      <Stack gap="xl" background="primary" className={className}>
+        {children}
+      </Stack>
     </GuidedStepsContext>
   );
 }
@@ -230,38 +274,48 @@ const StepButtonsWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(1)};
-  margin-top: ${space(1.5)};
-`;
-
-const StepsWrapper = styled('div')`
-  background: ${p => p.theme.background};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
 const StepWrapper = styled('div')`
   display: grid;
+  grid-template-areas: 'heading heading' '. details';
   grid-template-columns: 34px 1fr;
-  gap: ${space(1.5)};
+  gap: 0 ${p => p.theme.space.lg};
   position: relative;
 
   :not(:last-child)::before {
     content: '';
     position: absolute;
-    height: calc(100% + ${space(2)});
+    height: calc(100% + ${p => p.theme.space.xl});
     width: 1px;
-    background: ${p => p.theme.border};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.primary};
     left: 17px;
   }
+`;
+
+const StepButton = styled('button')<{hasTrailingItems: boolean}>`
+  ${p =>
+    p.hasTrailingItems
+      ? `flex: 1; min-width: 0; text-align: left;`
+      : `grid-area: heading;`}
+
+  position: relative;
+  background: none;
+  border: none;
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  margin: -${p => p.theme.space.sm} -${p => p.theme.space.md};
+  border-radius: ${p => p.theme.radius.md};
+  overflow: hidden;
 `;
 
 const StepNumber = styled('div')<{isActive: boolean}>`
   position: relative;
   z-index: 2;
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -271,56 +325,54 @@ const StepNumber = styled('div')<{isActive: boolean}>`
   border-radius: 50%;
   background: ${p =>
     p.isActive
-      ? isChonkTheme(p.theme)
-        ? p.theme.tokens.graphics.accent
-        : p.theme.purple300
-      : isChonkTheme(p.theme)
-        ? p.theme.tokens.graphics.muted
-        : p.theme.gray100};
-  color: ${p =>
-    p.isActive
-      ? isChonkTheme(p.theme)
-        ? p.theme.white
-        : p.theme.white
-      : isChonkTheme(p.theme)
-        ? p.theme.white
-        : p.theme.subText};
-  border: 4px solid ${p => p.theme.background};
+      ? p.theme.tokens.graphics.accent.vibrant
+      : p.theme.tokens.graphics.neutral.moderate};
+  color: ${p => p.theme.colors.white};
+  border: 4px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StepHeading = styled('h4')<{isActive: boolean}>`
   line-height: 34px;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
+
+  position: relative;
+  border: none;
+  background: none;
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StepDoneIcon = styled(IconCheckmark, {
   shouldForwardProp: prop => prop !== 'isActive',
 })<{isActive: boolean}>`
-  color: ${p => (p.isActive ? p.theme.successText : p.theme.subText)};
-  margin-left: ${space(1)};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.success : p.theme.tokens.content.secondary};
+  margin-left: ${p => p.theme.space.md};
   vertical-align: middle;
 `;
 
 const StepOptionalLabel = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-  margin-top: -${space(0.75)};
-  margin-bottom: ${space(1)};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  margin-top: -${p => p.theme.space.sm};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ChildrenWrapper = styled('div')<{isActive: boolean}>`
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 
   p {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const StepDetails = styled('div')`
   overflow: hidden;
+  grid-area: details;
 `;
 
 GuidedSteps.Step = Step;

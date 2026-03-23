@@ -1,21 +1,26 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
+    BoldTextBlock,
+    CodeBlock,
+    CodeTextBlock,
+    NotificationBodyFormattingBlockType,
+    NotificationBodyTextBlockType,
     NotificationCategory,
     NotificationData,
     NotificationRenderedAction,
     NotificationRenderedImage,
     NotificationRenderedTemplate,
+    NotificationSource,
     NotificationTemplate,
+    ParagraphBlock,
+    PlainTextBlock,
 )
 
 
-@dataclass(frozen=True)
 class ErrorAlertData(NotificationData):
-    source = "error-alert-service"
+    source: NotificationSource = NotificationSource.ERROR_ALERT
     error_type: str
     error_message: str
     project_name: str
@@ -27,7 +32,7 @@ class ErrorAlertData(NotificationData):
     assign_url: str
 
 
-@template_registry.register(ErrorAlertData.source)
+@template_registry.register(NotificationSource.ERROR_ALERT)
 class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
     category = NotificationCategory.DEBUG
     example_data = ErrorAlertData(
@@ -45,11 +50,56 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
     def render(self, data: ErrorAlertData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=f"{data.error_count} new {data.error_type} errors in {data.project_name}",
-            body=(
-                f"A new {data.error_type} error has been detected in {data.project_name} with {data.error_count} occurrences. "
-                f"The error message is: {data.error_message}. "
-                f"This error was first seen at {data.first_seen} and requires immediate attention."
-            ),
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text="A new",
+                        ),
+                        CodeTextBlock(
+                            type=NotificationBodyTextBlockType.CODE,
+                            text=data.error_type,
+                        ),
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"error has been detected in {data.project_name} with",
+                        ),
+                        BoldTextBlock(
+                            type=NotificationBodyTextBlockType.BOLD_TEXT,
+                            text=f"{data.error_count} occurrences.",
+                        ),
+                    ],
+                ),
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text="The error message is:",
+                        )
+                    ],
+                ),
+                CodeBlock(
+                    type=NotificationBodyFormattingBlockType.CODE_BLOCK,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=data.error_message,
+                        ),
+                    ],
+                ),
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"This error was first seen at {data.first_seen} and requires immediate attention.",
+                        )
+                    ],
+                ),
+            ],
             actions=[
                 NotificationRenderedAction(label="View Issue", link="https://example.com/issues"),
                 NotificationRenderedAction(label="Assign to Me", link="https://example.com/assign"),
@@ -62,9 +112,8 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
         )
 
 
-@dataclass(frozen=True)
 class DeploymentData(NotificationData):
-    source = "deployment-service"
+    source: NotificationSource = NotificationSource.DEPLOYMENT
     project_name: str
     version: str
     environment: str
@@ -75,7 +124,7 @@ class DeploymentData(NotificationData):
     rollback_url: str
 
 
-@template_registry.register(DeploymentData.source)
+@template_registry.register(NotificationSource.DEPLOYMENT)
 class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
     category = NotificationCategory.DEBUG
 
@@ -93,11 +142,35 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
     def render(self, data: DeploymentData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=f"Deployment to {data.environment}: {data.version}",
-            body=(
-                f"Version {data.version} has been successfully deployed to {data.environment} for project {data.project_name}. "
-                f"The deployment was initiated by {data.deployer} with commit {data.commit_sha[:8]}: {data.commit_message}. "
-                f"Monitor the deployment status and be ready to rollback if any issues are detected."
-            ),
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"Version {data.version} has been successfully deployed to {data.environment} for project {data.project_name}. ",
+                        )
+                    ],
+                ),
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"The deployment was initiated by {data.deployer} with commit {data.commit_sha[:8]}: {data.commit_message}. ",
+                        )
+                    ],
+                ),
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text="Monitor the deployment status and be ready to rollback if any issues are detected.",
+                        )
+                    ],
+                ),
+            ],
             actions=[
                 NotificationRenderedAction(
                     label="View Deployment", link="https://example.com/deployment"
@@ -108,9 +181,8 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
         )
 
 
-@dataclass(frozen=True)
 class SlowLoadMetricAlertData(NotificationData):
-    source = "slow-load-metric-alert"
+    source: NotificationSource = NotificationSource.SLOW_LOAD_METRIC_ALERT
     alert_type: str
     severity: str
     project_name: str
@@ -123,7 +195,7 @@ class SlowLoadMetricAlertData(NotificationData):
     chart_url: str
 
 
-@template_registry.register(SlowLoadMetricAlertData.source)
+@template_registry.register(NotificationSource.SLOW_LOAD_METRIC_ALERT)
 class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetricAlertData]):
     category = NotificationCategory.DEBUG
     example_data = SlowLoadMetricAlertData(
@@ -142,7 +214,17 @@ class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetri
     def render(self, data: SlowLoadMetricAlertData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=f"{data.severity.upper()}: {data.alert_type} in {data.project_name}",
-            body=(f"{data.measurement} since {data.start_time}"),
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"{data.measurement} since {data.start_time}",
+                        )
+                    ],
+                ),
+            ],
             chart=NotificationRenderedImage(
                 url=data.chart_url,
                 alt_text="Metric alert chart",
@@ -157,9 +239,8 @@ class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetri
         )
 
 
-@dataclass(frozen=True)
 class PerformanceAlertData(NotificationData):
-    source = "performance-monitoring"
+    source: NotificationSource = NotificationSource.PERFORMANCE_MONITORING
     metric_name: str
     threshold: str
     current_value: str
@@ -168,7 +249,7 @@ class PerformanceAlertData(NotificationData):
     investigation_url: str
 
 
-@template_registry.register(PerformanceAlertData.source)
+@template_registry.register(NotificationSource.PERFORMANCE_MONITORING)
 class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlertData]):
     category = NotificationCategory.DEBUG
     example_data = PerformanceAlertData(
@@ -183,11 +264,35 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
     def render(self, data: PerformanceAlertData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=f"Performance Alert: {data.metric_name} threshold exceeded",
-            body=(
-                f"Performance alert triggered for {data.metric_name} in project {data.project_name}. "
-                f"The current value of {data.current_value} exceeds the threshold of {data.threshold}. "
-                f"Immediate investigation is recommended to identify and resolve the performance degradation."
-            ),
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"Performance alert triggered for {data.metric_name} in project {data.project_name}. ",
+                        )
+                    ],
+                ),
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"The current value of {data.current_value} exceeds the threshold of {data.threshold}. ",
+                        )
+                    ],
+                ),
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text="Immediate investigation is recommended to identify and resolve the performance degradation.",
+                        )
+                    ],
+                ),
+            ],
             actions=[
                 NotificationRenderedAction(
                     label="Investigate Performance", link="https://example.com/investigate"
@@ -200,9 +305,8 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
         )
 
 
-@dataclass(frozen=True)
 class TeamUpdateData(NotificationData):
-    source = "team-communication"
+    source: NotificationSource = NotificationSource.TEAM_COMMUNICATION
     team_name: str
     update_type: str
     message: str
@@ -210,7 +314,7 @@ class TeamUpdateData(NotificationData):
     timestamp: str
 
 
-@template_registry.register(TeamUpdateData.source)
+@template_registry.register(NotificationSource.TEAM_COMMUNICATION)
 class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
     category = NotificationCategory.DEBUG
     example_data = TeamUpdateData(
@@ -224,10 +328,34 @@ class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
     def render(self, data: TeamUpdateData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=f"Team Update: {data.update_type}",
-            body=(
-                f"Team {data.team_name} has posted a {data.update_type} update. "
-                f"Message: {data.message} "
-                f"Posted by {data.author} at {data.timestamp}."
-            ),
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"Team {data.team_name} has posted a {data.update_type} update. ",
+                        )
+                    ],
+                ),
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"Message: {data.message} ",
+                        )
+                    ],
+                ),
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"Posted by {data.author} at {data.timestamp}.",
+                        )
+                    ],
+                ),
+            ],
             footer="This is an informational update from your team.",
         )

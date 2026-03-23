@@ -4,11 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectToolbarSettings from 'sentry/views/settings/project/projectToolbar';
 
 describe('ProjectToolbarSettings', () => {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['sentry-toolbar-ui'],
-    },
-  });
+  const {organization, project} = initializeOrg();
   const initialRouterConfig = {
     location: {
       pathname: `/settings/projects/${project.slug}/toolbar/`,

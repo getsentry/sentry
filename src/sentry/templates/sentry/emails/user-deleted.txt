@@ -1,0 +1,16 @@
+{% spaceless %}
+{% load sentry_helpers %}
+{% autoescape off %}
+Account Deleted
+---------------
+Your Sentry account has been permanently deleted by an administrator.
+
+Details
+-------
+
+Account: {{ account.email }}
+When: {{ deletion_datetime }} UTC
+
+If you have questions about this action, please contact {% security_contact %}.
+{% endautoescape %}
+{% endspaceless %}

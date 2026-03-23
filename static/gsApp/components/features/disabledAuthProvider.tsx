@@ -1,6 +1,7 @@
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -23,7 +24,12 @@ type Props = {
   organization: Organization;
 };
 
-function DisabledAuthProvider({organization, features, children, ...props}: Props) {
+export function DisabledAuthProvider({
+  organization,
+  features,
+  children,
+  ...props
+}: Props) {
   return (
     <PlanFeature {...{organization, features}}>
       {({plan}) =>
@@ -33,7 +39,9 @@ function DisabledAuthProvider({organization, features, children, ...props}: Prop
               organization,
               features,
               renderDisabled: () => (
-                <Tag icon={<IconBusiness />}>{t('%s Plan', displayPlanName(plan))}</Tag>
+                <Tag variant="muted" icon={<IconBusiness />}>
+                  {t('%s Plan', displayPlanName(plan))}
+                </Tag>
               ),
               renderInstallButton: p => (
                 <Button
@@ -44,7 +52,6 @@ function DisabledAuthProvider({organization, features, children, ...props}: Prop
                     openUpsellModal({
                       organization,
                       source: `feature.auth_provider.${p.provider.key}`,
-                      defaultSelection: 'sso',
                     })
                   }
                 >
@@ -57,5 +64,3 @@ function DisabledAuthProvider({organization, features, children, ...props}: Prop
     </PlanFeature>
   );
 }
-
-export default DisabledAuthProvider;

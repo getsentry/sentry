@@ -1,19 +1,20 @@
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconNot} from 'sentry/icons';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
-import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
+import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
 import {prettyDate} from 'admin/utils';
 
 type Props = {
@@ -38,17 +39,20 @@ function identityLabel(identity: UserIdentityConfig) {
   }
 
   let text: string;
-  if (identity.category === UserIdentityCategory.GLOBAL_IDENTITY) {
+  if (
+    identity.category === UserIdentityCategory.GLOBAL_IDENTITY ||
+    identity.category === UserIdentityCategory.GITHUB_COPILOT_IDENTITY
+  ) {
     text = identity.isLogin ? 'Global Login' : 'App Integration';
   } else if (identity.category === UserIdentityCategory.SOCIAL_IDENTITY) {
     text = 'Legacy Integration';
   } else {
-    throw new Error('Invalid category');
+    text = identity.category;
   }
   return <span style={{fontVariant: 'small-caps'}}>{text}</span>;
 }
 
-function UserOverview({
+export function UserOverview({
   user,
   identities,
   tokens = [],
@@ -91,7 +95,9 @@ function UserOverview({
           <DetailLabel title="Staff" yesNo={user.isStaff} />
           <DetailLabel title="Permissions">
             {Array.from(user.permissions).map(p => (
-              <Tag key={p}>{p}</Tag>
+              <Tag key={p} variant="muted">
+                {p}
+              </Tag>
             ))}
           </DetailLabel>
         </DetailList>
@@ -102,13 +108,13 @@ function UserOverview({
           <DetailList>
             {identities.map(identity => (
               <DetailLabel key={identity.id} title={identity.provider.name}>
-                <ButtonWrapper>
+                <Flex justify="between">
                   <div>{identityLabel(identity)}</div>
                   <Button
                     icon={<IconNot />}
                     priority="danger"
                     size="xs"
-                    title="Disconnect Identity"
+                    tooltipProps={{title: 'Disconnect Identity'}}
                     onClick={() => onIdentityDisconnect(identity)}
                     aria-label="Disconnect Identity"
                     disabled={
@@ -116,7 +122,7 @@ function UserOverview({
                       identity.category !== UserIdentityCategory.ORG_IDENTITY
                     }
                   />
-                </ButtonWrapper>
+                </Flex>
 
                 <small>{identity.name}</small>
                 <br />
@@ -142,17 +148,17 @@ function UserOverview({
           <DetailList>
             {user.authenticators.map(auth => (
               <DetailLabel title={auth.type} key={auth.id}>
-                <ButtonWrapper>
+                <Flex justify="between">
                   <div>{auth.name}</div>
                   <Button
                     icon={<IconNot />}
                     priority="danger"
                     size="xs"
-                    title="Remove Authenticator"
+                    tooltipProps={{title: 'Remove Authenticator'}}
                     onClick={() => onAuthenticatorRemove(auth)}
                     aria-label="Remove Authenticator"
                   />
-                </ButtonWrapper>
+                </Flex>
                 <small style={{color: '#999999'}}>
                   Last used {auth.dateUsed ? prettyDate(auth.dateUsed) : 'never'}
                 </small>
@@ -189,10 +195,3 @@ function UserOverview({
     </DetailsContainer>
   );
 }
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
-export default UserOverview;

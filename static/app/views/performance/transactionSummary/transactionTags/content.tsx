@@ -2,27 +2,31 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Radio} from '@sentry/scraps/radio';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Radio} from 'sentry/components/core/radio';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
-import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {SegmentExplorerQuery} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {getTransactionField} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
@@ -30,7 +34,7 @@ import {useTransactionSummaryContext} from 'sentry/views/performance/transaction
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 import {X_AXIS_SELECT_OPTIONS} from './constants';
-import TagsDisplay, {TAG_PAGE_TABLE_CURSOR} from './tagsDisplay';
+import {TAG_PAGE_TABLE_CURSOR, TagsDisplay} from './tagsDisplay';
 import {decodeSelectedTagKey} from './utils';
 
 type Props = {
@@ -43,7 +47,7 @@ type Props = {
 
 type TagOption = string;
 
-function TagsPageContent() {
+export function TagsPageContent() {
   const props = useTransactionSummaryContext();
   const {eventView, organization, projects} = props;
   const location = useLocation();
@@ -191,6 +195,11 @@ function InnerContent(
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.TRANSACTIONS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
     <ReversedLayoutBody>
       <TagsSideBar
@@ -204,7 +213,7 @@ function InnerContent(
         <FilterActions>
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
-            <DatePageFilter />
+            <DatePageFilter {...datePageFilterProps} />
           </PageFilterBar>
           <StyledSearchBarWrapper>
             <TransactionSearchQueryBuilder
@@ -224,7 +233,9 @@ function InnerContent(
               });
               onChangeAggregateColumn(opt.value);
             }}
-            triggerProps={{prefix: t('X-Axis')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('X-Axis')} />
+            )}
           />
         </FilterActions>
         <TagsDisplay {...props} tagKey={tagSelected} />
@@ -300,13 +311,13 @@ function TagsSideBar(props: {
 
 const RadioLabel = styled('label')`
   cursor: pointer;
-  margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  margin-bottom: ${p => p.theme.space.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const SidebarTagValue = styled('span')`
@@ -314,20 +325,20 @@ const SidebarTagValue = styled('span')`
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 // TODO(k-fish): Adjust thirds layout to allow for this instead.
 const ReversedLayoutBody = styled('div')`
   margin: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
-    gap: ${space(3)};
+    gap: ${p => p.theme.space['2xl']};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
@@ -358,12 +369,10 @@ const StyledSearchBarWrapper = styled('div')`
 
 const FilterActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 1fr auto;
   }
 `;
-
-export default TagsPageContent;

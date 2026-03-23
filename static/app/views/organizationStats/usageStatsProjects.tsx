@@ -3,27 +3,28 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptorObject} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import Pagination from 'sentry/components/pagination';
-import SearchBar from 'sentry/components/searchBar';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {Pagination} from 'sentry/components/pagination';
+import {SearchBar} from 'sentry/components/searchBar';
 import type {
   Alignments,
   Directions,
 } from 'sentry/components/tables/gridEditable/sortLink';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {droppedProfileChunkMultiplier} from 'sentry/views/organizationStats/mapSeriesToChart';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import type {UsageSeries} from './types';
 import type {TableStat} from './usageTable';
@@ -98,17 +99,6 @@ export function UsageStatsProjects({
       groupBy.push('category');
       category.push(DataCategoryExact.SPAN_INDEXED);
     }
-    if (
-      dataCategory.name === DataCategoryExact.PROFILE_DURATION ||
-      dataCategory.name === DataCategoryExact.PROFILE_DURATION_UI
-    ) {
-      groupBy.push('category');
-      category.push(
-        dataCategory.name === DataCategoryExact.PROFILE_DURATION
-          ? DataCategoryExact.PROFILE_CHUNK
-          : DataCategoryExact.PROFILE_CHUNK_UI
-      );
-    }
 
     // We do not need more granularity in the data so interval is '1d'
     return {
@@ -129,7 +119,9 @@ export function UsageStatsProjects({
     isPending: loading,
   } = useApiQuery<UsageSeries>(
     [
-      `/organizations/${organization.slug}/stats_v2/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         // We do not need more granularity in the data so interval is '1d'
         query: endpointQuery,
@@ -151,7 +143,7 @@ export function UsageStatsProjects({
       };
     }
 
-    let key: string = parentTableSort;
+    let key = parentTableSort;
     let direction = -1;
 
     if (parentTableSort.charAt(0) === '-') {
@@ -283,9 +275,6 @@ export function UsageStatsProjects({
         const {outcome, category, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
 
-        const multiplier = droppedProfileChunkMultiplier(category, outcome);
-        const value = group.totals['sum(quantity)']! * multiplier;
-
         if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
           // we need `span_indexed` data for `accepted_stored` only
           return;
@@ -300,11 +289,11 @@ export function UsageStatsProjects({
         }
 
         if (outcome !== Outcome.CLIENT_DISCARD && category !== 'span_indexed') {
-          stats[projectId!]!.total += value;
+          stats[projectId!]!.total += group.totals['sum(quantity)']!;
         }
 
         if (category === 'span_indexed' && outcome === Outcome.ACCEPTED) {
-          stats[projectId!]!.accepted_stored += value;
+          stats[projectId!]!.accepted_stored += group.totals['sum(quantity)']!;
           return;
         }
 
@@ -313,7 +302,7 @@ export function UsageStatsProjects({
           outcome === Outcome.FILTERED ||
           outcome === Outcome.INVALID
         ) {
-          stats[projectId!]![outcome] += value;
+          stats[projectId!]![outcome] += group.totals['sum(quantity)']!;
         }
 
         if (
@@ -321,7 +310,7 @@ export function UsageStatsProjects({
           outcome === Outcome.CARDINALITY_LIMITED ||
           outcome === Outcome.ABUSE
         ) {
-          stats[projectId!]![SortBy.RATE_LIMITED] += value;
+          stats[projectId!]![SortBy.RATE_LIMITED] += group.totals['sum(quantity)']!;
         }
       });
 
@@ -490,9 +479,9 @@ export function UsageStatsProjects({
   return (
     <Fragment>
       {isSingleProject && (
-        <PanelHeading>
+        <Flex align="center" marginBottom="xl">
           <Title>{t('All Projects')}</Title>
-        </PanelHeading>
+        </Flex>
       )}
       {!isSingleProject && (
         <Container>
@@ -523,20 +512,14 @@ export function UsageStatsProjects({
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.gray400};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.colors.gray500};
   display: flex;
   flex: 1;
-  align-items: center;
-`;
-
-const PanelHeading = styled('div')`
-  display: flex;
-  margin-bottom: ${space(2)};
   align-items: center;
 `;

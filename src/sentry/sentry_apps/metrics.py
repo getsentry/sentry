@@ -70,6 +70,7 @@ class SentryAppWebhookHaltReason(StrEnum):
     MISSING_INSTALLATION = "missing_installation"
     RESTRICTED_IP = "restricted_ip"
     CONNECTION_RESET = "connection_reset"
+    HARD_TIMEOUT = "hard_timeout"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):
@@ -145,4 +146,8 @@ class SentryAppEventType(StrEnum):
     SEER_SOLUTION_COMPLETED = "seer.solution_completed"
     SEER_CODING_STARTED = "seer.coding_started"
     SEER_CODING_COMPLETED = "seer.coding_completed"
+    SEER_TRIAGE_STARTED = "seer.triage_started"
+    SEER_TRIAGE_COMPLETED = "seer.triage_completed"
+    SEER_IMPACT_ASSESSMENT_STARTED = "seer.impact_assessment_started"
+    SEER_IMPACT_ASSESSMENT_COMPLETED = "seer.impact_assessment_completed"
     SEER_PR_CREATED = "seer.pr_created"

@@ -1,17 +1,18 @@
 import {useCallback, useState} from 'react';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import Placeholder from 'sentry/components/placeholder';
-import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {Placeholder} from 'sentry/components/placeholder';
+import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {DetailsTimeline} from 'sentry/views/alerts/rules/uptime/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/alerts/rules/uptime/detailsTimelineLegend';
 import {
@@ -22,8 +23,10 @@ import {UptimeChecksTable} from 'sentry/views/alerts/rules/uptime/uptimeChecksTa
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
+import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
+import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
@@ -59,12 +62,17 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DatePageFilter />
+          <DisabledAlert
+            detector={detector}
+            message={t('This monitor is disabled and not recording uptime checks.')}
+          />
           <DetailsTimeline uptimeDetector={detector} onStatsLoaded={checkHasUnknown} />
+          <DetectorDetailsOngoingIssues detector={detector} dateTimeSelection={null} />
           <Section title={t('Recent Check-Ins')}>
             <div>
               <UptimeChecksTable
                 detectorId={detector.id}
-                projectSlug={project.slug}
+                project={project}
                 traceSampling={detector.dataSources[0].queryObj.traceSampling}
               />
             </div>

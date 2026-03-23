@@ -2,29 +2,29 @@ import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import ListItem from 'sentry/components/list/listItem';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {ListItem} from 'sentry/components/list/listItem';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
-import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
+import {removeAtArrayIndex} from 'sentry/utils/array/removeAtArrayIndex';
+import {replaceAtArrayIndex} from 'sentry/utils/array/replaceAtArrayIndex';
 import {uniqueId} from 'sentry/utils/guid';
-import withOrganization from 'sentry/utils/withOrganization';
-import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
-import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
-import ActionTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
-import DeleteActionButton from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
+import {withOrganization} from 'sentry/utils/withOrganization';
+import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import {ActionSpecificTargetSelector} from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
+import {ActionTargetSelector} from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
+import {DeleteActionButton} from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
 import {
   ActionLabel,
   AlertRuleComparisonType,
@@ -113,7 +113,7 @@ const getFullActionTitle = ({
     if (status && status !== 'published') {
       return `${sentryAppName} (${status})`;
     }
-    return `${sentryAppName}`;
+    return sentryAppName;
   }
 
   const label = ActionLabel[type];
@@ -150,7 +150,7 @@ class ActionsPanel extends PureComponent<Props> {
     if (newAction.type === 'slack') {
       return (
         <FooterAlert
-          type="info"
+          variant="info"
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
@@ -164,7 +164,7 @@ class ActionsPanel extends PureComponent<Props> {
     if (newAction.type === 'discord') {
       return (
         <FooterAlert
-          type="info"
+          variant="info"
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
@@ -188,7 +188,7 @@ class ActionsPanel extends PureComponent<Props> {
       return;
     }
 
-    const action: Action = getCleanAction(actionConfig);
+    const action = getCleanAction(actionConfig);
 
     // Add new actions to critical by default
     const triggerIndex = 0;
@@ -234,7 +234,7 @@ class ActionsPanel extends PureComponent<Props> {
 
     const existingDateCreated =
       actions[index]!.dateCreated ?? actions[index]!.unsavedDateCreated;
-    const newAction: Action = getCleanAction(actionConfig, existingDateCreated);
+    const newAction = getCleanAction(actionConfig, existingDateCreated);
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
@@ -401,8 +401,7 @@ class ActionsPanel extends PureComponent<Props> {
                           actionIdx
                         )}
                       />
-                    ) : availableAction &&
-                      availableAction.type === 'sentry_app' &&
+                    ) : availableAction?.type === 'sentry_app' &&
                       availableAction.settings ? (
                       <Button
                         icon={<IconSettings />}
@@ -496,7 +495,7 @@ class ActionsPanel extends PureComponent<Props> {
         <ActionSection>
           <Button
             disabled={disabled || loading}
-            icon={<IconAdd isCircled color="gray300" />}
+            icon={<IconAdd variant="muted" />}
             onClick={this.handleAddAction}
           >
             {t('Add Action')}
@@ -508,46 +507,46 @@ class ActionsPanel extends PureComponent<Props> {
 }
 
 const ActionsPanelWithSpace = styled(ActionsPanel)`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const ActionSection = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const PanelItemGrid = styled(PanelItem)`
   display: flex;
   align-items: center;
   border-bottom: 0;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const PanelItemSelects = styled('div')`
   display: flex;
   width: 100%;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   > * {
     flex: 0 1 200px;
 
     &:not(:last-child) {
-      margin-right: ${space(1)};
+      margin-right: ${p => p.theme.space.md};
     }
   }
 `;
 
 const RuleRowContainer = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
-  border: 1px ${p => p.theme.border} solid;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border: 1px ${p => p.theme.tokens.border.primary} solid;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   &:last-child {
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
   }
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(3)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space['2xl']} 0;
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const PerformActionsListItem = styled(StyledListItem)`
@@ -556,7 +555,7 @@ const PerformActionsListItem = styled(StyledListItem)`
 `;
 
 const FooterAlert = styled(Alert)`
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   margin-top: -1px; /* remove double border on panel bottom */
   a {
     white-space: nowrap;

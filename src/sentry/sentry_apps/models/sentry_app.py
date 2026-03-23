@@ -10,6 +10,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -31,7 +32,7 @@ from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION
-from sentry.types.region import find_all_region_names, find_regions_for_sentry_app
+from sentry.types.cell import find_all_cell_names, find_cells_for_sentry_app
 from sentry.utils import metrics
 
 REQUIRED_EVENT_PERMISSIONS = {
@@ -195,13 +196,19 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     def build_signature(self, body):
         assert self.application is not None
         secret = self.application.client_secret
+        # SentryApps always have a client_secret (they are confidential clients)
+        assert secret is not None
         return hmac.new(
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()
 
     def show_auth_info(self, access):
+        from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
+
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
-        return set(self.scope_list).issubset(encoded_scopes)
+        # Exclude token-only scopes from the check since users don't have them in their roles
+        integration_scopes = set(self.scope_list) - SENTRY_TOKEN_ONLY_SCOPES
+        return integration_scopes.issubset(encoded_scopes)
 
     def outboxes_for_update(self) -> list[ControlOutbox]:
         return [
@@ -210,9 +217,9 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_UPDATE,
-                region_name=region_name,
+                cell_name=cell_name,
             )
-            for region_name in find_all_region_names()
+            for cell_name in find_all_cell_names()
         ]
 
     def outboxes_for_delete(self) -> list[ControlOutbox]:
@@ -222,14 +229,14 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_DELETE,
-                region_name=region_name,
+                cell_name=cell_name,
                 payload={"slug": self.slug},
             )
-            for region_name in find_all_region_names()
+            for cell_name in find_all_cell_names()
         ]
 
-    def regions_with_installations(self) -> set[str]:
-        return find_regions_for_sentry_app(self)
+    def cells_with_installations(self) -> set[str]:
+        return find_cells_for_sentry_app(self)
 
     def delete(self, *args, **kwargs):
         from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
@@ -242,6 +249,11 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 outbox.save()
 
             SentryAppAvatar.objects.filter(sentry_app=self).delete()
+
+            if options.get("sentry-apps.hard-delete"):
+                # actually delete the object. we need to delete all soft-deleted objects before removing ParanoidModel
+                return super(Model, self).delete(*args, **kwargs)
+
             return super().delete(*args, **kwargs)
 
     def _disable(self):

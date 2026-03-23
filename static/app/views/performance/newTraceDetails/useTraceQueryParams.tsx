@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import * as qs from 'query-string';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 export interface TraceViewQueryParams {
@@ -19,7 +19,7 @@ export function useTraceQueryParams(
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(normalizedParams.start);
-    const timestamp: string | undefined = decodeScalar(normalizedParams.timestamp);
+    const timestamp = decodeScalar(normalizedParams.timestamp);
     const end = decodeScalar(normalizedParams.end);
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
     const numberTimestamp = timestamp ? Number(timestamp) : undefined;

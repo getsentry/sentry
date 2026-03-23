@@ -1,0 +1,60 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "TypeError"
+        value*
+          "Cannot read property 'submitError' of null"
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
+            module*
+              "app/components/modals/createTeamModal"
+            filename (ignored because module takes precedence)
+              "createteammodal.jsx"
+            context_line*
+              "onError(err);"
+          frame (marked out of app by the client)
+            module*
+              "app/views/settings/components/forms/form"
+            filename (ignored because module takes precedence)
+              "form.jsx"
+            function (ignored because sourcemap used and context line available)
+              "onError"
+            context_line*
+              "this.model.submitError(error);"
+--------------------------------------------------------------------------
+system:
+  hash: "9b140b41d4ae2bd9588ccff62cb8358f"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type*
+          "TypeError"
+        value (ignored because stacktrace takes precedence)
+          "Cannot read property 'submitError' of null"
+        stacktrace*
+          frame*
+            module*
+              "app/components/modals/createTeamModal"
+            filename (ignored because module takes precedence)
+              "createteammodal.jsx"
+            context_line*
+              "onError(err);"
+          frame*
+            module*
+              "app/views/settings/components/forms/form"
+            filename (ignored because module takes precedence)
+              "form.jsx"
+            function (ignored because sourcemap used and context line available)
+              "onError"
+            context_line*
+              "this.model.submitError(error);"

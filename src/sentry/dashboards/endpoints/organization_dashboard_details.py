@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -71,7 +71,7 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
 
 @extend_schema(tags=["Dashboards"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -127,6 +127,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         num_dashboards = Dashboard.objects.filter(organization=organization).count()
         num_tombstones = DashboardTombstone.objects.filter(organization=organization).count()
 
+        if isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None:
+            return self.respond({"Cannot delete prebuilt Dashboards."}, status=409)
+
         if isinstance(dashboard, dict):
             if num_dashboards > 0:
                 DashboardTombstone.objects.get_or_create(
@@ -170,6 +173,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         self.check_object_permissions(request, dashboard)
 
+        is_prebuilt = isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None
+        prebuilt_title = dashboard.title if isinstance(dashboard, Dashboard) else None
+
         tombstone = None
         if isinstance(dashboard, dict):
             tombstone = dashboard["id"]
@@ -188,6 +194,20 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
+
+        if is_prebuilt:
+            if "widgets" in serializer.validated_data:
+                return self.respond(
+                    {"detail": "Cannot edit widgets on prebuilt Dashboards."}, status=409
+                )
+            if (
+                "title" in serializer.validated_data
+                and serializer.validated_data["title"] != prebuilt_title
+            ):
+                return self.respond(
+                    {"detail": "Cannot change the title of prebuilt Dashboards."}, status=409
+                )
+
         try:
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
                 serializer.save()
@@ -201,7 +221,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(serialize(serializer.instance, request.user), status=200)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
@@ -238,7 +258,7 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         return Response(status=204)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
     """
     Endpoint for managing the favorite status of dashboards for users
@@ -276,7 +296,7 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
                     dashboard=dashboard,
                 )
             else:
-                DashboardFavoriteUser.objects.delete_favorite_dashboard(
+                DashboardFavoriteUser.objects.unfavorite_dashboard(
                     organization=organization,
                     user_id=request.user.id,
                     dashboard=dashboard,

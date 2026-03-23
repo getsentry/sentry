@@ -16,7 +16,7 @@ from sentry.seer.fetch_issues.by_function_name import (
 from sentry.seer.fetch_issues.utils import RepoProjects, get_repo_and_projects
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.datetime import before_now
-from tests.sentry.integrations.github.tasks.test_open_pr_comment import CreateEventTestCase
+from tests.sentry.seer.fetch_issues.test_by_text_query import CreateEventTestCase
 
 
 class TestLeftTruncatedPaths(CreateEventTestCase):
@@ -305,6 +305,8 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                     organization_id=self.organization.id,
                     provider="integrations:github",
                     external_id=self.gh_repo.external_id,
+                    owner="getsentry",
+                    name="sentry",
                     filename="test.py",
                     function_name="target_function",
                 )
@@ -338,6 +340,8 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                     organization_id=self.organization.id,
                     provider="integrations:github",
                     external_id=self.gh_repo.external_id,
+                    owner="getsentry",
+                    name="sentry",
                     filename="test.py",
                     function_name="target_function",
                     max_num_issues_per_file=10,
@@ -367,6 +371,8 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                     organization_id=self.organization.id,
                     provider="integrations:github",
                     external_id=self.gh_repo.external_id,
+                    owner="getsentry",
+                    name="sentry",
                     filename="test.py",
                     function_name="target_function",
                     run_id=12345,
@@ -393,11 +399,14 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
             filename="test.py",
             function_name="target_function",
         )
 
         # Basic structure checks
+        assert "error" not in seer_response
         assert "issues" in seer_response
         assert "issues_full" in seer_response
         assert len(seer_response["issues"]) > 0
@@ -443,7 +452,6 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
     @patch("sentry.seer.fetch_issues.by_function_name._get_projects_and_filenames_from_source_file")
     @patch("sentry.seer.fetch_issues.by_function_name._get_issues_for_file")
     def test_no_projects_found_fallback(self, mock_get_issues, mock_get_projects):
-
         # Mock no projects found initially
         mock_get_projects.return_value = (set(), {"test.py"})
         mock_get_issues.return_value = []
@@ -472,7 +480,6 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
     @patch("sentry.seer.fetch_issues.by_function_name._get_projects_and_filenames_from_source_file")
     @patch("sentry.seer.fetch_issues.by_function_name._get_issues_for_file")
     def test_projects_found_no_fallback(self, mock_get_issues, mock_get_projects):
-
         # Mock projects found
         mock_get_projects.return_value = ({self.project}, {"test.py"})
         mock_get_issues.return_value = []
@@ -514,6 +521,8 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
         )
 
         # Test the internal function directly with real search behavior
@@ -538,6 +547,8 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
         )
 
         # Test the internal function with non-matching criteria

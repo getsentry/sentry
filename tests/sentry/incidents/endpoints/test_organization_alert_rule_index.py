@@ -24,6 +24,7 @@ from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -49,10 +50,11 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.models import SnubaQueryEventType
+from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.tasks import create_subscription_in_snuba
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
@@ -62,7 +64,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import _snuba_pool
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action, DataSource, Detector
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
@@ -206,6 +208,22 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
             self.detector, self.user, WorkflowEngineDetectorSerializer()
         )
 
+    def test_workflow_engine_serializer_empty_list(self) -> None:
+        """An org with no alert rules should return an empty list, not 404."""
+        org = self.create_organization(owner=self.user)
+        project = self.create_project(organization=org)
+        team = self.create_team(organization=org, members=[self.user])
+        ProjectTeam.objects.create(project=project, team=team)
+        self.login_as(self.user)
+
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:workflow-engine-rule-serializers"),
+        ):
+            resp = self.get_success_response(org.slug)
+
+        assert resp.data == []
+
     def test_no_feature(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -245,9 +263,169 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         # Find our rule in the response (should be the second one, first is self.alert_rule)
         rule = next(rule for rule in resp.data if rule["id"] == str(alert_rule.id))
 
-        assert (
-            rule["aggregate"] == "count()"
-        ), "LIST should return count() to user, hiding internal upsampled_count() storage"
+        assert rule["aggregate"] == "count()", (
+            "LIST should return count() to user, hiding internal upsampled_count() storage"
+        )
+
+    def test_workflow_engine_serializer_snoozed_detector(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.detector.update(enabled=False)
+        self.login_as(self.user)
+
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data[0]["snooze"] is True
+
+    def test_workflow_engine_serializer_enabled_detector_no_snooze(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert "snooze" not in resp.data[0]
+
+    def test_workflow_engine_serializer_includes_single_written_detectors(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        # Create single-written detector by reusing existing query infrastructure
+        query_subscription = QuerySubscription.objects.get(snuba_query=self.alert_rule.snuba_query)
+        data_source, _ = DataSource.objects.get_or_create(
+            type="snuba_query_subscription",
+            source_id=str(query_subscription.id),
+            defaults={"organization_id": self.organization.id},
+        )
+        single_written_detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            name="Single Written Detector",
+        )
+        data_source.detectors.add(single_written_detector)
+
+        self.login_as(self.user)
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert len(resp.data) == 2
+        detector_names = {item["name"] for item in resp.data}
+        assert self.detector.name in detector_names
+        assert "Single Written Detector" in detector_names
+
+    def test_workflow_engine_count_includes_single_written_detectors(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        # Create single-written detector
+        query_subscription = QuerySubscription.objects.get(snuba_query=self.alert_rule.snuba_query)
+        data_source, _ = DataSource.objects.get_or_create(
+            type="snuba_query_subscription",
+            source_id=str(query_subscription.id),
+            defaults={"organization_id": self.organization.id},
+        )
+        single_written_detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            name="Single Written Detector",
+        )
+        data_source.detectors.add(single_written_detector)
+
+        self.login_as(self.user)
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp[ALERT_RULES_COUNT_HEADER] == "2"
+
+    def test_workflow_engine_serializer_scopes_to_project(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        # Create detector in different project
+        other_project = self.create_project(organization=self.organization)
+        self.create_detector(
+            project=other_project,
+            type=MetricIssue.slug,
+            name="Other Project Detector",
+        )
+
+        self.login_as(self.user)
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert len(resp.data) == 1
+        assert resp.data[0]["name"] == self.detector.name
+
+
+@freeze_time("2024-12-11 03:21:34")
+class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
+    """Delta tests comparing old vs new serializer output for the list endpoint."""
+
+    @with_feature("organizations:incidents")
+    def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
+        """New serializer output on the list endpoint must match old serializer output."""
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        old_resp = self.get_success_response(self.organization.slug)
+        old_data = old_resp.data
+        assert len(old_data) > 0
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            new_resp = self.get_success_response(self.organization.slug)
+        new_data = new_resp.data
+        assert len(new_data) == len(old_data)
+
+        # Known differences between old and new serializers
+        known_differences = {
+            # resolveThreshold: Old serializer checked AlertRule.resolve_threshold for None,
+            # but workflow engine always creates a resolve condition during migration.
+            # Cannot distinguish between explicit None vs migrated value without AlertRule.
+            "resolveThreshold",
+        }
+
+        mismatches: list[str] = []
+        for old_rule, new_rule in zip(old_data, new_data):
+            for field in set(list(old_rule.keys()) + list(new_rule.keys())):
+                if field == "triggers" or field in known_differences:
+                    continue
+                if field not in new_rule:
+                    mismatches.append(f"Missing from new: {field}")
+                elif field not in old_rule:
+                    mismatches.append(f"Extra in new: {field}")
+                elif old_rule[field] != new_rule[field]:
+                    mismatches.append(f"{field}: old={old_rule[field]!r}, new={new_rule[field]!r}")
+
+            old_triggers = sorted(old_rule.get("triggers", []), key=lambda t: t.get("label", ""))
+            new_triggers = sorted(new_rule.get("triggers", []), key=lambda t: t.get("label", ""))
+            if len(old_triggers) != len(new_triggers):
+                mismatches.append(
+                    f"trigger count: old={len(old_triggers)}, new={len(new_triggers)}"
+                )
+            for old_t, new_t in zip(old_triggers, new_triggers):
+                for tfield in set(list(old_t.keys()) + list(new_t.keys())):
+                    if tfield == "actions" or tfield in known_differences:
+                        continue
+                    if old_t.get(tfield) != new_t.get(tfield):
+                        mismatches.append(
+                            f"trigger[{old_t.get('label')}].{tfield}: "
+                            f"old={old_t.get(tfield)!r}, new={new_t.get(tfield)!r}"
+                        )
+
+        assert not mismatches, "List old vs new serializer differences:\n" + "\n".join(mismatches)
 
 
 @freeze_time()
@@ -553,6 +731,42 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
         assert mock_ourlogs_run_timeseries_query.call_count == 1
 
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:tracemetrics-alerts")
+    @with_feature("organizations:tracemetrics-enabled")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch(
+        "sentry.seer.anomaly_detection.utils.TraceMetrics.run_timeseries_query",
+        wraps=TraceMetrics.run_timeseries_query,
+    )
+    def test_anomaly_detection_alert_trace_metrics(
+        self, mock_trace_metrics_run_timeseries_query, mock_seer_request
+    ):
+        data = deepcopy(self.dynamic_alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["aggregate"] = "p50(value,llm.token_usage,distribution,-)"
+        data["eventTypes"] = ["trace_item_metric"]
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.seasonality == resp.data.get("seasonality")
+        assert alert_rule.sensitivity == resp.data.get("sensitivity")
+        assert mock_seer_request.call_count == 1
+        assert mock_trace_metrics_run_timeseries_query.call_count == 1
+
     @patch(
         "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
         wraps=create_subscription_in_snuba,
@@ -635,8 +849,152 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
         assert (
-            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)[0].type
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)
+            .order_by("id")[0]
+            .type
             == SnubaQueryEventType.EventType.TRACE_ITEM_LOG.value
+        )
+
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_create_alert_rule_trace_metrics_feature_flag_disabled(
+        self, mock_create_subscription_in_snuba: MagicMock
+    ) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["aggregate"] = "count(trace.duration)"
+        data["eventTypes"] = ["trace_item_metric"]
+        data["timeWindow"] = 5
+        with (
+            outbox_runner(),
+            self.feature(
+                {
+                    "organizations:incidents": True,
+                    "organizations:performance-view": True,
+                    "organizations:tracemetrics-alerts": False,
+                    "organizations:tracemetrics-enabled": False,
+                },
+            ),
+        ):
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+            assert "You do not have access to the metrics alerts feature" in str(resp.data)
+
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_create_alert_rule_trace_metrics_invalid_aggregate(
+        self, mock_create_subscription_in_snuba: MagicMock
+    ) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["aggregate"] = "count(trace.duration)"
+        data["eventTypes"] = ["trace_item_metric"]
+        data["timeWindow"] = 5
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:tracemetrics-alerts",
+                    "organizations:tracemetrics-enabled",
+                ]
+            ),
+        ):
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+            assert "Invalid trace metrics aggregate" in str(resp.data["aggregate"][0])
+
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_create_alert_rule_trace_metrics_valid_aggregates(
+        self, mock_create_subscription_in_snuba: MagicMock
+    ) -> None:
+        data1 = deepcopy(self.alert_rule_dict)
+        data1["name"] = "Trace Metrics Per Second Alert"
+        data1["dataset"] = "events_analytics_platform"
+        data1["alertType"] = "eap_metrics"
+        data1["aggregate"] = "per_second(value,metric_name_one,counter,-)"
+        data1["eventTypes"] = ["trace_item_metric"]
+        data1["timeWindow"] = 5
+
+        data2 = deepcopy(self.alert_rule_dict)
+        data2["name"] = "Trace Metrics Count Alert"
+        data2["dataset"] = "events_analytics_platform"
+        data2["alertType"] = "eap_metrics"
+        data2["aggregate"] = "count(metric.name,metric_name_two,distribution,-)"
+        data2["eventTypes"] = ["trace_item_metric"]
+        data2["timeWindow"] = 5
+
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:tracemetrics-alerts",
+                    "organizations:tracemetrics-enabled",
+                ]
+            ),
+        ):
+            with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+                resp1 = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **data1,
+                )
+
+                resp2 = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **data2,
+                )
+
+                assert urlopen.call_count == 2
+                for call_args in urlopen.call_args_list:
+                    rpc_request_body = call_args[1]["body"]
+                    createSubscriptionRequest = CreateSubscriptionRequest.FromString(
+                        rpc_request_body
+                    )
+                    assert (
+                        createSubscriptionRequest.time_series_request.meta.trace_item_type
+                        == TraceItemType.TRACE_ITEM_TYPE_METRIC
+                    )
+
+        assert "id" in resp1.data
+        alert_rule1 = AlertRule.objects.get(id=resp1.data["id"])
+        assert resp1.data == serialize(alert_rule1, self.user)
+        assert resp1.data["aggregate"] == "per_second(value,metric_name_one,counter,-)"
+        assert (
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule1.snuba_query_id)
+            .order_by("id")[0]
+            .type
+            == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.value
+        )
+
+        assert "id" in resp2.data
+        alert_rule2 = AlertRule.objects.get(id=resp2.data["id"])
+        assert resp2.data == serialize(alert_rule2, self.user)
+        assert resp2.data["aggregate"] == "count(metric.name,metric_name_two,distribution,-)"
+        assert (
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule2.snuba_query_id)
+            .order_by("id")[0]
+            .type
+            == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.value
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
@@ -756,7 +1114,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:mep-rollout-flag",
                     "organizations:dynamic-sampling",
                 ]
             ),
@@ -812,7 +1169,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:mep-rollout-flag",
                     "organizations:dynamic-sampling",
                 ]
             ),
@@ -873,6 +1229,45 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature("organizations:incidents"):
             resp = self.get_error_response(self.organization.slug, **self.alert_rule_dict)
             assert resp.data[0] == "You may not exceed 1 metric alerts per organization"
+
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions_with_override(self) -> None:
+        with self.options(
+            {
+                "metric_alerts.extended_max_subscriptions_orgs": [self.organization.id],
+                "metric_alerts.extended_max_subscriptions": 3,
+            }
+        ):
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **self.alert_rule_dict
+                )
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
+            alert_rule_dict_2 = self.alert_rule_dict.copy()
+            alert_rule_dict_2["name"] = "Test Rule 2"
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **alert_rule_dict_2
+                )
+            alert_rule_2 = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule_2, self.user)
+
+            alert_rule_dict_3 = self.alert_rule_dict.copy()
+            alert_rule_dict_3["name"] = "Test Rule 3"
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **alert_rule_dict_3
+                )
+            alert_rule_3 = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule_3, self.user)
+
+            alert_rule_dict_4 = self.alert_rule_dict.copy()
+            alert_rule_dict_4["name"] = "Test Rule 4"
+            with self.feature("organizations:incidents"):
+                resp = self.get_error_response(self.organization.slug, **alert_rule_dict_4)
+                assert resp.data[0] == "You may not exceed 3 metric alerts per organization"
 
     def test_sentry_app(self) -> None:
         other_org = self.create_organization(owner=self.user)
@@ -1251,7 +1646,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
     def test_no_perms(self) -> None:
         with (
-            assume_test_silo_mode(SiloMode.REGION),
+            assume_test_silo_mode(SiloMode.CELL),
             outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))),
         ):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
@@ -1506,7 +1901,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
             ]
         ):
@@ -1540,7 +1934,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
             ]
         ):
@@ -1612,6 +2005,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     @patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
+        # create orphaned metric alert
+        project_to_delete = self.create_project(organization=self.organization)
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[project_to_delete]
+        )
+        project_to_delete.delete()
+
         # Set limit to 2 alert rules
         mock_get_limit.return_value = 2
 
@@ -1645,7 +2045,26 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
     @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @patch("sentry.quotas.backend.get_metric_detector_limit")
+    @patch("sentry.incidents.endpoints.organization_alert_rule_index.log_alerting_quota_hit")
+    def test_metric_alert_limit_calls_log(
+        self, mock_log: MagicMock, mock_get_limit: MagicMock
+    ) -> None:
+        mock_get_limit.return_value = 0
+        data = deepcopy(self.alert_rule_dict)
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+        mock_log.assert_called_once()
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
     def test_metric_alert_limit_unlimited_plan(self) -> None:
+        # create orphaned metric alert
+        project_to_delete = self.create_project(organization=self.organization)
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[project_to_delete]
+        )
+        project_to_delete.delete()
+
         # Create many alert rules
         for _ in range(5):
             self.create_alert_rule(organization=self.organization)
@@ -1704,6 +2123,173 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.data[0]
             == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
         )
+
+    def test_invalid_extrapolation_mode(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["extrapolation_mode"] = "server_weighted"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data[0]
+            == "server_weighted extrapolation mode is not supported for new alerts. Allowed modes are: client_and_server_weighted, unknown."
+        )
+
+    def test_owner_team_not_member_denied(self) -> None:
+        """
+        Test that members cannot assign a team they are not a member of as owner.
+        This is a regression test for an IDOR vulnerability.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{other_team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert resp.data == {"owner": ["You can only assign teams you are a member of"]}
+
+    def test_owner_team_member_allowed(self) -> None:
+        """
+        Test that members CAN assign a team they are a member of as owner.
+        """
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{self.team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert resp.data["owner"] == f"team:{self.team.id}"
+
+    def test_owner_team_admin_can_assign_any_team(self) -> None:
+        """
+        Test that users with team:admin scope CAN assign any team as owner.
+        """
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        admin_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=admin_user,
+            organization=self.organization,
+            role="admin",
+            teams=[self.team],
+        )
+        self.login_as(admin_user)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{other_team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert resp.data["owner"] == f"team:{other_team.id}"
+
+    def test_owner_team_open_membership_allows_any_team(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can assign any team as owner.
+        """
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{other_team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert resp.data["owner"] == f"team:{other_team.id}"
+
+
+@freeze_time("2024-12-11 03:21:34")
+class AlertRuleCreateDeltaTest(AlertRuleIndexBase, SnubaTestCase):
+    """Delta tests comparing old vs new serializer output for the create endpoint."""
+
+    method = "post"
+
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+    def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
+        """New serializer output on the create endpoint must match old serializer output."""
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        # Create with old serializer
+        old_dict = deepcopy(self.alert_rule_dict)
+        old_dict["name"] = "OldSerializerRule"
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            old_resp = self.get_success_response(
+                self.organization.slug, status_code=201, **old_dict
+            )
+        old_data = old_resp.data
+
+        # Create with new serializer
+        new_dict = deepcopy(self.alert_rule_dict)
+        new_dict["name"] = "NewSerializerRule"
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:workflow-engine-rule-serializers",
+                ]
+            ),
+        ):
+            new_resp = self.get_success_response(
+                self.organization.slug, status_code=201, **new_dict
+            )
+        new_data = new_resp.data
+
+        # id, name, dates differ because these are different objects
+        skip_fields = {"id", "name", "dateModified", "dateCreated", "triggers"}
+        mismatches: list[str] = []
+        for field in set(list(old_data.keys()) + list(new_data.keys())):
+            if field in skip_fields:
+                continue
+            if field not in new_data:
+                mismatches.append(f"Missing from new: {field}")
+            elif field not in old_data:
+                mismatches.append(f"Extra in new: {field}")
+            elif old_data[field] != new_data[field]:
+                mismatches.append(f"{field}: old={old_data[field]!r}, new={new_data[field]!r}")
+
+        assert not mismatches, "POST old vs new serializer differences:\n" + "\n".join(mismatches)
 
 
 @freeze_time()

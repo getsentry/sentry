@@ -1,10 +1,13 @@
 import {useCallback, useMemo} from 'react';
 
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -40,6 +43,7 @@ type ReadableQuery = {
   // - `aggregateField` which contains a list of group bys and visualizes merged together
   // - `groupby` and `visualize` which contains the group bys and visualizes separately
   aggregateField?: Array<RawGroupBy | RawVisualize>;
+  caseInsensitive?: CaseInsensitive;
 
   groupby?: string[];
   // Only used for metrics dataset.
@@ -48,12 +52,12 @@ type ReadableQuery = {
 };
 
 // This is the `query` property on our SavedQuery, which indicates the actualy query portion of the saved query, hence SavedQueryQuery.
-export class SavedQueryQuery {
+class SavedQueryQuery {
   fields: string[];
   mode: Mode;
   orderby: string;
   query: string;
-
+  caseInsensitive?: CaseInsensitive;
   aggregateField: Array<RawGroupBy | RawVisualize>;
   groupby: string[];
   visualize: RawVisualize[];
@@ -66,7 +70,7 @@ export class SavedQueryQuery {
     this.mode = query.mode;
     this.orderby = query.orderby;
     this.query = query.query;
-
+    this.caseInsensitive = query.caseInsensitive;
     // for compatibility, we ensure that aggregate fields, group bys and visualizes are all populated
     // we ensure that group bys + visualizes = aggregate fields
     this.groupby =
@@ -95,8 +99,8 @@ export type SortOption =
   | 'mostStarred';
 
 // Comes from ExploreSavedQueryModelSerializer
-type ReadableSavedQuery = {
-  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics'; // ExploreSavedQueryDataset
+export type ReadableSavedQuery = {
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays'; // ExploreSavedQueryDataset
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -107,6 +111,7 @@ type ReadableSavedQuery = {
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
   starred: boolean;
+  caseInsensitive?: CaseInsensitive;
   changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
   end?: string;
@@ -165,6 +170,22 @@ export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['datas
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
 }
 
+export const MAX_STARRED_SAVED_QUERIES_IN_NAV = 20;
+
+export function getStarredSavedQueriesQueryKey(organization: Organization): ApiQueryKey {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+    {
+      query: {
+        per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV,
+        starred: 1,
+      },
+    },
+  ];
+}
+
 type Props = {
   cursor?: string;
   exclude?: 'owned' | 'shared';
@@ -186,7 +207,9 @@ export function useGetSavedQueries({
 
   const {data, isLoading, getResponseHeader, ...rest} = useApiQuery<ReadableSavedQuery[]>(
     [
-      `/organizations/${organization.slug}/explore/saved/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           sortBy,
@@ -205,7 +228,13 @@ export function useGetSavedQueries({
 
   const pageLinks = getResponseHeader?.('Link');
 
-  const savedQueries = useMemo(() => data?.map(q => new SavedQuery(q)), [data]);
+  const savedQueries = useMemo(
+    () =>
+      data
+        ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
+        .map(q => new SavedQuery(q)),
+    [data]
+  );
   return {data: savedQueries, isLoading, pageLinks, ...rest};
 }
 
@@ -215,7 +244,11 @@ export function useInvalidateSavedQueries() {
 
   return useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/explore/saved/`],
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
     });
   }, [queryClient, organization.slug]);
 }
@@ -223,13 +256,24 @@ export function useInvalidateSavedQueries() {
 export function useGetSavedQuery(id?: string) {
   const organization = useOrganization();
   const {data, isLoading, ...rest} = useApiQuery<ReadableSavedQuery>(
-    [`/organizations/${organization.slug}/explore/saved/${id}/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+        path: {organizationIdOrSlug: organization.slug, id: id!},
+      }),
+    ],
     {
       staleTime: 0,
       enabled: defined(id),
     }
   );
-  const savedQuery = useMemo(() => (defined(data) ? new SavedQuery(data) : data), [data]);
+  const savedQuery = useMemo(() => {
+    if (!defined(data)) {
+      return undefined;
+    }
+    return Array.isArray(data.query) && data.query.length > 0
+      ? new SavedQuery(data)
+      : undefined;
+  }, [data]);
   return {data: savedQuery, isLoading, ...rest};
 }
 
@@ -239,7 +283,11 @@ export function useInvalidateSavedQuery(id?: string) {
 
   return useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/explore/saved/${id}/`],
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+          path: {organizationIdOrSlug: organization.slug, id: id!},
+        }),
+      ],
     });
   }, [queryClient, organization.slug, id]);
 }
@@ -249,6 +297,7 @@ const DATASET_LABEL_MAP: Record<ReadableSavedQuery['dataset'], string> = {
   spans: 'Traces',
   segment_spans: 'Traces',
   metrics: 'Metrics',
+  replays: 'Replays',
 };
 
 const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
@@ -259,6 +308,7 @@ const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
   spans: TraceItemDataset.SPANS,
   segment_spans: TraceItemDataset.SPANS,
   metrics: TraceItemDataset.TRACEMETRICS,
+  replays: TraceItemDataset.REPLAYS,
 };
 
 export function getSavedQueryDatasetLabel(dataset: ReadableSavedQuery['dataset']) {

@@ -5,7 +5,8 @@ from django.db import models
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model
+from sentry.db.models.fields.encryption import EncryptedCharField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
@@ -16,7 +17,7 @@ class MessageType(models.TextChoices):
     INFO = "info"
 
 
-@region_silo_model
+@cell_silo_model
 class TempestCredentials(DefaultFieldsModel):
     # Contains sensitive information which we don't want to export/import - it should be configured again manually
     __relocation_scope__ = RelocationScope.Excluded
@@ -32,7 +33,7 @@ class TempestCredentials(DefaultFieldsModel):
     )
 
     client_id = models.CharField()
-    client_secret = models.CharField()
+    client_secret = EncryptedCharField()
 
     # id of the latest item fetched via tempest
     latest_fetched_item_id = models.CharField(null=True)

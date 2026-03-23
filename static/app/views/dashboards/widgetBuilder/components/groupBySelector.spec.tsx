@@ -1,14 +1,10 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
+import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const organization = OrganizationFixture({
   features: [],
@@ -25,9 +21,7 @@ describe('WidgetBuilderGroupBySelector', () => {
   it('renders', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -42,9 +36,7 @@ describe('WidgetBuilderGroupBySelector', () => {
   it('renders the group by field and works for spans', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -75,9 +67,7 @@ describe('WidgetBuilderGroupBySelector', () => {
   it('renders the group by field and works for logs', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -112,21 +102,20 @@ describe('WidgetBuilderGroupBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
+        organization: organizationWithFeature,
       }
     );
 
@@ -145,21 +134,20 @@ describe('WidgetBuilderGroupBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithoutFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
+        organization: organizationWithoutFeature,
       }
     );
 
@@ -177,21 +165,20 @@ describe('WidgetBuilderGroupBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
             query: {
               dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
+        organization: organizationWithFeature,
       }
     );
 
@@ -200,5 +187,43 @@ describe('WidgetBuilderGroupBySelector', () => {
 
     const selectInput = await screen.findByRole('textbox');
     expect(selectInput).toBeEnabled();
+  });
+
+  it('hides group by fields that are hidden in the trace metrics dataset', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          key: 'metric.name',
+          name: 'metric.name',
+        },
+      ],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+    expect(await screen.findByText('Select group')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByText('Select group'));
+
+    expect(screen.queryByText('metric.name')).not.toBeInTheDocument();
   });
 });

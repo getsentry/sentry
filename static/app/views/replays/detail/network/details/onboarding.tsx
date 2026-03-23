@@ -1,20 +1,21 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink} from 'sentry/components/core/link';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {Alert} from '@sentry/scraps/alert';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {
   MIN_REPLAY_NETWORK_BODIES_SDK,
   MIN_REPLAY_NETWORK_BODIES_SDK_KNOWN_BUG,
 } from 'sentry/utils/replays/sdkVersions';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 
@@ -78,7 +79,7 @@ export function Setup({
 
   return isVideoReplay ? (
     visibleTab === 'request' || visibleTab === 'response' ? (
-      <StyledAlert type="info">
+      <StyledAlert variant="info">
         {tct(
           'Request and response headers or bodies are currently not available for mobile platforms. Track this [link:GitHub issue] to get progress on support for this feature.',
           {
@@ -115,7 +116,7 @@ function SetupInstructions({
 }) {
   if (showSnippet === Output.DATA && visibleTab === 'details') {
     return (
-      <NoMarginAlert type="muted" system data-test-id="network-setup-steps">
+      <NoMarginAlert variant="muted" system data-test-id="network-setup-steps">
         {tct(
           'You can capture additional headers by adding them to the [requestConfig] and [responseConfig] lists in your SDK config.',
           {
@@ -171,7 +172,7 @@ function SetupInstructions({
           }
         )}
       </p>
-      <NetworkUrlWrapper>
+      <Container margin="md 0 lg 0">
         {showSnippet === Output.URL_SKIPPED &&
           url !== '[Filtered]' &&
           tct(
@@ -181,10 +182,10 @@ function SetupInstructions({
               alert: <StyledTextCopyInput>{trimUrl(url)}</StyledTextCopyInput>,
             }
           )}
-      </NetworkUrlWrapper>
+      </Container>
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {tct('Enable [field] to capture both Request and Response bodies.', {
               field: <code>networkCaptureBodies: true</code>,
             })}
@@ -213,11 +214,7 @@ function SetupInstructions({
 }
 
 const StyledTextCopyInput = styled(TextCopyInput)`
-  margin-top: ${space(0.5)};
-`;
-
-const NetworkUrlWrapper = styled('div')`
-  margin: ${space(1)} 0 ${space(1.5)} 0;
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const NoMarginAlert = styled(Alert)`
@@ -225,11 +222,11 @@ const NoMarginAlert = styled(Alert)`
 `;
 
 const StyledInstructions = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
-  margin-top: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(2)};
+  margin-top: ${p => p.theme.space.md};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  padding: ${p => p.theme.space.xl};
   &:first-child {
     margin-top: 0;
     border-top: none;
@@ -237,11 +234,11 @@ const StyledInstructions = styled('div')`
 
   h1 {
     font-size: inherit;
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   p {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
   p:last-child {
     margin-bottom: 0;
@@ -249,5 +246,5 @@ const StyledInstructions = styled('div')`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin: ${space(1)};
+  margin: ${p => p.theme.space.md};
 `;

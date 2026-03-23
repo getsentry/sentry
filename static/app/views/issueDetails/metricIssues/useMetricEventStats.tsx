@@ -1,5 +1,6 @@
 import type {EventsStats} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {
@@ -8,13 +9,17 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   getPeriodInterval,
   getViableDateRange,
 } from 'sentry/views/alerts/rules/metric/details/utils';
-import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {
+  Dataset,
+  EAP_EXTRAPOLATION_MODE_MAP,
+  type MetricRule,
+} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
@@ -74,6 +79,7 @@ export function useMetricEventStats(
     query: ruleQuery,
     environment: ruleEnvironment,
     eventTypes: storedEventTypes,
+    extrapolationMode,
   } = rule;
   const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, storedEventTypes);
   const interval = getPeriodInterval(timePeriod, rule);
@@ -91,7 +97,7 @@ export function useMetricEventStats(
     timePeriod,
   });
 
-  const queryExtras: Record<string, string> = getMetricDatasetQueryExtras({
+  const queryExtras = getMetricDatasetQueryExtras({
     organization,
     location,
     dataset,
@@ -111,12 +117,17 @@ export function useMetricEventStats(
       yAxis: aggregate,
       referrer,
       sampling: samplingMode,
+      extrapolationMode: extrapolationMode
+        ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
+        : undefined,
       ...queryExtras,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/events-stats/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {query: queryObject},
   ];
 

@@ -7,13 +7,12 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 
@@ -68,8 +67,9 @@ export interface AttributesFieldRender<RendererExtra extends RenderFunctionBagga
   >;
 }
 
-interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
-  extends AttributesFieldRender<RendererExtra> {
+interface AttributesTreeProps<
+  RendererExtra extends RenderFunctionBaggage,
+> extends AttributesFieldRender<RendererExtra> {
   /**
    * The attributes to show in the attribute tree. If you need to hide any attributes, filter them out before passing them here. If you need extra attribute information for rendering but you don't want to show those attributes, pass that information in the `rendererExtra` prop.
    */
@@ -81,8 +81,9 @@ interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
 }
 
-interface AttributesTreeColumnsProps<RendererExtra extends RenderFunctionBaggage>
-  extends AttributesTreeProps<RendererExtra> {
+interface AttributesTreeColumnsProps<
+  RendererExtra extends RenderFunctionBaggage,
+> extends AttributesTreeProps<RendererExtra> {
   columnCount: number;
 }
 
@@ -95,8 +96,9 @@ export interface AttributesTreeRowConfig {
   disableRichValue?: boolean;
 }
 
-interface AttributesTreeRowProps<RendererExtra extends RenderFunctionBaggage>
-  extends AttributesFieldRender<RendererExtra> {
+interface AttributesTreeRowProps<
+  RendererExtra extends RenderFunctionBaggage,
+> extends AttributesFieldRender<RendererExtra> {
   attributeKey: string;
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;
@@ -477,33 +479,30 @@ const TreeContainer = styled('div')<{columnCount: number}>`
 const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(min-content, max-content) auto;
-  grid-column-gap: ${space(3)};
-  &:first-child {
-    margin-left: -${space(1)};
-  }
+  grid-column-gap: ${p => p.theme.space['2xl']};
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    padding-left: ${space(2)};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    padding-left: ${p => p.theme.space.xl};
     margin-left: -1px;
   }
   &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    padding-right: ${space(2)};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
+    padding-right: ${p => p.theme.space.xl};
   }
 `;
 
 const TreeRow = styled('div')<{hasErrors: boolean}>`
-  border-radius: ${space(0.5)};
-  padding-left: ${space(1)};
+  border-radius: ${p => p.theme.space.xs};
+  padding-left: ${p => p.theme.space.md};
   position: relative;
   display: grid;
   align-items: center;
   grid-column: span 2;
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space.lg};
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.backgroundSecondary};
+      p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
   }
   .invisible {
     visibility: hidden;
@@ -514,30 +513,32 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
       visibility: visible;
     }
   }
-  color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
+  color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
   background-color: ${p =>
-    p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
+    p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
+    ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
 `;
 
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
+  border-right: 1px solid
+    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
   margin-right: -1px;
   height: 100%;
   width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
-  border: 1px solid ${p => (p.hasErrors ? p.theme.alert.error.border : p.theme.border)};
+  border: 1px solid
+    ${p => (p.hasErrors ? p.theme.colors.red200 : p.theme.tokens.border.primary)};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
   height: 12px;
   align-self: start;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
@@ -555,21 +556,21 @@ const TreeValueTrunk = styled('div')`
   align-items: center;
   min-height: 22px;
   grid-template-columns: 1fr auto;
-  grid-column-gap: ${space(0.5)};
+  grid-column-gap: ${p => p.theme.space.xs};
 `;
 
 const TreeValue = styled('div')<{hasErrors?: boolean}>`
-  padding: ${space(0.25)} 0;
+  padding: ${p => p.theme.space['2xs']} 0;
   align-self: start;
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;
   grid-column: span 1;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
 `;
 
 const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.subText)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.secondary)};
 `;
 
 /**
@@ -587,8 +588,8 @@ const TreeValueDropdown = styled(DropdownMenu)`
   .attribute-button {
     height: 20px;
     min-height: 20px;
-    padding: 0 ${space(0.75)};
-    border-radius: ${space(0.5)};
+    padding: 0 ${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.space.xs};
     z-index: 0;
   }
 `;

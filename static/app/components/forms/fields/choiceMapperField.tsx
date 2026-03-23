@@ -1,21 +1,27 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
+import {useQuery} from '@tanstack/react-query';
+import type {DistributedOmit} from 'type-fest';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
   type SelectOption,
   type SingleSelectProps,
-} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import FormField from 'sentry/components/forms/formField';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+
+import {Client} from 'sentry/api';
+import {FormField} from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -24,23 +30,17 @@ interface DefaultProps {
   /**
    * Text used for the 'add row' button.
    */
-  addButtonText: NonNullable<React.ReactNode>;
+  addButtonText?: NonNullable<React.ReactNode>;
   /**
    * Automatically save even if fields are empty
    */
-  allowEmpty: boolean;
+  allowEmpty?: boolean;
   /**
    * If using mappedSelectors to specifically map different choice selectors
    * per item specify this as true.
    */
-  perItemMapping: boolean;
+  perItemMapping?: boolean;
 }
-
-const defaultProps: DefaultProps = {
-  addButtonText: t('Add Item'),
-  perItemMapping: false,
-  allowEmpty: false,
-};
 
 type MappedSelectors = Record<string, Partial<ControlProps>>;
 
@@ -48,9 +48,15 @@ export interface ChoiceMapperProps extends DefaultProps {
   /**
    * Props forwarded to the add mapping dropdown.
    */
-  addDropdown: Omit<SingleSelectProps<string>, 'options'> & {
+  addDropdown: DistributedOmit<SingleSelectProps<string>, 'options' | 'clearable'> & {
     items: Array<SelectOption<string>>;
     noResultsMessage?: string;
+    /**
+     * Optional URL for async search. When provided, the dropdown will fetch
+     * results from this endpoint instead of using the prepopulated items.
+     */
+    searchField?: string;
+    url?: string;
   };
   /**
    * A list of column labels (headers) for the multichoice table. This should
@@ -105,36 +111,135 @@ export interface ChoiceMapperProps extends DefaultProps {
 }
 
 export interface ChoiceMapperFieldProps
-  extends ChoiceMapperProps,
+  extends
+    ChoiceMapperProps,
     Omit<
       InputFieldProps,
       'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'
     > {}
 
-export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps> {
-  static defaultProps = defaultProps;
+type AsyncCompactSelectProps<Value extends string> = Omit<
+  SingleSelectProps<Value>,
+  'options' | 'search' | 'loading'
+> & {
+  /**
+   * Function to transform query string into API params
+   */
+  buildQueryParams: (query: string) => Record<string, unknown>;
+  /**
+   * Function to transform API response into options
+   */
+  formatOptions: (data: unknown) => Array<SelectOption<Value>>;
+  /**
+   * URL to fetch options from
+   */
+  url: string;
+  /**
+   * Initial options to show before search
+   */
+  defaultOptions?: Array<SelectOption<Value>>;
+};
 
-  hasValue = (value: InputFieldProps['value']) => defined(value) && !isEmptyObject(value);
+/**
+ * AsyncCompactSelect combines CompactSelect's button-trigger UI with async search capabilities.
+ * It fetches options from an API endpoint as the user types.
+ *
+ * This component is specific to Integration Configuration page's needs and is not exported for general use.
+ */
+function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
+  url,
+  buildQueryParams,
+  formatOptions,
+  defaultOptions,
+  clearable: _clearable,
+  onChange,
+  onOpenChange,
+  emptyMessage,
+  ...compactSelectProps
+}: AsyncCompactSelectProps<Value>) {
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(query, 250);
 
-  renderField = (props: ChoiceMapperFieldProps) => {
+  // Use empty baseUrl since /extensions/ endpoints are not under /api/0/
+  const [api] = useState(() => new Client({baseUrl: '', headers: {}}));
+  useEffect(() => {
+    return () => {
+      api.clear();
+    };
+  }, [api]);
+
+  const {data, isFetching} = useQuery({
+    queryKey: [url, buildQueryParams(debouncedQuery)],
+    queryFn: async () => {
+      // This exists because /extensions/type/search API is not prefixed with /api/0/
+      // We do this in the externalIssues modal as well unfortunately.
+      const response = await api.requestPromise(url, {
+        query: buildQueryParams(debouncedQuery),
+      });
+      return response;
+    },
+    enabled: !!debouncedQuery,
+    staleTime: 30_000,
+  });
+
+  const options = data ? formatOptions(data) : defaultOptions || [];
+
+  const handleSearch = (value: string) => {
+    setQuery(value);
+  };
+
+  const handleChange = (option: SelectOption<Value>) => {
+    setQuery('');
+    onChange?.(option);
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setQuery('');
+    }
+    onOpenChange?.(isOpen);
+  };
+
+  return (
+    <CompactSelect
+      {...compactSelectProps}
+      search={{filter: false, onChange: handleSearch}}
+      clearable={false}
+      options={options}
+      onChange={handleChange}
+      onOpenChange={handleOpenChange}
+      loading={isFetching}
+      emptyMessage={isFetching ? t('Loading\u2026') : debouncedQuery ? emptyMessage : ''}
+    />
+  );
+}
+
+function hasValue(value: InputFieldProps['value']) {
+  return defined(value) && !isEmptyObject(value);
+}
+
+export function ChoiceMapperField({
+  addButtonText = t('Add Item'),
+  perItemMapping = false,
+  allowEmpty = false,
+  ...props
+}: ChoiceMapperFieldProps) {
+  const renderField = (fieldProps: ChoiceMapperFieldProps) => {
     const {
       onChange,
       onBlur,
-      addButtonText,
       addDropdown,
       mappedColumnLabel,
       columnLabels,
       mappedSelectors,
-      perItemMapping,
       disabled,
-      allowEmpty,
-    } = props;
+    } = fieldProps;
 
     const mappedKeys = Object.keys(columnLabels);
     const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {});
 
-    const valueIsEmpty = this.hasValue(props.value);
-    const value = valueIsEmpty ? props.value : {};
+    const valueIsEmpty = hasValue(fieldProps.value);
+    const value = valueIsEmpty ? fieldProps.value : {};
 
     const saveChanges = (nextValue: ChoiceMapperFieldProps['value']) => {
       onChange?.(nextValue, {});
@@ -149,7 +254,11 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     };
 
     const addRow = (data: SelectOption<string>) => {
-      saveChanges({...value, [data.value]: emptyValue});
+      // Include the label in the value for async-loaded items
+      const newValue = addDropdown.url
+        ? {...emptyValue, __label: data.label}
+        : emptyValue;
+      saveChanges({...value, [data.value]: newValue});
     };
 
     const removeRow = (itemKey: string) => {
@@ -176,27 +285,83 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         return map;
       }, {}) ?? {};
 
-    const dropdown = (
+    const {
+      url: asyncUrl,
+      searchField,
+      items: _items,
+      noResultsMessage,
+      ...restDropdownProps
+    } = addDropdown;
+
+    const buildAsyncQueryParams = (query: string) => ({
+      field: searchField,
+      query,
+    });
+
+    const formatAsyncOptions = (data: any) =>
+      data
+        .filter((item: SelectOption<string>) => !value.hasOwnProperty(item.value))
+        .map((item: SelectOption<string>) => ({
+          value: item.value,
+          label: item.label,
+        }));
+
+    const dropdown = asyncUrl ? (
+      <AsyncCompactSelectForIntegrationConfig
+        {...restDropdownProps}
+        url={asyncUrl}
+        value={undefined}
+        buildQueryParams={buildAsyncQueryParams}
+        formatOptions={formatAsyncOptions}
+        defaultOptions={selectableValues}
+        onChange={addRow}
+        size="xs"
+        menuWidth={250}
+        disabled={false}
+        emptyMessage={noResultsMessage ?? t('No results found')}
+        trigger={(triggerProps, isOpen) => {
+          const mergedProps = mergeProps(triggerProps, {
+            children: (
+              <Flex gap="xs">
+                <IconAdd /> {addButtonText}
+              </Flex>
+            ),
+          });
+          return restDropdownProps?.trigger ? (
+            restDropdownProps.trigger(mergedProps, isOpen)
+          ) : (
+            <OverlayTrigger.Button {...mergedProps} />
+          );
+        }}
+      />
+    ) : (
       <CompactSelect
         {...addDropdown}
+        value={undefined}
         emptyMessage={
           selectableValues.length === 0
             ? addDropdown.emptyMessage
             : addDropdown.noResultsMessage
         }
         size="xs"
-        searchable
+        search
         disabled={false}
         options={selectableValues}
         menuWidth={250}
         onChange={addRow}
-        triggerProps={{
-          ...addDropdown.triggerProps,
-          children: (
-            <Flex gap="xs">
-              <IconAdd isCircled /> {addButtonText}
-            </Flex>
-          ),
+        trigger={(triggerProps, isOpen) => {
+          const mergedProps = mergeProps(triggerProps, {
+            children: (
+              <Flex gap="xs">
+                <IconAdd /> {addButtonText}
+              </Flex>
+            ),
+          });
+          return addDropdown?.trigger ? (
+            addDropdown.trigger(mergedProps, isOpen)
+          ) : (
+            <OverlayTrigger.Button {...mergedProps} />
+          );
         }}
       />
     );
@@ -209,26 +374,32 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
 
     return (
       <Fragment>
-        <Header>
+        <Flex align="center">
           <LabelColumn>
             <HeadingItem>{mappedColumnLabel}</HeadingItem>
           </LabelColumn>
           {mappedKeys.map((fieldKey, i) => (
-            <Heading key={fieldKey}>
+            <Flex
+              justify="between"
+              align="center"
+              flex="1 0 0"
+              marginLeft="md"
+              key={fieldKey}
+            >
               <HeadingItem>{columnLabels[fieldKey]}</HeadingItem>
               {i === mappedKeys.length - 1 && dropdown}
-            </Heading>
+            </Flex>
           ))}
-        </Header>
+        </Flex>
         {Object.keys(value).map(itemKey => (
-          <Row key={itemKey}>
-            <LabelColumn>{valueMap[itemKey]}</LabelColumn>
+          <Flex align="center" marginTop="md" key={itemKey}>
+            <LabelColumn>{value[itemKey].__label ?? valueMap[itemKey]}</LabelColumn>
             {mappedKeys.map((fieldKey, i) => (
-              <Column key={fieldKey}>
+              <Flex align="center" flex="1 0 0" marginLeft="md" key={fieldKey}>
                 <Control>
                   <Select
                     {...(perItemMapping
-                      ? mappedSelectors[itemKey]![fieldKey]
+                      ? (mappedSelectors[itemKey] as any)[fieldKey]
                       : mappedSelectors[fieldKey])}
                     height={30}
                     disabled={disabled}
@@ -247,51 +418,23 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
                     />
                   </Actions>
                 )}
-              </Column>
+              </Flex>
             ))}
-          </Row>
+          </Flex>
         ))}
       </Fragment>
     );
   };
 
-  render() {
-    return (
-      <FormField
-        {...this.props}
-        inline={({model}: any) => !this.hasValue(model.getValue(this.props.name))}
-      >
-        {this.renderField}
-      </FormField>
-    );
-  }
+  return (
+    <FormField
+      {...props}
+      inline={({model}: any) => !hasValue(model.getValue(props.name))}
+    >
+      {renderField}
+    </FormField>
+  );
 }
-
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const Heading = styled('div')`
-  display: flex;
-  margin-left: ${space(1)};
-  flex: 1 0 0;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const Row = styled('div')`
-  display: flex;
-  margin-top: ${space(1)};
-  align-items: center;
-`;
-
-const Column = styled('div')`
-  display: flex;
-  margin-left: ${space(1)};
-  align-items: center;
-  flex: 1 0 0;
-`;
 
 const Control = styled('div')`
   flex: 1;
@@ -304,9 +447,9 @@ const LabelColumn = styled('div')`
 const HeadingItem = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Actions = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;

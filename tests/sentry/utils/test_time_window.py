@@ -86,6 +86,6 @@ def test_remove_time_windows(source_time_window, time_windows, expected) -> None
     source_time_window_obj = TimeWindow(source_time_window[0], source_time_window[1])
     time_window_objs = [TimeWindow(start, end) for start, end in time_windows]
     expected_objs = [TimeWindow(start, end) for start, end in expected]
-    assert (
-        remove_time_windows(source_time_window_obj, time_window_objs) == expected_objs
-    ), time_windows
+    assert remove_time_windows(source_time_window_obj, time_window_objs) == expected_objs, (
+        time_windows
+    )

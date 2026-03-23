@@ -10,7 +10,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.models.group import Group
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.workflow_engine.models import Detector, Workflow, WorkflowFireHistory
+from sentry.workflow_engine.models import Detector, DetectorGroup, Workflow, WorkflowFireHistory
 
 
 @dataclass(frozen=True)
@@ -35,13 +35,13 @@ class _Result(TypedDict):
     count: int
     last_triggered: datetime
     event_id: str
-    detector_id: int | None
+    group_detector_id: int | None
 
 
 def convert_results(results: Sequence[_Result]) -> Sequence[WorkflowGroupHistory]:
     group_lookup = {g.id: g for g in Group.objects.filter(id__in=[r["group"] for r in results])}
 
-    detector_ids = [r["detector_id"] for r in results if r["detector_id"] is not None]
+    detector_ids = [r["group_detector_id"] for r in results if r["group_detector_id"] is not None]
     detector_lookup = {}
     if detector_ids:
         detector_lookup = {d.id: d for d in Detector.objects.filter(id__in=detector_ids)}
@@ -53,7 +53,9 @@ def convert_results(results: Sequence[_Result]) -> Sequence[WorkflowGroupHistory
             last_triggered=r["last_triggered"],
             event_id=r["event_id"],
             detector=(
-                detector_lookup.get(r["detector_id"]) if r["detector_id"] is not None else None
+                detector_lookup.get(r["group_detector_id"])
+                if r["group_detector_id"] is not None
+                else None
             ),
         )
         for r in results
@@ -109,30 +111,39 @@ def fetch_workflow_groups_paginated(
     end: datetime,
     cursor: Cursor | None = None,
     per_page: int = 25,
-) -> CursorResult[Group]:
+) -> CursorResult[WorkflowGroupHistory]:
     filtered_history = WorkflowFireHistory.objects.filter(
         workflow=workflow,
         date_added__gte=start,
         date_added__lt=end,
-        is_single_written=True,
     )
 
     # subquery that retrieves row with the largest date in a group
     group_max_dates = filtered_history.filter(group=OuterRef("group")).order_by("-date_added")[:1]
+
+    # Subquery to get the detector_id from DetectorGroup.
+    # The detector does not currently need to be connected to the workflow.
+    detector_subquery = DetectorGroup.objects.filter(
+        group=OuterRef("group"),
+    ).values("detector_id")[:1]
+
     qs = (
-        filtered_history.select_related("group", "detector")
+        filtered_history.select_related("group")
         .values("group")
         .annotate(count=Count("group"))
         .annotate(event_id=Subquery(group_max_dates.values("event_id")))
         .annotate(last_triggered=Max("date_added"))
-        .annotate(detector_id=Subquery(group_max_dates.values("detector_id")))
+        .annotate(group_detector_id=Subquery(detector_subquery))
     )
 
+    # Count distinct groups for pagination
+    group_count = qs.count()
+
     return cast(
-        CursorResult[Group],
+        CursorResult[WorkflowGroupHistory],
         OffsetPaginator(
             qs,
             order_by=("-count", "-last_triggered"),
             on_results=convert_results,
-        ).get_result(per_page, cursor, count_hits=True),
+        ).get_result(per_page, cursor, known_hits=group_count),
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import hashlib
 import inspect
 import logging
 from collections.abc import Callable, Iterable, Mapping
@@ -22,7 +23,6 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from rest_framework.request import Request
 
 from sentry import options
 from sentry.api.exceptions import DataSecrecyError
@@ -43,13 +43,13 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.types.region import subdomain_is_region
+from sentry.types.cell import subdomain_is_locality
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import construct_link_with_query, is_valid_redirect
 from sentry.utils.http import absolute_uri, is_using_customer_domain, origin_from_request
-from sentry.web.frontend.generic import FOREVER_CACHE
+from sentry.web.constants import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
 
@@ -58,6 +58,12 @@ audit_logger = logging.getLogger("sentry.audit.ui")
 
 
 class ViewSiloLimit(SiloLimit):
+    def __init__(self, modes: SiloMode | Iterable[SiloMode], internal: bool = False) -> None:
+        if isinstance(modes, SiloMode):
+            modes = [modes]
+        self.modes = frozenset(modes)
+        self.internal = internal
+
     def modify_endpoint_class(self, decorated_class: type[View]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
         new_class = type(
@@ -72,7 +78,10 @@ class ViewSiloLimit(SiloLimit):
         return new_class
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
-        return self.create_override(decorated_method)
+        decorated = self.create_override(decorated_method)
+        setattr(decorated, "silo_limit", self)
+
+        return decorated
 
     def handle_when_unavailable(
         self,
@@ -80,11 +89,12 @@ class ViewSiloLimit(SiloLimit):
         current_mode: SiloMode,
         available_modes: Iterable[SiloMode],
     ) -> Callable[..., Any]:
-        def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+        def handle(*args: Any, **kwargs: Any) -> HttpResponse:
+            method, path = self._request_attrs(args, kwargs)
             mode_str = ", ".join(str(m) for m in available_modes)
             message = (
-                f"Received {request.method} request at {request.path!r} to server in "
-                f"{current_mode} mode. This endpoint is available only in: {mode_str}"
+                f"Received {method} request at {path!r} to server in "
+                f"{current_mode} mode. This view is available only in: {mode_str}"
             )
             if settings.FAIL_ON_UNAVAILABLE_API_CALL:
                 raise self.AvailabilityError(message)
@@ -93,6 +103,15 @@ class ViewSiloLimit(SiloLimit):
                 return HttpResponseNotFound()
 
         return handle
+
+    def _request_attrs(self, args: Iterable[Any], kwargs: Mapping[str, Any]) -> tuple[str, str]:
+        for arg in args:
+            if isinstance(arg, HttpRequest):
+                return (arg.method or "unknown", arg.path)
+        for value in kwargs.values():
+            if isinstance(value, HttpRequest):
+                return (value.method or "unknown", value.path)
+        return ("unknown", "unknown")
 
     def __call__(self, decorated_obj: Any) -> Any:
         if isinstance(decorated_obj, type):
@@ -106,18 +125,30 @@ class ViewSiloLimit(SiloLimit):
         raise TypeError("`@ViewSiloLimit` must decorate a class or method")
 
 
-control_silo_view = ViewSiloLimit(SiloMode.CONTROL)
+control_silo_view = ViewSiloLimit([SiloMode.CONTROL])
 """
 Apply to frontend views that exist in CONTROL Silo
 If a request is received and the application is not in CONTROL/MONOLITH
 mode a 404 will be returned.
 """
 
-region_silo_view = ViewSiloLimit(SiloMode.REGION)
+cell_silo_view = ViewSiloLimit([SiloMode.CELL])
 """
-Apply to frontend views that exist in REGION Silo
-If a request is received and the application is not in REGION/MONOLITH
+Apply to frontend views that exist in CELL Silo
+If a request is received and the application is not in CELL/MONOLITH
 mode a 404 will be returned.
+"""
+
+all_silo_view = ViewSiloLimit([SiloMode.CELL, SiloMode.CONTROL, SiloMode.MONOLITH])
+"""
+Apply to frontend views that respond in both CONTROL and CELL mode.
+"""
+
+internal_cell_silo_view = ViewSiloLimit([SiloMode.CELL], internal=True)
+"""
+Apply to frontend views that exist in CELL Silo
+and are not accessible via cell routing.
+This is generally for debug/development views.
 """
 
 
@@ -362,11 +393,38 @@ class BaseView(View, OrganizationMixin):
 
         """
         organization_slug = kwargs.get("organization_slug", None)
-        if request and is_using_customer_domain(request) and not subdomain_is_region(request):
+        if request and is_using_customer_domain(request) and not subdomain_is_locality(request):
             organization_slug = request.subdomain
         self.active_organization = determine_active_organization(request, organization_slug)
 
         if self.csrf_protect:
+            # Debug logging for CSRF issues on auth paths
+            if request.path.startswith("/auth/"):
+                csrf_cookie = request.COOKIES.get(settings.CSRF_COOKIE_NAME, "")
+                logger.info(
+                    "csrf.auth_request",
+                    extra={
+                        "path": request.path,
+                        "method": request.method,
+                        "ip_address": request.META.get("REMOTE_ADDR"),
+                        "csrf_cookie_present": bool(csrf_cookie),
+                        "csrf_cookie_hash": (
+                            hashlib.sha256(csrf_cookie.encode()).hexdigest()[:8]
+                            if csrf_cookie
+                            else None
+                        ),
+                        "session_key_hash": (
+                            hashlib.sha256(
+                                (request.session.session_key or "").encode()
+                            ).hexdigest()[:8]
+                            if hasattr(request, "session") and request.session
+                            else None
+                        ),
+                        "user_id": (
+                            getattr(request.user, "id", None) if hasattr(request, "user") else None
+                        ),
+                    },
+                )
             try:
                 del self.dispatch.__func__.csrf_exempt  # type: ignore[attr-defined]  # python/mypy#14123
             except AttributeError:
@@ -523,7 +581,9 @@ class AbstractOrganizationView(BaseView, abc.ABC):
             request=request, rpc_user_org_context=self.active_organization
         )
 
-    def get_context_data(self, request: HttpRequest, organization: RpcOrganization | Organization, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
+    def get_context_data(  # type: ignore[override]
+        self, request: HttpRequest, organization: RpcOrganization | Organization, **kwargs: Any
+    ) -> dict[str, Any]:
         context = super().get_context_data(request)
         context["organization"] = organization
         return context
@@ -699,7 +759,9 @@ class ProjectView(OrganizationView):
     - project
     """
 
-    def get_context_data(self, request: HttpRequest, organization: Organization, project: Project, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
+    def get_context_data(  # type: ignore[override]
+        self, request: HttpRequest, organization: Organization, project: Project, **kwargs: Any
+    ) -> dict[str, Any]:
         from sentry.api.serializers import serialize
 
         context = super().get_context_data(request, organization)
@@ -707,7 +769,14 @@ class ProjectView(OrganizationView):
         context["processing_issues"] = serialize(project).get("processingIssues", 0)
         return context
 
-    def has_permission(self, request: HttpRequest, organization: Organization, project: Project | None, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(  # type: ignore[override]
+        self,
+        request: HttpRequest,
+        organization: Organization,
+        project: Project | None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> bool:
         if project is None:
             return False
         rv = super().has_permission(request, organization)
@@ -730,7 +799,14 @@ class ProjectView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request: HttpRequest, organization_slug: str, project_id_or_slug: int | str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
+    def convert_args(  # type: ignore[override]
+        self,
+        request: HttpRequest,
+        organization_slug: str,
+        project_id_or_slug: int | str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:

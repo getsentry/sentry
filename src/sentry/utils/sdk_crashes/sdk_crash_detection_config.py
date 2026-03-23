@@ -83,6 +83,14 @@ class SDKCrashDetectionConfig:
     sdk_frame_config: SDKFrameConfig
     """The function and module patterns to ignore when detecting SDK crashes. For example, FunctionAndModulePattern("*", "**SentrySDK crash**") for any module with that function"""
     sdk_crash_ignore_matchers: set[FunctionAndModulePattern]
+    """The function patterns to ignore when they are the only SDK frames in the stacktrace.
+    These frames are typically SDK instrumentation frames that intercept calls, such as swizzling or monkey patching,
+    but don't cause crashes themselves. If there are other SDK frames anywhere in the stacktrace, the crash is still
+    reported as an SDK crash. For example, SentrySwizzleWrapper is used for method swizzling and shouldn't be reported
+    as an SDK crash when it's the only SDK frame, since it's highly unlikely the crash stems from that code."""
+    sdk_crash_ignore_when_only_sdk_frame_matchers: set[FunctionAndModulePattern] = field(
+        default_factory=set
+    )
 
 
 class SDKCrashDetectionOptions(TypedDict):
@@ -152,6 +160,15 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     function_pattern="**SentryCrashExceptionApplicationHelper _crashOnException**",
                 ),
             },
+            sdk_crash_ignore_when_only_sdk_frame_matchers={
+                # SentrySwizzleWrapper is used for method swizzling to intercept UI events.
+                # When it's the only SDK frame, it's highly unlikely the crash stems from the SDK.
+                # Only report as SDK crash if there are other SDK frames anywhere in the stacktrace.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentrySwizzleWrapper**",
+                ),
+            },
         )
         configs.append(cocoa_config)
 
@@ -210,6 +227,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="*",
                     function_pattern="sentryWrapped",
+                ),
+                # The fetch instrumentation wraps globalThis.fetch as a pass-through.
+                # When a user's fetch call fails (e.g., "Failed to fetch" network errors),
+                # the SDK wrapper frame appears in the stack but is not the cause.
+                # https://github.com/getsentry/sentry-javascript/blob/090d08c284089acf886d675f06cd516b3f6e06be/packages/core/src/instrument/fetch.ts
+                FunctionAndModulePattern(
+                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    function_pattern="fetch",
                 ),
             },
         )
@@ -299,6 +324,27 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="io.sentry.graphql.SentryGraphqlInstrumentation",
                     function_pattern="instrumentExecutionResultComplete",
+                ),
+                # WindowCallbackAdapter just forwards the calls to the next callback in the chain.
+                # It does not cause crashes/ANRs itself.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.core.internal.gestures.WindowCallbackAdapter",
+                    function_pattern="*",
+                ),
+                # All functions that we delegate to are inside lambdas, so we ignore them.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentrySupportSQLiteStatement$*",
+                    function_pattern="invoke",
+                ),
+                # Our wrapper class does not override beginTransaction, so we ignore it.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentrySupportSQLiteDatabase",
+                    function_pattern="beginTransaction*",
+                ),
+                # Our wrapper class does not override any move* methods, so we ignore it.
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentryCrossProcessCursor",
+                    function_pattern="move*",
                 ),
             },
         )
