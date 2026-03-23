@@ -44,6 +44,7 @@ def _build_base_images(
             key=key,
             display_name=meta.display_name,
             image_file_name=meta.image_file_name,
+            group=meta.group,
             width=meta.width,
             height=meta.height,
         )
