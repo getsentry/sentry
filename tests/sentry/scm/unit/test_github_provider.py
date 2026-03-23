@@ -84,8 +84,12 @@ class RecordingClient:
         path: str,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        allow_redirects: bool | None = None,
     ) -> FakeResponse:
-        self.calls.append({"operation": "get", "path": path, "params": params, "headers": headers})
+        call = {"operation": "get", "path": path, "params": params, "headers": headers}
+        if allow_redirects is not None:
+            call["allow_redirects"] = allow_redirects
+        self.calls.append(call)
         return self._pop("get")
 
     def post(
@@ -705,12 +709,15 @@ ACTION_CASES = [
         "kwargs": {"ref": "main"},
         "path": "/repos/test-org/test-repo/tarball/main",
         "headers": {"Accept": "application/vnd.github+json"},
-        "url": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main",
+        "response_headers": {
+            "Location": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main"
+        },
         "raw": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main",
         "expected_data": {
             "url": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main",
             "headers": {},
         },
+        "allow_redirects": False,
     },
     {
         "name": "get_archive_link",
@@ -719,12 +726,15 @@ ACTION_CASES = [
         "kwargs": {"ref": "main", "archive_format": "zip"},
         "path": "/repos/test-org/test-repo/zipball/main",
         "headers": {"Accept": "application/vnd.github+json"},
-        "url": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main",
+        "response_headers": {
+            "Location": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main"
+        },
         "raw": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main",
         "expected_data": {
             "url": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main",
             "headers": {},
         },
+        "allow_redirects": False,
     },
 ]
 
@@ -837,7 +847,14 @@ def test_paginated_methods(case: dict[str, Any]) -> None:
 @pytest.mark.parametrize("case", ACTION_CASES)
 def test_action_methods(case: dict[str, Any]) -> None:
     provider, client = make_provider()
-    client.queue(case["operation"], FakeResponse(case["raw"], url=case.get("url", "")))
+    client.queue(
+        case["operation"],
+        FakeResponse(
+            case["raw"],
+            headers=case.get("response_headers"),
+            url=case.get("url", ""),
+        ),
+    )
 
     result = getattr(provider, case["name"])(**case["kwargs"])
 
@@ -853,6 +870,8 @@ def test_action_methods(case: dict[str, Any]) -> None:
         expected_call["headers"] = case["headers"]
     else:
         expected_call["headers"] = None
+    if "allow_redirects" in case:
+        expected_call["allow_redirects"] = case["allow_redirects"]
     assert client.calls == [expected_call]
 
 

@@ -177,6 +177,7 @@ class GitHubProviderApiClient:
         data: dict[str, Any] | None = None,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        allow_redirects: bool | None = None,
     ) -> requests.Response:
         try:
             return self.client._request(
@@ -185,6 +186,7 @@ class GitHubProviderApiClient:
                 headers=headers,
                 data=data,
                 params=params,
+                allow_redirects=allow_redirects,
                 raw_response=True,
                 force_raise_for_status=True,
             )
@@ -196,8 +198,11 @@ class GitHubProviderApiClient:
         path: str,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        allow_redirects: bool | None = None,
     ) -> requests.Response:
-        return self.request("GET", path=path, params=params, headers=headers)
+        return self.request(
+            "GET", path=path, params=params, headers=headers, allow_redirects=allow_redirects
+        )
 
     def post(
         self,
@@ -842,11 +847,15 @@ class GitHubProvider:
         response = self.client.get(
             f"/repos/{self.repository['name']}/{GITHUB_ARCHIVE_FORMAT_MAP[archive_format]}/{ref}",
             headers=as_github_headers(request_options),
+            allow_redirects=False,
         )
+        archive_url = response.headers.get("Location")
+        if archive_url is None:
+            raise SCMProviderException("Missing archive redirect location")
         return {
-            "data": ArchiveLink(url=response.url, headers={}),
+            "data": ArchiveLink(url=archive_url, headers={}),
             "type": "github",
-            "raw": response.url,
+            "raw": archive_url,
             "meta": _extract_response_meta(response),
         }
 
