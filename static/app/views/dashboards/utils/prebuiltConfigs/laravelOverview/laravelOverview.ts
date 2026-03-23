@@ -59,6 +59,7 @@ const PATHS_TABLE: Widget = {
     h: 3,
     minH: TABLE_MIN_HEIGHT,
   },
+  heightMode: 'auto',
 };
 
 const COMMANDS_TABLE: Widget = {
@@ -105,6 +106,7 @@ const COMMANDS_TABLE: Widget = {
     h: 3,
     minH: TABLE_MIN_HEIGHT,
   },
+  heightMode: 'auto',
 };
 
 const JOBS_TABLE: Widget = {
@@ -153,6 +155,7 @@ const JOBS_TABLE: Widget = {
     h: 3,
     minH: TABLE_MIN_HEIGHT,
   },
+  heightMode: 'auto',
 };
 
 export const LARAVEL_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
