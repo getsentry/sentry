@@ -50,7 +50,7 @@ describe('java-spring-boot onboarding docs', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          /<artifactId>sentry-maven-plugin<\/artifactId>\s*<version>3\.99\.9<\/version>/m
+          /<artifactId>sentry-maven-plugin<\/artifactId>\s*<version>3\.99\.9<\/version>/
         )
       )
     ).toBeInTheDocument();

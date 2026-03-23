@@ -8,7 +8,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, options
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
@@ -49,7 +48,6 @@ class ReplaySummaryPermission(ProjectPermission):
 @cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -68,7 +66,9 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         super().__init__(**kw)
 
     def _make_seer_start_request(
-        self, body: ReplaySummaryStartRequest, viewer_context: SeerViewerContext | None = None
+        self,
+        body: ReplaySummaryStartRequest,
+        viewer_context: SeerViewerContext | None = None,
     ) -> Response:
         """Make a start-summary request to Seer with error handling."""
         serialized = orjson.dumps(body)
@@ -112,7 +112,9 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         return Response(data=response.json(), status=response.status)
 
     def _make_seer_state_request(
-        self, body: ReplaySummaryStateRequest, viewer_context: SeerViewerContext | None = None
+        self,
+        body: ReplaySummaryStateRequest,
+        viewer_context: SeerViewerContext | None = None,
     ) -> Response:
         """Make a poll-state request to Seer with error handling."""
         try:
@@ -146,7 +148,9 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         return (
             features.has("organizations:session-replay", project.organization, actor=request.user)
             and features.has(
-                "organizations:replay-ai-summaries", project.organization, actor=request.user
+                "organizations:replay-ai-summaries",
+                project.organization,
+                actor=request.user,
             )
             and has_seer_access(project.organization, actor=request.user)
         )

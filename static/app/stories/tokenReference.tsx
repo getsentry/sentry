@@ -75,7 +75,7 @@ function Token({
 }
 
 function formatSnippet({token, scale}: {scale: string; token: string}) {
-  const accessor = /^[0-9]/.test(token) ? `["${token}"]` : `.${token}`;
+  const accessor = /^\d/.test(token) ? `["${token}"]` : `.${token}`;
   return `\${p => p.theme.tokens.${scale}${accessor}}`;
 }
 

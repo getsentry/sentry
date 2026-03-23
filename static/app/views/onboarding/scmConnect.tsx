@@ -15,8 +15,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScmProviderPills} from './components/scmProviderPills';
 import {ScmRepoSelector} from './components/scmRepoSelector';
+import {useScmProviders} from './components/useScmProviders';
 import type {StepProps} from './types';
-import {useScmProviders} from './useScmProviders';
 
 export function ScmConnect({onComplete}: StepProps) {
   const organization = useOrganization();

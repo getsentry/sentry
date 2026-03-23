@@ -61,7 +61,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
         if not update.cell_name:
             capture_exception(
-                OrganizationMappingConsistencyException("Organization mapping must have a region")
+                OrganizationMappingConsistencyException("Organization mapping must have a cell")
             )
             return False
 
@@ -81,11 +81,11 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             )
             return False
 
-        org_slug_regions_set = {org_slug.cell_name for org_slug in org_slugs}
-        if update.cell_name not in org_slug_regions_set:
+        org_slug_cells_set = {org_slug.cell_name for org_slug in org_slugs}
+        if update.cell_name not in org_slug_cells_set:
             capture_exception(
                 OrganizationMappingConsistencyException(
-                    "Mismatched Slug Reservation and Organization Regions"
+                    "Mismatched Slug Reservation and Organization Cells"
                 )
             )
             return False
