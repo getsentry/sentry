@@ -241,7 +241,7 @@ function WidgetCard(props: Props) {
       return;
     }
     if (currentDashboardId) {
-      performance.mark?.('dashboard.widget.fullScreenViewClick');
+      performance?.mark?.('dashboard.widget.fullScreenViewClick');
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
