@@ -5,7 +5,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import {AssignedTo} from 'sentry/components/group/assignedTo';
 import type {OnAssignCallback} from 'sentry/components/group/assigneeSelector';
-import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
 import {
   BACKEND_TAGS,
   DEFAULT_TAGS,
@@ -120,11 +119,6 @@ export function GroupSidebar({event, group, project, organization, environments}
         </ErrorBoundary>
       )}
       <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
-      {event && (
-        <ErrorBoundary mini>
-          <ExternalIssueList project={project} group={group} event={event} />
-        </ErrorBoundary>
-      )}
       {renderPluginIssue()}
       {issueTypeConfig.pages.tagsTab.enabled && (
         <TagFacets
