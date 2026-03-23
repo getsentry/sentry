@@ -1,10 +1,11 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
 
 import {ScmFeatureSelectionCards} from './scmFeatureSelectionCards';
 
-const NO_DISABLED = new Set<ProductSolution>();
+const NO_DISABLED: DisabledProducts = {};
 
 const ALL_FEATURES = [
   ProductSolution.ERROR_MONITORING,
@@ -21,7 +22,7 @@ describe('ScmFeatureSelectionCards', () => {
       <ScmFeatureSelectionCards
         availableFeatures={ALL_FEATURES}
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
-        disabledFeatures={NO_DISABLED}
+        disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
       />
     );
@@ -42,7 +43,7 @@ describe('ScmFeatureSelectionCards', () => {
           ProductSolution.PERFORMANCE_MONITORING,
         ]}
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
-        disabledFeatures={NO_DISABLED}
+        disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
       />
     );
@@ -59,7 +60,7 @@ describe('ScmFeatureSelectionCards', () => {
           ProductSolution.PERFORMANCE_MONITORING,
           ProductSolution.SESSION_REPLAY,
         ]}
-        disabledFeatures={NO_DISABLED}
+        disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
       />
     );
@@ -74,7 +75,7 @@ describe('ScmFeatureSelectionCards', () => {
       <ScmFeatureSelectionCards
         availableFeatures={ALL_FEATURES}
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
-        disabledFeatures={NO_DISABLED}
+        disabledProducts={NO_DISABLED}
         onToggleFeature={onToggleFeature}
       />
     );
@@ -98,7 +99,7 @@ describe('ScmFeatureSelectionCards', () => {
           ProductSolution.PERFORMANCE_MONITORING,
         ]}
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
-        disabledFeatures={NO_DISABLED}
+        disabledProducts={NO_DISABLED}
         onToggleFeature={onToggleFeature}
       />
     );
@@ -112,9 +113,14 @@ describe('ScmFeatureSelectionCards', () => {
       <ScmFeatureSelectionCards
         availableFeatures={ALL_FEATURES}
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
-        disabledFeatures={
-          new Set([ProductSolution.SESSION_REPLAY, ProductSolution.PROFILING])
-        }
+        disabledProducts={{
+          [ProductSolution.SESSION_REPLAY]: {
+            reason: 'Not available on your plan',
+          },
+          [ProductSolution.PROFILING]: {
+            reason: 'Not available on your plan',
+          },
+        }}
         onToggleFeature={jest.fn()}
       />
     );
@@ -129,7 +135,7 @@ describe('ScmFeatureSelectionCards', () => {
       <ScmFeatureSelectionCards
         availableFeatures={ALL_FEATURES}
         selectedFeatures={[]}
-        disabledFeatures={NO_DISABLED}
+        disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
       />
     );

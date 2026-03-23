@@ -4,6 +4,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
 import {
   IconGraph,
   IconProfiling,
@@ -68,7 +69,7 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
 
 interface ScmFeatureSelectionCardsProps {
   availableFeatures: ProductSolution[];
-  disabledFeatures: Set<ProductSolution>;
+  disabledProducts: DisabledProducts;
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
 }
@@ -76,7 +77,7 @@ interface ScmFeatureSelectionCardsProps {
 export function ScmFeatureSelectionCards({
   availableFeatures,
   selectedFeatures,
-  disabledFeatures,
+  disabledProducts,
   onToggleFeature,
 }: ScmFeatureSelectionCardsProps) {
   const alwaysEnabledCount = availableFeatures.filter(
@@ -94,6 +95,10 @@ export function ScmFeatureSelectionCards({
       <Grid columns={2} gap="md">
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
+          const disabledProduct = disabledProducts[feature];
+          const disabledReason = meta.alwaysEnabled
+            ? t('Error monitoring is always enabled')
+            : disabledProduct?.reason;
           return (
             <ScmFeatureCard
               key={feature}
@@ -101,7 +106,8 @@ export function ScmFeatureSelectionCards({
               label={meta.label}
               description={meta.description}
               isSelected={selectedFeatures.includes(feature) || !!meta.alwaysEnabled}
-              disabled={!!meta.alwaysEnabled || disabledFeatures.has(feature)}
+              disabled={!!meta.alwaysEnabled || !!disabledProduct}
+              disabledReason={disabledReason}
               onClick={() => onToggleFeature(feature)}
             />
           );

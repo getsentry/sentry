@@ -126,11 +126,6 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     [organization]
   );
 
-  const disabledFeatureSet = useMemo(
-    () => new Set(Object.keys(disabledProducts) as ProductSolution[]),
-    [disabledProducts]
-  );
-
   const handleToggleFeature = useCallback(
     (feature: ProductSolution) => {
       if (disabledProducts[feature]) {
@@ -360,7 +355,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
           <ScmFeatureSelectionCards
             availableFeatures={availableFeatures}
             selectedFeatures={currentFeatures}
-            disabledFeatures={disabledFeatureSet}
+            disabledProducts={disabledProducts}
             onToggleFeature={handleToggleFeature}
           />
         )}
