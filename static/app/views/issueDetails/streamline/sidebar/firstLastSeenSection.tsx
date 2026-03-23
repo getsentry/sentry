@@ -8,15 +8,27 @@ import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
-import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
+import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+
+function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
+  return useApiQuery<Group>(
+    makeFetchGroupQueryKey({
+      organizationSlug: organization.slug,
+      groupId: group.id,
+      environments: [],
+    }),
+    {staleTime: 30000, gcTime: 30000}
+  );
+}
 
 export function FirstLastSeenSection({group}: {group: Group}) {
   const organization = useOrganization();
