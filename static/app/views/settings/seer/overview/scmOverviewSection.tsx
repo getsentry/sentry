@@ -28,6 +28,7 @@ import type {
 } from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerOverview} from 'sentry/views/settings/seer/overview/components';
 
@@ -46,8 +47,12 @@ export function SCMOverviewSection({canWrite}: Props) {
     isError,
   } = useScmIntegrationTreeData();
 
-  const supportedScmIntegrations = scmIntegrations.filter(i =>
-    isSupportedAutofixProvider({id: i.provider.key, name: i.provider.name})
+  const supportedScmIntegrations = useMemo(
+    () =>
+      scmIntegrations.filter(i =>
+        isSupportedAutofixProvider({id: i.provider.key, name: i.provider.name})
+      ),
+    [scmIntegrations]
   );
 
   const seerRepos = useMemo(() => {
@@ -233,7 +238,7 @@ function ConnectAllReposButton({
       integration: OrganizationIntegration;
       repo: IntegrationRepository;
     }) =>
-      apiFetch({
+      fetchMutation({
         method: 'POST',
         url: getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
           path: {organizationIdOrSlug: organization.slug},
