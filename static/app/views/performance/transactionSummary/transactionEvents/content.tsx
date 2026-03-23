@@ -30,6 +30,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {EAPSpansQueryBuilder} from 'sentry/views/performance/eap/eapSpansQueryBuilder';
 import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
@@ -90,8 +91,13 @@ export function EventsContent(props: Props) {
   const routes = useRoutes();
   const theme = useTheme();
   const domainViewFilters = useDomainViewFilters();
+  const shouldUseEAP = useTransactionSummaryEAP();
 
   const {eventView, titles} = useMemo(() => {
+    if (shouldUseEAP) {
+      return {eventView: originalEventView, titles: []};
+    }
+
     const eventViewClone = originalEventView.clone();
     const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
     const project = projects.find(p => p.id === projectId);
@@ -164,6 +170,7 @@ export function EventsContent(props: Props) {
       titles: transactionsListTitles,
     };
   }, [
+    shouldUseEAP,
     originalEventView,
     location,
     organization,
@@ -172,8 +179,6 @@ export function EventsContent(props: Props) {
     spanOperationBreakdownFilter,
     webVital,
   ]);
-
-  const shouldUseEAP = useTransactionSummaryEAP();
 
   const table = shouldUseEAP ? (
     <OverviewSpansTable
@@ -270,34 +275,47 @@ function Search(props: Props) {
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <StyledSearchBarWrapper>
-        <TransactionSearchQueryBuilder
-          projects={projectIds}
-          initialQuery={query}
-          onSearch={handleSearch}
-          searchSource="transaction_events"
-        />
+        {shouldUseEAP ? (
+          <EAPSpansQueryBuilder
+            projects={projectIds ?? []}
+            initialQuery={query}
+            onSearch={handleSearch}
+            searchSource="transaction_events"
+          />
+        ) : (
+          <TransactionSearchQueryBuilder
+            projects={projectIds}
+            initialQuery={query}
+            onSearch={handleSearch}
+            searchSource="transaction_events"
+          />
+        )}
       </StyledSearchBarWrapper>
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} prefix={t('Percentile')} />
-        )}
-        value={eventsDisplayFilterName}
-        onChange={opt => onChangeEventsDisplayFilter(opt.value)}
-        options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
-          value: name as EventsDisplayFilterName,
-          label: filter.label,
-        }))}
-      />
-      <LinkButton
-        to={eventView.getResultsViewUrlTarget(
-          organization,
-          false,
-          hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
-        )}
-        onClick={handleDiscoverButtonClick}
-      >
-        {t('Open in Discover')}
-      </LinkButton>
+      {!shouldUseEAP && (
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Percentile')} />
+          )}
+          value={eventsDisplayFilterName}
+          onChange={opt => onChangeEventsDisplayFilter(opt.value)}
+          options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
+            value: name as EventsDisplayFilterName,
+            label: filter.label,
+          }))}
+        />
+      )}
+      {!shouldUseEAP && (
+        <LinkButton
+          to={eventView.getResultsViewUrlTarget(
+            organization,
+            false,
+            hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+          )}
+          onClick={handleDiscoverButtonClick}
+        >
+          {t('Open in Discover')}
+        </LinkButton>
+      )}
     </FilterActions>
   );
 }
