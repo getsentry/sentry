@@ -7,6 +7,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.explorer.client_models import (
     Artifact,
     MemoryBlock,
@@ -280,6 +281,7 @@ class TestTriggerAutofixExplorer(TestCase):
             trigger_autofix_explorer(
                 group=self.group,
                 step=step,
+                referrer=AutofixReferrer.UNKNOWN,
                 run_id=None,
             )
             mock_broadcast.assert_called_once()
@@ -299,6 +301,7 @@ class TestTriggerAutofixExplorer(TestCase):
         result = trigger_autofix_explorer(
             group=self.group,
             step=AutofixStep.SOLUTION,
+            referrer=AutofixReferrer.UNKNOWN,
             run_id=67890,
         )
 
@@ -319,7 +322,12 @@ class TestTriggerAutofixExplorer(TestCase):
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = 123
 
-        trigger_autofix_explorer(group=self.group, step=AutofixStep.ROOT_CAUSE, run_id=None)
+        trigger_autofix_explorer(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
 
         mock_client_class.assert_called_once()
         call_kwargs = mock_client_class.call_args.kwargs
@@ -335,11 +343,16 @@ class TestTriggerAutofixExplorer(TestCase):
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = 123
 
-        trigger_autofix_explorer(group=self.group, step=AutofixStep.ROOT_CAUSE, run_id=None)
+        trigger_autofix_explorer(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
 
         mock_client.start_run.assert_called_once()
         call_kwargs = mock_client.start_run.call_args.kwargs
-        assert call_kwargs["metadata"] == {"group_id": self.group.id}
+        assert call_kwargs["metadata"] == {"group_id": self.group.id, "referrer": "unknown"}
 
 
 class TestTriggerCodingAgentHandoff(TestCase):

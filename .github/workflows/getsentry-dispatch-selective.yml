@@ -96,4 +96,5 @@ jobs:
               mergeCommitSha: '${{ steps.mergecommit.outputs.mergeCommitSha }}',
               fileChanges: ${{ toJson(steps.changes.outputs) }},
               sentryChangedFiles: process.env.SENTRY_CHANGED_FILES,
+              targetWorkflow: 'backend-selective.yml',
             });

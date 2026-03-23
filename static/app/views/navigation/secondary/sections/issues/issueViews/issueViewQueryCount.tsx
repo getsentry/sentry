@@ -1,6 +1,4 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Text} from '@sentry/scraps/text';
@@ -39,14 +37,12 @@ interface IssueViewQueryCountProps {
 
 export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) {
   const organization = useOrganization();
-  const theme = useTheme();
   const location = useLocation();
 
   const queryIssueViewParams = createIssueViewFromUrl({query: location.query});
 
   const {
     data: queryCount,
-    isLoading,
     isFetching,
     isError,
   } = useFetchIssueCounts({
@@ -71,46 +67,37 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
     ? 0
     : (queryCount?.[view.query] ?? queryCount?.[defaultQuery ?? ''] ?? 0);
 
+  if (isFetching) {
+    return null;
+  }
+
   return (
-    <AnimatedTag
-      variant="muted"
-      animate={{
-        backgroundColor: isFetching
-          ? [
-              theme.tokens.background.primary,
-              theme.tokens.background.secondary,
-              theme.tokens.background.primary,
-            ]
-          : undefined,
-      }}
-      transition={{
-        default: {
-          // Cuts animation short once the query has finished fetching
-          duration: isFetching ? 2 : 0,
-          repeat: isFetching ? Infinity : 0,
-          ease: 'easeInOut',
-        },
-      }}
-      data-issue-view-query-count
-    >
-      <motion.span
-        // Prevents count from fading in if it's already cached on mount
-        initial={{opacity: isLoading ? 0 : 1}}
-        animate={{opacity: isFetching ? 0 : 1}}
-      >
-        <Text variant="muted" size="xs" align="center" tabular>
-          {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
-        </Text>
-      </motion.span>
-    </AnimatedTag>
+    <StyledTag variant="muted" data-issue-view-query-count>
+      <Text variant="muted" size="xs" align="center" tabular>
+        {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
+      </Text>
+    </StyledTag>
   );
 }
 const StyledTag = styled(Tag)`
   border: 1px solid ${p => p.theme.tokens.border.neutral.muted};
   background-color: ${p => p.theme.tokens.background.primary};
   padding: 0 ${p => p.theme.space.xs};
-  min-width: 4ch;
   justify-content: end;
-`;
 
-const AnimatedTag = motion.create(StyledTag);
+  opacity: 0;
+  transform: scale(0.95);
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  animation: fadeIn 0.1s ease-in-out forwards;
+`;
