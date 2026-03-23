@@ -999,7 +999,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
