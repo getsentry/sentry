@@ -42,7 +42,7 @@ class ValueEqualityEnum(Enum):
 
 # TODO(cells): Tmp support for cell_name as well as region_name in Rpc classes.
 # Remove once all callers pass cell_name directly.
-class AcceptCellNameMixin:
+class AcceptCellNameMixin(pydantic.BaseModel):
     region_name: str  # must be defined by subclass
 
     @root_validator(pre=True)

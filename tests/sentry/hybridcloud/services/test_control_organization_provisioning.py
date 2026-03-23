@@ -99,6 +99,19 @@ class TestControlOrganizationProvisioningBase(TestCase):
 
 @all_silo_test(cells=create_test_cells("us"))
 class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBase):
+    def test_slug_reservation_rpc_model_accepts_cell_name(self) -> None:
+        rpc_org_slug = RpcOrganizationSlugReservation(
+            id=1,
+            organization_id=1,
+            user_id=self.provision_user.id,
+            slug="sentry",
+            cell_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY.value,
+        )
+
+        assert rpc_org_slug.region_name == "us"
+        assert rpc_org_slug.cell_name == "us"
+
     def test_organization_provisioning_happy_path(self) -> None:
         rpc_org_slug = self.provision_organization()
         self.assert_slug_reservation_and_org_exist(
