@@ -216,9 +216,7 @@ def _trigger_autofix_task(
 
         # Route to explorer-based autofix if both feature flags are enabled
         run_id: int | None = None
-        if features.has("organizations:seer-explorer", group.organization) and features.has(
-            "organizations:autofix-on-explorer", group.organization
-        ):
+        if features.has("organizations:autofix-on-explorer", group.organization):
             run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
