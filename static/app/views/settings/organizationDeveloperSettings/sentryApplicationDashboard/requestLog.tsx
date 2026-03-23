@@ -82,7 +82,9 @@ const getEventTypes = memoize((app: SentryApp) => {
         ]
       : []),
     ...issueLinkEvents,
-    ...(app.events.includes('size_analysis') ? ['size_analysis.completed'] : []),
+    ...(app.events.includes('preprod_artifact')
+      ? ['preprod_artifact.size_analysis_completed']
+      : []),
   ];
 
   return events;

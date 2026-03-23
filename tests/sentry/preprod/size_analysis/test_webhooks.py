@@ -629,8 +629,8 @@ class SendSizeAnalysisWebhookTest(TestCase):
 
         mock_broadcast.delay.assert_called_once()
         call_kwargs = mock_broadcast.delay.call_args
-        assert call_kwargs.kwargs["resource_name"] == "size_analysis"
-        assert call_kwargs.kwargs["event_name"] == "completed"
+        assert call_kwargs.kwargs["resource_name"] == "preprod_artifact"
+        assert call_kwargs.kwargs["event_name"] == "size_analysis_completed"
         assert call_kwargs.kwargs["organization_id"] == self.organization.id
         assert call_kwargs.kwargs["payload"]["buildId"] == str(artifact.id)
         assert call_kwargs.kwargs["payload"]["organizationSlug"] == self.organization.slug

@@ -9,7 +9,7 @@ from sentry.preprod.api.models.public.size_analysis import (
 )
 from sentry.preprod.models import PreprodArtifact
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
-from sentry.sentry_apps.utils.webhooks import SizeAnalysisActionType
+from sentry.sentry_apps.utils.webhooks import PreprodArtifactActionType
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +80,8 @@ def send_size_analysis_webhook(
             return
 
         broadcast_webhooks_for_organization.delay(
-            resource_name="size_analysis",
-            event_name=SizeAnalysisActionType.COMPLETED.value,
+            resource_name="preprod_artifact",
+            event_name=PreprodArtifactActionType.SIZE_ANALYSIS_COMPLETED.value,
             organization_id=organization_id,
             payload=dict(payload),
         )

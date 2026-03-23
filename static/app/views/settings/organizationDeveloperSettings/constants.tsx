@@ -3,7 +3,7 @@ export const EVENT_CHOICES = [
   'error',
   'comment',
   'seer',
-  'size_analysis',
+  'preprod_artifact',
 ] as const;
 
 export const PERMISSIONS_MAP = {
@@ -11,5 +11,5 @@ export const PERMISSIONS_MAP = {
   error: 'Event',
   comment: 'Event',
   seer: 'Event',
-  size_analysis: 'Project',
+  preprod_artifact: 'Project',
 } as const;

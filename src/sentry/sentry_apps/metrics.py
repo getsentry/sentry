@@ -152,5 +152,5 @@ class SentryAppEventType(StrEnum):
     SEER_IMPACT_ASSESSMENT_COMPLETED = "seer.impact_assessment_completed"
     SEER_PR_CREATED = "seer.pr_created"
 
-    # size analysis webhooks
-    SIZE_ANALYSIS_COMPLETED = "size_analysis.completed"
+    # preprod artifact webhooks
+    PREPROD_ARTIFACT_SIZE_ANALYSIS_COMPLETED = "preprod_artifact.size_analysis_completed"

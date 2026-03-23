@@ -83,9 +83,9 @@ describe('SubscriptionBox', () => {
     ).toBeInTheDocument();
   });
 
-  describe('size_analysis resource subscription', () => {
-    it('renders size_analysis checkbox enabled', () => {
-      renderComponent({resource: 'size_analysis'});
+  describe('preprod_artifact resource subscription', () => {
+    it('renders preprod_artifact checkbox enabled', () => {
+      renderComponent({resource: 'preprod_artifact'});
 
       expect(screen.getByRole('checkbox')).toBeEnabled();
     });
