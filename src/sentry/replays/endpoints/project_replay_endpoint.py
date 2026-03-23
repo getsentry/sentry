@@ -2,6 +2,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.replays.permissions import has_replay_permission
@@ -15,6 +16,8 @@ class ProjectReplayEndpoint(ProjectEndpoint):
     for allowing granular user-based replay access control, in addition to the existing
     role-based access control and feature flag-based access control.
     """
+
+    owner = ApiOwner.DATA_BROWSING
 
     def check_replay_access(self, request: Request, project: Project) -> None:
         """

@@ -22,7 +22,6 @@ from sentry import analytics, features, options
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.db.models.query import create_or_update
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import GroupCategory
@@ -928,11 +927,11 @@ def handle_is_subscribed(
         # subscribed" to "you were subscribed since you were
         # assigned" just by clicking the "subscribe" button (and you
         # may no longer be assigned to the issue anyway).
-        GroupSubscription.objects.create_or_update(
+        GroupSubscription.objects.update_or_create(
             user_id=acting_user.id if acting_user else None,
             group=group,
             project=project_lookup[group.project_id],
-            values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
+            defaults={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
         )
 
     return {"reason": SUBSCRIPTION_REASON_MAP.get(GroupSubscriptionReason.unknown, "unknown")}
@@ -990,12 +989,11 @@ def handle_has_seen(
     if has_seen:
         for group in group_list:
             if is_member_map.get(group.project_id):
-                create_or_update(
-                    GroupSeen,
+                GroupSeen.objects.update_or_create(
                     group=group,
                     user_id=user_id,
                     project=project_lookup[group.project_id],
-                    values={"last_seen": django_timezone.now()},
+                    defaults={"last_seen": django_timezone.now()},
                 )
     elif has_seen is False and user_id is not None:
         GroupSeen.objects.filter(
