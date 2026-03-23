@@ -355,6 +355,44 @@ function HighlightedTools({
   );
 }
 
+// Per the OTel semantic conventions, input_tokens should already include cached tokens
+// and output_tokens should already include reasoning tokens. Unfortunately some providers
+// still report them separately, so we detect that and adjust the display counts as a
+// fallback so the inline "in + out = total" equation actually adds up.
+function getDisplayInputTokens(
+  inputTokens: number,
+  cachedTokens: number,
+  outputTokens: number,
+  totalTokens: number
+): number {
+  if (cachedTokens <= 0) {
+    return inputTokens;
+  }
+  const without = inputTokens + outputTokens;
+  const withCached = without + cachedTokens;
+  if (Math.abs(withCached - totalTokens) < Math.abs(without - totalTokens)) {
+    return inputTokens + cachedTokens;
+  }
+  return inputTokens;
+}
+
+function getDisplayOutputTokens(
+  displayInput: number,
+  outputTokens: number,
+  reasoningTokens: number,
+  totalTokens: number
+): number {
+  if (reasoningTokens <= 0) {
+    return outputTokens;
+  }
+  const without = displayInput + outputTokens;
+  const withReasoning = without + reasoningTokens;
+  if (Math.abs(withReasoning - totalTokens) < Math.abs(without - totalTokens)) {
+    return outputTokens + reasoningTokens;
+  }
+  return outputTokens;
+}
+
 function HighlightedTokenAttributes({
   inputTokens,
   cachedTokens,
@@ -368,6 +406,22 @@ function HighlightedTokenAttributes({
   reasoningTokens: number;
   totalTokens: number;
 }) {
+  const effectiveCached = isNaN(cachedTokens) ? 0 : cachedTokens;
+  const effectiveReasoning = isNaN(reasoningTokens) ? 0 : reasoningTokens;
+
+  const displayInput = getDisplayInputTokens(
+    inputTokens,
+    effectiveCached,
+    outputTokens,
+    totalTokens
+  );
+  const displayOutput = getDisplayOutputTokens(
+    displayInput,
+    outputTokens,
+    effectiveReasoning,
+    totalTokens
+  );
+
   return (
     <Tooltip
       title={
@@ -375,13 +429,11 @@ function HighlightedTokenAttributes({
           <span>{t('Input')}</span>
           <span>{inputTokens.toString()}</span>
           <SubTextCell>{t('Cached')}</SubTextCell>
-          <SubTextCell>{isNaN(cachedTokens) ? '0' : cachedTokens.toString()}</SubTextCell>
+          <SubTextCell>{effectiveCached.toString()}</SubTextCell>
           <span>{t('Output')}</span>
           <span>{outputTokens.toString()}</span>
           <SubTextCell>{t('Reasoning')}</SubTextCell>
-          <SubTextCell>
-            {isNaN(reasoningTokens) ? '0' : reasoningTokens.toString()}
-          </SubTextCell>
+          <SubTextCell>{effectiveReasoning.toString()}</SubTextCell>
           <span>{t('Total')}</span>
           <span>{totalTokens.toString()}</span>
         </TokensTooltipTitle>
@@ -389,11 +441,11 @@ function HighlightedTokenAttributes({
     >
       <TokensSpan>
         <span>
-          <Count value={inputTokens.toString()} /> {t('in')}
+          <Count value={displayInput.toString()} /> {t('in')}
         </span>
         <span>+</span>
         <span>
-          <Count value={outputTokens.toString()} /> {t('out')}
+          <Count value={displayOutput.toString()} /> {t('out')}
         </span>
         <span>=</span>
         <span>
