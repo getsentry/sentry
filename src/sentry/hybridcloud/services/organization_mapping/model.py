@@ -18,8 +18,7 @@ from sentry.organizations.services.organization import (
 
 
 class RpcOrganizationMapping(RpcOrganizationSummary):
-    # TODO(cells): rename to cell_name once `cell_name` is no longer being sent
-    region_name: str = ""
+    cell_name: str = ""
     date_created: datetime = Field(default_factory=timezone.now)
     verified: bool = False
     customer_id: str | None = None
@@ -28,15 +27,15 @@ class RpcOrganizationMapping(RpcOrganizationSummary):
 
     # TODO(cells): remove once region_name -> cell_name rename is complete
     @property
-    def cell_name(self) -> str:
-        return self.region_name
+    def region_name(self) -> str:
+        return self.cell_name
 
-    # TODO(cells): temporary code to accept `cell_name` on the wire before property rename is complete
+    # TODO(cells): temporary code to accept `cell_name` and `region_name` before property rename is complete
     @root_validator(pre=True)
     @classmethod
-    def _accept_cell_name(cls, values: dict[str, Any]) -> dict[str, Any]:
-        if "cell_name" in values and "region_name" not in values:
-            values["region_name"] = values.pop("cell_name")
+    def _accept_region_name(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if "region_name" in values and "cell_name" not in values:
+            values["cell_name"] = values.pop("region_name")
         return values
 
 
@@ -48,20 +47,19 @@ class RpcOrganizationMappingUpdate(RpcModel):
     name: str = ""
     status: int = 0
     slug: str = ""
-    # TODO(cells): rename to cell_name once `cell_name` is no longer being sent
-    region_name: str = ""
+    cell_name: str = ""
 
     # TODO(cells): remove once region_name -> cell_name rename is complete
     @property
-    def cell_name(self) -> str:
-        return self.region_name
+    def region_name(self) -> str:
+        return self.cell_name
 
-    # TODO(cells): temporary code to accept `cell_name` on the wire before property rename is complete
+    # TODO(cells): temporary code to accept `cell_name` and `region_name` before property rename is complete
     @root_validator(pre=True)
     @classmethod
-    def _accept_cell_name(cls, values: dict[str, Any]) -> dict[str, Any]:
-        if "cell_name" in values and "region_name" not in values:
-            values["region_name"] = values.pop("cell_name")
+    def _accept_region_name(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if "region_name" in values and "cell_name" not in values:
+            values["cell_name"] = values.pop("region_name")
         return values
 
     # When not set, no change to customer id performed,

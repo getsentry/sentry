@@ -3,7 +3,7 @@ import React from 'react';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -43,7 +43,7 @@ export function SnapshotHeaderContent({projectId, data}: SnapshotHeaderContentPr
         </Flex>
         <Layout.Title>
           {/* TODO: Replace with app-id/version when available */}
-          <Heading as="h2">{t('Snapshots')}</Heading>
+          {t('Snapshots')}
           <Flex align="center" gap="md" wrap="wrap">
             {prUrl && vcs_info.pr_number && (
               <ExternalLink href={prUrl}>

@@ -17,7 +17,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
+import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
+import {ComparisonState, getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -54,6 +55,12 @@ export default function SnapshotsPage() {
     {
       staleTime: 0,
       enabled: !!snapshotId,
+      refetchInterval: query => {
+        const state = query.state.data?.[0]?.comparison_run_info?.state;
+        return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
+          ? 5_000
+          : false;
+      },
     }
   );
 
@@ -126,9 +133,30 @@ export default function SnapshotsPage() {
         });
       }
 
+      const renamedGroups = new Map<string, SnapshotDiffPair[]>();
+      for (const pair of data.renamed ?? []) {
+        const group = getImageGroup(pair.head_image);
+        const existing = renamedGroups.get(group);
+        if (existing) {
+          existing.push(pair);
+        } else {
+          renamedGroups.set(group, [pair]);
+        }
+      }
+      for (const [groupKey, pairs] of renamedGroups) {
+        const label = pairs[0]!.head_image.group ?? pairs[0]!.head_image.image_file_name;
+        items.push({
+          type: 'renamed',
+          key: `renamed:${groupKey}`,
+          name: label,
+          badge: null,
+          pairs,
+        });
+      }
+
       const groupImages = (
         imgs: SnapshotImage[],
-        type: 'added' | 'removed' | 'renamed' | 'unchanged'
+        type: 'added' | 'removed' | 'unchanged'
       ) => {
         const groups = new Map<string, SnapshotImage[]>();
         for (const img of imgs) {
@@ -154,7 +182,6 @@ export default function SnapshotsPage() {
 
       groupImages(data.added, 'added');
       groupImages(data.removed, 'removed');
-      groupImages(data.renamed ?? [], 'renamed');
       groupImages(data.unchanged, 'unchanged');
 
       computeSidebarBadges(items);
@@ -203,7 +230,7 @@ export default function SnapshotsPage() {
   // Clamp variantIndex to valid range when the selected item changes implicitly
   // (e.g. search filtering selects a new item with fewer variants)
   const variantCount = currentItem
-    ? currentItem.type === 'changed'
+    ? currentItem.type === 'changed' || currentItem.type === 'renamed'
       ? currentItem.pairs.length
       : currentItem.images.length
     : 0;
@@ -273,10 +300,69 @@ export default function SnapshotsPage() {
   // while the expensive image rendering catches up
   const deferredItem = useDeferredValue(currentItem);
 
+  const isComparisonProcessing =
+    !!comparisonRunInfo?.state &&
+    [ComparisonState.PENDING, ComparisonState.PROCESSING].includes(
+      comparisonRunInfo.state
+    );
+
   const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
   const diffImageBaseUrl = data
     ? `/api/0/organizations/${organization.slug}/objectstore/v1/objects/preprod/org=${organization.id};project=${data.project_id}/${organization.id}/${data.project_id}/`
     : '';
+
+  const processingContent = (
+    <Flex width="100%" justify="center" align="center">
+      <BuildProcessing
+        title={t('Generating snapshot comparison')}
+        message={t('Hang tight, this may take a few minutes...')}
+      />
+    </Flex>
+  );
+
+  const snapshotContent = (
+    <Flex
+      direction="row"
+      flex="1"
+      minHeight="0"
+      width="100%"
+      overflow="hidden"
+      style={{maxHeight: 'calc(100vh - 205px)'}}
+    >
+      <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
+        <SnapshotSidebarContent
+          items={filteredItems}
+          totalItemCount={sidebarItems.length}
+          currentItemKey={currentItemKey}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSelectItem={handleSelectItem}
+        />
+      </Flex>
+      <DragHandle
+        data-is-held={isHeld}
+        onMouseDown={onMouseDown}
+        onDoubleClick={onDoubleClick}
+      >
+        <IconGrabbable size="sm" />
+      </DragHandle>
+      <Flex flex="1" minWidth={0} overflow="hidden">
+        <SnapshotMainContent
+          selectedItem={deferredItem}
+          variantIndex={safeVariantIndex}
+          onVariantChange={setVariantIndex}
+          imageBaseUrl={imageBaseUrl}
+          diffImageBaseUrl={diffImageBaseUrl}
+          showOverlay={showOverlay}
+          onShowOverlayChange={setShowOverlay}
+          overlayColor={overlayColor}
+          onOverlayColorChange={setOverlayColor}
+          diffMode={diffMode}
+          onDiffModeChange={setDiffMode}
+        />
+      </Flex>
+    </Flex>
+  );
 
   if (isPending) {
     return (
@@ -320,47 +406,7 @@ export default function SnapshotsPage() {
           </Layout.HeaderActions>
         </Layout.Header>
 
-        <Flex
-          direction="row"
-          flex="1"
-          minHeight="0"
-          width="100%"
-          overflow="hidden"
-          style={{maxHeight: 'calc(100vh - 205px)'}}
-        >
-          <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
-            <SnapshotSidebarContent
-              items={filteredItems}
-              totalItemCount={sidebarItems.length}
-              currentItemKey={currentItemKey}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onSelectItem={handleSelectItem}
-            />
-          </Flex>
-          <DragHandle
-            data-is-held={isHeld}
-            onMouseDown={onMouseDown}
-            onDoubleClick={onDoubleClick}
-          >
-            <IconGrabbable size="sm" />
-          </DragHandle>
-          <Flex flex="1" minWidth={0} overflow="hidden">
-            <SnapshotMainContent
-              selectedItem={deferredItem}
-              variantIndex={safeVariantIndex}
-              onVariantChange={setVariantIndex}
-              imageBaseUrl={imageBaseUrl}
-              diffImageBaseUrl={diffImageBaseUrl}
-              showOverlay={showOverlay}
-              onShowOverlayChange={setShowOverlay}
-              overlayColor={overlayColor}
-              onOverlayColorChange={setOverlayColor}
-              diffMode={diffMode}
-              onDiffModeChange={setDiffMode}
-            />
-          </Flex>
-        </Flex>
+        {isComparisonProcessing ? processingContent : snapshotContent}
       </Layout.Page>
     </SentryDocumentTitle>
   );

@@ -12,14 +12,13 @@ import {
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useQueryClient} from 'sentry/utils/queryClient';
-
 import {
   useAgentOptions,
   useMutateCreatePr,
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
   useSelectedAgentFromProjectSettings,
-} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
+} from 'sentry/views/settings/seer/seerAgentHooks';
 
 describe('seerAgentHooks', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
