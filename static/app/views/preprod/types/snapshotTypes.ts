@@ -79,7 +79,8 @@ interface SidebarItemBase {
 
 export type SidebarItem =
   | (SidebarItemBase & {type: 'solo'; images: SnapshotImage[]})
-  | (SidebarItemBase & {type: 'changed' | 'renamed'; pairs: SnapshotDiffPair[]})
+  | (SidebarItemBase & {type: 'changed'; pairs: SnapshotDiffPair[]})
+  | (SidebarItemBase & {type: 'renamed'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {
       type: 'added' | 'removed' | 'unchanged';
       images: SnapshotImage[];

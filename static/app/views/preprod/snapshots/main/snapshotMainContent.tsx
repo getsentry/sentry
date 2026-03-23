@@ -76,11 +76,7 @@ export function SnapshotMainContent({
                     {currentPair.head_image.display_name}
                   </Text>
                 )}
-                {currentPair.head_image.image_file_name && (
-                  <InlineCode variant="neutral">
-                    {currentPair.head_image.image_file_name}
-                  </InlineCode>
-                )}
+                <ImageFileName fileName={currentPair.head_image.image_file_name} />
               </Flex>
               {totalVariants > 1 && (
                 <Text variant="muted" size="sm">
@@ -286,6 +282,9 @@ function ImageFileName({
   fileName: string;
   previousFileName?: string;
 }) {
+  if (!fileName) {
+    return null;
+  }
   if (previousFileName) {
     return (
       <Tooltip
