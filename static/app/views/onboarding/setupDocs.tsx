@@ -1,11 +1,10 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -15,7 +14,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SetupIntroduction} from 'sentry/views/onboarding/components/setupIntroduction';
-import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
 import {FirstEventFooter} from './components/firstEventFooter';
@@ -25,20 +23,6 @@ export function SetupDocs({recentCreatedProject: project}: StepProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const [, setOnboardingParams] = useOnboardingQueryParams();
-  const {selectedFeatures} = useOnboardingContext();
-  const hasSyncedRef = useRef(false);
-
-  // Sync feature selections from context into URL params on first mount
-  // so the inline ProductSelection checkboxes reflect the user's choices
-  // from the SCM_PLATFORM_FEATURES step.
-  useEffect(() => {
-    if (selectedFeatures && selectedFeatures.length > 0 && !hasSyncedRef.current) {
-      hasSyncedRef.current = true;
-      setOnboardingParams({product: selectedFeatures});
-    }
-  }, [selectedFeatures, setOnboardingParams]);
-
   const products = useMemo<ProductSolution[]>(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
     [location.query.product]

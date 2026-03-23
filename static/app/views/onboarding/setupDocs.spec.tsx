@@ -426,7 +426,7 @@ describe('Onboarding Setup Docs', () => {
     });
   });
 
-  it('syncs feature selections from context to URL params', async () => {
+  it('reads feature selections from URL params', async () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture({
       slug: 'javascript-nextjs',
@@ -439,28 +439,33 @@ describe('Onboarding Setup Docs', () => {
     renderMockRequests({project, orgSlug: organization.slug});
 
     const {router} = render(
-      <OnboardingContextProvider
-        initialValue={{
-          selectedFeatures: [
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.SESSION_REPLAY,
-          ],
-        }}
-      >
-        <SetupDocs
-          onComplete={() => {}}
-          stepIndex={2}
-          genSkipOnboardingLink={() => ''}
-          recentCreatedProject={project}
-        />
-      </OnboardingContextProvider>
+      <SetupDocs
+        onComplete={() => {}}
+        stepIndex={2}
+        genSkipOnboardingLink={() => ''}
+        recentCreatedProject={project}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/setup-docs/',
+            query: {
+              product: [
+                ProductSolution.PERFORMANCE_MONITORING,
+                ProductSolution.SESSION_REPLAY,
+              ],
+            },
+          },
+        },
+      }
     );
 
     expect(
       await screen.findByRole('heading', {name: 'Configure Next.js SDK'})
     ).toBeInTheDocument();
 
-    // Features from context should be synced to URL params
+    // Features should be available from URL params
     expect(router.location.query.product).toEqual([
       ProductSolution.PERFORMANCE_MONITORING,
       ProductSolution.SESSION_REPLAY,
