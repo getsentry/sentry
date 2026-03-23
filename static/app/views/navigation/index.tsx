@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -50,7 +51,14 @@ function UserAndOrganizationNavigation() {
 
   return (
     <NavigationLayout>
-      {layout === 'mobile' ? <MobileNavigation /> : <DesktopNavigation />}
+      {layout === 'mobile' ? (
+        <Fragment>
+          <MobileNavigation />
+          <DesktopNavigation />
+        </Fragment>
+      ) : (
+        <DesktopNavigation />
+      )}
     </NavigationLayout>
   );
 }

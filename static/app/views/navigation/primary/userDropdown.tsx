@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -59,9 +60,12 @@ export function UserDropdown() {
           }
         : {type: 'letter_avatar' as const, identifier, name};
 
+  const sizeContext = useSizeContext();
+
   return (
     <DropdownMenu
       usePortal
+      size={sizeContext}
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}

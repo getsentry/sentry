@@ -4,6 +4,7 @@ import {motion, type MotionProps} from 'framer-motion';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
+import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -87,22 +88,28 @@ export function Navigation() {
         </PrimaryNavigation.List>
 
         {!hasPageFrame && layout === 'mobile' ? null : (
-          <Stack
-            gap={layout === 'mobile' ? undefined : 'md'}
-            marginTop="auto"
-            paddingBottom="md"
-          >
-            <PrimaryNavigation.FooterItems>
-              <PrimaryNavigationFooterItems />
-            </PrimaryNavigation.FooterItems>
-            <PrimaryNavigation.FooterItems>
-              <PrimaryNavigationFooterItemsUserDropdown />
-            </PrimaryNavigation.FooterItems>
-          </Stack>
+          <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
+            <Stack
+              gap={layout === 'mobile' ? undefined : 'md'}
+              marginTop="auto"
+              paddingBottom="md"
+            >
+              <PrimaryNavigation.FooterItems>
+                <PrimaryNavigationFooterItems />
+              </PrimaryNavigation.FooterItems>
+              <PrimaryNavigation.FooterItems>
+                <PrimaryNavigationFooterItemsUserDropdown />
+              </PrimaryNavigation.FooterItems>
+            </Stack>
+          </SizeProvider>
         )}
       </PrimaryNavigation.Sidebar>
 
-      {isCollapsed ? (
+      {layout === 'mobile' ? (
+        <SecondaryNavigation.Sidebar>
+          <SecondaryNavigationContent />
+        </SecondaryNavigation.Sidebar>
+      ) : isCollapsed ? (
         <CollapsedSecondaryWrapper
           data-visible={collapsedNavigation.view === 'peek'}
           data-test-id="collapsed-secondary-sidebar"

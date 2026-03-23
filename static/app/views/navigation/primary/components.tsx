@@ -12,7 +12,7 @@ import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
-import {SizeProvider} from '@sentry/scraps/sizeContext';
+import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -32,6 +32,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
@@ -70,6 +71,7 @@ interface PrimaryNavigationSidebarHeaderProps extends Omit<FlexProps<'header'>, 
 
 function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderProps) {
   const theme = useTheme();
+  const {layout} = usePrimaryNavigation();
   const organization = useOrganization({allowNull: true});
   const showSuperuserWarning =
     isActiveSuperuser() &&
@@ -87,7 +89,13 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         justify="center"
         borderBottom={hasPageFrame ? 'primary' : undefined}
         width={hasPageFrame ? '100%' : undefined}
-        height={hasPageFrame ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
+        height={
+          hasPageFrame
+            ? layout === 'mobile'
+              ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+              : `${PRIMARY_HEADER_HEIGHT}px`
+            : undefined
+        }
         {...props}
       >
         {props.children}
@@ -330,15 +338,17 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
     portalContainerRef.current = document.body;
   }, []);
 
+  const sizeContext = useSizeContext();
+
   return (
     <DropdownMenu
       usePortal
+      size={sizeContext}
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
-      size="sm"
       minMenuWidth={200}
       trigger={triggerProps => {
         return (
@@ -375,7 +385,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
                   )
                 }
               >
-                {layout === 'mobile' ? (
+                {layout === 'mobile' && hasPageFrame ? null : layout === 'mobile' ? (
                   <Fragment>
                     {hasPageFrame ? null : props.label}
                     {props.children}
@@ -400,10 +410,10 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
   return (
     <Flex
       align="center"
-      height={layout === 'mobile' ? 'auto' : undefined}
-      width={layout === 'mobile' ? '100%' : undefined}
-      padding={layout === 'mobile' ? 'md lg' : 'xs'}
-      justify={layout === 'mobile' ? 'start' : 'center'}
+      height={layout === 'mobile' && !hasPageFrame ? 'auto' : undefined}
+      width={layout === 'mobile' && !hasPageFrame ? '100%' : undefined}
+      padding={layout === 'mobile' && !hasPageFrame ? 'md lg' : 'xs'}
+      justify={layout === 'mobile' && !hasPageFrame ? 'start' : 'center'}
     >
       {p => (
         <Button
@@ -421,13 +431,7 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
 }
 
 function PrimaryNavigationButtonBar(props: ButtonBarProps) {
-  const hasPageFrame = useHasPageFrameFeature();
-
-  return (
-    <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
-      <ButtonBar {...props} width="100%" />
-    </SizeProvider>
-  );
+  return <ButtonBar {...props} width="100%" />;
 }
 
 interface PrimaryNavigationFooterItemsProps {

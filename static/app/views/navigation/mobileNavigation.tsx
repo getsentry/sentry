@@ -16,7 +16,10 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
+import {
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT,
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+} from 'sentry/views/navigation/constants';
 import {
   PrimaryNavigationFooterItems,
   PrimaryNavigationFooterItemsUserDropdown,
@@ -82,7 +85,10 @@ export function MobileNavigation() {
   if (hasPageFrame) {
     return (
       <SizeProvider size="sm">
-        <MobileNavigationHeader height="48px" padding="sm">
+        <MobileNavigationHeader
+          height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`}
+          padding="sm"
+        >
           <Flex align="center" gap="md" justify="between" width="100%">
             <Button
               ref={closeButtonRef}
@@ -125,42 +131,44 @@ export function MobileNavigation() {
           label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
           closeButtonRef={closeButtonRef}
         >
-          {view === 'primary' ? (
-            <Stack height="100%" justify="between">
-              <Stack>
-                <PrimaryNavigationItems />
+          <SizeProvider size="sm">
+            {view === 'primary' ? (
+              <Stack height="100%" justify="between">
+                <Stack>
+                  <PrimaryNavigationItems />
+                </Stack>
+                <Stack>
+                  <PrimaryNavigationFooterItems />
+                  <PrimaryNavigationFooterItemsUserDropdown />
+                </Stack>
               </Stack>
-              <Stack>
-                <PrimaryNavigationFooterItems />
-                <PrimaryNavigationFooterItemsUserDropdown />
-              </Stack>
-            </Stack>
-          ) : view === 'secondary' ? (
-            <Grid
-              position="relative"
-              height="100%"
-              areas={`
+            ) : view === 'secondary' ? (
+              <Grid
+                position="relative"
+                height="100%"
+                areas={`
               "header"
               "content"`}
-              columns="1fr"
-              rows="auto 1fr"
-            >
-              <Flex as="header" area="header" position="sticky" top={0} padding="md">
-                <Button
-                  size="xs"
-                  priority="transparent"
-                  onClick={() => setView('primary')}
-                  icon={<IconChevron direction="left" />}
-                  aria-label={t('Back to primary navigation')}
-                >
-                  {t('Back')}
-                </Button>
-              </Flex>
-              <Stack justify="start" align="stretch" overflowY="auto" area="content">
-                <SecondaryNavigationContent />
-              </Stack>
-            </Grid>
-          ) : null}
+                columns="1fr"
+                rows="auto 1fr"
+              >
+                <Flex as="header" area="header" position="sticky" top={0} padding="md">
+                  <Button
+                    size="xs"
+                    priority="transparent"
+                    onClick={() => setView('primary')}
+                    icon={<IconChevron direction="left" />}
+                    aria-label={t('Back to primary navigation')}
+                  >
+                    {t('Back')}
+                  </Button>
+                </Flex>
+                <Stack justify="start" align="stretch" overflowY="auto" area="content">
+                  <SecondaryNavigationContent />
+                </Stack>
+              </Grid>
+            ) : null}
+          </SizeProvider>
         </NavigationOverlayPortal>
       )}
     </MobileNavigationHeader>
