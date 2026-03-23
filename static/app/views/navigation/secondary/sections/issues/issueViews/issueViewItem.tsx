@@ -1,12 +1,9 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
-import {motion, Reorder, useDragControls} from 'framer-motion';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -14,60 +11,21 @@ import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
 import {
   constructViewLink,
   type IssueView,
 } from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 interface IssueViewItemProps {
-  /**
-   * Whether the item is active.
-   */
   isActive: boolean;
-  /**
-   * Whether an item is being dragged.
-   */
-  isDragging: string | null;
-  /**
-   * Whether the item is the last view in the list.
-   * This will be removed once view sharing/starring is implemented.
-   */
-  isLastView: boolean;
-  /**
-   * A callback function that is called when the user has completed a reorder.
-   */
-  onReorderComplete: () => void;
-  /**
-   * A callback function that updates the isDragging state.
-   */
-  setIsDragging: (isDragging: string | null) => void;
-  /**
-   * The issue view to display
-   */
   view: IssueView;
-  /**
-   * Ref to the body of the section that contains the reorderable items.
-   * This is used as the portal container for the ellipsis menu, and as
-   * the dragging constraint for each nav item.
-   */
-  sectionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function IssueViewItem({
-  view,
-  sectionRef,
-  isActive,
-  onReorderComplete,
-  isDragging,
-  setIsDragging,
-}: IssueViewItemProps) {
+export function IssueViewItem({view, isActive}: IssueViewItemProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
-
-  const controls = useDragControls();
 
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const {hasUnsavedChanges, changedParams} = useIssueViewUnsavedChanges();
@@ -77,103 +35,44 @@ export function IssueViewItem({
     .map(p => p.platform)
     .filter(defined);
 
-  const {startInteraction, endInteraction, isInteractingRef} = useSecondaryNavigation();
-
   return (
-    <StyledReorderItem
-      as="div"
-      dragConstraints={sectionRef}
-      dragElastic={0.03}
-      dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
-      value={view}
-      onDragStart={() => {
-        setIsDragging(view.id);
-        startInteraction();
-      }}
-      onDragEnd={() => {
-        setIsDragging(null);
-        onReorderComplete();
-        endInteraction();
-      }}
-      dragListener={false}
-      dragControls={controls}
-      // This style is a hack to fix a framer-motion bug that causes views to
-      // jump from the bottom of the nav bar to their correct positions
-      // upon scrolling down on the page and triggering a page navigation.
-      // See: https://github.com/motiondivision/motion/issues/2006
-      style={{
-        ...(isDragging
-          ? {}
-          : {
-              originY: '0px',
-            }),
-      }}
-      grabbing={isDragging === view.id}
-    >
-      <StyledSecondaryNavigationItem
-        to={constructViewLink(baseUrl, view)}
-        isActive={isActive}
-        leadingItems={
-          <Flex justify="center" align="center" position="relative">
-            <GrabHandleWrapper
-              data-drag-icon
-              onPointerDown={e => {
-                controls.start(e);
-                e.stopPropagation();
-                e.preventDefault();
-              }}
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
+    <SecondaryNavigation.ReorderableLink
+      to={constructViewLink(baseUrl, view)}
+      isActive={isActive}
+      analyticsItemName="issues_view_starred"
+      icon={
+        <SecondaryNavigation.ProjectIcon
+          projectPlatforms={projectPlatforms}
+          allProjects={view.projects.length === 1 && view.projects[0] === -1}
+        />
+      }
+      trailingItems={
+        <Flex align="center">
+          <IssueViewQueryCount view={view} isActive={isActive} />
+          {isActive && hasUnsavedChanges && changedParams && (
+            <Tooltip
+              title={constructUnsavedTooltipTitle(changedParams)}
+              position="top"
+              skipWrapper
             >
-              <StyledInteractionStateLayer isPressed={isDragging === view.id} />
-              <IconGrabbable variant="muted" />
-            </GrabHandleWrapper>
-            <SecondaryNavigation.ProjectIcon
-              projectPlatforms={projectPlatforms}
-              allProjects={view.projects.length === 1 && view.projects[0] === -1}
-            />
-          </Flex>
-        }
-        trailingItems={
-          <Flex align="center">
-            <IssueViewQueryCount view={view} isActive={isActive} />
-          </Flex>
-        }
-        onPointerDown={e => {
-          e.preventDefault();
-        }}
-        onClick={e => {
-          if (isInteractingRef.current) {
-            e.preventDefault();
-          } else {
-            trackAnalytics('issue_views.switched_views', {
-              leftNav: true,
-              organization: organization.slug,
-            });
-          }
-        }}
-        analyticsItemName="issues_view_starred"
-      >
-        <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
-          <TruncatedTitle>{view.label}</TruncatedTitle>
-        </Tooltip>
-        {isActive && hasUnsavedChanges && changedParams && (
-          <Tooltip
-            title={constructUnsavedTooltipTitle(changedParams)}
-            position="top"
-            skipWrapper
-          >
-            <UnsavedChangesIndicator
-              role="presentation"
-              data-test-id="unsaved-changes-indicator"
-              isActive={isActive}
-            />
-          </Tooltip>
-        )}
-      </StyledSecondaryNavigationItem>
-    </StyledReorderItem>
+              <SecondaryNavigation.Indicator variant="accent" />
+            </Tooltip>
+          )}
+        </Flex>
+      }
+      onNavigate={() => {
+        trackAnalytics('issue_views.switched_views', {
+          leftNav: true,
+          organization: organization.slug,
+        });
+      }}
+    >
+      <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
+        <Text ellipsis variant="inherit">
+          {view.label}
+        </Text>
+      </Tooltip>
+    </SecondaryNavigation.ReorderableLink>
   );
 }
 
@@ -200,84 +99,8 @@ const constructUnsavedTooltipTitle = (changedParams: {
     <Fragment>
       {t(
         "This view's %s filters have not been saved.",
-        <BoldTooltipText>{oxfordizeArray(changedParamsArray)}</BoldTooltipText>
+        <Text bold>{oxfordizeArray(changedParamsArray)}</Text>
       )}
     </Fragment>
   );
 };
-
-// Reorder.Item does handle lifting an item being dragged above other items out of the box,
-// but we need to ensure the item is relatively positioned and has a background color for it to work
-const StyledReorderItem = styled(Reorder.Item, {
-  shouldForwardProp: prop => prop !== 'grabbing',
-})<{grabbing: boolean}>`
-  position: relative;
-  background-color: ${p => (p.grabbing ? p.theme.colors.surface200 : 'transparent')};
-  border-radius: ${p => p.theme.radius.md};
-`;
-
-const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  height: 120%;
-  border-radius: 4px;
-`;
-
-const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Item)`
-  position: relative;
-  padding-right: ${p => p.theme.space.xs};
-
-  /* Hide the project icon on hover in favor of the drag handle */
-  :hover {
-    [data-project-icon] {
-      ${p => p.theme.visuallyHidden}
-    }
-  }
-
-  :not(:hover) {
-    [data-drag-icon] {
-      ${p => p.theme.visuallyHidden}
-    }
-  }
-`;
-
-const BoldTooltipText = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
-  opacity: ${p => (p.isActive ? 1 : 0)};
-
-  ${StyledSecondaryNavigationItem}:hover & {
-    opacity: ${p => (p.isActive ? 1 : 0.75)};
-  }
-
-  border-radius: 50%;
-  background: ${p => p.theme.tokens.graphics.accent.vibrant};
-  border: solid 2px ${p => p.theme.colors.surface300};
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  top: -3px;
-  right: -3px;
-`;
-
-const GrabHandleWrapper = styled(motion.div)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  cursor: grab;
-  z-index: 3;
-
-  &:active {
-    cursor: grabbing;
-  }
-`;
-
-const TruncatedTitle = styled('div')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;

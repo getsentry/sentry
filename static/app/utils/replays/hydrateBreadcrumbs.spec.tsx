@@ -1,7 +1,8 @@
 import {ReplayConsoleFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import hydrateBreadcrumbs, {
+import {
+  hydrateBreadcrumbs,
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
 

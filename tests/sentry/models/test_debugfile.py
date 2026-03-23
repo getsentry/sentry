@@ -8,6 +8,7 @@ from io import BytesIO
 from typing import Any
 
 import pytest
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
@@ -16,6 +17,7 @@ from sentry.models.debugfile import (
     ProjectDebugFile,
     create_dif_from_id,
     detect_dif_from_path,
+    get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase, TestCase
@@ -42,6 +44,34 @@ class DebugFileTest(TestCase):
 
         assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
         assert not File.objects.filter(id=dif.file.id).exists()
+
+    def test_delete_shared_file_keeps_file_until_last_reference_removed(self) -> None:
+        file = self.create_file(
+            name="shared.dSYM",
+            type="project.dif",
+            headers={"Content-Type": "application/x-mach-binary"},
+        )
+        file.putfile(ContentFile(b""))
+
+        dif1 = self.create_dif_file(
+            debug_id="00000000-0000-0000-0000-000000000000",
+            file=file,
+        )
+        dif2 = self.create_dif_file(
+            debug_id="11111111-1111-1111-1111-111111111111",
+            file=file,
+        )
+
+        dif1.delete()
+
+        assert not ProjectDebugFile.objects.filter(id=dif1.id).exists()
+        assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
+        assert File.objects.filter(id=file.id).exists()
+
+        dif2.delete()
+
+        assert not ProjectDebugFile.objects.filter(id=dif2.id).exists()
+        assert not File.objects.filter(id=file.id).exists()
 
     def test_find_dif_by_debug_id(self) -> None:
         debug_id1 = "dfb8e43a-f242-3d73-a453-aeb6a777ef75"
@@ -450,6 +480,30 @@ def test_proguard_file_not_detected(path: str, name: str | None) -> None:
         # Note that if the path or name does exist as a file on the filesystem,
         # this test will fail.
         detect_dif_from_path(path, name)
+
+
+def test_get_debug_id_from_dif_request_normalizes_debug_id() -> None:
+    assert (
+        get_debug_id_from_dif_request(
+            name=None,
+            debug_id="67E9247C814E392BA027DBDE6748FCBF",
+        )
+        == "67e9247c-814e-392b-a027-dbde6748fcbf"
+    )
+
+
+def test_get_debug_id_from_dif_request_invalid_debug_id_returns_none() -> None:
+    assert get_debug_id_from_dif_request(name=None, debug_id="not-a-debug-id") is None
+
+
+def test_get_debug_id_from_dif_request_reads_proguard_name() -> None:
+    assert (
+        get_debug_id_from_dif_request(
+            name="/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+            debug_id=None,
+        )
+        == "00000000-0000-0000-0000-000000000000"
+    )
 
 
 def test_dartsymbolmap_file_detected() -> None:

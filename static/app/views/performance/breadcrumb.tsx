@@ -24,7 +24,7 @@ type Props = {
   };
 };
 
-function Breadcrumb(props: Props) {
+export function Breadcrumb(props: Props) {
   function getCrumbs() {
     const crumbs: Crumb[] = [];
     const {organization, location, transaction, spanSlug, eventSlug, traceSlug} = props;
@@ -109,5 +109,3 @@ export const getTabCrumbs = ({
 
   return crumbs;
 };
-
-export default Breadcrumb;

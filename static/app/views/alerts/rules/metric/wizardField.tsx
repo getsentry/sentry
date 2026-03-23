@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Select} from '@sentry/scraps/select';
 
 import type {FormFieldProps} from 'sentry/components/forms/formField';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -214,7 +214,7 @@ export function WizardField({
 
   return (
     <FormField {...fieldProps}>
-      {({onChange, model, disabled, isEditing, disabledReason}: any) => {
+      {({onChange, model, disabled, isEditing}) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
         const selectedTemplate = alertType || 'eap_metrics';
@@ -253,8 +253,7 @@ export function WizardField({
               value={selectedTemplate}
               options={menuOptions}
               disabled={disabled}
-              disabledReason={disabledReason}
-              onChange={(option: MenuOption) => {
+              onChange={option => {
                 // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 const template = AlertWizardRuleTemplates[option.value];
 

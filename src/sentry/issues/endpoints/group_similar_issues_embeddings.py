@@ -126,6 +126,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "use_reranking": options.get("seer.similarity.similar_issues.use_reranking"),
             "model": model_version,
             "training_mode": False,
+            "platform": latest_event.platform or "unknown",
         }
         # Add optional parameters
         if request.GET.get("k"):
@@ -142,7 +143,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         viewer_context = SeerViewerContext(
             organization_id=group.project.organization.id, user_id=request.user.id
         )
-        results = get_similarity_data_from_seer(
+        results, _model_used = get_similarity_data_from_seer(
             similar_issues_params, viewer_context=viewer_context
         )
 

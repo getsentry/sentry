@@ -5,11 +5,13 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import Any, TypeAlias
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
+from taskbroker_client.retry import retry_task
+from taskbroker_client.state import current_task
 
 from sentry import features, nodestore
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -19,8 +21,6 @@ from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.post_process import should_retry_fetch
-from sentry.taskworker.retry import retry_task
-from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
@@ -50,17 +50,19 @@ from sentry.workflow_engine.processors.data_condition_group import (
 )
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.types import ConditionError, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ConditionError,
+    DataConditionGroupId,
+    GroupId,
+    WorkflowEventData,
+    WorkflowId,
+)
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger("sentry.workflow_engine.processors.delayed_workflow")
 
 EVENT_LIMIT = 100
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
-
-GroupId: TypeAlias = int
-DataConditionGroupId: TypeAlias = int
-WorkflowId: TypeAlias = int
 
 
 class EventInstance(BaseModel):

@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
@@ -6,27 +5,19 @@ import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  getArtifactsFromBlocks,
-  useExplorerAutofix,
-} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ExplorerArtifactPreviews} from 'sentry/components/events/autofix/v2/artifactPreviews';
-import {ExplorerSeerSectionCtaButton} from 'sentry/components/events/autofix/v2/autofixSidebarCtaButton';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {Resources} from 'sentry/views/issueDetails/streamline/sidebar/resources';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {SeerSectionCtaButton} from './seerSectionCtaButton';
 
@@ -54,11 +45,9 @@ function SeerSectionContent({
   group,
   project,
   event,
-  isExplorerEnabled,
 }: {
   event: Event | undefined;
   group: Group;
-  isExplorerEnabled: boolean;
   project: Project;
 }) {
   const aiConfig = useAiConfig(group, project);
@@ -71,7 +60,7 @@ function SeerSectionContent({
   }
 
   if (aiConfig.hasSummary) {
-    if (aiConfig.hasAutofix && !isExplorerEnabled) {
+    if (aiConfig.hasAutofix) {
       return (
         <Summary>
           <GroupSummaryWithAutofix
@@ -109,22 +98,6 @@ export function SeerSection({
   const issueTypeDoesntHaveSeer =
     !issueTypeConfig.autofix && !issueTypeConfig.issueSummary;
 
-  const organization = useOrganization();
-  const isExplorerEnabled =
-    isSeerExplorerEnabled(organization) &&
-    organization.features.includes('autofix-on-explorer');
-
-  // Get explorer artifacts when autofix-on-explorer is enabled
-  const {runState: explorerRunState} = useExplorerAutofix(group.id, {
-    enabled: isExplorerEnabled,
-  });
-  const explorerArtifacts = useMemo(
-    () =>
-      isExplorerEnabled ? getArtifactsFromBlocks(explorerRunState?.blocks ?? []) : {},
-    [isExplorerEnabled, explorerRunState?.blocks]
-  );
-  const hasExplorerArtifacts = Object.keys(explorerArtifacts).length > 0;
-
   if (
     (!aiConfig.areAiFeaturesAllowed || issueTypeDoesntHaveSeer) &&
     !aiConfig.hasResources
@@ -148,7 +121,7 @@ export function SeerSection({
     <HeaderContainer>{t('Resources')}</HeaderContainer>
   ) : (
     <HeaderContainer>
-      {t('Seer')}
+      {t('Seer Autofix')}
       <IconSeer />
     </HeaderContainer>
   );
@@ -160,27 +133,9 @@ export function SeerSection({
       return <SeerWelcomeEntrypoint />;
     }
 
-    // When explorer is enabled and has artifacts, show artifact previews
-    if (isExplorerEnabled && hasExplorerArtifacts) {
-      return (
-        <ExplorerArtifactPreviews
-          artifacts={explorerArtifacts}
-          blocks={explorerRunState?.blocks ?? []}
-          prStates={explorerRunState?.repo_pr_states}
-        />
-      );
-    }
-
     // Default: show group summary
     if (aiConfig.hasAutofix || aiConfig.hasSummary) {
-      return (
-        <SeerSectionContent
-          group={group}
-          project={project}
-          event={event}
-          isExplorerEnabled={isExplorerEnabled}
-        />
-      );
+      return <SeerSectionContent group={group} project={project} event={event} />;
     }
 
     // Resources only
@@ -209,25 +164,15 @@ export function SeerSection({
     >
       <Stack>
         {renderSectionContent()}
-        {event &&
-          showCtaButton &&
-          (isExplorerEnabled ? (
-            <ExplorerSeerSectionCtaButton
-              aiConfig={aiConfig}
-              event={event}
-              group={group}
-              project={project}
-              hasStreamlinedUI
-            />
-          ) : (
-            <SeerSectionCtaButton
-              aiConfig={aiConfig}
-              event={event}
-              group={group}
-              project={project}
-              hasStreamlinedUI
-            />
-          ))}
+        {event && showCtaButton && (
+          <SeerSectionCtaButton
+            aiConfig={aiConfig}
+            event={event}
+            group={group}
+            project={project}
+            hasStreamlinedUI
+          />
+        )}
       </Stack>
     </SidebarFoldSection>
   );

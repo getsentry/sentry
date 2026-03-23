@@ -4,10 +4,10 @@ import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {
-  AutoSaveField,
+  AutoSaveForm,
   defaultFormOptions,
   FieldGroup,
   FormSearch,
@@ -15,7 +15,6 @@ import {
 } from '@sentry/scraps/form';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -30,7 +29,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {slugify} from 'sentry/utils/slugify';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -59,7 +57,6 @@ const generalSchema = z.object({
   isEarlyAdopter: z.boolean(),
   hideAiFeatures: z.boolean(),
   codecovAccess: z.boolean(),
-  enablePrReviewTestGeneration: z.boolean(),
   slug: z.string().min(1, t('Organization slug is required')),
 });
 
@@ -106,7 +103,7 @@ export function ReplayAccessMembersField({
 
   return (
     <FormSearch route="/settings/organization/">
-      <AutoSaveField
+      <AutoSaveForm
         name="replayAccessMembers"
         schema={membershipSchema}
         initialValue={(organization.replayAccessMembers ?? []).map(String)}
@@ -127,7 +124,7 @@ export function ReplayAccessMembersField({
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     </FormSearch>
   );
 }
@@ -158,7 +155,7 @@ function OrganizationMembershipSettingsBase({
   return (
     <FormSearch route="/settings/organization/">
       <FieldGroup title={t('Membership')}>
-        <AutoSaveField
+        <AutoSaveForm
           name="defaultRole"
           schema={membershipSchema}
           initialValue={organization.defaultRole ?? ''}
@@ -177,9 +174,9 @@ function OrganizationMembershipSettingsBase({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="openMembership"
           schema={membershipSchema}
           initialValue={organization.openMembership ?? false}
@@ -206,9 +203,9 @@ function OrganizationMembershipSettingsBase({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="allowMemberInvite"
           schema={membershipSchema}
           initialValue={organization.allowMemberInvite ?? false}
@@ -235,9 +232,9 @@ function OrganizationMembershipSettingsBase({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="allowMemberProjectCreation"
           schema={membershipSchema}
           initialValue={organization.allowMemberProjectCreation ?? false}
@@ -264,9 +261,9 @@ function OrganizationMembershipSettingsBase({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="eventsMemberAdmin"
           schema={membershipSchema}
           initialValue={organization.eventsMemberAdmin ?? false}
@@ -293,9 +290,9 @@ function OrganizationMembershipSettingsBase({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="alertsMemberWrite"
           schema={membershipSchema}
           initialValue={organization.alertsMemberWrite ?? false}
@@ -322,10 +319,10 @@ function OrganizationMembershipSettingsBase({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
         {features.has('event-attachments') && (
-          <AutoSaveField
+          <AutoSaveForm
             name="attachmentsRole"
             schema={membershipSchema}
             initialValue={organization.attachmentsRole ?? ''}
@@ -346,10 +343,10 @@ function OrganizationMembershipSettingsBase({
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         )}
 
-        <AutoSaveField
+        <AutoSaveForm
           name="debugFilesRole"
           schema={membershipSchema}
           initialValue={organization.debugFilesRole ?? ''}
@@ -370,9 +367,9 @@ function OrganizationMembershipSettingsBase({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="hasGranularReplayPermissions"
           schema={membershipSchema}
           initialValue={organization.hasGranularReplayPermissions ?? false}
@@ -399,7 +396,7 @@ function OrganizationMembershipSettingsBase({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
         {hasGranularReplay && (
           <ReplayAccessMembersField
@@ -413,14 +410,13 @@ function OrganizationMembershipSettingsBase({
   );
 }
 
-function OrganizationSettingsForm({initialData, onSave}: Props) {
+export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const organization = useOrganization();
   const endpoint = `/organizations/${organization.slug}/`;
 
   const access = useMemo(() => new Set(organization.access), [organization]);
   const hasWriteAccess = access.has('org:write');
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
-  const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const aiEnabled = hasGenAiFeatureFlag ? (initialData.hideAiFeatures ?? false) : false;
 
@@ -496,7 +492,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
           </slugForm.AppForm>
 
           {/* Display Name */}
-          <AutoSaveField
+          <AutoSaveForm
             name="name"
             schema={generalSchema}
             initialValue={initialData.name}
@@ -515,10 +511,10 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
           {/* Organization ID — read-only */}
-          <AutoSaveField
+          <AutoSaveForm
             name="organizationId"
             schema={generalSchema}
             initialValue={organization.id}
@@ -538,11 +534,11 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
           {/* Early Adopter — hidden for self-hosted errors-only */}
           {!ConfigStore.get('isSelfHostedErrorsOnly') && (
-            <AutoSaveField
+            <AutoSaveForm
               name="isEarlyAdopter"
               schema={generalSchema}
               initialValue={initialData.isEarlyAdopter}
@@ -567,11 +563,11 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           )}
 
           {/* Show Generative AI Features (inverted from hideAiFeatures) */}
-          <AutoSaveField
+          <AutoSaveForm
             name="hideAiFeatures"
             schema={generalSchema}
             initialValue={aiEnabled}
@@ -610,10 +606,10 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
           {/* Enable Code Coverage Insights */}
-          <AutoSaveField
+          <AutoSaveForm
             name="codecovAccess"
             schema={generalSchema}
             initialValue={initialData.codecovAccess}
@@ -664,62 +660,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
-
-          {/* Enable AI Code Review — visible when AI enabled and not using new Seer */}
-          {!showNewSeer(organization) && aiEnabled && (
-            <AutoSaveField
-              name="enablePrReviewTestGeneration"
-              schema={generalSchema}
-              initialValue={initialData.enablePrReviewTestGeneration ?? false}
-              mutationOptions={orgMutationOptions}
-            >
-              {field => (
-                <field.Layout.Row
-                  label={
-                    <Flex gap="sm" align="center">
-                      {t('Enable AI Code Review')}
-                      <FeatureBadge
-                        type="beta"
-                        {...(isSelfHosted ? {tooltipProps: {position: 'top'}} : {})}
-                      />
-                      {isSelfHosted && (
-                        <Tooltip
-                          title={t(
-                            'This feature is not available for self-hosted instances'
-                          )}
-                          position="top"
-                        >
-                          <Tag
-                            variant="muted"
-                            role="status"
-                            icon={<IconLock locked />}
-                            data-test-id="prevent-ai-disabled-tag"
-                          >
-                            {t('disabled')}
-                          </Tag>
-                        </Tooltip>
-                      )}
-                    </Flex>
-                  }
-                  hintText={tct(
-                    'Use AI to review and find bugs in pull requests [link:Learn more]',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
-                      ),
-                    }
-                  )}
-                >
-                  <field.Switch
-                    checked={field.state.value ?? false}
-                    onChange={field.handleChange}
-                    disabled={isSelfHosted || !hasWriteAccess}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveField>
-          )}
+          </AutoSaveForm>
         </FieldGroup>
       </FormSearch>
 
@@ -736,8 +677,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     </Fragment>
   );
 }
-
-export default OrganizationSettingsForm;
 
 const PoweredByCodecov = styled('div')`
   display: flex;

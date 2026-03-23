@@ -6,7 +6,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -266,9 +266,6 @@ describe('logsTableRow', () => {
     expect(screen.getByText('test log body')).toBeInTheDocument();
     expect(screen.getByText('Apr 10, 2025 7:21:10.049 PM')).toBeInTheDocument(); // This is using precise timestamp on log fixture, which overrides passed regular timestamp.
 
-    // Check that the span ID is not rendered
-    expect(screen.queryByText('span_id')).not.toBeInTheDocument();
-
     // Expand the row to show the attributes
     const logTableRow = await screen.findByTestId('log-table-row');
     expect(logTableRow).toBeInTheDocument();
@@ -319,6 +316,9 @@ describe('logsTableRow', () => {
         }),
       })
     );
+
+    // Check that the span ID is rendered in the expanded details
+    expect(screen.getByTestId('tree-key-span_id')).toBeInTheDocument();
 
     // Check that the attribute values are rendered
     expect(screen.queryByText(projects[0]!.id)).not.toBeInTheDocument();

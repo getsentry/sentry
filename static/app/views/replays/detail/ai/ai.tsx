@@ -11,7 +11,7 @@ import {Text} from '@sentry/scraps/text';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

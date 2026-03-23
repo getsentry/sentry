@@ -10,7 +10,6 @@ pytestmark = [requires_snuba]
 
 
 @with_feature("organizations:single-trace-summary")
-@with_feature("organizations:trace-spans-format")
 class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()

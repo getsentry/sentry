@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
+from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -41,9 +42,16 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 789}
 
-        mock_client_class.assert_called_once_with(self.organization, ANY)
+        mock_client_class.assert_called_once_with(
+            self.organization,
+            ANY,
+            on_completion_hook=DashboardOnCompletionHook,
+            category_key="dashboard_generate",
+            category_value=str(self.organization.id),
+        )
         mock_client.start_run.assert_called_once_with(
             prompt="Show me error rates by project",
+            on_page_context=ANY,
             artifact_key="dashboard",
             artifact_schema=ANY,
             request=ANY,

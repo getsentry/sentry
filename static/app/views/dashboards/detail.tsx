@@ -68,9 +68,13 @@ import {
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {WidgetBuilderV2} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {
+  addWidgetBuilderSessionStorageParams,
+  cleanupWidgetBuilderSessionStorage,
+  DataSet,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -80,9 +84,9 @@ import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {Controls} from './controls';
-import Dashboard from './dashboard';
+import {Dashboard} from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
-import FiltersBar from './filtersBar';
+import {FiltersBar} from './filtersBar';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -174,6 +178,7 @@ function getDashboardLocation({
     'statsPeriod',
     'start',
     'end',
+    'interval',
   ]);
 
   const commonPath = defined(dashboardId)
@@ -238,6 +243,14 @@ class DashboardDetail extends Component<Props, State> {
       this.setState({dashboardState: this.props.initialState});
     }
 
+    // Update modified dashboard to trigger re-render when dashboard prop changes in preview state
+    if (prevProps.dashboard !== this.props.dashboard && this.isPreview) {
+      this.setState({
+        modifiedDashboard: cloneDashboard(this.props.dashboard),
+        widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
+      });
+    }
+
     if (
       prevProps.organization !== this.props.organization ||
       // The only part of `location` used by `WidgetLegendSelectionState` is
@@ -290,7 +303,7 @@ class DashboardDetail extends Component<Props, State> {
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
             navigate(
               {
-                pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
+                pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
                 query,
               },
               {preventScrollReset: true}
@@ -627,9 +640,9 @@ class DashboardDetail extends Component<Props, State> {
               ...location.query,
               ...(openWidgetTemplates
                 ? defaultLibraryWidget
-                  ? convertWidgetToBuilderStateParams(defaultLibraryWidget)
+                  ? convertWidgetToQueryParams(defaultLibraryWidget)
                   : {}
-                : convertWidgetToBuilderStateParams(
+                : convertWidgetToQueryParams(
                     getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
                   )),
             },
@@ -674,12 +687,15 @@ class DashboardDetail extends Component<Props, State> {
     const path = defined(dashboardId)
       ? `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`
       : `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`;
+
+    addWidgetBuilderSessionStorageParams(widget);
+
     navigate(
       normalizeUrl({
         pathname: path,
         query: {
           ...location.query,
-          ...convertWidgetToBuilderStateParams(widget),
+          ...convertWidgetToQueryParams(widget),
         },
       }),
       {preventScrollReset: true}
@@ -784,6 +800,8 @@ class DashboardDetail extends Component<Props, State> {
       };
     }
 
+    cleanupWidgetBuilderSessionStorage();
+
     navigate(
       getDashboardLocation({
         organization,
@@ -835,15 +853,29 @@ class DashboardDetail extends Component<Props, State> {
                   browserHistory.replace(
                     normalizeUrl({
                       pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                      query: {
-                        query: omit(location.query, Object.values(DashboardFilterKeys)),
-                      },
+                      query: omit(location.query, Object.values(DashboardFilterKeys)),
                     })
                   );
                 }
               );
             },
-            () => undefined
+            error => {
+              const seerRunId = location.query?.seerRunId;
+              // Currently only runs for seer-generated dashboards
+              if (seerRunId && typeof seerRunId === 'string') {
+                Sentry.withScope(scope => {
+                  scope.setFingerprint(['generated-dashboard-save-failed']);
+                  scope.setTag('seer.run_id', seerRunId);
+                  scope.setLevel('error');
+                  Sentry.captureMessage('Generated dashboard failed to save', {
+                    extra: {
+                      dashboard_title: newModifiedDashboard.title,
+                      error_message: error?.message,
+                    },
+                  });
+                });
+              }
+            }
           );
         }
         break;
@@ -1376,7 +1408,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'queryClient'
 > {}
 
-export default function DashboardDetailWithInjectedProps(
+export function DashboardDetailWithInjectedProps(
   props: DashboardDetailWithInjectedPropsProps
 ) {
   const theme = useTheme();

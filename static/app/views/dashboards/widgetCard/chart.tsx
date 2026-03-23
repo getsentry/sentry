@@ -17,7 +17,7 @@ import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadin
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -283,6 +283,9 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const {start, end, period, utc} = selection.datetime;
   const {projects, environments} = selection;
 
+  // TODO(JoshuaKGoldberg):
+  //   Unexpected unnecessary non-capturing group. This group can be removed without changing the behaviour of the regex  regexp/no-useless-non-capturing-group
+  // eslint-disable-next-line regexp/no-useless-non-capturing-group
   const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
   const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
     seriesName?.match(otherRegex)

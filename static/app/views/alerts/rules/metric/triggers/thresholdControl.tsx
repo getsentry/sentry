@@ -34,7 +34,7 @@ class ThresholdControl extends Component<Props, State> {
 
   handleThresholdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow number and partial number inputs
-    if (!/^[0-9]*\.?[0-9]*$/.test(event.target.value)) {
+    if (!/^\d*\.?\d*$/.test(event.target.value)) {
       return;
     }
 

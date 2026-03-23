@@ -132,6 +132,10 @@ class ExplorerIndexRequest(TypedDict):
     projects: list[ExplorerIndexProject]
 
 
+class ExplorerIndexSentryKnowledgeRequest(TypedDict):
+    replace_existing: bool
+
+
 class LlmGenerateRequest(TypedDict):
     provider: str
     model: str
@@ -151,6 +155,20 @@ def make_org_project_knowledge_index_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/automation/explorer/index/org-project-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_index_sentry_knowledge_request(
+    body: ExplorerIndexSentryKnowledgeRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/sentry-knowledge",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -231,6 +249,7 @@ class SummarizeIssueRequest(TypedDict):
 class SupergroupsEmbeddingRequest(TypedDict):
     organization_id: int
     group_id: int
+    project_id: int
     artifact_data: dict[str, Any]
 
 
@@ -238,6 +257,7 @@ class SupergroupsListRequest(TypedDict):
     organization_id: int
     offset: NotRequired[int | None]
     limit: NotRequired[int | None]
+    project_ids: NotRequired[list[int] | None]
 
 
 class SupergroupsGetRequest(TypedDict):
@@ -346,6 +366,7 @@ def make_supergroups_embedding_request(
 
 def make_supergroups_list_request(
     body: SupergroupsListRequest,
+    viewer_context: SeerViewerContext,
     timeout: int | float | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
@@ -353,11 +374,13 @@ def make_supergroups_list_request(
         "/v0/issues/supergroups/list",
         body=orjson.dumps(body),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
 def make_supergroups_get_request(
     body: SupergroupsGetRequest,
+    viewer_context: SeerViewerContext,
     timeout: int | float | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
@@ -365,6 +388,7 @@ def make_supergroups_get_request(
         "/v0/issues/supergroups/get",
         body=orjson.dumps(body),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
@@ -494,6 +518,7 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
         logger.warning(
             "settings.SEER_API_SHARED_SECRET is not set. Unable to add auth headers for call to Seer."
         )
+        metrics.incr("seer.unsigned_request", sample_rate=1.0)
     return auth_headers
 
 

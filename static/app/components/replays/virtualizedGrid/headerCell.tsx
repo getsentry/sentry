@@ -30,7 +30,7 @@ function CatchClicks({children}: {children: ReactNode}) {
   return <div onClick={e => e.stopPropagation()}>{children}</div>;
 }
 
-function HeaderCell<T extends BaseRecord>({
+export function HeaderCell<T extends BaseRecord>({
   field,
   handleSort,
   label,
@@ -81,5 +81,3 @@ const HeaderButton = styled('button')`
     margin-left: ${p => p.theme.space['2xs']};
   }
 `;
-
-export default HeaderCell;

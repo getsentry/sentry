@@ -105,7 +105,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       }
     );
 
-    expect(await screen.findByText(/You[''\u2019]ve exceeded your/i)).toBeInTheDocument();
+    expect(await screen.findByText(/You['\u2019]ve exceeded your/i)).toBeInTheDocument();
 
     const onDemandTexts = screen.getAllByText(/on-demand budget/i);
     expect(onDemandTexts).toHaveLength(2);
@@ -157,7 +157,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       }
     );
 
-    expect(await screen.findByText(/You[''\u2019]ve exceeded your/i)).toBeInTheDocument();
+    expect(await screen.findByText(/You['\u2019]ve exceeded your/i)).toBeInTheDocument();
 
     const onDemandTexts = screen.getAllByText(/on-demand budget/i);
     expect(onDemandTexts).toHaveLength(2);

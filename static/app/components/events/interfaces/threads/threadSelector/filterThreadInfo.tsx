@@ -16,11 +16,11 @@ export type ThreadInfo = {
 };
 
 function trimFilename(filename: string) {
-  const pieces = filename.split(/\//g);
+  const pieces = filename.split(/\//);
   return pieces[pieces.length - 1];
 }
 
-function filterThreadInfo(
+export function filterThreadInfo(
   event: Event,
   thread: Thread,
   exception?: Required<ExceptionType>
@@ -71,5 +71,3 @@ function filterThreadInfo(
 
   return threadInfo;
 }
-
-export default filterThreadInfo;

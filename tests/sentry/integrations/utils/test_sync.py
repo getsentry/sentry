@@ -12,13 +12,13 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.users.models import User, UserEmail
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 
 
-@region_silo_test
+@cell_silo_test
 class TestSyncAssigneeInbound(TestCase):
     def setUp(self) -> None:
         self.example_integration = self.create_integration(
@@ -225,7 +225,7 @@ class TestSyncAssigneeInbound(TestCase):
         assert exception_param.args[0] == "oops, something went wrong"
 
 
-@region_silo_test
+@cell_silo_test
 class TestSyncAssigneeInboundByExternalActor(TestCase):
     @pytest.fixture(autouse=True)
     def mock_where_should_sync(self):

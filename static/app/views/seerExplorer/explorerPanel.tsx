@@ -23,8 +23,9 @@ import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUse
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {InputSection} from 'sentry/views/seerExplorer/inputSection';
 import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
-import PanelContainers, {
+import {
   BlocksContainer,
+  PanelContainers,
 } from 'sentry/views/seerExplorer/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
 import {SeerFab} from 'sentry/views/seerExplorer/seerFab';
@@ -100,6 +101,8 @@ export function ExplorerPanel() {
     switchToRun,
     respondToUserInput,
     createPR,
+    overrideCtxEngEnable,
+    setOverrideCtxEngEnable,
   } = useSeerExplorer();
 
   const copySessionEnabled = Boolean(runId && organization?.slug);
@@ -620,6 +623,13 @@ export function ExplorerPanel() {
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
         sessionHistoryButtonRef={sessionHistoryButtonRef}
+        overrideCtxEngEnable={overrideCtxEngEnable}
+        onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
+        showContextEngineToggle={
+          !!organization?.features.includes(
+            'seer-explorer-context-engine-fe-override-ui-flag'
+          )
+        }
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>

@@ -18,7 +18,7 @@ interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   width?: string;
 }
 
-function SearchBar({
+export function SearchBar({
   query: queryProp,
   defaultQuery = '',
   onChange,
@@ -113,5 +113,3 @@ export const SearchBarTrailingButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
   padding: ${p => p.theme.space.xs};
 `;
-
-export default SearchBar;

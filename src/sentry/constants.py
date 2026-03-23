@@ -730,9 +730,10 @@ DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
     "on_new_commit",
 ]
 SEER_DEFAULT_CODING_AGENT_DEFAULT = "seer"
+SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT = "code_changes"
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
-ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
+
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
 
 # Repository owner for console SDK repositories. Helpful for testing: add your test org here

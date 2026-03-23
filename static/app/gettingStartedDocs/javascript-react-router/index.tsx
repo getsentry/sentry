@@ -11,7 +11,7 @@ import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {replay} from './replay';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   replayOnboarding: replay,
   feedbackOnboardingNpm: feedback,
@@ -39,5 +39,3 @@ const docs: Docs = {
   }),
   mcpOnboarding: mcp,
 };
-
-export default docs;

@@ -30,7 +30,7 @@ type Props = {
  * expand button to be outside the list of children
  *
  */
-function CollapsePanel({
+export function CollapsePanel({
   items,
   children,
   buttonTitle,
@@ -88,8 +88,6 @@ function ShowMoreButton({
     </ShowMore>
   );
 }
-
-export default CollapsePanel;
 
 const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;

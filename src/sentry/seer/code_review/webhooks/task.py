@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 import sentry_sdk
+from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -20,8 +22,6 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
-from sentry.taskworker.retry import Retry
-from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
@@ -110,23 +110,20 @@ def schedule_task(
 def process_github_webhook_event(
     *,
     enqueued_at_str: str,
-    # Later to be removed when we have migrated all callers to use seer_path
-    seer_path: str | None = None,
-    github_event: str | None = None,
+    seer_path: str,
     event_payload: Mapping[str, Any],
     tags: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     """
-    Process GitHub webhook event by forwarding to Seer if applicable.
+    Forward a validated code-review payload to Seer.
 
     Args:
         enqueued_at_str: The timestamp when the task was enqueued
-        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
         seer_path: The path to the Seer API endpoint to call
-        event_payload: The payload of the webhook event (already validated before scheduling)
+        event_payload: The payload (already validated before scheduling)
         tags: Sentry SDK tags to set on this task's scope for error correlation
-        **kwargs: Parameters to pass to webhook handler functions
+        **kwargs: Absorbs legacy serialized task arguments from in-flight work
     """
     status = "success"
     should_record_latency = True
@@ -137,21 +134,7 @@ def process_github_webhook_event(
         if tags and (org_id := tags.get("sentry_organization_id")):
             viewer_context = SeerViewerContext(organization_id=int(org_id))
 
-        # Temporary check for backwards compatibility (pre-seer_path tasks).
-        # event_payload is the Seer-shaped body {external_owner_id, data}; it never
-        # includes GitHub's "action". Old tasks used request_type "pr-closed" instead.
-        if seer_path is None and github_event is not None:
-            assert isinstance(github_event, str)
-            action = event_payload.get("action")
-            if action is None and event_payload.get("request_type") == "pr-closed":
-                action = "closed"
-            if action is None and tags:
-                action = tags.get("github_event_action")
-            path = get_seer_path_for_request(github_event, action)
-        else:
-            assert isinstance(seer_path, str)
-            path = seer_path
-        make_seer_request(path=path, payload=event_payload, viewer_context=viewer_context)
+        make_seer_request(path=seer_path, payload=event_payload, viewer_context=viewer_context)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.
