@@ -21,7 +21,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import (
     TraceItemType as ProtoTraceItemType,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, OrFilter, TraceItemFilter
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -868,38 +868,37 @@ def serialize_type(search_type: constants.SearchType) -> str:
     return "number"
 
 
-def _check_attribute_exists(
+def _check_attributes_by_type(
     meta: RequestMeta,
     attr_type: AttributeKey.Type.ValueType,
-    name: str,
-) -> tuple[AttributeKey.Type.ValueType, str] | None:
-    """Check if a single typed attribute has values in the active window."""
-    if attr_type == AttributeKey.Type.TYPE_STRING:
-        rpc_request = TraceItemAttributeValuesRequest(
-            meta=meta,
-            limit=1,
-            key=AttributeKey(type=attr_type, name=name),
-        )
-        rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
-        return (attr_type, name) if rpc_response.values else None
+    names: list[str],
+) -> set[tuple[AttributeKey.Type.ValueType, str]]:
+    """Check which typed attribute names exist in storage for the active window."""
+    if not names:
+        return set()
 
-    # For number/boolean attrs, use the typed names RPC with an exists filter
-    # so we verify both type identity and time-window intersection.
+    requested_names = set(names)
     names_request = TraceItemAttributeNamesRequest(
         meta=meta,
-        limit=100,
+        limit=10000,
         type=attr_type,
-        value_substring_match=name,
         intersecting_attributes_filter=TraceItemFilter(
-            exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
+                    )
+                    for name in requested_names
+                ]
+            )
         ),
     )
     names_response = snuba_rpc.attribute_names_rpc(names_request)
-    for attribute in names_response.attributes:
-        if attribute.name == name:
-            return (attr_type, name)
-
-    return None
+    return {
+        (attr_type, attribute.name)
+        for attribute in names_response.attributes
+        if attribute.name in requested_names
+    }
 
 
 def _check_attributes_exist(
@@ -916,23 +915,17 @@ def _check_attributes_exist(
         item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
     )
 
-    all_checks = [(attr_type, name) for attr_type, names in attrs_by_type.items() for name in names]
-
     found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
-    # Each (type, name) pair requires a separate RPC call with no batching
-    # available, so we fire them all in parallel to minimise latency.
     with ThreadPoolExecutor(
         thread_name_prefix="attr_validate",
-        max_workers=len(all_checks),
+        max_workers=len(attrs_by_type),
     ) as pool:
         futures = [
-            pool.submit(_check_attribute_exists, meta, attr_type, name)
-            for attr_type, name in all_checks
+            pool.submit(_check_attributes_by_type, meta, attr_type, names)
+            for attr_type, names in attrs_by_type.items()
         ]
         for future in futures:
-            result = future.result()
-            if result is not None:
-                found.add(result)
+            found.update(future.result())
 
     return found
 
