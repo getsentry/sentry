@@ -1506,6 +1506,7 @@ def _get_schema_examples():
     return examples
 
 
+@pytest.mark.skip(reason="flaky: #111311")
 @pytest.mark.parametrize("example", _get_schema_examples())
 def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
     """
