@@ -339,7 +339,9 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/tree",
             json=tree_response,
         )
-        resp = self.gitlab_client.get_repository_tree(self.gitlab_id, ref="main", recursive=True)
+        resp = self.gitlab_client.get_repository_tree(
+            str(self.gitlab_id), ref="main", recursive=True
+        )
         assert resp == tree_response
         assert "ref=main" in responses.calls[0].request.url
         assert "recursive=true" in responses.calls[0].request.url
