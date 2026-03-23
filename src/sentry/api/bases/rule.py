@@ -55,7 +55,7 @@ class WorkflowEngineRuleEndpoint(RuleEndpoint):
         if not rule_id.isdigit():
             raise ResourceDoesNotExist
 
-        method_flag = self.workflow_engine_method_flags.get(request.method)
+        method_flag = self.workflow_engine_method_flags.get(request.method or "")
         use_workflow_engine = features.has(
             "organizations:workflow-engine-rule-serializers", project.organization
         ) or (method_flag is not None and features.has(method_flag, project.organization))
