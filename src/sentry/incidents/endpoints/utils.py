@@ -41,7 +41,7 @@ def translate_threshold(alert_rule: AlertRule, threshold: float | None) -> float
 
 
 def translate_data_condition_type(
-    comparison_delta: int, condition_type: str, threshold: float | None
+    comparison_delta: int | None, condition_type: str, threshold: float | int | None
 ) -> float | None:
     """
     Translates our internal percent representation into a delta percentage.
@@ -51,8 +51,6 @@ def translate_data_condition_type(
     if threshold is None:
         return threshold
 
-    # DataCondition.comparison is a JSONField, so integer values come back as int
-    # rather than float. Coerce here to match AlertRuleTrigger.alert_threshold (FloatField).
     if comparison_delta is None:
         return float(threshold)
 
