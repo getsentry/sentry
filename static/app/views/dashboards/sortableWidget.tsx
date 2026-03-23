@@ -133,18 +133,19 @@ export function SortableWidget(props: Props) {
     widget.displayType === DisplayType.TABLE &&
     widget.layout?.w === NUM_DESKTOP_COLS;
 
+  const {onContentHeight} = props;
   const handleDataFetched = useCallback(
     (data: OnDataFetchedParams) => {
-      if (!isAutoHeight || !props.onContentHeight) {
+      if (!isAutoHeight || !onContentHeight) {
         return;
       }
 
       const rowCount = data.tableResults?.[0]?.data?.length;
       if (defined(rowCount)) {
-        props.onContentHeight(index, calculateTableContentHeight(rowCount));
+        onContentHeight(index, calculateTableContentHeight(rowCount));
       }
     },
-    [isAutoHeight, index, props.onContentHeight] // eslint-disable-line react-hooks/exhaustive-deps
+    [isAutoHeight, index, onContentHeight]
   );
 
   useEffect(() => {
