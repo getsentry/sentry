@@ -127,7 +127,7 @@ const agent = new Agent({
   id: 'my-agent',
   name: 'My Agent',
   instructions: 'You are a helpful assistant',
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5.4',
 });
 
 const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
@@ -266,10 +266,11 @@ function getConfigureStep({
 const { openai } = require('@ai-sdk/openai');
 
 const result = await generateText({
-  model: openai("gpt-4o"),
+  model: openai("gpt-5.4"),
   prompt: "Tell me a joke",
   experimental_telemetry: {
     isEnabled: true,
+    functionId: "joke_agent",
     recordInputs: true,
     recordOutputs: true,
   },
@@ -347,7 +348,7 @@ const client = new Anthropic();
 
 const msg = await client.messages.create({
   messages: [{ role: "user", content: "Tell me a joke" }],
-  model: "claude-sonnet-4-5-20250929",
+  model: "claude-sonnet-4-6",
 });`,
         },
       ],
@@ -365,7 +366,7 @@ const msg = await client.messages.create({
 const client = new OpenAI();
 
 const response = await client.responses.create({
-  model: "gpt-4o-mini",
+  model: "gpt-5.4",
   input: "Tell me a joke",
 });`,
         },
@@ -385,7 +386,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 const response = await ai.models.generateContent({
-  model: 'gemini-2.5-flash-lite',
+  model: 'gemini-3-flash-preview',
   contents: 'Why is the sky blue?',
 });`,
         },
@@ -404,7 +405,7 @@ const response = await ai.models.generateContent({
 const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
 
 const chatModel = new ChatOpenAI({
-  modelName: "gpt-4o",
+  modelName: "gpt-5.4",
   apiKey: process.env.OPENAI_API_KEY,
 });
 
@@ -427,21 +428,19 @@ const text = response.content;`,
         {
           label: 'JavaScript',
           language: 'javascript',
-          code: `const { ChatOpenAI } = require("@langchain/openai");
-const { createReactAgent } = require("@langchain/langgraph/prebuilt");
-const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
+          code: `const { createAgent } = require("langchain");
 
-const llm = new ChatOpenAI({
-  modelName: "gpt-4o",
-  apiKey: process.env.OPENAI_API_KEY,
+// Setting the agent name helps Sentry identify and group agent activity
+const agent = createAgent({
+  model: "openai:gpt-5.4",
+  tools: [],
+  name: "joke_agent",
 });
-
-const agent = createReactAgent({ llm, tools: [] });
 
 const result = await agent.invoke({
   messages: [
-    new SystemMessage("You are a helpful assistant."),
-    new HumanMessage("Tell me a joke")
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "Tell me a joke" },
   ],
 });
 
