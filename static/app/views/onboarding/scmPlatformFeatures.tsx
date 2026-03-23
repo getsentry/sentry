@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -108,17 +108,21 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     [detectedPlatforms]
   );
 
+  const detectedPlatformKey = resolvedPlatforms[0]?.platform;
+  // Derive platform from explicit selection, falling back to first detected
+  const currentPlatformKey = selectedPlatform?.key ?? detectedPlatformKey;
+
   const availableFeatures = useMemo(
     () =>
-      selectedPlatform?.key
+      currentPlatformKey
         ? [
             ...new Set([
               ProductSolution.ERROR_MONITORING,
-              ...getAvailableFeaturesForPlatform(selectedPlatform.key),
+              ...getAvailableFeaturesForPlatform(currentPlatformKey),
             ]),
           ]
         : [],
-    [selectedPlatform?.key]
+    [currentPlatformKey]
   );
 
   const disabledProducts = useMemo(
@@ -258,9 +262,6 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     [selectedPlatform?.key, setPlatform, setSelectedFeatures]
   );
 
-  const detectedPlatformKey = resolvedPlatforms[0]?.platform;
-  const currentPlatformKey = selectedPlatform?.key;
-
   // If the user previously selected a platform manually (not in the detected
   // list), show the manual picker so their selection is visible.
   const currentPlatformIsDetected = resolvedPlatforms.some(
@@ -272,15 +273,6 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     !showManualPicker &&
     hasDetectedPlatforms &&
     (!currentPlatformKey || currentPlatformIsDetected);
-
-  // Auto-select the first detected platform when results load
-  useEffect(() => {
-    if (detectedPlatformKey && !currentPlatformKey) {
-      setPlatform(detectedPlatformKey);
-      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlatformKey, detectedPlatformKey]);
 
   return (
     <Flex direction="column" align="center" gap="xl" flexGrow={1}>
@@ -365,7 +357,13 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
       <Button
         priority="primary"
-        onClick={() => onComplete()}
+        onClick={() => {
+          // Persist detected platform to context if user accepted default
+          if (currentPlatformKey && !selectedPlatform?.key) {
+            setPlatform(currentPlatformKey);
+          }
+          onComplete();
+        }}
         disabled={!currentPlatformKey}
       >
         {t('Continue')}
