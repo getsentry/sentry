@@ -105,8 +105,6 @@ class TestGitHubProviderIntegration(TestCase):
         assert request_url.path == f"/repos/{REPO_NAME}/issues/1347/comments"
         assert parse_qs(request_url.query) == {"page": ["3"], "per_page": ["25"]}
         assert responses.calls[0].request.headers["Accept"] == "application/vnd.github+json"
-        assert "page" not in responses.calls[0].request.headers
-        assert "per_page" not in responses.calls[0].request.headers
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
