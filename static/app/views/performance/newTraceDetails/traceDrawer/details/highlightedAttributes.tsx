@@ -355,10 +355,8 @@ function HighlightedTools({
   );
 }
 
-// Per the OTel semantic conventions, input_tokens should already include cached tokens
-// and output_tokens should already include reasoning tokens. Unfortunately some providers
-// still report them separately, so we detect that and adjust the display counts as a
-// fallback so the inline "in + out = total" equation actually adds up.
+// Per our and OTel conventions, input_tokens includes cached and output_tokens includes
+// reasoning. Some providers don't do this, so we detect the gap and adjust as a fallback.
 function getDisplayInputTokens(
   inputTokens: number,
   cachedTokens: number,
