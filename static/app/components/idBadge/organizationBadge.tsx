@@ -11,7 +11,7 @@ export interface OrganizationBadgeProps extends BaseBadgeProps {
   hideOverflow?: boolean | string;
 }
 
-function OrganizationBadge({
+export function OrganizationBadge({
   hideOverflow = true,
   organization,
   ...props
@@ -28,5 +28,3 @@ function OrganizationBadge({
     />
   );
 }
-
-export default OrganizationBadge;

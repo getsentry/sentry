@@ -38,7 +38,11 @@ class IssueService(RpcService):
     @cell_rpc_method(resolve=ByCellName(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_external_issue_groups(
-        self, *, region_name: str, external_issue_key: str, integration_id: int
+        self,
+        *,
+        cell_name: str,
+        external_issue_key: str,
+        integration_id: int,
     ) -> list[RpcExternalIssueGroupMetadata] | None:
         pass
 

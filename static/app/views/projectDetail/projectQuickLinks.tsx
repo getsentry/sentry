@@ -63,7 +63,7 @@ export function ProjectQuickLinks({organization, project}: Props) {
     {
       title: t('User Feedback'),
       to: {
-        pathname: `/organizations/${organization.slug}/feedback/`,
+        pathname: `/organizations/${organization.slug}/issues/feedback/`,
         query: {project: project?.id},
       },
     },

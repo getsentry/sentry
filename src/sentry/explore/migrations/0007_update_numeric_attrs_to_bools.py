@@ -3,11 +3,15 @@
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
+from typing import Any
+from enum import Enum
+import logging
+import re
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.explore.models import ExploreSavedQueryDataset
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
-from sentry.snuba.utils import get_dataset
+
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
 )
@@ -24,11 +28,48 @@ from sentry.api.event_search import (
     parse_search_query,
     SearchFilter,
 )
-from sentry.search.eap.constants import SUPPORTED_TRACE_ITEM_TYPE_MAP
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.constants import TAG_KEY_RE
 from sentry.search.events.types import SnubaParams
 from sentry.utils import snuba_rpc
+from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.spans_rpc import Spans
+
+
+logger = logging.getLogger(__name__)
+
+TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
+
+
+class SupportedTraceItemType(str, Enum):
+    LOGS = "logs"
+    SPANS = "spans"
+    UPTIME_RESULTS = "uptime_results"
+    TRACEMETRICS = "tracemetrics"
+    PROFILE_FUNCTIONS = "profile_functions"
+    PREPROD = "preprod"
+    ATTACHMENTS = "attachments"
+    PROCESSING_ERRORS = "processing_errors"
+    OCCURRENCES = "occurrences"
+
+
+SUPPORTED_TRACE_ITEM_TYPE_MAP = {
+    SupportedTraceItemType.LOGS: TraceItemType.TRACE_ITEM_TYPE_LOG,
+    SupportedTraceItemType.SPANS: TraceItemType.TRACE_ITEM_TYPE_SPAN,
+    SupportedTraceItemType.UPTIME_RESULTS: TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
+    SupportedTraceItemType.TRACEMETRICS: TraceItemType.TRACE_ITEM_TYPE_METRIC,
+    SupportedTraceItemType.PROFILE_FUNCTIONS: TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
+    SupportedTraceItemType.PREPROD: TraceItemType.TRACE_ITEM_TYPE_PREPROD,
+    SupportedTraceItemType.ATTACHMENTS: TraceItemType.TRACE_ITEM_TYPE_ATTACHMENT,
+    SupportedTraceItemType.PROCESSING_ERRORS: TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR,
+}
+
+
+def get_dataset(dataset_label: str) -> Any | None:
+    return {
+        "spans": Spans,
+        "logs": OurLogs,
+        "segment_spans": Spans,
+    }.get(dataset_label)
 
 
 def _check_if_bool(meta: RequestMeta, name: str, bool_cache: dict[str, bool]) -> bool:
@@ -41,8 +82,20 @@ def _check_if_bool(meta: RequestMeta, name: str, bool_cache: dict[str, bool]) ->
         type=AttributeKey.Type.TYPE_BOOLEAN,
         value_substring_match=name,
     )
-    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
-    bool_cache[name] = len(rpc_response.attributes) == 1 and rpc_response.attributes[0].name == name
+    try:
+        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+        bool_cache[name] = (
+            len(rpc_response.attributes) == 1 and rpc_response.attributes[0].name == name
+        )
+    except Exception as error:
+        logger.exception(
+            "Error retrieving attribute info",
+            extra={
+                "tag": name,
+                "error": error,
+            },
+        )
+        bool_cache[name] = False
     return bool_cache[name]
 
 
@@ -50,83 +103,92 @@ def update_numeric_attrs_to_bools(apps: StateApps, schema_editor: BaseDatabaseSc
     ExploreSavedQuery = apps.get_model("explore", "ExploreSavedQuery")
 
     for saved_query in RangeQuerySetWrapperWithProgressBar(
-        ExploreSavedQuery.objects.filter(query__query__icontains=",number]")
+        ExploreSavedQuery.objects.filter(query__query__icontains="number]")
     ):
-        trace_item_type = ExploreSavedQueryDataset.get_type_name(saved_query.dataset)
-        dataset = get_dataset(trace_item_type)
-        if dataset is None:
-            continue
+        try:
+            trace_item_type = ExploreSavedQueryDataset.get_type_name(saved_query.dataset)
+            dataset = get_dataset(trace_item_type)
+            if dataset is None:
+                continue
 
-        queries = saved_query.query["query"]
-        period = saved_query.query["range"] if "range" in saved_query.query else "14d"
+            queries = saved_query.query["query"]
+            period = saved_query.query.get("range", "14d") or "14d"
 
-        resolver = dataset.get_resolver(
-            SnubaParams(
-                organization=saved_query.organization,
-                stats_period=period,
-                projects=list(saved_query.projects.all()),
-            ),
-            SearchResolverConfig(),
-        )
-        changed = False
-        for query in queries:
-            # We only cache per query cause the results can change query to query
-            bool_cache: dict[str, bool] = {}
-            meta = resolver.resolve_meta(referrer="migration")
-            meta.trace_item_type = SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
-                trace_item_type, TraceItemType.TRACE_ITEM_TYPE_SPAN
+            resolver = dataset.get_resolver(
+                SnubaParams(
+                    organization=saved_query.organization,
+                    stats_period=period,
+                    projects=list(saved_query.projects.all()),
+                ),
+                SearchResolverConfig(),
             )
-            new_fields = []
-            for field in query["fields"]:
-                if TAG_KEY_RE.match(field):
-                    resolved_column, _ = resolver.resolve_column(field)
-                    if resolved_column.search_type == "number" and _check_if_bool(
-                        meta,
-                        resolved_column.internal_name,
-                        bool_cache,
-                    ):
-                        new_fields.append(f"tags[{resolved_column.internal_name},boolean]")
-                        continue
-                new_fields.append(field)
-            if query["fields"] != new_fields:
-                query["fields"] = new_fields
-                changed = True
-
-            # If there's a query, do our best effort to update the terms to use boolean syntax
-            if "query" in query:
-                parsed_terms = parse_search_query(
-                    query["query"],
-                    config=SearchConfig.create_from(
-                        default_config,
-                        wildcard_free_text=True,
-                    ),
-                    params=resolver.params.filter_params,
-                    get_field_type=resolver.get_field_type,
-                    get_function_result_type=resolver.get_field_type,
+            changed = False
+            for query in queries:
+                # We only cache per query cause the results can change query to query
+                bool_cache: dict[str, bool] = {}
+                meta = resolver.resolve_meta(referrer="migration")
+                meta.trace_item_type = SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
+                    trace_item_type, TraceItemType.TRACE_ITEM_TYPE_SPAN
                 )
-                new_query = query["query"]
-                for term in parsed_terms:
-                    # this isn't perfect, but we can see that there aren't any queries where this wouldn't be enough
-                    # the current problem is that there isn't a good way to go back from parsed_terms -> a search query
-                    if isinstance(term, SearchFilter) and term.key.is_tag:
-                        resolved_column, _ = resolver.resolve_column(term.key.name)
+                new_fields = []
+                for field in query["fields"]:
+                    if TAG_KEY_RE.match(field):
+                        resolved_column, _ = resolver.resolve_column(field)
                         if resolved_column.search_type == "number" and _check_if_bool(
-                            meta, resolved_column.internal_name, bool_cache
+                            meta,
+                            resolved_column.internal_name,
+                            bool_cache,
                         ):
-                            key = f"tags[{resolved_column.internal_name},boolean]"
-                            target = f"tags[{resolved_column.internal_name},number]"
-                            new_query = new_query.replace(f"{target}:1", f"{key}:True")
-                            new_query = new_query.replace(f"{target}:0", f"{key}:False")
-                            key = f"tags[{resolved_column.internal_name}, boolean]"
-                            target = f"tags[{resolved_column.internal_name}, number]"
-                            new_query = new_query.replace(f"{target}:1", f"{key}:True")
-                            new_query = new_query.replace(f"{target}:0", f"{key}:False")
-                if query["query"] != new_query:
-                    query["query"] = new_query
+                            new_fields.append(f"tags[{resolved_column.internal_name},boolean]")
+                            continue
+                    new_fields.append(field)
+                if query["fields"] != new_fields:
+                    query["fields"] = new_fields
                     changed = True
 
-        if changed:
-            saved_query.save()
+                # If there's a query, do our best effort to update the terms to use boolean syntax
+                if "query" in query:
+                    parsed_terms = parse_search_query(
+                        query["query"],
+                        config=SearchConfig.create_from(
+                            default_config,
+                            wildcard_free_text=True,
+                        ),
+                        params=resolver.params.filter_params,
+                        get_field_type=resolver.get_field_type,
+                        get_function_result_type=resolver.get_field_type,
+                    )
+                    new_query = query["query"]
+                    for term in parsed_terms:
+                        # this isn't perfect, but we can see that there aren't any queries where this wouldn't be enough
+                        # the current problem is that there isn't a good way to go back from parsed_terms -> a search query
+                        if isinstance(term, SearchFilter) and term.key.is_tag:
+                            resolved_column, _ = resolver.resolve_column(term.key.name)
+                            if resolved_column.search_type == "number" and _check_if_bool(
+                                meta, resolved_column.internal_name, bool_cache
+                            ):
+                                key = f"tags[{resolved_column.internal_name},boolean]"
+                                target = f"tags[{resolved_column.internal_name},number]"
+                                new_query = new_query.replace(f"{target}:1", f"{key}:True")
+                                new_query = new_query.replace(f"{target}:0", f"{key}:False")
+                                key = f"tags[{resolved_column.internal_name}, boolean]"
+                                target = f"tags[{resolved_column.internal_name}, number]"
+                                new_query = new_query.replace(f"{target}:1", f"{key}:True")
+                                new_query = new_query.replace(f"{target}:0", f"{key}:False")
+                    if query["query"] != new_query:
+                        query["query"] = new_query
+                        changed = True
+
+            if changed:
+                saved_query.save()
+        except Exception as error:
+            logger.exception(
+                "Error updating a query",
+                extra={
+                    "saved_query": saved_query.id,
+                    "error": error,
+                },
+            )
 
 
 class Migration(CheckedMigration):
@@ -145,6 +207,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
+        ("sentry", "1055_rename_regiontombstone_to_celltombstone"),
         ("explore", "0006_add_changed_reason_field_explore"),
     ]
 

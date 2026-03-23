@@ -2,22 +2,13 @@ import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {TagsFixture} from 'sentry-fixture/tags';
-import {TeamFixture} from 'sentry-fixture/team';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {MemberListStore} from 'sentry/stores/memberListStore';
-import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 
-import GroupSidebar from './groupSidebar';
+import {GroupSidebar} from './groupSidebar';
 
 describe('GroupSidebar', () => {
   let group = GroupFixture();
@@ -51,11 +42,6 @@ describe('GroupSidebar', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/1/current-release/`,
-      body: {},
-    });
-
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
@@ -80,10 +66,6 @@ describe('GroupSidebar', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-      method: 'GET',
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
@@ -198,58 +180,6 @@ describe('GroupSidebar', () => {
         await screen.findByText('No tags found in the selected environments')
       ).toBeInTheDocument();
     });
-  });
-
-  it('expands participants and viewers', async () => {
-    const org = {
-      ...organization,
-    };
-    const teams: TeamParticipant[] = [{...TeamFixture(), type: 'team'}];
-    const users: UserParticipant[] = [
-      {
-        ...UserFixture({
-          id: '2',
-          name: 'John Smith',
-          email: 'johnsmith@example.com',
-        }),
-        type: 'user',
-      },
-      {
-        ...UserFixture({
-          id: '3',
-          name: 'Sohn Jmith',
-          email: 'sohnjmith@example.com',
-        }),
-        type: 'user',
-      },
-    ];
-    render(
-      <GroupSidebar
-        group={{
-          ...group,
-          participants: [...teams, ...users],
-          seenBy: users,
-        }}
-        project={project}
-        organization={org}
-        event={EventFixture()}
-        environments={[]}
-      />,
-      {
-        organization: org,
-      }
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Participants (1 Team, 2 Individuals)'})
-    ).toBeInTheDocument();
-    expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getAllByRole('button', {name: 'Expand Participants'})[0]!
-    );
-
-    await waitFor(() => expect(screen.getByText('#team-slug')).toBeVisible());
   });
 
   describe('displays mobile tags when issue platform is mobile', () => {

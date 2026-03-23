@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {
   openCommandPalette,
@@ -8,6 +10,7 @@ import {
 } from 'sentry/actionCreators/modal';
 import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {t} from 'sentry/locale';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
@@ -18,10 +21,7 @@ import {
 } from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
-import {
-  PrimaryNavigationContextProvider,
-  usePrimaryNavigation,
-} from 'sentry/views/navigation/primaryNavigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
@@ -90,14 +90,50 @@ export function Navigation() {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
+    // @TODO(JonasBadalic): When this page gets any content, we should add the skip link back in.
     return <UserOnlyNavigation />;
   }
 
   return (
-    <PrimaryNavigationContextProvider>
-      <NavigationTourProvider>
-        <UserAndOrganizationNavigation />
-      </NavigationTourProvider>
-    </PrimaryNavigationContextProvider>
+    <NavigationTourProvider>
+      <SkipLink />
+      <UserAndOrganizationNavigation />
+    </NavigationTourProvider>
   );
 }
+
+function SkipLink() {
+  const theme = useTheme();
+  const primaryNavigationContext = usePrimaryNavigation();
+
+  if (primaryNavigationContext.layout === 'mobile') {
+    return null;
+  }
+
+  return (
+    <SkipLinkContainer
+      padding="sm md"
+      border="primary"
+      background="primary"
+      radius="md"
+      position="absolute"
+      left={theme.space.sm}
+      whiteSpace="nowrap"
+    >
+      {p => (
+        <ExternalLink {...p} href="#main" openInNewTab={false}>
+          {t('Skip to main content')}
+        </ExternalLink>
+      )}
+    </SkipLinkContainer>
+  );
+}
+
+const SkipLinkContainer = styled(Container)`
+  top: -100%;
+  z-index: ${p => p.theme.zIndex.toast};
+
+  &:focus-within {
+    top: ${p => p.theme.space.sm};
+  }
+`;

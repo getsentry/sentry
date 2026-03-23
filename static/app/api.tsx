@@ -16,7 +16,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
-import RequestError from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 import {ConfigStore} from './stores/configStore';
@@ -736,7 +736,7 @@ export function resolveHostname(path: string, hostname?: string): string {
 
   // If we're making a request to the applications' root
   // domain, we can drop the domain as webpack devserver will add one.
-  // TODO(hybridcloud) This can likely be removed when sentry.types.region.Region.to_url()
+  // TODO(hybridcloud) This can likely be removed when sentry.types.cell.Region.to_url()
   // loses the monolith mode condition.
   if (window.__SENTRY_DEV_UI && hostname === configLinks.sentryUrl) {
     hostname = '';

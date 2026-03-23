@@ -16,7 +16,11 @@ from sentry.models.organization import Organization
 
 class DatabaseBackedIssueService(IssueService):
     def get_external_issue_groups(
-        self, *, region_name: str, external_issue_key: str, integration_id: int
+        self,
+        *,
+        cell_name: str,
+        external_issue_key: str,
+        integration_id: int,
     ) -> list[RpcExternalIssueGroupMetadata] | None:
         from sentry.integrations.services.integration import integration_service
 

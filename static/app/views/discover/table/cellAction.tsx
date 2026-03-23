@@ -337,7 +337,7 @@ type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
   usePortalOnDropdown?: boolean;
 };
 
-function CellAction({
+export function CellAction({
   triggerType = ActionTriggerType.BOLD_HOVER,
   allowActions,
   usePortalOnDropdown,
@@ -450,8 +450,6 @@ function CellAction({
     </Container>
   );
 }
-
-export default CellAction;
 
 const Container = styled('div')`
   position: relative;

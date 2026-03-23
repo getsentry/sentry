@@ -58,6 +58,19 @@ class GitLabClientTest(GitLabTestCase):
 
 
 @control_silo_test
+class GitLabGetAccessTokenTest(GitLabClientTest):
+    def test_returns_token_dict(self) -> None:
+        result = self.gitlab_client.get_access_token()
+        expected_token = self.gitlab_client.identity.data["access_token"]
+        assert result == {"access_token": expected_token, "permissions": None}
+
+    def test_returns_none_when_token_empty(self) -> None:
+        self.gitlab_client.identity.data["access_token"] = ""
+        result = self.gitlab_client.get_access_token()
+        assert result is None
+
+
+@control_silo_test
 class GitlabRefreshAuthTest(GitLabClientTest):
     get_user_should_succeed = True
 

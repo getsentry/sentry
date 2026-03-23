@@ -18,9 +18,9 @@ import {StatsHeader as Header} from 'sentry/views/organizationStats/header';
 
 import {TeamStatsControls} from './controls';
 import {DescriptionCard} from './descriptionCard';
-import TeamAlertsTriggered from './teamAlertsTriggered';
+import {TeamAlertsTriggered} from './teamAlertsTriggered';
 import {TeamMiseryWrapper as TeamMisery} from './teamMisery';
-import TeamReleases from './teamReleases';
+import {TeamReleases} from './teamReleases';
 import {TeamStability} from './teamStability';
 import {dataDatetime} from './utils';
 

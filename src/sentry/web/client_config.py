@@ -30,7 +30,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.projects.services.project_key import ProjectKeyRole, project_key_service
 from sentry.silo.base import SiloMode
-from sentry.types.region import (
+from sentry.types.cell import (
     Locality,
     RegionCategory,
     find_all_multitenant_locality_names,

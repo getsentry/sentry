@@ -76,7 +76,6 @@ export function UserDropdown() {
                 analyticsKey="user-settings"
                 label={t('User Settings')}
                 buttonProps={{
-                  size: 'xs',
                   priority: 'transparent',
                   onClick: e => {
                     handleTriggerClick();
@@ -92,7 +91,6 @@ export function UserDropdown() {
             {...triggerProps}
             aria-label={user.email}
             avatar={avatarProps}
-            size="sm"
             onClick={e => {
               handleTriggerClick();
               triggerProps.onClick?.(e);

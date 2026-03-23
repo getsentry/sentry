@@ -1247,6 +1247,7 @@ class FakeGitHubApiClient(GitHubApiClient):
         self.review_data: dict[str, Any] | None = None
         self.check_run_data: dict[str, Any] | None = None
         self.updated_check_run_data: dict[str, Any] | None = None
+        self.archive_link_data: str = "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main?token=fake"
 
         self.raise_api_error: bool = False
         self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
@@ -1557,3 +1558,12 @@ class FakeGitHubApiClient(GitHubApiClient):
             status=data.get("status", "completed"),
             conclusion=data.get("conclusion"),
         )
+
+    def get_access_token(self, token_minimum_validity_time=None):
+        self._record_call("get_access_token")
+        return {"access_token": "fake-github-token", "permissions": None}
+
+    def get_archive_link(self, repo: str, archive_format: str, ref: str) -> str:
+        self._record_call("get_archive_link", repo, archive_format, ref)
+        self._maybe_raise()
+        return self.archive_link_data

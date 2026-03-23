@@ -35,7 +35,7 @@ class ProjectService(RpcService):
     def get_many_by_organizations(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         organization_ids: list[int],
     ) -> list[RpcProject]:
         pass

@@ -1,3 +1,5 @@
+from taskbroker_client.retry import Retry
+
 from sentry import analytics, features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
@@ -16,7 +18,6 @@ from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationFo
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(

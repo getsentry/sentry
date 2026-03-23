@@ -89,6 +89,15 @@ describe('CreateFromSeer', () => {
       url: '/organizations/org-slug/users/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      method: 'POST',
+      body: {},
+    });
   });
 
   it('shows loading state while session is processing', () => {
@@ -107,7 +116,9 @@ describe('CreateFromSeer', () => {
       },
     });
 
-    expect(screen.getByText('Generating dashboard...')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Generating Dashboard'})
+    ).toBeInTheDocument();
   });
 
   it('renders dashboard and chat panel when session is completed', async () => {

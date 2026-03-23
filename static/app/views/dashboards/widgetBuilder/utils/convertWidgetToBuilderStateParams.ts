@@ -9,6 +9,7 @@ import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {
   serializeFields,
+  serializeLinkedDashboards,
   serializeThresholds,
   type WidgetBuilderStateParams,
   type WidgetBuilderStateQueryParams,
@@ -68,8 +69,12 @@ export function convertWidgetToQueryParams(
     sort,
     legendAlias,
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
+    legendType: widget.legendType,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
     axisRange: getAxisRange(widget.axisRange) ?? 'auto',
+    linkedDashboards: firstWidgetQuery?.linkedDashboards
+      ? serializeLinkedDashboards(firstWidgetQuery.linkedDashboards)
+      : undefined,
   };
 }
 

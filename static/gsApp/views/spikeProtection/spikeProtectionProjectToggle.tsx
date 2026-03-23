@@ -1,7 +1,8 @@
 import {useEffect, useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import BooleanField, {
+import {
+  BooleanField,
   type BooleanFieldProps,
 } from 'sentry/components/forms/fields/booleanField';
 import {t, tct} from 'sentry/locale';
@@ -12,8 +13,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import type {SpendVisibilityBaseParams} from 'getsentry/utils/trackSpendVisibilityAnalytics';
-import trackSpendVisibilityAnaltyics, {
+import {
   SpendVisibilityEvents,
+  trackSpendVisibilityAnaltyics,
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
 import {
   SPIKE_PROTECTION_ERROR_MESSAGE,

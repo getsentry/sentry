@@ -132,6 +132,10 @@ class ExplorerIndexRequest(TypedDict):
     projects: list[ExplorerIndexProject]
 
 
+class ExplorerIndexSentryKnowledgeRequest(TypedDict):
+    replace_existing: bool
+
+
 class LlmGenerateRequest(TypedDict):
     provider: str
     model: str
@@ -151,6 +155,20 @@ def make_org_project_knowledge_index_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/automation/explorer/index/org-project-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_index_sentry_knowledge_request(
+    body: ExplorerIndexSentryKnowledgeRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/sentry-knowledge",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -245,6 +263,11 @@ class SupergroupsListRequest(TypedDict):
 class SupergroupsGetRequest(TypedDict):
     organization_id: int
     supergroup_id: int
+
+
+class SupergroupsGetByGroupIdsRequest(TypedDict):
+    organization_id: int
+    group_ids: list[int]
 
 
 class ServiceMapUpdateRequest(TypedDict):
@@ -368,6 +391,20 @@ def make_supergroups_get_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v0/issues/supergroups/get",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_supergroups_get_by_group_ids_request(
+    body: SupergroupsGetByGroupIdsRequest,
+    viewer_context: SeerViewerContext,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/get-by-group-ids",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -500,6 +537,7 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
         logger.warning(
             "settings.SEER_API_SHARED_SECRET is not set. Unable to add auth headers for call to Seer."
         )
+        metrics.incr("seer.unsigned_request", sample_rate=1.0)
     return auth_headers
 
 

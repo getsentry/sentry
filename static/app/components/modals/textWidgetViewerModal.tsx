@@ -70,7 +70,7 @@ function TextWidgetViewerModal(props: Props) {
         <Heading as="h3">{widget.title}</Heading>
       </Header>
       <Body>
-        <Flex maxHeight={`${HALF_CONTAINER_HEIGHT}px`}>
+        <Flex maxHeight={`${HALF_CONTAINER_HEIGHT}px`} overflowY="auto">
           <WidgetCardChartContainer
             selection={selection}
             widget={widget}

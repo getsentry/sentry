@@ -1,25 +1,36 @@
 import {Fragment, useEffect, useMemo, useRef, type ReactNode} from 'react';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
+  CodingAgentStatus,
+  getCodingAgentName,
+  getResultButtonLabel,
+} from 'sentry/components/events/autofix/types';
+import {
+  getAutofixArtifactFromSection,
   isCodeChangesArtifact,
-  isPullRequestArtifact,
+  isCodingAgentsArtifact,
+  isPullRequestsArtifact,
   isRootCauseArtifact,
   isSolutionArtifact,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconRefresh} from 'sentry/icons';
+import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
+import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
@@ -30,10 +41,10 @@ interface AutofixCardProps {
 }
 
 export function RootCauseCard({autofix, section}: AutofixCardProps) {
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isRootCauseArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
@@ -95,10 +106,10 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
 }
 
 export function SolutionCard({autofix, section}: AutofixCardProps) {
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isSolutionArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isSolutionArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
@@ -151,10 +162,10 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
 }
 
 export function CodeChangesCard({autofix, section}: AutofixCardProps) {
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isCodeChangesArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
   const patchesForRepos = useMemo(() => {
     const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
@@ -212,7 +223,7 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
                       patch={patch.patch}
                       showBorder
                       collapsible
-                      defaultExpanded={artifact && artifact.length <= 1}
+                      defaultExpanded={artifact !== null && artifact.length <= 1}
                     />
                   ))}
                 </ArtifactDetails>
@@ -243,10 +254,10 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
 }
 
 export function PullRequestsCard({section}: AutofixCardProps) {
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isPullRequestArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
   return (
     <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
@@ -271,7 +282,7 @@ export function PullRequestsCard({section}: AutofixCardProps) {
               href={pullRequest.pr_url}
               priority="primary"
             >
-              {t('View PR#%s in %s', pullRequest.pr_number, pullRequest.repo_name)}
+              {t('View %s#%s', pullRequest.repo_name, pullRequest.pr_number)}
             </LinkButton>
           );
         }
@@ -280,6 +291,71 @@ export function PullRequestsCard({section}: AutofixCardProps) {
           <Button key={pullRequest.repo_name} priority="primary" disabled>
             {t('Failed to create PR in %s', pullRequest.repo_name)}
           </Button>
+        );
+      })}
+    </ArtifactCard>
+  );
+}
+
+export function CodingAgentCard({section}: AutofixCardProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isCodingAgentsArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
+
+  const provider = artifact?.[0]?.provider;
+
+  const agentName = useMemo(() => getCodingAgentName(provider), [provider]);
+
+  return (
+    <ArtifactCard icon={<IconBot />} title={agentName}>
+      {artifact?.map(codingAgent => {
+        const statusVariant =
+          codingAgent.status === CodingAgentStatus.PENDING
+            ? ('muted' as const)
+            : codingAgent.status === CodingAgentStatus.RUNNING
+              ? ('info' as const)
+              : codingAgent.status === CodingAgentStatus.FAILED
+                ? ('danger' as const)
+                : ('success' as const);
+
+        return (
+          <ArtifactDetails key={codingAgent.id} direction="column" gap="md">
+            <Flex direction="row" justify="between">
+              <Flex direction="row" gap="md">
+                <Text>{codingAgent.name}</Text>
+                <Text variant="muted">
+                  {tct('Started [startedAt]', {
+                    startedAt: <TimeSince date={codingAgent.started_at} />,
+                  })}
+                </Text>
+              </Flex>
+              <Tag variant={statusVariant}>{codingAgent.status}</Tag>
+            </Flex>
+            <Flex direction="row" gap="md">
+              {codingAgent.agent_url ? (
+                <LinkButton href={codingAgent.agent_url} external icon={<IconOpen />}>
+                  {t('Open in %s', agentName)}
+                </LinkButton>
+              ) : null}
+              {codingAgent.results?.map(result => {
+                if (!result.pr_url) {
+                  return null;
+                }
+
+                return (
+                  <LinkButton
+                    key={result.pr_url}
+                    href={result.pr_url}
+                    external
+                    icon={<IconOpen />}
+                  >
+                    {getResultButtonLabel(result.pr_url)}
+                  </LinkButton>
+                );
+              })}
+            </Flex>
+          </ArtifactDetails>
         );
       })}
     </ArtifactCard>

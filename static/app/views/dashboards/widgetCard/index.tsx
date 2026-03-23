@@ -14,7 +14,6 @@ import {
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import Placeholder from 'sentry/components/placeholder';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
@@ -40,7 +39,7 @@ import {withPageFilters} from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
   DisplayType,
@@ -51,6 +50,7 @@ import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
@@ -89,7 +89,7 @@ type Props = WithRouterProps & {
   location: Location;
   organization: Organization;
   selection: PageFilters;
-  widget: Widget;
+  widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   borderless?: boolean;
@@ -112,11 +112,10 @@ type Props = WithRouterProps & {
   onEdit?: () => void;
   onLegendSelectChanged?: () => void;
   onSetTransactionsDataset?: () => void;
-  onUpdate?: (widget: Widget | null) => void;
+  onUpdate?: (widget: TWidget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
@@ -171,7 +170,6 @@ function WidgetCard(props: Props) {
     selection,
     widget,
     isMobile,
-    renderErrorMessage,
     tableItemLimit,
     windowWidth,
     dashboardFilters,
@@ -321,12 +319,24 @@ function WidgetCard(props: Props) {
     ? t('Widget query condition is invalid.')
     : undefined;
 
+  const errorBoundaryHandler = () => {
+    return (
+      <Widget
+        Title={<Widget.WidgetTitle title={widget.title} />}
+        Visualization={
+          <Widget.WidgetError
+            error={t("Something went wrong with this widget, we're looking into it!")}
+          />
+        }
+        noVisualizationPadding
+      />
+    );
+  };
+
   const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
     return (
-      <ErrorBoundary
-        customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
-      >
+      <ErrorBoundary customComponent={errorBoundaryHandler}>
         <VisuallyCompleteWithData
           id="DashboardList-FirstWidgetCard"
           hasData={
@@ -355,7 +365,6 @@ function WidgetCard(props: Props) {
               onDataFetched={onDataFetched}
               onWidgetTableSort={onWidgetTableSort}
               onWidgetTableResizeColumn={onWidgetTableResizeColumn}
-              renderErrorMessage={renderErrorMessage}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
@@ -368,9 +377,7 @@ function WidgetCard(props: Props) {
   }
 
   return (
-    <ErrorBoundary
-      customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
-    >
+    <ErrorBoundary customComponent={errorBoundaryHandler}>
       <VisuallyCompleteWithData
         id="DashboardList-FirstWidgetCard"
         hasData={
@@ -399,7 +406,6 @@ function WidgetCard(props: Props) {
             selection={selection}
             widget={widget}
             isMobile={isMobile}
-            renderErrorMessage={renderErrorMessage}
             tableItemLimit={tableItemLimit}
             windowWidth={windowWidth}
             onDataFetched={onDataFetched}
@@ -427,20 +433,20 @@ function WidgetCard(props: Props) {
 
 export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
 
-function useOnDemandWarning(props: {widget: Widget}): string | null {
+function useOnDemandWarning(props: {widget: TWidget}): string | null {
   const organization = useOrganization();
 
   if (!hasOnDemandMetricWidgetFeature(organization)) {
     return null;
   }
-  // prettier-ignore
+  // oxfmt-ignore
   const widgetContainsHighCardinality = props.widget.queries.some(
     wq =>
       wq.onDemand?.some(
         d => d.extractionState === OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
       )
   );
-  // prettier-ignore
+  // oxfmt-ignore
   const widgetReachedSpecLimit = props.widget.queries.some(
     wq =>
       wq.onDemand?.some(
@@ -463,7 +469,7 @@ function useOnDemandWarning(props: {widget: Widget}): string | null {
   return null;
 }
 
-function useTimeRangeWarning({widget}: {widget: Widget}) {
+function useTimeRangeWarning({widget}: {widget: TWidget}) {
   const {
     selection: {datetime},
   } = usePageFilters();
@@ -509,7 +515,7 @@ function useConflictingFilterWarning({
   dashboardFilters,
 }: {
   dashboardFilters: DashboardFilters | undefined;
-  widget: Widget;
+  widget: TWidget;
 }) {
   const conflictingFilterKeys = useMemo(() => {
     if (!dashboardFilters) return [];
@@ -541,17 +547,6 @@ function useConflictingFilterWarning({
 
   return null;
 }
-
-const ErrorCard = styled(Placeholder)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: ${p => p.theme.colors.red100};
-  border: 1px solid ${p => p.theme.colors.red200};
-  color: ${p => p.theme.colors.red200};
-  border-radius: ${p => p.theme.radius.md};
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 export const WidgetDescription = styled('small')`
   display: block;

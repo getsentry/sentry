@@ -33,7 +33,7 @@ import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/
 
 type Props = {group: Group; project: Project; event?: Event};
 
-export default function StreamlinedSidebar({group, event, project}: Props) {
+export function StreamlinedSidebar({group, event, project}: Props) {
   const theme = useTheme();
   const activeUser = useUser();
   const organization = useOrganization();
@@ -95,7 +95,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           <StyledBreak />
           {showSeerSection && (
             <ErrorBoundary mini>
-              {organization.features.includes('autofix-on-explorer-v2') ? (
+              {organization.features.includes('autofix-on-explorer') ? (
                 <AutofixSection group={group} project={project} event={event} />
               ) : (
                 <SeerSection group={group} project={project} event={event} />

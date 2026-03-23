@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
@@ -35,7 +34,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
@@ -51,7 +49,6 @@ export function BreadcrumbsDataSection({
   initialCollapse,
 }: BreadcrumbsDataSectionProps) {
   const theme = useTheme();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
@@ -168,11 +165,7 @@ export function BreadcrumbsDataSection({
     <InterimSection
       key="breadcrumbs"
       type={SectionKey.BREADCRUMBS}
-      title={
-        <GuideAnchor target="breadcrumbs" position="top" disabled={hasStreamlinedUI}>
-          {t('Breadcrumbs')}
-        </GuideAnchor>
-      }
+      title={t('Breadcrumbs')}
       data-test-id="breadcrumbs-data-section"
       actions={actions}
       initialCollapse={initialCollapse}

@@ -5,7 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {
   getOrderedAutofixSections,
   isCodeChangesSection,
-  isPullRequestSection,
+  isCodingAgentsSection,
+  isPullRequestsSection,
   isRootCauseSection,
   isSolutionSection,
   useExplorerAutofix,
@@ -13,29 +14,36 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesCard,
+  CodingAgentCard,
   PullRequestsCard,
   RootCauseCard,
   SolutionCard,
 } from 'sentry/components/events/autofix/v3/autofixCards';
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
+import type {Group} from 'sentry/types/group';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
   autofix: ReturnType<typeof useExplorerAutofix>;
+  group: Group;
 }
 
-export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
+export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentProps) {
   const sections = useMemo(
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
 
-  if (autofix.isLoading) {
+  if (
+    // autofix results are loading
+    autofix.isLoading ||
+    // we're polling and no blocks have been added yet
+    (autofix.isPolling && !autofix.runState?.blocks?.length)
+  ) {
     return (
       <Flex direction="column" gap="xl">
-        <Placeholder height="10rem" />
         <Placeholder height="15rem" />
       </Flex>
     );
@@ -49,7 +57,7 @@ export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
     <Flex direction="column" gap="lg">
       <SeerDrawerArtifacts autofix={autofix} sections={sections} />
       {autofix.runState?.status === 'completed' && (
-        <SeerDrawerNextStep autofix={autofix} sections={sections} />
+        <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
       )}
     </Flex>
   );
@@ -78,9 +86,15 @@ function SeerDrawerArtifacts({autofix, sections}: SeerDrawerArtifactsProps) {
           );
         }
 
-        if (isPullRequestSection(section)) {
+        if (isPullRequestsSection(section)) {
           return (
             <PullRequestsCard key={section.step} autofix={autofix} section={section} />
+          );
+        }
+
+        if (isCodingAgentsSection(section)) {
+          return (
+            <CodingAgentCard key={section.step} autofix={autofix} section={section} />
           );
         }
 

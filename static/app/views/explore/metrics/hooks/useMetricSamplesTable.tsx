@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

@@ -1,3 +1,5 @@
+from taskbroker_client.retry import Retry
+
 from sentry import analytics
 from sentry.integrations.analytics import IntegrationIssueCommentsSyncedEvent
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -12,7 +14,6 @@ from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 
 

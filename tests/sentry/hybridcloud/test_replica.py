@@ -12,7 +12,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
 
 
 @django_db_all(transaction=True)
@@ -65,7 +65,7 @@ def test_replicate_external_actor() -> None:
 
 
 @django_db_all(transaction=True)
-@all_silo_test(regions=create_test_regions("us"))
+@all_silo_test(cells=create_test_cells("us"))
 def test_replicate_auth_provider() -> None:
     user = Factories.create_user()
     org = Factories.create_organization(owner=user)
@@ -105,7 +105,7 @@ def test_replicate_auth_provider() -> None:
     serialized.organization_id = 99999
 
     # Should still succeed despite non existent organization
-    cell_replica_service.upsert_replicated_auth_provider(auth_provider=serialized, region_name="us")
+    cell_replica_service.upsert_replicated_auth_provider(auth_provider=serialized, cell_name="us")
 
 
 @django_db_all(transaction=True)

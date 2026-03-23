@@ -2,8 +2,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Placeholder from 'sentry/components/placeholder';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Placeholder} from 'sentry/components/placeholder';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';

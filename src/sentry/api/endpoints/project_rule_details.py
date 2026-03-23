@@ -103,6 +103,9 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
 @extend_schema(tags=["Alerts"])
 @cell_silo_endpoint
 class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
+    workflow_engine_method_flags = {
+        "GET": "organizations:workflow-engine-projectruledetailsendpoint-get",
+    }
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -213,7 +216,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 if wdcg:
                     data["filterMatch"] = wdcg.condition_group.logic_type
 
-            request_data = format_request_data(cast(ProjectRulePostData, data))
+            request_data = format_request_data(cast(ProjectRulePostData, data), project)
             if not request_data.get("config", {}).get("frequency"):
                 request_data["config"] = workflow.config
 

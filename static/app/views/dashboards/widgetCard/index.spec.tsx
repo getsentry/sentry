@@ -13,13 +13,13 @@ import {
 
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
@@ -167,7 +167,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -193,7 +192,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -217,7 +215,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -252,7 +249,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -287,7 +283,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -324,7 +319,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -353,7 +347,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -380,7 +373,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLegendState={widgetLegendState}
         widgetLimitReached
@@ -407,7 +399,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={mock}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -434,7 +425,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -468,7 +458,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -503,7 +492,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -549,7 +537,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -593,7 +580,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -631,7 +617,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         index="10"
@@ -701,7 +686,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -801,7 +785,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -837,7 +820,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         isPreview
@@ -862,7 +844,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -891,7 +872,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         isPreview

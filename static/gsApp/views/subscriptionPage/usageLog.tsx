@@ -11,15 +11,15 @@ import {Text} from '@sentry/scraps/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
+import {Pagination} from 'sentry/components/pagination';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {Timeline} from 'sentry/components/timeline';
 import {IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getTimeFormat} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -29,7 +29,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
@@ -55,7 +55,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
 }
 
 const formatEntryTitle = (name: string) => {
-  const spaceName = name.replace(/-|\./gm, ' ');
+  const spaceName = name.replace(/-|\./g, ' ');
   let capitalizeName = spaceName.replace(/(^\w)|([-\s]\w)/g, match =>
     match.toUpperCase()
   );

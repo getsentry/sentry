@@ -3,18 +3,17 @@ from sentry.hybridcloud.services.tombstone import (
     ControlTombstoneService,
     RpcTombstone,
 )
-from sentry.models.tombstone import ControlTombstone, RegionTombstone
+from sentry.models.tombstone import CellTombstone, ControlTombstone
 
 
 class DatabaseBackedCellTombstoneService(CellTombstoneService):
     def record_remote_tombstone(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         tombstone: RpcTombstone,
     ) -> None:
-        RegionTombstone.record_delete(tombstone.table_name, tombstone.identifier)
+        CellTombstone.record_delete(tombstone.table_name, tombstone.identifier)
 
 
 class DatabaseBackedControlTombstoneService(ControlTombstoneService):

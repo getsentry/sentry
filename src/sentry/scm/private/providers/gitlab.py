@@ -24,12 +24,16 @@ import datetime
 import functools
 from collections.abc import Callable
 from typing import Any, Iterable
+from urllib.parse import urlencode
 
 from sentry.integrations.gitlab.client import GitLabApiClient
-from sentry.scm.errors import SCMProviderException
+from sentry.integrations.gitlab.utils import GitLabApiClientPath
+from sentry.scm.errors import SCMCodedError, SCMProviderException
 from sentry.scm.types import (
     SHA,
     ActionResult,
+    ArchiveFormat,
+    ArchiveLink,
     Author,
     BranchName,
     Comment,
@@ -70,6 +74,11 @@ REACTION_BY_AWARD_NAME: dict[str, Reaction] = {
     award: reaction for reaction, award in AWARD_NAME_BY_REACTION.items()
 }
 
+GITLAB_ARCHIVE_FORMAT_MAP: dict[ArchiveFormat, str] = {
+    "tarball": ".tar.gz",
+    "zip": ".zip",
+}
+
 PULL_REQUEST_STATE_RETRIEVE_MAP: dict[PullRequestState, list[str]] = {
     "open": ["opened"],
     "closed": ["closed", "merged"],
@@ -96,10 +105,10 @@ class GitLabProvider:
         self.organization_id = organization_id
         self.repository = repository
         external_id = repository["external_id"]
-        assert external_id is not None
-        prefix = "gitlab.com:"
-        assert external_id.startswith(prefix)
-        self._repo_id = external_id[len(prefix) :]
+        # External ID format is "{netloc}:{repo_id}", where netloc might contain a colon before a port number
+        if external_id is None or ":" not in external_id:
+            raise SCMCodedError(code="malformed_external_id")
+        self._repo_id = external_id.rsplit(":", maxsplit=1)[1]
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
         return False  # Rate-limits temporarily disabled.
@@ -320,6 +329,27 @@ class GitLabProvider:
     def create_branch(self, branch: BranchName, sha: SHA) -> ActionResult[GitRef]:
         raw = self.client.create_branch(self._repo_id, branch, sha)
         return make_result(map_git_ref, raw)
+
+    @catch_provider_exception
+    def get_archive_link(
+        self,
+        ref: str,
+        archive_format: ArchiveFormat = "tarball",
+    ) -> ActionResult[ArchiveLink]:
+        fmt = GITLAB_ARCHIVE_FORMAT_MAP[archive_format]
+        path = GitLabApiClientPath.archive.format(project=self._repo_id, format=fmt)
+        url = GitLabApiClientPath.build_api_url(self.client.base_url, path)
+        if ref:
+            url = f"{url}?{urlencode({'sha': ref})}"
+        token_data = self.client.get_access_token()
+        token = token_data["access_token"] if token_data else None
+        data = ArchiveLink(url=url, headers={"Authorization": f"Bearer {token}"} if token else {})
+        return ActionResult(
+            data=data,
+            type="gitlab",
+            raw=url,
+            meta={},
+        )
 
     @catch_provider_exception
     def get_file_content(
