@@ -1,7 +1,13 @@
 import {useState, type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -407,5 +413,100 @@ describe('AggregateDropdown', () => {
     const callArgs = setQueryParams.mock.calls[setQueryParams.mock.calls.length - 1]![0];
     expect(callArgs.aggregateFields).toHaveLength(1);
     expect(callArgs.aggregateFields[0].parsedFunction?.name).toBe('per_second');
+  });
+
+  it('shows selected name in trigger for a single selection', () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-enabled'],
+    });
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [new VisualizeFunction('p50(value,test_metric,distribution,-)')],
+      aggregateSortBys: [{field: 'p50(value,test_metric,distribution,-)', kind: 'desc'}],
+    });
+
+    render(
+      <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
+      {organization, additionalWrapper: createWrapper({queryParams})}
+    );
+
+    const trigger = screen.getByRole('button', {name: /Agg/});
+    expect(within(trigger).getByText('p50')).toBeInTheDocument();
+    expect(within(trigger).queryByText(/^\+/)).not.toBeInTheDocument();
+  });
+
+  it('shows first name and +N badge in trigger for multiple selections', () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-enabled'],
+    });
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [
+        new VisualizeFunction('p50(value,test_metric,distribution,-)'),
+        new VisualizeFunction('p75(value,test_metric,distribution,-)'),
+        new VisualizeFunction('p90(value,test_metric,distribution,-)'),
+      ],
+      aggregateSortBys: [{field: 'p50(value,test_metric,distribution,-)', kind: 'desc'}],
+    });
+
+    render(
+      <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
+      {organization, additionalWrapper: createWrapper({queryParams})}
+    );
+
+    const trigger = screen.getByRole('button', {name: /Agg/});
+    expect(within(trigger).getByText('p50')).toBeInTheDocument();
+    expect(within(trigger).getByText('+2')).toBeInTheDocument();
+  });
+
+  it('updates trigger label after selecting an additional option', async () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-enabled'],
+    });
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [new VisualizeFunction('p50(value,test_metric,distribution,-)')],
+      aggregateSortBys: [{field: 'p50(value,test_metric,distribution,-)', kind: 'desc'}],
+    });
+
+    render(
+      <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, stateful: true}),
+      }
+    );
+
+    const trigger = screen.getByRole('button', {name: /Agg/});
+    expect(within(trigger).getByText('p50')).toBeInTheDocument();
+    expect(within(trigger).queryByText(/^\+/)).not.toBeInTheDocument();
+
+    await userEvent.click(trigger);
+    await userEvent.click(screen.getByRole('option', {name: 'p75'}));
+
+    await waitFor(() => {
+      expect(within(trigger).getByText('+1')).toBeInTheDocument();
+    });
   });
 });

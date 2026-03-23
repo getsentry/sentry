@@ -1,4 +1,11 @@
-import {CompositeSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Fragment} from 'react';
+
+import {Badge} from '@sentry/scraps/badge';
+import {
+  CompositeSelect,
+  type SelectOption,
+  TriggerLabel,
+} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
@@ -40,7 +47,7 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
     }
   }
 
-  const triggerLabel = [...selectedNames].filter(Boolean).join(', ') || t('None');
+  const selectedList = [...selectedNames].filter(Boolean);
 
   return (
     <CompositeSelect
@@ -51,7 +58,21 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
           prefix={t('Agg')}
           style={{width: '100%'}}
         >
-          {triggerLabel}
+          {selectedList.length === 0 ? (
+            <TriggerLabel>{t('None')}</TriggerLabel>
+          ) : (
+            <Fragment>
+              <TriggerLabel>{selectedList[0]}</TriggerLabel>
+              {selectedList.length > 1 && (
+                <Badge
+                  variant="muted"
+                  style={{marginLeft: 4, flexShrink: 0, top: 'auto'}}
+                >
+                  {`+${selectedList.length - 1}`}
+                </Badge>
+              )}
+            </Fragment>
+          )}
         </OverlayTrigger.Button>
       )}
     >
