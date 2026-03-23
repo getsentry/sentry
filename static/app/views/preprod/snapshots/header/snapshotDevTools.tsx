@@ -200,7 +200,7 @@ export function SnapshotDevTools({
           )}
           {hasBaseArtifact && (
             <Button size="xs" onClick={onToggleView}>
-              {isSoloView ? t('View as diff') : t('View as solo')}
+              {isSoloView ? 'View as diff' : 'View as solo'}
             </Button>
           )}
         </Flex>
