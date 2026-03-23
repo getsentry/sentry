@@ -204,6 +204,24 @@ function DataWidgetViewerModal(props: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    for (const path of ['navigate', 'modal'] as const) {
+      const mark = `dashboard.widget.fullScreenViewClick.${path}`;
+      try {
+        const measure = performance.measure('dashboard.widget.onFullScreenView', mark);
+        Sentry.metrics.distribution(
+          'dashboards.widget.onFullScreenView',
+          measure.duration,
+          {unit: 'millisecond', attributes: {path}}
+        );
+        performance.clearMarks(mark);
+        break;
+      } catch {
+        // performance.measure throws if the mark doesn't exist, try the next one
+      }
+    }
+  }, []);
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);

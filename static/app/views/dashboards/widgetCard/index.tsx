@@ -1,6 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -31,7 +30,6 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -245,7 +243,7 @@ function WidgetCard(props: Props) {
       return;
     }
     if (currentDashboardId) {
-      performance.mark('dashboard.widget.fullScreenViewClick');
+      performance.mark('dashboard.widget.fullScreenViewClick.navigate');
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
@@ -260,14 +258,7 @@ function WidgetCard(props: Props) {
         {preventScrollReset: true}
       );
     } else {
-      const start = performance.now();
-      scheduleMicroTask(() => {
-        const duration = performance.now() - start;
-        Sentry.metrics.distribution('dashboards.widget.onFullScreenView', duration, {
-          unit: 'millisecond',
-          attributes: {path: 'modal'},
-        });
-      });
+      performance.mark('dashboard.widget.fullScreenViewClick.modal');
       openWidgetViewerModal({
         organization,
         widget,
