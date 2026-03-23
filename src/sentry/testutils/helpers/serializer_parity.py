@@ -35,11 +35,12 @@ def assert_serializer_parity(
     """
     known_diffs = frozenset(known_differences or ())
     checker = _ParityChecker()
-    checker.collect(old, new, known_diffs)
-    unnecessary = (checker.unnecessary_candidates - checker.fired) | (
-        known_diffs - checker.fired - checker.unnecessary_candidates
-    )
+    checker.compare(old, new, known_diffs)
+
     assert not checker.mismatches, "Serializer differences:\n" + "\n".join(checker.mismatches)
+
+    # known_diffs entries that were never confirmed as real differences are unnecessary.
+    unnecessary = known_diffs - checker.confirmed
     assert not unnecessary, (
         "Unnecessary known_differences (no actual difference found):\n"
         + "\n".join(sorted(unnecessary))
@@ -53,28 +54,27 @@ def _qualify(prefix: str, name: str) -> str:
 @dataclass
 class _ParityChecker:
     mismatches: list[str] = field(default_factory=list)
-    fired: set[str] = field(default_factory=set)
-    unnecessary_candidates: set[str] = field(default_factory=set)
+
+    # known_diffs entries confirmed to be actual differences.
+    confirmed: set[str] = field(default_factory=set)
 
     def _nested_diffs(self, known_diffs: frozenset[str], key: str) -> frozenset[str]:
         prefix = key + "."
         return frozenset(e[len(prefix) :] for e in known_diffs if e.startswith(prefix))
 
-    def collect(
+    def compare(
         self,
         old: Mapping[str, Any],
         new: Mapping[str, Any],
         known_diffs: frozenset[str],
         path: str = "",
-        kd_prefix: str = "",
+        kd_path: str = "",
     ) -> None:
         for key in set(list(old.keys()) + list(new.keys())):
             if key in known_diffs:
-                full_kd_key = _qualify(kd_prefix, key)
+                full_kd_key = _qualify(kd_path, key)
                 if key not in new or key not in old or old[key] != new[key]:
-                    self.fired.add(full_kd_key)
-                else:
-                    self.unnecessary_candidates.add(full_kd_key)
+                    self.confirmed.add(full_kd_key)
                 continue
 
             full_path = _qualify(path, key)
@@ -91,7 +91,7 @@ class _ParityChecker:
             nested = self._nested_diffs(known_diffs, key)
 
             if nested:
-                child_kd_prefix = _qualify(kd_prefix, key)
+                child_kd_path = _qualify(kd_path, key)
                 if isinstance(old_val, list) and isinstance(new_val, list):
                     if len(old_val) != len(new_val):
                         self.mismatches.append(
@@ -100,13 +100,13 @@ class _ParityChecker:
                     for i, (old_item, new_item) in enumerate(zip(old_val, new_val)):
                         item_path = f"{full_path}[{i}]"
                         if isinstance(old_item, Mapping) and isinstance(new_item, Mapping):
-                            self.collect(old_item, new_item, nested, item_path, child_kd_prefix)
+                            self.compare(old_item, new_item, nested, item_path, child_kd_path)
                         elif old_item != new_item:
                             self.mismatches.append(
                                 f"{item_path}: old={old_item!r}, new={new_item!r}"
                             )
                 elif isinstance(old_val, Mapping) and isinstance(new_val, Mapping):
-                    self.collect(old_val, new_val, nested, full_path, child_kd_prefix)
+                    self.compare(old_val, new_val, nested, full_path, child_kd_path)
                 elif old_val != new_val:
                     self.mismatches.append(f"{full_path}: old={old_val!r}, new={new_val!r}")
             elif old_val != new_val:
