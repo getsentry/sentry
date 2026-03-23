@@ -2,6 +2,7 @@ import uuid
 from datetime import timedelta
 
 import pytest
+from rest_framework.response import Response
 
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import OccurrenceTestCase
@@ -19,7 +20,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
     def setUp(self) -> None:
         super().setUp()
 
-    def request_with_feature_flag(self, payload: dict) -> dict:
+    def request_with_feature_flag(self, payload: dict) -> Response:
         with self.options(
             {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
         ):
@@ -123,7 +124,6 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         assert meta["fields"]["epm()"] == "rate"
         assert meta["units"]["epm()"] == "1/minute"
 
-
     def test_count_unique(self) -> None:
         group = self.create_group(project=self.project)
         self.store_eap_items(
@@ -142,19 +142,13 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
                 ),
             ]
         )
-        with self.options(
-            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
-        ):
-            response = self.do_request(
-                {
-                    "field": ["count()", "count_unique(level)"],
-                    "statsPeriod": "1h",
-                    "project": [self.project.id],
-                    "dataset": "occurrences",
-                }
-            )
-
-        assert response.status_code == 200, response.content
+        response = self.request_with_feature_flag(
+            {
+                "field": ["count()", "count_unique(level)"],
+                "statsPeriod": "1h",
+                "project": [self.project.id],
+            }
+        )
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["count()"] == 2
@@ -186,22 +180,18 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
                     )
                 ]
             )
-        with self.options(
-            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
-        ):
-            response = self.do_request(
-                {
-                    "field": [
-                        "count()",
-                        "count_if(level,equals,error)",
-                        "count_if(level,notEquals,error)",
-                    ],
-                    "statsPeriod": "1h",
-                    "project": [self.project.id],
-                    "dataset": "occurrences",
-                }
-            )
-        assert response.status_code == 200, response.content
+
+        response = self.request_with_feature_flag(
+            {
+                "field": [
+                    "count()",
+                    "count_if(level,equals,error)",
+                    "count_if(level,notEquals,error)",
+                ],
+                "statsPeriod": "1h",
+                "project": [self.project.id],
+            }
+        )
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["count()"] == 5
@@ -229,18 +219,15 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
                 ),
             ]
         )
-        with self.options(
-            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
-        ):
-            response = self.do_request(
-                {
-                    "field": ["last_seen()"],
-                    "statsPeriod": "2h",
-                    "project": [self.project.id],
-                    "dataset": "occurrences",
-                }
-            )
-        assert response.status_code == 200, response.content
+
+        response = self.request_with_feature_flag(
+            {
+                "field": ["last_seen()"],
+                "statsPeriod": "2h",
+                "project": [self.project.id],
+            }
+        )
+
         data = response.data["data"]
         assert len(data) == 1
         # EAP returns last_seen as Unix timestamp in seconds (float).
