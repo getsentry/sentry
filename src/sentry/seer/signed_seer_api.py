@@ -133,7 +133,7 @@ class ExplorerIndexRequest(TypedDict):
 
 
 class ExplorerIndexSentryKnowledgeRequest(TypedDict):
-    replace_existing: bool = True
+    replace_existing: bool
 
 
 class LlmGenerateRequest(TypedDict):

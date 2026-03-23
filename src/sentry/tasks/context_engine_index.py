@@ -284,7 +284,7 @@ def index_sentry_knowledge() -> None:
 
     if response.status >= 400:
         raise Exception(
-            f"Seer sentry-knowledge endpoint returned {response.status}: {response.data}"
+            f"Seer sentry-knowledge endpoint returned {response.status}: {response.data!r}"
         )
 
     logger.info(
