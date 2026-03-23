@@ -244,17 +244,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
 ]
 
 
-# Patterns to use for each match type when not in experimental mode.
-DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAMETERIZATION_REGEXES}
-
-# Patterns to use when in experimental mode. If no experimental pattern exists for a given type of
-# match, falls back to the default pattern.
-EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
-    r.name: r.experimental_pattern if r.experimental_pattern else r.pattern
-    for r in DEFAULT_PARAMETERIZATION_REGEXES
-}
-
-
 class Parameterizer:
     def __init__(
         self,
