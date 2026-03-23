@@ -7,7 +7,7 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 
-const GRID_HEAD_ROW_HEIGHT = 45;
+export const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 42;
 const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
 

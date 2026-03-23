@@ -178,6 +178,7 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
     h: 3,
     minH: TABLE_MIN_HEIGHT,
   },
+  heightMode: 'auto',
 };
 
 const SERVER_TRANSACTIONS_TABLE_FIELDS = [
@@ -229,6 +230,7 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
     h: 3,
     minH: TABLE_MIN_HEIGHT,
   },
+  heightMode: 'auto',
 };
 
 const SERVER_TREE_WIDGET: Widget = {

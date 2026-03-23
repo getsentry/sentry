@@ -32,6 +32,7 @@ import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
+import {TABLE_MIN_HEIGHT} from './utils/prebuiltConfigs/settings';
 import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {
   assignDefaultLayout,
@@ -48,7 +49,7 @@ import {
 } from './layoutUtils';
 import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardFilterKeys, WidgetType} from './types';
+import {DashboardFilterKeys, DisplayType, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -123,13 +124,57 @@ export function Dashboard({
   const api = useApi();
   const {selection} = usePageFilters();
   const {queue} = useWidgetQueryQueue();
+  const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
+
+  const handleContentHeight = useCallback((widgetIndex: string, height: number) => {
+    setContentHeights(prev => {
+      if (prev[widgetIndex] === height) {
+        return prev;
+      }
+      return {...prev, [widgetIndex]: height};
+    });
+  }, []);
+
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
+
+    const adjustedDesktop = desktopLayout.map(layout => {
+      const widgetIndex = dashboard.widgets.findIndex(
+        w => constructGridItemKey(w) === layout.i
+      );
+      const widget = dashboard.widgets[widgetIndex];
+      if (
+        widget?.heightMode !== 'auto' ||
+        widget.displayType !== DisplayType.TABLE ||
+        layout.w !== NUM_DESKTOP_COLS
+      ) {
+        return layout;
+      }
+
+      const measuredHeight = contentHeights[String(widgetIndex)];
+      if (measuredHeight === undefined) {
+        return layout;
+      }
+
+      // Convert pixel height to grid units, accounting for margins
+      const gridH = Math.ceil(
+        (measuredHeight + WIDGET_MARGINS[1]) / (ROW_HEIGHT + WIDGET_MARGINS[1])
+      );
+      const minH = layout.minH ?? TABLE_MIN_HEIGHT;
+      const clampedH = Math.max(minH, Math.min(gridH, layout.h));
+
+      if (clampedH >= layout.h) {
+        return layout;
+      }
+
+      return {...layout, h: clampedH, minH: clampedH};
+    });
+
     return {
-      [DESKTOP]: desktopLayout,
+      [DESKTOP]: adjustedDesktop,
       [MOBILE]: getMobileLayout(desktopLayout, dashboard.widgets),
     };
-  }, [dashboard.widgets]);
+  }, [dashboard.widgets, contentHeights]);
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const forceCheckTimeout = useRef<number | undefined>(undefined);
@@ -452,6 +497,7 @@ export function Dashboard({
               index={String(index)}
               newlyAddedWidget={newlyAddedWidget}
               onNewWidgetScrollComplete={onNewWidgetScrollComplete}
+              onContentHeight={handleContentHeight}
               widgetInterval={widgetInterval}
             />
           </div>

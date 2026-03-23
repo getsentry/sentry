@@ -164,6 +164,8 @@ export type Widget = {
   datasetSource?: DatasetSource;
   description?: string;
   exploreUrls?: null | string[];
+  // When set to 'auto', the widget height will shrink to fit its content
+  heightMode?: 'auto';
   id?: string;
   layout?: WidgetLayout | null;
   legendType?: LegendType;

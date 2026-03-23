@@ -121,7 +121,7 @@ const exported = Object.assign(WidgetLayout, {
 
 export {exported as Widget};
 
-const HEADER_HEIGHT = '26px';
+export const HEADER_HEIGHT = 26;
 
 const TitleHoverItems = styled('div')`
   display: flex;
@@ -168,7 +168,7 @@ const Frame = styled('div')<{
 export const Header = styled('div')<{noPadding?: boolean}>`
   display: flex;
   align-items: center;
-  height: calc(${HEADER_HEIGHT} + ${p => p.theme.space.lg});
+  height: calc(${HEADER_HEIGHT}px + ${p => p.theme.space.lg});
   flex-shrink: 0;
   gap: ${p => p.theme.space.sm};
   padding: ${p =>
