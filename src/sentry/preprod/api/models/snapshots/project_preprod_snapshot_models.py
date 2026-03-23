@@ -23,6 +23,7 @@ class SnapshotDiffSection(StrEnum):
 class SnapshotImageResponse(BaseModel):
     key: str
     display_name: str | None = None
+    group: str | None = None
     image_file_name: str
     width: int
     height: int
