@@ -28,14 +28,14 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import metrics
+from sentry.utils.json import dumps_htmlsafe
+from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.processors.detector import process_detectors
 
 # Threshold type categories for filtering detectors by path.
 # These must stay in sync with the enum in PreprodSizeAnalysisGroupType.detector_settings.config_schema.
 DIFF_THRESHOLD_TYPES = frozenset({"absolute_diff", "relative_diff"})
 ABSOLUTE_THRESHOLD_TYPES = frozenset({"absolute"})
-from sentry.utils.json import dumps_htmlsafe
-from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.processors.detector import process_detectors
 
 logger = logging.getLogger(__name__)
 
