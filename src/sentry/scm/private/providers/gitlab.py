@@ -577,6 +577,7 @@ class GitLabProvider:
             versions = self.client.get_merge_request_versions(self._repo_id, pull_request_id)
 
         for comment in comments:
+            assert versions is not None
             position: dict[str, Any] = {
                 "base_sha": versions[0]["base_commit_sha"],
                 "head_sha": versions[0]["head_commit_sha"],
