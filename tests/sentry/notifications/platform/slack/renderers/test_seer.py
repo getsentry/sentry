@@ -219,13 +219,22 @@ class SeerSlackRendererExplorerErrorTest(TestCase):
         assert body_block.text is not None
         assert ">Timeout." in body_block.text.text
 
+    def test_render_dispatches_to_explorer_error(self) -> None:
+        from sentry.notifications.platform.types import NotificationRenderedTemplate
+
+        data = SeerExplorerError(error_message="Something went wrong.")
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
+        assert renderable["text"] == "Seer stumbled: Seer had some trouble..."
+
 
 class SeerSlackRendererExplorerTest(TestCase):
     def _create_explorer_response(self, summary: str = "") -> SeerExplorerResponse:
         return SeerExplorerResponse(
             run_id=MOCK_RUN_ID,
             organization_id=self.organization.id,
-            explorer_link=f"https://sentry.sentry.io/explore/seer/{MOCK_RUN_ID}/",
             summary=summary,
         )
 
