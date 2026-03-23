@@ -462,8 +462,6 @@ def trigger_coding_agent_handoff(
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
     # If branch_name is unset in preferences, resolve it from the autofix run state
-    # where Seer has already determined the default branch. Use a copy so we don't
-    # persist this change back to the stored preferences.
     if not repo.branch_name:
         try:
             autofix_state = get_autofix_state(run_id=run_id, organization_id=group.organization.id)
