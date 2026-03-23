@@ -7,21 +7,26 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateOrganization} from 'sentry/actionCreators/organizations';
+import {
+  organizationIntegrationsCodingAgents,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {useAgentOptions} from 'sentry/views/settings/seer/seerAgentHooks';
 
 import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 const schema = z.object({
-  defaultAutofixAutomationTuning: z.boolean(), // The API stores this as an enum, but it is displayed as a boolean toggle.
+  defaultCodingAgent: z.string(),
   autoOpenPrs: z.boolean(),
   autoEnableCodeReview: z.boolean(),
   defaultCodeReviewTriggers: z.array(z.enum(['on_new_commit', 'on_ready_for_review'])),
@@ -39,18 +44,37 @@ export function SeerAutomationSettings() {
       fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
     onSuccess: updateOrganization,
   });
-  const autofixTuningMutationOpts = mutationOptions({
-    mutationFn: (data: {defaultAutofixAutomationTuning: boolean}) =>
-      fetchMutation<Organization>({
+
+  const {data: integrations} = useQuery({
+    ...organizationIntegrationsCodingAgents(organization),
+    select: data => data.json.integrations ?? [],
+  });
+  const rawAgentOptions = useAgentOptions({integrations: integrations ?? []});
+  const codingAgentOptions = rawAgentOptions.map(option => ({
+    value:
+      option.value === 'seer' || option.value === 'none'
+        ? option.value
+        : (option.value as CodingAgentIntegration).id!,
+    label: option.label,
+  }));
+
+  const codingAgentMutationOpts = mutationOptions({
+    mutationFn: (data: {defaultCodingAgent: string}) => {
+      const selected = data.defaultCodingAgent;
+      return fetchMutation<Organization>({
         method: 'PUT',
         url: orgEndpoint,
-        data: {
-          // All values other than 'off' are converted to 'medium'
-          defaultAutofixAutomationTuning: data.defaultAutofixAutomationTuning
-            ? 'medium'
-            : 'off',
-        },
-      }),
+        data:
+          selected === 'seer'
+            ? {defaultCodingAgent: selected, defaultCodingAgentIntegrationId: null}
+            : selected === 'none'
+              ? {defaultCodingAgent: null, defaultCodingAgentIntegrationId: null}
+              : {
+                  defaultCodingAgent: selected,
+                  defaultCodingAgentIntegrationId: Number(selected),
+                },
+      });
+    },
     onSuccess: updateOrganization,
   });
 
@@ -94,30 +118,27 @@ export function SeerAutomationSettings() {
           }
         >
           <AutoSaveForm
-            name="defaultAutofixAutomationTuning"
+            name="defaultCodingAgent"
             schema={schema}
-            initialValue={Boolean(
-              organization.defaultAutofixAutomationTuning &&
-              organization.defaultAutofixAutomationTuning !== 'off'
-            )}
-            mutationOptions={autofixTuningMutationOpts}
+            initialValue={
+              organization.defaultCodingAgentIntegrationId
+                ? String(organization.defaultCodingAgentIntegrationId)
+                : (organization.defaultCodingAgent ?? 'seer')
+            }
+            mutationOptions={codingAgentMutationOpts}
           >
             {field => (
               <field.Layout.Row
-                label={t('Auto-Trigger Fixes by Default')}
-                hintText={tct(
-                  'For all new projects, Seer will automatically create a root cause analysis for [docs:highly actionable] issues and propose a solution without a user needing to prompt it.',
-                  {
-                    docs: (
-                      <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-                    ),
-                  }
+                label={t('Default Coding Agent')}
+                hintText={t(
+                  'For all new projects, select which coding agent Seer will hand off to when processing issues.'
                 )}
               >
-                <field.Switch
-                  checked={field.state.value}
+                <field.Select
+                  value={field.state.value}
                   onChange={field.handleChange}
                   disabled={!canWrite}
+                  options={codingAgentOptions}
                 />
               </field.Layout.Row>
             )}
