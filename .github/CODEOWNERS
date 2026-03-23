@@ -280,6 +280,8 @@ src/sentry/api/endpoints/organization_attribute_mappings.py                 @get
 /tests/sentry/api/endpoints/test_organization_events_trends_v2.py           @getsentry/explore
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/data-browsing
+/tests/snuba/api/endpoints/test_organization_event_details.py               @getsentry/explore
+/tests/snuba/api/endpoints/test_organization_events_meta.py                 @getsentry/explore
 tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @getsentry/explore
 
 /src/sentry/api/serializers/snuba.py                                        @getsentry/data-browsing
