@@ -266,9 +266,11 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   const currentPlatformIsDetected = resolvedPlatforms.some(
     p => p.platform === currentPlatformKey
   );
+  const hasDetectedPlatforms = resolvedPlatforms.length > 0 || isDetecting;
   const showDetectedPlatforms =
     hasScmConnected &&
     !showManualPicker &&
+    hasDetectedPlatforms &&
     (!currentPlatformKey || currentPlatformIsDetected);
 
   // Auto-select the first detected platform when results load
