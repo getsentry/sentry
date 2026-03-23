@@ -148,7 +148,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
       if (
         platformInfo &&
         isDisabledGamingPlatform({
-          platform: {id: platformKey, ...platformInfo},
+          platform: platformInfo,
           enabledConsolePlatforms: organization.enabledConsolePlatforms,
         })
       ) {
@@ -321,7 +321,13 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
               <Button
                 size="zero"
                 priority="transparent"
-                onClick={() => setShowManualPicker(false)}
+                onClick={() => {
+                  setShowManualPicker(false);
+                  if (detectedPlatformKey) {
+                    setPlatform(detectedPlatformKey);
+                    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+                  }
+                }}
               >
                 {t('Back to recommended platforms')}
               </Button>
