@@ -227,7 +227,7 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_issue_comment_reactions(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions?per_page=100&page=1",
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions",
             json=[
                 {
                     "id": 1,
@@ -291,7 +291,7 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_issue_reactions(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/issues/42/reactions?per_page=100&page=1",
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/42/reactions",
             json=[
                 {
                     "id": 1,

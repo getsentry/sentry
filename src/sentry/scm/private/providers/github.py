@@ -189,9 +189,6 @@ class GitHubProviderApiClient:
         if pagination:
             params["per_page"] = str(pagination["per_page"])
             params["page"] = str(pagination["cursor"])
-        else:
-            params["per_page"] = "100"
-            params["page"] = "1"
 
         return self.request(
             "GET",
