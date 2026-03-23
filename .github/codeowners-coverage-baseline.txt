@@ -2370,6 +2370,12 @@ tests/sentry/processing/backpressure/test_checking.py
 tests/sentry/processing/backpressure/test_monitoring.py
 tests/sentry/processing/backpressure/test_redis.py
 tests/sentry/processing/eventstore/test_processing.py
+tests/sentry/processing_errors/__init__.py
+tests/sentry/processing_errors/eap/__init__.py
+tests/sentry/processing_errors/eap/test_producer.py
+tests/sentry/processing_errors/test_detection.py
+tests/sentry/processing_errors/test_grouptype.py
+tests/sentry/processing_errors/test_provisioning.py
 tests/sentry/projectoptions/__init__.py
 tests/sentry/projectoptions/test_basic.py
 tests/sentry/projects/project_rules/test_creator.py
