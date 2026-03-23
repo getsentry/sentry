@@ -160,7 +160,7 @@ export function EventDetailsContent({
         <ActionableItems event={event} project={project} />
       )}
       {issueTypeConfig.tags.enabled && (
-        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+        <HighlightsDataSection event={event} project={project} />
       )}
       {isMobilePlatform(project.platform) && (
         <ProfilePreviewSection event={event} project={project} />

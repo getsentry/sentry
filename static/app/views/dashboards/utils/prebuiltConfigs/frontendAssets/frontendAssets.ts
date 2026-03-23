@@ -41,11 +41,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: FILTER_QUERY.formatString(),
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -66,16 +66,16 @@ const ASSETS_TABLE: Widget = {
       conditions: FILTER_QUERY.formatString(),
       aggregates: [
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       columns: [SpanFields.NORMALIZED_DESCRIPTION],
       fields: [
         SpanFields.NORMALIZED_DESCRIPTION,
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       fieldAliases: [
@@ -85,7 +85,7 @@ const ASSETS_TABLE: Widget = {
         t('Time Spent'),
         t('Avg Encoded Size'),
       ],
-      orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
+      orderby: `-sum(${SpanFields.SPAN_DURATION})`,
       linkedDashboards: [
         {
           dashboardId: '-1',

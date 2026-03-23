@@ -26,6 +26,7 @@ from django.db.models import Max, Min
 from django.db.models.manager import Manager
 from django.utils import timezone
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
+from taskbroker_client.task import Task
 
 from sentry import options
 from sentry.db.models import Model
@@ -34,7 +35,6 @@ from sentry.models.tombstone import TombstoneBase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
-from sentry.taskworker.task import Task
 from sentry.utils import json, metrics, redis
 
 

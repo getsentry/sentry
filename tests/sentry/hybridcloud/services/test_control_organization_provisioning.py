@@ -110,7 +110,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             name="sentry", slug="sentry", email="test-owner@sentry.io", default_team=True
         )
         slug = control_organization_provisioning_rpc_service.provision_organization(
-            region_name="us", org_provision_args=provisioning_options
+            cell_name="us", org_provision_args=provisioning_options
         )
         self.assert_slug_reservation_and_org_exist(
             rpc_org_slug=slug,

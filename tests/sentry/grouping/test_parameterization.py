@@ -3,7 +3,12 @@ from unittest.mock import patch
 import pytest
 
 from sentry.grouping.api import _get_variants_from_strategies
-from sentry.grouping.component import MessageGroupingComponent
+from sentry.grouping.component import (
+    ChainedExceptionGroupingComponent,
+    ErrorValueGroupingComponent,
+    ExceptionGroupingComponent,
+    MessageGroupingComponent,
+)
 from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
     DEFAULT_PARAMETERIZATION_REGEXES_MAP,
@@ -387,3 +392,146 @@ def test_stored_parameterized_message_used(default_project: Project) -> None:
         # once, meaning the stored value must have been used
         assert parameterize_spy.call_count == 1
         assert count_matching_calls(mock_metrics_incr, "grouping.cached_param_result_used") == 1
+
+
+@django_db_all
+def test_runs_parameterizer_on_fingerprint_constant_matching_message(
+    default_project: Project,
+) -> None:
+    event = Event(
+        default_project.id,
+        "11211231",
+        data={
+            "message": "Dog number 1, #1 dog",
+            "fingerprint": ["Dog number 1, #1 dog", "Dogs are great!"],
+        },
+    )
+    variants = event.get_grouping_variants()
+
+    assert len(variants) == 2
+
+    message_variant = variants["default"]
+    assert isinstance(message_variant, ComponentVariant)
+
+    message_component = message_variant.contributing_component
+    assert isinstance(message_component, MessageGroupingComponent)
+
+    fingerprint_variant = variants["custom_client_fingerprint"]
+    assert isinstance(fingerprint_variant, CustomFingerprintVariant)
+
+    # Both instances of the message have been parameterized
+    assert message_component.values == ["Dog number <int>, #<int> dog"]
+    assert fingerprint_variant.values == [
+        # Parameterized because it matches the event's message
+        "Dog number <int>, #<int> dog",
+        "Dogs are great!",
+    ]
+
+
+@django_db_all
+def test_runs_parameterizer_on_fingerprint_constant_matching_error_message(
+    default_project: Project,
+) -> None:
+    event = Event(
+        default_project.id,
+        "11211231",
+        data={
+            "exception": {
+                "values": [
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "That's ball number 6 that Charlie hasn't brought back!",
+                    }
+                ]
+            },
+            "fingerprint": [
+                "That's ball number 6 that Charlie hasn't brought back!",
+                "Dogs are great!",
+            ],
+        },
+    )
+    variants = event.get_grouping_variants()
+
+    assert len(variants) == 2
+
+    app_variant = variants["app"]
+    assert isinstance(app_variant, ComponentVariant)
+
+    exception_component = app_variant.contributing_component
+    assert isinstance(exception_component, ExceptionGroupingComponent)
+
+    error_message_component = exception_component.values[1]
+    assert isinstance(error_message_component, ErrorValueGroupingComponent)
+
+    fingerprint_variant = variants["custom_client_fingerprint"]
+    assert isinstance(fingerprint_variant, CustomFingerprintVariant)
+
+    # Both instances of the message have been parameterized
+    assert error_message_component.values == [
+        "That's ball number <int> that Charlie hasn't brought back!"
+    ]
+    assert fingerprint_variant.values == [
+        # Parameterized because it matches the event's error message
+        "That's ball number <int> that Charlie hasn't brought back!",
+        "Dogs are great!",
+    ]
+
+
+@django_db_all
+def test_runs_parameterizer_on_fingerprint_constant_matching_chained_error_message(
+    default_project: Project,
+) -> None:
+    event = Event(
+        default_project.id,
+        "11211231",
+        data={
+            "exception": {
+                "values": [
+                    {
+                        "type": "DogSourcingError",
+                        "value": "Adopt don't shop!",
+                    },
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "That's ball number 6 that Charlie hasn't brought back!",
+                    },
+                    {
+                        "type": "DestroyedShoeError",
+                        "value": "Oh, no! Maisey ate Dad's slippers!",
+                    },
+                ]
+            },
+            "fingerprint": [
+                "That's ball number 6 that Charlie hasn't brought back!",
+                "Dogs are great!",
+            ],
+        },
+    )
+    variants = event.get_grouping_variants()
+
+    assert len(variants) == 2
+
+    app_variant = variants["app"]
+    assert isinstance(app_variant, ComponentVariant)
+
+    chained_exception_component = app_variant.contributing_component
+    assert isinstance(chained_exception_component, ChainedExceptionGroupingComponent)
+
+    middle_exception_component = chained_exception_component.values[1]
+    assert isinstance(middle_exception_component, ExceptionGroupingComponent)
+
+    middle_error_message_component = middle_exception_component.values[1]
+    assert isinstance(middle_error_message_component, ErrorValueGroupingComponent)
+
+    fingerprint_variant = variants["custom_client_fingerprint"]
+    assert isinstance(fingerprint_variant, CustomFingerprintVariant)
+
+    # Both instances of the message have been parameterized
+    assert middle_error_message_component.values == [
+        "That's ball number <int> that Charlie hasn't brought back!"
+    ]
+    assert fingerprint_variant.values == [
+        # Parameterized because it matches one of the error messages in the chain
+        "That's ball number <int> that Charlie hasn't brought back!",
+        "Dogs are great!",
+    ]

@@ -1,6 +1,6 @@
 import {useLayoutEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {NotFound} from 'sentry/components/errors/notFound';
@@ -90,7 +90,10 @@ function SharedGroupDetails() {
               </div>
               <div className="box-content">
                 <SharedGroupHeader group={group} />
-                <Container className="group-overview event-details-container">
+                <Container
+                  padding="3xl"
+                  className="group-overview event-details-container"
+                >
                   <BorderlessEventEntries
                     organization={org}
                     group={group}
@@ -108,9 +111,5 @@ function SharedGroupDetails() {
     </SentryDocumentTitle>
   );
 }
-
-const Container = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-`;
 
 export default SharedGroupDetails;

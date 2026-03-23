@@ -1,4 +1,7 @@
+import os
 import pickle
+import time
+from contextlib import contextmanager
 from unittest import mock
 
 import pytest
@@ -24,6 +27,21 @@ from sentry.utils import snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
+
+
+@contextmanager
+def timezone_context(tz: str):
+    old_tz = os.environ.get("TZ")
+    try:
+        os.environ["TZ"] = tz
+        time.tzset()
+        yield
+    finally:
+        if old_tz is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = old_tz
+        time.tzset()
 
 
 class EventTest(TestCase, PerformanceIssueTestCase):
@@ -797,3 +815,20 @@ class EventNodeStoreTest(TestCase):
 
             mock_nodestore_get.assert_called_once_with(node_id)
             assert second_before_now_str == timestamp_result
+
+    def test_datetime_from_nodestore_interprets_as_utc(self) -> None:
+        expected_time = before_now(minutes=1).replace(microsecond=0)
+
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": expected_time.timestamp(),
+            },
+            project_id=self.project.id,
+        )
+
+        event = Event(project_id=self.project.id, event_id="d" * 32)
+
+        with timezone_context("US/Pacific"):
+            dt = event.datetime
+            assert dt == expected_time
