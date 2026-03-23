@@ -1,10 +1,10 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {matchTimeSeriesToTableRow} from './matchTimeSeriestoTableRow';
+import {matchTimeSeriesToTableRowValue} from './matchTimeSeriestoTableRow';
 
-describe('matchTimeSeriesToTableRow', () => {
+describe('matchTimeSeriesToTableRowValue', () => {
   it('returns the first row value when there is no groupBy', () => {
-    const result = matchTimeSeriesToTableRow({
+    const result = matchTimeSeriesToTableRowValue({
       tableDataRows: [{id: '1', 'count()': 42}],
       timeSeries: TimeSeriesFixture({yAxis: 'count()', groupBy: undefined}),
     });
@@ -13,7 +13,7 @@ describe('matchTimeSeriesToTableRow', () => {
   });
 
   it('returns null when there are no rows and no groupBy', () => {
-    const result = matchTimeSeriesToTableRow({
+    const result = matchTimeSeriesToTableRowValue({
       tableDataRows: [],
       timeSeries: TimeSeriesFixture({yAxis: 'count()', groupBy: undefined}),
     });
@@ -22,7 +22,7 @@ describe('matchTimeSeriesToTableRow', () => {
   });
 
   it('matches a row by a single groupBy value', () => {
-    const result = matchTimeSeriesToTableRow({
+    const result = matchTimeSeriesToTableRowValue({
       tableDataRows: [
         {id: '1', 'browser.name': 'Chrome', 'count()': 10},
         {id: '2', 'browser.name': 'Firefox', 'count()': 5},
@@ -37,7 +37,7 @@ describe('matchTimeSeriesToTableRow', () => {
   });
 
   it('matches a row by multiple groupBy values', () => {
-    const result = matchTimeSeriesToTableRow({
+    const result = matchTimeSeriesToTableRowValue({
       tableDataRows: [
         {id: '1', 'browser.name': 'Chrome', 'os.name': 'Windows', 'count()': 10},
         {id: '2', 'browser.name': 'Chrome', 'os.name': 'Mac', 'count()': 7},
@@ -56,7 +56,7 @@ describe('matchTimeSeriesToTableRow', () => {
   });
 
   it('returns null when no row matches the groupBy', () => {
-    const result = matchTimeSeriesToTableRow({
+    const result = matchTimeSeriesToTableRowValue({
       tableDataRows: [{id: '1', 'browser.name': 'Chrome', 'count()': 10}],
       timeSeries: TimeSeriesFixture({
         yAxis: 'count()',
@@ -68,7 +68,7 @@ describe('matchTimeSeriesToTableRow', () => {
   });
 
   it('matches numeric table values to string groupBy values', () => {
-    const result = matchTimeSeriesToTableRow({
+    const result = matchTimeSeriesToTableRowValue({
       tableDataRows: [
         {id: '1', 'http.response_status_code': 200, 'count()': 50},
         {id: '2', 'http.response_status_code': 404, 'count()': 3},
@@ -83,7 +83,7 @@ describe('matchTimeSeriesToTableRow', () => {
   });
 
   it('matches array groupBy values using Python str() format', () => {
-    const result = matchTimeSeriesToTableRow({
+    const result = matchTimeSeriesToTableRowValue({
       tableDataRows: [
         {id: '1', tags: "['a', 'b']", 'count()': 10},
         {id: '2', tags: "['c', None]", 'count()': 20},
@@ -98,7 +98,7 @@ describe('matchTimeSeriesToTableRow', () => {
   });
 
   it('returns the first row value when groupBy is an empty array', () => {
-    const result = matchTimeSeriesToTableRow({
+    const result = matchTimeSeriesToTableRowValue({
       tableDataRows: [{id: '1', 'count()': 42}],
       timeSeries: TimeSeriesFixture({yAxis: 'count()', groupBy: []}),
     });

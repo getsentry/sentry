@@ -7,7 +7,7 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
  * time series groupBy values. Used by the breakdown legend to display
  * aggregated values alongside each series.
  */
-export function matchTimeSeriesToTableRow({
+export function matchTimeSeriesToTableRowValue({
   tableDataRows,
   timeSeries,
 }: {
