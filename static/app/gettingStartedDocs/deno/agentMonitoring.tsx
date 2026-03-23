@@ -132,7 +132,7 @@ const result = await generateText({
             content: (
               <ManualInstrumentationNote
                 docsLink={
-                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/deno/tracing/instrumentation/custom-instrumentation/" />
+                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/deno/ai-agent-monitoring/#manual-instrumentation" />
                 }
               />
             ),
