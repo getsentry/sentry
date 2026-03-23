@@ -854,10 +854,7 @@ def test_paginated_methods(case: dict[str, Any]) -> None:
 @pytest.mark.parametrize("case", ACTION_CASES)
 def test_action_methods(case: dict[str, Any]) -> None:
     provider, client = make_provider()
-    client.queue(
-        case["operation"],
-        FakeResponse(case["raw"], url=case.get("url", ""), headers=case.get("headers")),
-    )
+    client.queue(case["operation"], FakeResponse(case["raw"], headers=case.get("headers")))
 
     result = getattr(provider, case["name"])(**case["kwargs"])
 
