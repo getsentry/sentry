@@ -2524,14 +2524,12 @@ tests/sentry/tasks/test_activity.py
 tests/sentry/tasks/test_assemble.py
 tests/sentry/tasks/test_auth.py
 tests/sentry/tasks/test_auto_enable_codecov.py
-tests/sentry/tasks/test_autofix.py
 tests/sentry/tasks/test_base.py
 tests/sentry/tasks/test_beacon.py
 tests/sentry/tasks/test_check_am2_compatibility.py
 tests/sentry/tasks/test_check_auth.py
 tests/sentry/tasks/test_collect_project_platforms.py
 tests/sentry/tasks/test_commits.py
-tests/sentry/tasks/test_context_engine_index.py
 tests/sentry/tasks/test_delete_pending_groups.py
 tests/sentry/tasks/test_digests.py
 tests/sentry/tasks/test_email.py
@@ -2541,8 +2539,6 @@ tests/sentry/tasks/test_organization_contributors.py
 tests/sentry/tasks/test_process_buffer.py
 tests/sentry/tasks/test_relay.py
 tests/sentry/tasks/test_reprocessing2.py
-tests/sentry/tasks/test_seer.py
-tests/sentry/tasks/test_seer_explorer_index.py
 tests/sentry/tasks/test_store.py
 tests/sentry/tasks/test_symbolication.py
 tests/sentry/tasks/test_update_code_owners_schema.py
