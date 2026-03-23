@@ -23,7 +23,6 @@ from sentry.taskworker.namespaces import integrations_tasks
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
-
 logger = logging.getLogger(__name__)
 
 
