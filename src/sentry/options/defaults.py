@@ -2528,10 +2528,12 @@ register(
 
 # TTL in seconds for nodestore cache entries. Event bodies are immutable
 # so longer TTLs are safe and improve cache hit rates for batch reads
-# (e.g. group events list endpoint).
+# (e.g. group events list endpoint). The ingestion path populates the
+# cache on write (set_subkeys), so a longer TTL means recently ingested
+# events stay warm in cache when users first view an issue's event list.
 register(
     "nodestore.cache-ttl",
-    default=300,
+    default=14400,  # 4 hours
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
