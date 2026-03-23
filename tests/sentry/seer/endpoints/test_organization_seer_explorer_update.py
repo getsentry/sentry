@@ -164,7 +164,9 @@ class TestOrganizationSeerExplorerUpdateCodingDisabled(APITestCase):
         self.organization.update_option("sentry:enable_seer_coding", False)
 
         for payload_type in ("select_solution", "create_branch", "create_pr"):
-            response = self.client.post(self.url, data={"type": payload_type}, format="json")
+            response = self.client.post(
+                self.url, data={"payload": {"type": payload_type}}, format="json"
+            )
             assert response.status_code == status.HTTP_403_FORBIDDEN
             assert response.data["detail"] == "Code generation is disabled for this organization"
 
@@ -182,6 +184,8 @@ class TestOrganizationSeerExplorerUpdateCodingDisabled(APITestCase):
         mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {}
 
-        response = self.client.post(self.url, data={"type": "interrupt"}, format="json")
+        response = self.client.post(
+            self.url, data={"payload": {"type": "interrupt"}}, format="json"
+        )
         assert response.status_code == status.HTTP_202_ACCEPTED
         mock_request.assert_called_once()

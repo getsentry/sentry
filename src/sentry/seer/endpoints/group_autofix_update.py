@@ -15,6 +15,7 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE, ENABLE_SEER_CODING_DEFAULT
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
+from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
@@ -22,8 +23,6 @@ from sentry.seer.signed_seer_api import (
 )
 
 logger = logging.getLogger(__name__)
-
-CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
 
 
 @cell_silo_endpoint

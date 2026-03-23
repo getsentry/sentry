@@ -12,6 +12,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.models.organization import Organization
+from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
 from sentry.seer.explorer.client_utils import (
     explorer_connection_pool,
     has_seer_explorer_access_with_detail,
@@ -20,8 +21,6 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
-
-CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
 
 
 class OrganizationSeerExplorerUpdatePermission(OrganizationPermission):
@@ -49,7 +48,8 @@ class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
         if not request.data or not isinstance(request.data, dict):
             return Response(status=400, data={"error": "Need a body with a payload"})
 
-        payload_type = request.data.get("type")
+        payload = request.data.get("payload", {})
+        payload_type = payload.get("type") if isinstance(payload, dict) else None
         if payload_type in CODING_PAYLOAD_TYPES:
             if not organization.get_option(
                 "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
