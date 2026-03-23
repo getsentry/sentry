@@ -296,7 +296,7 @@ describe('groupDetails', () => {
         expect.anything(),
         expect.objectContaining({
           query: {
-            collapse: ['release', 'tags'],
+            collapse: ['release', 'tags', 'stats'],
             environment: ['staging'],
             expand: ['inbox', 'owners'],
           },

@@ -1533,3 +1533,78 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "target_display": "team-team-team",
             "target_identifier": "CSVK0921",
         }
+
+
+class GetProjectRulesDeltaTest(APITestCase):
+    """Verify legacy and workflow engine serializers produce identical output for dual-written rules."""
+
+    endpoint = "sentry-api-0-project-rules"
+
+    def test_dual_written_rule_parity(self) -> None:
+        self.login_as(user=self.user)
+        env = self.create_environment(project=self.project, name="production")
+        rule = self.create_project_rule(
+            project=self.project,
+            name="Production alert",
+            action_match="any",
+            frequency=60,
+            environment_id=env.id,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                    "interval": "1h",
+                    "value": 50,
+                    "comparisonType": "count",
+                    "name": "The issue is seen more than 50 times in 1h",
+                },
+            ],
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                    "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                }
+            ],
+        )
+
+        legacy_response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            we_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                status_code=status.HTTP_200_OK,
+            )
+
+        assert len(legacy_response.data) == 1
+        assert len(we_response.data) == 1
+        legacy_rule = legacy_response.data[0]
+        we_rule = we_response.data[0]
+        assert legacy_rule["id"] == str(rule.id)
+
+        known_differences: set[str] = set()
+
+        mismatches: list[str] = []
+        for field in set(list(legacy_rule.keys()) + list(we_rule.keys())):
+            if field in known_differences:
+                continue
+            if field not in we_rule:
+                mismatches.append(f"Missing from workflow engine: {field}")
+            elif field not in legacy_rule:
+                mismatches.append(f"Extra in workflow engine: {field}")
+            elif legacy_rule[field] != we_rule[field]:
+                mismatches.append(f"{field}: legacy={legacy_rule[field]!r}, we={we_rule[field]!r}")
+
+        assert not mismatches, "Legacy vs workflow engine serializer differences:\n" + "\n".join(
+            mismatches
+        )
