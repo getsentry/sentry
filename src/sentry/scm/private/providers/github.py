@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime
-from email.utils import parsedate_to_datetime
+from email.utils import format_datetime, parsedate_to_datetime
 from typing import Any, cast
 
 import requests
@@ -180,7 +180,7 @@ class GitHubProviderApiClient:
 
             if_modified_since = request_options.get("if_modified_since")
             if if_modified_since is not None:
-                headers["If-Modified-Since"] = if_modified_since.strftime("%Y-%m-%dT%H:%M:%SZ")
+                headers["If-Modified-Since"] = format_datetime(if_modified_since)
 
         if extra_headers:
             headers.update(extra_headers)
