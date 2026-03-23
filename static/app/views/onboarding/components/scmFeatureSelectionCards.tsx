@@ -76,7 +76,12 @@ export function ScmFeatureSelectionCards({
   selectedFeatures,
   onToggleFeature,
 }: ScmFeatureSelectionCardsProps) {
-  const selectedCount = selectedFeatures.length;
+  // Error Monitoring is always visually checked, so include it in the count
+  // even if not explicitly in selectedFeatures
+  const hasErrorMonitoring = selectedFeatures.includes(ProductSolution.ERROR_MONITORING);
+  const selectedCount = hasErrorMonitoring
+    ? selectedFeatures.length
+    : selectedFeatures.length + 1;
   const totalCount = availableFeatures.length;
 
   return (
