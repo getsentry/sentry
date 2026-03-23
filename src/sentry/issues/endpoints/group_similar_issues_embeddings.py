@@ -10,7 +10,7 @@ from sentry import analytics, options
 from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
@@ -40,7 +40,7 @@ class FormattedSimilarIssuesEmbeddingsData(TypedDict):
     shouldBeGrouped: str
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -126,6 +126,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "use_reranking": options.get("seer.similarity.similar_issues.use_reranking"),
             "model": model_version,
             "training_mode": False,
+            "platform": latest_event.platform or "unknown",
         }
         # Add optional parameters
         if request.GET.get("k"):
@@ -142,7 +143,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         viewer_context = SeerViewerContext(
             organization_id=group.project.organization.id, user_id=request.user.id
         )
-        results = get_similarity_data_from_seer(
+        results, _model_used = get_similarity_data_from_seer(
             similar_issues_params, viewer_context=viewer_context
         )
 

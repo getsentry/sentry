@@ -2,23 +2,23 @@
 
 ## Overview
 
-Manual signal receivers are used for `OutboxCategory` values that are **not** tied to a `ReplicatedRegionModel` or `ReplicatedControlModel`. The model mixins auto-connect receivers via `connect_region_model_updates()` / `connect_control_model_updates()` — you only write manual receivers for categories with custom dispatch logic.
+Manual signal receivers are used for `OutboxCategory` values that are **not** tied to a `ReplicatedCellModel` or `ReplicatedControlModel`. The model mixins auto-connect receivers via `connect_cell_model_updates()` / `connect_control_model_updates()` — you only write manual receivers for categories with custom dispatch logic.
 
 **Source files**:
 
-- `src/sentry/receivers/outbox/region.py` — region outbox receivers
+- `src/sentry/receivers/outbox/cell.py` — cell outbox receivers
 - `src/sentry/receivers/outbox/control.py` — control outbox receivers
 - `src/sentry/receivers/outbox/__init__.py` — `maybe_process_tombstone` helper
 
 ## Placement Rules
 
-- **Region outbox receivers** go in `src/sentry/receivers/outbox/region.py` (or a new file under `src/sentry/receivers/outbox/`)
+- **Cell outbox receivers** go in `src/sentry/receivers/outbox/cell.py` (or a new file under `src/sentry/receivers/outbox/`)
 - **Control outbox receivers** go in `src/sentry/receivers/outbox/control.py` (or a new file under `src/sentry/receivers/outbox/`)
 - Receivers must be imported at startup to register. Check that the receiver module is imported in `src/sentry/receivers/__init__.py` or a file that is.
 
-## Region Outbox Receivers
+## Cell Outbox Receivers
 
-Region outbox signals fire with these keyword arguments:
+Cell outbox signals fire with these keyword arguments:
 
 - `sender`: `OutboxCategory` enum value
 - `payload`: `dict | None` — the JSON payload from the outbox
@@ -32,11 +32,11 @@ For categories that carry all data in the payload (no DB lookup needed):
 
 ```python
 from django.dispatch import receiver
-from sentry.hybridcloud.outbox.signals import process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.MY_CATEGORY)
+@receiver(process_cell_outbox, sender=OutboxCategory.MY_CATEGORY)
 def process_my_category(payload: Any, **kwds: Any) -> None:
     if payload is not None:
         my_rpc_service.do_something(data=MyRpcData(**payload))
@@ -48,12 +48,12 @@ For categories tied to a model where you need to detect create/update vs delete:
 
 ```python
 from django.dispatch import receiver
-from sentry.hybridcloud.outbox.signals import process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.receivers.outbox import maybe_process_tombstone
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.MY_CATEGORY)
+@receiver(process_cell_outbox, sender=OutboxCategory.MY_CATEGORY)
 def process_my_category(object_identifier: int, **kwds: Any) -> None:
     if (instance := maybe_process_tombstone(MyModel, object_identifier)) is None:
         return  # Object was deleted — tombstone recorded
@@ -66,7 +66,7 @@ def process_my_category(object_identifier: int, **kwds: Any) -> None:
 When you need both the payload and a tombstone check:
 
 ```python
-@receiver(process_region_outbox, sender=OutboxCategory.MY_CATEGORY)
+@receiver(process_cell_outbox, sender=OutboxCategory.MY_CATEGORY)
 def process_my_category(object_identifier: int, payload: Any, **kwds: Any) -> None:
     if (instance := maybe_process_tombstone(MyModel, object_identifier)) is None:
         return
@@ -102,11 +102,11 @@ from sentry.receivers.outbox import maybe_process_tombstone
 @receiver(process_control_outbox, sender=OutboxCategory.MY_CATEGORY)
 def process_my_category(object_identifier: int, region_name: str, **kwds: Any) -> None:
     if (instance := maybe_process_tombstone(
-        MyModel, object_identifier, region_name=region_name
+        MyModel, object_identifier, cell_name=region_name
     )) is None:
         return
-    # Replicate to the specific region
-    my_region_service.sync(region_name=region_name, data=serialize(instance))
+    # Replicate to the specific cell
+    my_cell_service.sync(cell_name=region_name, data=serialize(instance))
 ```
 
 ### Template: Control Pure-RPC Receiver
@@ -130,7 +130,7 @@ def process_my_category(
 def maybe_process_tombstone(
     model: type[T],
     object_identifier: int,
-    region_name: str | None = None,
+    cell_name: str | None = None,
 ) -> T | None:
 ```
 
@@ -138,10 +138,10 @@ This function:
 
 1. Queries `model.objects.filter(id=object_identifier).last()`
 2. If found: returns the instance (for replication)
-3. If not found: records a tombstone via `region_tombstone_service` or `control_tombstone_service` and returns `None`
+3. If not found: records a tombstone via `cell_tombstone_service` or `control_tombstone_service` and returns `None`
 
 The tombstone system drives `HybridCloudForeignKey` cascade deletes across silos. When an object is deleted from one silo, the tombstone propagated to the other silo triggers cleanup of dependent records.
 
 **When to use**: Any receiver that needs to distinguish between "object was created/updated" and "object was deleted". Not needed for payload-only categories (audit logs, IP events) where the payload carries all necessary data.
 
-**`region_name` parameter**: Pass `region_name` for control outbox receivers (tombstone goes to the region). Omit for region outbox receivers (tombstone goes to control).
+**`region_name` parameter**: Pass `region_name` for control outbox receivers (tombstone goes to the cell). Omit for cell outbox receivers (tombstone goes to control).

@@ -7,12 +7,11 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
 
@@ -154,8 +153,8 @@ const UnstyledUnorderedList = styled('div')`
 const EventItemsWrapper = styled('div')<{hasTitle: boolean}>`
   display: flex;
   flex-direction: column;
-  padding: ${p => space(p.hasTitle ? 1 : 0.5)} ${p => p.theme.space.xs}
-    ${p => p.theme.space.xs} ${p => p.theme.space.xs};
+  padding: ${p => (p.hasTitle ? p.theme.space.md : p.theme.space.xs)}
+    ${p => p.theme.space.xs} ${p => p.theme.space.xs} ${p => p.theme.space.xs};
 `;
 
 const EventItemsTitle = styled('div')`

@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
@@ -117,6 +117,12 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         default="low",
         help_text="The intelligence level to use.",
     )
+    user_context = serializers.CharField(
+        required=False,
+        max_length=1000,
+        help_text="Optional user context to append to the step prompt.",
+        allow_blank=True,
+    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -126,7 +132,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         return data
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Seer"])
 class GroupAutofixEndpoint(GroupAiEndpoint):
     publish_status = {
@@ -155,10 +161,29 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         if request.GET.get("mode") != "explorer":
             return False
 
-        if not features.has("organizations:seer-explorer", organization, actor=request.user):
+        feature_names = [
+            # Access to seer explorer
+            "organizations:seer-explorer",
+            # Access to seer explorer powered autofix
+            "organizations:autofix-on-explorer",
+            "organizations:autofix-on-explorer-v2",
+        ]
+
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=request.user,
+        )
+
+        if batch_features is None:
             return False
 
-        return True
+        org_features = batch_features.get(f"organization:{organization.id}", {})
+        for feature_name in feature_names:
+            if bool(org_features.get(feature_name)):
+                return True
+
+        return False
 
     @extend_schema(
         operation_id="Start Seer Issue Fix",
@@ -236,9 +261,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep(step),
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=data.get("run_id"),
                 intelligence_level=data["intelligence_level"],
+                user_context=data.get("user_context"),
             )
             return Response({"run_id": run_id}, status=202)
         except SeerPermissionError as e:

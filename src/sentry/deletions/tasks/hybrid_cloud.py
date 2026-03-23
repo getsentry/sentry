@@ -26,6 +26,7 @@ from django.db.models import Max, Min
 from django.db.models.manager import Manager
 from django.utils import timezone
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
+from taskbroker_client.task import Task
 
 from sentry import options
 from sentry.db.models import Model
@@ -34,7 +35,6 @@ from sentry.models.tombstone import TombstoneBase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
-from sentry.taskworker.task import Task
 from sentry.utils import json, metrics, redis
 
 
@@ -136,14 +136,14 @@ def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
 @instrumented_task(
     name="sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
     namespace=deletion_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_hybrid_cloud_foreign_key_jobs() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
         return
 
     _schedule_hybrid_cloud_foreign_key(
-        SiloMode.REGION, process_hybrid_cloud_foreign_key_cascade_batch
+        SiloMode.CELL, process_hybrid_cloud_foreign_key_cascade_batch
     )
 
 
@@ -165,7 +165,7 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task[A
                     app_name=app,
                     model_name=model.__name__,
                     field_name=field.name,
-                    silo_mode=silo_mode.name,
+                    silo_mode=silo_mode.value,
                 )
 
 
@@ -192,7 +192,7 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control(
 @instrumented_task(
     name="sentry.deletions.tasks.process_hybrid_cloud_foreign_key_cascade_batch",
     namespace=deletion_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_hybrid_cloud_foreign_key_cascade_batch(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
@@ -205,7 +205,7 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
         model_name=model_name,
         field_name=field_name,
         process_task=process_hybrid_cloud_foreign_key_cascade_batch,
-        silo_mode=SiloMode.REGION,
+        silo_mode=SiloMode.CELL,
     )
 
 
@@ -242,7 +242,7 @@ def _process_hybrid_cloud_foreign_key_cascade(
                 app_name=app_name,
                 model_name=model_name,
                 field_name=field_name,
-                silo_mode=silo_mode.name,
+                silo_mode=silo_mode.value,
             )
     except Exception as err:
         sentry_sdk.set_context(
@@ -338,7 +338,7 @@ def _get_model_ids_for_tombstone_cascade(
      a tuple with a list of row IDs to delete, and the oldest
      tombstone timestamp for the batch.
 
-    :param tombstone_cls: Either a RegionTombstone or ControlTombstone, depending on
+    :param tombstone_cls: Either a CellTombstone or ControlTombstone, depending on
      which silo the tombstone process is running.
     :param model: The model with a HybridCloudForeignKey to process.
     :param field: The HybridCloudForeignKey field from the model to process.

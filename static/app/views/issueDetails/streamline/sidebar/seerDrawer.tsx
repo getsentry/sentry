@@ -2,16 +2,15 @@ import {useCallback} from 'react';
 import {css} from '@emotion/react';
 
 import {SeerDrawer as LegacySeerDrawer} from 'sentry/components/events/autofix/v1/drawer';
-import {SeerDrawer as ExplorerSeerDrawer} from 'sentry/components/events/autofix/v2/drawer';
-import useDrawer from 'sentry/components/globalDrawer';
+import {SeerDrawer as ExplorerSeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerDrawerProps {
   event: Event;
@@ -22,11 +21,8 @@ interface SeerDrawerProps {
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
 
-  if (
-    isSeerExplorerEnabled(organization) &&
-    organization.features.includes('autofix-on-explorer')
-  ) {
-    return <ExplorerSeerDrawer event={event} group={group} project={project} />;
+  if (organization.features.includes('autofix-on-explorer')) {
+    return <ExplorerSeerDrawer group={group} project={project} />;
   }
 
   return <LegacySeerDrawer event={event} group={group} project={project} />;

@@ -5,12 +5,11 @@ import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';
 import moment from 'moment-timezone';
 
-import type BaseChart from 'sentry/components/charts/baseChart';
-import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import type {BaseChart, BaseChartProps} from 'sentry/components/charts/baseChart';
 import {truncationFormatter} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DataPoint} from 'sentry/types/echarts';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
 export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
@@ -371,7 +370,7 @@ export function computeChartTooltip(
   return {
     show: true,
     trigger: 'item',
-    backgroundColor: `${theme.tokens.background.primary}`,
+    backgroundColor: theme.tokens.background.primary,
     borderWidth: 0,
     extraCssText: `box-shadow: 0 0 0 1px ${theme.tokens.border.transparent.neutral.muted}, ${theme.dropShadowHeavy}`,
     transitionDuration: 0,

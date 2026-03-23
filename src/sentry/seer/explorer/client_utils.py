@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 explorer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 
@@ -65,6 +66,7 @@ class ExplorerChatRequest(TypedDict):
     category_value: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     is_context_engine_enabled: NotRequired[bool]
+    max_iterations: NotRequired[int]
 
 
 class ExplorerRunsRequest(TypedDict):
@@ -155,8 +157,25 @@ def has_seer_explorer_access_with_detail(
     if not has_access:
         return False, error
 
-    # Check seer-explorer specific feature flag
-    if not features.has("organizations:seer-explorer", organization, actor=actor):
+    feature_names = [
+        # Access to seer explorer
+        "organizations:seer-explorer",
+        # Access to seer explorer powered autofix
+        "organizations:autofix-on-explorer",
+        "organizations:autofix-on-explorer-v2",
+    ]
+
+    batch_features = features.batch_has(
+        feature_names,
+        organization=organization,
+        actor=actor,
+    )
+
+    if batch_features is None:
+        return False, "Feature flag not enabled"
+
+    org_features = batch_features.get(f"organization:{organization.id}", {})
+    if not any(bool(org_features.get(feature_name)) for feature_name in feature_names):
         return False, "Feature flag not enabled"
 
     # Check open team membership (Explorer requires this for context)
@@ -186,7 +205,22 @@ def collect_user_org_context(
             "all_org_projects": all_org_projects,
         }
 
-    member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+    try:
+        member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+    except OrganizationMember.DoesNotExist:
+        # User is not a member of this organization (e.g., superuser accessing foreign org)
+        logger.warning(
+            "User attempted to access Seer Explorer for organization they are not a member of",
+            extra={
+                "user_id": user.id,
+                "organization_id": organization.id,
+                "organization_slug": organization.slug,
+            },
+        )
+        return {
+            "org_slug": organization.slug,
+            "all_org_projects": all_org_projects,
+        }
     user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
     my_projects = (
         Project.objects.filter(

@@ -30,12 +30,14 @@ class SummarizeIssueResponse(BaseModel):
 
 
 class SeerRepoDefinition(BaseModel):
+    repository_id: int | None = None
     organization_id: int | None = None
     integration_id: str | None = None
     provider: str
     owner: str
     name: str
     external_id: str
+    is_private: bool | None = None
     branch_name: str | None = Field(
         default=None,
         description="The branch that will be used, otherwise the default branch will be used.",

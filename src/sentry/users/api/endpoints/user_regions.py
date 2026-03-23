@@ -12,7 +12,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.types.region import get_global_directory
+from sentry.types.cell import get_global_directory
 from sentry.users.api.bases.user import UserEndpoint, UserPermission
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -62,9 +62,9 @@ class UserRegionsEndpoint(UserEndpoint):
         )
         cell_names = (
             OrganizationMapping.objects.filter(organization_id__in=organization_ids)
-            .distinct("region_name")
-            .order_by("region_name")
-            .values_list("region_name", flat=True)
+            .distinct("cell_name")
+            .order_by("cell_name")
+            .values_list("cell_name", flat=True)
         )
         directory = get_global_directory()
         localities = sorted(

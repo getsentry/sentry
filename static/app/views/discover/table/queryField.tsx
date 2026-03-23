@@ -1,5 +1,5 @@
 import {Component, createRef, type ReactNode} from 'react';
-import {withTheme, type Theme} from '@emotion/react';
+import {withTheme, type CSSObject, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -28,7 +28,7 @@ import type {FieldValueType} from 'sentry/utils/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
-import ArithmeticInput from './arithmeticInput';
+import {ArithmeticInput} from './arithmeticInput';
 import type {FieldValue, FieldValueColumns} from './types';
 import {FieldValueKind} from './types';
 
@@ -107,7 +107,7 @@ type Props = {
    */
   renderTagOverride?: (
     kind: FieldValueKind,
-    label: string,
+    label: ReactNode,
     meta: FieldValue['meta']
   ) => ReactNode;
   /**
@@ -124,15 +124,9 @@ type Props = {
   useMenuPortal?: boolean;
 };
 
-// Type for completing generics in react-select
-type OptionType = {
-  label: string;
-  value: FieldValue;
-};
-
 class _QueryField extends Component<Props> {
   FieldSelectComponents = {
-    SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => {
+    SingleValue: ({data, ...props}: SingleValueProps<FieldValueOption>): ReactNode => {
       return (
         <components.SingleValue data={data} {...props}>
           <span data-test-id="label">{data.label}</span>
@@ -143,7 +137,7 @@ class _QueryField extends Component<Props> {
   };
 
   FieldSelectStyles = {
-    singleValue(provided: React.CSSProperties) {
+    singleValue(provided: CSSObject) {
       const custom = {
         display: 'flex',
         justifyContent: 'space-between',
@@ -475,7 +469,7 @@ class _QueryField extends Component<Props> {
           ? {
               menuPortalTarget: document.body,
               styles: {
-                menuPortal: (provided: any) => ({
+                menuPortal: (provided: CSSObject) => ({
                   ...provided,
                   // This ensures that the dropdown appears above the widget builder
                   // because the default dropdown z-index is too low
@@ -494,7 +488,6 @@ class _QueryField extends Component<Props> {
             placeholder={t('Select value')}
             options={aggregateParameters}
             value={descriptor.value}
-            required={descriptor.required}
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled || disableParameterSelector}
@@ -557,7 +550,6 @@ class _QueryField extends Component<Props> {
             placeholder={t('Select value')}
             options={descriptor.options}
             value={descriptor.value}
-            required={descriptor.required}
             onChange={this.handleDropdownParameterChange(index + 1)}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled}
@@ -586,7 +578,7 @@ class _QueryField extends Component<Props> {
     return inputs;
   }
 
-  renderTag(kind: FieldValueKind, label: string, meta: FieldValue['meta']) {
+  renderTag(kind: FieldValueKind, label: React.ReactNode, meta: FieldValue['meta']) {
     const {shouldRenderTag, renderTagOverride} = this.props;
     if (shouldRenderTag === false) {
       return null;
@@ -647,7 +639,7 @@ class _QueryField extends Component<Props> {
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
-      noOptionsMessage: () => noFieldsMessage,
+      noOptionsMessage: () => noFieldsMessage ?? null,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;

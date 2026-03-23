@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 
 const TABS = {
   details: t('Details'),
@@ -39,7 +39,7 @@ const TabsContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
+export const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
   /*
   Use padding instead of margin so all the <li> will cover the <SplitDivider>
   without taking 100% width.
@@ -65,5 +65,3 @@ const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
     border-bottom: ${p => p.theme.space.xs} solid transparent;
   }
 `;
-
-export default StyledNetworkDetailsTabs;

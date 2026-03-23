@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import Panel from 'sentry/components/panels/panel';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextOverflow from 'sentry/components/textOverflow';
-import {space} from 'sentry/styles/space';
+import {Panel} from 'sentry/components/panels/panel';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {defined} from 'sentry/utils';
 
 type ScoreCardProps = {
@@ -115,7 +114,7 @@ type TrendProps = {trendStatus: ScoreCardProps['trendStatus']};
 
 export const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   line-height: 1;
   overflow: hidden;
 `;

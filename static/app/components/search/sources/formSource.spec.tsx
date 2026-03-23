@@ -1,6 +1,6 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import FormSource, {setSearchMap} from 'sentry/components/search/sources/formSource';
+import {FormSource, setSearchMap} from 'sentry/components/search/sources/formSource';
 
 describe('FormSource', () => {
   const searchMap = [

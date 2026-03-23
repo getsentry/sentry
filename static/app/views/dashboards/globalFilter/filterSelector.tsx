@@ -14,7 +14,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {
   modifyFilterOperatorQuery,
@@ -42,7 +42,8 @@ import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
-import FilterSelectorTrigger, {
+import {
+  FilterSelectorTrigger,
   FilterValueTruncated,
 } from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
@@ -65,7 +66,7 @@ type FilterSelectorProps = {
   disableRemoveFilter?: boolean;
 };
 
-function FilterSelector({
+export function FilterSelector({
   globalFilter,
   searchBarData,
   onRemoveFilter,
@@ -305,7 +306,7 @@ function FilterSelector({
 
   const stagedSelect = useStagedCompactSelect({
     value: activeFilterValues,
-    options,
+    options: translatedOptions,
     onChange: handleChange,
     onStagedValueChange: setStagedFilterValues,
     multiple: true,
@@ -398,7 +399,7 @@ function FilterSelector({
       sizeLimit={30}
       onClose={() => {
         setSearchQuery('');
-        setStagedFilterValues([]);
+        setStagedFilterValues(stagedSelect.value);
         setStagedOperator(initialOperator);
       }}
       sizeLimitMessage={t('Use search to find more filter values…')}
@@ -489,8 +490,6 @@ const translateKnownFilterOptions = (
   }
   return options;
 };
-
-export default FilterSelector;
 
 export const MenuTitleWrapper = styled('span')`
   display: inline-block;

@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -31,7 +32,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
 import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
@@ -45,7 +46,7 @@ interface DeviceClassBreakdownBarChartProps {
   chartHeight?: number;
 }
 
-function DeviceClassBreakdownBarChart({
+export function DeviceClassBreakdownBarChart({
   chartHeight,
   additionalFilters,
 }: DeviceClassBreakdownBarChartProps) {
@@ -131,7 +132,14 @@ function DeviceClassBreakdownBarChart({
   if (error) {
     return (
       <ChartContainer height={chartHeight}>
-        <Widget Title={Title} Visualization={<Widget.WidgetError error={error} />} />
+        <Widget
+          Title={Title}
+          Visualization={
+            <Container position="absolute" inset={0}>
+              <Widget.WidgetError error={error} />
+            </Container>
+          }
+        />
       </ChartContainer>
     );
   }
@@ -229,5 +237,3 @@ function DeviceClassBreakdownBarChart({
     </ChartContainer>
   );
 }
-
-export default DeviceClassBreakdownBarChart;

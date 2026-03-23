@@ -1,7 +1,7 @@
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -10,11 +10,7 @@ interface Props {
   projectSlug: string;
 }
 
-export default function useFetchCrashReport({
-  crashReportId,
-  organization,
-  projectSlug,
-}: Props) {
+export function useFetchCrashReport({crashReportId, organization, projectSlug}: Props) {
   const {data: eventData, isFetching: isEventFetching} = useApiQuery<Event>(
     [
       getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/', {

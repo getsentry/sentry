@@ -584,6 +584,63 @@ class GroupHashCachingTest(TestCase):
             cache_use_expected=False,
         )
 
+    def test_cache_invalidation_error_handling(self):
+        # We don't want the cache invalidation triggered by saving, updating, or deleting a
+        # grouphash to ever make those processes crash
+
+        with (
+            # Called by the grouphash `save` hook
+            patch("sentry.grouping.ingest.caching.cache.delete", side_effect=Exception),
+            # Called by the grouphash `delete` hook
+            patch("sentry.grouping.ingest.caching.cache.delete_many", side_effect=Exception),
+            # The `cache` object is the same one used everywhere, so patching `delete_many` above
+            # also does the patching that the `patch` call below would do, so it's not necessary.
+            # (In fact, patching in both places causes an error when pytest tries to undo the
+            # mocking at the end of the test, because it tries to delete the mock method twice.)
+            #
+            # We can see that it's the same `cache` object everywhere because even when we import it
+            # here, the two mocked methods throw errors. (See the first assertions below.)
+            #
+            # Called by the overridden grouphash queryset `update` method
+            # patch("sentry.models.grouphash.cache.delete_many", side_effect=Exception),
+        ):
+            # Prove that mocking `cache.delete` and `cache.delete_many` in the `caching` module (to
+            # make them both throw errors) in fact causes that side effect everywhere. (See note
+            # above.)
+            with pytest.raises(Exception):
+                cache.delete("not_here")
+            with pytest.raises(Exception):
+                cache.delete_many(["not_here", "still_not_here"])
+
+            # `save` is called internally by `create`
+            GroupHash.objects.create(project=self.project, hash="dogs_are_great")
+            grouphash = GroupHash.objects.filter(
+                project=self.project, hash="dogs_are_great"
+            ).first()
+            # The record was successfully created
+            assert grouphash
+
+            # Test `save` directly
+            grouphash.hash = "maisey"
+            grouphash.save()
+            grouphash.refresh_from_db()
+            # The record was successfully updated
+            assert grouphash.hash == "maisey"
+
+            # Test `update`
+            grouphash.update(hash="adopt_dont_shop")
+            grouphash.refresh_from_db()
+            # The record was successfully updated
+            assert grouphash.hash == "adopt_dont_shop"
+
+            # Test `delete`
+            grouphash.delete()
+            grouphash = GroupHash.objects.filter(
+                project=self.project, hash="adopt_dont_shop"
+            ).first()
+            # The record was successfully deleted
+            assert not grouphash
+
 
 class PlaceholderTitleTest(TestCase):
     """

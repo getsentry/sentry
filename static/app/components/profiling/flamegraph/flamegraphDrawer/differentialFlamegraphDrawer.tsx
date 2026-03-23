@@ -10,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   CanvasPoolManager,
   CanvasScheduler,
@@ -24,7 +23,7 @@ import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
@@ -366,7 +365,7 @@ const ProfilingDetailsListItem = styled('li')<{
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.font.size.sm};
-  margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
+  margin-right: ${p => (p.margin === 'none' ? 0 : p.theme.space.md)};
 
   button {
     height: 100%;

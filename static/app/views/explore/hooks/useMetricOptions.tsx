@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import {
   TraceMetricKnownFieldKey,
@@ -41,6 +41,7 @@ function metricOptionsQueryKey({
     TraceMetricKnownFieldKey.METRIC_NAME,
     TraceMetricKnownFieldKey.METRIC_TYPE,
     `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
+    `max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`,
   ];
   if (hasMetricUnitsUI) {
     queryFields.push(TraceMetricKnownFieldKey.METRIC_UNIT);

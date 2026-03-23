@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useState, type SetStateAction} from 'react';
 
-import sessionStorageWrapper from 'sentry/utils/sessionStorage';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 const isBrowser = typeof window !== 'undefined';
 
@@ -26,7 +26,7 @@ export function readStorageValue<T>(key: string, initialValue: T) {
 export function useSessionStorage<T>(
   key: string,
   initialValue: T
-): [T, (value: T) => void, () => void] {
+): [T, (value: SetStateAction<T>) => void, () => void] {
   const [state, setState] = useState<T>(() => readStorageValue(key, initialValue));
 
   useEffect(() => {
@@ -36,21 +36,32 @@ export function useSessionStorage<T>(
   }, [key]);
 
   const wrappedSetState = useCallback(
-    (value: T) => {
-      setState(value);
+    (valueOrUpdater: SetStateAction<T>) => {
+      setState(prev => {
+        // Cast needed: TS can't narrow SetStateAction<T> via typeof when T
+        // could itself be a function type.
+        const next =
+          typeof valueOrUpdater === 'function'
+            ? (valueOrUpdater as (prev: T) => T)(prev)
+            : valueOrUpdater;
 
-      try {
-        sessionStorageWrapper.setItem(key, JSON.stringify(value));
-      } catch {
-        // Best effort and just update the in-memory value.
-      }
+        try {
+          sessionStorageWrapper.setItem(key, JSON.stringify(next));
+        } catch {
+          // Best effort and just update the in-memory value.
+        }
+
+        return next;
+      });
     },
     [key]
   );
 
   const removeItem = useCallback(() => {
-    setState(initialValue);
-    sessionStorageWrapper.removeItem(key);
+    setState(() => {
+      sessionStorageWrapper.removeItem(key);
+      return initialValue;
+    });
   }, [key, initialValue]);
 
   if (!isBrowser) {

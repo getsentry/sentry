@@ -4,15 +4,14 @@ import styled from '@emotion/styled';
 import {Select} from '@sentry/scraps/select';
 
 import type {FormFieldProps} from 'sentry/components/forms/formField';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import EAPField from 'sentry/views/alerts/rules/metric/eapField';
-import EAPMetricsField from 'sentry/views/alerts/rules/metric/eapMetricsField';
+import {EAPField} from 'sentry/views/alerts/rules/metric/eapField';
+import {EAPMetricsField} from 'sentry/views/alerts/rules/metric/eapMetricsField';
 import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
@@ -49,7 +48,7 @@ type Props = Omit<FormFieldProps, 'children'> & {
   onMetricLoadingChange?: (isLoading: boolean) => void;
 };
 
-export default function WizardField({
+export function WizardField({
   organization,
   project,
   columnWidth,
@@ -215,7 +214,7 @@ export default function WizardField({
 
   return (
     <FormField {...fieldProps}>
-      {({onChange, model, disabled, isEditing, disabledReason}: any) => {
+      {({onChange, model, disabled, isEditing}) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
         const selectedTemplate = alertType || 'eap_metrics';
@@ -254,8 +253,7 @@ export default function WizardField({
               value={selectedTemplate}
               options={menuOptions}
               disabled={disabled}
-              disabledReason={disabledReason}
-              onChange={(option: MenuOption) => {
+              onChange={option => {
                 // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 const template = AlertWizardRuleTemplates[option.value];
 
@@ -360,7 +358,7 @@ const getApproximateKnownPercentile = (customPercentile: string) => {
 
 const Container = styled('div')<{hideGap: boolean; alertType?: AlertType}>`
   display: grid;
-  gap: ${p => (p.hideGap ? 0 : space(1))};
+  gap: ${p => (p.hideGap ? 0 : p.theme.space.md)};
   grid-template-columns: 1fr auto;
 `;
 

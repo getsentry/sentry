@@ -24,7 +24,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
-import useTags from 'sentry/utils/useTags';
+import {useTags} from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import {ColumnEditCollection} from './columnEditCollection';
@@ -41,7 +41,7 @@ type Props = {
   spanOperationBreakdownKeys?: string[];
 } & ModalRenderProps;
 
-function ColumnEditModal(props: Props) {
+export function ColumnEditModal(props: Props) {
   const theme = useTheme();
 
   const {
@@ -199,5 +199,4 @@ const modalCss = (theme: Theme) => css`
   }
 `;
 
-export default ColumnEditModal;
 export {modalCss};

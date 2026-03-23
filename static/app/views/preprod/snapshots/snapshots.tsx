@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,22 +6,25 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
+  SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
+import {computeSidebarBadges} from 'sentry/views/preprod/utils/sidebarUtils';
 
 import {SnapshotDevTools} from './header/snapshotDevTools';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
@@ -36,17 +39,8 @@ export default function SnapshotsPage() {
     snapshotId: string;
   }>();
 
-  const {
-    data,
-    isPending,
-    isError,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    refetch,
-  } = useInfiniteApiQuery<SnapshotDetailsApiResponse>({
-    queryKey: [
-      'infinite',
+  const {data, isPending, isError, refetch} = useApiQuery<SnapshotDetailsApiResponse>(
+    [
       getApiUrl(
         '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
         {
@@ -56,14 +50,15 @@ export default function SnapshotsPage() {
           },
         }
       ),
-      {query: {per_page: 20}},
     ],
-    staleTime: 0,
-    enabled: !!snapshotId,
-  });
+    {
+      staleTime: 0,
+      enabled: !!snapshotId,
+    }
+  );
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayColor, setOverlayColor] = useState<string>(() => {
@@ -85,53 +80,111 @@ export default function SnapshotsPage() {
     sizeStorageKey: 'snapshot-sidebar-width',
   });
 
-  const firstPageData = data?.pages[0]?.[0];
-  const comparisonType = firstPageData?.comparison_type ?? 'solo';
-  const comparisonRunInfo = firstPageData?.comparison_run_info;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const viewOverride = location.query.view;
+  const comparisonType =
+    viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
+  const comparisonRunInfo = data?.comparison_run_info;
+
+  const isSoloView = comparisonType === 'solo';
+  const handleToggleView = useCallback(() => {
+    const {view: _view, ...restQuery} = location.query;
+    if (isSoloView) {
+      navigate({...location, query: restQuery}, {replace: true});
+    } else {
+      navigate({...location, query: {...location.query, view: 'solo'}}, {replace: true});
+    }
+  }, [location, navigate, isSoloView]);
 
   const sidebarItems = useMemo(() => {
-    if (!data?.pages) {
+    if (!data) {
       return [];
     }
 
-    if (comparisonType === 'diff' && firstPageData) {
+    if (comparisonType === 'diff') {
       const items: SidebarItem[] = [];
 
-      for (const pair of firstPageData.changed) {
-        items.push({type: 'changed', name: getImageName(pair.head_image), pair});
+      const changedGroups = new Map<string, SnapshotDiffPair[]>();
+      for (const pair of data.changed) {
+        const group = getImageGroup(pair.head_image);
+        const existing = changedGroups.get(group);
+        if (existing) {
+          existing.push(pair);
+        } else {
+          changedGroups.set(group, [pair]);
+        }
       }
-      for (const img of firstPageData.added) {
-        items.push({type: 'added', name: getImageName(img), image: img});
-      }
-      for (const img of firstPageData.removed) {
-        items.push({type: 'removed', name: getImageName(img), image: img});
-      }
-      for (const img of firstPageData.renamed ?? []) {
-        items.push({type: 'renamed', name: getImageName(img), image: img});
-      }
-      for (const img of firstPageData.unchanged) {
-        items.push({type: 'unchanged', name: getImageName(img), image: img});
+      for (const [groupKey, pairs] of changedGroups) {
+        const label = pairs[0]!.head_image.group ?? pairs[0]!.head_image.image_file_name;
+        items.push({
+          type: 'changed',
+          key: `changed:${groupKey}`,
+          name: label,
+          badge: null,
+          pairs,
+        });
       }
 
+      const groupImages = (
+        imgs: SnapshotImage[],
+        type: 'added' | 'removed' | 'renamed' | 'unchanged'
+      ) => {
+        const groups = new Map<string, SnapshotImage[]>();
+        for (const img of imgs) {
+          const group = getImageGroup(img);
+          const existing = groups.get(group);
+          if (existing) {
+            existing.push(img);
+          } else {
+            groups.set(group, [img]);
+          }
+        }
+        for (const [groupKey, images] of groups) {
+          const label = images[0]!.group ?? images[0]!.image_file_name;
+          items.push({
+            type,
+            key: `${type}:${groupKey}`,
+            name: label,
+            badge: null,
+            images,
+          });
+        }
+      };
+
+      groupImages(data.added, 'added');
+      groupImages(data.removed, 'removed');
+      groupImages(data.renamed ?? [], 'renamed');
+      groupImages(data.unchanged, 'unchanged');
+
+      computeSidebarBadges(items);
       return items;
     }
 
-    const allImages = data.pages.flatMap(page => page[0].images);
     const groups = new Map<string, SnapshotImage[]>();
-    for (const image of allImages) {
-      const name = getImageName(image);
-      const existing = groups.get(name);
+    for (const image of data.images) {
+      const group = getImageGroup(image);
+      const existing = groups.get(group);
       if (existing) {
         existing.push(image);
       } else {
-        groups.set(name, [image]);
+        groups.set(group, [image]);
       }
     }
 
     return [...groups.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([name, images]) => ({type: 'solo' as const, name, images}));
-  }, [data?.pages, comparisonType, firstPageData]);
+      .map(([groupKey, images]) => {
+        const label = images[0]!.group ?? images[0]!.image_file_name;
+        return {
+          type: 'solo' as const,
+          key: `solo:${groupKey}`,
+          name: label,
+          badge: images.length > 1 ? String(images.length) : null,
+          images,
+        };
+      });
+  }, [data, comparisonType]);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery) {
@@ -141,24 +194,88 @@ export default function SnapshotsPage() {
     return sidebarItems.filter(item => item.name.toLowerCase().includes(query));
   }, [sidebarItems, searchQuery]);
 
-  const currentItemName =
-    selectedItemName && filteredItems.some(i => i.name === selectedItemName)
-      ? selectedItemName
-      : (filteredItems[0]?.name ?? null);
-  const currentItem = filteredItems.find(i => i.name === currentItemName) ?? null;
+  const currentItem =
+    (selectedItemKey && filteredItems.find(i => i.key === selectedItemKey)) ||
+    filteredItems[0] ||
+    null;
+  const currentItemKey = currentItem?.key ?? null;
 
-  useEffect(() => {
-    setVariantIndex(0);
-  }, [currentItemName]);
+  // Clamp variantIndex to valid range when the selected item changes implicitly
+  // (e.g. search filtering selects a new item with fewer variants)
+  const variantCount = currentItem
+    ? currentItem.type === 'changed'
+      ? currentItem.pairs.length
+      : currentItem.images.length
+    : 0;
+  const safeVariantIndex =
+    variantCount > 0 ? Math.min(variantIndex, variantCount - 1) : 0;
 
   const handleSelectItem = (name: string) => {
-    setSelectedItemName(name);
+    setSelectedItemKey(name);
     setVariantIndex(0);
   };
 
-  const imageBaseUrl = `/api/0/projects/${organization.slug}/${firstPageData?.project_id ?? ''}/files/images/`;
-  const diffImageBaseUrl = firstPageData
-    ? `/api/0/organizations/${organization.slug}/objectstore/v1/objects/preprod/org=${organization.id};project=${firstPageData.project_id}/${organization.id}/${firstPageData.project_id}/`
+  // Ref so the keydown handler reads current state without re-registering
+  const stateRef = useRef({
+    filteredItems,
+    currentItemKey,
+    safeVariantIndex,
+    variantCount,
+  });
+  stateRef.current = {filteredItems, currentItemKey, safeVariantIndex, variantCount};
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        return;
+      }
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        return;
+      }
+      e.preventDefault();
+
+      const state = stateRef.current;
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if (state.variantCount <= 1) {
+          return;
+        }
+        const next =
+          e.key === 'ArrowRight'
+            ? Math.min(state.safeVariantIndex + 1, state.variantCount - 1)
+            : Math.max(state.safeVariantIndex - 1, 0);
+        if (next !== state.safeVariantIndex) {
+          setVariantIndex(next);
+        }
+        return;
+      }
+
+      const currentIndex = state.filteredItems.findIndex(
+        i => i.key === state.currentItemKey
+      );
+      const nextIndex =
+        e.key === 'ArrowDown'
+          ? Math.min(currentIndex + 1, state.filteredItems.length - 1)
+          : Math.max(currentIndex - 1, 0);
+
+      if (nextIndex !== currentIndex && state.filteredItems[nextIndex]) {
+        setSelectedItemKey(state.filteredItems[nextIndex].key);
+        setVariantIndex(0);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Defer the item passed to main content so the sidebar stays responsive
+  // while the expensive image rendering catches up
+  const deferredItem = useDeferredValue(currentItem);
+
+  const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
+  const diffImageBaseUrl = data
+    ? `/api/0/organizations/${organization.slug}/objectstore/v1/objects/preprod/org=${organization.id};project=${data.project_id}/${organization.id}/${data.project_id}/`
     : '';
 
   if (isPending) {
@@ -173,7 +290,7 @@ export default function SnapshotsPage() {
     );
   }
 
-  if (isError || !firstPageData) {
+  if (isError || !data) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Layout.Page>
@@ -189,32 +306,36 @@ export default function SnapshotsPage() {
     <SentryDocumentTitle title={t('Snapshot')}>
       <Layout.Page>
         <Layout.Header>
-          <SnapshotHeaderContent
-            projectId={firstPageData.project_id}
-            data={firstPageData}
-          />
+          <SnapshotHeaderContent projectId={data.project_id} data={data} />
           <Layout.HeaderActions>
             <SnapshotDevTools
               organizationSlug={organization.slug}
               snapshotId={snapshotId}
               comparisonRunInfo={comparisonRunInfo}
-              hasBaseArtifact={firstPageData.base_artifact_id !== null}
+              hasBaseArtifact={data.base_artifact_id !== null}
               refetch={refetch}
+              isSoloView={isSoloView}
+              onToggleView={handleToggleView}
             />
           </Layout.HeaderActions>
         </Layout.Header>
 
-        <Flex direction="row" height="100%" width="100%" overflow="hidden">
-          <Flex flexShrink={0} overflow="hidden" style={{width: sidebarWidth}}>
+        <Flex
+          direction="row"
+          flex="1"
+          minHeight="0"
+          width="100%"
+          overflow="hidden"
+          style={{maxHeight: 'calc(100vh - 205px)'}}
+        >
+          <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
             <SnapshotSidebarContent
               items={filteredItems}
-              currentItemName={currentItemName}
+              totalItemCount={sidebarItems.length}
+              currentItemKey={currentItemKey}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onSelectItem={handleSelectItem}
-              hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              fetchNextPage={fetchNextPage}
             />
           </Flex>
           <DragHandle
@@ -226,8 +347,8 @@ export default function SnapshotsPage() {
           </DragHandle>
           <Flex flex="1" minWidth={0} overflow="hidden">
             <SnapshotMainContent
-              selectedItem={currentItem}
-              variantIndex={variantIndex}
+              selectedItem={deferredItem}
+              variantIndex={safeVariantIndex}
               onVariantChange={setVariantIndex}
               imageBaseUrl={imageBaseUrl}
               diffImageBaseUrl={diffImageBaseUrl}
@@ -248,7 +369,7 @@ export default function SnapshotsPage() {
 const DragHandle = styled('div')`
   display: grid;
   place-items: center;
-  width: ${space(2)};
+  width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;
   user-select: inherit;

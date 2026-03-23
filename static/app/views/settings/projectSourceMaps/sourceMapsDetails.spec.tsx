@@ -14,8 +14,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {SourceMapsDetails} from 'sentry/views/settings/projectSourceMaps/sourceMapsDetails';
 
 function renderReleaseBundlesMockRequests({

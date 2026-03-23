@@ -32,7 +32,7 @@ import {
   FieldKind,
   getFieldDefinition,
 } from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
@@ -155,18 +155,13 @@ export function AggregateColumnEditorModal({
                     onAction: () =>
                       insertColumn(new VisualizeFunction(DEFAULT_VISUALIZATION)),
                   },
-                  ...(organization.features.includes('visibility-explore-equations')
-                    ? [
-                        {
-                          key: 'add-equation',
-                          label: t('Equation'),
-                          details: t('ex. p50(span.duration) / 2'),
-                          disabled: !canAddVisualize,
-                          onAction: () =>
-                            insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
-                        },
-                      ]
-                    : []),
+                  {
+                    key: 'add-equation',
+                    label: t('Equation'),
+                    details: t('ex. p50(span.duration) / 2'),
+                    disabled: !canAddVisualize,
+                    onAction: () => insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
+                  },
                 ]}
                 trigger={triggerProps => (
                   <Button

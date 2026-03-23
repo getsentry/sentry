@@ -1,23 +1,23 @@
 import {useEffect} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackEmptyDetails from 'sentry/components/feedback/details/feedbackEmptyDetails';
-import FeedbackErrorDetails from 'sentry/components/feedback/details/feedbackErrorDetails';
-import FeedbackItem from 'sentry/components/feedback/feedbackItem/feedbackItem';
-import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
-import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
-import useFetchFeedbackData from 'sentry/components/feedback/useFetchFeedbackData';
-import Placeholder from 'sentry/components/placeholder';
+import {FeedbackEmptyDetails} from 'sentry/components/feedback/details/feedbackEmptyDetails';
+import {FeedbackErrorDetails} from 'sentry/components/feedback/details/feedbackErrorDetails';
+import {FeedbackItem} from 'sentry/components/feedback/feedbackItem/feedbackItem';
+import {useCurrentFeedbackId} from 'sentry/components/feedback/useCurrentFeedbackId';
+import {useCurrentFeedbackProject} from 'sentry/components/feedback/useCurrentFeedbackProject';
+import {useFetchFeedbackData} from 'sentry/components/feedback/useFetchFeedbackData';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
+import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsData';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   onBackToList?: () => void;
 }
 
-export default function FeedbackItemLoader({onBackToList}: Props = {}) {
+export function FeedbackItemLoader({onBackToList}: Props = {}) {
   const organization = useOrganization();
   const feedbackId = useCurrentFeedbackId();
   const {issueResult, issueData, eventData} = useFetchFeedbackData({feedbackId});

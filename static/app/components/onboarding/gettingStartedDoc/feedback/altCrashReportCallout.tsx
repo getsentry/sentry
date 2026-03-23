@@ -3,7 +3,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
 
-export default function altCrashReportCallout() {
+export function altCrashReportCallout() {
   return (
     <Alert.Container>
       <Alert variant="info">

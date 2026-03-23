@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -7,7 +7,7 @@ interface Props {
   organization: Organization;
 }
 
-export default function getFeedbackItemQueryKey({feedbackId, organization}: Props): {
+export function getFeedbackItemQueryKey({feedbackId, organization}: Props): {
   eventQueryKey: ApiQueryKey | undefined;
   issueQueryKey: ApiQueryKey | undefined;
 } {

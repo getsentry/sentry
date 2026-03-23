@@ -10,13 +10,13 @@ import type {AuditLog} from 'sentry/types/organization';
 import {getDateWithTimezoneInUtc, getUserTimezone} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
-import AuditLogList from './auditLogList';
+import {AuditLogList} from './auditLogList';
 
 type State = {
   entryList: AuditLog[] | null;
@@ -153,7 +153,6 @@ function OrganizationAuditLog() {
       eventType: value,
     }));
     navigate({
-      pathname: location.pathname,
       query: {...location.query, event: value},
     });
   };
@@ -198,7 +197,6 @@ function OrganizationAuditLog() {
     }
 
     navigate({
-      pathname: location.pathname,
       query: newQuery,
     });
   };

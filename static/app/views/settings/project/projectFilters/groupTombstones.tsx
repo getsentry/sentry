@@ -3,29 +3,31 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
-import Count from 'sentry/components/count';
+import {Access} from 'sentry/components/acl/access';
+import {Confirm} from 'sentry/components/confirm';
+import {Count} from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
+import {EventMessage} from 'sentry/components/events/eventMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupTombstone} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface GroupTombstoneRowProps {
   data: GroupTombstone;
@@ -35,15 +37,22 @@ interface GroupTombstoneRowProps {
 
 function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps) {
   const actor = data.actor;
+  const tombstone = {...data, isTombstone: true as const};
+  const {title} = getTitle(tombstone);
 
   return (
     <Fragment>
       <StyledBox>
-        <EventOrGroupHeader
-          hideIcons
-          data={{...data, isTombstone: true}}
-          source="group-tombstome"
-        />
+        <div>
+          <Heading as="h5" size="lg">
+            {title}
+          </Heading>
+          <EventMessage
+            level={data.level}
+            message={getMessage(tombstone)}
+            type={data.type}
+          />
+        </div>
       </StyledBox>
       <RightAlignedColumn>
         {data.dateAdded ? (
@@ -108,7 +117,7 @@ interface GroupTombstonesProps {
   project: Project;
 }
 
-function GroupTombstones({project}: GroupTombstonesProps) {
+export function GroupTombstones({project}: GroupTombstonesProps) {
   const api = useApi();
   const location = useLocation();
   const organization = useOrganization();
@@ -224,5 +233,3 @@ const LeftAlignedColumn = styled(Column)`
 const CenteredAlignedColumn = styled(Column)`
   justify-content: center;
 `;
-
-export default GroupTombstones;

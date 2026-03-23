@@ -8,10 +8,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {clampPercentRate} from 'sentry/views/settings/dynamicSampling/utils/clampNumer';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
@@ -25,12 +24,13 @@ interface Props extends React.ComponentProps<typeof StyledPanel> {
 }
 
 function OthersBadge() {
+  const theme = useTheme();
   return (
     <div
       css={css`
         display: flex;
         align-items: center;
-        gap: ${space(0.75)};
+        gap: ${theme.space.sm};
       `}
     >
       <PlatformIcon

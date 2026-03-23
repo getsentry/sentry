@@ -7,21 +7,22 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
-import useDrawer from 'sentry/components/globalDrawer';
-import Pagination from 'sentry/components/pagination';
-import GridEditable, {
+import {Count} from 'sentry/components/count';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {Pagination} from 'sentry/components/pagination';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
-import TimeSince from 'sentry/components/timeSince';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
@@ -32,6 +33,7 @@ import {
   type Conversation,
   type ConversationUser,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversations';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 interface ConversationsTableProps {
   openConversationViewDrawer: ReturnType<
@@ -140,7 +142,7 @@ const CELL_MAX_CHARS = 256;
 function TooltipContent({text}: {text: string}) {
   return (
     <TooltipTextContainer>
-      <MarkedText text={ellipsize(text, TOOLTIP_MAX_CHARS)} />
+      <AIContentRenderer text={ellipsize(text, TOOLTIP_MAX_CHARS)} inline />
     </TooltipTextContainer>
   );
 }

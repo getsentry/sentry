@@ -1,8 +1,8 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {
   StepType,
   type OnboardingConfig,

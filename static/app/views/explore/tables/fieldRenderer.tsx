@@ -8,8 +8,8 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import TimeSince from 'sentry/components/timeSince';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -20,13 +20,12 @@ import {getFieldRenderer, nullableValue} from 'sentry/utils/discover/fieldRender
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
@@ -150,6 +149,7 @@ function BaseExploreFieldRenderer({
     organization,
     theme,
     unit,
+    projects,
   });
 
   if (field === 'timestamp') {
@@ -279,18 +279,9 @@ function BaseExploreFieldRenderer({
       rendered = <Link to={target}>{rendered}</Link>;
     }
 
-    if (organization.features.includes('discover-cell-actions-v2') && field === 'id') {
+    if (field === 'id') {
       return rendered;
     }
-  }
-
-  if (field === 'profile.id') {
-    const target = generateProfileFlamechartRouteWithQuery({
-      organization,
-      projectSlug: data.project,
-      profileId: data['profile.id'],
-    });
-    rendered = <Link to={target}>{rendered}</Link>;
   }
 
   return (

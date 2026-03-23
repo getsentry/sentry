@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
@@ -35,7 +35,7 @@ type Props = {
   onConfigure?: (providerKey: string, e: React.MouseEvent) => void;
 };
 
-function ProviderItem({provider, active, onConfigure}: Props) {
+export function ProviderItem({provider, active, onConfigure}: Props) {
   const handleConfigure = (e: React.MouseEvent) => {
     onConfigure?.(provider.key, e);
   };
@@ -136,8 +136,6 @@ function ProviderItem({provider, active, onConfigure}: Props) {
     </Feature>
   );
 }
-
-export default ProviderItem;
 
 const ProviderInfo = styled('div')`
   flex: 1;

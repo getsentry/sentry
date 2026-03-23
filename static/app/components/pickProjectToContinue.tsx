@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ContextPickerModal from 'sentry/components/contextPickerModal';
+import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
 type Project = {
@@ -26,7 +26,7 @@ type Props = {
   allowAllProjectsSelection?: boolean;
 };
 
-function PickProjectToContinue({
+export function PickProjectToContinue({
   noProjectRedirectPath,
   nextPath,
   router,
@@ -87,5 +87,3 @@ const ContextPickerBackground = styled('div')`
   height: 100vh;
   width: 100%;
 `;
-
-export default PickProjectToContinue;

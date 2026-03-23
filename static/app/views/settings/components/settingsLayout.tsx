@@ -2,19 +2,18 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
-import SettingsBreadcrumb from './settingsBreadcrumb';
-import SettingsHeader from './settingsHeader';
-import SettingsSearch from './settingsSearch';
+import {SettingsBreadcrumb} from './settingsBreadcrumb';
+import {SettingsHeader} from './settingsHeader';
+import {SettingsSearch} from './settingsSearch';
 
 interface Props {
   children: React.ReactNode;
 }
 
-export default function SettingsLayout({children}: Props) {
+export function SettingsLayout({children}: Props) {
   const params = useParams();
   const routes = useRoutes();
 
@@ -59,13 +58,5 @@ const Content = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: ${p => p.theme.space.xl};
-  }
-
-  /**
-   * Layout.Page is not normally used in settings but <PermissionDenied /> uses
-   * it under the hood. This prevents double padding.
-   */
-  ${Layout.Page} {
-    padding: 0;
   }
 `;

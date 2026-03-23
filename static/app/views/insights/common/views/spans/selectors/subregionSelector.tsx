@@ -8,14 +8,14 @@ import {
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields, subregionCodeToName} from 'sentry/views/insights/types';
 
@@ -23,7 +23,7 @@ type Props = {
   size?: ComponentProps<typeof CompactSelect>['size'];
 };
 
-export default function SubregionSelector({size}: Props) {
+export function SubregionSelector({size}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();

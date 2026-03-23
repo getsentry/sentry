@@ -12,6 +12,7 @@ import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
+import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TRACEMETRICS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/metrics/constants';
@@ -27,6 +28,7 @@ export type TraceItemSearchQueryBuilderProps = {
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
   caseInsensitive?: CaseInsensitive;
+  disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
   disallowHas?: boolean;
@@ -100,6 +102,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disableRecentSearches,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -124,6 +127,12 @@ export function useTraceItemSearchQueryBuilderProps({
     booleanAttributes,
   });
 
+  const getTagKeys = useGetTraceItemAttributeTagKeys({
+    itemType,
+    projects,
+    extraTags: functionTags,
+  });
+
   return useMemo(
     () => ({
       placeholder: placeholderText,
@@ -138,10 +147,13 @@ export function useTraceItemSearchQueryBuilderProps({
       filterKeySections,
       getSuggestedFilterKey: getSuggestedAttribute,
       getTagValues: getTraceItemAttributeValues,
-      disallowUnsupportedFilters: true,
+      getTagKeys,
+      disallowUnsupportedFilters: !getTagKeys,
       disallowFreeText,
       disallowLogicalOperators,
-      recentSearches: itemTypeToRecentSearches(itemType),
+      recentSearches: disableRecentSearches
+        ? undefined
+        : itemTypeToRecentSearches(itemType),
       namespace,
       showUnsubmittedIndicator: true,
       portalTarget,
@@ -160,10 +172,12 @@ export function useTraceItemSearchQueryBuilderProps({
       caseInsensitive,
       disallowFreeText,
       disallowLogicalOperators,
+      disableRecentSearches,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
       getSuggestedAttribute,
+      getTagKeys,
       getTraceItemAttributeValues,
       initialQuery,
       itemType,
@@ -211,6 +225,7 @@ export function TraceItemSearchQueryBuilder({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disableRecentSearches,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -237,6 +252,7 @@ export function TraceItemSearchQueryBuilder({
     disallowHas,
     disallowFreeText,
     disallowLogicalOperators,
+    disableRecentSearches,
   });
 
   return (

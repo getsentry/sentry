@@ -1,13 +1,15 @@
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const AGENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:agent`;
 const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
+const AGENT_AND_AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:[agent, ai_client]`;
 const TOOL_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:tool`;
 
 const DEFAULT_GLOBAL_FILTERS = [
@@ -22,13 +24,23 @@ const DEFAULT_GLOBAL_FILTERS = [
   },
 ];
 
-export const DEFAULT_TRACES_TABLE_WIDTHS = [110, 600, 140, 110, 110, 110, 120, 110, 110];
+export const DEFAULT_TRACES_TABLE_WIDTHS = [
+  110,
+  COL_WIDTH_UNDEFINED,
+  140,
+  110,
+  110,
+  110,
+  120,
+  110,
+  110,
+];
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
-      id: 'ai-agents-overview-runs',
-      title: t('Runs'),
+      id: 'ai-agents-overview-agent-runs',
+      title: t('Agent Runs'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -45,20 +57,20 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       ],
     },
     {
-      id: 'ai-agents-overview-error-rate',
-      title: t('Error Rate'),
-      displayType: DisplayType.LINE,
+      id: 'ai-agents-overview-llm-calls-traffic',
+      title: t('LLM Calls'),
+      displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
       queries: [
         {
-          name: t('Error Rate'),
-          conditions: AGENT_FILTER,
-          fields: [`${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
-          aggregates: [`${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
+          name: t('Count'),
+          conditions: AI_CLIENT_FILTER,
+          fields: [`count(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          fieldAliases: [t('Error Rate')],
-          orderby: `-${SpanFunction.TRACE_STATUS_RATE}(internal_error)`,
+          fieldAliases: [t('Count')],
+          orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -71,7 +83,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          conditions: AGENT_FILTER,
+          conditions: AGENT_AND_AI_CLIENT_FILTER,
           fields: [
             `avg(${SpanFields.SPAN_DURATION})`,
             `p95(${SpanFields.SPAN_DURATION})`,
@@ -93,8 +105,8 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
-      id: 'ai-agents-overview-llm-calls',
-      title: t('LLM Calls'),
+      id: 'ai-agents-overview-llm-calls-by-model',
+      title: t('LLM Calls by Model'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -187,7 +199,7 @@ const AGENTS_TRACES_TABLE = {
   displayType: DisplayType.AGENTS_TRACES_TABLE,
   interval: '1h',
   tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
-  limit: 20,
+  limit: MAX_TABLE_LIMIT,
   queries: [
     {
       conditions: '',
@@ -215,4 +227,9 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, AGENTS_TRACES_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'agent-monitoring',
+    requiredProjectFlags: ['hasInsightsAgentMonitoring'],
+  },
 };

@@ -10,7 +10,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.base import region_silo_model
+from sentry.db.models.base import cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import Organization
@@ -185,7 +185,7 @@ class AbstractNotificationAction(Model):
         abstract = True
 
 
-@region_silo_model
+@cell_silo_model
 class NotificationActionProject(Model):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Organization}
 
@@ -201,7 +201,7 @@ class NotificationActionProject(Model):
         return action.get_relocation_scope()
 
 
-@region_silo_model
+@cell_silo_model
 class NotificationAction(AbstractNotificationAction):
     """
     Generic notification action model to programmatically route depending on the trigger (or source) for the notification

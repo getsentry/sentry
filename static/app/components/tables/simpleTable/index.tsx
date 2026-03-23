@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 

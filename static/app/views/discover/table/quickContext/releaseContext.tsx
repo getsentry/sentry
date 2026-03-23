@@ -5,15 +5,15 @@ import {AvatarList} from '@sentry/scraps/avatar';
 
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {DataSection} from 'sentry/components/events/styles';
-import Panel from 'sentry/components/panels/panel';
-import TimeSince from 'sentry/components/timeSince';
+import {Panel} from 'sentry/components/panels/panel';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {ReleaseWithHealth} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useUser} from 'sentry/utils/useUser';
@@ -30,7 +30,7 @@ import {
 import type {BaseContextProps} from './utils';
 import {ContextType, tenSecondInMs} from './utils';
 
-function ReleaseContext(props: BaseContextProps) {
+export function ReleaseContext(props: BaseContextProps) {
   const user = useUser();
   const {dataRow, organization} = props;
   const {isPending, isError, data} = useApiQuery<ReleaseWithHealth>(
@@ -49,14 +49,12 @@ function ReleaseContext(props: BaseContextProps) {
 
   const authors = useMemo(
     () =>
-      data?.authors.map<Actor | User>(author =>
-        // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
-      ),
+      data?.authors.map<Actor | User>(author => // Add a unique id if missing
+      ({
+        ...author,
+        type: 'user',
+        id: 'id' in author ? author.id : uniqueId(),
+      })),
     [data?.authors]
   );
 
@@ -211,5 +209,3 @@ const ReleaseBody = styled(ContextBody)`
   font-size: 13px;
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default ReleaseContext;

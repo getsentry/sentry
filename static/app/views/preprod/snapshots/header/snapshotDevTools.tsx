@@ -9,8 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {Client} from 'sentry/api';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {
   ComparisonState,
   type SnapshotComparisonRunInfo,
@@ -18,6 +17,8 @@ import {
 
 interface SnapshotDevToolsProps {
   hasBaseArtifact: boolean;
+  isSoloView: boolean;
+  onToggleView: () => void;
   organizationSlug: string;
   refetch: () => void;
   snapshotId: string;
@@ -30,6 +31,8 @@ export function SnapshotDevTools({
   comparisonRunInfo,
   hasBaseArtifact,
   refetch,
+  isSoloView,
+  onToggleView,
 }: SnapshotDevToolsProps) {
   const comparisonState = comparisonRunInfo?.state;
   const comparisonCompletedAt = comparisonRunInfo?.completed_at;
@@ -190,6 +193,16 @@ export function SnapshotDevTools({
               {recompareLoading ? t('Queuing...') : t('Re-run Comparison')}
             </Button>
           )}
+          {hasBaseArtifact && (
+            <Text size="xs" variant="muted">
+              {'|'}
+            </Text>
+          )}
+          {hasBaseArtifact && (
+            <Button size="xs" onClick={onToggleView}>
+              {isSoloView ? 'View as diff' : 'View as solo'}
+            </Button>
+          )}
         </Flex>
       )}
       {!devToolsCollapsed && recompareError && (
@@ -210,8 +223,8 @@ const DevToolsBox = styled('div')`
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
-  padding: ${space(0.75)} ${space(1)};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
@@ -222,15 +235,15 @@ const DevToolsBox = styled('div')`
 
 const CollapseButton = styled(Button)`
   position: absolute;
-  top: ${space(0.5)};
-  right: ${space(0.5)};
+  top: ${p => p.theme.space.xs};
+  right: ${p => p.theme.space.xs};
 `;
 
 const StatusPill = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
-  padding: 2px ${space(0.75)};
+  gap: ${p => p.theme.space.xs};
+  padding: 2px ${p => p.theme.space.sm};
   border: 1px solid ${p => p.theme.tokens.border.accent};
   border-radius: 12px;
 `;

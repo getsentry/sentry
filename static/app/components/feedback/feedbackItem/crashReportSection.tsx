@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
-import Placeholder from 'sentry/components/placeholder';
+import {useFetchCrashReport} from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
+import {Placeholder} from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -17,11 +17,7 @@ interface Props {
   projectSlug: string;
 }
 
-export default function CrashReportSection({
-  crashReportId,
-  organization,
-  projectSlug,
-}: Props) {
+export function CrashReportSection({crashReportId, organization, projectSlug}: Props) {
   const {isFetching, groupData} = useFetchCrashReport({
     crashReportId,
     organization,
@@ -54,8 +50,8 @@ export default function CrashReportSection({
 
   return (
     <IssueDetailsContainer>
-      <EventOrGroupHeader eventId={crashReportId} data={groupData} />
-      <EventOrGroupExtraDetails data={groupData} />
+      <GroupHeaderRow eventId={crashReportId} data={groupData} />
+      <GroupMetaRow data={groupData} />
     </IssueDetailsContainer>
   );
 }

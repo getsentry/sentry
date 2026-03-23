@@ -19,14 +19,18 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
 )
-from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache, SeerOperatorExplorerCache
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
     SeerOperatorInteractionType,
 )
-from sentry.seer.entrypoints.registry import entrypoint_registry
-from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
+from sentry.seer.entrypoints.registry import (
+    autofix_entrypoint_registry,
+    explorer_entrypoint_registry,
+)
+from sentry.seer.entrypoints.types import SeerAutofixEntrypoint, SeerEntrypointKey
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -54,13 +58,45 @@ PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
 AUTOFIX_FALLBACK_CAUSE_ID = 0
 
 
-class SeerOperator[CachePayloadT]:
+def has_seer_autofix_entrypoint_access(
+    *,
+    organization: Organization,
+    entrypoint_key: SeerEntrypointKey | None = None,
+) -> bool:
+    """
+    Checks if the organization has access to Seer and at least one autofix entrypoint.
+    If an entrypoint_key is provided, ensures the organization has access to that specific
+    autofix entrypoint.
+    """
+    if not has_seer_access(organization):
+        return False
+
+    if entrypoint_key:
+        if entrypoint_key not in autofix_entrypoint_registry.registrations:
+            logger.error(
+                "seer.operator.invalid_entrypoint_key",
+                extra={
+                    "entrypoint_key": str(entrypoint_key),
+                    "organization_id": organization.id,
+                },
+            )
+            return False
+        entrypoint_cls = autofix_entrypoint_registry.registrations[entrypoint_key]
+        return entrypoint_cls.has_access(organization)
+
+    return any(
+        entrypoint_cls.has_access(organization=organization)
+        for entrypoint_cls in autofix_entrypoint_registry.registrations.values()
+    )
+
+
+class SeerAutofixOperator[CachePayloadT]:
     """
     A class that connects to entrypoint implementations and runs operations for Seer with them.
     It does this to ensure all entrypoints have consistent behavior and responses.
     """
 
-    def __init__(self, entrypoint: SeerEntrypoint[CachePayloadT]):
+    def __init__(self, entrypoint: SeerAutofixEntrypoint[CachePayloadT]):
         self.entrypoint = entrypoint
 
     @classmethod
@@ -70,29 +106,8 @@ class SeerOperator[CachePayloadT]:
         organization: Organization,
         entrypoint_key: SeerEntrypointKey | None = None,
     ) -> bool:
-        """
-        Checks if the organization has access to Seer, and atleast one entrypoint.
-        If an entrypoint_key is provided, ensures the organization has access to that entrypoint.
-        """
-        if not has_seer_access(organization):
-            return False
-
-        if entrypoint_key:
-            if entrypoint_key not in entrypoint_registry.registrations:
-                logger.error(
-                    "seer.operator.invalid_entrypoint_key",
-                    extra={
-                        "entrypoint_key": str(entrypoint_key),
-                        "organization_id": organization.id,
-                    },
-                )
-                return False
-            entrypoint_cls = entrypoint_registry.registrations[entrypoint_key]
-            return entrypoint_cls.has_access(organization)
-
-        return any(
-            entrypoint_cls.has_access(organization=organization)
-            for entrypoint_cls in entrypoint_registry.registrations.values()
+        return has_seer_autofix_entrypoint_access(
+            organization=organization, entrypoint_key=entrypoint_key
         )
 
     @classmethod
@@ -208,6 +223,7 @@ class SeerOperator[CachePayloadT]:
                     run_id = trigger_autofix_explorer(
                         group=group,
                         step=AutofixStep.ROOT_CAUSE,
+                        referrer=AutofixReferrer.SLACK,
                         run_id=None,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
@@ -221,6 +237,7 @@ class SeerOperator[CachePayloadT]:
                     run_id = trigger_autofix_explorer(
                         group=group,
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
+                        referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
                     )
             except Exception as e:
@@ -467,11 +484,11 @@ def process_autofix_updates(
 
         organization = group.project.organization
 
-        if not SeerOperator.has_access(organization=organization):
+        if not SeerAutofixOperator.has_access(organization=organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
-        for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
+        for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {
                 "organization_id": organization.id,
                 "group_id": group_id,
@@ -625,3 +642,59 @@ def get_latest_cause_id(autofix_state: AutofixState | None) -> int:
 
     # The most recent cause is at the end of the list
     return root_causes[-1].get("id", AUTOFIX_FALLBACK_CAUSE_ID)
+
+
+class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
+    """Completion hook that notifies all entrypoints when an Explorer run finishes.
+
+    Mirrors the pattern of process_autofix_updates: iterates through the entrypoint
+    registry and calls on_explorer_update for each entrypoint that has access and
+    has a cached payload for this run.
+    """
+
+    @classmethod
+    def execute(cls, organization: Organization, run_id: int) -> None:
+        from sentry.seer.explorer.client_utils import fetch_run_status
+
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_EXPLORER_COMPLETION,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "run_id": str(run_id),
+                    "organization_id": organization.id,
+                }
+            )
+
+            summary = "Explorer result could not be fetched. Please try again."
+            try:
+                state = fetch_run_status(run_id, organization)
+                for block in reversed(state.blocks):
+                    if block.message.role == "assistant" and block.message.content:
+                        summary = block.message.content
+                        break
+            except Exception as e:
+                lifecycle.record_failure(failure_reason=e)
+                return
+
+            for (
+                entrypoint_key,
+                entrypoint_cls,
+            ) in explorer_entrypoint_registry.registrations.items():
+                if not entrypoint_cls.has_access(organization=organization):
+                    continue
+
+                from sentry.seer.entrypoints.slack.entrypoint import SlackExplorerCachePayload
+
+                cache_payload = SeerOperatorExplorerCache[SlackExplorerCachePayload].get(
+                    entrypoint_key=str(entrypoint_key),
+                    run_id=run_id,
+                )
+                if not cache_payload:
+                    continue
+
+                entrypoint_cls.on_explorer_update(
+                    cache_payload=cache_payload,
+                    summary=summary,
+                    run_id=run_id,
+                )

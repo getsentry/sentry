@@ -6,14 +6,14 @@ import {ActionHandlerFixture} from 'sentry-fixture/workflowEngine';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
 import {
   ActionGroup,
   ActionType,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
-import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
+import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 
 const slackActionHandler = ActionHandlerFixture();

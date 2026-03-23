@@ -23,14 +23,14 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-import useOverlay from 'sentry/utils/useOverlay';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOverlay} from 'sentry/utils/useOverlay';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
 import type {
@@ -590,6 +590,7 @@ export const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

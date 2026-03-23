@@ -2,22 +2,22 @@ import {Fragment, useEffect} from 'react';
 import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import type {
   DefaultSettings,
@@ -33,9 +33,9 @@ import {
   QUOTA_FIELDS,
   SPEND_FIELDS,
 } from './fields';
-import NotificationSettingsByEntity from './notificationSettingsByEntity';
+import {NotificationSettingsByEntity} from './notificationSettingsByEntity';
 import type {Identity} from './types';
-import UnlinkedAlert from './unlinkedAlert';
+import {UnlinkedAlert} from './unlinkedAlert';
 import {isGroupedByProject} from './utils';
 
 type Props = {
@@ -229,6 +229,11 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('am2-tier')
     );
 
+    // at least one org exists with am1 tier plan
+    const hasOrgWithAm1 = organizations.some(organization =>
+      organization.features?.includes('am1-tier')
+    );
+
     // Check if any organization has the continuous-profiling-billing feature flag
     const hasOrgWithContinuousProfilingBilling = organizations.some(organization =>
       organization.features?.includes('continuous-profiling-billing')
@@ -246,17 +251,13 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('seer-user-billing-launch')
     );
 
-    const hasSizeAnalysisBilling = organizations.some(organization =>
-      organization.features?.includes('expose-category-size-analysis')
-    );
-
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
     const includeSpans = hasOrgWithAm3;
     const includeProfileDuration =
       (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
     const includeSeer = hasSeerBilling;
     const includeLogs = hasLogsBilling;
-    const includeSizeAnalysis = hasSizeAnalysisBilling;
+    const includeSizeAnalysis = hasOrgWithAm3 || hasOrgWithAm2 || hasOrgWithAm1;
 
     return fields.filter(field => {
       if (field.name === 'quotaSpans' && !includeSpans) {
@@ -428,7 +429,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     return filteredFields.map(field => {
       const schema = z.object({[field.name]: z.string()});
       return (
-        <AutoSaveField
+        <AutoSaveForm
           key={field.name}
           name={field.name}
           schema={schema}
@@ -444,7 +445,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
               />
             </fieldApi.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
       );
     });
   };
@@ -461,7 +462,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
     const schema = z.object({[notificationType]: z.string()});
     return (
-      <AutoSaveField
+      <AutoSaveForm
         name={notificationType}
         schema={schema}
         initialValue={initialTopOptionData[notificationType] ?? 'always'}
@@ -476,7 +477,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
   };
 
@@ -496,7 +497,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       </FieldGroup>
       {notificationType !== 'reports' && notificationType !== 'brokenMonitors' ? (
         <FieldGroup title={t('Delivery Method')}>
-          <AutoSaveField
+          <AutoSaveForm
             name="provider"
             schema={providerSchema}
             initialValue={initialProviders}
@@ -521,7 +522,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
                 </field.Layout.Row>
               </Fragment>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         </FieldGroup>
       ) : null}
       <NotificationSettingsByEntity

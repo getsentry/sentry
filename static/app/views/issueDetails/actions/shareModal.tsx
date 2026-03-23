@@ -9,22 +9,21 @@ import {Switch} from '@sentry/scraps/switch';
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AutoSelectText from 'sentry/components/autoSelectText';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {AutoSelectText} from 'sentry/components/autoSelectText';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
+import {GroupStore} from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   event: Event | null;
@@ -42,7 +41,7 @@ export function getShareUrl(organization: Organization, group: Group) {
   return `${window.location.origin}${normalizeUrl(path)}`;
 }
 
-export default function ShareIssueModal({
+export function ShareIssueModal({
   Header,
   Body,
   organization,
@@ -64,7 +63,6 @@ export default function ShareIssueModal({
   const api = useApi({persistInFlight: true});
   const [loading, setLoading] = useState(false);
   const isPublished = group?.isPublic;
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const hasPublicShare = organization.features.includes('shared-issues') && hasIssueShare;
 
@@ -236,9 +234,6 @@ export default function ShareIssueModal({
                       }
                       analyticsEventKey="issue_details.publish_issue_modal.copy_link"
                       analyticsEventName="Issue Details: Publish Issue Modal Copy Link"
-                      analyticsParams={{
-                        streamline: hasStreamlinedUI,
-                      }}
                     >
                       {t('Copy Public Link')}
                     </Button>

@@ -12,7 +12,7 @@ from sentry.preprod.models import (
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
 class StatusCheckTestBase(TestCase):
@@ -27,7 +27,7 @@ class StatusCheckTestBase(TestCase):
         )
 
 
-@region_silo_test
+@cell_silo_test
 class ProcessingStateFormattingTest(StatusCheckTestBase):
     """Tests for formatting artifacts in processing/loading states."""
 
@@ -245,7 +245,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         assert processing_count == 2  # Download and install columns both show "Processing..."
 
 
-@region_silo_test
+@cell_silo_test
 class ErrorStateFormattingTest(StatusCheckTestBase):
     """Tests for formatting artifacts in error/failure states."""
 
@@ -351,7 +351,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         assert "com.example.failed" in summary
 
 
-@region_silo_test
+@cell_silo_test
 class SuccessStateFormattingTest(StatusCheckTestBase):
     """Tests for formatting artifacts in successful/analyzed states."""
 
@@ -986,7 +986,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert summary == expected
 
 
-@region_silo_test
+@cell_silo_test
 class BuildConfigurationComparisonTest(StatusCheckTestBase):
     """Tests for ensuring artifacts with different build configurations are not compared."""
 
@@ -1261,7 +1261,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         assert na_count >= 2  # At least 2 N/A for the change columns
 
 
-@region_silo_test
+@cell_silo_test
 class TriggeredRulesFormattingTest(StatusCheckTestBase):
     """Tests for formatting status checks with triggered rules."""
 

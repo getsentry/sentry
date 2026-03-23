@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import inspect
 import logging
+import time
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import timezone
@@ -59,11 +60,13 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
+from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.code_review.webhooks.handlers import (
     handle_webhook_event as code_review_handle_webhook_event,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -136,7 +139,7 @@ def _handle_pr_webhook_for_autofix_processor(
 
 class GitHubWebhook(SCMWebhook, ABC):
     """
-    Base class for GitHub webhooks handled in region silos.
+    Base class for GitHub webhooks handled in cell silos.
     """
 
     EVENT_TYPE: IntegrationWebhookEventType
@@ -1043,6 +1046,11 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         if secret is None:
             logger.warning("github.webhook.missing-secret", extra=self.get_logging_data())
+            metrics.incr(
+                "github.webhook.hmac_failure",
+                tags={"reason": "missing_secret"},
+                sample_rate=1.0,
+            )
             return HttpResponse(status=401)
 
         body = bytes(request.body)
@@ -1077,6 +1085,11 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         if not self.is_valid_signature(method, body, secret, signature):
             logger.warning("github.webhook.invalid-signature", extra=self.get_logging_data())
+            metrics.incr(
+                "github.webhook.hmac_failure",
+                tags={"reason": "invalid_signature"},
+                sample_rate=1.0,
+            )
             return HttpResponse(status=401)
 
         try:
@@ -1111,4 +1124,25 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                     github_event=github_event,
                     github_delivery_id=github_delivery_id,
                 )
+
+        # Publish the request to the unified SCM (source control management) subscription's
+        # platform. This is a replacement for the handlers defined above. Handlers should be
+        # defined as consumers of the SCM subscriptions Kafka topic.
+        #
+        # NOTE: Publication of the event assumes the event has been properly authorized (as it has
+        #       been above).
+        # NOTE: We are in the correct cell silo at this stage. The IntegrationControlMiddleware
+        #       middleware has handled routing.
+        produce_event_to_scm_stream(
+            {
+                "event_type_hint": request.headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY),
+                "event": request.body.decode("utf-8"),
+                "extra": {},
+                "received_at": int(time.time()),
+                "sentry_meta": None,
+                "type": IntegrationProviderSlug.GITHUB.value,
+            },
+            silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
+        )
+
         return HttpResponse(status=204)

@@ -2,10 +2,10 @@ import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import Confirm from 'sentry/components/confirm';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Confirm} from 'sentry/components/confirm';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import GroupingStore from 'sentry/stores/groupingStore';
+import {GroupingStore} from 'sentry/stores/groupingStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';

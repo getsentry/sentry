@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import type {EventGroupComponent} from 'sentry/types/event';
 
-import GroupingComponent from './groupingComponent';
+import {GroupingComponent} from './groupingComponent';
 import {GroupingComponentListItem} from './groupingComponentFrames';
 import {groupingComponentFilter} from './utils';
 
@@ -13,7 +13,7 @@ type Props = {
   showNonContributing: boolean;
 };
 
-function GroupingComponentChildren({component, showNonContributing}: Props) {
+export function GroupingComponentChildren({component, showNonContributing}: Props) {
   return (
     <Fragment>
       {component.values
@@ -66,5 +66,3 @@ const GroupingValue = styled('code')<{
         : theme.tokens.content.secondary};
     `}
 `;
-
-export default GroupingComponentChildren;

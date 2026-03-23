@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import EAPField from 'sentry/views/alerts/rules/metric/eapField';
+import {EAPField} from 'sentry/views/alerts/rules/metric/eapField';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 describe('EAPField', () => {

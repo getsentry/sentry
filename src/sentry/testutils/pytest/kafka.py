@@ -1,10 +1,13 @@
 import logging
+import threading
 import time
 from collections.abc import MutableMapping
 
 import pytest
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import AdminClient
+
+from sentry.testutils.pytest import xdist
 
 _log = logging.getLogger(__name__)
 
@@ -71,10 +74,8 @@ def scope_consumers():
 
     """
     all_consumers: MutableMapping[str, Consumer | None] = {
-        # Relay is configured to use this topic for all ingest messages. See
-        # `templates/config.yml`.
-        "ingest-events": None,
-        "outcomes": None,
+        xdist.get_kafka_topic("ingest-events"): None,
+        xdist.get_kafka_topic("outcomes"): None,
     }
 
     yield all_consumers
@@ -84,7 +85,11 @@ def scope_consumers():
             try:
                 # stop the consumer
                 consumer.signal_shutdown()
-                consumer.run()
+                t = threading.Thread(target=consumer.run, daemon=True)
+                t.start()
+                t.join(timeout=5)
+                if t.is_alive():
+                    _log.warning("Consumer %s shutdown timed out, skipping", consumer_name)
             except Exception:
                 _log.warning("Failed to cleanup consumer %s", consumer_name)
 
@@ -106,10 +111,8 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         from sentry.consumers import get_stream_processor
         from sentry.utils.batching_kafka_consumer import create_topics
 
-        # Relay is configured to use this topic for all ingest messages. See
-        # `template/config.yml`.
         cluster_name = "default"
-        topic_event_name = "ingest-events"
+        topic_event_name = xdist.get_kafka_topic("ingest-events")
 
         if scope_consumers[topic_event_name] is not None:
             # reuse whatever was already created (will ignore the settings)
@@ -120,8 +123,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         admin.delete_topic(topic_event_name)
         create_topics(cluster_name, [topic_event_name])
 
-        # simulate the event ingestion task
-        group_id = "test-consumer"
+        group_id = xdist.get_kafka_topic("test-consumer")
 
         consumer = get_stream_processor(
             "ingest-attachments",

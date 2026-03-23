@@ -6,7 +6,7 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
@@ -17,13 +17,13 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar, isFieldsSimilar} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import Measurements from 'sentry/utils/measurements/measurements';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {Measurements} from 'sentry/utils/measurements/measurements';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
-import TableView from './tableView';
+import {TableView} from './tableView';
 
 type TableProps = {
   api: Client;

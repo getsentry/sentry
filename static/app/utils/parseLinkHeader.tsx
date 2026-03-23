@@ -5,7 +5,7 @@ export interface ParsedHeader {
 }
 type Result = Record<string, ParsedHeader>;
 
-export default function parseLinkHeader(header: string | null): Result {
+export function parseLinkHeader(header: string | null): Result {
   if (header === null || header === '') {
     return {};
   }

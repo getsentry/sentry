@@ -1,4 +1,4 @@
-function NumberPreview() {
+export function NumberPreview() {
   return (
     <svg
       viewBox="0 0 70 17"
@@ -12,5 +12,3 @@ function NumberPreview() {
     </svg>
   );
 }
-
-export default NumberPreview;

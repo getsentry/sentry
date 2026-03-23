@@ -5,11 +5,11 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Confirm from 'sentry/components/confirm';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import ToolbarHeader from 'sentry/components/toolbarHeader';
+import {Confirm} from 'sentry/components/confirm';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
-import GroupingStore from 'sentry/stores/groupingStore';
+import {GroupingStore} from 'sentry/stores/groupingStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -10,10 +10,12 @@ import Hook from 'sentry/components/hook';
 import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import useOrganization from 'sentry/utils/useOrganization';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type SentryLogoProps = SVGIconProps & {
   /**
@@ -41,8 +43,23 @@ function BaseFooter({className}: Props) {
   const {state: appState} = useFrontendVersion();
   const organization = useOrganization({allowNull: true});
 
+  const secondaryNavigation = useContext(SecondaryNavigationContext);
+  const hasPageFrame = useHasPageFrameFeature();
+
+  if (hasPageFrame) {
+    // @TODO(JonasBadalic): Remove ~ footer CSS rules once this flag is GA'd
+    return null;
+  }
+
   return (
-    <Container as="footer" background="primary" className={className}>
+    <Container
+      as="footer"
+      background="primary"
+      className={className}
+      borderLeft={
+        hasPageFrame && secondaryNavigation?.view === 'expanded' ? 'secondary' : undefined
+      }
+    >
       <LeftLinks>
         {isSelfHosted && (
           <Fragment>
@@ -139,7 +156,7 @@ const Build = styled('span')`
   margin-left: ${p => p.theme.space.md};
 `;
 
-const Footer = styled(BaseFooter)`
+export const Footer = styled(BaseFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   color: ${p => p.theme.tokens.content.secondary};
@@ -157,5 +174,3 @@ const Footer = styled(BaseFooter)`
     display: none;
   }
 `;
-
-export default Footer;

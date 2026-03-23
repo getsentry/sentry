@@ -4,20 +4,20 @@ import upperFirst from 'lodash/upperFirst';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {Field} from 'sentry/components/forms/types';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
-export type FineTuneField = {
+interface FineTuneField {
   description: string;
   title: string;
   type: 'select';
   defaultValue?: string;
   options?: Array<SelectValue<string>>;
-};
+}
 
 // TODO: clean up unused fields
 export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {

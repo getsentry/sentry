@@ -24,6 +24,7 @@ import {
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
@@ -165,7 +166,7 @@ function ToolbarVisualize() {
     [setVisualizes, visualizes]
   );
 
-  const onDelete = useCallback(
+  const handleDelete = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.toSpliced(group, 1).map(visualize => {
         return visualize.serialize();
@@ -183,11 +184,11 @@ function ToolbarVisualize() {
       <ToolbarVisualizeHeader />
       {visualizes.map((visualize, group) => {
         if (isVisualizeFunction(visualize)) {
+          const onDelete = canDelete ? () => handleDelete(group) : undefined;
           return (
             <VisualizeDropdown
               key={group}
-              canDelete={canDelete}
-              onDelete={() => onDelete(group)}
+              onDelete={onDelete}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
               sortedBooleanKeys={sortedBooleanKeys}
@@ -212,20 +213,18 @@ function ToolbarVisualize() {
 }
 
 interface VisualizeDropdownProps {
-  canDelete: boolean;
   loading: boolean;
   onClose: () => void;
-  onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
   onSearch: (search: string) => void;
   sortedBooleanKeys: string[];
   sortedNumberKeys: string[];
   sortedStringKeys: string[];
   visualize: VisualizeFunction;
+  onDelete?: () => void;
 }
 
 function VisualizeDropdown({
-  canDelete,
   loading,
   onDelete,
   onReplace,
@@ -324,7 +323,6 @@ function VisualizeDropdown({
     <ToolbarVisualizeDropdown
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
-      canDelete={canDelete}
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
@@ -362,46 +360,13 @@ function ToolbarGroupBy() {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
-  const options = useMemo(() => {
-    const seen = new Set<string>();
-    return [
-      {
-        label: '\u2014',
-        value: '',
-        textValue: '\u2014',
-      },
-      ...Object.keys(numberTags ?? {}).map(key => {
-        return optionFromTag(
-          {key, name: prettifyTagKey(key), kind: FieldKind.MEASUREMENT},
-          TraceItemDataset.LOGS
-        );
-      }),
-      ...Object.keys(stringTags ?? {}).map(key => {
-        return optionFromTag(
-          {key, name: prettifyTagKey(key), kind: FieldKind.TAG},
-          TraceItemDataset.LOGS
-        );
-      }),
-      ...Object.keys(booleanTags ?? {}).map(key => {
-        return optionFromTag(
-          {key, name: prettifyTagKey(key), kind: FieldKind.BOOLEAN},
-          TraceItemDataset.LOGS
-        );
-      }),
-    ]
-      .filter(option => {
-        // Filtering by value here, so it's based off of explicit tags i.e. `key`
-        // or `tags[<key>, <boolean | number | string>]
-        if (seen.has(option.value)) return false;
-        seen.add(option.value);
-        return true;
-      })
-      .toSorted((a, b) => {
-        const aLabel = prettifyTagKey(a.value);
-        const bLabel = prettifyTagKey(b.value);
-        return aLabel.localeCompare(bLabel);
-      });
-  }, [booleanTags, numberTags, stringTags]);
+  const options = useGroupByFields({
+    numberTags: numberTags ?? {},
+    stringTags: stringTags ?? {},
+    booleanTags: booleanTags ?? {},
+    groupBys,
+    traceItemType: TraceItemDataset.LOGS,
+  });
 
   const setGroupBysWithOp = useCallback(
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
@@ -439,6 +404,7 @@ function ToolbarGroupBy() {
               onSearch={onSearch}
               onClose={onClose}
               loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+              fieldDefinitionType="log"
             />
           ))}
           <ToolbarFooter>

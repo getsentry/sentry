@@ -25,7 +25,7 @@ describe('marked', () => {
       ['[x](mailto:foo@example.com)', '<a href="mailto:foo@example.com">x</a>'],
       [
         '[x](https://example.com "Example Title")',
-        '<a title="Example Title" href="https://example.com">x</a>',
+        '<a href="https://example.com" title="Example Title">x</a>',
       ],
     ]) {
       expectMarkdown(test);
@@ -49,9 +49,9 @@ describe('marked', () => {
 
   it('normal images get rendered as html', () => {
     for (const test of [
-      ['![](http://example.com)', '<img alt="" src="http://example.com">'],
-      ['![x](http://example.com)', '<img alt="x" src="http://example.com">'],
-      ['![x](https://example.com)', '<img alt="x" src="https://example.com">'],
+      ['![](http://example.com)', '<img src="http://example.com" alt="">'],
+      ['![x](http://example.com)', '<img src="http://example.com" alt="x">'],
+      ['![x](https://example.com)', '<img src="https://example.com" alt="x">'],
     ]) {
       expectMarkdown(test);
     }
@@ -75,7 +75,7 @@ describe('marked', () => {
       ],
       [
         '[x](https://evil.example.com "class=\\"bar")',
-        '<a title="class=&quot;bar" href="https://evil.example.com">x</a>',
+        '<a href="https://evil.example.com" title="class=&quot;bar">x</a>',
       ],
     ].forEach(expectMarkdown);
     expect(sanitizedMarked('<script> <img <script> src=x onerror=alert(1) />')).toBe('');
@@ -114,7 +114,7 @@ describe('marked', () => {
       ],
       [
         '[x](https://evil.example.com "class=\\"bar")',
-        '<a title="class=&quot;bar" href="https://evil.example.com">x</a>',
+        '<a href="https://evil.example.com" title="class=&quot;bar">x</a>',
       ],
     ];
     for (const test of tests) {
@@ -130,6 +130,88 @@ describe('marked', () => {
     expect(sanitizedMarked(markdown)).toBe(
       `<pre><code class="language-javascript">const x = 1;\n</code></pre>\n`
     );
+  });
+
+  it('strips style tags', () => {
+    const result1 = sanitizedMarked('<style>body { color: red; }</style>hello');
+    expect(result1).not.toContain('<style');
+    expect(result1).not.toContain('color: red');
+
+    const result2 = sanitizedMarked('text<style>.x{background:url(evil)}</style>');
+    expect(result2).not.toContain('<style');
+    expect(result2).toContain('text');
+  });
+
+  it('strips form elements', () => {
+    const formHtml = sanitizedMarked(
+      '<form action="/evil"><input name="csrf"><button>click</button></form>'
+    );
+    expect(formHtml).not.toContain('<form');
+    expect(formHtml).not.toContain('<input');
+    expect(formHtml).not.toContain('<button');
+
+    expect(sanitizedMarked('<select><option>a</option></select>')).not.toContain(
+      '<select'
+    );
+    expect(sanitizedMarked('<textarea>injected</textarea>')).not.toContain('<textarea');
+  });
+
+  it('strips iframe, object, and embed tags', () => {
+    expect(sanitizedMarked('<iframe src="https://evil.com"></iframe>')).not.toContain(
+      '<iframe'
+    );
+    expect(sanitizedMarked('<object data="evil.swf"></object>')).not.toContain('<object');
+    expect(sanitizedMarked('<embed src="evil.swf">')).not.toContain('<embed');
+  });
+
+  it('strips style attributes', () => {
+    const result1 = sanitizedMarked('<p style="color:red">text</p>');
+    expect(result1).toContain('<p>text</p>');
+    expect(result1).not.toContain('style');
+
+    const result2 = sanitizedMarked('a <span style="background:url(evil)">x</span> b');
+    expect(result2).toContain('<span>x</span>');
+    expect(result2).not.toContain('style');
+  });
+
+  it('strips event handler attributes', () => {
+    const imgResult = sanitizedMarked('<img src="x" onerror="alert(1)">');
+    expect(imgResult).toContain('<img src="x">');
+    expect(imgResult).not.toContain('onerror');
+
+    const linkResult = sanitizedMarked(
+      'a <a href="https://ok.com" onclick="alert(1)">link</a> b'
+    );
+    expect(linkResult).toContain('<a href="https://ok.com">link</a>');
+    expect(linkResult).not.toContain('onclick');
+  });
+
+  it('preserves allowed markdown HTML', () => {
+    // Bold, italic, code, links, images, lists, tables, blockquotes, headings
+    expect(sanitizedMarked('**bold** *italic* `code`')).toBe(
+      '<p><strong>bold</strong> <em>italic</em> <code>code</code></p>\n'
+    );
+    expect(sanitizedMarked('- item 1\n- item 2')).toBe(
+      '<ul>\n<li>item 1</li>\n<li>item 2</li>\n</ul>\n'
+    );
+    expect(sanitizedMarked('> quote')).toBe(
+      '<blockquote>\n<p>quote</p>\n</blockquote>\n'
+    );
+    expect(sanitizedMarked('# heading')).toBe('<h1>heading</h1>\n');
+    expect(sanitizedMarked('---')).toBe('<hr>\n');
+  });
+
+  it('strips dangerous tags via asyncSanitizedMarked', async () => {
+    const styleResult = await asyncSanitizedMarked('<style>body{color:red}</style>hello');
+    expect(styleResult).not.toContain('<style');
+    expect(styleResult).toContain('hello');
+
+    const formResult = await asyncSanitizedMarked(
+      '<form><input><button>x</button></form>'
+    );
+    expect(formResult).not.toContain('<form');
+    expect(formResult).not.toContain('<input');
+    expect(formResult).not.toContain('<button');
   });
 
   it('renders syntax highlighting via asyncSanitizedMarked', async () => {

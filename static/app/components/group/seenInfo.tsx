@@ -6,9 +6,9 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
@@ -27,7 +27,7 @@ type Props = {
   release?: Release;
 };
 
-function SeenInfo({
+export function SeenInfo({
   date,
   dateGlobal,
   environment,
@@ -154,5 +154,3 @@ const StyledHovercard = styled(Hovercard)`
     padding: ${p => p.theme.space.lg};
   }
 `;
-
-export default SeenInfo;

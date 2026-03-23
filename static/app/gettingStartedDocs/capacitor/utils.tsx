@@ -58,13 +58,11 @@ const isVue = (siblingOption: string): boolean =>
   siblingOption === SiblingOption.VUE2 || siblingOption === SiblingOption.VUE3;
 
 function getPerformanceIntegration(siblingOption: string): string {
-  return `${
-    isVue(siblingOption)
-      ? `routingInstrumentation: SentryVue.vueRouterInstrumentation(router),`
-      : isAngular(siblingOption)
-        ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
-        : ''
-  }`;
+  return isVue(siblingOption)
+    ? `routingInstrumentation: SentryVue.vueRouterInstrumentation(router),`
+    : isAngular(siblingOption)
+      ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
+      : '';
 }
 
 const performanceAngularErrorHandler = `,

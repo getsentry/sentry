@@ -5,7 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
-import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
+import {AutofixInsightSources} from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import type {TimelineItemProps} from 'sentry/components/timeline';
 import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
@@ -159,7 +159,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: ${p => p.theme.space[0]} ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space['0']} ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   font-weight: ${p => p.theme.font.weight.sans.regular};

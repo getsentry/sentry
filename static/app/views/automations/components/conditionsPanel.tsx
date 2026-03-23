@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -26,7 +26,7 @@ type ConditionsPanelProps = {
   triggers: DataConditionGroup | null;
 };
 
-function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
+export function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
       <ConditionGroupWrapper>
@@ -195,5 +195,3 @@ const IconPadding = styled('span')`
   height: 100%;
   vertical-align: middle;
 `;
-
-export default ConditionsPanel;

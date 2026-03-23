@@ -1,38 +1,35 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
-import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import routeTitleGen from 'sentry/utils/routeTitle';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
-import CreateProjectButton from 'sentry/views/settings/organizationProjects/createProjectButton';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {ProjectItem} from 'sentry/views/settings/components/settingsProjectItem';
+import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/createProjectButton';
 
-import ProjectStatsGraph from './projectStatsGraph';
+import {ProjectStatsGraph} from './projectStatsGraph';
 
 const ITEMS_PER_PAGE = 50;
-
-type ProjectStats = Record<string, Required<Project['stats']>>;
 
 function OrganizationProjects() {
   const organization = useOrganization();
@@ -41,7 +38,6 @@ function OrganizationProjects() {
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
-  const time = useRef(Date.now());
   const {
     data: projectList,
     getResponseHeader,
@@ -57,30 +53,11 @@ function OrganizationProjects() {
           ...location.query,
           query,
           per_page: ITEMS_PER_PAGE,
+          statsPeriod: '24h',
         },
       },
     ],
     {staleTime: 0}
-  );
-
-  const {data: projectStats, isPending: isLoadingStats} = useApiQuery<ProjectStats>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/stats/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          projectID: projectList?.map(p => p.id),
-          since: time.current / 1000 - 3600 * 24,
-          stat: 'generated',
-          group: 'project',
-        },
-      },
-    ],
-    {
-      staleTime: 60_000,
-      enabled: !!projectList,
-    }
   );
 
   const projectListPageLinks = getResponseHeader?.('Link');
@@ -92,14 +69,13 @@ function OrganizationProjects() {
         (searchQuery: string) =>
           navigate(
             {
-              pathname: location.pathname,
               query: {...location.query, query: searchQuery, cursor: undefined},
             },
             {replace: true}
           ),
         DEFAULT_DEBOUNCE_DURATION
       ),
-    [location.pathname, location.query, navigate]
+    [location.query, navigate]
   );
 
   return (
@@ -124,17 +100,10 @@ function OrganizationProjects() {
             sortProjects(projectList).map(project => (
               <GridPanelItem key={project.id}>
                 <ProjectListItemWrapper>
-                  <ProjectListItem project={project} organization={organization} />
+                  <ProjectItem project={project} organization={organization} />
                 </ProjectListItemWrapper>
                 <ProjectStatsGraphWrapper>
-                  {isLoadingStats && <Placeholder height="25px" />}
-                  {projectStats && (
-                    <ProjectStatsGraph
-                      key={project.id}
-                      project={project}
-                      stats={projectStats[project.id]}
-                    />
-                  )}
+                  <ProjectStatsGraph project={project} />
                 </ProjectStatsGraphWrapper>
               </GridPanelItem>
             ))}

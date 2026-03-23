@@ -251,7 +251,11 @@ export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {
   let highs = 0;
   let nulls = 0;
 
-  for (const s of series) {
+  // We filter the series because there are cases where the series is a sparse array,
+  // meaning we have possible undefined values. This typically happens in multi-yaxis
+  // charts when we have a grouping so the data is positioned in such a way to make
+  // series colors consistent when rendering
+  for (const s of series.filter(defined)) {
     const confidence = determineTimeSeriesConfidence(s);
     if (confidence === 'low') {
       lows += 1;
@@ -708,6 +712,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
   [TraceItemDataset.PREPROD]: undefined,
   [TraceItemDataset.REPLAYS]: getReplayUrlFromSavedQueryUrl,
+  [TraceItemDataset.PROCESSING_ERRORS]: undefined,
 };
 
 /**

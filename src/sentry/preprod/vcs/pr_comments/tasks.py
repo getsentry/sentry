@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from enum import StrEnum
 from typing import Any
 
 from django.db import router, transaction
+from taskbroker_client.retry import Retry
 
 from sentry import features
 from sentry.models.commitcomparison import CommitComparison
@@ -16,7 +18,6 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigura
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.create_preprod_pr_comment",
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
     retry=Retry(times=5, delay=60 * 5),
 )
 def create_preprod_pr_comment_task(
@@ -69,6 +70,15 @@ def create_preprod_pr_comment_task(
         )
         return
 
+    if not artifact.project.get_option(
+        "sentry:preprod_distribution_pr_comments_enabled_by_customer"
+    ):
+        logger.info(
+            "preprod.pr_comments.create.project_disabled",
+            extra={"artifact_id": artifact.id, "project_id": artifact.project.id},
+        )
+        return
+
     organization = artifact.project.organization
     if not features.has("organizations:preprod-build-distribution-pr-comments", organization):
         logger.info(
@@ -87,21 +97,39 @@ def create_preprod_pr_comment_task(
         )
         return
 
-    # Use select_for_update on the commit_comparison row to serialize
-    # concurrent tasks for the same commit.  This prevents duplicate
-    # comments when multiple builds finish at the same time and also
-    # guarantees a fresh read of extras (where the comment_id lives).
+    # Lock ALL CommitComparison rows for this PR, ordered by id to prevent
+    # deadlocks.  This serializes tasks across different commits on the same
+    # PR, preventing duplicate comments when a new commit is pushed before
+    # the previous task finishes.
     api_error: Exception | None = None
 
     with transaction.atomic(router.db_for_write(CommitComparison)):
-        cc = CommitComparison.objects.select_for_update().get(id=commit_comparison.id)
+        all_for_pr = list(
+            CommitComparison.objects.select_for_update()
+            .filter(
+                organization_id=commit_comparison.organization_id,
+                head_repo_name=commit_comparison.head_repo_name,
+                pr_number=commit_comparison.pr_number,
+            )
+            .order_by("id")
+        )
+
+        # Re-read our row from the locked set. The row could theoretically
+        # be deleted between the initial fetch and the lock acquisition, but
+        # CommitComparison rows are never deleted in practice today.
+        try:
+            cc = next(c for c in all_for_pr if c.id == commit_comparison.id)
+        except StopIteration:
+            raise CommitComparison.DoesNotExist(
+                f"CommitComparison {commit_comparison.id} was deleted before lock acquisition"
+            )
 
         siblings = artifact.get_sibling_artifacts_for_commit()
         installable_siblings = [s for s in siblings if is_installable_artifact(s)]
         if not installable_siblings:
             return
 
-        existing_comment_id = _find_existing_comment_id(cc)
+        existing_comment_id = _find_existing_comment_id(all_for_pr)
         comment_body = format_pr_comment(installable_siblings)
 
         try:
@@ -146,12 +174,14 @@ def create_preprod_pr_comment_task(
         raise api_error
 
 
-def _find_existing_comment_id(commit_comparison: CommitComparison) -> str | None:
-    extras = commit_comparison.extras or {}
-    build_dist = extras.get("pr_comments", {}).get("build_distribution", {})
-    comment_id = build_dist.get("comment_id")
-    if comment_id:
-        return str(comment_id)
+def _find_existing_comment_id(
+    comparisons: Sequence[CommitComparison],
+) -> str | None:
+    for cc in comparisons:
+        extras = cc.extras or {}
+        comment_id = extras.get("pr_comments", {}).get("build_distribution", {}).get("comment_id")
+        if comment_id:
+            return str(comment_id)
     return None
 
 

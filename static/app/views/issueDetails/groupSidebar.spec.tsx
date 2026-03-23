@@ -14,10 +14,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 
-import GroupSidebar from './groupSidebar';
+import {GroupSidebar} from './groupSidebar';
 
 describe('GroupSidebar', () => {
   let group = GroupFixture();

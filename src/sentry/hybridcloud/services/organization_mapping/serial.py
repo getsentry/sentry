@@ -6,7 +6,7 @@ from sentry.hybridcloud.services.organization_mapping.model import CustomerId
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import RpcOrganizationMappingFlags
-from sentry.types.region import Cell
+from sentry.types.cell import Cell
 
 
 def update_organization_mapping_from_instance(
@@ -39,7 +39,7 @@ def serialize_organization_mapping(org_mapping: OrganizationMapping) -> RpcOrgan
         id=org_mapping.organization_id,
         slug=org_mapping.slug,
         name=org_mapping.name,
-        region_name=org_mapping.region_name,
+        region_name=org_mapping.cell_name,
         date_created=org_mapping.date_created,
         customer_id=org_mapping.customer_id,
         status=org_mapping.status,

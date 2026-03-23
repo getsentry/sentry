@@ -25,7 +25,7 @@ import {
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChat, IconChevron, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -33,14 +33,14 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
-import AutofixHighlightPopup from './autofixHighlightPopup';
+import {AutofixHighlightPopup} from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
 
 function useSelectRootCause({groupId, runId}: {groupId: string; runId: string}) {
@@ -224,9 +224,11 @@ export function formatRootCauseText(
 
 function CopyRootCauseButton({
   cause,
+  groupId,
   customRootCause,
   event,
 }: {
+  groupId: string;
   cause?: AutofixRootCauseData;
   customRootCause?: string;
   event?: Event;
@@ -241,6 +243,7 @@ function CopyRootCauseButton({
       onClick={() => copy(text, {successMessage: t('Analysis copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
+      analyticsParams={{group_id: groupId}}
       icon={<IconCopy />}
     >
       {t('Copy')}
@@ -526,9 +529,11 @@ function AutofixRootCauseDisplay({
 
     setSolutionText('');
 
-    trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
+    trackAnalytics('autofix.coding_agent.launch', {
       organization,
       group_id: groupId,
+      step: 'root_cause',
+      provider: integration.provider,
     });
     trackAnalytics('coding_integration.send_to_agent_clicked', {
       organization,
@@ -573,6 +578,7 @@ function AutofixRootCauseDisplay({
           <Flex justify="end" align="center" paddingTop="xl" gap="md">
             <ButtonBar>
               <CopyRootCauseButton
+                groupId={groupId}
                 customRootCause={rootCauseSelection.custom_root_cause}
                 event={event}
               />
@@ -605,6 +611,7 @@ function AutofixRootCauseDisplay({
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Root Cause Chat"
             analyticsEventKey="autofix.root_cause.chat"
+            analyticsParams={{group_id: groupId}}
           >
             <IconChat />
           </Button>
@@ -658,7 +665,7 @@ function AutofixRootCauseDisplay({
           }}
         />
         <ButtonBar>
-          <CopyRootCauseButton cause={cause} event={event} />
+          <CopyRootCauseButton groupId={groupId} cause={cause} event={event} />
           <SolutionActionButton
             codingAgentIntegrations={codingAgentIntegrations}
             preferredAction={preferredAction}

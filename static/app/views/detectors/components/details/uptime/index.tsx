@@ -6,13 +6,13 @@ import {Text} from '@sentry/scraps/text';
 
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
-import Placeholder from 'sentry/components/placeholder';
-import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Placeholder} from 'sentry/components/placeholder';
+import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {DetailsTimeline} from 'sentry/views/alerts/rules/uptime/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/alerts/rules/uptime/detailsTimelineLegend';
 import {
