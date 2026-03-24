@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
@@ -6,7 +8,9 @@ from sentry.search.events.filter import to_list
 from sentry.search.events.types import SnubaParams
 
 
-def issue_filter_converter(params: SnubaParams, search_filter: SearchFilter) -> list[SearchFilter]:
+def issue_filter_converter(
+    params: SnubaParams, search_filter: SearchFilter, resolver: Any = None
+) -> list[SearchFilter]:
     """
     Map ``issue`` search filters onto ``group_id``.
     """
@@ -20,7 +24,7 @@ def issue_filter_converter(params: SnubaParams, search_filter: SearchFilter) -> 
     if not short_ids:
         return _convert_has_issue_filter(search_filter, group_id_key)
 
-    resolved_ids = _get_group_ids(params, short_ids)
+    resolved_ids = _get_group_ids(params, short_ids, resolver)
     if search_filter.is_in_filter:
         mapped_value = resolved_ids
     else:
@@ -35,16 +39,21 @@ def issue_filter_converter(params: SnubaParams, search_filter: SearchFilter) -> 
     ]
 
 
-def _get_group_ids(params: SnubaParams, issue_identifiers: list[str]) -> list[int]:
-    cached_issue_ids = set(issue_identifiers).intersection(
-        params.issue_qualified_short_id_to_group_id.keys()
+def _get_group_ids(
+    params: SnubaParams, issue_identifiers: list[str], resolver: Any = None
+) -> list[int]:
+    cache: dict = (
+        resolver._issue_qualified_short_id_to_group_id_cache if resolver is not None else {}
     )
+    primed = {}
+    for project_id in params.project_ids:
+        primed.update(cache.get(project_id, {}))
+
+    cached_issue_ids = set(issue_identifiers).intersection(primed.keys())
     cached_group_ids = []
     fetched_group_ids = []
     if cached_issue_ids:
-        cached_group_ids = sorted(
-            params.issue_qualified_short_id_to_group_id[issue_id] for issue_id in cached_issue_ids
-        )
+        cached_group_ids = sorted(primed[issue_id] for issue_id in cached_issue_ids)
     remaining_issue_ids = set(issue_identifiers) - cached_issue_ids
     if remaining_issue_ids:
         remaining_issue_ids = list(remaining_issue_ids)

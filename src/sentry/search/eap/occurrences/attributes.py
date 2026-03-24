@@ -1,3 +1,6 @@
+from collections import defaultdict
+from typing import Any
+
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
 from sentry.models.group import Group
@@ -292,27 +295,49 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
 }
 
 
-def issue_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+def _fetch_group_id_issue_value_map(
+    params: SnubaParams, resolver: Any | None
+) -> dict[int, dict[int, str]]:
+    value_map_by_project_id = defaultdict(dict)
+    groups = (
+        Group.objects.filter(project_id__in=params.project_ids)
+        .select_related("project")
+        .order_by("-last_seen")[:ISSUE_VIRTUAL_COLUMN_CONTEXT_MAX_GROUPS]
+    )
+    for group in groups:
+        if group.qualified_short_id:
+            value_map_by_project_id[group.project_id][group.id] = group.qualified_short_id
+    if resolver:
+        resolver._issue_prime_group_id_to_qualified_short_id_cache.update(value_map_by_project_id)
+    return value_map_by_project_id
+
+
+def _flatten_value_map_by_project_id(
+    value_map: dict[int, dict[int, str]], project_ids: list[int]
+) -> dict[int, str]:
+    group_id_map = {}
+    for project_id in project_ids:
+        group_id_map.update(value_map.get(project_id, {}))
+    return group_id_map
+
+
+def issue_context_constructor(params: SnubaParams, resolver: Any = None) -> VirtualColumnContext:
     if params.project_ids is None or len(params.project_ids) == 0:
         raise ValueError("Project IDs required for Issue")
-    value_map = params.group_id_to_issue_qualified_short_id or {}
-    if not value_map:
-        groups = (
-            Group.objects.filter(project_id__in=params.project_ids)
-            .select_related("project")
-            .order_by("-last_seen")[:ISSUE_VIRTUAL_COLUMN_CONTEXT_MAX_GROUPS]
+    value_map: dict[int, str] = {}
+    if resolver is not None:
+        value_map = _flatten_value_map_by_project_id(
+            resolver._issue_prime_group_id_to_qualified_short_id_cache, params.project_ids
         )
-        value_map = {
-            str(group.id): group.qualified_short_id
-            for group in groups
-            if group.qualified_short_id is not None
-        }
-        params.group_id_to_issue_qualified_short_id = value_map
+    if not value_map:
+        value_map_by_project_id = _fetch_group_id_issue_value_map(params, resolver)
+        value_map = _flatten_value_map_by_project_id(value_map_by_project_id, params.project_ids)
 
     return VirtualColumnContext(
         from_column_name="group_id",
         to_column_name="issue",
-        value_map=value_map,
+        # TODO: Remove str conversion of group id after EAP-462
+        value_map={str(key): value for key, value in value_map.items()},
     )
 
 

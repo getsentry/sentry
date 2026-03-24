@@ -1006,7 +1006,9 @@ class RPCBase:
 
                     groupby_value = groupby_attributes[resolved_groupby.internal_name]
                     if context is not None:
-                        groupby_value = context.constructor(params).value_map[groupby_value]
+                        groupby_value = context.constructor(params, search_resolver).value_map[
+                            groupby_value
+                        ]
                         groupby_attributes[resolved_groupby.internal_name] = groupby_value
 
                     remapped_groupby[col] = groupby_value

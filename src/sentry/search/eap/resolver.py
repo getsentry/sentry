@@ -1,3 +1,4 @@
+from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -105,6 +106,12 @@ class SearchResolver:
             VirtualColumnDefinition | None,
         ],
     ] = field(default_factory=dict)
+    _issue_qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(
+        default_factory=dict
+    )
+    _issue_prime_group_id_to_qualified_short_id_cache: dict[int, dict[int, str]] = field(
+        default_factory=dict
+    )
 
     def get_function_definition(
         self, function_name: str
@@ -222,9 +229,7 @@ class SearchResolver:
         self,
         parsed_terms: Sequence[object],
     ) -> None:
-        """
-        One bulk Group lookup for every issue short id in the query, then store maps on params.
-        """
+        """One bulk Group lookup for issue short ids in the query; store maps on this resolver."""
         if "issue" not in self.definitions.filter_aliases or self.params.organization_id is None:
             return
 
@@ -242,13 +247,17 @@ class SearchResolver:
 
         idx = {(g.project.slug.lower(), g.short_id): g for g in groups}
 
-        raw_to_gid: dict[str, int] = {}
+        cache_map = defaultdict(dict)
         for raw in collected:
             parsed = parse_short_id(raw)
-            if parsed is None or (parsed.project_slug, parsed.short_id) not in idx:
-                continue
-            raw_to_gid[raw] = idx.get((parsed.project_slug, parsed.short_id)).id
-        self.params.issue_qualified_short_id_to_group_id = raw_to_gid
+            if parsed is None:
+                raise InvalidIssueSearchQuery(sorted(collected))
+            g = idx.get((parsed.project_slug, parsed.short_id))
+            if g is None:
+                raise InvalidIssueSearchQuery(sorted(collected))
+            cache_map[g.project.id][raw] = g.id
+
+        self._issue_qualified_short_id_to_group_id_cache.update(cache_map)
 
     def __resolve_query(
         self, querystring: str | None
@@ -444,7 +453,7 @@ class SearchResolver:
     ) -> list[str] | str:
         # Convert the term to the expected values
         final_raw_value: str | list[str] = []
-        resolved_context = context.constructor(self.params)
+        resolved_context = context.constructor(self.params, self)
         reversed_context = {v: k for k, v in resolved_context.value_map.items()}
         if isinstance(raw_value, list):
             new_value = []
@@ -489,7 +498,7 @@ class SearchResolver:
 
         converter = self.definitions.filter_aliases.get(name)
         if converter is not None:
-            return converter(self.params, term)
+            return converter(self.params, term, self)
 
         return [term]
 
@@ -716,7 +725,7 @@ class SearchResolver:
         Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
         (see https://github.com/getsentry/eap-planning/issues/236)
         """
-        context = context_definition.constructor(self.params)
+        context = context_definition.constructor(self.params, self)
 
         is_number_column = (
             context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
@@ -747,7 +756,7 @@ class SearchResolver:
         Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
         (see https://github.com/getsentry/eap-planning/issues/236)
         """
-        context = context_definition.constructor(self.params)
+        context = context_definition.constructor(self.params, self)
         is_number_column = (
             context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
         )
@@ -908,7 +917,7 @@ class SearchResolver:
         for context_definition in context_definitions:
             if context_definition is None:
                 continue
-            context = context_definition.constructor(self.params)
+            context = context_definition.constructor(self.params, self)
             if context is None or context.to_column_name in existing_target_columns:
                 continue
             else:
@@ -1340,7 +1349,7 @@ class SearchResolver:
     def remap_value_using_context_definition(
         self, context_definition: VirtualColumnDefinition, value: str | int | list[str] | Any
     ) -> str | int | list[str] | Any:
-        context = context_definition.constructor(self.params)
+        context = context_definition.constructor(self.params, self)
 
         # if the value passed is one of the potential values, then it's expected
         # and we should pass it through as is

@@ -156,7 +156,7 @@ class AttributeArgumentDefinition(BaseArgumentDefinition):
 
 @dataclass
 class VirtualColumnDefinition:
-    constructor: Callable[[SnubaParams], VirtualColumnContext]
+    constructor: Callable[[SnubaParams, Any], VirtualColumnContext]
     # Allows additional processing to the term after its been resolved
     term_resolver: (
         Callable[
@@ -595,8 +595,8 @@ def datetime_processor(datetime_value: str | float) -> str:
 
 def project_context_constructor(
     column_name: str,
-) -> Callable[[SnubaParams], VirtualColumnContext]:
-    def context_constructor(params: SnubaParams) -> VirtualColumnContext:
+) -> Callable[[SnubaParams, Any], VirtualColumnContext]:
+    def context_constructor(params: SnubaParams, resolver: Any = None) -> VirtualColumnContext:
         return VirtualColumnContext(
             from_column_name="sentry.project_id",
             to_column_name=column_name,
@@ -625,7 +625,7 @@ class ColumnDefinitions:
     columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType
-    filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], list[SearchFilter]]]
+    filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter, Any], list[SearchFilter]]]
     alias_to_column: Callable[[str], str | None] | None
     column_to_alias: Callable[[str], str | None] | None
 
