@@ -70,20 +70,20 @@ _COUNTER_QUOTA_LIMIT = 2_000_000_000
 
 class TripStrategy(Protocol):
     def primary_quota_limit(self) -> int:
-        """Capacity for the primary (OK state) error counter. Default is effectively unlimited."""
+        """Total hit capacity for the primary (OK state) error counter."""
         ...
 
     def recovery_quota_limit(self) -> int:
-        """Capacity for the recovery state error counter. Default is effectively unlimited."""
+        """Total hit capacity for the recovery state error counter."""
         ...
 
     def initialize(self, key: str, window: int, window_granularity: int) -> None:
-        """Set up any Redis quotas needed. Called by CircuitBreaker.__init__. Default is a no-op."""
+        """Set up any Redis quotas needed. Called by CircuitBreaker.__init__."""
         ...
 
-    def tracking_quotas(self) -> list[Quota]:
+    def tracking_quotas(self, is_recovery: bool = False) -> list[Quota]:
         """Extra quotas to increment on every request (both record_error and record_success).
-        count-based strategies shouldn't track total requests."""
+        count-based trip strategies shouldn't track total requests."""
         ...
 
     def should_trip(
@@ -96,9 +96,7 @@ class TripStrategy(Protocol):
         *,
         is_recovery: bool = False,
     ) -> bool:
-        """Whether the current error count/rate warrants tripping to BROKEN.
-        `remaining_errors` is pre-computed by the breaker via _get_remaining_error_quota.
-        `is_recovery` is True when the controlling quota is the recovery quota."""
+        """Whether the current error count/rate warrants tripping to BROKEN."""
         ...
 
 
@@ -139,7 +137,7 @@ class CountBasedTripStrategy(TripStrategy):
     def recovery_quota_limit(self) -> int:
         return self._recovery_error_limit
 
-    def tracking_quotas(self) -> list[Quota]:
+    def tracking_quotas(self, is_recovery: bool = False) -> list[Quota]:
         return []
 
     def should_trip(
@@ -164,6 +162,7 @@ class RateBasedTripStrategy(TripStrategy):
         self.threshold = threshold
         self.floor = floor
         self._total_requests_quota: Quota | None = None
+        self._recovery_total_requests_quota: Quota | None = None
 
     def initialize(self, key: str, window: int, window_granularity: int) -> None:
         self._total_requests_quota = Quota(
@@ -173,14 +172,29 @@ class RateBasedTripStrategy(TripStrategy):
             f"{key}.circuit_breaker.total_requests",
         )
 
-    def tracking_quotas(self) -> list[Quota]:
-        return [self._total_requests_quota] if self._total_requests_quota else []
+        self._recovery_total_requests_quota = Quota(
+            window,
+            window_granularity,
+            _COUNTER_QUOTA_LIMIT,
+            f"{key}.circuit_breaker.recovery.total_recovery_requests",
+        )
 
     def primary_quota_limit(self) -> int:
         return _COUNTER_QUOTA_LIMIT
 
     def recovery_quota_limit(self) -> int:
         return _COUNTER_QUOTA_LIMIT
+
+    def tracking_quotas(self, is_recovery: bool = False) -> list[Quota]:
+        if self._recovery_total_requests_quota is None or self._total_requests_quota is None:
+            raise ValueError("Cannot get tracking quotas before initialization")
+
+        # We need to track the number of requests in the recovery state to get an accurate error rate
+        return (
+            [self._recovery_total_requests_quota, self._total_requests_quota]
+            if is_recovery
+            else [self._total_requests_quota]
+        )
 
     def should_trip(
         self,
@@ -196,11 +210,18 @@ class RateBasedTripStrategy(TripStrategy):
         if error_count < self.floor:
             return False
 
-        assert self._total_requests_quota is not None
         # total_grants is the number of remaining requests out of the quota limit,
         # so we need to subtract it from the quota limit to get the number of requests counted
+        controlling_total_requests_quota = (
+            self._recovery_total_requests_quota if is_recovery else self._total_requests_quota
+        )
+
+        if controlling_total_requests_quota is None:
+            raise ValueError("Cannot get controlling total requests quota before initialization")
+
         _, total_grants = limiter.check_within_quotas(
-            [RequestedQuota(key, _COUNTER_QUOTA_LIMIT, [self._total_requests_quota])], window_end
+            [RequestedQuota(key, _COUNTER_QUOTA_LIMIT, [controlling_total_requests_quota])],
+            window_end,
         )
         total_requests_counted = _COUNTER_QUOTA_LIMIT - total_grants[0].granted
 
@@ -366,13 +387,17 @@ class CircuitBreaker:
 
     def record_success(self) -> None:
         """Record a successful request. Only meaningful when a strategy tracks total requests."""
-        tracking = [q for s in self.trip_strategies for q in s.tracking_quotas()]
-        if not tracking:
-            return
-
         now = int(time.time())
         state, _ = self._get_state_and_remaining_time()
         if state == CircuitBreakerState.BROKEN:
+            return
+
+        tracking = [
+            q
+            for s in self.trip_strategies
+            for q in s.tracking_quotas(is_recovery=state == CircuitBreakerState.RECOVERY)
+        ]
+        if not tracking:
             return
 
         # Tell the limiter to increment the key by 1 for each tracking quota
@@ -382,8 +407,8 @@ class CircuitBreaker:
             now,
         )
 
-    def _should_trip(self, controlling_quota: Quota, window_end: int | None = None) -> bool:
-        window_end_time = window_end or int(time.time())
+    def _should_trip(self, controlling_quota: Quota) -> bool:
+        window_end_time = int(time.time())
         remaining = self._get_remaining_error_quota(controlling_quota, window_end_time)
         is_recovery = controlling_quota is self.recovery_quota
         return any(
@@ -429,12 +454,17 @@ class CircuitBreaker:
             if state == CircuitBreakerState.RECOVERY
             else [self.primary_quota]
         )
-        quotas = [*quotas, *[q for s in self.trip_strategies for q in s.tracking_quotas()]]
+        quotas = [
+            *quotas,
+            *[
+                q
+                for s in self.trip_strategies
+                for q in s.tracking_quotas(is_recovery=state == CircuitBreakerState.RECOVERY)
+            ],
+        ]
 
         self.limiter.use_quotas(
             [RequestedQuota(self.key, 1, quotas)],
-            # GrantedQuota with quotas=[] bypasses limit enforcement — errors should always be
-            # recorded unconditionally, so we pre-authorize the increment.
             [GrantedQuota(self.key, 1, [])],
             now,
         )
