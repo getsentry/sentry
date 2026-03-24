@@ -39,6 +39,11 @@ export type OnboardingEventParameters = {
     project_id: string;
     step: string;
   };
+  'onboarding.scm_connect_repo_selected': {
+    provider: string;
+    repo: string;
+  };
+  'onboarding.scm_connect_step_viewed': Record<string, never>;
   'onboarding.select_framework_modal_close_button_clicked': {
     platform: string;
   };
@@ -101,4 +106,6 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
   'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
+  'onboarding.scm_connect_repo_selected': 'Onboarding: SCM Connect Repo Selected',
+  'onboarding.scm_connect_step_viewed': 'Onboarding: SCM Connect Step Viewed',
 };

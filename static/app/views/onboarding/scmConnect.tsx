@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -10,6 +10,7 @@ import {useOnboardingContext} from 'sentry/components/onboarding/onboardingConte
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -41,6 +42,10 @@ export function ScmConnect({onComplete}: StepProps) {
 
   // Derive integration from explicit selection, falling back to existing
   const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
+
+  useEffect(() => {
+    trackAnalytics('onboarding.scm_connect_step_viewed', {organization});
+  }, [organization]);
 
   const handleInstall = useCallback(
     (data: Integration) => {
@@ -102,9 +107,25 @@ export function ScmConnect({onComplete}: StepProps) {
       </Stack>
 
       <Flex gap="md" align="center">
-        <Button onClick={() => onComplete()}>{t('Skip for now')}</Button>
+        <Button
+          analyticsEventKey="onboarding.scm_connect_skip_clicked"
+          analyticsEventName="Onboarding: SCM Connect Skip Clicked"
+          analyticsParams={{
+            has_integration: !!effectiveIntegration,
+            has_repo: !!selectedRepository,
+          }}
+          onClick={() => onComplete()}
+        >
+          {t('Skip for now')}
+        </Button>
         <Button
           priority="primary"
+          analyticsEventKey="onboarding.scm_connect_continue_clicked"
+          analyticsEventName="Onboarding: SCM Connect Continue Clicked"
+          analyticsParams={{
+            provider: effectiveIntegration?.provider.key ?? '',
+            repo: selectedRepository?.name ?? '',
+          }}
           onClick={() => {
             if (effectiveIntegration && !selectedIntegration) {
               setSelectedIntegration(effectiveIntegration);
