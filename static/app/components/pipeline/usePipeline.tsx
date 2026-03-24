@@ -216,8 +216,7 @@ export function usePipeline<T extends RegisteredPipelineType>(
 
     // Widen from the specific union of component types to the general
     // PipelineStepDefinition component type so createElement accepts it.
-    const Component: React.ComponentType<PipelineStepProps<any, any>> =
-      stepDefinition.component;
+    const Component = stepDefinition.component;
 
     return (
       <Component
