@@ -1,4 +1,6 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -11,9 +13,10 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
-import OnboardingDrawerStore from 'sentry/stores/onboardingDrawerStore';
+import {OnboardingDrawerStore} from 'sentry/stores/onboardingDrawerStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {PlatformKey} from 'sentry/types/project';
@@ -29,6 +32,7 @@ describe('Onboarding', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+    sessionStorage.clear();
     jest.clearAllMocks();
   });
 
@@ -345,7 +349,7 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider
-        value={{
+        initialValue={{
           selectedPlatform: {
             key: nextJsProject.slug as PlatformKey,
             type: 'framework',
@@ -411,7 +415,7 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider
-        value={{
+        initialValue={{
           selectedPlatform: {
             key: reactProject.slug as PlatformKey,
             type: 'framework',
@@ -512,7 +516,7 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider
-        value={{
+        initialValue={{
           selectedPlatform: {
             key: reactProject.slug as PlatformKey,
             type: 'framework',
@@ -554,9 +558,33 @@ describe('Onboarding', () => {
       features: ['onboarding-scm'],
     });
 
-    function renderOnboarding(step: string) {
+    const githubProvider = GitHubIntegrationProviderFixture({
+      features: ['commits'],
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/config/integrations/`,
+        body: {providers: [githubProvider]},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/integrations/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/repos/`,
+        body: [],
+      });
+    });
+
+    function renderOnboarding(
+      step: string,
+      options?: {
+        initialContext?: Parameters<typeof OnboardingContextProvider>[0]['initialValue'];
+      }
+    ) {
       return render(
-        <OnboardingContextProvider>
+        <OnboardingContextProvider initialValue={options?.initialContext}>
           <OnboardingWithoutContext />
         </OnboardingContextProvider>,
         {
@@ -583,12 +611,51 @@ describe('Onboarding', () => {
       });
     });
 
-    it('renders scm-connect step and advances to scm-platform-features', async () => {
+    it('auto-selects existing integration and shows connected view', async () => {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/config/integrations/`,
+        body: {providers: [githubProvider]},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/integrations/`,
+        body: [
+          OrganizationIntegrationsFixture({
+            id: '1',
+            name: 'getsentry',
+            domainName: 'github.com/getsentry',
+            provider: {
+              key: 'github',
+              slug: 'github',
+              name: 'GitHub',
+              canAdd: true,
+              canDisable: false,
+              features: ['commits'],
+              aspects: {},
+            },
+          }),
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/repos/`,
+        body: [],
+      });
+
+      renderOnboarding('scm-connect');
+
+      // Should auto-select the existing integration and show connected view
+      expect(
+        await screen.findByText('Connected to github.com/getsentry')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Manage in Settings'})).toBeInTheDocument();
+    });
+
+    it('skip for now advances to next step without skipping onboarding', async () => {
       const {router} = renderOnboarding('scm-connect');
 
-      expect(screen.getByText('Connect your repository')).toBeInTheDocument();
+      expect(await screen.findByText('Connect a repository')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Skip for now'}));
 
       await waitFor(() => {
         expect(router.location.pathname).toBe(
@@ -598,7 +665,19 @@ describe('Onboarding', () => {
     });
 
     it('renders scm-platform-features step and advances to scm-project-details', async () => {
-      const {router} = renderOnboarding('scm-platform-features');
+      const {router} = renderOnboarding('scm-platform-features', {
+        initialContext: {
+          selectedPlatform: {
+            key: 'javascript',
+            name: 'JavaScript',
+            language: 'javascript',
+            link: 'https://docs.sentry.io/platforms/javascript/',
+            type: 'language',
+            category: 'popular',
+          },
+          selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        },
+      });
 
       expect(screen.getByText('Platform & features')).toBeInTheDocument();
 
@@ -641,7 +720,7 @@ describe('Onboarding', () => {
 
       const {router} = render(
         <OnboardingContextProvider
-          value={{
+          initialValue={{
             selectedPlatform: {
               key: nextJsProject.slug as PlatformKey,
               type: 'framework',
@@ -689,6 +768,9 @@ describe('Onboarding', () => {
 
     it('navigates back from scm-connect to welcome', async () => {
       const {router} = renderOnboarding('scm-connect');
+
+      // Wait for the step to render
+      await screen.findByText('Connect a repository');
 
       await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 

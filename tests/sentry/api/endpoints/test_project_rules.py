@@ -45,6 +45,7 @@ from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 from sentry.workflow_engine.models import (
@@ -57,6 +58,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from tests.sentry.api.endpoints.test_project_rule_details import assert_serializer_results_match
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -167,6 +169,21 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         else:
             assert workflow_resp_2["id"] == str(get_fake_id_from_object_id(self.workflow.id))
             assert workflow_resp_1["id"] == str(self.rule.id)
+
+    @with_feature("organizations:workflow-engine-projectrulesendpoint-get")
+    def test_workflow_engine_granular_flag(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert (
+            len(response.data)
+            == Workflow.objects.filter(organization=self.project.organization).count()
+        )
+        returned_ids = {item["id"] for item in response.data}
+        assert str(self.rule.id) in returned_ids
+        assert str(get_fake_id_from_object_id(self.workflow.id)) in returned_ids
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_unsupported_condition(self) -> None:
@@ -397,6 +414,21 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 )
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
+
+        # Verify that the workflow engine serializer returns the same response shape.
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.project.organization.slug,
+                self.project.slug,
+                name=name,
+                owner=owner,
+                actionMatch=action_match,
+                frequency=frequency,
+                status_code=status.HTTP_201_CREATED,
+                **query_args,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
+
         return response
 
     def test_simple(self) -> None:
@@ -1502,3 +1534,63 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "target_display": "team-team-team",
             "target_identifier": "CSVK0921",
         }
+
+
+class GetProjectRulesDeltaTest(APITestCase):
+    """Verify legacy and workflow engine serializers produce identical output for dual-written rules."""
+
+    endpoint = "sentry-api-0-project-rules"
+
+    def test_dual_written_rule_parity(self) -> None:
+        self.login_as(user=self.user)
+        env = self.create_environment(project=self.project, name="production")
+        rule = self.create_project_rule(
+            project=self.project,
+            name="Production alert",
+            action_match="any",
+            frequency=60,
+            environment_id=env.id,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                    "interval": "1h",
+                    "value": 50,
+                    "comparisonType": "count",
+                    "name": "The issue is seen more than 50 times in 1h",
+                },
+            ],
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                    "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                }
+            ],
+        )
+
+        legacy_response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            we_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                status_code=status.HTTP_200_OK,
+            )
+
+        assert len(legacy_response.data) == 1
+        assert len(we_response.data) == 1
+        legacy_rule = legacy_response.data[0]
+        we_rule = we_response.data[0]
+        assert legacy_rule["id"] == str(rule.id)
+
+        assert_serializer_parity(old=legacy_rule, new=we_rule)

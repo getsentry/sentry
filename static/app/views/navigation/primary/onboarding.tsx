@@ -8,8 +8,9 @@ import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardi
 import {ProgressRing} from 'sentry/components/progressRing';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OnboardingTask} from 'sentry/types/onboarding';
@@ -71,7 +72,6 @@ function OnboardingItem({
         buttonProps={{
           ...overlayTriggerProps,
           onMouseEnter: refetch,
-          size: isMobile ? 'xs' : 'sm',
           icon: (
             <ProgressRingWrapper isMobile={isMobile}>
               <OnboardingProgressRing

@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import Confirm, {openConfirmModal} from 'sentry/components/confirm';
+import {Confirm, openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -18,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -90,7 +91,11 @@ export function Controls({
   const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
     useDuplicatePrebuiltDashboard({
       onSuccess: (newDashboard: DashboardDetails) => {
-        navigate(`/organizations/${organization.slug}/dashboard/${newDashboard.id}/`);
+        navigate(
+          normalizeUrl(
+            `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`
+          )
+        );
       },
     });
 
@@ -365,8 +370,7 @@ export function Controls({
                               'Are you sure you want to duplicate this dashboard?'
                             ),
                             priority: 'primary',
-                            onConfirm: () =>
-                              duplicatePrebuiltDashboard(dashboard.prebuiltId),
+                            onConfirm: () => duplicatePrebuiltDashboard(dashboard.id),
                           });
                         }}
                         icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}

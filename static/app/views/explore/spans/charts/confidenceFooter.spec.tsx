@@ -144,7 +144,7 @@ describe('ConfidenceFooter', () => {
         count: 100,
         isLoading: false,
       },
-      highAccuracy: {
+      total: {
         count: 1000,
         isLoading: false,
       },

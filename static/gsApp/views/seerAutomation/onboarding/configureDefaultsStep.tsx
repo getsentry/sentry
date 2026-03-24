@@ -21,7 +21,7 @@ import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {
   Field,

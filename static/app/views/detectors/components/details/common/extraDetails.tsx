@@ -4,10 +4,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useUserFromId} from 'sentry/utils/useUserFromId';

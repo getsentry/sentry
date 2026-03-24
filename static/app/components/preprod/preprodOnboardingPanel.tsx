@@ -5,7 +5,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';

@@ -3,7 +3,7 @@ import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

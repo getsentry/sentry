@@ -97,11 +97,23 @@ export async function closeBrowser(): Promise<void> {
   }
 }
 
-export async function takeSnapshot(
-  name: string,
-  renderFn: () => ReactElement,
-  testFilePath: string
-): Promise<void> {
+interface TakeSnapshotOptions {
+  displayName: string;
+  fileSlug: string;
+  group: string | null;
+  metadata: Record<string, string>;
+  renderFn: () => ReactElement;
+  testFilePath: string;
+}
+
+export async function takeSnapshot({
+  fileSlug,
+  displayName,
+  renderFn,
+  testFilePath,
+  group,
+  metadata,
+}: TakeSnapshotOptions): Promise<void> {
   const element = renderFn();
   const fullHTML = renderToHTML(element);
 
@@ -122,8 +134,7 @@ export async function takeSnapshot(
 
     const relativePath = path.relative(PROJECT_ROOT, testFilePath);
     const dirOfTestFile = path.dirname(relativePath);
-    const sanitizedName = name.replace(/[^a-zA-Z0-9_-]/g, '-');
-    const coreFilename = sanitizedName;
+    const coreFilename = fileSlug.replace(/[^\w-]/g, '-');
     const imageFilename = `${coreFilename}.png`;
 
     const outputDir = path.join(getOutputDir(), dirOfTestFile);
@@ -131,15 +142,17 @@ export async function takeSnapshot(
       mkdirSync(outputDir, {recursive: true});
     }
 
-    const metadata: SnapshotImageMetadata = {
-      display_name: name,
+    const meta: SnapshotImageMetadata = {
+      display_name: displayName,
+      group,
+      ...metadata,
     };
 
     await Promise.all([
       fs.writeFile(path.join(outputDir, imageFilename), screenshot),
       fs.writeFile(
         path.join(outputDir, `${coreFilename}.json`),
-        JSON.stringify(metadata, null, 2)
+        JSON.stringify(meta, null, 2)
       ),
     ]);
   } finally {

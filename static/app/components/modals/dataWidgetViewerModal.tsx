@@ -19,7 +19,7 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -28,7 +28,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {CAN_MARK, trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -47,7 +47,7 @@ import {
   createOnDemandFilterWarning,
   shouldDisplayOnDemandWidgetWarning,
 } from 'sentry/utils/onDemandMetrics';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
@@ -101,7 +101,7 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
-import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -204,6 +204,29 @@ function DataWidgetViewerModal(props: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!CAN_MARK) {
+      return;
+    }
+    try {
+      const measure = performance.measure(
+        'dashboard.widget.onFullScreenView',
+        'dashboard.widget.fullScreenViewClick'
+      );
+      Sentry.metrics.distribution(
+        'dashboards.widget.onFullScreenView',
+        measure.duration,
+        {
+          unit: 'millisecond',
+        }
+      );
+      performance.clearMarks('dashboard.widget.fullScreenViewClick');
+      performance.clearMeasures('dashboard.widget.onFullScreenView');
+    } catch {
+      // performance.measure throws if the start mark doesn't exist (e.g. direct URL navigation)
+    }
+  }, []);
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -631,6 +654,7 @@ function DataWidgetViewerModal(props: Props) {
                 widget={primaryWidget}
                 tableItemLimit={widget.limit}
                 onZoom={onZoom}
+                isFullScreen
                 showConfidenceWarning={
                   widget.widgetType === WidgetType.SPANS ||
                   widget.widgetType === WidgetType.TRACEMETRICS ||

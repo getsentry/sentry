@@ -20,7 +20,7 @@ type FilterSelectorTriggerProps = {
   queryResult: UseQueryResult<string[], Error>;
 };
 
-function FilterSelectorTrigger({
+export function FilterSelectorTrigger({
   globalFilter,
   activeFilterValues,
   operator,
@@ -67,8 +67,6 @@ function FilterSelectorTrigger({
   );
 }
 
-export default FilterSelectorTrigger;
-
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
     margin: 0;
@@ -78,12 +76,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
-  height: 16px;
-  line-height: 16px;
-  min-width: 16px;
-  border-radius: 16px;
-  font-size: 10px;
-  padding: 0 ${p => p.theme.space.xs};
 `;
 
 const ButtonLabelWrapper = styled(Flex)`

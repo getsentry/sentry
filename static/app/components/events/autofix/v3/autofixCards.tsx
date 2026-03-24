@@ -12,6 +12,7 @@ import {
   getResultButtonLabel,
 } from 'sentry/components/events/autofix/types';
 import {
+  getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
   isPullRequestsArtifact,
@@ -20,8 +21,8 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import Placeholder from 'sentry/components/placeholder';
-import TimeSince from 'sentry/components/timeSince';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconRefresh} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
@@ -40,10 +41,10 @@ interface AutofixCardProps {
 }
 
 export function RootCauseCard({autofix, section}: AutofixCardProps) {
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isRootCauseArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
@@ -105,16 +106,16 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
 }
 
 export function SolutionCard({autofix, section}: AutofixCardProps) {
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isSolutionArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isSolutionArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
 
   return (
-    <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
+    <ArtifactCard icon={<IconList />} title={t('Plan')}>
       {section.status === 'processing' ? (
         <LoadingDetails messages={section.messages} />
       ) : artifact?.data ? (
@@ -142,7 +143,7 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
         <ArtifactDetails>
           <Text>
             {t(
-              'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
+              'Seer failed to generate a plan. This one is on us. Try running it again.'
             )}
           </Text>
           <div>
@@ -161,10 +162,10 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
 }
 
 export function CodeChangesCard({autofix, section}: AutofixCardProps) {
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isCodeChangesArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
   const patchesForRepos = useMemo(() => {
     const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
@@ -222,7 +223,7 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
                       patch={patch.patch}
                       showBorder
                       collapsible
-                      defaultExpanded={artifact && artifact.length <= 1}
+                      defaultExpanded={artifact !== null && artifact.length <= 1}
                     />
                   ))}
                 </ArtifactDetails>
@@ -253,10 +254,10 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
 }
 
 export function PullRequestsCard({section}: AutofixCardProps) {
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isPullRequestsArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
   return (
     <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
@@ -297,10 +298,10 @@ export function PullRequestsCard({section}: AutofixCardProps) {
 }
 
 export function CodingAgentCard({section}: AutofixCardProps) {
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isCodingAgentsArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isCodingAgentsArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
   const provider = artifact?.[0]?.provider;
 

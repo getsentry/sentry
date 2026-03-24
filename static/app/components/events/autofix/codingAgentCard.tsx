@@ -20,7 +20,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {sanitizedMarkedNoHeadings} from 'sentry/utils/marked/marked';
 import {testableTransition} from 'sentry/utils/testableTransition';
 
 const animationProps: MotionNodeAnimationOptions = {
@@ -32,10 +32,11 @@ const animationProps: MotionNodeAnimationOptions = {
 
 interface CodingAgentCardProps {
   codingAgentState: CodingAgentState;
+  groupId?: string;
   repo?: SeerRepoDefinition;
 }
 
-export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
+export function CodingAgentCard({codingAgentState, groupId, repo}: CodingAgentCardProps) {
   const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
@@ -114,7 +115,7 @@ export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) 
                               <ResultDescription
                                 status={codingAgentState.status}
                                 dangerouslySetInnerHTML={{
-                                  __html: singleLineRenderer(result.description),
+                                  __html: sanitizedMarkedNoHeadings(result.description),
                                 }}
                               />
                             </Text>
@@ -150,6 +151,7 @@ export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) 
                               icon={<IconOpen />}
                               analyticsEventName="Autofix: Open Coding Agent"
                               analyticsEventKey="autofix.coding_agent.open"
+                              analyticsParams={{group_id: groupId}}
                             >
                               {codingAgentState.provider ===
                               CodingAgentProvider.CURSOR_BACKGROUND_AGENT
@@ -170,6 +172,7 @@ export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) 
                                 icon={<IconOpen />}
                                 analyticsEventName="Autofix: Open Coding Agent PR"
                                 analyticsEventKey="autofix.coding_agent.open_pr"
+                                analyticsParams={{group_id: groupId}}
                                 priority="primary"
                               >
                                 {getResultButtonLabel(pr_url)}

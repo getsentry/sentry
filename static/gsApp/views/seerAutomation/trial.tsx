@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
+import styled from '@emotion/styled';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 import seerConfigCheck from 'getsentry-images/spot/seer-config-check.svg';
 import seerConfigConnect2 from 'getsentry-images/spot/seer-config-connect-2.svg';
@@ -8,14 +9,16 @@ import seerConfigMain from 'getsentry-images/spot/seer-config-main.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,22 +30,22 @@ const BUTTONS = [
   {
     label: t('Triage issues'),
     imageSrc: seerConfigHand2,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works',
   },
   {
     label: t('Run root cause analysis'),
     imageSrc: seerConfigConnect2,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#root-cause-analysis',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis',
   },
   {
     label: t('Make code changes'),
     imageSrc: seerConfigBug1,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#code-generation',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#code-generation',
   },
   {
     label: t('Review your code'),
     imageSrc: seerConfigCheck,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/code-review/',
   },
 ];
 
@@ -73,19 +76,16 @@ export default function SeerAutomationTrial() {
     // Else you don't yet have the new seer plan, then stay here and click to start a trial.
   }, [navigate, organization.features, organization.slug, organization]);
 
+  useRouteAnalyticsParams({
+    showNewSeer: showNewSeer(organization),
+    hasSeatBasedSeer: organization.features.includes('seat-based-seer-enabled'),
+    canVisitSubscriptionPage,
+  });
+
   return (
     <AnalyticsArea name="trial">
       <Flex justify="center">
-        <img
-          src={seerConfigMain}
-          alt="Seer"
-          style={{
-            maxWidth: '90%',
-            marginTop: '-40px',
-            marginBottom: '-77px',
-            transform: 'rotate(1.281deg)',
-          }}
-        />
+        <HeroImage src={seerConfigMain} aspectRatio="1119/526" alt="Seer hero image" />
       </Flex>
 
       <Container
@@ -95,35 +95,42 @@ export default function SeerAutomationTrial() {
         background="secondary"
         maxWidth="600px"
         margin="auto"
+        position="relative"
       >
         <Stack gap="lg">
           <Heading as="h1" align="center">
             {t('Say Hello to a Smarter Sentry')}
           </Heading>
+          <Flex align="center" justify="center" paddingBottom="xl">
+            {canVisitSubscriptionPage ? (
+              <TrySeerNowButton />
+            ) : (
+              <Alert variant="warning">
+                {t(
+                  'You need to be a billing member to try out Seer. Please contact your organization owner to upgrade your plan.'
+                )}
+              </Alert>
+            )}
+          </Flex>
+
           <Text>
             {tct(
-              `Meet Seer: Sentry’s AI agent that helps you troubleshoot and fix
-            problems with your application, review your PRs, propose solutions
-            to your bugs and performance issues, and even partner with coding
-            agents to implement fixes in code. Learn more about Seer [link:here]!`,
+              `With Seer, issues [em:almost] fix themselves. Choose your favorite coding agent and run Autofix on Issues as they're detected, and use Code Review to prevent bugs before they happen. [docs:Read the docs] for more.`,
               {
-                link: (
+                em: <em />,
+                docs: (
                   <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/" />
                 ),
               }
             )}
           </Text>
 
-          <Heading as="h3" align="center">
-            {t('Seer is able to...')}
-          </Heading>
           <Text as="div" bold>
             <Grid
               as="ul"
               columns="repeat(2, 1fr)"
               gap="xl 2xl"
-              padding="lg"
-              style={{listStyle: 'none'}}
+              style={{padding: 0, margin: 0, listStyle: 'none'}}
             >
               {BUTTONS.map(({label, imageSrc, href}) => {
                 return (
@@ -148,25 +155,36 @@ export default function SeerAutomationTrial() {
               })}
             </Grid>
           </Text>
-          <Flex align="center" justify="center" paddingTop="lg">
-            {canVisitSubscriptionPage ? (
-              <LinkButton
-                to={`/settings/${organization.slug}/billing/overview/?product=seer`}
-                priority="primary"
-                icon={<IconUpgrade />}
-              >
-                {t('Try Out Seer Now')}
-              </LinkButton>
-            ) : (
-              <Alert variant="warning">
-                {t(
-                  'You need to be a billing member to try out Seer. Please contact your organization owner to upgrade your plan.'
-                )}
-              </Alert>
-            )}
-          </Flex>
         </Stack>
       </Container>
     </AnalyticsArea>
+  );
+}
+
+const HeroImage = styled(Image)`
+  width: auto;
+  max-width: 90%;
+  max-height: 50vh;
+  margin-top: -40px;
+  margin-bottom: -77px;
+`;
+
+function TrySeerNowButton() {
+  const organization = useOrganization();
+  const surface = useAnalyticsArea();
+
+  return (
+    <LinkButton
+      to={`/settings/${organization.slug}/billing/overview/?product=seer`}
+      priority="primary"
+      icon={<IconUpgrade />}
+      analyticsEventKey="clicked.try_seer_button"
+      analyticsEventName="Clicked: Try Seer Now"
+      analyticsParams={{
+        surface,
+      }}
+    >
+      {t('Try Seer Now')}
+    </LinkButton>
   );
 }

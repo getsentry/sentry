@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import Form from 'sentry/components/forms/form';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {Form} from 'sentry/components/forms/form';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 

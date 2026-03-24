@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 
 from sentry import features, quotas
@@ -35,7 +36,7 @@ from sentry.seer.autofix.utils import (
     make_get_project_preference_request,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
-from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
@@ -48,7 +49,6 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -157,12 +157,36 @@ def _trigger_autofix_task(
     event_id: str,
     user_id: int | None,
     auto_run_source: str,
-    referrer: AutofixReferrer = AutofixReferrer.UNKNOWN,
-    stopping_point: AutofixStoppingPoint | None = None,
+    referrer: AutofixReferrer | str = AutofixReferrer.UNKNOWN,
+    stopping_point: AutofixStoppingPoint | str | None = None,
 ):
     """
     Asynchronous task to trigger Autofix.
+    Task queue serializes enum parameters to strings, so we need to convert them back.
     """
+    # Convert deserialized string parameters back to their enum types
+    if isinstance(referrer, str):
+        try:
+            referrer = AutofixReferrer(referrer)
+        except ValueError as e:
+            logger.warning(
+                "_trigger_autofix_task.unknown_referrer",
+                extra={"group_id": group_id, "referrer": referrer},
+            )
+            sentry_sdk.capture_exception(e)
+            return
+
+    if isinstance(stopping_point, str):
+        try:
+            stopping_point = AutofixStoppingPoint(stopping_point)
+        except ValueError as e:
+            logger.warning(
+                "_trigger_autofix_task.unknown_stopping_point",
+                extra={"group_id": group_id, "stopping_point": stopping_point},
+            )
+            sentry_sdk.capture_exception(e)
+            return
+
     with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
         try:
             group = Group.objects.get(id=group_id)
@@ -192,12 +216,11 @@ def _trigger_autofix_task(
 
         # Route to explorer-based autofix if both feature flags are enabled
         run_id: int | None = None
-        if features.has("organizations:seer-explorer", group.organization) and features.has(
-            "organizations:autofix-on-explorer", group.organization
-        ):
+        if features.has("organizations:autofix-on-explorer", group.organization):
             run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
+                referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
             )
@@ -219,7 +242,7 @@ def _trigger_autofix_task(
             )
             run_id = response.data.get("run_id")
 
-        if run_id and SeerOperator.has_access(organization=group.project.organization):
+        if run_id and SeerAutofixOperator.has_access(organization=group.project.organization):
             SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
 
 

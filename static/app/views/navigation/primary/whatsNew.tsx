@@ -6,12 +6,12 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -196,7 +196,6 @@ export function PrimaryNavigationWhatsNew() {
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconBroadcast />,
-          size: 'sm',
         }}
       />
       {isOpen && (

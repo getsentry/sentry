@@ -4,9 +4,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.test import TestCase
 
+from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import AutofixState, get_seer_seat_based_tier_cache_key
 from sentry.seer.models import SeerApiError, SummarizeIssueResponse, SummarizeIssueScores
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.autofix import (
     check_autofix_status,
     configure_seer_for_existing_org,
@@ -299,3 +301,37 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         mock_get_code_mappings.assert_not_called()
         preferences = mock_bulk_set.call_args[0][1]
         assert preferences[0]["repositories"] == existing_repos
+
+    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    def test_creates_seer_project_repository(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """Test that SeerProjectRepository is created when feature flag is enabled."""
+        project = self.create_project(organization=self.organization)
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
+            provider="github",
+            external_id="ext123",
+        )
+
+        mock_bulk_get.return_value = {
+            str(project.id): {
+                "repositories": [
+                    {
+                        "provider": "github",
+                        "owner": "test-org",
+                        "name": "test-repo",
+                        "external_id": "ext123",
+                    }
+                ],
+                "automated_run_stopping_point": None,
+            }
+        }
+
+        with self.feature("organizations:seer-project-settings-dual-write"):
+            configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        seer_repo = SeerProjectRepository.objects.get(project=project)
+        assert seer_repo.repository_id == repo.id

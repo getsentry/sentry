@@ -4,7 +4,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';

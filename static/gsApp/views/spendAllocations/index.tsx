@@ -9,11 +9,11 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconBroadcast} from 'sentry/icons';
@@ -36,7 +36,7 @@ import {
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import {PartnershipNote} from 'getsentry/views/subscriptionPage/partnershipNote';
 import {hasPermissions} from 'getsentry/views/subscriptionPage/utils';

@@ -686,6 +686,15 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# When enabled, new Slack installations will request extended scopes
+# (reactions:write, channels:history, groups:history, app_mentions:read)
+# Existing installations must re-authorize to get these scopes.
+register("slack.extended-scopes-enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Slack Staging App
+register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("slack-staging.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("slack-staging.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1083,6 +1092,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for batched nodestore fetches in group events endpoint.
+# When disabled, falls back to lazy per-event nodestore fetches.
+register(
+    "issues.group_events.batch_nodestore_enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for all Seer services
 #
 # TODO: So far this is only being checked when calling the Seer similar issues service during
@@ -1178,12 +1196,6 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "explorer.service_map.allowed_organizations",
-    default=[],
-    type=Sequence,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "explorer.service_map.max_edges",
@@ -2511,6 +2523,16 @@ register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_
 register(
     "nodestore.set-subkeys.enable-set-cache-item",
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TTL in seconds for nodestore cache entries. Event bodies are immutable
+# so longer TTLs are safe and improve cache hit rates for batch reads
+# (e.g. group events list endpoint).
+register(
+    "nodestore.cache-ttl",
+    default=300,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3842,8 +3864,9 @@ register(
 
 # Taskbroker flags
 register(
-    "taskworker.enabled",
-    default=True,
+    "taskworker.producer.max_futures",
+    type=Int,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3851,18 +3874,6 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "taskworker.grpc_service_config",
-    type=String,
-    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.fetch_next.disabled_pools",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Enable HTTP/2 transport in Sentry SDK
 register(

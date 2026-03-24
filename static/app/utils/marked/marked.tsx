@@ -46,6 +46,13 @@ class SafeRenderer extends marked.Renderer {
   }
 }
 
+class NoHeadingRenderer extends SafeRenderer {
+  heading(tokens: Tokens.Heading) {
+    // Render headings as bold text instead of h1-h6 elements
+    return super.strong({...tokens, type: 'strong'});
+  }
+}
+
 class NoParagraphRenderer extends SafeRenderer {
   paragraph(tokens: Tokens.Paragraph) {
     // Do not render the paragraph but still render sub-tokens
@@ -94,7 +101,7 @@ const ALLOWED_TAGS = [
   'sup',
 ];
 
-const ALLOWED_ATTR = ['href', 'title', 'src', 'alt', 'class', 'id'];
+const ALLOWED_ATTR = ['href', 'title', 'src', 'alt', 'class', 'id', 'align'];
 
 function postprocess(html: string) {
   return dompurify.sanitize(html, {
@@ -169,6 +176,17 @@ export const asyncSanitizedMarked = (src: string, inline?: boolean): Promise<str
  */
 export const sanitizedMarked = (src: string): string => {
   return noHighlightingMarked.parse(src, {async: false});
+};
+
+/**
+ * Renders markdown without any heading tags applied.
+ * WARNING: Does not apply any syntax highlighting.
+ */
+export const sanitizedMarkedNoHeadings = (src: string): string => {
+  return noHighlightingMarked.parse(src, {
+    async: false,
+    renderer: new NoHeadingRenderer(),
+  });
 };
 
 /**

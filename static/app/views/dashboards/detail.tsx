@@ -68,8 +68,12 @@ import {
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {WidgetBuilderV2} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {
+  addWidgetBuilderSessionStorageParams,
+  cleanupWidgetBuilderSessionStorage,
+  DataSet,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
@@ -80,9 +84,9 @@ import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {Controls} from './controls';
-import Dashboard from './dashboard';
+import {Dashboard} from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
-import FiltersBar from './filtersBar';
+import {FiltersBar} from './filtersBar';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -299,7 +303,7 @@ class DashboardDetail extends Component<Props, State> {
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
             navigate(
               {
-                pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
+                pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
                 query,
               },
               {preventScrollReset: true}
@@ -683,6 +687,9 @@ class DashboardDetail extends Component<Props, State> {
     const path = defined(dashboardId)
       ? `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`
       : `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`;
+
+    addWidgetBuilderSessionStorageParams(widget);
+
     navigate(
       normalizeUrl({
         pathname: path,
@@ -793,6 +800,8 @@ class DashboardDetail extends Component<Props, State> {
       };
     }
 
+    cleanupWidgetBuilderSessionStorage();
+
     navigate(
       getDashboardLocation({
         organization,
@@ -844,9 +853,7 @@ class DashboardDetail extends Component<Props, State> {
                   browserHistory.replace(
                     normalizeUrl({
                       pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                      query: {
-                        query: omit(location.query, Object.values(DashboardFilterKeys)),
-                      },
+                      query: omit(location.query, Object.values(DashboardFilterKeys)),
                     })
                   );
                 }
@@ -1401,7 +1408,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'queryClient'
 > {}
 
-export default function DashboardDetailWithInjectedProps(
+export function DashboardDetailWithInjectedProps(
   props: DashboardDetailWithInjectedPropsProps
 ) {
   const theme = useTheme();

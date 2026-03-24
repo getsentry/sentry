@@ -12,7 +12,7 @@ interface GroupingComponentFramesProps {
   maxVisibleItems?: number;
 }
 
-function GroupingComponentFrames({
+export function GroupingComponentFrames({
   items,
   maxVisibleItems = 2,
   initialCollapsed,
@@ -84,5 +84,3 @@ export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>
   margin: ${p => p.theme.space['2xs']} 0 ${p => p.theme.space['2xs']}
     ${p => p.theme.space.lg};
 `;
-
-export default GroupingComponentFrames;

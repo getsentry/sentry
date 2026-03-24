@@ -26,20 +26,23 @@ export function ProjectPageFilterTrigger({
     value.includes(parseInt(p.id, 10))
   );
 
-  const isNonMemberProjectsSelected = nonMemberProjects.every(p =>
-    value.includes(parseInt(p.id, 10))
-  );
-
   // "My Projects" / "All Projects" labels only apply when there are multiple projects.
   // With a single-project org, always show the project name.
   const totalProjects = memberProjects.length + nonMemberProjects.length;
+  const allProjects = [...memberProjects, ...nonMemberProjects];
+  const allProjectIds = allProjects.map(p => parseInt(p.id, 10));
+
+  // Check if value contains all project IDs (order-independent comparison)
+  const containsAllProjects =
+    allProjectIds.length > 0 &&
+    value.length === allProjectIds.length &&
+    allProjectIds.every(id => value.includes(id));
 
   const isMyProjectsSelected =
     isMemberProjectsSelected && memberProjects.length > 0 && totalProjects > 1;
 
   const isAllProjectsSelected =
-    value.length === 0 ||
-    (totalProjects > 1 && isMyProjectsSelected && isNonMemberProjectsSelected);
+    value.length === 0 || (totalProjects > 1 && containsAllProjects);
 
   const selectedProjects = value
     .slice(0, 2) // we only need to know about the first two projects
@@ -110,8 +113,7 @@ const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
-  margin-top: -${p => p.theme.space.xs};
-  margin-bottom: -${p => p.theme.space.xs};
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

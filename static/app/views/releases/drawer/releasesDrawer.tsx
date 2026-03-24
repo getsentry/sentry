@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import {debug} from '@sentry/core';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import type {ChartId} from 'sentry/components/charts/chartWidgetLoader';
 import {
   EventDrawerBody,

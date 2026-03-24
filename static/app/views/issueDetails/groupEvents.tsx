@@ -20,7 +20,7 @@ import {
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
-import AllEventsTable from './allEventsTable';
+import {AllEventsTable} from './allEventsTable';
 
 interface GroupEventsProps {
   group: Group;

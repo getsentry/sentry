@@ -1,6 +1,7 @@
 import {z} from 'zod';
 
 import {
+  fireEvent,
   render,
   renderGlobalModal,
   screen,
@@ -187,23 +188,24 @@ describe('SwitchField auto-save', () => {
     });
   });
 
-  it('does not trigger mutation when toggling back to initial value', async () => {
+  it('triggers mutation on every toggle because form resets after each save', async () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={false} />);
 
     const checkbox = screen.getByRole('checkbox');
-    // Toggle on then off - ends up at initial value
-    await userEvent.click(checkbox);
-    // First click triggers mutation
-    expect(mutationFn).toHaveBeenCalledTimes(1);
 
-    // Clear mock to check next behavior
+    // First click: OFF → ON, triggers mutation
+    await userEvent.click(checkbox);
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+    expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+
+    // After save succeeds, form.reset() resets to initialValue (false/OFF).
+    // Second click: OFF → ON again, triggers another mutation.
     mutationFn.mockClear();
     await userEvent.click(checkbox);
-
-    // Second click back to initial value should not trigger mutation
-    expect(mutationFn).not.toHaveBeenCalled();
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+    expect(mutationFn).toHaveBeenCalledWith({enabled: true});
   });
 
   it('does not hang when mutation fails', async () => {
@@ -231,6 +233,49 @@ describe('SwitchField auto-save', () => {
     await waitFor(() => {
       expect(checkbox).toBeEnabled();
     });
+  });
+
+  it('restores focus to the field after auto-save completes', async () => {
+    let resolveMutation: (value: {enabled: boolean}) => void;
+    const mutationFn = jest.fn(
+      () =>
+        new Promise<{enabled: boolean}>(resolve => {
+          resolveMutation = resolve;
+        })
+    );
+
+    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={false} />);
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // Field should be disabled while mutation is pending
+    await waitFor(() => {
+      expect(checkbox).toBeDisabled();
+    });
+
+    // In real browsers, disabling an element fires a blur event and
+    // moves focus to the body. JSDOM doesn't do this, so we simulate
+    // both: the blur event (triggers the listener) and the focus move.
+    fireEvent.blur(checkbox);
+    document.body.tabIndex = -1;
+    document.body.focus();
+    document.body.removeAttribute('tabindex');
+
+    // Set up a spy on focus after the blur to only capture
+    // the focus restoration call (not the initial click focus)
+    const focusSpy = jest.spyOn(checkbox, 'focus');
+
+    // Resolve the mutation
+    resolveMutation!({enabled: true});
+
+    // Field should be enabled again and focus() should be called
+    // to restore focus
+    await waitFor(() => {
+      expect(checkbox).toBeEnabled();
+    });
+    expect(focusSpy).toHaveBeenCalled();
+    focusSpy.mockRestore();
   });
 });
 

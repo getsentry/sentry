@@ -20,7 +20,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   formatStoreCrashReports,
   getStoreCrashReportsValues,
@@ -416,6 +416,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
           safeFields: extractMultilineFields(value.safeFields),
         })
         .then(() => {
+          scrubbingConfiguration.reset();
           addSuccessMessage(t('Scrubbing configuration updated'));
         })
         .catch(() => {

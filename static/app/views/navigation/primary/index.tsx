@@ -1,8 +1,6 @@
 import {Fragment, useRef} from 'react';
-import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
@@ -30,11 +28,16 @@ import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
   const ref = useRef<HTMLUListElement>(null);
+
+  const {layout} = usePrimaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({ref});
 
@@ -145,9 +148,11 @@ export function PrimaryNavigationItems() {
           </NavigationTourElement>
         </Feature>
 
-        <PrimaryNavigation.ListItem padding="0 md">
-          <PrimaryNavigation.Separator />
-        </PrimaryNavigation.ListItem>
+        {hasPageFrame ? null : (
+          <PrimaryNavigation.ListItem padding="0 md">
+            <PrimaryNavigation.Separator />
+          </PrimaryNavigation.ListItem>
+        )}
 
         <Feature features={['workflow-engine-ui']}>
           <PrimaryNavigation.ListItem>
@@ -158,7 +163,7 @@ export function PrimaryNavigationItems() {
               {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
             >
               <IconSiren />
-              <BetaBadge type="alpha" aria-hidden="true" />
+              <PrimaryNavigation.ButtonFeatureBadge type="alpha" />
             </PrimaryNavigation.Link>
           </PrimaryNavigation.ListItem>
         </Feature>
@@ -190,7 +195,11 @@ export function PrimaryNavigationItems() {
         </NavigationTourElement>
       </PrimaryNavigation.List>
 
-      <Stack gap="md" marginTop="auto" paddingBottom="md">
+      <Stack
+        gap={layout === 'mobile' ? undefined : 'md'}
+        marginTop="auto"
+        paddingBottom="md"
+      >
         <PrimaryNavigation.FooterItems>
           <ErrorBoundary customComponent={null}>
             <PrimaryNavigationOnboarding />
@@ -219,13 +228,3 @@ export function PrimaryNavigationItems() {
     </Fragment>
   );
 }
-
-const BetaBadge = styled(FeatureBadge)`
-  pointer-events: none;
-  position: absolute;
-  top: 0px;
-  right: 6px;
-  font-size: ${p => p.theme.font.size.xs};
-  padding: 0 ${p => p.theme.space.xs};
-  height: 16px;
-`;

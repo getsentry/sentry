@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
@@ -134,7 +134,7 @@ const PerformanceScoreLabel = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-export const PerformanceScoreSubtext = styled('div')`
+const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};

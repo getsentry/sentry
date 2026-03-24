@@ -20,7 +20,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import type {ServiceHook} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
