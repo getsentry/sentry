@@ -420,26 +420,6 @@ export function MetricSelector({
         }
         return;
       }
-
-      if (e.key === 'Home') {
-        e.preventDefault();
-        manager.setFocused(true);
-        const firstKey = collection.getFirstKey();
-        if (firstKey !== null) {
-          manager.setFocusedKey(firstKey);
-        }
-        return;
-      }
-
-      if (e.key === 'End') {
-        e.preventDefault();
-        manager.setFocused(true);
-        const lastKey = collection.getLastKey();
-        if (lastKey !== null) {
-          manager.setFocusedKey(lastKey);
-        }
-        return;
-      }
     },
     [focusedKey, displayedOptionsMap, handleSelect, listState]
   );
