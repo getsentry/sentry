@@ -85,7 +85,7 @@ describe('SamplingModeSwitchModal', () => {
       });
     });
 
-    it('closes the modal on successful submit', async () => {
+    it('closes the modal on successful submit with user-typed value', async () => {
       const putMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
         method: 'PUT',
@@ -96,13 +96,17 @@ describe('SamplingModeSwitchModal', () => {
       openModal({samplingMode: 'organization', initialTargetRate: 0.5});
 
       await screen.findByText('Deactivate Advanced Mode');
+      const input = screen.getByRole('spinbutton', {name: 'Global Target Sample Rate'});
+
+      await userEvent.clear(input);
+      await userEvent.type(input, '0.5');
       await userEvent.click(screen.getByRole('button', {name: 'Deactivate'}));
 
       await waitFor(() => {
         expect(putMock).toHaveBeenCalledWith(
           '/organizations/org-slug/',
           expect.objectContaining({
-            data: {samplingMode: 'organization', targetSampleRate: 0.5},
+            data: {samplingMode: 'organization', targetSampleRate: 0.005},
           })
         );
       });
