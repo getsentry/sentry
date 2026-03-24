@@ -160,9 +160,15 @@ function GroupList({
         }
 
         const sg = hasTopIssuesUI ? getSuperGroupForIssue(id) : null;
-        const showStackBar = sg && sg.group_ids.length > 1 && !seenSupergroups.has(sg.id);
+        const isFirstInStack =
+          sg && sg.group_ids.length > 1 && !seenSupergroups.has(sg.id);
         if (sg) {
           seenSupergroups.add(sg.id);
+        }
+
+        // Collapse duplicate supergroup members — they're accessible via the stack bar
+        if (sg && sg.group_ids.length > 1 && !isFirstInStack) {
+          return null;
         }
 
         return (
@@ -179,7 +185,7 @@ function GroupList({
               onPriorityChange={priority => onActionTaken([id], {priority})}
               withColumns={COLUMNS}
             />
-            {showStackBar && (
+            {isFirstInStack && (
               <StackIndicatorBar
                 supergroup={sg}
                 otherCount={sg.group_ids.length - 1}
