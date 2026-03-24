@@ -62,7 +62,7 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
           ?.map(extractTraceMetricFromColumn)
           ?.filter(defined);
 
-        if (!traceMetrics) {
+        if (!defined(traceMetrics) || traceMetrics.length === 0) {
           return {
             supported: true,
             dataset: DiscoverDatasets.TRACEMETRICS,
