@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from django.db import router, transaction
 
@@ -33,7 +34,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             "Can only enable settings for team or user"
         )
 
-        kwargs: MutableMapping[str, str | int] = {}
+        kwargs: dict[str, Any] = {}
         if user_id:
             kwargs["user_id"] = user_id
             kwargs["scope_type"] = NotificationScopeEnum.USER.value
@@ -66,7 +67,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         scope_identifier: int,
         value: NotificationSettingsOptionEnum,
     ) -> None:
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if actor.is_user:
             kwargs["user_id"] = actor.id
         else:
