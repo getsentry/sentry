@@ -921,12 +921,12 @@ register(
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "snuba.search.recommended.recency-weight",
-    default=0.15,
+    default=0.20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "snuba.search.recommended.spike-weight",
-    default=0.10,
+    default=0.20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -936,7 +936,7 @@ register(
 )
 register(
     "snuba.search.recommended.user-impact-weight",
-    default=0.20,
+    default=0.05,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
