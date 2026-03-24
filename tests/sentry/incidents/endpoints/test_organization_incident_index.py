@@ -17,6 +17,7 @@ from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.types.group import PriorityLevel
@@ -262,43 +263,25 @@ class IncidentListDeltaTest(APITestCase):
         new_data = new_resp.data
         assert len(new_data) == len(old_data)
 
-        # Known differences between old and new serializers
-        known_differences = {
-            # statusMethod: Old system tracks actual status method (RULE_TRIGGERED vs RULE_UPDATED),
-            # WE serializer infers from date_closed presence (closed=RULE_UPDATED, open=RULE_TRIGGERED).
-            # May differ when status was updated by a method other than RULE_UPDATED.
-            "statusMethod",
-            # title: Old system uses Incident.title (set from AlertRule.name at incident creation time),
-            # WE system uses Group.title (the issue title). These are typically different strings.
-            "title",
-            # dateDetected: Old system has separate date_detected field,
-            # WE serializer sets dateDetected = date_started (GroupOpenPeriod has no separate detection date).
-            "dateDetected",
-            # dateCreated: Old system uses Incident.date_added,
-            # WE system uses GroupOpenPeriod.date_added. These are created at different times.
-            "dateCreated",
-            # alertRule: The nested alert rule serialization is tested separately.
-            # This test focuses on the incident-level fields.
-            "alertRule",
-            # activities: The activities serialization is handled separately and differs in structure.
-            "activities",
-        }
-
-        mismatches: list[str] = []
         for old_incident, new_incident in zip(old_data, new_data):
-            for field in set(list(old_incident.keys()) + list(new_incident.keys())):
-                if field in known_differences:
-                    continue
-                if field not in new_incident:
-                    mismatches.append(f"Missing from new: {field}")
-                elif field not in old_incident:
-                    mismatches.append(f"Extra in new: {field}")
-                elif old_incident[field] != new_incident[field]:
-                    mismatches.append(
-                        f"{field}: old={old_incident[field]!r}, new={new_incident[field]!r}"
-                    )
-
-        assert not mismatches, "List old vs new serializer differences:\n" + "\n".join(mismatches)
+            assert_serializer_parity(
+                old=old_incident,
+                new=new_incident,
+                known_differences={
+                    # title: Old system uses Incident.title (set from AlertRule.name at incident creation time),
+                    # WE system uses Group.title (the issue title). These are typically different strings.
+                    "title",
+                    # dateDetected: Old system has separate date_detected field,
+                    # WE serializer sets dateDetected = date_started (GroupOpenPeriod has no separate detection date).
+                    "dateDetected",
+                    # dateCreated: Old system uses Incident.date_added,
+                    # WE system uses GroupOpenPeriod.date_added. These are created at different times.
+                    "dateCreated",
+                    # alertRule: The nested alert rule serialization is tested separately.
+                    # This test focuses on the incident-level fields.
+                    "alertRule",
+                },
+            )
 
 
 class WorkflowEngineIncidentListTest(APITestCase):
