@@ -23,8 +23,8 @@ const indeterminateFast = keyframes`
 `;
 
 // Lerp animation timing based on track width.
-// Small (~100px): 0.6s duration, 0.3s delay
-// Large (~400px+): 2.1s duration, 1.15s delay
+// Small (~128px): 2.0s duration, 1.0s delay
+// Large (~400px+): 3.2s duration, 1.6s delay
 const MIN_WIDTH = 128;
 const MAX_WIDTH = 400;
 
@@ -34,16 +34,16 @@ function lerp(min: number, max: number, t: number): number {
 
 function useAnimationTiming() {
   const ref = useRef<HTMLDivElement>(null);
-  const [duration, setDuration] = useState(2.1);
-  const [delay, setDelay] = useState(1.15);
+  const [duration, setDuration] = useState(3.2);
+  const [delay, setDelay] = useState(1.6);
 
   useResizeObserver({
     ref,
     onResize() {
       const w = ref.current?.offsetWidth ?? MAX_WIDTH;
       const t = (w - MIN_WIDTH) / (MAX_WIDTH - MIN_WIDTH);
-      setDuration(lerp(1.3, 2.1, t));
-      setDelay(lerp(0.65, 1.15, t));
+      setDuration(lerp(2.0, 3.2, t));
+      setDelay(lerp(1.0, 1.6, t));
     },
   });
 
@@ -72,7 +72,7 @@ export function IndeterminateLoader({
             variant === 'monochrome' ? 'currentColor' : theme.tokens.border.accent.vibrant
           }
           animation={indeterminateSlow}
-          timing="cubic-bezier(0.65, 0.815, 0.735, 0.395)"
+          timing="cubic-bezier(0.4, 0.0, 0.2, 1)"
           duration={`${duration}s`}
           delay="0s"
         />
@@ -81,7 +81,7 @@ export function IndeterminateLoader({
             variant === 'monochrome' ? 'currentColor' : theme.tokens.border.accent.vibrant
           }
           animation={indeterminateFast}
-          timing="cubic-bezier(0.165, 0.84, 0.44, 1)"
+          timing="cubic-bezier(0.4, 0.0, 0.2, 1)"
           duration={`${duration}s`}
           delay={`${delay}s`}
         />
