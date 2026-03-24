@@ -119,7 +119,9 @@ export function useScmRepoSelection({
       onSelect({...optimistic, ...created});
       addedRepoIdRef.current = created.id;
     } catch {
-      onSelect(undefined);
+      // 400 means the repo already exists in Sentry (e.g., previously added
+      // then hidden). Keep the optimistic selection — the repo is valid.
+      // Only revert for other errors (network failures, etc).
     } finally {
       setBusy(false);
     }
