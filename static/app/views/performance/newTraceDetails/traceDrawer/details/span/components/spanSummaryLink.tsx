@@ -64,13 +64,14 @@ export function SpanSummaryLink(props: Props) {
 
   const resolvedModule = resolveSpanModule(props.op, props.category);
 
+  if (isPlatformized && !platformizedQueryUrl) {
+    return null;
+  }
+
   if (
     props.organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.DB
   ) {
-    if (isPlatformized && !platformizedQueryUrl) {
-      return null;
-    }
 
     const target = isPlatformized
       ? platformizedQueryUrl
