@@ -2,10 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import {Select} from '@sentry/scraps/select';
 
-import {
-  components as selectComponents,
-  type SingleValueProps,
-} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -16,20 +13,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useScmRepoSearch} from './useScmRepoSearch';
 import {useScmRepoSelection} from './useScmRepoSelection';
 
-function SearchValueContainer({children, ...props}: any) {
+/**
+ * Custom Control that prepends a search icon inside the select input.
+ * Control is the outermost flex container around ValueContainer + Indicators,
+ * so adding a child here doesn't break react-select's internal layout.
+ */
+function SearchControl({children, ...props}: any) {
   return (
-    <selectComponents.ValueContainer {...props}>
-      <IconSearch size="sm" style={{marginRight: 8, flexShrink: 0}} />
+    <selectComponents.Control {...props}>
+      <IconSearch size="sm" variant="muted" style={{marginLeft: 12, flexShrink: 0}} />
       {children}
-    </selectComponents.ValueContainer>
-  );
-}
-
-function SearchSingleValue(props: SingleValueProps<any>) {
-  return (
-    <selectComponents.SingleValue {...props}>
-      {props.data.label}
-    </selectComponents.SingleValue>
+    </selectComponents.Control>
   );
 }
 
@@ -64,9 +58,28 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     reposByIdentifier,
   });
 
-  const selectedValue = selectedRepository
-    ? {value: selectedRepository.externalSlug ?? '', label: selectedRepository.name}
-    : null;
+  // Ensure the selected repo is always in the options list so the Select
+  // can resolve the value and display it. Search results change as the user
+  // types, so the selected option may no longer be in dropdownItems.
+  const options = useMemo(() => {
+    if (!selectedRepository) {
+      return dropdownItems;
+    }
+    const selectedSlug = selectedRepository.externalSlug;
+    const alreadyIncluded = dropdownItems.some(item => item.value === selectedSlug);
+    if (alreadyIncluded) {
+      return dropdownItems;
+    }
+    return [
+      {
+        value: selectedSlug ?? '',
+        label: selectedRepository.name,
+        textValue: selectedRepository.name,
+        disabled: true,
+      },
+      ...dropdownItems,
+    ];
+  }, [dropdownItems, selectedRepository]);
 
   const handleChange = useCallback(
     (option: {value: string} | null) => {
@@ -91,8 +104,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
 
   const customComponents = useMemo(
     () => ({
-      ValueContainer: SearchValueContainer,
-      SingleValue: SearchSingleValue,
+      Control: SearchControl,
     }),
     []
   );
@@ -100,8 +112,8 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   return (
     <Select
       placeholder={t('Search repositories')}
-      options={dropdownItems}
-      value={selectedValue?.value}
+      options={options}
+      value={selectedRepository?.externalSlug ?? null}
       onChange={handleChange}
       onInputChange={setSearch}
       filterOption={() => true}
