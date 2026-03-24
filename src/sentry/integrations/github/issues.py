@@ -264,6 +264,8 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             issue_data["assignee"] = data["assignee"]
         if data.get("labels"):
             issue_data["labels"] = data["labels"]
+        if data.get("type"):
+            issue_data["type"] = data["type"]
 
         try:
             issue = client.create_issue(repo=repo, data=issue_data)
