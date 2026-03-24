@@ -38,9 +38,7 @@ export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): stri
       search.addOp('OR');
     }
 
-    if (traceMetric.unit) {
-      search.addFilterValue('metric.unit', traceMetric.unit);
-    }
+    search.addFilterValue('metric.unit', traceMetric.unit ?? NONE_UNIT);
 
     if (addNoneOperators) {
       search.addOp(')');
