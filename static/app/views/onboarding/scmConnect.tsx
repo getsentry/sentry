@@ -93,8 +93,9 @@ export function ScmConnect({onComplete}: StepProps) {
             <motion.div {...SCM_STEP_FADE_IN}>
               <Tag variant="success" icon={<IconCheckmark />}>
                 {t(
-                  'Connected to %s',
-                  effectiveIntegration.domainName || effectiveIntegration.provider.name
+                  'Connected to %s org %s',
+                  effectiveIntegration.provider.name,
+                  effectiveIntegration.name
                 )}
               </Tag>
             </motion.div>
