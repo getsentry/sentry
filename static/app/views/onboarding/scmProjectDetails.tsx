@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {slugify} from 'sentry/utils/slugify';
 import {useTeams} from 'sentry/utils/useTeams';
-import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
