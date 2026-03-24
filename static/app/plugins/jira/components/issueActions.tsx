@@ -73,12 +73,7 @@ class IssueActions extends DefaultIssueActions {
           if (field.has_autocomplete) {
             field = Object.assign(
               {
-                url:
-                  '/api/0/issues/' +
-                  this.getGroup().id +
-                  '/plugins/' +
-                  this.props.plugin.slug +
-                  '/autocomplete',
+                url: `/api/0/organizations/${this.getOrganization().slug}/issues/${this.getGroup().id}/plugins/${this.props.plugin.slug}/autocomplete`,
               },
               field
             );
