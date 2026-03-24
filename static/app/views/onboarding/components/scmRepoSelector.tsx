@@ -18,10 +18,10 @@ import {useScmRepoSelection} from './useScmRepoSelection';
  * Control is the outermost flex container around ValueContainer + Indicators,
  * so adding a child here doesn't break react-select's internal layout.
  *
- * Props are typed as `any` because react-select's ControlProps generic is
- * contravariant on the option type, making it incompatible with the narrowed
- * `{ value: string }` option used by our Select wrapper. This matches the
- * pattern used elsewhere in the codebase (e.g. ruleConditionsForm, typeSelector).
+ * Props are typed as `any` because react-select's generic types don't
+ * match the specific option shape our Select wrapper uses, and there's
+ * no clean way to type custom components without casting. This matches
+ * the pattern used elsewhere (e.g. ruleConditionsForm, typeSelector).
  */
 function SearchControl({children, ...props}: any) {
   return (
