@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import type Fuse from 'fuse.js';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
@@ -67,8 +67,14 @@ function flattenActions(
   return flattened;
 }
 
+let persistedQuery = '';
+
 export function useCommandPaletteState() {
-  const [query, setQuery] = useState('');
+  const [query, _setQuery] = useState(persistedQuery);
+  const setQuery = useCallback((newQuery: string) => {
+    persistedQuery = newQuery;
+    _setQuery(newQuery);
+  }, []);
   const actions = useCommandPaletteActions();
   const [selectedAction, setSelectedAction] =
     useState<CommandPaletteActionWithKey | null>(null);
