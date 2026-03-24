@@ -2693,6 +2693,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-ingest-profiling-dlq": "default",
     "taskworker-internal": "default",
     "taskworker-internal-dlq": "default",
+    "taskworker-launchpad": "default",
+    "taskworker-launchpad-dlq": "default",
     "taskworker-limited": "default",
     "taskworker-limited-dlq": "default",
     "taskworker-long": "default",
