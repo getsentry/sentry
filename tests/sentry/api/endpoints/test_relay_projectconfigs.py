@@ -199,7 +199,7 @@ def test_parse_retentions(call_endpoint, default_project):
 
 @django_db_all
 def test_parse_retentions_with_transactions(call_endpoint, default_project):
-    with patch(
+    with patch.multiple(
         "sentry.quotas.backend",
         get_retentions=lambda x: {
             DataCategory.ERROR: {"standard": 10, "downsampled": 20},
