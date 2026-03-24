@@ -391,7 +391,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         # sort alphabetically
         labels = tuple(
-            sorted([(label["name"], label["name"]) for label in response], key=self.natural_sort_pair)
+            sorted(
+                [(label["name"], label["name"]) for label in response], key=self.natural_sort_pair
+            )
         )
 
         return labels
@@ -405,7 +407,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         # sort alphabetically
         types = tuple(
-            sorted([(type_obj["name"], type_obj["name"]) for type_obj in response], key=self.natural_sort_pair)
+            sorted(
+                [(type_obj["name"], type_obj["name"]) for type_obj in response],
+                key=self.natural_sort_pair,
+            )
         )
 
         return types
