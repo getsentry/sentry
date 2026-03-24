@@ -110,7 +110,7 @@ export default function ProjectCspReports() {
 
   const projectEndpoint = `/projects/${organization.slug}/${projectId}/`;
 
-  function getCspMutationOptions(hasAccess: boolean) {
+  function getCspMutationOptions() {
     return {
       mutationFn: (data: Partial<CspSchema>) =>
         fetchMutation({
@@ -118,7 +118,6 @@ export default function ProjectCspReports() {
           method: 'PUT',
           data: {options: data},
         }),
-      enabled: hasAccess,
     };
   }
 
@@ -142,7 +141,7 @@ export default function ProjectCspReports() {
                   | boolean
                   | undefined) ?? false
               }
-              mutationOptions={getCspMutationOptions(hasAccess)}
+              mutationOptions={getCspMutationOptions()}
             >
               {field => (
                 <field.Layout.Row
@@ -167,7 +166,7 @@ export default function ProjectCspReports() {
                 (project.options?.['sentry:csp_ignored_sources'] as string | undefined) ??
                 ''
               }
-              mutationOptions={getCspMutationOptions(hasAccess)}
+              mutationOptions={getCspMutationOptions()}
             >
               {field => (
                 <field.Layout.Stack
