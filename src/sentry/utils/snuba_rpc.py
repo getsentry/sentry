@@ -376,6 +376,8 @@ def _make_rpc_request(
                         ),
                     )
                 except urllib3.exceptions.HTTPError as err:
+                    if isinstance(err, urllib3.exceptions.ReadTimeoutError):
+                        metrics.incr("snuba_rpc.read_timeout_error")
                     raise SnubaRPCError(err)
                 span.set_tag("timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:

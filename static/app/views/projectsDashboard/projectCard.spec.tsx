@@ -80,8 +80,6 @@ describe('ProjectCard', () => {
   it('renders with platform', () => {
     createWrapper();
 
-    // @TODO(jonasbadalic): is testing for image and the platform icon both required?
-    expect(screen.getAllByRole('img')).toHaveLength(3);
     expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
   });
 

@@ -26,6 +26,10 @@ import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetC
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
+import {
+  percentThresholdAbsoluteToDelta,
+  percentThresholdDeltaToAbsolute,
+} from 'sentry/views/detectors/utils/percentThreshold';
 
 /**
  * Snuba query types that correspond to the backend SnubaQuery.Type enum.
@@ -342,6 +346,19 @@ export function metricDetectorFormDataToEndpointPayload(
       ? createAnomalyDetectionCondition(data)
       : createConditions(data);
 
+  // For percent detection, translate user-facing delta percentages (e.g. 10 for "10% higher")
+  // to the internal absolute-percentage format (e.g. 110) that the backend expects.
+  if (data.detectionType === 'percent') {
+    for (const condition of conditions) {
+      if (typeof condition.comparison === 'number') {
+        condition.comparison = percentThresholdDeltaToAbsolute(
+          condition.comparison,
+          condition.type
+        );
+      }
+    }
+  }
+
   const dataSource = createDataSource(data);
 
   // Create config based on detection type
@@ -394,6 +411,7 @@ function processDetectorConditions(
   > {
   // Get conditions from the condition group
   const conditions = detector.conditionGroup?.conditions || [];
+  const isPercent = detector.config.detectionType === 'percent';
 
   // Find HIGH priority condition
   const highCondition = conditions.find(
@@ -428,6 +446,13 @@ function processDetectorConditions(
     conditionType = mainCondition.type;
   }
 
+  // Helper to translate a comparison value from internal absolute-percentage form
+  // to the user-facing delta form when in percent detection mode.
+  const toFormValue = (comparison: number): string =>
+    isPercent
+      ? percentThresholdAbsoluteToDelta(comparison).toString()
+      : comparison.toString();
+
   // Determine resolution strategy: automatic if OK threshold matches warning or critical
   const resolutionValue = okCondition?.comparison ?? undefined;
   const computedResolutionStrategy =
@@ -440,19 +465,19 @@ function processDetectorConditions(
     initialPriorityLevel,
     highThreshold:
       typeof highCondition?.comparison === 'number'
-        ? highCondition.comparison.toString()
+        ? toFormValue(highCondition.comparison)
         : typeof mainCondition?.comparison === 'number'
-          ? mainCondition.comparison.toString()
+          ? toFormValue(mainCondition.comparison)
           : '',
     conditionType,
     mediumThreshold:
       typeof mediumCondition?.comparison === 'number'
-        ? mediumCondition.comparison.toString()
+        ? toFormValue(mediumCondition.comparison)
         : '',
     resolutionStrategy: computedResolutionStrategy,
     resolutionValue:
       typeof okCondition?.comparison === 'number'
-        ? okCondition.comparison.toString()
+        ? toFormValue(okCondition.comparison)
         : '',
   };
 }

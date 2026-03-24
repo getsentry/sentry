@@ -677,6 +677,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/issues/test_search_issues_dataset.py          @getsentry/issue-workflow
 /tests/sentry/issues/test_status_change_consumer.py         @getsentry/issue-detection-backend
 /tests/sentry/issues/test_status_change.py                  @getsentry/issue-detection-backend
+/tests/sentry/processing_errors/                            @getsentry/issue-detection-backend
 /tests/sentry/search/                                       @getsentry/issue-workflow
 /tests/sentry/seer/similarity/                              @getsentry/issue-detection-backend
 /tests/sentry/seer/supergroups/                             @getsentry/issue-detection-backend
@@ -818,6 +819,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/releases/                                   @getsentry/coding-workflows-sentry-backend
 
 ## SCM
+/src/sentry/scm/                                                        @getsentry/scm
 /src/sentry/integrations/source_code_management/                        @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/repository/                                    @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/github_enterprise/                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
