@@ -136,7 +136,7 @@ const MODELS_TABLE = {
         t('Requests'),
         t('Errors'),
         t('Avg'),
-        t('P95'),
+        'P95',
         t('Cost'),
         t('Input Tokens'),
         t('Cached Tokens'),

@@ -78,7 +78,7 @@ const TOOLS_TABLE = {
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.GEN_AI_TOOL_NAME],
-      fieldAliases: [t('Tool'), t('Requests'), t('Errors'), t('Avg'), t('P95')],
+      fieldAliases: [t('Tool'), t('Requests'), t('Errors'), t('Avg'), 'P95'],
       orderby: '-count()',
     },
   ],

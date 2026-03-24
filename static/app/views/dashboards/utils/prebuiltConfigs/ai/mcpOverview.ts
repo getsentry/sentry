@@ -194,7 +194,7 @@ const OVERVIEW_TABLE = {
         t('Error Rate'),
         t('Errors'),
         t('Avg'),
-        t('P95'),
+        'P95',
       ],
       orderby: '-count()',
     },
