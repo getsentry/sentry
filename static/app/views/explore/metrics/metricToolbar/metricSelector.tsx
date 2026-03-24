@@ -544,8 +544,15 @@ export function MetricSelector({
                         >
                           <ListWrap
                             {...listBoxProps}
-                            onPointerDownCapture={() => {
-                              isPointerSelectingRef.current = true;
+                            onPointerDownCapture={event => {
+                              isPointerSelectingRef.current =
+                                event.target instanceof Element &&
+                                !!event.target.closest('li[role="option"]');
+                            }}
+                            onKeyDownCapture={() => {
+                              // If a prior pointer-down did not lead to selection, don't let that
+                              // stale pointer intent leak into a keyboard-driven selection.
+                              isPointerSelectingRef.current = false;
                             }}
                             style={{
                               ...listBoxProps.style,

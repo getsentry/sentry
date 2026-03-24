@@ -4,6 +4,7 @@ import {
 } from 'sentry-fixture/tracemetrics';
 
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -167,6 +168,31 @@ describe('MetricSelector', () => {
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
       });
       expect(trigger).not.toHaveFocus();
+    });
+
+    it('restores focus after keyboard selection even after non-selecting pointer down', async () => {
+      const onChange = jest.fn();
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={onChange} />, {
+        organization,
+      });
+
+      const trigger = screen.getByRole('button', {name: 'bar'});
+      await userEvent.click(trigger);
+      const listbox = await screen.findByRole('listbox');
+
+      // Simulate pointer interaction that does not lead to a selection.
+      fireEvent.pointerDown(listbox);
+
+      await userEvent.keyboard('{ArrowDown}');
+      await userEvent.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+      expect(onChange).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(trigger).toHaveFocus();
+      });
     });
 
     describe('empty state', () => {
