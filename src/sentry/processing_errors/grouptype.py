@@ -292,7 +292,6 @@ class NativeDetectorHandler(ProcessingErrorDetectorHandler):
     issue_subtitle = (
         "Debug symbols or Proguard mappings are not configured correctly for this project"
     )
-    group_type_id = 13002
 
 
 @dataclass(frozen=True)
