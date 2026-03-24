@@ -90,7 +90,7 @@ export function ProjectOverrideForm({
       for (const key of providerFields) {
         const overrideValue = allOverrides[key as keyof typeof allOverrides];
         if (overrideValue) {
-          overrides[key] = overrideValue as string;
+          overrides[key] = overrideValue;
         }
       }
       updateDataForwarder({
