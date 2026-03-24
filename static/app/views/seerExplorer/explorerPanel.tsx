@@ -808,7 +808,7 @@ interface SeerFloatingActionButtonProps extends React.ComponentProps<
   visible: boolean;
 }
 
-export function SeerFloatingActionButton(props: SeerFloatingActionButtonProps) {
+function SeerFloatingActionButton(props: SeerFloatingActionButtonProps) {
   const {visible, ...rest} = props;
   const theme = useTheme();
 
