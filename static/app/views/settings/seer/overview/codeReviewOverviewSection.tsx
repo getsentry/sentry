@@ -2,12 +2,15 @@ import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {FieldMeta} from '@sentry/scraps/form/field/meta';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSettings} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
@@ -42,26 +45,31 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
   });
 
   return (
-    <SeerOverview.Section>
-      <SeerOverview.SectionHeader title={t('Code Review')}>
-        {isLoading ? null : (
-          <Link to={`/settings/${organization.slug}/seer/code-review/`}>
-            <Flex align="center" gap="xs">
-              {t('Configure')} <IconSettings size="xs" />
-            </Flex>
-          </Link>
-        )}
-      </SeerOverview.SectionHeader>
-      <SeerOverview.Stat
-        value={SeerOverview.formatStatValue(
-          stats.reposWithCodeReviewCount,
-          stats.seerRepoCount,
-          isLoading
-        )}
-        isPending={isLoading}
-        label={tn('Repo enabled', 'Repos enabled', stats.reposWithCodeReviewCount)}
-      />
-
+    <FieldGroup
+      title={
+        <Flex justify="between" gap="md" flexGrow={1}>
+          <span>{t('Code Review')}</span>
+          {/* <QuestionTooltip
+            isHoverable
+            title={tct(
+              'These settings apply as new projects are created. Any [link:existing projects] will not be affected.',
+              {
+                link: <Link to={`/settings/${organization.slug}/seer/projects/`} />,
+              }
+            )}
+            size="xs"
+            icon="info"
+          /> */}
+          <Text uppercase={false}>
+            <Link to={`/settings/${organization.slug}/seer/repos/`}>
+              <Flex align="center" gap="xs">
+                {t('Configure')} <IconSettings size="xs" />
+              </Flex>
+            </Link>
+          </Text>
+        </Flex>
+      }
+    >
       <AutoSaveForm
         name="autoEnableCodeReview"
         schema={schema}
@@ -69,44 +77,60 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
         mutationOptions={orgMutationOpts}
       >
         {field => (
-          <field.Layout.Stack
-            label={t('Allow Creating PRs by Default')}
+          <field.Layout.Row
+            label={t('Enable Code Review by Default')}
             hintText={t(
-              'For all new repos connected, Seer will review your PRs and flag potential bugs.'
+              'For all new projects, select which coding agent Seer will hand off to when processing issues.'
             )}
           >
-            <field.Switch
-              checked={field.state.value}
-              onChange={field.handleChange}
-              disabled={!canWrite}
-            />
-          </field.Layout.Stack>
+            <Grid columns="1fr 1fr" gap="lg">
+              <Container flexGrow={1}>
+                <field.Switch
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={!canWrite}
+                />
+              </Container>
+
+              <Stack align="end" justify="center" gap="md">
+                <Text variant="secondary" size="sm">
+                  {field.state.value
+                    ? t(
+                        '%s of %s existing repos have code review disabled',
+                        stats.seerRepoCount - stats.reposWithCodeReviewCount,
+                        stats.seerRepoCount
+                      )
+                    : t(
+                        '%s of %s existing repos have code review enabled',
+                        stats.reposWithCodeReviewCount,
+                        stats.seerRepoCount
+                      )}
+                </Text>
+                <Button
+                  size="xs"
+                  busy={isLoading}
+                  disabled={stats.projectsWithReposCount === stats.totalProjects}
+                  onClick={() => {
+                    // TODO
+                  }}
+                >
+                  {field.state.value
+                    ? tn(
+                        'Enable for existing repo',
+                        'Enable for %s existing repos',
+                        stats.seerRepoCount - stats.reposWithCodeReviewCount
+                      )
+                    : tn(
+                        'Disable for the existing repo',
+                        'Disable for %s existing repos',
+                        stats.seerRepoCount - stats.reposWithCodeReviewCount
+                      )}
+                </Button>
+              </Stack>
+            </Grid>
+          </field.Layout.Row>
         )}
       </AutoSaveForm>
-
-      {isLoading ? (
-        <div />
-      ) : (
-        <SeerOverview.ActionButton>
-          <Button
-            size="xs"
-            disabled={stats.projectsWithReposCount === stats.totalProjects}
-            onClick={() => {
-              // TODO
-            }}
-          >
-            {organization.autoEnableCodeReview
-              ? tn(
-                  'Disable for the repo',
-                  'Disable for all %s repos',
-                  stats.seerRepoCount
-                )
-              : tn('Enable for the repo', 'Enable for all %s repos', stats.seerRepoCount)}
-          </Button>
-        </SeerOverview.ActionButton>
-      )}
-
-      <div />
 
       <AutoSaveForm
         name="defaultCodeReviewTriggers"
@@ -117,42 +141,47 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
         mutationOptions={orgMutationOpts}
       >
         {field => (
-          <field.Layout.Stack
+          <field.Layout.Row
             label={t('Code Review Triggers')}
             hintText={tct(
               'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
               {code: <code />}
             )}
           >
-            <field.Select
-              multiple
-              value={field.state.value}
-              onChange={field.handleChange}
-              disabled={!canWrite}
-              options={[
-                {value: 'on_ready_for_review', label: t('On Ready for Review')},
-                {value: 'on_new_commit', label: t('On New Commit')},
-              ]}
-            />
-          </field.Layout.Stack>
+            <Grid columns="1fr 1fr" gap="lg">
+              <Container flexGrow={1}>
+                <field.Select
+                  multiple
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={!canWrite}
+                  options={[
+                    {value: 'on_ready_for_review', label: t('On Ready for Review')},
+                    {value: 'on_new_commit', label: t('On New Commit')},
+                  ]}
+                />
+              </Container>
+
+              <Stack align="end" justify="center" gap="md">
+                <Button
+                  size="xs"
+                  busy={isLoading}
+                  // disabled={stats.projectsWithReposCount === stats.seerRepoCount}
+                  onClick={() => {
+                    // TODO
+                  }}
+                >
+                  {tn(
+                    'Set for the existing repo',
+                    'Set for %s existing repos',
+                    stats.seerRepoCount
+                  )}
+                </Button>
+              </Stack>
+            </Grid>
+          </field.Layout.Row>
         )}
       </AutoSaveForm>
-
-      {isLoading ? (
-        <div />
-      ) : (
-        <SeerOverview.ActionButton>
-          <Button
-            size="xs"
-            disabled={stats.projectsWithReposCount === stats.totalProjects}
-            onClick={() => {
-              // TODO
-            }}
-          >
-            {tn('Set for the repo', 'Set for all %s repos', stats.seerRepoCount)}
-          </Button>
-        </SeerOverview.ActionButton>
-      )}
-    </SeerOverview.Section>
+    </FieldGroup>
   );
 }

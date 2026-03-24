@@ -123,11 +123,11 @@ export function SCMOverviewSectionView({
   const stat = (
     <SeerOverview.Stat
       label={tn('Repository Connected', 'Repositories Connected', connectedRepos.length)}
-      value={SeerOverview.formatStatValue(
-        connectedRepos.length,
-        seerRepos.length,
+      value={
         isPending
-      )}
+          ? '\u2014'
+          : SeerOverview.formatStatValue(connectedRepos.length, seerRepos.length)
+      }
       isPending={isReposPending}
     />
   );
@@ -136,11 +136,13 @@ export function SCMOverviewSectionView({
     <SeerOverview.Section>
       <SeerOverview.SectionHeader title={t('Source Code Management')}>
         {isPending ? null : (
-          <Link to={`/settings/${organizationSlug}/seer/scm/`}>
-            <Flex align="center" gap="xs">
-              {t('Configure')} <IconSettings size="xs" />
-            </Flex>
-          </Link>
+          <Text size="sm" uppercase={false}>
+            <Link to={`/settings/${organizationSlug}/seer/scm/`}>
+              <Flex align="center" gap="xs">
+                {t('Configure')} <IconSettings size="xs" />
+              </Flex>
+            </Link>
+          </Text>
         )}
       </SeerOverview.SectionHeader>
       {isPending ? (
@@ -172,7 +174,7 @@ export function SCMOverviewSectionView({
           </Text>
         </Stack>
       ) : (
-        <Fragment>
+        <div>
           {stat}
           {seerRepos.length === 0 ? (
             <CreateReposButton seerIntegrations={supportedScmIntegrations} />
@@ -184,7 +186,7 @@ export function SCMOverviewSectionView({
               onDone={refetchIntegrations}
             />
           )}
-        </Fragment>
+        </div>
       )}
     </SeerOverview.Section>
   );

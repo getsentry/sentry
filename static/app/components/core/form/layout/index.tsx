@@ -6,6 +6,7 @@ import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {
   Container,
   Flex,
+  Grid,
   Stack,
   type FlexProps,
   type StackProps,
@@ -28,16 +29,16 @@ function RowLayout(props: RowLayoutProps) {
   const field = useFieldContext();
 
   return (
-    <HighlightableFlex
+    <HighlightableGrid
       id={field.name}
-      direction="row"
+      columns="1fr 1fr"
       gap="xl"
       align="center"
       justify="between"
       padding={props.padding}
       flexGrow={1}
     >
-      <Stack width="50%" gap="xs">
+      <Stack gap="xs">
         <Flex gap="xs" align="center">
           <FieldMeta.Label
             required={props.required}
@@ -52,7 +53,7 @@ function RowLayout(props: RowLayoutProps) {
       </Stack>
 
       <Container flexGrow={1}>{props.children}</Container>
-    </HighlightableFlex>
+    </HighlightableGrid>
   );
 }
 
@@ -65,9 +66,9 @@ function StackLayout(props: StackLayoutProps) {
   const field = useFieldContext();
 
   return (
-    <HighlightableFlex
+    <HighlightableGrid
       id={field.name}
-      direction="column"
+      columns="1fr"
       gap="md"
       padding={props.padding}
       flexGrow={1}
@@ -84,7 +85,7 @@ function StackLayout(props: StackLayoutProps) {
       {props.hintText && !isCompact ? (
         <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
       ) : null}
-    </HighlightableFlex>
+    </HighlightableGrid>
   );
 }
 
@@ -104,7 +105,7 @@ const highlightFade = keyframes`
   }
 `;
 
-const HighlightableFlex = styled(Flex)`
+const HighlightableGrid = styled(Grid)`
   --highlight-color: ${p => p.theme.tokens.background.transparent.accent.muted};
 
   &[data-highlight] {
