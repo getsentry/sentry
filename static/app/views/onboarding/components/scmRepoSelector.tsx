@@ -38,7 +38,8 @@ interface ScmRepoSelectorProps {
 
 export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   const organization = useOrganization();
-  const {selectedRepository, setSelectedRepository} = useOnboardingContext();
+  const {selectedRepository, setSelectedRepository, clearDerivedState} =
+    useOnboardingContext();
   const {
     reposByIdentifier,
     dropdownItems,
@@ -52,6 +53,11 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     integration,
     onSelect: repo => {
       setSelectedRepository(repo);
+
+      // Changing repos invalidates downstream state (platform, features,
+      // created project) which are all derived from the selected repo.
+      clearDerivedState();
+
       if (repo) {
         trackAnalytics('onboarding.scm_connect_repo_selected', {
           organization,
