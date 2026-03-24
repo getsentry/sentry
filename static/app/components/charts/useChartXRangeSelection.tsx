@@ -390,16 +390,25 @@ export function useChartXRangeSelection({
     }
 
     // Re-draw the box in the chart whenever state.selection changes,
-    // enforcing persistence.
+    // enforcing persistence. We use pixel-based `range` instead of
+    // `coordRange` + `panelId` because the panelId may not be valid
+    // (e.g. when restoring selection from URL params).
     if (selectionState?.selection) {
+      const pixelMin = chartInstance.convertToPixel(
+        {xAxisIndex: 0},
+        selectionState.selection.range[0]
+      );
+      const pixelMax = chartInstance.convertToPixel(
+        {xAxisIndex: 0},
+        selectionState.selection.range[1]
+      );
+
       chartInstance.dispatchAction({
         type: 'brush',
         areas: [
           {
             brushType: 'lineX',
-            coordRange: selectionState.selection.range,
-            coordRanges: [selectionState.selection.range],
-            panelId: selectionState.selection.panelId,
+            range: [pixelMin, pixelMax],
           },
         ],
       });

@@ -521,8 +521,7 @@ describe('useChartXRangeSelection', () => {
           areas: [
             expect.objectContaining({
               brushType: 'lineX',
-              coordRange: [20, 80],
-              panelId: 'initial-panel-id',
+              range: [100, 100],
             }),
           ],
         });
@@ -580,7 +579,8 @@ describe('useChartXRangeSelection', () => {
           type: 'brush',
           areas: [
             expect.objectContaining({
-              coordRange: [20, 80],
+              brushType: 'lineX',
+              range: [100, 100],
             }),
           ],
         });
@@ -643,7 +643,8 @@ describe('useChartXRangeSelection', () => {
           type: 'brush',
           areas: [
             expect.objectContaining({
-              coordRange: [20, 80],
+              brushType: 'lineX',
+              range: [100, 100],
             }),
           ],
         });
@@ -662,7 +663,8 @@ describe('useChartXRangeSelection', () => {
           type: 'brush',
           areas: [
             expect.objectContaining({
-              coordRange: [30, 70],
+              brushType: 'lineX',
+              range: [100, 100],
             }),
           ],
         });

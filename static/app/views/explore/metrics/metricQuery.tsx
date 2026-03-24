@@ -36,11 +36,13 @@ function isTraceMetric(value: unknown): value is TraceMetric {
 export interface BaseMetricQuery {
   metric: TraceMetric;
   queryParams: ReadableQueryParams;
+  selection?: [number, number];
 }
 
 export interface MetricQuery extends BaseMetricQuery {
   removeMetric: () => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
+  setSelection: (selection: [number, number] | null) => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
@@ -68,6 +70,8 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
   const aggregateFields = [...visualizes, ...groupBys];
   const aggregateSortBys = parseAggregateSortBys(json.aggregateSortBys, aggregateFields);
 
+  const selection = parseSelection(json.selection);
+
   return {
     metric,
     queryParams: new ReadableQueryParams({
@@ -83,6 +87,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
       aggregateFields,
       aggregateSortBys,
     }),
+    selection,
   };
 }
 
@@ -100,6 +105,7 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
     }),
     aggregateSortBys: metricQuery.queryParams.aggregateSortBys,
     mode: metricQuery.queryParams.mode,
+    ...(metricQuery.selection ? {selection: metricQuery.selection} : {}),
   });
 }
 
@@ -201,6 +207,18 @@ function parseGroupBys(value: unknown): GroupBy[] {
   }
 
   return value.filter<GroupBy>(isGroupBy);
+}
+
+function parseSelection(value: unknown): [number, number] | undefined {
+  if (
+    !Array.isArray(value) ||
+    value.length !== 2 ||
+    typeof value[0] !== 'number' ||
+    typeof value[1] !== 'number'
+  ) {
+    return undefined;
+  }
+  return [value[0], value[1]];
 }
 
 function parseAggregateSortBys(

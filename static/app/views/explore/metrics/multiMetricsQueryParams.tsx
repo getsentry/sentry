@@ -62,6 +62,31 @@ export function MultiMetricsQueryParamsProvider({
             return {
               metric: metricQuery.metric,
               queryParams: newQueryParams,
+              selection: metricQuery.selection,
+            };
+          })
+          .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
+          .filter(defined)
+          .filter(Boolean);
+        target.query.metric = newMetricQueries;
+
+        navigate(target);
+      };
+    }
+
+    function setSelectionForIndex(i: number) {
+      return function (selection: [number, number] | null) {
+        const target = {...location, query: {...location.query}};
+
+        const newMetricQueries = metricQueries
+          .map((metricQuery: BaseMetricQuery, j: number) => {
+            if (i !== j) {
+              return metricQuery;
+            }
+            return {
+              metric: metricQuery.metric,
+              queryParams: metricQuery.queryParams,
+              selection: selection ?? undefined,
             };
           })
           .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
@@ -113,6 +138,7 @@ export function MultiMetricsQueryParamsProvider({
             return {
               queryParams: metricQuery.queryParams.replace({aggregateFields}),
               metric: newTraceMetric,
+              selection: undefined,
             };
           })
           .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
@@ -148,6 +174,7 @@ export function MultiMetricsQueryParamsProvider({
         return {
           ...metric,
           setQueryParams: setQueryParamsForIndex(index),
+          setSelection: setSelectionForIndex(index),
           setTraceMetric: setTraceMetricForIndex(index),
           removeMetric: removeMetricQueryForIndex(index),
         };

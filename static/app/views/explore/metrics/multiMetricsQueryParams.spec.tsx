@@ -38,6 +38,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
         }),
         removeMetric: expect.any(Function),
         setQueryParams: expect.any(Function),
+        setSelection: expect.any(Function),
         setTraceMetric: expect.any(Function),
       },
     ]);

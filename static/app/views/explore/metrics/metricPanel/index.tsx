@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -25,7 +25,10 @@ import {
   MetricsFrozenContextProvider,
   type TracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
-import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
+import {
+  getMetricTableColumnType,
+  getTracePeriodFromSelection,
+} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
@@ -38,9 +41,16 @@ const TWO_MINUTE_DELAY = 120;
 interface MetricPanelProps {
   queryIndex: number;
   traceMetric: TraceMetric;
+  selection?: [number, number];
+  setSelection?: (selection: [number, number] | null) => void;
 }
 
-export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
+export function MetricPanel({
+  traceMetric,
+  queryIndex,
+  selection: selectionRange,
+  setSelection,
+}: MetricPanelProps) {
   const organization = useOrganization();
   const {
     orientation,
@@ -48,10 +58,20 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     canChangeOrientation,
   } = useTableOrientationControl();
   const [infoContentHidden, setInfoContentHidden] = useState(false);
-  const [selectedTableRange, setSelectedTableRange] = useState<Selection | null>(null);
-  const [tableTracePeriod, setTableTracePeriod] = useState<TracePeriod | undefined>(
-    undefined
-  );
+
+  const selectedTableRange: Selection | null = useMemo(() => {
+    if (!selectionRange) {
+      return null;
+    }
+    return {panelId: 'url', range: selectionRange};
+  }, [selectionRange]);
+
+  const tableTracePeriod: TracePeriod | undefined = useMemo(() => {
+    if (!selectedTableRange) {
+      return undefined;
+    }
+    return getTracePeriodFromSelection(selectedTableRange);
+  }, [selectedTableRange]);
   const {isMetricOptionsEmpty} = useMetricOptions({enabled: Boolean(traceMetric.name)});
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
@@ -96,17 +116,11 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     panelIndex: queryIndex,
   });
 
-  useEffect(() => {
-    setSelectedTableRange(null);
-    setTableTracePeriod(undefined);
-  }, [traceMetric.name, traceMetric.type, traceMetric.unit]);
-
   const handleTableSelectionChange = useCallback(
-    (selection: Selection | null, tracePeriod?: TracePeriod) => {
-      setSelectedTableRange(selection);
-      setTableTracePeriod(tracePeriod);
+    (selection: Selection | null, _tracePeriod?: TracePeriod) => {
+      setSelection?.(selection ? selection.range : null);
     },
-    []
+    [setSelection]
   );
 
   if (hasMetricsUIRefresh) {

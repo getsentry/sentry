@@ -250,7 +250,12 @@ function MetricsTabBodySection({
                   setTraceMetric={metricQuery.setTraceMetric}
                   removeMetric={metricQuery.removeMetric}
                 >
-                  <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
+                  <MetricPanel
+                    traceMetric={metricQuery.metric}
+                    queryIndex={index}
+                    selection={metricQuery.selection}
+                    setSelection={metricQuery.setSelection}
+                  />
                 </MetricsQueryParamsProvider>
               );
             })}
@@ -275,7 +280,12 @@ function MetricsTabBodySection({
                   setTraceMetric={metricQuery.setTraceMetric}
                   removeMetric={metricQuery.removeMetric}
                 >
-                  <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
+                  <MetricPanel
+                    traceMetric={metricQuery.metric}
+                    queryIndex={index}
+                    selection={metricQuery.selection}
+                    setSelection={metricQuery.setSelection}
+                  />
                 </MetricsQueryParamsProvider>
               );
             })}
