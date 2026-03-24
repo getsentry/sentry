@@ -143,6 +143,7 @@ default = true
 
 [dependency-groups]
 dev = [
+  "codeowners-coverage>=0.2.1",
   "covdefaults>=2.3.0",
   "devservices>=1.2.4",
   "docker>=7.1.0",
