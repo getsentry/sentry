@@ -92,6 +92,7 @@ class Migration(CheckedMigration):
                     "sentry_discoversavedquery",
                     "sentry_discoversavedqueryproject",
                     "explore_exploresavedqueryproject",
+                    "explpre_exploresavedquery",
                 ]
             },
         )
