@@ -21,8 +21,14 @@ interface ScmRepoSelectorProps {
 export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   const organization = useOrganization();
   const {selectedRepository, setSelectedRepository} = useOnboardingContext();
-  const {reposByIdentifier, dropdownItems, isFetching, debouncedSearch, setSearch} =
-    useScmRepoSearch(integration.id, selectedRepository);
+  const {
+    reposByIdentifier,
+    dropdownItems,
+    isFetching,
+    isError,
+    debouncedSearch,
+    setSearch,
+  } = useScmRepoSearch(integration.id, selectedRepository);
 
   const {busy, handleSelect, handleRemove} = useScmRepoSelection({
     integration,
@@ -49,11 +55,13 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
         value={undefined}
         menuTitle={t('Repositories')}
         emptyMessage={
-          isFetching
-            ? t('Searching\u2026')
-            : debouncedSearch
-              ? t('No repositories found.')
-              : t('Type to search repositories')
+          isError
+            ? t('Failed to search repositories. Please try again.')
+            : isFetching
+              ? t('Searching\u2026')
+              : debouncedSearch
+                ? t('No repositories found.')
+                : t('Type to search repositories')
         }
         search={{
           placeholder: t('Search repositories'),
