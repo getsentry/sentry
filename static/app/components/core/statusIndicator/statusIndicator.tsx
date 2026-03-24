@@ -110,6 +110,7 @@ const gentlePulse = keyframes`
 
 const Dot = styled('span')<{variant: StatusIndicatorVariant}>`
   position: relative;
+  isolation: isolate;
   border-radius: ${p => p.theme.radius.xs};
   width: 8px;
   height: 8px;
@@ -118,6 +119,7 @@ const Dot = styled('span')<{variant: StatusIndicatorVariant}>`
   &::before {
     content: '';
     position: absolute;
+    z-index: -1;
     top: -2px;
     left: -2px;
     width: 12px;
