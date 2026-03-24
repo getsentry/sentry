@@ -23,7 +23,7 @@ from sentry.seer.similarity.types import (
     SimilarHashNotFoundError,
     SimilarIssuesEmbeddingsRequest,
 )
-from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
+from sentry.tasks.seer.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.utils import json, metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.json import JSONDecodeError
