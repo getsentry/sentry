@@ -37,9 +37,12 @@ function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
 }
 
 export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
+  const organization = useOrganization();
   const {selection: pageFilters} = usePageFilters();
   const {getFilterKeys, getFilterKeySections, getTagValues} =
     useIssueListSearchBarDataProvider({pageFilters});
+
+  const enableAISearch = organization.features.includes('gen-ai-search-agent-translate');
 
   return (
     <SearchQueryBuilderProvider
@@ -48,7 +51,7 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
       filterKeySections={getFilterKeySections()}
       getTagValues={getTagValues}
       searchSource="main_search"
-      enableAISearch
+      enableAISearch={enableAISearch}
       aiSearchBadgeType="alpha"
       onSearch={onSearch}
       recentSearches={SavedSearchType.ISSUE}

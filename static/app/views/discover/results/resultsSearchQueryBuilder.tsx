@@ -160,6 +160,8 @@ export function ResultsSearchQueryBuilder(props: Props) {
 
   // AI search is only enabled for Errors dataset
   const isErrorsDataset = dataset === DiscoverDatasets.ERRORS;
+  const organization = useOrganization();
+  const enableAISearch = organization.features.includes('gen-ai-search-agent-translate');
 
   const searchBarProps = {
     placeholderText,
@@ -180,7 +182,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
     return (
       <SearchQueryBuilderProvider
         initialQuery={props.query ?? ''}
-        enableAISearch
+        enableAISearch={enableAISearch}
         aiSearchBadgeType="alpha"
         disabled={disabled}
         fieldDefinitionGetter={undefined}
