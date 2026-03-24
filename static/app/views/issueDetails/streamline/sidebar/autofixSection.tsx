@@ -296,7 +296,7 @@ function AutofixEmptyState({
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
       >
-        {t('Fix the Issue')}
+        {t('Start Analysis')}
       </Button>
     </Flex>
   );
