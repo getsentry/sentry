@@ -91,7 +91,7 @@ export function CreateFromSeerPrompt() {
                 <Button
                   priority="primary"
                   onClick={handleGenerate}
-                  disabled={isGenerating}
+                  disabled={isGenerating || !prompt.trim()}
                 >
                   {t('Generate')}
                 </Button>
