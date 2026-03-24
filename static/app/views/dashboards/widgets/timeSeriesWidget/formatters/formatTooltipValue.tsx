@@ -44,7 +44,9 @@ export function formatTooltipValue(
       });
     case 'number':
       if (value > 0 && value < NUMBER_MIN_VALUE) {
-        return `<${NUMBER_MIN_VALUE}`;
+        return value.toLocaleString(undefined, {
+          maximumSignificantDigits: NUMBER_MAX_FRACTION_DIGITS,
+        });
       }
       return value.toLocaleString(undefined, {
         maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,

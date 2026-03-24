@@ -383,7 +383,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
 
-        return formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined);
+        return escape(
+          formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
+        );
       },
       truncate: false,
       utc: utc ?? false,
