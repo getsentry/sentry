@@ -49,7 +49,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         if date_ended:
             return IncidentStatus.CLOSED.value
 
-        return self.priority_to_incident_status[priority]
+        return self.priority_to_incident_status.get(priority, IncidentStatus.OPEN.value)
 
     def get_attrs(
         self,
@@ -61,7 +61,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
             WorkflowEngineDetectorSerializer,
         )
 
-        results: defaultdict[GroupOpenPeriod, dict[str, Any]] = defaultdict()
+        results: defaultdict[GroupOpenPeriod, dict[str, Any]] = defaultdict(dict)
         open_periods_to_detectors = self.get_open_periods_to_detectors(item_list)
         alert_rules = {
             alert_rule["id"]: alert_rule  # we are serializing detectors to look like alert rules
@@ -105,7 +105,8 @@ class WorkflowEngineIncidentSerializer(Serializer):
             ):
                 open_period_activities[gopa.group_open_period_id].append(serialized_activity)
             for open_period in item_list:
-                results[open_period]["activities"] = open_period_activities[open_period.id]
+                if open_period in results:
+                    results[open_period]["activities"] = open_period_activities[open_period.id]
 
         return results
 
