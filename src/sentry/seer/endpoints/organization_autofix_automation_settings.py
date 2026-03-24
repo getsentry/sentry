@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+from itertools import chain
 from typing import Any
 
 from django.db import router, transaction
@@ -8,10 +10,10 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -24,26 +26,30 @@ from sentry.seer.autofix.utils import (
     SeerAutofixSettingsSerializer,
     bulk_get_project_preferences,
     bulk_set_project_preferences,
+    bulk_write_preferences_to_sentry_db,
+    deduplicate_repositories,
     default_seer_project_preference,
+    resolve_repository_ids,
 )
-from sentry.seer.endpoints.project_seer_preferences import BranchOverrideSerializer
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
 from sentry.seer.utils import filter_repo_by_provider
 
+logger = logging.getLogger(__name__)
 
-def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
-    """
-    Merge new repositories with existing ones, skipping duplicates by (org_id, provider, external_id).
-    """
-    _unique_repo_key = lambda r: (r.get("organization_id"), r.get("provider"), r.get("external_id"))
 
-    existing_keys = {_unique_repo_key(repo) for repo in existing}
-    merged = list(existing)
-    for repo in new:
-        if _unique_repo_key(repo) not in existing_keys:
-            merged.append(repo)
-            existing_keys.add(_unique_repo_key(repo))
-    return merged
+def merge_repositories(
+    existing: list[dict], new: list[dict], key_by_org_id: bool = False
+) -> list[dict]:
+    """
+    Merge new repositories with existing ones, skipping duplicates by (provider, external_id) and optionally org_id.
+    """
+    return deduplicate_repositories(chain(existing, new), key_by_org_id=key_by_org_id)
+
+
+class BranchOverrideSerializer(CamelSnakeSerializer):
+    tag_name = serializers.CharField(required=True)
+    tag_value = serializers.CharField(required=True)
+    branch_name = serializers.CharField(required=True)
 
 
 class RepositorySerializer(CamelSnakeSerializer):
@@ -60,6 +66,19 @@ class RepositorySerializer(CamelSnakeSerializer):
     instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     base_commit_sha = serializers.CharField(required=False, allow_null=True)
     provider_raw = serializers.CharField(required=False, allow_null=True)
+
+    def validate_branch_overrides(self, value):
+        if not value:
+            return value
+        seen = set()
+        for override in value:
+            key = (override["tag_name"], override["tag_value"])
+            if key in seen:
+                raise serializers.ValidationError(
+                    f"Duplicate branch override for tag {key[0]}={key[1]}"
+                )
+            seen.add(key)
+        return value
 
 
 class ProjectRepoMappingField(serializers.Field):
@@ -92,7 +111,7 @@ class ProjectRepoMappingField(serializers.Field):
                     )
                 serialized_repos.append(repo_serializer.validated_data)
 
-            result[project_id] = serialized_repos
+            result[project_id] = deduplicate_repositories(serialized_repos)
 
         return result
 
@@ -141,7 +160,7 @@ class SeerAutofixSettingsPostSerializer(SeerAutofixSettingsSerializer):
         return data
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
     """Bulk endpoint for managing project level autofix automation settings."""
 
@@ -262,11 +281,13 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
                 repo_data["organization_id"] = organization.id
 
-                repo_exists = filter_repo_by_provider(
+                repo = filter_repo_by_provider(
                     organization.id, provider, external_id, owner, name
-                ).exists()
-                if not repo_exists:
+                ).first()
+                if repo is None:
                     return Response({"detail": "Invalid repository"}, status=400)
+
+                repo_data["repository_id"] = repo.id
 
         preferences_to_set: list[dict[str, Any]] = []
 
@@ -322,6 +343,29 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
             if preferences_to_set:
                 bulk_set_project_preferences(organization.id, preferences_to_set)
+
+        if preferences_to_set and features.has(
+            "organizations:seer-project-settings-dual-write", organization
+        ):
+            try:
+                validated_preferences = [
+                    SeerProjectPreference.validate(pref) for pref in preferences_to_set
+                ]
+                # Seer API responses don't include repository_id.
+                # Resolve before dual-writing so repos aren't skipped.
+                # This will not be necessary once we start keying by repo ID.
+                resolved_preferences = resolve_repository_ids(
+                    organization.id, validated_preferences
+                )
+                bulk_write_preferences_to_sentry_db(projects, resolved_preferences)
+            except Exception:
+                logger.exception(
+                    "seer.write_preferences.failed",
+                    extra={
+                        "organization_id": organization.id,
+                        "project_ids": list(projects_by_id.keys()),
+                    },
+                )
 
         self.create_audit_entry(
             request=request,

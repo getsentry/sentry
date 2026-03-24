@@ -562,7 +562,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         # Check that only primary email is present and no other email addresses are exposed
         assert member_data["email"] == "primary@example.com"
-        assert "emails" not in member_data["user"]
+        assert member_data["user"]["emails"] == []
         assert all("email" not in team for team in member_data.get("teams", []))
         assert all("email" not in role for role in member_data.get("teamRoles", []))
 

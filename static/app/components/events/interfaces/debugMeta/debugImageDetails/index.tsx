@@ -10,9 +10,8 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getFileName} from 'sentry/components/events/interfaces/debugMeta/utils';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {DebugFileFeature} from 'sentry/types/debugFiles';
 import type {ImageCandidate, ImageWithCombinedStatus} from 'sentry/types/debugImage';
@@ -20,16 +19,16 @@ import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getPrettyFileType} from 'sentry/views/settings/projectDebugFiles/utils';
 
 import Candidates from './candidates';
-import GeneralInfo from './generalInfo';
-import ReprocessAlert from './reprocessAlert';
+import {GeneralInfo} from './generalInfo';
+import {ReprocessAlert} from './reprocessAlert';
 import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
 type ImageCandidates = ImageCandidate[];
@@ -357,14 +356,14 @@ export function DebugImageDetails({
 
 const Content = styled('div')`
   display: grid;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   font-size: ${p => p.theme.font.size.md};
 `;
 
 const Title = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   font-size: ${p => p.theme.font.size.xl};
   max-width: calc(100% - 40px);

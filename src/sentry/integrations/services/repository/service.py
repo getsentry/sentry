@@ -7,7 +7,7 @@ from abc import abstractmethod
 from typing import Any
 
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.silo.base import SiloMode
@@ -16,7 +16,7 @@ from sentry.users.services.user.model import RpcUser
 
 class RepositoryService(RpcService):
     key = "repository"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
@@ -24,7 +24,7 @@ class RepositoryService(RpcService):
 
         return DatabaseBackedRepositoryService()
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def serialize_repository(
         self,
@@ -35,10 +35,10 @@ class RepositoryService(RpcService):
     ) -> Any | None:
         """
         Attempts to serialize a given repository.  Note that this can be None if the repository is already deleted
-        in the corresponding region silo.
+        in the corresponding cell silo.
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_repositories(
         self,
@@ -53,29 +53,29 @@ class RepositoryService(RpcService):
     ) -> list[RpcRepository]:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_repository(self, *, organization_id: int, id: int) -> RpcRepository | None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def create_repository(
         self, *, organization_id: int, create: RpcCreateRepository
     ) -> RpcRepository | None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def update_repository(self, *, organization_id: int, update: RpcRepository) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def update_repositories(self, *, organization_id: int, updates: list[RpcRepository]) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def disable_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str
@@ -85,7 +85,7 @@ class RepositoryService(RpcService):
         Code owners and code mappings will not be changed.
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def disassociate_organization_integration(
         self,

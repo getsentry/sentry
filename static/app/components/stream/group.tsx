@@ -10,24 +10,23 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
-import Count from 'sentry/components/count';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
+import {Count} from 'sentry/components/count';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
-import ProgressBar from 'sentry/components/progressBar';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {Placeholder} from 'sentry/components/placeholder';
+import {ProgressBar} from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {
   Group,
@@ -43,13 +42,13 @@ import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
@@ -265,7 +264,7 @@ export function LoadingStreamGroup({
   );
 }
 
-function StreamGroup({
+export function StreamGroup({
   group,
   customStatsPeriod,
   displayReprocessingLayout,
@@ -636,8 +635,8 @@ function StreamGroup({
           />
         )}
         <GroupSummary canSelect={selectionEnabled}>
-          <EventOrGroupHeader data={group} query={query} source={referrer} />
-          <EventOrGroupExtraDetails data={group} showLifetime={false} />
+          <GroupHeaderRow data={group} query={query} source={referrer} />
+          <GroupMetaRow data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
@@ -718,8 +717,6 @@ function StreamGroup({
   );
 }
 
-export default StreamGroup;
-
 const CheckboxLabel = styled('label')`
   position: absolute;
   top: -1px;
@@ -727,7 +724,7 @@ const CheckboxLabel = styled('label')`
   bottom: 0;
   height: 100%;
   width: 32px;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space.xl};
   margin: 0;
   margin-top: -1px;
   display: flex;
@@ -740,7 +737,7 @@ const UnreadIndicator = styled('div')`
   background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   border-radius: 50%;
   margin-top: 1px;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
   z-index: 1;
 `;
 
@@ -751,7 +748,7 @@ const Wrapper = styled(PanelItem)<{
 }>`
   position: relative;
   line-height: 1.1;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
   min-height: 82px;
 
   &:not(:has(:hover)):not(:has(input:checked)) {
@@ -815,8 +812,8 @@ const Wrapper = styled(PanelItem)<{
 
 export const GroupSummary = styled('div')<{canSelect: boolean}>`
   overflow: hidden;
-  margin-left: ${p => space(p.canSelect ? 1 : 2)};
-  margin-right: ${space(4)};
+  margin-left: ${p => (p.canSelect ? p.theme.space.md : p.theme.space.xl)};
+  margin-right: ${p => p.theme.space['3xl']};
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -832,7 +829,7 @@ const GroupCheckBoxWrapper = styled('div')`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
   z-index: 1;
 `;
 
@@ -844,7 +841,7 @@ const PrimaryCount = styled(Count)`
   font-size: ${p => p.theme.font.size.md};
   display: flex;
   justify-content: right;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
   font-variant-numeric: tabular-nums;
 `;
 
@@ -857,7 +854,7 @@ const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value
 
   :before {
     content: '/';
-    padding-left: ${space(0.25)};
+    padding-left: ${p => p.theme.space['2xs']};
     padding-right: 2px;
     color: ${p => p.theme.tokens.content.secondary};
   }
@@ -866,7 +863,7 @@ const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value
 const CountTooltipContent = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(1)} ${space(3)};
+  gap: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
   text-align: left;
   font-size: ${p => p.theme.font.size.md};
   align-items: center;
@@ -876,14 +873,14 @@ const CountTooltipContent = styled('div')`
     font-size: ${p => p.theme.font.size.xs};
     text-transform: uppercase;
     grid-column: 1 / -1;
-    margin-bottom: ${space(0.25)};
+    margin-bottom: ${p => p.theme.space['2xs']};
   }
 `;
 
 const ChartWrapper = styled('div')<{breakpoint: string}>`
   width: 175px;
   align-self: center;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 
   @container (width < ${p => p.breakpoint}) {
     display: none;
@@ -895,8 +892,8 @@ const LastSeenWrapper = styled('div')<{breakpoint: string}>`
   align-items: center;
   justify-content: flex-end;
   width: 86px;
-  padding-right: ${space(2)};
-  margin-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
+  margin-right: ${p => p.theme.space.xl};
 
   @container (width < ${p => p.breakpoint}) {
     display: none;
@@ -908,8 +905,8 @@ const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
   align-items: center;
   justify-content: flex-end;
   width: 50px;
-  padding-right: ${space(2)};
-  margin-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
+  margin-right: ${p => p.theme.space.xl};
 
   @container (width < ${p => p.breakpoint}) {
     display: none;
@@ -922,8 +919,8 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   text-align: right;
   align-items: center;
   align-self: center;
-  padding-right: ${space(2)};
-  margin-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
+  margin-right: ${p => p.theme.space.xl};
   width: 60px;
 
   @container (width < ${p => p.breakpoint}) {
@@ -936,14 +933,14 @@ const LastTriggeredWrapper = styled('div')`
   justify-content: flex-end;
   align-self: center;
   width: 100px;
-  padding-right: ${space(2)};
-  margin-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 const PriorityWrapper = styled('div')<{breakpoint: string}>`
   width: 64px;
-  padding-right: ${space(2)};
-  margin-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
+  margin-right: ${p => p.theme.space.xl};
   align-self: center;
   display: flex;
   justify-content: flex-end;
@@ -958,8 +955,8 @@ const AssigneeWrapper = styled('div')<{breakpoint: string}>`
   justify-content: flex-end;
   text-align: right;
   width: 66px;
-  padding-right: ${space(2)};
-  margin-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
+  margin-right: ${p => p.theme.space.xl};
   align-self: center;
 
   @media (max-width: ${p => p.breakpoint}) {
@@ -970,7 +967,7 @@ const AssigneeWrapper = styled('div')<{breakpoint: string}>`
 // Reprocessing
 const StartedColumn = styled('div')`
   align-self: center;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space.xl};
   color: ${p => p.theme.colors.gray800};
   display: block;
   white-space: nowrap;
@@ -986,7 +983,7 @@ const StartedColumn = styled('div')`
 
 const EventsReprocessedColumn = styled('div')`
   align-self: center;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space.xl};
   color: ${p => p.theme.colors.gray800};
   display: block;
   white-space: nowrap;
@@ -1000,7 +997,7 @@ const EventsReprocessedColumn = styled('div')`
 `;
 
 const ProgressColumn = styled('div')`
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space.xl};
   align-self: center;
   display: none;
 

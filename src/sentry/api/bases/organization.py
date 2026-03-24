@@ -34,7 +34,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.types.region import subdomain_is_region
+from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
@@ -164,6 +164,13 @@ class OrganizationIntegrationsLoosePermission(OrganizationPermission):
     }
 
 
+class OrganizationCodeMappingsBulkPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
+        "POST": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
+    }
+
+
 class OrganizationAdminPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:admin"],
@@ -275,7 +282,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         if not organization_id_or_slug:
             raise ResourceDoesNotExist
 
-        if not subdomain_is_region(request):
+        if not subdomain_is_locality(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_id_or_slug:
                 raise ResourceDoesNotExist
@@ -612,7 +619,7 @@ class OrganizationEndpoint(Endpoint):
         if not organization_id_or_slug:
             raise ResourceDoesNotExist
 
-        if not subdomain_is_region(request):
+        if not subdomain_is_locality(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_id_or_slug:
                 raise ResourceDoesNotExist

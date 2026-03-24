@@ -28,7 +28,7 @@ type Props = {
   style?: CSSProperties;
 };
 
-const TextOverflow = styled(
+export const TextOverflow = styled(
   ({
     children,
     className,
@@ -65,5 +65,3 @@ const TextOverflow = styled(
   width: auto;
   line-height: 1.2;
 `;
-
-export default TextOverflow;

@@ -8,19 +8,18 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import NotFound from 'sentry/components/errors/notFound';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
 
@@ -35,10 +34,6 @@ export default function ConsoleSDKInvitesSettings() {
   } = useConsoleSdkInvites(organization.slug);
   const {mutate: revokePlatformInvite, isPending: isRevoking} =
     useRevokeConsoleSdkPlatformInvite();
-
-  if (!organization.features.includes('github-console-sdk-self-invite')) {
-    return <NotFound />;
-  }
 
   const userHasConsoleAccess = (organization.enabledConsolePlatforms?.length ?? 0) > 0;
   const userHasQuotaRemaining =

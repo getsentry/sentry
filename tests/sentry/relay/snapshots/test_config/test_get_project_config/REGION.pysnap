@@ -159,6 +159,7 @@ config:
       isEnabled: true
       patterns:
       - '*healthcheck*'
+      - '*health-check*'
       - '*heartbeat*'
       - '*/health{/,}'
       - '*/healthy{/,}'

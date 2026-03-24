@@ -29,6 +29,87 @@ The pipeline follows the following steps:
 4.  Segments are exploded into enriched spans again and sent to EAP via another
     Kafka topic.
 
+## Corner cases and rate limiters
+
+This is a summary of all the scenarios where we drop data and the consequences
+on the trace.
+
+### Spans per second rate limiter
+
+We cannot ingest unlimited events per second in any ingestion pipeline. All
+event types are limited in terms of frequency.
+
+- This is applied in Relay and the appropriate outcome is produced. Users are
+  not charged for dropped spans
+
+- This would generate incomplete traces and segments as any spans can be dropped
+  no matter on the trace structure.
+
+### Spans per second per trace rate limiter
+
+- The buffer needs to group spans into segment in a single thread, this
+  has a throughput limit. The good news is that we do not drop spans here,
+  we just reshuffle them. The resulting segment is incomplete though,
+  spans may be dangling.
+
+- This is applied per trace in Relay. The user cannot send more than X spans per minute
+  per trace. It is configured in [relay config](https://github.com/getsentry/ops/blob/a117ee546b130def3eb39ccdbf252229daafac1c/k8s/services/relay/_values.yaml#L61-L70).
+
+### Maximum segment size
+
+- We cannot have unlimited segments in size for four reasons:
+  - Generally an extremely large segment would take an extremely long time to
+    accumulate (unless spans payloads were huge). This would compromise data
+    freshness.
+
+  - Segments are accumulated in Redis. Redis does not have infinite size nor it
+    can scale indefinitely. Moreover the user does not pay by size but we would
+    pay Redis by memory.
+
+  - Several features in the segment consumers, like issue detection, are not
+    viable in huge segments.
+
+  - Every kafka topic has a maximum message size, so we cannot send arbitrarily
+    large segments between buffer and segmented consumer. Large segments could be
+    offloaded in Object Store though or broken into smaller ones.
+
+- The maximum segment size is configured via the `spans.buffer.max-segment-bytes`
+  option.
+
+- This limit is enforced in two places: while accumulating the segment in the
+  buffer and when about to flush it to the segment consumer.
+  - As we add spans to subsegments in Redis we prune sets that become too large.
+    This is done by dropping spans until they stay in the max size. This, obviously
+    breaks the structure of the trace as the missing spans may be anywhere in
+    the tree.
+
+  - As we extract the subsegments and reassemble them, if the segment is too big
+    we drop it entirely and record an `invalid` outcome.
+
+### Flushing segments
+
+- The spans buffer cannot know when a segment is complete as there is no such
+  a signal.
+
+- There are competing requirements between data freshness and data completeness.
+  On one hand we want to flush segments as soon as possible to make them available
+  to the user. On the other hand, flushing too early yields incomplete segments
+  as more spans may arrive after the segment is closed.
+
+- The spans buffer flushes a segment when one of these two conditions is reached:
+  - A root span for the segment has been ingested and `spans.buffer.root-timeout`
+    seconds have passed without observing new spans for the segment.
+
+  - A root span for the segment has not been ingested and `spans.buffer.timeout`
+    seconds have passed without observing new spans for the segment.
+
+- There are some consequence on data integrity:
+  - Incomplete segments may be flushed if more spans arrive after the timeout.
+    This would generate broken traces.
+
+  - Some segment may accumulate forever and eventually pruned and dropped if the
+    user keeps sending spans within the timeout.
+
 # Assembling Segments
 
 The Spans Buffer consumer receives spans in any order and assembles them into
@@ -131,7 +212,7 @@ erDiagram
   belong to the same segment in a batch and process them together.
 - Spans in a subsegment are guaranteed to belong to the same segment. On the contrary
   it is not guaranteed that two subsegments belong to different segments. Subsegments
-  are asembled without knowledge of the whole Segment tree, so the common parent
+  are assembled without knowledge of the whole Segment tree, so the common parent
   between two subsegments may have not been received at the time of assembling them.
 
 ## Redis data model

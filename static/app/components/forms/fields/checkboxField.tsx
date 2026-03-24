@@ -5,7 +5,7 @@ import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescript
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
 import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 
 type FormFieldProps = Omit<
   React.ComponentProps<typeof FormField>,
@@ -35,7 +35,7 @@ type Props = {
   required?: boolean;
 } & FormFieldProps;
 
-function CheckboxField(props: Props) {
+export function CheckboxField(props: Props) {
   const {name, disabled, stacked, required, label, help} = props;
 
   const helpElement = typeof help === 'function' ? help(props) : help;
@@ -81,5 +81,3 @@ function CheckboxField(props: Props) {
     </FormField>
   );
 }
-
-export default CheckboxField;

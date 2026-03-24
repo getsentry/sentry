@@ -3,13 +3,13 @@ import React from 'react';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconBranch, IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
@@ -43,7 +43,7 @@ export function SnapshotHeaderContent({projectId, data}: SnapshotHeaderContentPr
         </Flex>
         <Layout.Title>
           {/* TODO: Replace with app-id/version when available */}
-          <Heading as="h2">{t('Snapshots')}</Heading>
+          {t('Snapshots')}
           <Flex align="center" gap="md" wrap="wrap">
             {prUrl && vcs_info.pr_number && (
               <ExternalLink href={prUrl}>

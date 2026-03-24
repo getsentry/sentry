@@ -4,16 +4,15 @@ import styled from '@emotion/styled';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {ClippedBox} from 'sentry/components/clippedBox';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
-import {MarkedText} from 'sentry/utils/marked/markedText';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {MessageToolCalls} from 'sentry/views/insights/pages/conversations/components/messageToolCalls';
 import type {ConversationMessage} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {extractMessagesFromNodes} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 interface MessagesPanelProps {
   nodes: AITraceSpanNode[];
@@ -92,7 +91,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               isSelected={isAssistant && isSelected}
               onClick={isAssistant ? () => handleMessageClick(message) : undefined}
             >
-              <MessageHeader justify={message.role === 'user' ? 'end' : 'start'}>
+              <MessageHeader>
                 {message.role === 'user' ? (
                   <Text bold size="sm">
                     {message.userEmail || t('User')}
@@ -116,14 +115,8 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                 collapsible
               >
                 <Container padding="md">
-                  <MessageText
-                    size="sm"
-                    align={message.role === 'user' ? 'right' : 'left'}
-                  >
-                    <MarkedText
-                      as={TraceDrawerComponents.MarkdownContainer}
-                      text={message.content}
-                    />
+                  <MessageText size="sm" align="left">
+                    <AIContentRenderer text={message.content} inline />
                   </MessageText>
                 </Container>
               </StyledClippedBox>
@@ -143,12 +136,12 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
   );
 }
 
-const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
+const MessageHeader = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  justify-content: ${p => (p.justify === 'end' ? 'flex-end' : 'flex-start')};
+  justify-content: flex-start;
 
   &::after {
     content: '';

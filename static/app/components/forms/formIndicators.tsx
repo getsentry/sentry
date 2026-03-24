@@ -7,11 +7,9 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import type FormModel from 'sentry/components/forms/model';
-import type {FieldValue} from 'sentry/components/forms/model';
+import type {FieldValue, FormModel} from 'sentry/components/forms/model';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 /**
  * This will call an action creator to generate a "Toast" message that
@@ -116,7 +114,7 @@ export function addUndoableFormChangeMessage(
   );
 }
 
-const PRETTY_VALUES: Map<unknown, string> = new Map([
+const PRETTY_VALUES = new Map<unknown, string>([
   ['', '<empty>'],
   [null, '<none>'],
   [undefined, '<unset>'],
@@ -152,9 +150,9 @@ const prettyFormString = (
 };
 
 const FormValue = styled('em')`
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
 `;
 const FieldName = styled('span')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
 `;

@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {LazyRender} from 'sentry/components/lazyRender';
-import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import type {Sort} from 'sentry/utils/discover/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {isWidgetEditable} from 'sentry/views/dashboards/utils';
@@ -19,6 +18,7 @@ import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
 import {
+  DisplayType,
   WidgetType,
   type DashboardFilters,
   type DashboardPermissions,
@@ -48,12 +48,11 @@ type Props = {
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
   onNewWidgetScrollComplete?: () => void;
-  useTimeseriesVisualization?: boolean;
   widgetInterval?: string;
   windowWidth?: number;
 };
 
-function SortableWidget(props: Props) {
+export function SortableWidget(props: Props) {
   const widgetRef = useRef<HTMLDivElement>(null);
   const [tableWidths, setTableWidths] = useState<number[]>(
     props.widget.tableWidths ?? []
@@ -78,7 +77,6 @@ function SortableWidget(props: Props) {
     dashboardCreator,
     newlyAddedWidget,
     onNewWidgetScrollComplete,
-    useTimeseriesVisualization,
     isPrebuiltDashboard = false,
   } = props;
 
@@ -139,19 +137,14 @@ function SortableWidget(props: Props) {
     index,
     dashboardFilters,
     widgetLegendState,
-    renderErrorMessage: errorMessage => {
-      return (
-        typeof errorMessage === 'string' && (
-          <PanelAlert variant="danger">{errorMessage}</PanelAlert>
-        )
-      );
-    },
     isMobile,
     windowWidth,
-    tableItemLimit: widget.limit ?? TABLE_ITEM_LIMIT,
+    tableItemLimit:
+      widget.displayType === DisplayType.TABLE
+        ? TABLE_ITEM_LIMIT
+        : (widget.limit ?? TABLE_ITEM_LIMIT),
     onWidgetTableSort,
     onWidgetTableResizeColumn,
-    useTimeseriesVisualization,
     widgetInterval: props.widgetInterval,
   };
 
@@ -187,8 +180,6 @@ function SortableWidget(props: Props) {
     </GridWidgetWrapper>
   );
 }
-
-export default SortableWidget;
 
 const GridWidgetWrapper = styled('div')<{isClickable: boolean}>`
   height: 100%;

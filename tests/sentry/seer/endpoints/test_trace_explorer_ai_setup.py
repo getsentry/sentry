@@ -21,7 +21,14 @@ class TraceExplorerAISetupTest(APITestCase):
         )
 
         assert response.data == {"status": "ok"}
-        mock_fire_setup_request.assert_called_once_with(self.organization.id, [self.project.id])
+        mock_fire_setup_request.assert_called_once_with(
+            self.organization.id,
+            [self.project.id],
+            viewer_context={
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
+            },
+        )
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.seer.endpoints.trace_explorer_ai_setup.fire_setup_request")
@@ -69,7 +76,14 @@ class TraceExplorerAISetupTest(APITestCase):
         )
 
         assert response.data == {"status": "ok"}
-        mock_fire_setup_request.assert_called_once_with(self.organization.id, [])
+        mock_fire_setup_request.assert_called_once_with(
+            self.organization.id,
+            [],
+            viewer_context={
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
+            },
+        )
 
     def test_requires_feature_flag(self):
         self.login_as(self.user)

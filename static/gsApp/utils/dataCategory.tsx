@@ -3,7 +3,7 @@ import upperFirst from 'lodash/upperFirst';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED_RESERVED} from 'getsentry/constants';
@@ -73,7 +73,7 @@ export function getPlanCategoryName({
       ? t('accepted spans')
       : displayNames
         ? displayNames.plural
-        : category;
+        : (getCategoryInfoFromPlural(category)?.titleName?.toLowerCase() ?? category);
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
@@ -97,7 +97,8 @@ export function getSingularCategoryName({
       ? t('accepted span')
       : displayNames
         ? displayNames.singular
-        : category.substring(0, category.length - 1);
+        : (getCategoryInfoFromPlural(category)?.displayName ??
+          category.substring(0, category.length - 1));
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize

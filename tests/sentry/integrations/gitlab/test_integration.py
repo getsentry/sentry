@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import orjson
+import pytest
 import responses
 from django.core.cache import cache
 from django.test import override_settings
@@ -21,6 +22,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.types import ExternalProviders
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiForbiddenError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegrationTestCase
@@ -29,6 +31,7 @@ from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.utils import json
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 
@@ -230,7 +233,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -263,7 +266,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -294,7 +297,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -335,7 +338,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -374,7 +377,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -463,7 +466,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -490,7 +493,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -766,7 +769,7 @@ class GitlabApiClientTest(GitLabTestCase):
 
         responses.calls.reset()
         cache.clear()
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             client = GitLabApiTestClient(self.installation)
             client.get_commit(gitlab_id, commit)
             request = responses.calls[0].request
@@ -917,7 +920,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 2
@@ -955,7 +958,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 2
@@ -979,7 +982,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=False)
 
         assert len(responses.calls) == 1
@@ -1000,7 +1003,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         # Should not make any API calls
@@ -1016,7 +1019,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         # Should not make any API calls
@@ -1049,7 +1052,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, None, assign=True)
 
         # Should make API call to unassign when user is None
@@ -1077,7 +1080,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         # Should only call user search, not issue update
@@ -1126,3 +1129,16 @@ class GitlabIssueSyncTest(GitLabTestCase):
         result = installation.create_comment_attribution(self.user.id, comment_text)
 
         assert result == "**Test User** wrote:\n\n> This is a comment\n> With multiple lines"
+
+    def test_get_repositories_unauthorized_raises_integration_configuration_error(self) -> None:
+        installation = self.installation
+
+        with patch.object(installation, "get_client") as mock_get_client:
+            mock_get_client.return_value.search_projects.side_effect = ApiForbiddenError(
+                text=json.dumps({"message": "unauthorized"})
+            )
+            with pytest.raises(IntegrationConfigurationError) as exception_info:
+                installation.get_repositories()
+        assert (
+            str(exception_info.value) == "Error Communicating with GitLab (HTTP 403): unauthorized"
+        )

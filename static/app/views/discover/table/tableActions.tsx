@@ -4,9 +4,9 @@ import type {Location} from 'history';
 import {Button} from '@sentry/scraps/button';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {DataExport, ExportQueryType} from 'sentry/components/dataExport';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -156,7 +156,7 @@ function FeatureWrapper(props: FeatureWrapperProps) {
   );
 }
 
-function TableActions(props: Props) {
+export function TableActions(props: Props) {
   return (
     <Fragment>
       <FeatureWrapper {...props} key="edit">
@@ -169,5 +169,3 @@ function TableActions(props: Props) {
     </Fragment>
   );
 }
-
-export default TableActions;

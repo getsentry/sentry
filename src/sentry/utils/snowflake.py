@@ -13,7 +13,7 @@ from rest_framework.exceptions import APIException
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.types.region import RegionContextError, get_local_region
+from sentry.types.cell import CellContextError, get_local_cell
 from sentry.utils import redis
 
 if TYPE_CHECKING:
@@ -117,8 +117,8 @@ def generate_snowflake_id(redis_key: str) -> int:
     segment_values[VERSION_ID] = msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length)
 
     try:
-        segment_values[REGION_ID] = get_local_region().snowflake_id
-    except RegionContextError:  # expected if running in monolith mode
+        segment_values[REGION_ID] = get_local_cell().snowflake_id
+    except CellContextError:  # expected if running in monolith mode
         segment_values[REGION_ID] = NULL_REGION_ID
 
     current_time = datetime.now().timestamp()

@@ -4,14 +4,13 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import AutoSelectText from 'sentry/components/autoSelectText';
+import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration/duration';
+import {Duration} from 'sentry/components/duration/duration';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 type Props = {
@@ -115,7 +114,7 @@ function TimestampTooltipBody({
 
 export {TimestampTooltipBody};
 
-export default function LogsTimestampTooltip({
+export function LogsTimestampTooltip({
   timestamp,
   attributes,
   children,
@@ -152,7 +151,7 @@ export default function LogsTimestampTooltip({
 const DescriptionList = styled('dl')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(0.75)} ${space(1)};
+  gap: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   text-align: left;
   margin: 0;
 `;
@@ -160,13 +159,13 @@ const DescriptionList = styled('dl')`
 const TimestampValues = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   font-family: ${p => p.theme.font.family.mono};
 `;
 
 const HorizontalRule = styled('hr')`
   grid-column: 1 / -1;
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space.xs} 0;
   border: none;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;

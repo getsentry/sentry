@@ -11,6 +11,7 @@ import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {Image} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {InnerWrap} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
@@ -196,5 +197,9 @@ const ResultsList = styled(Flex)`
   ul,
   li {
     scroll-margin: ${p => p.theme.space['3xl']} 0;
+  }
+
+  li[data-focused] > ${InnerWrap} {
+    outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
 `;

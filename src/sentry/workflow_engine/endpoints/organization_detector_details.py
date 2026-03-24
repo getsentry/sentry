@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -42,6 +42,30 @@ from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detect
 from sentry.workflow_engine.models import Detector
 
 
+def remove_detector(request: Request, organization: Organization, detector: Detector) -> Response:
+    """
+    Delete a given detector. This method is used by the OrganizationAlertRuleDetailsEndpoint DELETE method
+    for backwards compatibility and can be moved back under DELETE after API deprecation.
+    """
+    if not can_delete_detector(detector, request):
+        raise PermissionDenied
+
+    validator = get_detector_validator(request, detector.project, detector.type, instance=detector)
+    validator.delete()
+
+    if detector.type == MetricIssue.slug:
+        schedule_update_project_config(detector)
+
+    create_audit_entry(
+        request=request,
+        organization=detector.project.organization,
+        target_object=detector.id,
+        event=audit_log.get_event_id("DETECTOR_REMOVE"),
+        data=detector.get_audit_log_data(),
+    )
+    return Response(status=204)
+
+
 def get_detector_validator(
     request: Request,
     project: Project,
@@ -64,13 +88,14 @@ def get_detector_validator(
             "organization": project.organization,
             "request": request,
             "access": request.access,
+            "user": request.user,
         },
         data=request.data,
         partial=partial,
     )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     def convert_args(
@@ -207,22 +232,4 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         Delete a monitor
         """
-        if not can_delete_detector(detector, request):
-            raise PermissionDenied
-
-        validator = get_detector_validator(
-            request, detector.project, detector.type, instance=detector
-        )
-        validator.delete()
-
-        if detector.type == MetricIssue.slug:
-            schedule_update_project_config(detector)
-
-        create_audit_entry(
-            request=request,
-            organization=detector.project.organization,
-            target_object=detector.id,
-            event=audit_log.get_event_id("DETECTOR_REMOVE"),
-            data=detector.get_audit_log_data(),
-        )
-        return Response(status=204)
+        return remove_detector(request, organization, detector)

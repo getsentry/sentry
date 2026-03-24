@@ -2,12 +2,12 @@
   // See https://go.microsoft.com/fwlink/?LinkId=827846
   // for the documentation about the extensions.json format
   "recommendations": [
+    "charliermarsh.ruff",
     "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
     "lextudio.restructuredtext",
     "mkhl.direnv",
-    "charliermarsh.ruff",
     "ms-python.python",
+    "oxc.oxc-vscode",
     "timonwong.shellcheck",
     "tyriar.sort-lines",
     "webpro.vscode-knip",

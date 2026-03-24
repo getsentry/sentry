@@ -67,6 +67,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import os
+from enum import StrEnum
 from typing import Any
 
 import jsonschema
@@ -75,6 +76,17 @@ import yaml
 
 from flagpole.conditions import ConditionBase, Segment
 from flagpole.evaluation_context import ContextBuilder, EvaluationContext
+
+
+class ExperimentMode(StrEnum):
+    SIMPLE = "simple"
+    """Simple experiment mode: flag on = active, flag off = control."""
+
+    def get_assignment(self, flag_result: bool) -> str:
+        """Map a flag evaluation result to an experiment assignment string."""
+        match self:
+            case ExperimentMode.SIMPLE:
+                return "active" if flag_result else "control"
 
 
 class InvalidFeatureFlagConfiguration(Exception):
@@ -115,6 +127,9 @@ class Feature:
     created_at: str | None = None
     "The datetime when this feature was created."
 
+    experiment_mode: ExperimentMode | None = None
+    "The experiment mode for this feature. When set, the flag is treated as an experiment."
+
     def match(self, context: EvaluationContext) -> bool:
         if not self.enabled:
             return False
@@ -151,12 +166,17 @@ class Feature:
                 email=raw_owner.get("email"),
             )
 
+            raw_experiment_mode = config_dict.get("experiment_mode")
+
             feature = cls(
                 name=name,
                 owner=owner,
                 enabled=bool(config_dict.get("enabled", True)),
                 created_at=str(config_dict.get("created_at")),
                 segments=segments,
+                experiment_mode=ExperimentMode(raw_experiment_mode)
+                if raw_experiment_mode is not None
+                else None,
             )
         except Exception as exc:
             raise InvalidFeatureFlagConfiguration(
@@ -202,6 +222,8 @@ class Feature:
     def to_dict(self) -> dict[str, Any]:
         dict_data = dataclasses.asdict(self)
         dict_data.pop("name")
+        if dict_data.get("experiment_mode") is None:
+            dict_data.pop("experiment_mode", None)
         return {self.name: dict_data}
 
     def to_yaml_str(self) -> str:
@@ -215,6 +237,7 @@ class Feature:
 
 
 __all__ = [
+    "ExperimentMode",
     "Feature",
     "OwnerInfo",
     "InvalidFeatureFlagConfiguration",

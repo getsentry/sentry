@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {QuotaExceededAlert} from './quotaExceededAlert';
@@ -105,7 +105,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       }
     );
 
-    expect(await screen.findByText(/You[''\u2019]ve exceeded your/i)).toBeInTheDocument();
+    expect(await screen.findByText(/You['\u2019]ve exceeded your/i)).toBeInTheDocument();
 
     const onDemandTexts = screen.getAllByText(/on-demand budget/i);
     expect(onDemandTexts).toHaveLength(2);
@@ -157,7 +157,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       }
     );
 
-    expect(await screen.findByText(/You[''\u2019]ve exceeded your/i)).toBeInTheDocument();
+    expect(await screen.findByText(/You['\u2019]ve exceeded your/i)).toBeInTheDocument();
 
     const onDemandTexts = screen.getAllByText(/on-demand budget/i);
     expect(onDemandTexts).toHaveLength(2);

@@ -5,7 +5,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const ASSET_DESCRIPTION_WIDGET: Widget = {
   id: 'domain-widget',
@@ -22,6 +22,7 @@ const ASSET_DESCRIPTION_WIDGET: Widget = {
         SpanFields.SPAN_GROUP,
         SpanFields.SPAN_DESCRIPTION,
         SpanFields.SPAN_CATEGORY,
+        SpanFields.PROJECT_ID,
       ] satisfies DefaultDetailWidgetFields[],
       aggregates: [],
       columns: [
@@ -30,6 +31,7 @@ const ASSET_DESCRIPTION_WIDGET: Widget = {
         SpanFields.SPAN_GROUP,
         SpanFields.SPAN_DESCRIPTION,
         SpanFields.SPAN_CATEGORY,
+        SpanFields.PROJECT_ID,
       ] satisfies DefaultDetailWidgetFields[],
       fieldAliases: [],
       conditions: '',
@@ -41,8 +43,8 @@ const ASSET_DESCRIPTION_WIDGET: Widget = {
   layout: {
     x: 0,
     y: 0,
-    minH: 1,
-    h: 1,
+    minH: 2,
+    h: 2,
     w: 6,
   },
 };
@@ -58,6 +60,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
           conditions: '',
@@ -74,6 +77,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [`avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`],
           aggregates: [`avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`],
           columns: [],
           conditions: '',
@@ -90,6 +94,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [`avg(${SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
           aggregates: [`avg(${SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
           columns: [],
           conditions: '',
@@ -106,6 +111,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [`avg(${SpanFields.HTTP_RESPONSE_TRANSFER_SIZE})`],
           aggregates: [`avg(${SpanFields.HTTP_RESPONSE_TRANSFER_SIZE})`],
           columns: [],
           conditions: '',
@@ -122,10 +128,11 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: '',
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -138,15 +145,16 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          aggregates: [`sum(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`sum(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`sum(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: '',
-          orderby: `sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `sum(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
   ],
-  1,
+  2,
   {h: 1, minH: 1}
 );
 
@@ -161,6 +169,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
           conditions: '',
@@ -177,10 +186,11 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: '',
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -193,6 +203,11 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [
+            `avg(${SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
+            `avg(${SpanFields.HTTP_RESPONSE_TRANSFER_SIZE})`,
+            `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
+          ],
           aggregates: [
             `avg(${SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
             `avg(${SpanFields.HTTP_RESPONSE_TRANSFER_SIZE})`,
@@ -210,7 +225,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       ],
     },
   ],
-  1
+  3
 );
 
 const ASSETS_TABLE_WIDGET: Widget = {
@@ -225,13 +240,13 @@ const ASSETS_TABLE_WIDGET: Widget = {
       fields: [
         SpanFields.TRANSACTION,
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
         SpanFields.RESOURCE_RENDER_BLOCKING_STATUS,
       ],
       aggregates: [
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.RESOURCE_RENDER_BLOCKING_STATUS],
@@ -287,4 +302,5 @@ export const FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     ...THIRD_ROW_WIDGETS,
     ASSETS_TABLE_WIDGET,
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.RESOURCE},
 };

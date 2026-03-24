@@ -7,6 +7,7 @@ from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     count_argument_resolver_optimized,
 )
+from sentry.search.eap.common_aggregates import count_unique_aggregate_definition
 
 LOGS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
@@ -30,26 +31,7 @@ LOG_AGGREGATE_DEFINITIONS = {
         ],
         attribute_resolver=count_argument_resolver_optimized(LOGS_ALWAYS_PRESENT_ATTRIBUTES),
     ),
-    "count_unique": AggregateDefinition(
-        internal_function=Function.FUNCTION_UNIQ,
-        default_search_type="integer",
-        infer_search_type_from_arguments=False,
-        processor=count_processor,
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "string",
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-    ),
+    "count_unique": count_unique_aggregate_definition(),
     "sum": AggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
         default_search_type="number",

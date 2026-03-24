@@ -1,11 +1,15 @@
-function LinePreview() {
+interface LinePreviewProps {
+  color: string;
+}
+
+export function LinePreview({color}: LinePreviewProps) {
   return (
     <svg
       viewBox="0 0 143 48"
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="none"
       fill="none"
-      stroke="#E9626E"
+      stroke={color}
       strokeWidth="1"
       height="100%"
       width="100%"
@@ -17,5 +21,3 @@ function LinePreview() {
     </svg>
   );
 }
-
-export default LinePreview;

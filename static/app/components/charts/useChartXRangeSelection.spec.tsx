@@ -10,7 +10,7 @@ describe('useChartXRangeSelection', () => {
     current: null as EChartsReact | null,
   };
 
-  const mockChartInstance: EChartsInstance = {
+  const mockChartInstance = {
     getModel: jest.fn(),
     dispatchAction: jest.fn(),
     setOption: jest.fn(),

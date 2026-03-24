@@ -23,11 +23,11 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         assert response.status_code == 200
         data = response.data["objectstore"]
 
-        assert f"/api/0/organizations/{self.org.id}/objectstore/" in data["url"]
+        assert data["url"].endswith(f"/api/0/organizations/{self.org.id}/objectstore")
 
         assert data["scopes"] == [("org", str(self.org.id)), ("project", str(self.project.id))]
 
-        assert data["expirationPolicy"] == "ttl:396 days"
+        assert data["expirationPolicy"] == "ttl:30 days"
 
     def test_objectstore_url_uses_region_endpoint(self):
         with (
@@ -40,7 +40,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         url = response.data["objectstore"]["url"]
         region = settings.SENTRY_REGION
         assert url.startswith(f"https://{region}.testserver/")
-        assert f"/api/0/organizations/{self.org.id}/objectstore/" in url
+        assert url.endswith(f"/api/0/organizations/{self.org.id}/objectstore")
 
     def test_without_feature_flag(self):
         response = self.client.get(self.url)

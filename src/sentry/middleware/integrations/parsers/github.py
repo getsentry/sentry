@@ -14,7 +14,11 @@ from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
 )
-from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER, GithubWebhookType
+from sentry.integrations.github.webhook_types import (
+    CELL_PROCESSED_GITHUB_EVENTS,
+    GITHUB_WEBHOOK_TYPE_HEADER,
+    GithubWebhookType,
+)
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -54,8 +58,8 @@ class GithubRequestParser(BaseRequestParser):
         """Override to gate bucketing on an options flag for safe rollout and revert.
 
         When disabled (default), all webhooks route to a single mailbox per integration.
-        When enabled, webhooks are distributed across sub-mailboxes by repository ID,
-        bypassing the rate-limit auto-switch used by the base class.
+        When enabled, webhooks are distributed across sub-mailboxes by repository ID and
+        event type, bypassing the rate-limit auto-switch used by the base class.
         """
         if not options.get("github.webhook.mailbox-bucketing.enabled"):
             metrics.incr(
@@ -64,7 +68,11 @@ class GithubRequestParser(BaseRequestParser):
             )
             return str(integration.id)
 
-        return self._build_bucketed_identifier(integration, data)
+        base = self._build_bucketed_identifier(integration, data)
+        event_type = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
+        if event_type:
+            return f"{base}:{event_type}"
+        return base
 
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest
@@ -85,6 +93,8 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def try_forward_to_codecov(self, event: Mapping[str, Any]) -> None:
+        if options.get("codecov.forward-webhooks.disabled"):
+            return
         try:
             self.forward_to_codecov(external_id=self._get_external_id(event=event))
         except Exception:
@@ -95,8 +105,8 @@ class GithubRequestParser(BaseRequestParser):
         Orchestrates GitHub webhook routing across Sentry's multi-service architecture.
 
         Handles installation events in control silo, distributes webhooks to appropriate
-        region silos based on organization locations, and conditionally forwards to
-        external services (Codecov) based on configuration and region.
+        cell silos based on organization locations, and conditionally forwards to
+        external services (Codecov) based on configuration and cell.
         """
         if self.view_class != self.webhook_endpoint:
             return self.get_response_from_control_silo()
@@ -115,24 +125,35 @@ class GithubRequestParser(BaseRequestParser):
             if not integration:
                 return self.get_default_missing_integration_response()
 
-            regions = self.get_regions_from_organizations()
+            cells = self.get_cells_from_organizations()
         except Integration.DoesNotExist:
             return self.get_default_missing_integration_response()
 
-        if len(regions) == 0:
+        if len(cells) == 0:
             return self.get_default_missing_integration_response()
 
         if options.get("codecov.forward-webhooks.regions"):
-            # if any of the regions are in the codecov.forward-webhooks.regions option, forward to codecov
-            codecov_regions = list(
-                {region.name for region in regions}
-                & set(options.get("codecov.forward-webhooks.regions"))
+            # if any of the cells are in the codecov.forward-webhooks.regions option, forward to codecov
+            codecov_cells = list(
+                {cell.name for cell in cells} & set(options.get("codecov.forward-webhooks.regions"))
             )
-            if codecov_regions:
+            if codecov_cells:
                 self.try_forward_to_codecov(event=event)
 
+        github_event = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
+
+        # Only drop when we have a known unprocessed event type. Missing or empty
+        # X-GitHub-Event is malformed; let the request be forwarded so the cell
+        # returns 400 and GitHub is notified of the delivery failure.
+        if github_event and github_event not in CELL_PROCESSED_GITHUB_EVENTS:
+            metrics.incr(
+                "github.webhook.drop_unprocessed_event",
+                tags={"event_type": github_event or "unknown"},
+            )
+            return HttpResponse(status=202)
+
         response = self.get_response_from_webhookpayload(
-            regions=regions,
+            cells=cells,
             identifier=self.get_mailbox_identifier(integration, event),
             integration_id=integration.id,
         )

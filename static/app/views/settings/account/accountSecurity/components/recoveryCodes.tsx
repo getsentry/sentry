@@ -3,17 +3,16 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconDownload, IconPrint} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   codes: string[];
@@ -22,7 +21,12 @@ type Props = {
   className?: string;
 };
 
-function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: Props) {
+export function RecoveryCodes({
+  className,
+  isEnrolled,
+  codes,
+  onRegenerateBackupCodes,
+}: Props) {
   const printCodes = () => {
     // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     // eslint-disable-next-line dot-notation
@@ -90,13 +94,11 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
   );
 }
 
-export default RecoveryCodes;
-
 const CodeContainer = styled(Panel)`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const Code = styled(PanelItem)`
   font-family: ${p => p.theme.font.family.mono};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;

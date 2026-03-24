@@ -8,9 +8,8 @@ import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
@@ -147,7 +146,7 @@ const ViewTitleWrapper = styled(Layout.Title)`
 const ViewTitle = styled('div')`
   height: 40px;
   letter-spacing: normal;
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
   font-size: inherit;
   align-items: center;
   border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};

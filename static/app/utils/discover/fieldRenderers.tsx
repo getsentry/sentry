@@ -9,20 +9,20 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
-import FileSize from 'sentry/components/fileSize';
-import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
+import {FileSize} from 'sentry/components/fileSize';
+import {BadgeDisplayName} from 'sentry/components/idBadge/badgeDisplayName';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import UserMisery from 'sentry/components/userMisery';
-import Version from 'sentry/components/version';
+import {UserMisery} from 'sentry/components/userMisery';
+import {Version} from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -30,10 +30,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
   ABYTE_UNITS,
@@ -47,15 +47,16 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import toPercent from 'sentry/utils/number/toPercent';
-import Projects from 'sentry/utils/projects';
+import {toPercent} from 'sentry/utils/number/toPercent';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {Projects} from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
@@ -63,6 +64,7 @@ import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
+import {NUMBER_MAX_FRACTION_DIGITS} from 'sentry/views/dashboards/widgets/common/settings';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -84,7 +86,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
-import ArrayValue from './arrayValue';
+import {ArrayValue} from './arrayValue';
 import {
   BarContainer,
   Container,
@@ -98,7 +100,7 @@ import {
   UserIcon,
   VersionContainer,
 } from './styles';
-import TeamKeyTransactionField from './teamKeyTransactionField';
+import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamKeyTransactionField';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.
@@ -303,7 +305,14 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? formatFloat(data[field], 4) : emptyValue}
+        {typeof data[field] === 'number'
+          ? formatFloat(data[field], NUMBER_MAX_FRACTION_DIGITS).toLocaleString(
+              undefined,
+              {
+                maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
+              }
+            )
+          : emptyValue}
       </NumberContainer>
     ),
   },
@@ -387,7 +396,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => {
       if (typeof data[field] !== 'number') {
-        return <Container>{emptyValue}</Container>;
+        return <NumberContainer>{emptyValue}</NumberContainer>;
       }
       return <CurrencyCell value={data[field]} />;
     },
@@ -536,7 +545,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       if (op === ModuleName.DB || op === ModuleName.RESOURCE) {
         return (
           <SpanDescriptionCell
-            description={value}
+            description={value ?? ''}
             moduleName={op}
             projectId={projectId}
             group={spanGroup}
@@ -591,35 +600,52 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   replayId: {
     sortField: 'replayId',
-    renderFunc: (data, {organization}) => {
+    renderFunc: (data, baggage) => {
       const replayId = data?.replayId;
       if (typeof replayId !== 'string' || !replayId) {
         return emptyValue;
       }
-
-      const target = makeReplaysPathname({
-        path: `/${replayId}/`,
-        organization,
-      });
-
-      return (
-        <Container>
-          <ViewReplayLink replayId={replayId} to={target}>
-            {getShortEventId(replayId)}
-          </ViewReplayLink>
-        </Container>
-      );
+      return renderReplayIdAsLink(replayId, baggage);
+    },
+  },
+  'replay.id': {
+    sortField: 'replay.id',
+    renderFunc: (data, baggage) => {
+      const replayId = data?.['replay.id'];
+      if (typeof replayId !== 'string' || !replayId) {
+        return emptyValue;
+      }
+      return renderReplayIdAsLink(replayId, baggage);
     },
   },
   'profile.id': {
     sortField: 'profile.id',
-    renderFunc: data => {
-      const id: string | unknown = data?.['profile.id'];
-      if (typeof id !== 'string' || id === '') {
+    renderFunc: (data, {organization, projects}) => {
+      const profileId: string | unknown = data?.['profile.id'];
+      if (typeof profileId !== 'string' || profileId === '') {
         return emptyValue;
       }
 
-      return <Container>{getShortEventId(id)}</Container>;
+      const projectSlug = data.project ?? data['project.name'];
+      const projectMatch = projects?.find(p => p.slug === projectSlug);
+
+      if (!projectMatch) {
+        return <Container>{getShortEventId(profileId)}</Container>;
+      }
+
+      const target = generateProfileFlamechartRouteWithQuery({
+        organization,
+        projectSlug: projectMatch.slug,
+        profileId,
+      });
+
+      return (
+        <Link to={target}>
+          <StyledTooltip title={t('View Profile')}>
+            <Container>{getShortEventId(profileId)}</Container>
+          </StyledTooltip>
+        </Link>
+      );
     },
   },
   issue: {
@@ -818,9 +844,10 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: null,
     renderFunc: data => (
       <StarredSegmentCell
-        projectSlug={data.project}
-        segmentName={data.transaction}
-        isStarred={data.is_starred_transaction}
+        projectSlug={data[SpanFields.PROJECT]}
+        projectId={data[SpanFields.PROJECT_ID]?.toString()}
+        segmentName={data[SpanFields.TRANSACTION]}
+        isStarred={data[SpanFields.IS_STARRED_TRANSACTION]}
       />
     ),
   },
@@ -901,7 +928,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => {
       const score = data['performance_score(measurements.score.total)'];
       if (typeof score !== 'number') {
-        return <Container>{emptyValue}</Container>;
+        return <RightAlignedContainer>{emptyValue}</RightAlignedContainer>;
       }
       return (
         <RightAlignedContainer>
@@ -1344,6 +1371,21 @@ const StyledTooltip = styled(Tooltip)`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
+
+function renderReplayIdAsLink(replayId: string, {organization}: RenderFunctionBaggage) {
+  const target = makeReplaysPathname({
+    path: `/${replayId}/`,
+    organization,
+  });
+
+  return (
+    <Container>
+      <ViewReplayLink replayId={replayId} to={target}>
+        {getShortEventId(replayId)}
+      </ViewReplayLink>
+    </Container>
+  );
+}
 
 export function getFieldRenderer(
   field: string,

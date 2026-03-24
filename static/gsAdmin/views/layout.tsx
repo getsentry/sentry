@@ -6,18 +6,17 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import GlobalModal from 'sentry/components/globalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
-import ListLink from 'sentry/components/links/listLink';
+import {ListLink} from 'sentry/components/links/listLink';
 import {IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
-import {space} from 'sentry/styles/space';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import SystemAlerts from 'sentry/views/app/systemAlerts';
 
-import GlobalStyles from 'admin/globalStyles';
+import {GlobalStyles} from 'admin/globalStyles';
 
 const themes = {
   darkTheme,
@@ -27,19 +26,19 @@ const themes = {
 type ThemeName = keyof typeof themes;
 
 const useToggleTheme = () => {
-  const current = localStorage.getItem('getsentryAdminTheme') ?? 'lightTheme';
+  const current = localStorageWrapper.getItem('getsentryAdminTheme') ?? 'lightTheme';
   const [themeName, setThemeName] = useState<ThemeName>(current as ThemeName);
 
   const toggleTheme = () => {
     const newThemeName = themeName === 'darkTheme' ? 'lightTheme' : 'darkTheme';
     setThemeName(newThemeName);
-    localStorage.setItem('getsentryAdminTheme', newThemeName);
+    localStorageWrapper.setItem('getsentryAdminTheme', newThemeName);
   };
 
   return [themeName === 'darkTheme', themes[themeName], toggleTheme] as const;
 };
 
-export default function Layout() {
+export function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
 
   return (
@@ -120,7 +119,7 @@ const AppContainer = styled('div')`
 const Content = styled(`main`)`
   width: 100%;
   max-width: var(--contentWidth);
-  padding: 0 ${space(3)};
+  padding: 0 ${p => p.theme.space['2xl']};
 `;
 
 const Sidebar = styled('section')`
@@ -131,20 +130,20 @@ const Sidebar = styled('section')`
   display: grid;
   grid-template-rows: max-content 1fr max-content;
   width: var(--sidebarWidth);
-  padding: ${space(3)} 0;
-  gap: ${space(3)};
+  padding: ${p => p.theme.space['2xl']} 0;
+  gap: ${p => p.theme.space['2xl']};
   background: ${p => p.theme.tokens.background.primary};
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
 
   > * {
-    padding: 0 ${space(4)};
+    padding: 0 ${p => p.theme.space['3xl']};
   }
 `;
 
 const Logo = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.xl};
@@ -165,28 +164,28 @@ const Navigation = styled('ul')`
   font-size: ${p => p.theme.font.size.md};
   margin: 0;
   overflow-y: auto;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const NavLink = styled(ListLink)`
-  --activeIndicatorWidth: ${space(0.5)};
+  --activeIndicatorWidth: ${p => p.theme.space.xs};
 
-  padding: ${space(0.25)} 0;
+  padding: ${p => p.theme.space['2xs']} 0;
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   .active & {
     color: ${p => p.theme.tokens.interactive.link.accent.active};
-    margin-left: calc(-1 * (${space(1)} + var(--activeIndicatorWidth)));
+    margin-left: calc(-1 * (${p => p.theme.space.md} + var(--activeIndicatorWidth)));
   }
 
   .active &::before {
     display: block;
     content: '';
     width: var(--activeIndicatorWidth);
-    height: ${space(3)};
+    height: ${p => p.theme.space['2xl']};
     position: relative;
     top: -1px;
     color: ${p => p.theme.tokens.interactive.link.accent.active};

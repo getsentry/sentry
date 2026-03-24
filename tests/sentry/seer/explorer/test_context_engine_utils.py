@@ -29,7 +29,7 @@ class TestGetInstrumentationTypes(TestCase):
         self.project.save()
 
         result = get_instrumentation_types(self.project)
-        assert result == ["transactions", "profiles", "replays", "sessions"]
+        assert result == ["transactions", "spans", "profiles", "replays", "sessions"]
 
     def test_returns_partial_flags(self):
         self.project.flags.has_transactions = True
@@ -37,7 +37,7 @@ class TestGetInstrumentationTypes(TestCase):
         self.project.save()
 
         result = get_instrumentation_types(self.project)
-        assert result == ["transactions", "sessions"]
+        assert result == ["transactions", "spans", "sessions"]
 
 
 @django_db_all

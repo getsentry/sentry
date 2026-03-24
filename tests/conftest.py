@@ -5,7 +5,15 @@ from collections.abc import Generator, MutableMapping
 
 import psutil
 import pytest
+import pytest_rerunfailures
 import responses
+import sentry_sdk
+
+# Disable crash recovery server in pytest-rerunfailures. Under xdist, Sentry's
+# global socket.setdefaulttimeout(5) causes the server's per-worker recv threads
+# to die during Django init (~10s), silently breaking crash recovery anyway.
+# Normal --reruns (in-memory retry) is unaffected.
+pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False  # type: ignore[attr-defined]
 from django.core.cache import cache
 from django.db import connections
 
@@ -127,6 +135,19 @@ def audit_hybrid_cloud_writes_and_deletes(request: pytest.FixtureRequest) -> Gen
             conn.force_debug_cursor = debug_cursor_state[conn.alias]
 
             validate_protected_queries(conn.queries)
+
+
+@pytest.fixture(autouse=True)
+def reset_sentry_isolation_scope() -> Generator[None]:
+    """Reset isolation scope level after tests to prevent pollution.
+
+    SpanFlusher.main() and ProcessSpansStrategyFactory.create_with_partitions()
+    set scope.level = "warning" on the shared isolation scope. In tests the
+    flusher runs as a thread (not a separate process), so this leaks into
+    subsequent tests.
+    """
+    yield
+    sentry_sdk.get_isolation_scope()._level = None
 
 
 @pytest.fixture(autouse=True)

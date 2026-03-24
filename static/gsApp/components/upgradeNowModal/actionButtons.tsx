@@ -7,19 +7,19 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Plan, PreviewData, Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import type {Reservations} from './types';
 import {redirectToManage} from './utils';
@@ -35,7 +35,7 @@ type Props = {
   onComplete?: () => void;
 };
 
-function ActionButtons({
+export function ActionButtons({
   isActionDisabled,
   onComplete,
   organization,
@@ -178,9 +178,7 @@ function ActionButtons({
 
 const ButtonRow = styled('p')`
   display: flex;
-  gap: ${space(1.5)};
-  margin-top: ${space(3)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-top: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
-
-export default ActionButtons;

@@ -23,7 +23,7 @@ from sentry.lang.native.utils import (
     native_images_from_data,
     signal_from_data,
 )
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.options.rollout import in_random_rollout
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
@@ -135,7 +135,7 @@ def _handle_image_status(status, image, os, data):
     if status in ("found", "unused"):
         return
     elif status == "unsupported":
-        error = SymbolicationFailed(type=EventError.NATIVE_UNSUPPORTED_DSYM)
+        error = SymbolicationFailed(type=EventErrorType.NATIVE_UNSUPPORTED_DSYM)
     elif status == "missing":
         package = image.get("code_file")
         if not package:
@@ -158,19 +158,19 @@ def _handle_image_status(status, image, os, data):
             return
 
         if is_optional_package(package):
-            error = SymbolicationFailed(type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
+            error = SymbolicationFailed(type=EventErrorType.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
         else:
-            error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
+            error = SymbolicationFailed(type=EventErrorType.NATIVE_MISSING_DSYM)
     elif status == "malformed":
-        error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
+        error = SymbolicationFailed(type=EventErrorType.NATIVE_BAD_DSYM)
     elif status == "too_large":
-        error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
+        error = SymbolicationFailed(type=EventErrorType.FETCH_TOO_LARGE)
     elif status == "fetching_failed":
-        error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
+        error = SymbolicationFailed(type=EventErrorType.FETCH_GENERIC_ERROR)
     elif status == "timeout":
-        error = SymbolicationFailed(type=EventError.FETCH_TIMEOUT)
+        error = SymbolicationFailed(type=EventErrorType.FETCH_TIMEOUT)
     elif status == "other":
-        error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
+        error = SymbolicationFailed(type=EventErrorType.UNKNOWN_ERROR)
     else:
         logger.error("Unknown status: %s", status)
         return
@@ -200,16 +200,17 @@ def _merge_image(raw_image, complete_image, os, data):
 
 def _handle_response_status(event_data, response_json):
     if not response_json:
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
+        error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
     elif response_json["status"] == "completed":
         return True
     elif response_json["status"] == "failed":
         error = SymbolicationFailed(
-            message=response_json.get("message") or None, type=EventError.NATIVE_SYMBOLICATOR_FAILED
+            message=response_json.get("message") or None,
+            type=EventErrorType.NATIVE_SYMBOLICATOR_FAILED,
         )
     else:
         logger.error("Unexpected symbolicator status: %s", response_json["status"])
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
+        error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
 
     write_error(error, event_data)
 
@@ -278,8 +279,9 @@ def _merge_full_response(data, response):
     if response["stacktraces"]:
         data["threads"] = {"values": data_threads}
     else:
+        logger.info("minidump has no thread list", extra={"response": response})
         error = SymbolicationFailed(
-            message="minidump has no thread list", type=EventError.NATIVE_SYMBOLICATOR_FAILED
+            message="minidump has no thread list", type=EventErrorType.NATIVE_SYMBOLICATOR_FAILED
         )
         write_error(error, data)
 

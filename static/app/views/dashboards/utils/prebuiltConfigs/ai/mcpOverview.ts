@@ -70,7 +70,8 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       limit: 3,
     },
   ],
-  0
+  0,
+  {h: 3, minH: 3}
 );
 
 const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -91,6 +92,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.MCP_TOOL_NAME],
           fieldAliases: [t('Tool'), t('Count')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.MCP_TOOL_NAME,
+              staticDashboardId: 20,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -111,6 +119,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.MCP_RESOURCE_URI],
           fieldAliases: [t('Resource'), t('Count')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.MCP_RESOURCE_URI,
+              staticDashboardId: 21,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -131,12 +146,19 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.MCP_PROMPT_NAME],
           fieldAliases: [t('Prompt'), t('Count')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.MCP_PROMPT_NAME,
+              staticDashboardId: 22,
+            },
+          ],
         },
       ],
       limit: 3,
     },
   ],
-  2,
+  3,
   {h: 3, minH: 3}
 );
 
@@ -154,12 +176,14 @@ const OVERVIEW_TABLE = {
         SpanFields.SPAN_DESCRIPTION,
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
@@ -168,6 +192,7 @@ const OVERVIEW_TABLE = {
         t('Span Description'),
         t('Requests'),
         t('Error Rate'),
+        t('Errors'),
         t('Avg'),
         t('P95'),
       ],
@@ -176,7 +201,7 @@ const OVERVIEW_TABLE = {
   ],
   layout: {
     x: 0,
-    y: 5,
+    y: 6,
     w: 6,
     h: 4,
     minH: 2,
@@ -189,4 +214,9 @@ export const MCP_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: 'MCP Overview',
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, OVERVIEW_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'mcp',
+    requiredProjectFlags: ['hasInsightsMCP'],
+  },
 };

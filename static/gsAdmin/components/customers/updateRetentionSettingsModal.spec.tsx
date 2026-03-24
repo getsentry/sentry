@@ -10,7 +10,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import openUpdateRetentionSettingsModal from 'admin/components/customers/updateRetentionSettingsModal';
+import {openUpdateRetentionSettingsModal} from 'admin/components/customers/updateRetentionSettingsModal';
 
 describe('UpdateRetentionSettingsModal', () => {
   const onSuccess = jest.fn();

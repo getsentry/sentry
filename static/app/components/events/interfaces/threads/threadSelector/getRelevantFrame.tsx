@@ -1,7 +1,7 @@
 import type {Frame} from 'sentry/types/event';
 
 // TODO(ts): define correct stack trace type
-function getRelevantFrame(stacktrace: any): Frame {
+export function getRelevantFrame(stacktrace: any): Frame {
   if (!stacktrace.hasSystemFrames) {
     return stacktrace.frames[stacktrace.frames.length - 1];
   }
@@ -14,5 +14,3 @@ function getRelevantFrame(stacktrace: any): Frame {
   // this should not happen
   return stacktrace.frames[stacktrace.frames.length - 1];
 }
-
-export default getRelevantFrame;

@@ -6,8 +6,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
-import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
+import {CustomIgnoreCountModal} from 'sentry/components/customIgnoreCountModal';
+import {CustomIgnoreDurationModal} from 'sentry/components/customIgnoreDurationModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
@@ -15,7 +15,7 @@ import {t, tct, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 
 const ONE_HOUR = 60;
 
@@ -68,7 +68,7 @@ type GetArchiveActionsProps = Pick<
   disableArchiveUntilOccurrence?: boolean;
 };
 
-export function getArchiveActions({
+function getArchiveActions({
   shouldConfirm,
   confirmLabel,
   confirmMessage,
@@ -260,7 +260,7 @@ export function getArchiveActions({
   };
 }
 
-function ArchiveActions({
+export function ArchiveActions({
   size = 'xs',
   disabled,
   disableArchiveUntilOccurrence,
@@ -349,8 +349,6 @@ function ArchiveActions({
     </ButtonBar>
   );
 }
-
-export default ArchiveActions;
 
 const StyledExternalLink = styled(ExternalLink)`
   font-weight: ${p => p.theme.font.weight.sans.regular};

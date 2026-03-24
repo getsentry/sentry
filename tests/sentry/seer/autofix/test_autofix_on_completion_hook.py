@@ -261,7 +261,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             },
         )
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
-        mock_client.push_changes.assert_called_once_with(123)
+        mock_client.push_changes.assert_called_once_with(123, blocking=False)
 
 
 class TestPipelineConstants(TestCase):
@@ -393,6 +393,7 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
         mock_trigger_sg.assert_called_once_with(
             organization_id=self.organization.id,
             group_id=self.group.id,
+            project_id=self.group.project_id,
             artifact_data=block.artifacts[0].data,
         )
 

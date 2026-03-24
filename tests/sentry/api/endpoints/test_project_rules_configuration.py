@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, Mock, patch
 
+from sentry.api.serializers.models.rule import EMAIL_ACTION
 from sentry.constants import TICKET_ACTIONS
 from sentry.integrations.github_enterprise.actions import GitHubEnterpriseCreateTicketAction
 from sentry.rules import MatchType
@@ -9,7 +10,6 @@ from sentry.rules.registry import RuleRegistry
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
-EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 

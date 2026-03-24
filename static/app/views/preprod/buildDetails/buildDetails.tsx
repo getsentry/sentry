@@ -7,23 +7,16 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDownload, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {
-  fetchMutation,
-  useApiQuery,
-  useMutation,
-  type UseApiQueryResult,
-} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
@@ -42,72 +35,61 @@ export default function BuildDetails() {
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
   const {artifactId} = useParams<{artifactId: string}>();
-  const {project: projectSlug} = useLocationQuery({fields: {project: decodeScalar}});
-  // Handle project as query param - take first value if array
-  const projectId = Array.isArray(projectSlug) ? projectSlug[0] : projectSlug;
-  const {handleDownloadAction, handleRerunAction} = useBuildDetailsActions({
-    projectId,
-    artifactId,
-  });
 
-  const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
-    useApiQuery<BuildDetailsApiResponse>(
-      [
-        getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectId,
-              headArtifactId: artifactId,
-            },
-          }
-        ),
-      ],
-      {
-        staleTime: 0,
-        enabled: !!projectId && !!artifactId,
-        refetchInterval: query => {
-          const data = query.state.data;
-          const sizeInfo = data?.[0]?.size_info;
-          return isSizeInfoPendingOrProcessing(sizeInfo) ? 10_000 : false;
-        },
-      }
-    );
+  const buildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            headArtifactId: artifactId,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!artifactId,
+      refetchInterval: query => {
+        const data = query.state.data;
+        const sizeInfo = data?.[0]?.size_info;
+        return isSizeInfoPendingOrProcessing(sizeInfo) ? 10_000 : false;
+      },
+    }
+  );
 
   const sizeInfo = buildDetailsQuery.data?.size_info;
   const isPendingOrProcessing = isSizeInfoPendingOrProcessing(sizeInfo);
 
-  const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
-    useApiQuery<AppSizeApiResponse>(
-      [
-        getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/size-analysis/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectId,
-              headArtifactId: artifactId,
-            },
-          }
-        ),
-      ],
-      {
-        staleTime: 0,
-        retry: (failureCount, apiError: RequestError) => {
-          // By default we retry 404s 3 times which causes
-          // latency when loading the page if there is no size-analysis
-          // (which is legitimate if size was not run on this artifact).
-          // Instead don't retry 404s:
-          if (apiError?.status === 404) {
-            return false;
-          }
-          // Keep default behaviour otherwise:
-          return failureCount < 2;
-        },
-        enabled: !!projectId && !!artifactId,
-      }
-    );
+  const appSizeQuery = useApiQuery<AppSizeApiResponse>(
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/files/preprodartifacts/$headArtifactId/size-analysis/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            headArtifactId: artifactId,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+      retry: (failureCount, apiError: RequestError) => {
+        // By default we retry 404s 3 times which causes
+        // latency when loading the page if there is no size-analysis
+        // (which is legitimate if size was not run on this artifact).
+        // Instead don't retry 404s:
+        if (apiError?.status === 404) {
+          return false;
+        }
+        // Keep default behaviour otherwise:
+        return failureCount < 2;
+      },
+      enabled: !!artifactId,
+    }
+  );
 
   const wasPendingOrProcessingRef = useRef(isPendingOrProcessing);
 
@@ -124,7 +106,7 @@ export default function BuildDetails() {
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprod-artifact/rerun-analysis/${artifactId}/`,
+        url: `/organizations/${organization.slug}/preprod-artifact/rerun-analysis/${artifactId}/`,
         method: 'POST',
       });
     },
@@ -140,10 +122,16 @@ export default function BuildDetails() {
   });
 
   const buildDetails = buildDetailsQuery.data;
+  const projectSlug = buildDetails?.project_slug;
   const version = buildDetails?.app_info?.version;
   const buildNumber = buildDetails?.app_info?.build_number;
-  const project = ProjectsStore.getBySlug(projectId);
+  const project = ProjectsStore.getBySlug(projectSlug);
   const projectType = project?.platform ?? null;
+
+  const {handleDownloadAction, handleRerunAction} = useBuildDetailsActions({
+    projectId: projectSlug ?? '',
+    artifactId,
+  });
 
   let title = t('Build details');
   if (
@@ -200,7 +188,7 @@ export default function BuildDetails() {
         <Layout.Header>
           <BuildDetailsHeaderContent
             buildDetailsQuery={buildDetailsQuery}
-            projectId={projectId}
+            projectSlug={projectSlug ?? ''}
             artifactId={artifactId}
             projectType={projectType}
           />
@@ -213,7 +201,7 @@ export default function BuildDetails() {
                 buildDetailsData={buildDetailsQuery.data}
                 isBuildDetailsPending={buildDetailsQuery.isLoading}
                 artifactId={artifactId}
-                projectId={projectId}
+                projectId={projectSlug ?? null}
               />
             </BuildDetailsSide>
             <BuildDetailsMain>
@@ -224,7 +212,7 @@ export default function BuildDetails() {
                 buildDetailsData={buildDetailsQuery.data}
                 isBuildDetailsPending={buildDetailsQuery.isLoading}
                 projectType={projectType}
-                projectId={projectId}
+                projectId={projectSlug}
               />
             </BuildDetailsMain>
           </UrlParamBatchProvider>

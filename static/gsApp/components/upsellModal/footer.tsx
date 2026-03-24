@@ -9,7 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {getFriendlyPlanName} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 interface UpsellFooterProps {
   onCloseModal: () => void;
@@ -19,7 +19,7 @@ interface UpsellFooterProps {
   source?: string;
 }
 
-function Footer({
+export function Footer({
   subscription,
   organization,
   source,
@@ -91,5 +91,3 @@ const SidebarFooter = styled('div')`
     margin-bottom: 0.5rem;
   }
 `;
-
-export default Footer;

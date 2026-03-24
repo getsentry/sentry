@@ -6,10 +6,10 @@ description: >-
   anywhere eventual consistency is needed — including single-silo deferred side
   effects, audit logging, and event fanout. Use when asked to "add outbox",
   "add outbox replication", "replicate model to control silo", "replicate model
-  to region", "add outbox category", "write outbox signal receiver", "debug stuck
+  to cell", "add outbox category", "write outbox signal receiver", "debug stuck
   outboxes", "outbox not processing", "data not replicating", "test outbox",
   "migrate model to use outboxes", "backfill outbox data", "outbox coalescing",
-  "ReplicatedRegionModel", "ReplicatedControlModel", "OutboxCategory",
+  "ReplicatedCellModel", "ReplicatedControlModel", "OutboxCategory",
   "OutboxScope", or "outbox_runner". Covers model mixins, category registration,
   signal receivers, testing, backfill, and debugging workflows.
 ---
@@ -22,13 +22,13 @@ The most common use case is **cross-silo data replication**: a model saved in th
 
 There are two outbox types corresponding to the two directions of flow:
 
-- **`RegionOutbox`** — written in a Region silo, processed in the Region silo to push data toward Control (via RPC calls in signal receivers).
-- **`ControlOutbox`** — written in the Control silo, processed in the Control silo to push data toward one or more Region silos. Each `ControlOutbox` row targets a specific `region_name`.
+- **`RegionOutbox`** — written in a Cell silo, processed in the Cell silo to push data toward Control (via RPC calls in signal receivers).
+- **`ControlOutbox`** — written in the Control silo, processed in the Control silo to push data toward one or more Cell silos. Each `ControlOutbox` row targets a specific `cell_name`.
 
 ## Critical Constraints
 
 > **Outboxes MUST be written in the same transaction as the data change.**
-> The mixin classes (`ReplicatedRegionModel`, `ReplicatedControlModel`) enforce this automatically via `prepare_outboxes()`. If you write outboxes manually, always use `outbox_context(transaction.atomic(...))`.
+> The mixin classes (`ReplicatedCellModel`, `ReplicatedControlModel`) enforce this automatically via `prepare_outboxes()`. If you write outboxes manually, always use `outbox_context(transaction.atomic(...))`.
 
 > **Handlers MUST be idempotent.**
 > Outboxes can be retried on failure and are coalesced — the handler may receive only the latest version of a change, or be called multiple times for the same change.
@@ -43,7 +43,7 @@ There are two outbox types corresponding to the two directions of flow:
 > An assertion at import time enforces this. A category registered to zero or multiple scopes causes an import crash.
 
 > **Bulk operations must use the producing manager.**
-> Use `MyModel.objects.bulk_create()` / `bulk_update()` / `bulk_delete()` from `RegionOutboxProducingManager` or `ControlOutboxProducingManager`. Raw querysets bypass outbox creation.
+> Use `MyModel.objects.bulk_create()` / `bulk_update()` / `bulk_delete()` from `CellOutboxProducingManager` or `ControlOutboxProducingManager`. Raw querysets bypass outbox creation.
 
 > **Snowflake ID models cannot use `bulk_create`.**
 > The producing manager pre-allocates IDs via `SELECT nextval(...)`, which conflicts with snowflake ID generation. Use individual `save()` calls instead.
@@ -66,33 +66,33 @@ There are two outbox types corresponding to the two directions of flow:
 
 | Data lives in... | Replicates toward... | Mixin                    | Outbox type     |
 | ---------------- | -------------------- | ------------------------ | --------------- |
-| Region silo      | Control silo         | `ReplicatedRegionModel`  | `RegionOutbox`  |
-| Control silo     | Region silo(s)       | `ReplicatedControlModel` | `ControlOutbox` |
+| Cell silo        | Control silo         | `ReplicatedCellModel`    | `RegionOutbox`  |
+| Control silo     | Cell silo(s)         | `ReplicatedControlModel` | `ControlOutbox` |
 
-### 2.2 `ReplicatedRegionModel` Template
+### 2.2 `ReplicatedCellModel` Template
 
-Use this when a Region model needs to replicate data to the Control silo.
+Use this when a Cell model needs to replicate data to the Control silo.
 
 ```python
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel, RegionOutboxProducingManager
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel, CellOutboxProducingManager
 from sentry.hybridcloud.outbox.category import OutboxCategory
 
 
-class MyModelManager(RegionOutboxProducingManager["MyModel"]):
+class MyModelManager(CellOutboxProducingManager["MyModel"]):
     """Manager that ensures bulk operations create outboxes."""
     pass
 
 
-@region_silo_model
-class MyModel(ReplicatedRegionModel):
+@cell_silo_model
+class MyModel(ReplicatedCellModel):
     __relocation_scope__ = RelocationScope.Organization
 
     # Required: the OutboxCategory for this model (must already be registered)
@@ -148,7 +148,7 @@ class MyModel(ReplicatedRegionModel):
 
 ### 2.3 `ReplicatedControlModel` Template
 
-Use this when a Control model needs to replicate data to Region silo(s). The key difference: Control outboxes fan out to one or more regions, so the model must declare which regions to target.
+Use this when a Control model needs to replicate data to Region silo(s). The key difference: Control outboxes fan out to one or more cells, so the model must declare which cells to target.
 
 ```python
 from sentry.db.models import control_silo_model
@@ -176,35 +176,35 @@ class MyControlModel(ReplicatedControlModel):
         app_label = "sentry"
         db_table = "sentry_mycontrolmodel"
 
-    def outbox_region_names(self) -> Collection[str]:
+    def outbox_cell_names(self) -> Collection[str]:
         """
-        Which regions should receive outboxes for this change.
+        Which cells should receive outboxes for this change.
         Default implementation checks organization_id then user_id.
-        Override for custom logic (e.g., all regions, specific regions).
+        Override for custom logic (e.g., all cells, specific cells).
         """
         # Default: auto-detects from organization_id or user_id attributes.
         # Override only if the default doesn't work for your model.
-        return super().outbox_region_names()
+        return super().outbox_cell_names()
 
     @classmethod
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        """Note: receives region_name — one call per target region."""
+        """Note: receives cell_name — one call per target cell."""
         pass
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        """Note: receives region_name — one call per target region."""
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
+        """Note: receives cell_name — one call per target cell."""
         pass
 ```
 
 ### 2.4 Wire Up the Category Connection
 
-The mixin classes auto-connect signal receivers via `OutboxCategory.connect_region_model_updates()` (or `connect_control_model_updates()`). This happens at class definition time when the `category` class variable is set. The connection dispatches to your `handle_async_replication` and `handle_async_deletion` methods automatically.
+The mixin classes auto-connect signal receivers via `OutboxCategory.connect_cell_model_updates()` (or `connect_control_model_updates()`). This happens at class definition time when the `category` class variable is set. The connection dispatches to your `handle_async_replication` and `handle_async_deletion` methods automatically.
 
 **No manual signal receiver is needed** for replicated models — the mixin handles it. Manual receivers are only needed for categories that don't map to a replicated model (see Step 4).
 
@@ -224,7 +224,7 @@ Load `references/category-and-scope.md` for the full scope-to-category mapping, 
 
 ## Step 4: Write a Manual Signal Receiver
 
-Use manual receivers when the outbox category is **not** tied to a `ReplicatedRegionModel` or `ReplicatedControlModel`. Common cases:
+Use manual receivers when the outbox category is **not** tied to a `ReplicatedCellModel` or `ReplicatedControlModel`. Common cases:
 
 - Payload-only operations (audit logs, IP events) that carry all data in the payload
 - Actions triggered by a model change but not replicating that model directly
@@ -239,9 +239,9 @@ When adding outbox replication to a model that already has data in production:
 
 ### 5.1 Code Changes (Non-Breaking)
 
-1. Change the model's base class to `ReplicatedRegionModel` or `ReplicatedControlModel`
+1. Change the model's base class to `ReplicatedCellModel` or `ReplicatedControlModel`
 2. Add the `category` class variable
-3. Add a producing manager (`RegionOutboxProducingManager` / `ControlOutboxProducingManager`)
+3. Add a producing manager (`CellOutboxProducingManager` / `ControlOutboxProducingManager`)
 4. Implement `handle_async_replication` and `handle_async_deletion`
 5. If needed, add `payload_for_update()` for deletion recovery data
 6. Create the `OutboxCategory` if it doesn't exist (Step 3)
@@ -285,7 +285,7 @@ from sentry.hybridcloud.models.outbox import outbox_context
 with outbox_context(flush=False):
     MyModel(id=10).outbox_for_update().save()
 
-assert RegionOutbox.objects.count() == 1
+assert CellOutbox.objects.count() == 1
 ```
 
 **`assume_test_silo_mode` / `assume_test_silo_mode_of`** — switch silo context within a test to query cross-silo models:
@@ -307,7 +307,7 @@ def test_outbox_created_on_save(self):
         obj = MyModel(id=10, organization_id=1)
         obj.outbox_for_update().save()
 
-    outbox = RegionOutbox.objects.first()
+    outbox = CellOutbox.objects.first()
     assert outbox.category == OutboxCategory.MY_MODEL_UPDATE.value
     assert outbox.shard_scope == OutboxScope.ORGANIZATION_SCOPE.value
     assert outbox.shard_identifier == 1
@@ -360,7 +360,7 @@ def test_idempotent_replication(self):
 
 ### 7.3 Silo Test Decorators
 
-- Use **`@region_silo_test`** for tests focused on `RegionOutbox` creation
+- Use **`@cell_silo_test`** for tests focused on `RegionOutbox` creation
 - Use **`@control_silo_test`** for tests focused on `ControlOutbox` creation
 - Use **`@all_silo_test`** for end-to-end replication tests that exercise both silos
 - Only use **`TransactionTestCase`** for threading/concurrency tests (e.g., `threading.Barrier`), not for standard outbox drain tests
@@ -387,16 +387,16 @@ Load `references/debugging.md` for the full processing pipeline walkthrough, sha
 
 Before submitting your PR, verify:
 
-- [ ] Model inherits from `ReplicatedRegionModel` or `ReplicatedControlModel` (or uses manual receivers)
+- [ ] Model inherits from `ReplicatedCellModel` or `ReplicatedControlModel` (or uses manual receivers)
 - [ ] `category` class variable is set to the correct `OutboxCategory`
 - [ ] `OutboxCategory` is registered to exactly one `OutboxScope`
 - [ ] The chosen `OutboxScope` matches the model's shard key (organization_id, user_id, etc.)
 - [ ] `handle_async_replication` is idempotent (safe to call multiple times)
 - [ ] `handle_async_deletion` is idempotent and handles the case where the row is already gone
 - [ ] `payload_for_update()` includes only data needed for deletion recovery (not rapidly-changing fields)
-- [ ] Producing manager (`RegionOutboxProducingManager` / `ControlOutboxProducingManager`) is set on the model
+- [ ] Producing manager (`CellOutboxProducingManager` / `ControlOutboxProducingManager`) is set on the model
 - [ ] Bulk operations go through the producing manager, not raw querysets
-- [ ] `ReplicatedControlModel` has correct `outbox_region_names()` implementation
+- [ ] `ReplicatedControlModel` has correct `outbox_cell_names()` implementation
 - [ ] Tests verify outbox creation (scope, category, identifiers)
 - [ ] Tests verify end-to-end replication (save -> drain -> cross-silo effect)
 - [ ] Tests verify deletion propagation (delete -> drain -> cleanup)

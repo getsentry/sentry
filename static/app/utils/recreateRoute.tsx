@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
-import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 
 type Options = {
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
@@ -26,7 +26,7 @@ type Options = {
  *
  * See tests for examples
  */
-export default function recreateRoute(to: string | PlainRoute, options: Options): string {
+export function recreateRoute(to: string | PlainRoute, options: Options): string {
   const {routes, params, location, stepBack} = options;
   const paths = routes.map(({path}) => {
     path = path || '';

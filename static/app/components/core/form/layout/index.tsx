@@ -31,10 +31,11 @@ function RowLayout(props: RowLayoutProps) {
     <HighlightableFlex
       id={field.name}
       direction="row"
-      gap="sm"
+      gap="xl"
       align="center"
       justify="between"
       padding={props.padding}
+      flexGrow={1}
     >
       <Stack width="50%" gap="xs">
         <Flex gap="xs" align="center">
@@ -69,6 +70,7 @@ function StackLayout(props: StackLayoutProps) {
       direction="column"
       gap="md"
       padding={props.padding}
+      flexGrow={1}
     >
       <Flex gap="xs" align="center">
         <FieldMeta.Label

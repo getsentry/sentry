@@ -3,17 +3,17 @@ import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
-import BarChartZoom from 'sentry/components/charts/barChartZoom';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {BarChartZoom} from 'sentry/components/charts/barChartZoom';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
+import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import Histogram from 'sentry/utils/performance/histogram';
-import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {Histogram} from 'sentry/utils/performance/histogram';
+import {HistogramQuery} from 'sentry/utils/performance/histogram/histogramQuery';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
@@ -46,7 +46,7 @@ type Props = ViewProps & {
  * This graph visualizes how many transactions were recorded
  * at each duration bucket, showing the modality of the transaction.
  */
-function Content({
+export function Content({
   organization,
   query,
   start,
@@ -215,5 +215,3 @@ function Content({
     </Histogram>
   );
 }
-
-export default Content;

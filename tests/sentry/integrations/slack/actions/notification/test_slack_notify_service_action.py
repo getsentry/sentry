@@ -22,8 +22,8 @@ class TestInit(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
     def setUp(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
-            self.organization = self.create_organization(id=1, owner=self.user)
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.organization = self.create_organization(owner=self.user)
             self.project = self.create_project(organization=self.organization)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -350,7 +350,7 @@ class TestInit(RuleTestCase):
             "status": 200,
         }
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             msg = NotificationMessage.objects.create(
                 action_id=self.action.id,
                 group_id=self.event.group.id,

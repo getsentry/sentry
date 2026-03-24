@@ -12,22 +12,19 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organizationAuthTokens';
 
 type OrgAuthTokenWithToken = OrgAuthToken & {token: string};
@@ -97,8 +94,8 @@ function AuthTokenCreateForm({
   });
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
+    <form.AppForm form={form}>
+      <form.FieldGroup title={t('Create New Organization Token')}>
         <form.AppField name="name">
           {field => (
             <field.Layout.Row
@@ -120,12 +117,11 @@ function AuthTokenCreateForm({
             <ScopeHelpText>{t('Source Map Upload, Release Creation')}</ScopeHelpText>
           </div>
         </FieldGroup>
-
-        <Flex justify="end" gap="md" padding="md">
-          <Button onClick={handleGoBack}>{t('Cancel')}</Button>
-          <form.SubmitButton>{t('Create Token')}</form.SubmitButton>
-        </Flex>
-      </form.FormWrapper>
+      </form.FieldGroup>
+      <Flex justify="end" gap="md" padding="md">
+        <Button onClick={handleGoBack}>{t('Cancel')}</Button>
+        <form.SubmitButton>{t('Create Token')}</form.SubmitButton>
+      </Flex>
     </form.AppForm>
   );
 }
@@ -157,16 +153,10 @@ export default function OrganizationAuthTokensNewAuthToken() {
           }
         )}
       </TextBlock>
-      <Panel>
-        <PanelHeader>{t('Create New Organization Token')}</PanelHeader>
-
-        <PanelBody>
-          <AuthTokenCreateForm
-            organization={organization}
-            onCreatedToken={token => displayNewToken(token.token, handleGoBack)}
-          />
-        </PanelBody>
-      </Panel>
+      <AuthTokenCreateForm
+        organization={organization}
+        onCreatedToken={token => displayNewToken(token.token, handleGoBack)}
+      />
     </div>
   );
 }

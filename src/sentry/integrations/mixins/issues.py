@@ -27,7 +27,7 @@ from sentry.models.project import Project
 from sentry.notifications.utils import get_notification_group_title
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.silo.base import all_silo_function, region_silo_function
+from sentry.silo.base import all_silo_function, cell_silo_function
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
@@ -372,7 +372,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         pass
 
 
-@region_silo_function
+@cell_silo_function
 def where_should_sync(
     integration: RpcIntegration | Integration,
     key: str,

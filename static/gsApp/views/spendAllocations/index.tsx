@@ -9,25 +9,25 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Confirm from 'sentry/components/confirm';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Confirm} from 'sentry/components/confirm';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useApi} from 'sentry/utils/useApi';
+import {withOrganization} from 'sentry/utils/withOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
-import LearnMoreButton from 'getsentry/components/features/learnMoreButton';
+import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {AllocationTargetTypes} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName, isAmEnterprisePlan} from 'getsentry/utils/billing';
@@ -36,16 +36,16 @@ import {
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
-import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {PartnershipNote} from 'getsentry/views/subscriptionPage/partnershipNote';
 import {hasPermissions} from 'getsentry/views/subscriptionPage/utils';
 
 import AllocationForm from './components/allocationForm';
 import type {SpendAllocation} from './components/types';
-import EnableSpendAllocations from './enableSpendAllocations';
-import ProjectAllocationsTable from './projectAllocationsTable';
-import RootAllocationCard from './rootAllocationCard';
+import {EnableSpendAllocations} from './enableSpendAllocations';
+import {ProjectAllocationsTable} from './projectAllocationsTable';
+import {RootAllocationCard} from './rootAllocationCard';
 import {BigNumUnits} from './utils';
 
 type Props = {
@@ -98,7 +98,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
     return [start, end];
   }, [viewNextPeriod, subscription]);
 
-  const currentRootAllocations: SpendAllocation[] = useMemo(() => {
+  const currentRootAllocations = useMemo(() => {
     // Return all root allocations that overlap with the selected period
     const [periodStart, periodEnd] = period;
     return rootAllocations.filter(
@@ -111,7 +111,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
     );
   }, [rootAllocations, period]);
 
-  const currentAllocations: SpendAllocation[] = useMemo(() => {
+  const currentAllocations = useMemo(() => {
     // Return all project allocations that overlap with the selected period
     const [periodStart, periodEnd] = period;
     return spendAllocations.filter(
@@ -124,7 +124,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
     );
   }, [spendAllocations, period]);
 
-  const rootAllocationForMetric: SpendAllocation | undefined = useMemo(() => {
+  const rootAllocationForMetric = useMemo(() => {
     const root = currentRootAllocations.find(
       a => a.billingMetric === getCategoryInfoFromPlural(selectedMetric)?.name
     );

@@ -5,17 +5,17 @@ import type {Query} from 'history';
 import {Alert} from '@sentry/scraps/alert';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
-import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
+import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -39,7 +39,7 @@ type Props = SortProps & {
   stickyHeader?: boolean;
 };
 
-export default function ReplayTable({
+export function ReplayTable({
   pageLinks,
   query,
   columns,

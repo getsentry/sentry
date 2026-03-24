@@ -12,15 +12,15 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.models.project import Project
 from sentry.objectstore.types import ObjectstoreUploadOptions
 from sentry.utils.http import absolute_uri
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -43,7 +43,9 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
                 "path": "",
             },
         )
-        url = absolute_uri(path, generate_region_url())
+        # Strip trailing slash so the objectstore client can append subpaths
+        # without producing a double slash (e.g. /objectstore//v1/...).
+        url = absolute_uri(path, generate_locality_url()).rstrip("/")
 
         options = ObjectstoreUploadOptions(
             url=url,
@@ -52,8 +54,8 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
                 ("project", str(project.id)),
             ],
             expirationPolicy=format_expiration(
-                TimeToLive(timedelta(days=396))
-            ),  # Hardcoded for now
+                TimeToLive(timedelta(days=30))
+            ),  # Hardcoded for now, check with Objectstore before increasing
         )
 
         return Response({"objectstore": options})

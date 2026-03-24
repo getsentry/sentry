@@ -5,7 +5,6 @@ import {MenuComponents} from '@sentry/scraps/compactSelect';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
-import {getOwnerList} from 'sentry/components/group/assignedTo';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
@@ -15,10 +14,11 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
-import useCommitters from 'sentry/utils/useCommitters';
+import {useApi} from 'sentry/utils/useApi';
+import {useCommitters} from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {getOwnerList} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
 
 interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;

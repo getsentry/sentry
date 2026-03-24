@@ -3,8 +3,8 @@ import {Fragment, useMemo} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import RangeField from 'sentry/components/forms/fields/rangeField';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {RangeField} from 'sentry/components/forms/fields/rangeField';
 
 import type {SerializedOption} from 'admin/views/options';
 
@@ -14,7 +14,7 @@ interface EditAdminOptionModalProps extends ModalRenderProps {
   path: string;
 }
 
-function EditAdminOptionModal({
+export function EditAdminOptionModal({
   Body,
   Header,
   option,
@@ -72,5 +72,3 @@ function EditOption({option}: {option: SerializedOption}) {
     </Fragment>
   );
 }
-
-export default EditAdminOptionModal;

@@ -11,16 +11,13 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {OrgAuthToken} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   fetchMutation,
@@ -30,12 +27,12 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {
   makeFetchOrgAuthTokensForOrgQueryKey,
   tokenPreview,
@@ -140,8 +137,8 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
   });
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
+    <form.AppForm form={form}>
+      <form.FieldGroup title={t('Organization Token Details')}>
         <form.AppField name="name">
           {field => (
             <field.Layout.Row
@@ -153,7 +150,6 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
             </field.Layout.Row>
           )}
         </form.AppField>
-
         <FieldGroup
           label={t('Token')}
           help={t('You can only view the token once after creation.')}
@@ -167,12 +163,12 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
         >
           <div>{token.scopes.slice().sort().join(', ')}</div>
         </FieldGroup>
+      </form.FieldGroup>
 
-        <Flex justify="end" gap="md" padding="md">
-          <Button onClick={handleGoBack}>{t('Cancel')}</Button>
-          <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
-        </Flex>
-      </form.FormWrapper>
+      <Flex justify="end" gap="md" padding="md">
+        <Button onClick={handleGoBack}>{t('Cancel')}</Button>
+        <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+      </Flex>
     </form.AppForm>
   );
 }
@@ -211,22 +207,17 @@ function OrganizationAuthTokensDetails() {
           }
         )}
       </TextBlock>
-      <Panel>
-        <PanelHeader>{t('Organization Token Details')}</PanelHeader>
 
-        <PanelBody>
-          {isError && (
-            <LoadingError
-              message={t('Failed to load organization token.')}
-              onRetry={refetchToken}
-            />
-          )}
+      {isError && (
+        <LoadingError
+          message={t('Failed to load organization token.')}
+          onRetry={refetchToken}
+        />
+      )}
 
-          {isPending && <LoadingIndicator />}
+      {isPending && <LoadingIndicator />}
 
-          {!isPending && !isError && token && <AuthTokenDetailsForm token={token} />}
-        </PanelBody>
-      </Panel>
+      {!isPending && !isError && token && <AuthTokenDetailsForm token={token} />}
     </div>
   );
 }

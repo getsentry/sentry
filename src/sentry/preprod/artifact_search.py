@@ -40,6 +40,7 @@ search_config = SearchConfig.create_from(
         "download_size",
         "git_pr_number",
         "install_size",
+        "state",
     },
     # Keys that support date filtering
     # date_keys={"date_built", "date_added"},
@@ -55,6 +56,7 @@ search_config = SearchConfig.create_from(
         "build_configuration_name",
         "build_number",
         "build_version",
+        "distribution_error_code",
         "download_count",
         "download_size",
         "git_base_ref",
@@ -68,6 +70,7 @@ search_config = SearchConfig.create_from(
         "is",
         "platform_name",
         "size_state",
+        "state",
     },
     # Enable boolean operators
     # allow_boolean=True,
@@ -101,12 +104,27 @@ FIELD_MAPPINGS: dict[str, str] = {
     "git_head_ref": "commit_comparison__head_ref",
     "git_head_sha": "commit_comparison__head_sha",
     "git_pr_number": "commit_comparison__pr_number",
+    "distribution_error_code": "installable_app_error_code",
     "size_state": "preprodartifactsizemetrics__state",
 }
 
 SIZE_STATE_VALUES: dict[str, int] = {
     member.name.lower(): member.value for member in PreprodArtifactSizeMetrics.SizeAnalysisState
 }
+
+DISTRIBUTION_ERROR_CODE_VALUES: dict[str, int] = {
+    member.name.lower(): member.value for member in PreprodArtifact.InstallableAppErrorCode
+}
+
+
+def _translate_distribution_error_code(value: object) -> int:
+    raw = str(value).lower()
+    if raw not in DISTRIBUTION_ERROR_CODE_VALUES:
+        raise InvalidSearchQuery(
+            f"Invalid distribution_error_code value: {value}. "
+            f"Valid values: {', '.join(sorted(DISTRIBUTION_ERROR_CODE_VALUES))}"
+        )
+    return DISTRIBUTION_ERROR_CODE_VALUES[raw]
 
 
 def _translate_size_state(value: object) -> int:
@@ -252,6 +270,15 @@ def apply_filters(
             else:
                 queryset = queryset.filter(q)
             queryset = queryset.distinct()
+            continue
+
+        if name == "distribution_error_code":
+            values = token.value.value if token.is_in_filter else [token.value.value]
+            q = Q(**{f"{db_field}__in": [_translate_distribution_error_code(v) for v in values]})
+            if token.is_negation:
+                queryset = queryset.exclude(q)
+            else:
+                queryset = queryset.filter(q)
             continue
 
         # We don't have to handle boolean operators or parens here

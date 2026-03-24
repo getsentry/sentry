@@ -2,12 +2,12 @@ import logging
 
 from django.conf import settings
 from django.db import IntegrityError
+from taskbroker_client.retry import Retry
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import auth_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,8 @@ def update_privilege(
     name="sentry.tasks.scim.privilege_sync.sync_scim_team_privileges",
     namespace=auth_tasks,
     retry=Retry(times=3, on=(Exception,)),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=600,  # 10 minutes
 )
 def sync_scim_team_privileges(
     team_slug: str,

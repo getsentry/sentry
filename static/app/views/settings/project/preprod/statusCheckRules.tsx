@@ -8,15 +8,15 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -28,6 +28,7 @@ export function StatusCheckRules() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const location = useLocation();
+  const navigate = useNavigate();
   const {data: repositories, isPending: isLoadingRepos} = useRepositories({
     orgSlug: organization.slug,
   });
@@ -57,15 +58,17 @@ export function StatusCheckRules() {
 
   const updateExpandedInUrl = useCallback(
     (expandedIds: string[]) => {
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          expanded: expandedIds,
+      navigate(
+        {
+          query: {
+            ...location.query,
+            expanded: expandedIds,
+          },
         },
-      });
+        {replace: true}
+      );
     },
-    [location.pathname, location.query]
+    [location.query, navigate]
   );
 
   const handleToggleExpanded = useCallback(

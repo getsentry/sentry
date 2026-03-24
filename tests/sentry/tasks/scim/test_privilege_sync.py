@@ -11,12 +11,12 @@ from sentry.tasks.scim.privilege_sync import (
     update_privilege,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 
-@region_silo_test
+@cell_silo_test
 class UpdatePrivilegeGrantTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -108,7 +108,7 @@ class UpdatePrivilegeGrantTest(TestCase):
             ).exists()
 
 
-@region_silo_test
+@cell_silo_test
 class UpdatePrivilegeRevokeTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -189,7 +189,7 @@ PRIVILEGE_SETTINGS = {
 }
 
 
-@region_silo_test
+@cell_silo_test
 class SyncScimTeamPrivilegesTaskTest(TestCase):
     def setUp(self):
         super().setUp()

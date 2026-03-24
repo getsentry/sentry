@@ -4,9 +4,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_QUERY = MutableSearch.fromQueryObject({
   has: SpanFields.NORMALIZED_DESCRIPTION,
@@ -23,6 +24,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
           conditions: FILTER_QUERY.formatString(),
@@ -39,10 +41,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: FILTER_QUERY.formatString(),
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -63,16 +66,16 @@ const ASSETS_TABLE: Widget = {
       conditions: FILTER_QUERY.formatString(),
       aggregates: [
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       columns: [SpanFields.NORMALIZED_DESCRIPTION],
       fields: [
         SpanFields.NORMALIZED_DESCRIPTION,
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       fieldAliases: [
@@ -82,7 +85,7 @@ const ASSETS_TABLE: Widget = {
         t('Time Spent'),
         t('Avg Encoded Size'),
       ],
-      orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
+      orderby: `-sum(${SpanFields.SPAN_DURATION})`,
       linkedDashboards: [
         {
           dashboardId: '-1',
@@ -97,7 +100,7 @@ const ASSETS_TABLE: Widget = {
     y: 2,
     w: 6,
     h: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -164,4 +167,5 @@ export const FRONTEND_ASSETS_PREBUILT_CONFIG: PrebuiltDashboard = {
   },
   title: DASHBOARD_TITLE,
   widgets: [...FIRST_ROW_WIDGETS, ASSETS_TABLE],
+  onboarding: {type: 'module', moduleName: ModuleName.RESOURCE},
 };

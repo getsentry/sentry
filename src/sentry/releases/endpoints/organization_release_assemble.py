@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.release import Release
@@ -17,7 +17,7 @@ from sentry.tasks.assemble import (
 from sentry.utils import metrics
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,

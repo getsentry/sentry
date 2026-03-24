@@ -5,7 +5,6 @@ import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
@@ -31,10 +30,16 @@ export function ProjectPageFilterTrigger({
     value.includes(parseInt(p.id, 10))
   );
 
-  const isMyProjectsSelected = isMemberProjectsSelected && memberProjects.length > 0;
+  // "My Projects" / "All Projects" labels only apply when there are multiple projects.
+  // With a single-project org, always show the project name.
+  const totalProjects = memberProjects.length + nonMemberProjects.length;
+
+  const isMyProjectsSelected =
+    isMemberProjectsSelected && memberProjects.length > 0 && totalProjects > 1;
 
   const isAllProjectsSelected =
-    value.length === 0 || (isMyProjectsSelected && isNonMemberProjectsSelected);
+    value.length === 0 ||
+    (totalProjects > 1 && isMyProjectsSelected && isNonMemberProjectsSelected);
 
   const selectedProjects = value
     .slice(0, 2) // we only need to know about the first two projects
@@ -105,8 +110,7 @@ const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
-  margin-top: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

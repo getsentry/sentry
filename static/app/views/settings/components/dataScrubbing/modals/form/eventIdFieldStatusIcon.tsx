@@ -1,50 +1,18 @@
-import styled from '@emotion/styled';
-
-import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {ControlState} from 'sentry/components/forms/fieldGroup/controlState';
-import {IconCheckmark, IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IconCheckmark} from 'sentry/icons';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
 type Props = {
-  onClickIconClose: () => void;
-  status?: EventIdStatus;
+  status: EventIdStatus;
 };
 
-function EventIdFieldStatusIcon({status, onClickIconClose}: Props) {
+export function EventIdFieldStatusIcon({status}: Props) {
   switch (status) {
-    case EventIdStatus.ERROR:
-    case EventIdStatus.INVALID:
-    case EventIdStatus.NOT_FOUND:
-      return (
-        <CloseIcon onClick={onClickIconClose}>
-          <Tooltip title={t('Clear event ID')}>
-            <StyledIconClose size="xs" />
-          </Tooltip>
-        </CloseIcon>
-      );
     case EventIdStatus.LOADING:
-      return <ControlState isSaving />;
+      return <LoadingIndicator size={16} />;
     case EventIdStatus.LOADED:
       return <IconCheckmark variant="success" />;
     default:
       return null;
   }
 }
-
-export default EventIdFieldStatusIcon;
-
-const CloseIcon = styled('div')`
-  :first-child {
-    line-height: 0;
-  }
-`;
-
-const StyledIconClose = styled(IconClose)`
-  color: ${p => p.theme.colors.gray200};
-  :hover {
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-  cursor: pointer;
-`;

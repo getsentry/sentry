@@ -39,7 +39,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, Trace
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
-from sentry.api.base import Endpoint, internal_region_silo_endpoint
+from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
@@ -76,7 +76,7 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
-from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
@@ -91,7 +91,9 @@ from sentry.seer.explorer.tools import (
     execute_trace_table_query,
     get_baseline_tag_distribution,
     get_comparative_attribute_distributions,
+    get_event_details,
     get_issue_and_event_details_v2,
+    get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -170,7 +172,7 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
     return False
 
 
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
 class SeerRpcSignatureAuthentication(StandardAuthentication):
     """
     Authentication for seer RPC requests.
@@ -193,7 +195,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         return (AnonymousUser(), token)
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class SeerRpcServiceEndpoint(Endpoint):
     """
     RPC endpoint for seer microservice to call. Authenticated with a shared secret.
@@ -250,8 +252,6 @@ class SeerRpcServiceEndpoint(Endpoint):
             sentry_sdk.capture_exception()
             raise ParseError from e
         except ObjectDoesNotExist as e:
-            # Let this fall through, this is normal.
-            sentry_sdk.capture_exception()
             raise NotFound from e
         except SnubaRPCRateLimitExceeded as e:
             sentry_sdk.capture_exception()
@@ -543,7 +543,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         )
         return {"success": False, "error": "Organization not found or not active"}
 
-    if SeerOperator.has_access(organization=organization):
+    if SeerAutofixOperator.has_access(organization=organization):
         process_autofix_updates.apply_async(
             kwargs={
                 "event_type": sentry_app_event_type,
@@ -794,6 +794,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
+    "get_issue_details": get_issue_details,
+    "get_event_details": get_event_details,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,

@@ -6,13 +6,12 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -22,7 +21,7 @@ interface Props {
   selection: PageFilters;
 }
 
-export default function ReleaseHealthCTA({
+export function ReleaseHealthCTA({
   organization,
   releases,
   selectedProject,
@@ -92,7 +91,7 @@ const AlertText = styled('div')`
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   > *:nth-child(1) {
     flex: 1;

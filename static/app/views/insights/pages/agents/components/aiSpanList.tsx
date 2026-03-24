@@ -6,11 +6,11 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   getGenAiOpType,
@@ -75,10 +75,10 @@ export function AISpanList({
   compressGaps?: boolean;
 }) {
   const nodesByTransaction = useMemo(() => {
-    const result: Map<
+    const result = new Map<
       TransactionNode | EapSpanNode | AITraceSpanNode,
       AITraceSpanNode[]
-    > = new Map();
+    >();
     // Use a placeholder key for nodes without a transaction (e.g., conversation view)
     let orphanGroup: AITraceSpanNode | null = null;
 

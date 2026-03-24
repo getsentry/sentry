@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import orjson
 import pytest
 from pydantic import BaseModel
 
@@ -59,7 +58,7 @@ class TestSeerExplorerClient(TestCase):
         assert client.enable_coding is True
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     @patch("sentry.seer.explorer.client.collect_user_org_context")
     def test_start_run_basic(self, mock_collect_context, mock_post, mock_access):
         """Test starting a new run collects user context"""
@@ -78,7 +77,7 @@ class TestSeerExplorerClient(TestCase):
         assert mock_post.called
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     @patch("sentry.seer.explorer.client.collect_user_org_context")
     def test_start_run_with_request(self, mock_collect_context, mock_post, mock_access):
         """Test starting a new run passes request object to collect_user_org_context"""
@@ -98,7 +97,7 @@ class TestSeerExplorerClient(TestCase):
         assert mock_post.called
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     def test_start_run_with_optional_params(self, mock_post, mock_access):
         """Test starting a run with optional parameters"""
         mock_access.return_value = (True, None)
@@ -115,7 +114,7 @@ class TestSeerExplorerClient(TestCase):
         assert call_args is not None
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     def test_start_run_http_error(self, mock_post, mock_access):
         """Test that HTTP errors are propagated"""
         mock_access.return_value = (True, None)
@@ -126,7 +125,7 @@ class TestSeerExplorerClient(TestCase):
             client.start_run("Test query")
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     @patch("sentry.seer.explorer.client.collect_user_org_context")
     def test_start_run_with_categories(self, mock_collect_context, mock_post, mock_access):
         """Test starting a run with category fields"""
@@ -143,7 +142,7 @@ class TestSeerExplorerClient(TestCase):
         run_id = client.start_run("Fix bug")
 
         assert run_id == 999
-        body = orjson.loads(mock_post.call_args[0][2])
+        body = mock_post.call_args[0][0]
         assert body["category_key"] == "bug-fixer"
         assert body["category_value"] == "issue-123"
 
@@ -184,7 +183,7 @@ class TestSeerExplorerClient(TestCase):
         assert client.intelligence_level == "medium"
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     @patch("sentry.seer.explorer.client.collect_user_org_context")
     def test_start_run_includes_intelligence_level(
         self, mock_collect_context, mock_post, mock_access
@@ -201,11 +200,67 @@ class TestSeerExplorerClient(TestCase):
         run_id = client.start_run("Test query")
 
         assert run_id == 555
-        body = orjson.loads(mock_post.call_args[0][2])
+        body = mock_post.call_args[0][0]
         assert body["intelligence_level"] == "low"
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    def test_client_init_with_max_iterations(self, mock_access):
+        """Test that max_iterations is stored"""
+        mock_access.return_value = (True, None)
+
+        client = SeerExplorerClient(self.organization, self.user, max_iterations=3)
+        assert client.max_iterations == 3
+
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    def test_client_init_default_max_iterations(self, mock_access):
+        """Test that max_iterations defaults to None"""
+        mock_access.return_value = (True, None)
+
+        client = SeerExplorerClient(self.organization, self.user)
+        assert client.max_iterations is None
+
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_start_run_includes_max_iterations(self, mock_collect_context, mock_post, mock_access):
+        """Test that max_iterations is included in the payload when set"""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 444}
+        mock_response.status = 200
+        mock_post.return_value = mock_response
+
+        client = SeerExplorerClient(self.organization, self.user, max_iterations=3)
+        run_id = client.start_run("Test query")
+
+        assert run_id == 444
+        body = mock_post.call_args[0][0]
+        assert body["max_iterations"] == 3
+
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_start_run_excludes_max_iterations_when_none(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        """Test that max_iterations is not included in the payload when None"""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 445}
+        mock_response.status = 200
+        mock_post.return_value = mock_response
+
+        client = SeerExplorerClient(self.organization, self.user)
+        run_id = client.start_run("Test query")
+
+        assert run_id == 445
+        body = mock_post.call_args[0][0]
+        assert "max_iterations" not in body
+
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     def test_continue_run_basic(self, mock_post, mock_access):
         """Test continuing an existing run"""
         mock_access.return_value = (True, None)
@@ -221,7 +276,7 @@ class TestSeerExplorerClient(TestCase):
         assert mock_post.called
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     def test_continue_run_with_all_params(self, mock_post, mock_access):
         """Test continuing a run with all optional parameters"""
         mock_access.return_value = (True, None)
@@ -238,7 +293,7 @@ class TestSeerExplorerClient(TestCase):
         assert call_args is not None
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     def test_continue_run_http_error(self, mock_post, mock_access):
         """Test that HTTP errors are propagated"""
         mock_access.return_value = (True, None)
@@ -300,7 +355,7 @@ class TestSeerExplorerClient(TestCase):
             client.get_run(123)
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_runs_request")
     def test_get_runs_basic(self, mock_post, mock_access):
         """Test getting runs with filters"""
         mock_access.return_value = (True, None)
@@ -325,7 +380,7 @@ class TestSeerExplorerClient(TestCase):
 
         assert len(runs) == 1
         assert runs[0].category_key == "bug-fixer"
-        body = orjson.loads(mock_post.call_args[0][2])
+        body = mock_post.call_args[0][0]
         assert body["category_key"] == "bug-fixer"
         assert body["category_value"] == "issue-123"
 
@@ -339,7 +394,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
         self.organization = self.create_organization(owner=self.user)
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     @patch("sentry.seer.explorer.client.collect_user_org_context")
     def test_start_run_with_artifact_schema(self, mock_collect_context, mock_post, mock_access):
         """Test that artifact key and schema are serialized and sent to API"""
@@ -362,7 +417,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
         assert run_id == 123
 
         # Verify artifact_key and artifact_schema were included in payload
-        body = orjson.loads(mock_post.call_args[0][2])
+        body = mock_post.call_args[0][0]
         assert body["artifact_key"] == "analysis"
         assert "artifact_schema" in body
         assert body["artifact_schema"]["type"] == "object"
@@ -370,7 +425,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
         assert "severity" in body["artifact_schema"]["properties"]
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     def test_start_run_artifact_schema_requires_key(self, mock_post, mock_access):
         """Test that artifact_schema without artifact_key raises ValueError"""
         mock_access.return_value = (True, None)
@@ -385,7 +440,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
             client.start_run("Analyze", artifact_schema=IssueAnalysis)
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     @patch("sentry.seer.explorer.client.collect_user_org_context")
     def test_continue_run_with_artifact_schema(self, mock_collect_context, mock_post, mock_access):
         """Test continuing a run with a new artifact key and schema"""
@@ -407,14 +462,14 @@ class TestSeerExplorerClientArtifacts(TestCase):
 
         assert run_id == 123
 
-        body = orjson.loads(mock_post.call_args[0][2])
+        body = mock_post.call_args[0][0]
         assert body["artifact_key"] == "solution"
         assert "artifact_schema" in body
         assert body["artifact_schema"]["type"] == "object"
         assert "description" in body["artifact_schema"]["properties"]
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     def test_continue_run_artifact_schema_requires_key(self, mock_post, mock_access):
         """Test that artifact_schema without artifact_key raises ValueError"""
         mock_access.return_value = (True, None)
@@ -646,7 +701,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
     @patch("sentry.seer.explorer.client.fetch_run_status")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
     def test_push_changes_sends_correct_payload(self, mock_post, mock_fetch, mock_access):
         """Test that push_changes sends correct payload"""
         mock_access.return_value = (True, None)
@@ -668,15 +723,16 @@ class TestSeerExplorerClientPushChanges(TestCase):
         client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
         result = client.push_changes(123, repo_name="owner/repo")
 
-        body = orjson.loads(mock_post.call_args[0][2])
+        body = mock_post.call_args[0][0]
         assert body["run_id"] == 123
         assert body["payload"]["type"] == "create_pr"
         assert body["payload"]["repo_name"] == "owner/repo"
+        assert result is not None
         assert result.repo_pr_states["owner/repo"].pr_url == "https://github.com/owner/repo/pull/1"
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
     @patch("sentry.seer.explorer.client.fetch_run_status")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
     @patch("sentry.seer.explorer.client.time.sleep")
     def test_push_changes_polls_until_complete(
         self, mock_sleep, mock_post, mock_fetch, mock_access
@@ -710,11 +766,12 @@ class TestSeerExplorerClientPushChanges(TestCase):
 
         assert mock_fetch.call_count == 2
         assert mock_sleep.call_count == 1
+        assert result is not None
         assert result.repo_pr_states["owner/repo"].pr_creation_status == "completed"
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
     @patch("sentry.seer.explorer.client.fetch_run_status")
-    @patch("sentry.seer.explorer.client.make_signed_seer_api_request")
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
     @patch("sentry.seer.explorer.client.time.sleep")
     @patch("sentry.seer.explorer.client.time.time")
     def test_push_changes_timeout(self, mock_time, mock_sleep, mock_post, mock_fetch, mock_access):
