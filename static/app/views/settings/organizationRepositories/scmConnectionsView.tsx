@@ -4,8 +4,9 @@ import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -25,13 +26,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {ProviderConfigLink} from 'sentry/components/repositories/scmIntegrationTree/providerConfigLink';
 import {useScmIntegrationTreeData} from 'sentry/components/repositories/scmIntegrationTree/useScmIntegrationTreeData';
-import {
-  IconChevron,
-  IconEllipsis,
-  IconOpen,
-  IconSettings,
-  IconSubtract,
-} from 'sentry/icons';
+import {IconEllipsis, IconOpen, IconSettings, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   IntegrationProvider,
@@ -240,7 +235,6 @@ function IntegrationCard({
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const [expanded, setExpanded] = useState(false);
   const [repoSearchError, setRepoSearchError] = useState<number | null | undefined>(null);
 
   const canAccess =
@@ -302,79 +296,83 @@ function IntegrationCard({
   }, [integration]);
 
   return (
-    <CardContainer>
-      <CardHeader>
-        <RowToggle onClick={() => setExpanded(!expanded)}>
-          <IconChevron direction={expanded ? 'down' : 'right'} size="xs" />
-          <RepoProviderIcon provider={`integrations:${provider.key}`} size="sm" />
-          <Text bold>{integration.name}</Text>
-          {integration.domainName && (
-            <Text variant="muted" size="sm">
-              {integration.domainName}
-            </Text>
-          )}
-        </RowToggle>
-
-        <Flex align="center" gap="sm">
-          <Text size="sm" variant="muted">
-            {t('%s repos connected', connectedRepos.length)}
-          </Text>
-          <IntegrationReposAddRepository
-            integration={integration}
-            currentRepositories={connectedRepos}
-            onSearchError={setRepoSearchError}
-            onAddRepository={() => invalidateRepos()}
-          />
-          <DropdownMenu
-            trigger={triggerProps => (
-              <Button
-                size="xs"
-                priority="transparent"
-                aria-label={t('Actions')}
-                icon={<IconEllipsis />}
-                {...triggerProps}
-              />
-            )}
-            position="bottom-end"
-            items={[
-              {
-                key: 'settings',
-                label: t('Settings'),
-                onAction: openSettingsModal,
-              },
-              {
-                key: 'disconnect',
-                label: t('Disconnect'),
-                priority: 'danger',
-                disabled: !canAccess,
-                onAction: confirmDisconnect,
-              },
-            ]}
-          />
-        </Flex>
-      </CardHeader>
-
-      {expanded && (
-        <CardBody>
-          {connectedRepos.map(repo => (
-            <RepoRow
-              key={repo.id}
-              repo={repo}
-              domainName={integration.domainName}
-              canAccess={canAccess}
-              onRemove={() => handleRemoveRepo(repo)}
-            />
-          ))}
-          {repoSearchError === 400 && (
-            <Flex padding="sm lg">
-              <Text size="xs" variant="muted">
-                {t('Unable to fetch repos. Try reconnecting.')}
-              </Text>
+    <Container border="primary" radius="md" overflow="hidden">
+      <Disclosure size="xs">
+        <CardHeader>
+          <Disclosure.Title
+            trailingItems={
+              <Flex align="center" gap="sm">
+                <Text size="sm" variant="muted">
+                  {t('%s repos connected', connectedRepos.length)}
+                </Text>
+                <IntegrationReposAddRepository
+                  integration={integration}
+                  currentRepositories={connectedRepos}
+                  onSearchError={setRepoSearchError}
+                  onAddRepository={() => invalidateRepos()}
+                />
+                <DropdownMenu
+                  trigger={triggerProps => (
+                    <Button
+                      size="xs"
+                      priority="transparent"
+                      aria-label={t('Actions')}
+                      icon={<IconEllipsis />}
+                      {...triggerProps}
+                    />
+                  )}
+                  position="bottom-end"
+                  items={[
+                    {
+                      key: 'settings',
+                      label: t('Settings'),
+                      onAction: openSettingsModal,
+                    },
+                    {
+                      key: 'disconnect',
+                      label: t('Disconnect'),
+                      priority: 'danger',
+                      disabled: !canAccess,
+                      onAction: confirmDisconnect,
+                    },
+                  ]}
+                />
+              </Flex>
+            }
+          >
+            <Flex align="center" gap="md">
+              <RepoProviderIcon provider={`integrations:${provider.key}`} size="sm" />
+              <Text bold>{integration.name}</Text>
+              {integration.domainName && (
+                <Text variant="muted" size="sm">
+                  {integration.domainName}
+                </Text>
+              )}
             </Flex>
-          )}
-        </CardBody>
-      )}
-    </CardContainer>
+          </Disclosure.Title>
+        </CardHeader>
+        <Disclosure.Content>
+          <CardBody>
+            {connectedRepos.map(repo => (
+              <RepoRow
+                key={repo.id}
+                repo={repo}
+                domainName={integration.domainName}
+                canAccess={canAccess}
+                onRemove={() => handleRemoveRepo(repo)}
+              />
+            ))}
+            {repoSearchError === 400 && (
+              <Flex padding="sm lg">
+                <Text size="xs" variant="muted">
+                  {t('Unable to fetch repos. Try reconnecting.')}
+                </Text>
+              </Flex>
+            )}
+          </CardBody>
+        </Disclosure.Content>
+      </Disclosure>
+    </Container>
   );
 }
 
@@ -722,12 +720,6 @@ const DashedContainer = styled('div')`
   gap: ${p => p.theme.space.xl};
 `;
 
-const CardContainer = styled('div')`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  overflow: hidden;
-`;
-
 const CardHeader = styled('div')`
   display: flex;
   align-items: center;
@@ -738,18 +730,6 @@ const CardHeader = styled('div')`
 
 const CardBody = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const RowToggle = styled('button')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
 `;
 
 const RepoRowContainer = styled('div')`

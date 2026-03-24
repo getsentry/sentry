@@ -7,7 +7,7 @@ import {z} from 'zod';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -324,7 +324,7 @@ function ProjectCodeMappingsModal({
         <Stack gap="lg">
           {/* Existing mappings */}
           {mappings.map(mapping => (
-            <MappingCard key={mapping.id}>
+            <Container key={mapping.id} padding="lg" border="neutral.muted" radius="md">
               <Flex align="center" justify="between">
                 <Stack gap="xs" flex={1}>
                   <Text bold size="sm">
@@ -370,12 +370,12 @@ function ProjectCodeMappingsModal({
                   />
                 </FormContainer>
               )}
-            </MappingCard>
+            </Container>
           ))}
 
           {/* Add form — shown when no mappings exist or toggled */}
           {(showAddForm || mappings.length === 0) && addFormIntegration ? (
-            <MappingCard>
+            <Container padding="lg" border="neutral.muted" radius="md">
               <InlineMappingForm
                 projectId={project.id}
                 integration={addFormIntegration}
@@ -397,7 +397,7 @@ function ProjectCodeMappingsModal({
                   );
                 }}
               />
-            </MappingCard>
+            </Container>
           ) : (showAddForm || mappings.length === 0) && !addFormIntegration ? (
             // Multiple integrations — pick which one
             <Flex gap="sm" align="center">
@@ -409,13 +409,15 @@ function ProjectCodeMappingsModal({
                   {i.name}
                 </Button>
               ))}
-              <Button
-                size="xs"
-                priority="transparent"
-                onClick={() => setShowAddForm(false)}
-              >
-                {t('Cancel')}
-              </Button>
+              {mappings.length > 0 && (
+                <Button
+                  size="xs"
+                  priority="transparent"
+                  onClick={() => setShowAddForm(false)}
+                >
+                  {t('Cancel')}
+                </Button>
+              )}
             </Flex>
           ) : (
             <Button
@@ -623,12 +625,6 @@ const ProjectRowContainer = styled('div')`
   justify-content: space-between;
   padding: ${p => p.theme.space.md} 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.neutral.muted};
-`;
-
-const MappingCard = styled('div')`
-  padding: ${p => p.theme.space.lg};
-  border: 1px solid ${p => p.theme.tokens.border.neutral.muted};
-  border-radius: ${p => p.theme.radius.md};
 `;
 
 const FormContainer = styled('div')`
