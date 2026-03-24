@@ -1,6 +1,9 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {getKeyCode, useHotkeys} from '@sentry/scraps/hotkey';
+import {useHotkeys} from '@sentry/scraps/hotkey';
+
+// eslint-disable-next-line boundaries/entry-point
+import {getKeyCode} from './keyMappings';
 
 describe('useHotkeys', () => {
   let events: Record<string, (evt: EventListenerOrEventListenerObject) => void> = {};
