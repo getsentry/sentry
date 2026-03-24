@@ -252,7 +252,7 @@ const ASSETS_TABLE_WIDGET: Widget = {
       columns: [SpanFields.TRANSACTION, SpanFields.RESOURCE_RENDER_BLOCKING_STATUS],
       fieldAliases: [
         t('Transaction'),
-        t('Requests per Minutes'),
+        t('Requests per Minute'),
         t('Avg Duration'),
         t('Avg Encoded Size'),
         t('Render Blocking'),
