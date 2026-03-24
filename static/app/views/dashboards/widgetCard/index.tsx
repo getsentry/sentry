@@ -531,7 +531,7 @@ function useConflictingFilterWarning({
     });
     const globalFilterKeys =
       dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER]
-        ?.filter(filter => filter.dataset === widget.widgetType)
+        ?.filter(filter => filter.dataset === widget.widgetType && filter.value !== '')
         .map(filter => filter.tag.key) ?? [];
 
     const widgetFilterKeySet = new Set(widgetFilterKeys);
