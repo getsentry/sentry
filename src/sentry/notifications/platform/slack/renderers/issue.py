@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sentry import eventstore
 from sentry.models.group import Group
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
@@ -26,7 +27,11 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
         group = Group.objects.get_from_cache(id=data.group_id)
         event = None
         if data.event_id:
-            event = group.get_latest_event()
+            event = eventstore.backend.get_event_by_id(
+                group.project_id,
+                data.event_id,
+                group_id=group.id,
+            )
 
         blocks_dict = SlackIssuesMessageBuilder(
             group=group,

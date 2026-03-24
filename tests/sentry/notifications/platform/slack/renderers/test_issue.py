@@ -252,6 +252,36 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         "sentry.integrations.slack.message_builder.issues.fetch_issue_summary",
         return_value=None,
     )
+    @patch("sentry.notifications.platform.slack.renderers.issue.eventstore.backend.get_event_by_id")
+    @patch("sentry.models.group.Group.get_latest_event")
+    def test_render_uses_event_id_for_event_lookup(
+        self,
+        mock_get_latest_event: Any,
+        mock_get_event_by_id: Any,
+        mock_summary: Any,
+    ) -> None:
+        invocation = self._create_invocation()
+        data = issue_notification_data_factory(invocation)
+        rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
+        mock_get_event_by_id.return_value = invocation.event_data.event
+
+        IssueSlackRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+        )
+
+        assert invocation.event_data.event is not None
+        mock_get_event_by_id.assert_called_once_with(
+            invocation.event_data.group.project_id,
+            invocation.event_data.event.event_id,
+            group_id=invocation.event_data.group.id,
+        )
+        mock_get_latest_event.assert_not_called()
+
+    @patch(
+        "sentry.integrations.slack.message_builder.issues.fetch_issue_summary",
+        return_value=None,
+    )
     def test_render_produces_blocks(self, mock_summary: Any) -> None:
         invocation = self._create_invocation()
         data = issue_notification_data_factory(invocation)
