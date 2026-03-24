@@ -72,7 +72,7 @@ const SplunkConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. https://input-foo.cloud.splunk.com:8088"
               disabled={disabled}
@@ -88,7 +88,7 @@ const SplunkConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY"
               disabled={disabled}
@@ -104,7 +104,7 @@ const SplunkConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. main"
               disabled={disabled}
@@ -120,7 +120,7 @@ const SplunkConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. sentry"
               disabled={disabled}

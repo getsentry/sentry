@@ -61,7 +61,7 @@ const SegmentConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"
               disabled={disabled}

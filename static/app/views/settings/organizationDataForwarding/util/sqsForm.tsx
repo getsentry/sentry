@@ -76,7 +76,7 @@ const SQSConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. https://sqs.us-east-1.amazonaws.com/12345678/myqueue"
               disabled={disabled}
@@ -92,7 +92,7 @@ const SQSConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. us-east-1"
               disabled={disabled}
@@ -110,7 +110,7 @@ const SQSConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. AKIAIOSFODNN7EXAMPLE"
               disabled={disabled}
@@ -126,7 +126,7 @@ const SQSConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. wJalrXUtnFEMI1K7MDENGSbPxRfiCYEXAMPLEKEY"
               disabled={disabled}
@@ -143,7 +143,7 @@ const SQSConfigFields = withFieldGroup({
             )}
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. my-message-group-id"
               disabled={disabled}
@@ -160,7 +160,7 @@ const SQSConfigFields = withFieldGroup({
             )}
           >
             <field.Input
-              value={field.state.value ?? ""}
+              value={field.state.value}
               onChange={field.handleChange}
               placeholder="e.g. my-s3-bucket"
               disabled={disabled}

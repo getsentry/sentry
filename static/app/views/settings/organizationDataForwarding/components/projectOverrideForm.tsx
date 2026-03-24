@@ -157,7 +157,7 @@ export function ProjectOverrideForm({
                         )}
                       >
                         <field.Input
-                          value={field.state.value ?? ""}
+                          value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. https://sqs.us-east-1.amazonaws.com/12345678/myqueue"
                           disabled={disabled}
@@ -175,7 +175,7 @@ export function ProjectOverrideForm({
                         )}
                       >
                         <field.Input
-                          value={field.state.value ?? ""}
+                          value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. us-east-1"
                           disabled={disabled}
@@ -193,7 +193,7 @@ export function ProjectOverrideForm({
                         )}
                       >
                         <field.Input
-                          value={field.state.value ?? ""}
+                          value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. AKIAIOSFODNN7EXAMPLE"
                           disabled={disabled}
@@ -211,7 +211,7 @@ export function ProjectOverrideForm({
                         )}
                       >
                         <field.Input
-                          value={field.state.value ?? ""}
+                          value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. wJalrXUtnFEMI1K7MDENGSbPxRfiCYEXAMPLEKEY"
                           disabled={disabled}
@@ -229,7 +229,7 @@ export function ProjectOverrideForm({
                         )}
                       >
                         <field.Input
-                          value={field.state.value ?? ""}
+                          value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. my-message-group-id"
                           disabled={disabled}
@@ -247,7 +247,7 @@ export function ProjectOverrideForm({
                         )}
                       >
                         <field.Input
-                          value={field.state.value ?? ""}
+                          value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. my-s3-bucket"
                           disabled={disabled}
@@ -269,7 +269,7 @@ export function ProjectOverrideForm({
                       )}
                     >
                       <field.Input
-                        value={field.state.value ?? ""}
+                        value={field.state.value}
                         onChange={field.handleChange}
                         placeholder="e.g. itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"
                         disabled={disabled}
@@ -291,7 +291,7 @@ export function ProjectOverrideForm({
                         )}
                       >
                         <field.Input
-                          value={field.state.value ?? ""}
+                          value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. https://input-foo.cloud.splunk.com:8088"
                           disabled={disabled}
@@ -309,7 +309,7 @@ export function ProjectOverrideForm({
                         )}
                       >
                         <field.Input
-                          value={field.state.value ?? ""}
+                          value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY"
                           disabled={disabled}
@@ -325,7 +325,7 @@ export function ProjectOverrideForm({
                         hintText={t("The index to use for the events.")}
                       >
                         <field.Input
-                          value={field.state.value ?? ""}
+                          value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. main"
                           disabled={disabled}
@@ -341,7 +341,7 @@ export function ProjectOverrideForm({
                         hintText={t("The source to use for the events.")}
                       >
                         <field.Input
-                          value={field.state.value ?? ""}
+                          value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. sentry"
                           disabled={disabled}
