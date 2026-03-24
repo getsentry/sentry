@@ -100,27 +100,6 @@ type Props = {
 
 export const SEGMENT_SPANS_CURSOR_NAME = 'segmentSpansCursor';
 
-function EAPSearchQueryBuilder({
-  projects,
-  initialQuery,
-  onSearch,
-}: {
-  initialQuery: string;
-  onSearch: (query: string) => void;
-  projects: number[];
-}) {
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    projects,
-    initialQuery,
-    onSearch,
-    searchSource: 'transaction_summary',
-  });
-
-  return (
-    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} disallowFreeText />
-  );
-}
-
 function EAPSummaryContentInner({
   eventView,
   location,
@@ -258,15 +237,12 @@ function EAPSummaryContentInner({
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
-  function renderSearchBar() {
-    return (
-      <EAPSearchQueryBuilder
-        projects={projectIds}
-        initialQuery={query}
-        onSearch={handleSearch}
-      />
-    );
-  }
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: projectIds,
+    initialQuery: query,
+    onSearch: handleSearch,
+    searchSource: 'transaction_summary',
+  });
 
   return (
     <Fragment>
@@ -277,7 +253,12 @@ function EAPSummaryContentInner({
             <EnvironmentPageFilter />
             <DatePageFilter {...datePageFilterProps} />
           </PageFilterBar>
-          <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
+          <StyledSearchBarWrapper>
+            <TraceItemSearchQueryBuilder
+              {...spanSearchQueryBuilderProps}
+              disallowFreeText
+            />
+          </StyledSearchBarWrapper>
         </FilterActions>
         <EAPChartsWidgetContainer>
           <EAPChartsWidget transactionName={transactionName} query={query} />

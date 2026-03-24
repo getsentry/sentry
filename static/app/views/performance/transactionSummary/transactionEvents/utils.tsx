@@ -10,6 +10,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -212,6 +213,7 @@ export function getPercentilesEventView(eventView: EventView): EventView {
 export function generateTransactionEventsEventView({
   location,
   transactionName,
+  shouldUseEAP,
 }: {
   location: Location;
   organization: Organization;
@@ -221,7 +223,11 @@ export function generateTransactionEventsEventView({
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  conditions.setFilterValues('event.type', ['transaction']);
+  if (shouldUseEAP) {
+    conditions.setFilterValues('is_transaction', ['true']);
+  } else {
+    conditions.setFilterValues('event.type', ['transaction']);
+  }
   conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
@@ -230,7 +236,29 @@ export function generateTransactionEventsEventView({
     }
   });
 
-  const orderby = decodeScalar(location.query.sort, '-timestamp');
+  let orderby = decodeScalar(location.query.sort, '-timestamp');
+
+  if (shouldUseEAP) {
+    orderby = orderby.replace('transaction.duration', 'span.duration');
+
+    return EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: transactionName,
+        // TODO(mjq): `fields` is never actually read - the relevant query comes
+        // from `useSegmentSpansQuery` instead. Confusingly, other fields of
+        // this EventView _are_ used in various places. Untangling this is a job
+        // for after the non-EAP branches are removed.
+        fields: [],
+        query: conditions.formatString(),
+        projects: [],
+        orderby,
+        dataset: DiscoverDatasets.SPANS,
+      },
+      location
+    );
+  }
 
   // Default fields for relative span view
   const fields = [
