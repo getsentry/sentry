@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex} from '@sentry/scraps/layout';
@@ -236,19 +236,21 @@ function IssueStackTraceContent({
     return (
       <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
         <Flex direction="column" gap="lg">
-          {hasExceptionInfo && (
-            <Flex direction="column" gap="sm">
-              <div>
-                <ExceptionHeader type={type} module={module} />
-              </div>
-              <ExceptionDescription
-                value={value}
-                mechanism={exc.mechanism}
-                meta={excMeta}
-              />
-              <IssueStackTraceLineCoverageLegend />
-            </Flex>
-          )}
+          <Flex direction="column" gap="sm">
+            {hasExceptionInfo && (
+              <Fragment>
+                <div>
+                  <ExceptionHeader type={type} module={module} />
+                </div>
+                <ExceptionDescription
+                  value={value}
+                  mechanism={exc.mechanism}
+                  meta={excMeta}
+                />
+              </Fragment>
+            )}
+            <IssueStackTraceLineCoverageLegend />
+          </Flex>
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
           </ErrorBoundary>
