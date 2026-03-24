@@ -58,6 +58,7 @@ function flattenActions(
 export function useCommandPaletteState() {
   const [query, setQuery] = useState('');
   const actions = useCommandPaletteActions();
+
   const [selectedAction, setSelectedAction] =
     useState<CommandPaletteActionWithKey | null>(null);
 

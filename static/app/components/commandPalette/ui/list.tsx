@@ -5,17 +5,18 @@ import {mergeProps} from '@react-aria/utils';
 import type {TreeProps} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 
-import error from 'sentry-images/spot/computer-missing.svg';
+import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {Image} from '@sentry/scraps/image';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {InnerWrap} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type CommandPaletteSection = {
@@ -102,40 +103,42 @@ export function CommandPaletteList({
     if (selectedAction) {
       return selectedAction.display.label;
     }
-    return t('Type for actions…');
+    return t('Search for commands…');
   }, [selectedAction]);
 
   return (
     <Fragment>
-      <Flex direction="column" align="start" gap="md" borderBottom="muted">
-        <Flex
-          position="relative"
-          direction="row"
-          align="center"
-          gap="xs"
-          padding="0 md"
-          width="100%"
-        >
-          {selectedAction && (
-            <Button
-              priority="transparent"
-              size="sm"
-              icon={<IconArrow direction="left" />}
-              onClick={() => {
-                clearSelection();
-                inputRef.current?.focus();
-              }}
-              aria-label={t('Return to all options')}
-            />
-          )}
-          <CommandInput
-            ref={inputRef}
-            value={query}
-            aria-label={t('Search commands')}
-            placeholder={placeholder}
-            autoFocus
-            {...inputProps}
-          />
+      <Flex direction="column" align="start" gap="md">
+        <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
+          {p => {
+            return (
+              <InputGroup {...p}>
+                <InputGroup.LeadingItems>
+                  {selectedAction ? (
+                    <Button
+                      size="xs"
+                      priority="transparent"
+                      icon={<IconArrow direction="left" />}
+                      onClick={() => {
+                        clearSelection();
+                        inputRef.current?.focus();
+                      }}
+                      aria-label={t('Return to all options')}
+                    />
+                  ) : (
+                    <IconSearch size="sm" variant="muted" />
+                  )}
+                </InputGroup.LeadingItems>
+                <InputGroup.Input
+                  ref={inputRef}
+                  value={query}
+                  placeholder={placeholder}
+                  autoFocus
+                  {...inputProps}
+                />
+              </InputGroup>
+            );
+          }}
         </Flex>
       </Flex>
       {treeState.collection.size === 0 ? (
@@ -147,7 +150,7 @@ export function CommandPaletteList({
           padding="xl lg"
           height="400px"
         >
-          <Image src={error} alt="No results" width="400px" />
+          <Image src={errorIllustration} alt={t('No results')} width="400px" />
           <Stack align="center" gap="md">
             <Text size="md" align="center">
               {t("Whoops… we couldn't find any results matching your search.")}
@@ -165,12 +168,12 @@ export function CommandPaletteList({
         overflow="auto"
       >
         <ListBox
-          listState={treeState}
-          keyDownHandler={() => true}
           overlayIsOpen
+          listState={treeState}
           size="md"
-          aria-label="Search results"
           selectionMode="none"
+          keyDownHandler={() => true}
+          aria-label={t('Search results')}
           onAction={key => onActionKey?.(key)}
           shouldUseVirtualFocus
         />
@@ -179,24 +182,16 @@ export function CommandPaletteList({
   );
 }
 
-const CommandInput = styled('input')`
-  width: 100%;
-  background: transparent;
-  padding: ${p => p.theme.space.md};
-  border: none;
-  flex: 1;
-  font-size: ${p => p.theme.font.size.lg};
-  line-height: 2;
-
-  &:focus {
-    outline: none;
-  }
-`;
-
 const ResultsList = styled(Flex)`
   ul,
   li {
     scroll-margin: ${p => p.theme.space['3xl']} 0;
+  }
+
+  li ${InnerWrap} {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
   li[data-focused] > ${InnerWrap} {
