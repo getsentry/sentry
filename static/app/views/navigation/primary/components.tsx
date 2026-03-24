@@ -136,9 +136,9 @@ function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps)
       as="ul"
       position="relative"
       margin="0"
-      padding={hasPageFrame ? 'xs' : '0'}
+      padding={hasPageFrame ? 'xs xs lg xs' : '0'}
       width="100%"
-      gap="xs"
+      gap={hasPageFrame ? '0' : 'xs'}
       align={layout === 'mobile' ? 'stretch' : 'center'}
       paddingTop={hasPageFrame ? undefined : 'md'}
       {...props}
