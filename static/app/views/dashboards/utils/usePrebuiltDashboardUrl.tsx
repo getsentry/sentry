@@ -1,7 +1,7 @@
 import * as qs from 'query-string';
 
+import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardFilters, GlobalFilter} from 'sentry/views/dashboards/types';
@@ -19,28 +19,8 @@ export interface PrebuiltDashboardUrlOptions {
   filters?: DashboardFilters;
 }
 
-function extractQueryParamsFromPageFilters(pageFilters: PageFilters) {
-  const queryParams: Record<string, string | string[] | number[]> = {};
-  if (pageFilters?.projects?.length) {
-    queryParams.project = pageFilters.projects;
-  }
-  if (pageFilters?.environments?.length) {
-    queryParams.environment = pageFilters.environments;
-  }
-  if (pageFilters?.datetime?.period) {
-    queryParams.statsPeriod = pageFilters.datetime.period;
-  }
-  if (pageFilters?.datetime?.start) {
-    queryParams.start = pageFilters.datetime.start?.toString() ?? undefined;
-  }
-  if (pageFilters?.datetime?.end) {
-    queryParams.end = pageFilters.datetime.end?.toString() ?? undefined;
-  }
-  return queryParams;
-}
-
 function applyDashboardFilters(
-  queryParams: Record<string, string | string[] | number[]>,
+  queryParams: Record<string, unknown>,
   filters?: DashboardFilters
 ) {
   if (filters?.release?.length) {
@@ -63,7 +43,7 @@ export function usePrebuiltDashboardUrl(
   const isPlatformized = organization ? hasPlatformizedInsights(organization) : false;
   const {dashboard: prebuiltDashboard} = useGetPrebuiltDashboard(prebuiltId);
 
-  const queryParams = extractQueryParamsFromPageFilters(selection);
+  const queryParams = pageFiltersToQueryParams(selection);
 
   if (!organization) {
     return '';

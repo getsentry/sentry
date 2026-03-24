@@ -68,6 +68,10 @@ export function SpanSummaryLink(props: Props) {
     props.organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.DB
   ) {
+    if (isPlatformized && !platformizedQueryUrl) {
+      return null;
+    }
+
     const target = isPlatformized
       ? platformizedQueryUrl
       : querySummaryRouteWithQuery({
@@ -98,6 +102,10 @@ export function SpanSummaryLink(props: Props) {
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(props.op)
   ) {
+    if (isPlatformized && !platformizedResourceUrl) {
+      return null;
+    }
+
     const target = isPlatformized
       ? platformizedResourceUrl
       : resourceSummaryRouteWithQuery({
