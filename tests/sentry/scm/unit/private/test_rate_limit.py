@@ -1,199 +1,174 @@
+from typing import Callable
+
 import pytest
 
 from sentry.scm.private.rate_limit import (
-    is_rate_limited,
+    DynamicRateLimiter,
     total_limit_key,
-    update_rate_limits_from_provider,
     usage_count_key,
 )
 
 
-def test_is_rate_limited_allocated_excess():
-    """Assert excess quota for a shared referrer."""
-    result = is_rate_limited(
-        "github",
-        1,
-        "my_referrer",
-        {"my_referrer": 0.11},
+class MockRateLimitProvider:
+    def __init__(self, get_and_set_return: tuple[int | None, int], accounted_usage: int = 0):
+        self._get_and_set_return = get_and_set_return
+        self._accounted_usage = accounted_usage
+        self.accounted_keys: list[str] = []
+        self.set_kvs: dict = {}
+
+    def get_and_set_rate_limit(self, total_key, usage_key, expiration):
+        return self._get_and_set_return
+
+    def get_accounted_usage(self, keys):
+        self.accounted_keys.extend(keys)
+        return self._accounted_usage
+
+    def set_key_values(self, kvs):
+        self.set_kvs.update(kvs)
+
+
+def make_limiter(
+    get_and_set_return: tuple[int | None, int] = (None, 0),
+    accounted_usage: int = 0,
+    referrer_allocation: dict | None = None,
+    recorded_capacity: int | None = None,
+    get_time_in_seconds: Callable[[], int] = lambda: 73,
+) -> tuple[DynamicRateLimiter, MockRateLimitProvider]:
+    provider = MockRateLimitProvider(get_and_set_return, accounted_usage)
+    limiter = DynamicRateLimiter(
+        get_time_in_seconds=get_time_in_seconds,
+        organization_id=1,
+        provider="github",
+        rate_limit_provider=provider,
         rate_limit_window_seconds=3600,
-        get_and_set_rate_limit=lambda _, __, ___: (100, 10),
-        get_time_in_seconds=lambda: 1234567890,
+        referrer_allocation=referrer_allocation or {},
+        recorded_capacity=recorded_capacity,
     )
-    assert result is False
+    return limiter, provider
 
 
-def test_is_rate_limited_allocated_exhausted():
-    """Assert exhausted quota for a specific referrer."""
-    result = is_rate_limited(
-        "github",
-        1,
-        "my_referrer",
-        {"my_referrer": 1.0},
-        rate_limit_window_seconds=3600,
-        get_and_set_rate_limit=lambda _, __, ___: (10, 10),
-        get_time_in_seconds=lambda: 1234567890,
-    )
-    assert result is True
-
-
-def test_is_rate_limited_unallocated_excess():
-    """Assert excess shared quota."""
-    result = is_rate_limited(
-        "github",
-        1,
-        "shared",
-        {},
-        rate_limit_window_seconds=3600,
-        get_and_set_rate_limit=lambda _, __, ___: (100, 10),
-        get_time_in_seconds=lambda: 1234567890,
-    )
-    assert result is False
-
-
-def test_is_rate_limited_unallocated_exhausted():
-    """Assert exhausted shared quota."""
-    result = is_rate_limited(
-        "github",
-        1,
-        "shared",
-        {},
-        rate_limit_window_seconds=3600,
-        get_and_set_rate_limit=lambda _, __, ___: (10, 10),
-        get_time_in_seconds=lambda: 1234567890,
-    )
-    assert result is True
-
-
-def test_is_rate_limited_unallocated_but_not_shared():
-    """A shared or allocated referrer must be passed."""
-    with pytest.raises(AssertionError):
-        is_rate_limited(
-            "github",
-            1,
-            "other",
-            {},
-            rate_limit_window_seconds=3600,
-            get_and_set_rate_limit=lambda _, __, ___: (10, 10),
-            get_time_in_seconds=lambda: 1234567890,
+class TestIsRateLimited:
+    def test_allocated_referrer_with_excess_quota(self):
+        """Referrer with remaining quota is not rate limited."""
+        limiter, _ = make_limiter(
+            get_and_set_return=(100, 10),
+            referrer_allocation={"my_referrer": 1.0},
         )
+        assert limiter.is_rate_limited("my_referrer") is False
+
+    def test_allocated_referrer_exhausted_quota(self):
+        """Referrer at quota limit is rate limited."""
+        limiter, _ = make_limiter(
+            get_and_set_return=(10, 10),
+            referrer_allocation={"my_referrer": 1.0},
+        )
+        assert limiter.is_rate_limited("my_referrer") is True
+
+    def test_shared_referrer_with_excess_quota(self):
+        """Shared referrer with remaining quota is not rate limited."""
+        limiter, _ = make_limiter(get_and_set_return=(100, 10))
+        assert limiter.is_rate_limited("shared") is False
+
+    def test_shared_referrer_exhausted_quota(self):
+        """Shared referrer at quota limit is rate limited."""
+        limiter, _ = make_limiter(get_and_set_return=(10, 10))
+        assert limiter.is_rate_limited("shared") is True
+
+    def test_unregistered_referrer_raises(self):
+        """A referrer not in the allocation pool must not be passed."""
+        limiter, _ = make_limiter(get_and_set_return=(10, 10))
+        with pytest.raises(AssertionError):
+            limiter.is_rate_limited("other")
+
+    def test_fails_open_when_limit_not_set(self):
+        """Rate limit fails open if no limit is cached."""
+        limiter, _ = make_limiter(
+            get_and_set_return=(None, 100_000_000),
+            referrer_allocation={"my_referrer": 0.000000001},
+        )
+        assert limiter.is_rate_limited("my_referrer") is False
+
+    def test_caches_recorded_capacity_after_check(self):
+        """is_rate_limited stores the service capacity on the instance."""
+        limiter, _ = make_limiter(get_and_set_return=(500, 1))
+        limiter.is_rate_limited("shared")
+        assert limiter.recorded_capacity == 500
+
+    def test_fully_reserved_quota(self):
+        """Assert fully allocated referrer pool exhausts shared referrer by default."""
+        limiter, _ = make_limiter(
+            get_and_set_return=(100, 10),
+            referrer_allocation={"my_referrer": 1.0},
+        )
+        assert limiter.is_rate_limited("shared") is True
 
 
-def test_is_rate_limited_limit_not_set():
-    """The rate-limit fails open if the limit is not found."""
-    result = is_rate_limited(
-        "github",
-        1,
-        "my_referrer",
-        {"my_referrer": 0.000000001},
-        rate_limit_window_seconds=3600,
-        get_and_set_rate_limit=lambda _, __, ___: (None, 100000000000000),
-        get_time_in_seconds=lambda: 1234567890,
-    )
-    assert result is False
+class TestUpdateRateLimitMeta:
+    def test_updates_limit_and_shared_usage(self):
+        """Limit and shared usage are written when provider reports new values."""
+        limiter, provider = make_limiter(
+            accounted_usage=40,
+            recorded_capacity=100,
+            referrer_allocation={"a": 0.05, "b": 0.01},
+        )
+        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=3601)
 
+        assert provider.accounted_keys == [
+            usage_count_key("github", 1, 0, "a"),
+            usage_count_key("github", 1, 0, "b"),
+        ], provider.accounted_keys
+        assert provider.set_kvs == {
+            # Sentry said our limit was 100 but GitHub says its 110. GitHub wins.
+            total_limit_key("github", 1): (110, None),
+            # GitHub said 50 used but we recorded 40. Shared pool usage is set to reflect.
+            usage_count_key("github", 1, 0, "shared"): (10, 3527),
+        }, provider.set_kvs
 
-def test_update_rate_limits_from_provider():
-    """Assert rate-limits are configured from remote."""
-    keys = []
-    vals = {}
-    update_rate_limits_from_provider(
-        provider="github",
-        organization_id=1,
-        referrer_allocation={"a": 0.05, "b": 0.01},
-        recorded_limit=100,
-        specified_limit=110,
-        specified_usage=50,
-        specified_next_window=3601,
-        rate_limit_window_seconds=3600,
-        get_accounted_usage=lambda k: keys.extend(k) or 40,
-        get_time_in_seconds=lambda: 73,
-        set_key_values=lambda kvs: vals.update(kvs),
-    )
-    assert keys == [usage_count_key("github", 1, 0, "a"), usage_count_key("github", 1, 0, "b")]
-    assert vals == {
-        # Sentry said our limit was 100 but GitHub says its 110. GitHub wins.
-        total_limit_key("github", 1): 110,
-        # GitHub said 50 used but we recorded 40. Shared pool usage is set to reflect.
-        usage_count_key("github", 1, 0, "shared"): 10,
-    }, vals
+    def test_accounted_keys_include_all_allocated_referrers(self):
+        """get_accounted_usage is called with all allocated referrer keys."""
+        limiter, provider = make_limiter(
+            accounted_usage=40,
+            recorded_capacity=100,
+        )
+        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=3601)
 
+        # No referrer allocation so not keys were looked up.
+        assert provider.accounted_keys == []
 
-def test_update_rate_limits_from_provider_over_count():
-    """Assert rate-limits are never negative."""
-    vals = {}
-    update_rate_limits_from_provider(
-        provider="github",
-        organization_id=1,
-        referrer_allocation={},
-        recorded_limit=100,
-        specified_limit=110,
-        specified_usage=50,
-        specified_next_window=3601,
-        rate_limit_window_seconds=3600,
-        get_accounted_usage=lambda _: 100,
-        get_time_in_seconds=lambda: 73,
-        set_key_values=lambda kvs: vals.update(kvs),
-    )
-    assert vals == {
-        # Sentry said our limit was 100 but GitHub says its 110. GitHub wins.
-        total_limit_key("github", 1): 110,
-        # GitHub said 50 used but we recorded 100. Shared pool floored to 0.
-        usage_count_key("github", 1, 0, "shared"): 0,
-    }, vals
+        assert provider.set_kvs == {
+            # Sentry said our limit was 100 but GitHub says its 110. GitHub wins.
+            total_limit_key("github", 1): (110, None),
+            # GitHub said 50 used but we recorded 40. Shared pool usage is set to reflect.
+            usage_count_key("github", 1, 0, "shared"): (10, 3527),
+        }, provider.set_kvs
 
+    def test_shared_usage_floored_at_zero(self):
+        """Shared usage is never negative when accounted exceeds reported."""
+        limiter, provider = make_limiter(accounted_usage=100, recorded_capacity=100)
+        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=3601)
 
-def test_update_rate_limits_from_provider_window_miss():
-    """Assert window misses do not update quota usage."""
-    vals = {}
-    update_rate_limits_from_provider(
-        provider="github",
-        organization_id=1,
-        referrer_allocation={},
-        recorded_limit=100,
-        specified_limit=110,
-        specified_usage=50,
-        specified_next_window=0,
-        rate_limit_window_seconds=3600,
-        get_accounted_usage=lambda _: 100,
-        get_time_in_seconds=lambda: 73,
-        set_key_values=lambda kvs: vals.update(kvs),
-    )
-    assert vals == {total_limit_key("github", 1): 110}, vals
+        assert provider.set_kvs[usage_count_key("github", 1, 0, "shared")] == (0, 3527)
 
+    def test_window_miss_skips_shared_usage_update(self):
+        """Shared usage is not written when provider window does not match."""
+        limiter, provider = make_limiter(recorded_capacity=100)
+        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=0)
 
-def test_update_rate_limits_from_provider_matching_limits():
-    """Assert identical totals do not write."""
-    vals = {}
-    update_rate_limits_from_provider(
-        provider="github",
-        organization_id=1,
-        referrer_allocation={},
-        recorded_limit=110,
-        specified_limit=110,
-        specified_usage=50,
-        specified_next_window=3601,
-        rate_limit_window_seconds=3600,
-        get_accounted_usage=lambda _: 100,
-        get_time_in_seconds=lambda: 73,
-        set_key_values=lambda kvs: vals.update(kvs),
-    )
-    assert vals == {usage_count_key("github", 1, 0, "shared"): 0}, vals
+        # Only the new capacity value was written.
+        assert provider.set_kvs == {total_limit_key("github", 1): (110, None)}
 
+    def test_matching_limits_skips_total_key_write(self):
+        """Capacity key is not written when recorded and specified capacities match."""
+        limiter, provider = make_limiter(recorded_capacity=110, accounted_usage=0)
+        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=3601)
 
-def test_update_rate_limits_from_provider_matching_limits_window_miss():
-    """Assert no writes if identical totals and accounted usage matches remote."""
-    vals = {}
-    update_rate_limits_from_provider(
-        provider="github",
-        organization_id=1,
-        referrer_allocation={},
-        recorded_limit=110,
-        specified_limit=110,
-        specified_usage=50,
-        specified_next_window=0,
-        rate_limit_window_seconds=3600,
-        get_accounted_usage=lambda _: 50,
-        get_time_in_seconds=lambda: 73,
-        set_key_values=lambda kvs: vals.update(kvs),
-    )
-    assert vals == {}, vals
+        # Service limit not overwritten.
+        assert provider.set_kvs == {usage_count_key("github", 1, 0, "shared"): (50, 3527)}
+
+    def test_matching_limits_and_window_miss_writes_nothing(self):
+        """No writes when capacities match and windows differ."""
+        limiter, provider = make_limiter(accounted_usage=50, recorded_capacity=110)
+        limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=0)
+
+        # No values written.
+        assert provider.set_kvs == {}
