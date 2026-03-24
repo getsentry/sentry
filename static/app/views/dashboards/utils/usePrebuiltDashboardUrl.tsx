@@ -41,7 +41,7 @@ export function usePrebuiltDashboardUrl(
   const organization = useOrganization({allowNull: true});
   const {selection} = usePageFilters();
   const isPlatformized = organization ? hasPlatformizedInsights(organization) : false;
-  const {dashboard: prebuiltDashboard} = useGetPrebuiltDashboard(prebuiltId);
+  const {dashboard: prebuiltDashboard} = useGetPrebuiltDashboard(isPlatformized ? prebuiltId : undefined);
 
   const queryParams = pageFiltersToQueryParams(selection);
 
