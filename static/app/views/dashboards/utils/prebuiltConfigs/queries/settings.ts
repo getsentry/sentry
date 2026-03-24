@@ -1,7 +1,7 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-export const BASE_FILTERS = {
+const BASE_FILTERS = {
   [SpanFields.SPAN_CATEGORY]: ModuleName.DB,
   has: SpanFields.NORMALIZED_DESCRIPTION,
 };
