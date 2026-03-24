@@ -1,8 +1,8 @@
-import {useMemo} from 'react';
+import {useCallback} from 'react';
 
-import {useCommandPaletteQueryState} from 'sentry/components/commandPalette/context';
+import {makeCommandPaletteLink} from 'sentry/components/commandPalette/makeCommandPaletteAction';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
+import {useDynamicCommandPaletteAction} from 'sentry/components/commandPalette/useDynamicCommandPaletteAction';
 import {
   DSN_PATTERN,
   getDsnNavTargets,
@@ -10,7 +10,7 @@ import {
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
 import {IconIssues, IconList, IconSettings} from 'sentry/icons';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const ICONS: React.ReactElement[] = [
@@ -20,40 +20,36 @@ const ICONS: React.ReactElement[] = [
 ];
 
 export function useDsnLookupActions(): void {
-  const {query} = useCommandPaletteQueryState();
+  const api = useApi();
   const organization = useOrganization({allowNull: true});
   const hasDsnLookup = organization?.features?.includes('cmd-k-dsn-lookup') ?? false;
-  const isDsn = DSN_PATTERN.test(query);
 
-  const {data} = useApiQuery<DsnLookupResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/dsn-lookup/', {
-        path: {organizationIdOrSlug: organization?.slug ?? ''},
-      }),
-      {query: {dsn: query}},
-    ],
-    {
-      staleTime: 30_000,
-      enabled: isDsn && !!organization && hasDsnLookup,
-    }
+  const queryAction = useCallback(
+    async (query: string): Promise<CommandPaletteAction[]> => {
+      if (!DSN_PATTERN.test(query) || !organization || !hasDsnLookup) {
+        return [];
+      }
+
+      const url = getApiUrl('/organizations/$organizationIdOrSlug/dsn-lookup/', {
+        path: {organizationIdOrSlug: organization.slug},
+      });
+
+      const data = await api.requestPromise(url, {query: {dsn: query}});
+
+      return getDsnNavTargets(data as DsnLookupResponse).map((target, i) =>
+        makeCommandPaletteLink({
+          display: {
+            label: target.label,
+            details: target.description,
+            icon: ICONS[i],
+          },
+          groupingKey: 'search-result',
+          to: target.to,
+        })
+      );
+    },
+    [api, organization, hasDsnLookup]
   );
 
-  const actions: CommandPaletteAction[] = useMemo(() => {
-    if (!isDsn || !data) {
-      return [];
-    }
-
-    return getDsnNavTargets(data).map((target, i) => ({
-      type: 'navigate' as const,
-      to: target.to,
-      display: {
-        label: target.label,
-        details: target.description,
-        icon: ICONS[i],
-      },
-      groupingKey: 'search-result' as const,
-    }));
-  }, [isDsn, data]);
-
-  useCommandPaletteActions(actions);
+  useDynamicCommandPaletteAction(queryAction);
 }
