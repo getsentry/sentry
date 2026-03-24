@@ -8,7 +8,7 @@ import {usePrompt} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {CommitRow} from 'sentry/components/commitRow';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';

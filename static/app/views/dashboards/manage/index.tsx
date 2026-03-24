@@ -19,7 +19,7 @@ import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indica
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';

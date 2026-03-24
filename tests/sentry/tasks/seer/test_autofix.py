@@ -9,7 +9,7 @@ from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import AutofixState, get_seer_seat_based_tier_cache_key
 from sentry.seer.models import SeerApiError, SummarizeIssueResponse, SummarizeIssueScores
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.tasks.autofix import (
+from sentry.tasks.seer.autofix import (
     check_autofix_status,
     configure_seer_for_existing_org,
     generate_issue_summary_only,
@@ -19,8 +19,8 @@ from sentry.utils.cache import cache
 
 
 class TestCheckAutofixStatus(TestCase):
-    @patch("sentry.tasks.autofix.get_autofix_state")
-    @patch("sentry.tasks.autofix.logger.error")
+    @patch("sentry.tasks.seer.autofix.get_autofix_state")
+    @patch("sentry.tasks.seer.autofix.logger.error")
     def test_check_autofix_status_processing_too_long(
         self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
     ) -> None:
@@ -45,8 +45,8 @@ class TestCheckAutofixStatus(TestCase):
             "Autofix run has been processing for more than 5 minutes", extra={"run_id": 123}
         )
 
-    @patch("sentry.tasks.autofix.get_autofix_state")
-    @patch("sentry.tasks.autofix.logger.error")
+    @patch("sentry.tasks.seer.autofix.get_autofix_state")
+    @patch("sentry.tasks.seer.autofix.logger.error")
     def test_check_autofix_status_processing_within_time_limit(
         self, mock_logger, mock_get_autofix_state
     ):
@@ -69,8 +69,8 @@ class TestCheckAutofixStatus(TestCase):
         # Check that the logger.error was not called
         mock_logger.assert_not_called()
 
-    @patch("sentry.tasks.autofix.get_autofix_state")
-    @patch("sentry.tasks.autofix.logger.error")
+    @patch("sentry.tasks.seer.autofix.get_autofix_state")
+    @patch("sentry.tasks.seer.autofix.logger.error")
     def test_check_autofix_status_completed(
         self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
     ) -> None:
@@ -93,8 +93,8 @@ class TestCheckAutofixStatus(TestCase):
         # Check that the logger.error was not called
         mock_logger.assert_not_called()
 
-    @patch("sentry.tasks.autofix.get_autofix_state")
-    @patch("sentry.tasks.autofix.logger.error")
+    @patch("sentry.tasks.seer.autofix.get_autofix_state")
+    @patch("sentry.tasks.seer.autofix.logger.error")
     def test_check_autofix_status_no_state(
         self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
     ) -> None:
@@ -148,8 +148,8 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):
-    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_configures_org_and_project_settings(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
@@ -177,8 +177,8 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         mock_bulk_set.assert_called_once()
 
     @pytest.mark.skip("DO NOT override autofix automation tuning off")
-    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_overrides_autofix_off_to_medium(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
@@ -195,8 +195,8 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Scanner should be enabled
         assert project.get_option("sentry:seer_scanner_automation") is True
 
-    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_skips_projects_with_existing_stopping_point(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
@@ -214,7 +214,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # bulk_set should not be called since both projects are skipped
         mock_bulk_set.assert_not_called()
 
-    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_raises_on_bulk_get_api_failure(self, mock_bulk_get: MagicMock) -> None:
         """Test that task raises on bulk GET API failure to trigger retry."""
         project1 = self.create_project(organization=self.organization)
@@ -229,8 +229,8 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         assert project1.get_option("sentry:seer_scanner_automation") is True
         assert project2.get_option("sentry:seer_scanner_automation") is True
 
-    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_raises_on_bulk_set_api_failure(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
@@ -248,8 +248,8 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         assert project1.get_option("sentry:seer_scanner_automation") is True
         assert project2.get_option("sentry:seer_scanner_automation") is True
 
-    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_sets_seat_based_tier_cache_to_true(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
@@ -267,9 +267,9 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Cache should be set to True to prevent race conditions
         assert cache.get(cache_key) is True
 
-    @patch("sentry.tasks.autofix.get_autofix_repos_from_project_code_mappings")
-    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    @patch("sentry.tasks.seer.autofix.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_uses_code_mappings_when_no_existing_preferences(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_get_code_mappings: MagicMock
     ) -> None:
@@ -285,9 +285,9 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         preferences = mock_bulk_set.call_args[0][1]
         assert preferences[0]["repositories"] == mock_repos
 
-    @patch("sentry.tasks.autofix.get_autofix_repos_from_project_code_mappings")
-    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    @patch("sentry.tasks.seer.autofix.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_preserves_existing_repositories_when_preferences_exist(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_get_code_mappings: MagicMock
     ) -> None:
@@ -302,8 +302,8 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         preferences = mock_bulk_set.call_args[0][1]
         assert preferences[0]["repositories"] == existing_repos
 
-    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_creates_seer_project_repository(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:

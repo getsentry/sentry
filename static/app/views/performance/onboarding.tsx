@@ -23,7 +23,8 @@ import {UnsupportedAlert} from 'sentry/components/alerts/unsupportedAlert';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
-import FeatureTourModal, {
+import {
+  FeatureTourModal,
   TourImage,
   TourText,
 } from 'sentry/components/modals/featureTourModal';

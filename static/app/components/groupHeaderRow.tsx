@@ -4,7 +4,7 @@ import {useHover} from '@react-aria/interactions';
 
 import {Link} from '@sentry/scraps/link';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {GroupTitle} from 'sentry/components/groupTitle';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';

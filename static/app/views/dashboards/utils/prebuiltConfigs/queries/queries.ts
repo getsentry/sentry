@@ -1,22 +1,15 @@
 import {t} from 'sentry/locale';
 import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   AVERAGE_DURATION_TEXT,
   QUERIES_PER_MINUTE_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/constants';
+import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-
-export const BASE_FILTERS = {
-  [SpanFields.SPAN_CATEGORY]: ModuleName.DB,
-  has: SpanFields.NORMALIZED_DESCRIPTION,
-};
-
-const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
 export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -63,7 +56,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: QUERIES_PER_MINUTE_TEXT,
-          conditions: FILTER_STRING,
+          conditions: BASE_FILTER_STRING,
           fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
@@ -87,7 +80,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: AVERAGE_DURATION_TEXT,
-          conditions: FILTER_STRING,
+          conditions: BASE_FILTER_STRING,
           fields: [`avg(${SpanFields.SPAN_DURATION})`],
           aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
@@ -112,7 +105,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          conditions: FILTER_STRING,
+          conditions: BASE_FILTER_STRING,
           fields: [
             SpanFields.NORMALIZED_DESCRIPTION,
             'epm()',

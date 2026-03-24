@@ -9,7 +9,7 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';

@@ -13,7 +13,7 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';

@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventView, {type EventViewOptions} from 'sentry/utils/discover/eventView';
+import {EventView, type EventViewOptions} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 

@@ -9,7 +9,7 @@ import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {useTeams} from 'sentry/utils/useTeams';
 import {withProjects} from 'sentry/utils/withProjects';
 

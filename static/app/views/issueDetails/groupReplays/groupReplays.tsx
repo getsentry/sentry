@@ -34,7 +34,7 @@ import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';

@@ -2,7 +2,7 @@ from time import time
 from unittest.mock import MagicMock, patch
 
 from sentry.models.grouphash import GroupHash
-from sentry.tasks.delete_seer_grouping_records import (
+from sentry.tasks.seer.delete_seer_grouping_records import (
     delete_seer_grouping_records_by_hash,
     may_schedule_task_to_delete_hashes_from_seer,
 )
@@ -28,7 +28,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         return expected_hashes
 
     @patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_simple(self, mock_apply_async: MagicMock) -> None:
         """
@@ -49,7 +49,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         batch_size = 10
         with (
             patch(
-                "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+                "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
             ) as mock_apply_async,
             self.options({"embeddings-grouping.seer.delete-record-batch-size": batch_size}),
         ):
@@ -76,7 +76,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             assert second_call_args[2] == 0
 
     @patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_group_without_hashes(self, mock_apply_async: MagicMock) -> None:
         group = self.create_group(project=self.project)
@@ -85,7 +85,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         mock_apply_async.assert_not_called()
 
     @patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_no_group_ids(self, mock_apply_async: MagicMock) -> None:
         """
@@ -95,7 +95,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         mock_apply_async.assert_not_called()
 
     @patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_called_task_with_too_many_hashes(self, mock_apply_async: MagicMock) -> None:
         """This tests the built-in logic of spreading hashes across multiple tasks."""
@@ -134,7 +134,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             assert first_chunk + second_chunk + third_chunk == expected_hashes
 
     @patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_does_not_schedule_task_if_missing_option(self, mock_apply_async: MagicMock) -> None:
         """
