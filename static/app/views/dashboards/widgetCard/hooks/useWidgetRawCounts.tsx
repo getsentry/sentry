@@ -58,9 +58,9 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
         };
       case WidgetType.TRACEMETRICS: {
         const traceMetrics = widget.queries?.[0]?.aggregates
-          .map(aggregate => explodeFieldString(aggregate))
-          .map(extractTraceMetricFromColumn)
-          .filter(defined);
+          ?.map(aggregate => explodeFieldString(aggregate))
+          ?.map(extractTraceMetricFromColumn)
+          ?.filter(defined);
 
         if (!traceMetrics) {
           return {
