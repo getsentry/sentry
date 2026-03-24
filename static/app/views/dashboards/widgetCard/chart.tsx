@@ -852,13 +852,7 @@ function ServerTreeComponent({
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
-  return (
-    <WheelWidgetVisualization
-      tableResults={props.tableResults}
-      loading={props.loading}
-      selection={props.selection}
-    />
-  );
+  return <WheelWidgetVisualization tableResults={props.tableResults} />;
 }
 
 function TextComponent(props: TableComponentProps): React.ReactNode {

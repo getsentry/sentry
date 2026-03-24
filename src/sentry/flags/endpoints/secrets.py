@@ -101,10 +101,10 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
             is_creator = True
 
         if is_creator or has_permission:
-            FlagWebHookSigningSecretModel.objects.create_or_update(
+            FlagWebHookSigningSecretModel.objects.update_or_create(
                 organization=organization,
                 provider=validator.validated_data["provider"],
-                values={
+                defaults={
                     "created_by": request.user.id,
                     "date_added": datetime.now(tz=timezone.utc),
                     "provider": validator.validated_data["provider"],

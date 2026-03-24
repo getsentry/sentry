@@ -198,7 +198,7 @@ describe('SolutionCard', () => {
       />
     );
 
-    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(screen.getByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
   });
 
@@ -235,10 +235,10 @@ describe('SolutionCard', () => {
       />
     );
 
-    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(screen.getByText('Plan')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
+        'Seer failed to generate a plan. This one is on us. Try running it again.'
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
@@ -351,8 +351,16 @@ describe('PullRequestsCard', () => {
         autofix={mockAutofix}
         section={makeSection('pull_request', 'completed', [
           [
-            makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
-            makePR({repo_name: 'org/repo-b', pr_number: 20, pr_url: 'https://pr/20'}),
+            makePR({
+              repo_name: 'org/repo-a',
+              pr_number: 10,
+              pr_url: 'https://pr/10',
+            }),
+            makePR({
+              repo_name: 'org/repo-b',
+              pr_number: 20,
+              pr_url: 'https://pr/20',
+            }),
           ],
         ])}
       />
@@ -468,7 +476,11 @@ describe('CodingAgentCard', () => {
       <CodingAgentCard
         autofix={mockAutofix}
         section={makeSection('coding_agents', 'completed', [
-          [makeCodingAgent({provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT})],
+          [
+            makeCodingAgent({
+              provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            }),
+          ],
         ])}
       />
     );
@@ -481,7 +493,11 @@ describe('CodingAgentCard', () => {
       <CodingAgentCard
         autofix={mockAutofix}
         section={makeSection('coding_agents', 'completed', [
-          [makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT})],
+          [
+            makeCodingAgent({
+              provider: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            }),
+          ],
         ])}
       />
     );
@@ -494,7 +510,11 @@ describe('CodingAgentCard', () => {
       <CodingAgentCard
         autofix={mockAutofix}
         section={makeSection('coding_agents', 'completed', [
-          [makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT})],
+          [
+            makeCodingAgent({
+              provider: CodingAgentProvider.GITHUB_COPILOT_AGENT,
+            }),
+          ],
         ])}
       />
     );
@@ -577,8 +597,16 @@ describe('CodingAgentCard', () => {
         autofix={mockAutofix}
         section={makeSection('coding_agents', 'completed', [
           [
-            makeCodingAgent({id: 'agent-1', name: 'Agent One', status: 'completed'}),
-            makeCodingAgent({id: 'agent-2', name: 'Agent Two', status: 'running'}),
+            makeCodingAgent({
+              id: 'agent-1',
+              name: 'Agent One',
+              status: 'completed',
+            }),
+            makeCodingAgent({
+              id: 'agent-2',
+              name: 'Agent Two',
+              status: 'running',
+            }),
           ],
         ])}
       />

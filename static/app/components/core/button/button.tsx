@@ -71,6 +71,7 @@ export function Button({
               marginRight={
                 hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : undefined
               }
+              aria-hidden="true"
             >
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
                 {props.icon}

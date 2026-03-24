@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
@@ -66,14 +67,19 @@ function navigationContext({
   };
 }
 
-function assertActiveNavLink(link: HTMLElement) {
+function assertActivePrimaryNavLink(link: HTMLElement) {
+  expect(link).toHaveAttribute('aria-current', 'location');
+  expect(link).not.toHaveAttribute('aria-selected');
+}
+
+function assertActiveSecondaryNavLink(link: HTMLElement) {
   expect(link).toHaveAttribute('aria-current', 'page');
-  expect(link).toHaveAttribute('aria-selected', 'true');
+  expect(link).not.toHaveAttribute('aria-selected');
 }
 
 function assertInactiveNavLink(link: HTMLElement) {
   expect(link).not.toHaveAttribute('aria-current');
-  expect(link).toHaveAttribute('aria-selected', 'false');
+  expect(link).not.toHaveAttribute('aria-selected');
 }
 
 function assertValidListHTML(list: HTMLElement) {
@@ -85,7 +91,7 @@ function assertValidListHTML(list: HTMLElement) {
     if (child.querySelector('hr, [role="separator"]')) {
       expect(child.children).toHaveLength(1);
     } else {
-      expect(child.querySelectorAll('a')).toHaveLength(1);
+      expect(child.querySelectorAll('a, [role="link"]')).toHaveLength(1);
     }
   });
 }
@@ -119,7 +125,21 @@ function setupMocks() {
   });
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/dashboards/`,
-    body: [],
+    body: [
+      // This ensures that we test the "All Projects", "My projects", "multiple projects" icons
+      DashboardListItemFixture({id: '1', title: 'All projects', projects: []}),
+      DashboardListItemFixture({id: '2', title: 'My projects', projects: [-1]}),
+      DashboardListItemFixture({
+        id: '3',
+        title: 'Multiple projects',
+        projects: [1, 2, 3],
+      }),
+      DashboardListItemFixture({
+        id: '4',
+        title: 'Single project',
+        projects: [1],
+      }),
+    ],
   });
 
   mockUsingCustomerDomain.mockReturnValue(false);
@@ -147,46 +167,6 @@ describe('desktop navigation', () => {
     expect(
       screen.queryByRole('navigation', {name: 'Secondary Navigation'})
     ).not.toBeInTheDocument();
-  });
-
-  describe('HTML structure', () => {
-    it('primary navigation renders a nav landmark with a list of links (nav > ul > li > a)', () => {
-      render(
-        <PrimaryNavigationContextProvider>
-          <Navigation />
-        </PrimaryNavigationContextProvider>,
-        navigationContext({
-          organization: {features: ALL_AVAILABLE_FEATURES},
-        })
-      );
-
-      const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
-      within(primaryNav).getAllByRole('list').forEach(assertValidListHTML);
-
-      within(primaryNav)
-        .getAllByRole('link')
-        .forEach(link => {
-          expect(link.closest('li')).toBeInTheDocument();
-        });
-    });
-
-    it('secondary navigation renders a nav landmark with a list of links (nav > ul > li > a)', () => {
-      render(
-        <PrimaryNavigationContextProvider>
-          <Navigation />
-        </PrimaryNavigationContextProvider>,
-        navigationContext()
-      );
-
-      const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      within(secondaryNav).getAllByRole('list').forEach(assertValidListHTML);
-
-      within(secondaryNav)
-        .getAllByRole('link')
-        .forEach(link => {
-          expect(link.closest('li')).toBeInTheDocument();
-        });
-    });
   });
 
   describe('accessibility', () => {
@@ -240,11 +220,15 @@ describe('desktop navigation', () => {
 
       const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
       const links = within(primaryNav).getAllByRole('link');
-      const activeLinks = links.filter(l => l.getAttribute('aria-current') === 'page');
-      const inactiveLinks = links.filter(l => l.getAttribute('aria-current') !== 'page');
+      const activeLinks = links.filter(
+        l => l.getAttribute('aria-current') === 'location'
+      );
+      const inactiveLinks = links.filter(
+        l => l.getAttribute('aria-current') !== 'location'
+      );
 
       expect(activeLinks).toHaveLength(1);
-      activeLinks.forEach(assertActiveNavLink);
+      activeLinks.forEach(assertActivePrimaryNavLink);
       inactiveLinks.forEach(assertInactiveNavLink);
     });
 
@@ -264,12 +248,30 @@ describe('desktop navigation', () => {
       const inactiveLinks = links.filter(l => l.getAttribute('aria-current') !== 'page');
 
       expect(activeLinks).toHaveLength(1);
-      activeLinks.forEach(assertActiveNavLink);
+      activeLinks.forEach(assertActiveSecondaryNavLink);
       inactiveLinks.forEach(assertInactiveNavLink);
     });
 
+    it("What's New button sets aria-expanded on open and resets it on close", async () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
+
+      const whatsNewButton = screen.getByRole('button', {name: "What's New"});
+      expect(whatsNewButton).toHaveAttribute('aria-expanded', 'false');
+
+      await userEvent.click(whatsNewButton);
+      expect(whatsNewButton).toHaveAttribute('aria-expanded', 'true');
+
+      await userEvent.click(document.body);
+      expect(whatsNewButton).toHaveAttribute('aria-expanded', 'false');
+    });
+
     describe('route inference', () => {
-      async function assertRouteActivatesLinks(
+      async function assertNavStructureAndActiveLinksForRoute(
         pathname: string,
         activePrimaryLink: string,
         activeSecondaryLink: string,
@@ -286,16 +288,35 @@ describe('desktop navigation', () => {
         );
 
         const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
-        assertActiveNavLink(
+        assertActivePrimaryNavLink(
           within(primaryNav).getByRole('link', {name: activePrimaryLink})
         );
+
+        within(primaryNav).getAllByRole('list').forEach(assertValidListHTML);
+        within(primaryNav)
+          .getAllByRole('link')
+          .forEach(link => expect(link.closest('li')).toBeInTheDocument());
 
         const secondaryNav = screen.getByRole('navigation', {
           name: 'Secondary Navigation',
         });
-        assertActiveNavLink(
+
+        assertActiveSecondaryNavLink(
           await within(secondaryNav).findByRole('link', {name: activeSecondaryLink})
         );
+        within(secondaryNav).getAllByRole('list').forEach(assertValidListHTML);
+        within(secondaryNav)
+          .getAllByRole('link')
+          .forEach(link => expect(link.closest('li')).toBeInTheDocument());
+
+        screen.queryAllByRole('img').forEach(img => {
+          const hasAlt = img.hasAttribute('alt') && img.getAttribute('alt') !== '';
+          const hasAriaLabel =
+            img.hasAttribute('aria-label') && img.getAttribute('aria-label') !== '';
+          const hasAriaLabelledBy = img.hasAttribute('aria-labelledby');
+          expect(hasAlt || hasAriaLabel || hasAriaLabelledBy).toBe(true);
+        });
+
         unmount();
       }
 
@@ -350,7 +371,12 @@ describe('desktop navigation', () => {
         ];
 
         for (const [pathname, primary, secondary, route] of cases) {
-          await assertRouteActivatesLinks(pathname, primary, secondary, route);
+          await assertNavStructureAndActiveLinksForRoute(
+            pathname,
+            primary,
+            secondary,
+            route
+          );
         }
       });
 
@@ -443,7 +469,12 @@ describe('desktop navigation', () => {
             organizationUrl: 'https://org-slug.sentry.io',
             sentryUrl: 'https://sentry.io',
           });
-          await assertRouteActivatesLinks(pathname, primary, secondary, route);
+          await assertNavStructureAndActiveLinksForRoute(
+            pathname,
+            primary,
+            secondary,
+            route
+          );
         }
       });
     });
@@ -678,7 +709,7 @@ describe('desktop navigation', () => {
         });
       });
 
-      describe('peek Preview', () => {
+      describe('peek preview', () => {
         it('shows the sidebar on hover when collapsed', async () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 

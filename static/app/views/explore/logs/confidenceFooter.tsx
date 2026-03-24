@@ -101,11 +101,11 @@ function ConfidenceMessage({
         ? t('%s matches', <Count value={sampleCount} />)
         : t('%s match', <Count value={sampleCount} />);
 
-    const totalLogsCount = defined(rawLogCounts.highAccuracy.count) ? (
-      rawLogCounts.highAccuracy.count > 1 ? (
-        t('%s logs', <Count value={rawLogCounts.highAccuracy.count} />)
+    const totalLogsCount = defined(rawLogCounts.total.count) ? (
+      rawLogCounts.total.count > 1 ? (
+        t('%s logs', <Count value={rawLogCounts.total.count} />)
       ) : (
-        t('%s log', <Count value={rawLogCounts.highAccuracy.count} />)
+        t('%s log', <Count value={rawLogCounts.total.count} />)
       )
     ) : (
       <Placeholder width={40} />
@@ -141,11 +141,11 @@ function ConfidenceMessage({
           ? t('%s samples', <Count value={sampleCount} />)
           : t('%s sample', <Count value={sampleCount} />);
 
-      const totalLogsCount = defined(rawLogCounts.highAccuracy.count) ? (
-        rawLogCounts.highAccuracy.count > 1 ? (
-          t('%s logs', <Count value={rawLogCounts.highAccuracy.count} />)
+      const totalLogsCount = defined(rawLogCounts.total.count) ? (
+        rawLogCounts.total.count > 1 ? (
+          t('%s logs', <Count value={rawLogCounts.total.count} />)
         ) : (
-          t('%s log', <Count value={rawLogCounts.highAccuracy.count} />)
+          t('%s log', <Count value={rawLogCounts.total.count} />)
         )
       ) : (
         <Placeholder width={40} />
@@ -224,11 +224,11 @@ function ConfidenceMessage({
       <Placeholder width={40} />
     );
 
-    const totalLogsCount = defined(rawLogCounts.highAccuracy.count) ? (
-      rawLogCounts.highAccuracy.count > 1 ? (
-        t('%s logs', <Count value={rawLogCounts.highAccuracy.count} />)
+    const totalLogsCount = defined(rawLogCounts.total.count) ? (
+      rawLogCounts.total.count > 1 ? (
+        t('%s logs', <Count value={rawLogCounts.total.count} />)
       ) : (
-        t('%s log', <Count value={rawLogCounts.highAccuracy.count} />)
+        t('%s log', <Count value={rawLogCounts.total.count} />)
       )
     ) : (
       <Placeholder width={40} />
@@ -268,11 +268,11 @@ function ConfidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-  const totalLogsCount = defined(rawLogCounts.highAccuracy.count) ? (
-    rawLogCounts.highAccuracy.count > 1 ? (
-      t('%s logs', <Count value={rawLogCounts.highAccuracy.count} />)
+  const totalLogsCount = defined(rawLogCounts.total.count) ? (
+    rawLogCounts.total.count > 1 ? (
+      t('%s logs', <Count value={rawLogCounts.total.count} />)
     ) : (
-      t('%s log', <Count value={rawLogCounts.highAccuracy.count} />)
+      t('%s log', <Count value={rawLogCounts.total.count} />)
     )
   ) : (
     <Placeholder width={40} />
