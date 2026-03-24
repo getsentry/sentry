@@ -33,7 +33,13 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
               : undefined
             : undefined
         }
-        borderTop={secondaryNavigation?.view === 'expanded' ? 'primary' : undefined}
+        borderTop={
+          primaryNavigation.layout === 'mobile'
+            ? 'primary'
+            : secondaryNavigation?.view === 'expanded'
+              ? 'primary'
+              : undefined
+        }
         borderLeft={
           secondaryNavigation?.view === 'expanded'
             ? primaryNavigation.layout === 'sidebar'

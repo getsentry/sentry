@@ -160,7 +160,8 @@ function MobileNavigationHeader(props: FlexProps<'header'>) {
       direction="row"
       align="center"
       height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT}px`}
-      padding="lg"
+      paddingLeft="lg"
+      paddingRight="lg"
       width="100vw"
       borderBottom="primary"
       background="secondary"
