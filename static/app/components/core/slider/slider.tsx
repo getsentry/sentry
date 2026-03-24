@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {useNumberFormatter} from '@react-aria/i18n';
 import type {AriaSliderProps} from '@react-aria/slider';
 import {useSlider, useSliderThumb} from '@react-aria/slider';
-import {mergeRefs} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {useSliderState} from '@react-stately/slider';
 
@@ -15,7 +14,7 @@ interface BaseProps extends Omit<
 > {
   defaultValue?: number;
   disabled?: boolean;
-  /** Custom formatting for the value label */
+  /** @deprecated Use `formatOptions` (Intl.NumberFormatOptions) instead. */
   formatLabel?: (value: number | '') => React.ReactNode;
   /** Intl.NumberFormat options for automatic numeric formatting */
   formatOptions?: Intl.NumberFormatOptions;
@@ -37,6 +36,7 @@ interface BaseProps extends Omit<
 
 interface ControlledProps extends BaseProps {
   onChange: (value: number) => void;
+  /** Accepts `''` for backwards compatibility with legacy form fields. */
   value: number | '';
 }
 
@@ -83,7 +83,7 @@ export function Slider({
     ...(props.defaultValue !== undefined &&
       effectiveValue === undefined && {defaultValue: [props.defaultValue]}),
     onChange: (values: number | number[]) =>
-      onChange?.(Array.isArray(values) ? values[0]! : values),
+      onChange?.(Array.isArray(values) ? (values[0] ?? min) : values),
   };
 
   const state = useSliderState({...ariaProps, numberFormatter});
@@ -154,7 +154,7 @@ export function Slider({
               data-filled={tickValue <= thumbValue || undefined}
               style={
                 {
-                  '--i': (index + 1).toString(),
+                  '--i': index.toString(),
                   left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`,
                 } as React.CSSProperties
               }
@@ -167,7 +167,7 @@ export function Slider({
             <SliderThumbSurface />
           </SliderThumbChonk>
           <VisuallyHidden>
-            <input ref={mergeRefs(inputRef, ref)} {...inputProps} name={name} />
+            <input ref={inputRef} {...inputProps} name={name} />
           </VisuallyHidden>
         </SliderThumbHitbox>
 
@@ -365,7 +365,11 @@ const TrackLabel = styled('span')`
     position: absolute;
   }
 
-  ${SliderWrapper}[data-disabled] & {
+  &[data-intermediate]:not([data-show]) {
+    display: none;
+  }
+
+  ${SliderWrapper}[aria-disabled] & {
     color: ${p => p.theme.tokens.content.disabled};
   }
 `;
