@@ -8,15 +8,16 @@ LINK_IDENTITY_MESSAGE = "Link your Slack identity to Sentry to unfurl Discover c
 
 
 class SlackPromptLinkMessageBuilder(BlockSlackMessageBuilder):
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str, message: str = LINK_IDENTITY_MESSAGE) -> None:
         super().__init__()
         self.url = url
+        self.message = message
 
     def build(self) -> SlackBody:
         return {
             "blocks": orjson.dumps(
                 [
-                    self.get_markdown_block(LINK_IDENTITY_MESSAGE),
+                    self.get_markdown_block(self.message),
                     self.get_action_block([("Link", self.url, "link"), ("Cancel", None, "ignore")]),
                 ],
             ).decode()

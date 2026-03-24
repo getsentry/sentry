@@ -155,10 +155,11 @@ def _send_link_identity_prompt(
         response_url=None,
     )
     client = SlackSdkClient(integration_id=entrypoint.integration.id)
-    builder = SlackPromptLinkMessageBuilder(associate_url)
+    message = "Link your Slack identity to Sentry to use this feature."
+    builder = SlackPromptLinkMessageBuilder(associate_url, message=message)
     client.chat_postEphemeral(
         channel=entrypoint.channel_id,
         user=entrypoint.slack_user_id,
-        text="Link your Slack identity to Sentry to use this feature.",
+        text=message,
         **builder.as_payload(),
     )
