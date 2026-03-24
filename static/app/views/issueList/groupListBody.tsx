@@ -180,7 +180,11 @@ function GroupList({
               withColumns={COLUMNS}
             />
             {showStackBar && (
-              <StackIndicatorBar supergroup={sg} otherCount={sg.group_ids.length - 1} />
+              <StackIndicatorBar
+                supergroup={sg}
+                otherCount={sg.group_ids.length - 1}
+                currentGroupId={id}
+              />
             )}
           </Fragment>
         );

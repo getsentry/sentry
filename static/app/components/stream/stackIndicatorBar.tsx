@@ -1,42 +1,88 @@
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Text} from '@sentry/scraps/text';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
-import {IconStack} from 'sentry/icons';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
+import {IconChevron, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
+import type {Group} from 'sentry/types/group';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
+const EXPANDED_COLUMNS: GroupListColumn[] = ['event', 'users', 'priority', 'assignee'];
+
 interface Props {
+  currentGroupId: string;
   otherCount: number;
   supergroup: SupergroupDetail;
 }
 
-export function StackIndicatorBar({supergroup, otherCount}: Props) {
-  const {openDrawer} = useDrawer();
+export function StackIndicatorBar({supergroup, otherCount, currentGroupId}: Props) {
+  const [expanded, setExpanded] = useState(false);
+  const organization = useOrganization();
 
-  const handleClick = () => {
-    openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
-      ariaLabel: t('Supergroup details'),
-      drawerKey: 'supergroup-drawer',
-    });
-  };
+  const otherIds = supergroup.group_ids.map(String).filter(id => id !== currentGroupId);
+
+  const issueIdQuery =
+    otherIds.length === 1
+      ? `issue.id:${otherIds[0]}`
+      : `issue.id:[${otherIds.join(',')}]`;
+
+  const {data: groups, isPending} = useApiQuery<Group[]>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {query: issueIdQuery, limit: 25, project: ALL_ACCESS_PROJECTS}},
+    ],
+    {staleTime: 30_000, enabled: expanded && otherIds.length > 0}
+  );
 
   return (
-    <Bar onClick={handleClick}>
-      <InteractionStateLayer />
-      <CurvedArrow aria-hidden>&#8627;</CurvedArrow>
-      <StyledIconStack size="xs" />
-      <Text size="xs" bold>
-        {t('%s other issues', otherCount)}
-      </Text>
-      <Dot />
-      <Title size="xs" variant="muted">
-        {supergroup.title}
-      </Title>
-    </Bar>
+    <Fragment>
+      <Bar onClick={() => setExpanded(prev => !prev)}>
+        <InteractionStateLayer />
+        <CurvedArrow aria-hidden>&#8627;</CurvedArrow>
+        <StyledIconStack size="xs" />
+        <Text size="xs" bold>
+          {t('%s related issues', otherCount)}
+        </Text>
+        <Dot />
+        <Title size="xs" variant="muted">
+          {supergroup.title}
+        </Title>
+        <ExpandIcon size="xs" direction={expanded ? 'up' : 'down'} />
+      </Bar>
+
+      {expanded && (
+        <ExpandedContent>
+          {isPending
+            ? Array.from({length: Math.min(otherCount, 5)}).map((_, i) => (
+                <LoadingStreamGroup
+                  key={`placeholder-${i}`}
+                  withChart={false}
+                  withColumns={EXPANDED_COLUMNS}
+                />
+              ))
+            : groups?.map(group => (
+                <StreamGroup
+                  key={group.id}
+                  group={group}
+                  canSelect={false}
+                  withChart={false}
+                  withColumns={EXPANDED_COLUMNS}
+                  source="supergroup-expansion"
+                />
+              ))}
+        </ExpandedContent>
+      )}
+    </Fragment>
   );
 }
 
@@ -80,4 +126,15 @@ const Title = styled(Text)`
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+`;
+
+const ExpandIcon = styled(IconChevron)`
+  flex-shrink: 0;
+  margin-left: auto;
+`;
+
+const ExpandedContent = styled('div')`
+  border-left: 3px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
