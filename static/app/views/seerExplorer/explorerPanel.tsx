@@ -792,7 +792,7 @@ export function ExplorerPanel() {
     <Fragment>
       {panelContent}
       <SeerFloatingActionButton
-        visible={!isVisible || !isSeerDrawerOpen}
+        visible={!isVisible && !isSeerDrawerOpen}
         onClick={openExplorerPanel}
       />
     </Fragment>,
