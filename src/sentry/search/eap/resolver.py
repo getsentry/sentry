@@ -39,6 +39,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.group import Group, parse_short_id
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
@@ -63,7 +64,23 @@ from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
+from sentry.search.events.datasets.discover import InvalidIssueSearchQuery
+from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+
+
+def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
+    """Collect non-empty issue filter values from a parsed search tree (including OR/AND)."""
+    out: set[str] = set()
+    for term in terms:
+        if isinstance(term, event_search.SearchFilter):
+            if term.key.name == "issue":
+                for v in to_list(term.value.value):
+                    if v:
+                        out.add(str(v))
+        elif isinstance(term, event_search.ParenExpression):
+            out |= collect_issue_short_ids_from_parsed_terms(term.children)
+    return out
 
 
 @dataclass(frozen=True)
@@ -201,6 +218,38 @@ class SearchResolver:
             )
         )
 
+    def _prime_issue_short_id_cache(
+        self,
+        parsed_terms: Sequence[object],
+    ) -> None:
+        """
+        One bulk Group lookup for every issue short id in the query, then store maps on params.
+        """
+        if "issue" not in self.definitions.filter_aliases or self.params.organization_id is None:
+            return
+
+        collected = collect_issue_short_ids_from_parsed_terms(parsed_terms)
+        if not collected:
+            return
+        try:
+            groups = list(
+                Group.objects.by_qualified_short_id_bulk(
+                    organization_id=self.params.organization_id, short_ids_raw=list(collected)
+                )
+            )
+        except Group.DoesNotExist:
+            raise InvalidIssueSearchQuery(sorted(collected))
+
+        idx = {(g.project.slug.lower(), g.short_id): g for g in groups}
+
+        raw_to_gid: dict[str, int] = {}
+        for raw in collected:
+            parsed = parse_short_id(raw)
+            if parsed is None or (parsed.project_slug, parsed.short_id) not in idx:
+                continue
+            raw_to_gid[raw] = idx.get((parsed.project_slug, parsed.short_id)).id
+        self.params.issue_qualified_short_id_to_group_id = raw_to_gid
+
     def __resolve_query(
         self, querystring: str | None
     ) -> tuple[
@@ -226,6 +275,9 @@ class SearchResolver:
                 raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
             else:
                 raise InvalidSearchQuery(f"Parse error for: {querystring}")
+
+        # If occurrences dataset, cache group_id to issues mapping.
+        self._prime_issue_short_id_cache(parsed_terms)
 
         if any(
             isinstance(term, event_search.ParenExpression)

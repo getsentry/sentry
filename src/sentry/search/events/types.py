@@ -104,6 +104,8 @@ class SnubaParams:
     sampling_mode: SAMPLING_MODES | None = None
     debug: str | bool = False
     case_insensitive: bool = False
+    issue_qualified_short_id_to_group_id: dict[str, int] | None = None
+    group_id_to_issue_qualified_short_id: dict[int, str] | None = None
 
     def __post_init__(self) -> None:
         if self.start:

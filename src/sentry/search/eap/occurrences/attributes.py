@@ -295,19 +295,24 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
 def issue_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     if params.project_ids is None or len(params.project_ids) == 0:
         raise ValueError("Project IDs required for Issue")
-    groups = (
-        Group.objects.filter(project_id__in=params.project_ids)
-        .select_related("project")
-        .order_by("-last_seen")[:ISSUE_VIRTUAL_COLUMN_CONTEXT_MAX_GROUPS]
-    )
-    return VirtualColumnContext(
-        from_column_name="group_id",
-        to_column_name="issue",
-        value_map={
+    value_map = params.group_id_to_issue_qualified_short_id or {}
+    if not value_map:
+        groups = (
+            Group.objects.filter(project_id__in=params.project_ids)
+            .select_related("project")
+            .order_by("-last_seen")[:ISSUE_VIRTUAL_COLUMN_CONTEXT_MAX_GROUPS]
+        )
+        value_map = {
             str(group.id): group.qualified_short_id
             for group in groups
             if group.qualified_short_id is not None
-        },
+        }
+        params.group_id_to_issue_qualified_short_id = value_map
+
+    return VirtualColumnContext(
+        from_column_name="group_id",
+        to_column_name="issue",
+        value_map=value_map,
     )
 
 
