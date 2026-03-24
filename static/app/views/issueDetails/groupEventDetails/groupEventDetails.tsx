@@ -25,7 +25,6 @@ import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {GroupEventDetailsContent} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {GroupEventHeader} from 'sentry/views/issueDetails/groupEventHeader';
-import {GroupSidebar} from 'sentry/views/issueDetails/groupSidebar';
 import {ReprocessingProgress} from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -217,17 +216,6 @@ function GroupEventDetails() {
                 )}
                 {renderContent()}
               </MainLayoutComponent>
-              {hasStreamlinedUI ? null : (
-                <StyledLayoutSide>
-                  <GroupSidebar
-                    organization={organization}
-                    project={project}
-                    group={group}
-                    event={eventWithMeta}
-                    environments={environments}
-                  />
-                </StyledLayoutSide>
-              )}
             </Fragment>
           )}
         </LayoutBody>
@@ -258,19 +246,6 @@ const StyledLayoutMain = styled(Layout.Main)`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-right: 1px solid ${p => p.theme.tokens.border.primary};
     padding-right: 0;
-  }
-`;
-
-const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl}
-    ${p => p.theme.space['2xl']};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    padding-right: ${p => p.theme.space['3xl']};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    padding-left: 0;
   }
 `;
 

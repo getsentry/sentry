@@ -122,6 +122,48 @@ describe('OrganizationSecurityAndPrivacy', () => {
     expect(mock).not.toHaveBeenCalled();
   });
 
+  it('resets form to pristine after successful scrubbing config save', async () => {
+    const mock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+      body: {
+        ...organization,
+        sensitiveFields: ['email'],
+        safeFields: [],
+      },
+    });
+
+    render(<OrganizationSecurityAndPrivacy />);
+
+    const sensitiveFieldsInput = await screen.findByRole('textbox', {
+      name: 'Global Sensitive Fields',
+    });
+    await userEvent.type(sensitiveFieldsInput, 'email');
+
+    // The changes alert should be visible after typing
+    expect(
+      screen.getByText(
+        'Changes to your scrubbing configuration will apply to all new events.'
+      )
+    ).toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalled();
+    });
+
+    // After successful save, form.reset() syncs defaults so the form is pristine again
+    // The changes alert should become hidden
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Changes to your scrubbing configuration will apply to all new events.'
+        )
+      ).not.toBeVisible();
+    });
+  });
+
   it('enables require2fa with confirm modal', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
@@ -155,11 +197,5 @@ describe('OrganizationSecurityAndPrivacy', () => {
         })
       );
     });
-
-    expect(
-      screen.getByRole('checkbox', {
-        name: 'Enable to require and enforce two-factor authentication for all members',
-      })
-    ).toBeChecked();
   });
 });

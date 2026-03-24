@@ -7,17 +7,22 @@ import {Text} from '@sentry/scraps/text';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Integration} from 'sentry/types/integrations';
 
 import {useScmRepoSearch} from './useScmRepoSearch';
 import {useScmRepoSelection} from './useScmRepoSelection';
 
-export function ScmRepoSelector() {
-  const {selectedIntegration, selectedRepository, setSelectedRepository} =
-    useOnboardingContext();
+interface ScmRepoSelectorProps {
+  integration: Integration;
+}
+
+export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
+  const {selectedRepository, setSelectedRepository} = useOnboardingContext();
   const {reposByIdentifier, dropdownItems, isFetching, debouncedSearch, setSearch} =
-    useScmRepoSearch(selectedIntegration?.id ?? '', selectedRepository);
+    useScmRepoSearch(integration.id, selectedRepository);
 
   const {busy, handleSelect, handleRemove} = useScmRepoSelection({
+    integration,
     onSelect: setSelectedRepository,
     reposByIdentifier,
   });

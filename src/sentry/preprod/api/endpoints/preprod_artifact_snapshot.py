@@ -6,7 +6,7 @@ from typing import Any
 import jsonschema
 import orjson
 from django.conf import settings
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -387,9 +387,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         has_vcs = commit_comparison is not None
 
         metric_tags = {
-            "temp_org_id": str(project.organization_id),
-            "temp_project_id": str(project.id),
-            "temp_app_id": artifact.app_id or "",
+            "org_id_temp": str(project.organization_id),
+            "project_id_temp": str(project.id),
+            "app_id_temp": artifact.app_id or "",
         }
 
         metrics.distribution(
@@ -443,6 +443,19 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                             "base_sha": base_sha,
                         },
                     )
+
+                    base_metrics = PreprodSnapshotMetrics.objects.filter(
+                        preprod_artifact=base_artifact
+                    ).first()
+                    if base_metrics:
+                        try:
+                            PreprodSnapshotComparison.objects.get_or_create(
+                                head_snapshot_metrics=snapshot_metrics,
+                                base_snapshot_metrics=base_metrics,
+                                defaults={"state": PreprodSnapshotComparison.State.PENDING},
+                            )
+                        except IntegrityError:
+                            pass
 
                     compare_snapshots.apply_async(
                         kwargs={

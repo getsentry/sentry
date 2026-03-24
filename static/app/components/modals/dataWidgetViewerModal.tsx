@@ -28,7 +28,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {CAN_MARK, trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -204,6 +204,29 @@ function DataWidgetViewerModal(props: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!CAN_MARK) {
+      return;
+    }
+    try {
+      const measure = performance.measure(
+        'dashboard.widget.onFullScreenView',
+        'dashboard.widget.fullScreenViewClick'
+      );
+      Sentry.metrics.distribution(
+        'dashboards.widget.onFullScreenView',
+        measure.duration,
+        {
+          unit: 'millisecond',
+        }
+      );
+      performance.clearMarks('dashboard.widget.fullScreenViewClick');
+      performance.clearMeasures('dashboard.widget.onFullScreenView');
+    } catch {
+      // performance.measure throws if the start mark doesn't exist (e.g. direct URL navigation)
+    }
+  }, []);
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);

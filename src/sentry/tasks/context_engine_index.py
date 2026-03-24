@@ -243,7 +243,7 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
 @instrumented_task(
     name="sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
     namespace=seer_tasks,
-    processing_deadline_duration=15 * 60,
+    processing_deadline_duration=30 * 60,
 )
 def schedule_context_engine_indexing_tasks() -> None:
     """
@@ -272,7 +272,11 @@ def schedule_context_engine_indexing_tasks() -> None:
 
     logger.info(
         "Scheduled context engine indexing tasks",
-        extra={"total_org_count": len(allowed_org_ids), "dispatched": dispatched},
+        extra={
+            "orgs": allowed_org_ids[:10],
+            "total_org_count": len(allowed_org_ids),
+            "dispatched": dispatched,
+        },
     )
 
 
