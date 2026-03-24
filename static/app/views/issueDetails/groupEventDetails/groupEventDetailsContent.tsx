@@ -64,7 +64,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Entry, Event, EventTransaction} from 'sentry/types/event';
+import type {Entry, EntryMap, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
@@ -115,8 +115,8 @@ export function EventDetailsContent({
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries = []} = event;
-    return entries.reduce<Partial<Record<EntryType, Entry>>>((entryMap, entry) => {
-      entryMap[entry.type] = entry;
+    return entries.reduce<Partial<EntryMap>>((entryMap, entry) => {
+      (entryMap as Record<string, Entry>)[entry.type] = entry;
       return entryMap;
     }, {});
   }, [event]);
@@ -281,7 +281,7 @@ export function EventDetailsContent({
                   {shouldUseNewStackTrace ? (
                     <IssueStackTrace
                       event={event}
-                      values={eventEntries[EntryType.EXCEPTION].data.values}
+                      values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
                       projectSlug={project.slug}
                       group={group}
                     />

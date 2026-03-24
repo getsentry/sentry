@@ -390,6 +390,11 @@ export type Entry =
   | EntryGeneric
   | EntryResources;
 
+/** Maps each EntryType to its corresponding Entry subtype. */
+export type EntryMap = {
+  [E in Entry as E['type']]: E;
+};
+
 // Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
 
 interface BaseContext {

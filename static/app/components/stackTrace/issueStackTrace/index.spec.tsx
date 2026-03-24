@@ -1,3 +1,4 @@
+import {expectTypeOf} from 'expect-type';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -7,6 +8,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {ExceptionValue} from 'sentry/types/event';
 import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
@@ -380,6 +382,36 @@ describe('IssueStackTrace', () => {
     expect(copiedText).not.toContain('File "raven/');
   });
 
+  it('renders raw view for a single exception', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    expect(await screen.findByText('ValueError')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Raw Stack Trace'}));
+
+    // Exception header should not render in raw view
+    expect(screen.queryByText('ValueError')).not.toBeInTheDocument();
+    // Raw text should be in a pre element
+    expect(screen.getByText(/raven\/base\.py/)).toBeInTheDocument();
+  });
+
   it('renders raw view as flat text for chained exceptions', async () => {
     const {event, stacktrace} = makeStackTraceData();
     render(
@@ -627,6 +659,20 @@ describe('IssueStackTrace', () => {
 
       expect(await screen.findByText('ExceptionGroup')).toBeInTheDocument();
       expect(screen.getAllByTestId('related-exceptions-tree')).toHaveLength(2);
+    });
+  });
+
+  describe('type safety', () => {
+    type Props = Parameters<typeof IssueStackTrace>[0];
+
+    it('values prop is ExceptionValue[] (not any)', () => {
+      type ValuesType = Extract<Props, {values: unknown}>['values'];
+      expectTypeOf<ValuesType>().toEqualTypeOf<ExceptionValue[]>();
+    });
+
+    it('stacktrace prop is StacktraceType (not any)', () => {
+      type StacktracePropType = Extract<Props, {stacktrace: unknown}>['stacktrace'];
+      expectTypeOf<StacktracePropType>().toEqualTypeOf<StacktraceType>();
     });
   });
 });

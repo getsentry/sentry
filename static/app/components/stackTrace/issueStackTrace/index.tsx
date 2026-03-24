@@ -67,12 +67,6 @@ interface StandaloneStackTraceProps extends IssueStackTraceBaseProps {
 
 type IssueStackTraceProps = ExceptionStackTraceProps | StandaloneStackTraceProps;
 
-function isStandaloneProps(
-  props: Pick<IssueStackTraceProps, 'values' | 'stacktrace'>
-): props is Pick<StandaloneStackTraceProps, 'values' | 'stacktrace'> {
-  return 'stacktrace' in props && !!props.stacktrace;
-}
-
 interface IndexedExceptionValue extends ExceptionValue {
   exceptionIndex: number;
   stacktrace: StacktraceType;
@@ -101,36 +95,34 @@ function IssueStackTraceLineCoverageLegend() {
   );
 }
 
-export function IssueStackTrace({
-  event,
-  group,
-  projectSlug,
-  ...dataProps
-}: IssueStackTraceProps) {
+export function IssueStackTrace(props: IssueStackTraceProps) {
+  const {event, group, projectSlug} = props;
   const eventHasThreads = event.entries?.some(entry => entry.type === EntryType.THREADS);
   if (eventHasThreads) {
     return null;
   }
 
-  const isStandalone = isStandaloneProps(dataProps);
+  const isStandalone = 'stacktrace' in props && !!props.stacktrace;
 
-  if (isStandalone && !(dataProps.stacktrace.frames ?? []).length) {
-    return null;
+  let values: ExceptionValue[];
+  if (isStandalone) {
+    if (!(props.stacktrace.frames ?? []).length) {
+      return null;
+    }
+    values = [
+      {
+        stacktrace: props.stacktrace,
+        type: '',
+        value: null,
+        module: null,
+        mechanism: null,
+        threadId: null,
+        rawStacktrace: null,
+      },
+    ];
+  } else {
+    values = props.values;
   }
-
-  const values = isStandalone
-    ? [
-        {
-          stacktrace: dataProps.stacktrace,
-          type: '',
-          value: null,
-          module: null,
-          mechanism: null,
-          threadId: null,
-          rawStacktrace: null,
-        },
-      ]
-    : dataProps.values;
 
   const hasMinifiedStacktrace =
     !isStandalone && values.some(v => v.rawStacktrace !== null);
@@ -208,6 +200,36 @@ function IssueStackTraceContent({
     </Flex>
   );
 
+  if (view === 'raw') {
+    return (
+      <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
+        <Flex direction="column" gap="lg">
+          <Panel>
+            <RawStackTraceText>
+              {exceptions
+                .map(exc =>
+                  rawStacktraceContent({
+                    data: isMinified
+                      ? (exc.rawStacktrace ?? exc.stacktrace)
+                      : exc.stacktrace,
+                    platform: event.platform,
+                    exception: exc,
+                    isMinified,
+                  })
+                )
+                .join('\n\n')}
+            </RawStackTraceText>
+          </Panel>
+          <IssueStackTraceSuspectCommits
+            event={event}
+            group={group}
+            projectSlug={projectSlug}
+          />
+        </Flex>
+      </InterimSection>
+    );
+  }
+
   if (exceptions.length === 1) {
     const exc = exceptions[0]!;
     const {type, module, value} = resolveExceptionFields(exc, isMinified);
@@ -257,104 +279,84 @@ function IssueStackTraceContent({
   return (
     <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
       <Flex direction="column" gap="lg">
-        {view === 'raw' ? (
-          <Panel>
-            <RawStackTraceText>
-              {exceptions
-                .map(exc =>
-                  rawStacktraceContent({
-                    data: isMinified
-                      ? (exc.rawStacktrace ?? exc.stacktrace)
-                      : exc.stacktrace,
-                    platform: event.platform,
-                    exception: exc,
-                    isMinified,
-                  })
-                )
-                .join('\n\n')}
-            </RawStackTraceText>
-          </Panel>
-        ) : (
-          <Text variant="muted">
-            {tn(
-              'There is %s chained exception in this event.',
-              'There are %s chained exceptions in this event.',
-              exceptions.length
-            )}
-          </Text>
-        )}
-        {view !== 'raw' && <Separator orientation="horizontal" border="primary" />}
-        {view !== 'raw' &&
-          exceptions.map((exc, idx) => {
-            if (
-              exc.mechanism?.parent_id !== undefined &&
-              hiddenExceptions[exc.mechanism.parent_id]
-            ) {
-              return null;
-            }
+        <Text variant="muted">
+          {tn(
+            'There is %s chained exception in this event.',
+            'There are %s chained exceptions in this event.',
+            exceptions.length
+          )}
+        </Text>
+        <Separator orientation="horizontal" border="primary" />
+        {exceptions.map((exc, idx) => {
+          if (
+            exc.mechanism?.parent_id !== undefined &&
+            hiddenExceptions[exc.mechanism.parent_id]
+          ) {
+            return null;
+          }
 
-            const exceptionId = exc.mechanism?.exception_id;
-            const {
-              type: excType,
-              module: excModule,
-              value: excValue,
-            } = resolveExceptionFields(exc, isMinified);
+          const exceptionId = exc.mechanism?.exception_id;
+          const {
+            type: excType,
+            module: excModule,
+            value: excValue,
+          } = resolveExceptionFields(exc, isMinified);
 
-            return (
-              <Disclosure
-                key={exceptionId ?? idx}
-                defaultExpanded={idx === firstVisibleExceptionIndex}
-                id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
+          return (
+            <Disclosure
+              key={exceptionId ?? idx}
+              defaultExpanded={idx === firstVisibleExceptionIndex}
+              id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
+            >
+              <Disclosure.Title
+                trailingItems={
+                  <ToggleRelatedExceptionsButton
+                    exception={exc}
+                    hiddenExceptions={hiddenExceptions}
+                    toggleRelatedExceptions={toggleRelatedExceptions}
+                    values={values}
+                  />
+                }
               >
-                <Disclosure.Title
-                  trailingItems={
-                    <ToggleRelatedExceptionsButton
-                      exception={exc}
-                      hiddenExceptions={hiddenExceptions}
-                      toggleRelatedExceptions={toggleRelatedExceptions}
-                      values={values}
+                <ExceptionHeader type={excType} module={excModule} />
+              </Disclosure.Title>
+              <Disclosure.Content>
+                <Flex direction="column" gap="sm">
+                  <ExceptionDescription
+                    value={excValue}
+                    mechanism={exc.mechanism}
+                    meta={exceptionValuesMeta?.[exc.exceptionIndex]}
+                    gap="lg"
+                  />
+                  <RelatedExceptionsTree
+                    exception={exc}
+                    allExceptions={values}
+                    newestFirst={isNewestFirst}
+                    onExceptionClick={expandException}
+                  />
+                  {idx === firstVisibleExceptionIndex ? (
+                    <ErrorBoundary customComponent={null}>
+                      <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
+                    </ErrorBoundary>
+                  ) : null}
+                  <StackTraceProvider
+                    exceptionIndex={exc.exceptionIndex}
+                    event={event}
+                    stacktrace={exc.stacktrace}
+                    minifiedStacktrace={exc.rawStacktrace ?? undefined}
+                    meta={exceptionValuesMeta?.[exc.exceptionIndex]?.stacktrace}
+                  >
+                    <StackTraceFrames
+                      frameContextComponent={IssueStackTraceFrameContext}
+                      frameActionsComponent={IssueFrameActions}
                     />
-                  }
-                >
-                  <ExceptionHeader type={excType} module={excModule} />
-                </Disclosure.Title>
-                <Disclosure.Content>
-                  <Flex direction="column" gap="sm">
-                    <ExceptionDescription
-                      value={excValue}
-                      mechanism={exc.mechanism}
-                      meta={exceptionValuesMeta?.[exc.exceptionIndex]}
-                      gap="lg"
-                    />
-                    <RelatedExceptionsTree
-                      exception={exc}
-                      allExceptions={values}
-                      newestFirst={isNewestFirst}
-                      onExceptionClick={expandException}
-                    />
-                    {idx === firstVisibleExceptionIndex ? (
-                      <ErrorBoundary customComponent={null}>
-                        <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
-                      </ErrorBoundary>
-                    ) : null}
-                    <StackTraceProvider
-                      exceptionIndex={exc.exceptionIndex}
-                      event={event}
-                      stacktrace={exc.stacktrace}
-                      minifiedStacktrace={exc.rawStacktrace ?? undefined}
-                      meta={exceptionValuesMeta?.[exc.exceptionIndex]?.stacktrace}
-                    >
-                      <StackTraceFrames
-                        frameContextComponent={IssueStackTraceFrameContext}
-                        frameActionsComponent={IssueFrameActions}
-                      />
-                    </StackTraceProvider>
-                  </Flex>
-                </Disclosure.Content>
-              </Disclosure>
-            );
-          })}
-        {view !== 'raw' && <IssueStackTraceLineCoverageLegend />}
+                  </StackTraceProvider>
+                </Flex>
+              </Disclosure.Content>
+            </Disclosure>
+          );
+        })}
+        <IssueStackTraceLineCoverageLegend />
         <IssueStackTraceSuspectCommits
           event={event}
           group={group}
