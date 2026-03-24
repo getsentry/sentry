@@ -12,6 +12,7 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {PRIMARY_HEADER_HEIGHT} from './constants';
 
@@ -89,7 +90,7 @@ export function TopBar() {
         {/* @TODO(JonasBadalic): Implement breadcrumbs here */}
         <Flex />
         <Flex align="center" gap="md">
-          {organization?.features?.includes('seer-explorer') ? (
+          {organization && isSeerExplorerEnabled(organization) ? (
             <Button icon={<IconSeer />} onClick={openExplorerPanel}>
               {t('Ask Seer')}
             </Button>
