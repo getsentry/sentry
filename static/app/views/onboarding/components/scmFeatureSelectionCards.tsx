@@ -13,16 +13,14 @@ import {
   IconTimer,
   IconWarning,
 } from 'sentry/icons';
-import type {IconGraphProps} from 'sentry/icons/iconGraph';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
 import {ScmFeatureCard} from './scmFeatureCard';
 
 type FeatureMeta = {
   description: string;
-  // IconGraphProps extends SVGIconProps with a narrower `type` union,
-  // so we use it as the shared type since all icons accept the superset.
-  icon: ComponentType<IconGraphProps>;
+  icon: ComponentType<SVGIconProps>;
   label: string;
   alwaysEnabled?: boolean;
 };

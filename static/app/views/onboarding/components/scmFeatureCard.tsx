@@ -5,13 +5,13 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {IconGraphProps} from 'sentry/icons/iconGraph';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import {ScmCardButton} from './scmCardButton';
 
 interface ScmFeatureCardProps {
   description: string;
-  icon: ComponentType<IconGraphProps>;
+  icon: ComponentType<SVGIconProps>;
   isSelected: boolean;
   label: string;
   onClick: () => void;
