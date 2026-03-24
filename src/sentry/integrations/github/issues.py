@@ -186,7 +186,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             labels = self.get_repo_labels(owner, repo)
             try:
                 types = self.get_org_types(owner)
-            except except (IntegrationResourceNotFoundError, IntegrationConfigurationError, IntegrationError):
+            except IntegrationResourceNotFoundError:
                 types = []
 
         autocomplete_url = reverse(
