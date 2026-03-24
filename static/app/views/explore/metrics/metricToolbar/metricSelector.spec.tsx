@@ -151,6 +151,24 @@ describe('MetricSelector', () => {
       expect(onChange).toHaveBeenCalledWith(expect.objectContaining({name: 'foo'}));
     });
 
+    it('does not restore focus to trigger after pointer selection', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'tracemetrics-ui-refresh'],
+        },
+      });
+
+      const trigger = screen.getByRole('button', {name: 'bar'});
+      await userEvent.click(trigger);
+      await userEvent.click(await screen.findByRole('option', {name: 'foo'}));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+      expect(trigger).not.toHaveFocus();
+    });
+
     describe('empty state', () => {
       beforeEach(() => {
         setupEventsMock(
