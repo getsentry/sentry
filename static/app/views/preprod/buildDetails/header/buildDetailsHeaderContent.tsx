@@ -5,7 +5,6 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DropdownButton} from 'sentry/components/dropdownButton';
@@ -196,16 +195,14 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           >
             {t('Compare Build')}
           </Button>
-          <Feature features="organizations:preprod-frontend-routes">
-            {project && (
-              <LinkButton
-                size="sm"
-                icon={<IconSettings />}
-                aria-label={t('Settings')}
-                to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
-              />
-            )}
-          </Feature>
+          {project && (
+            <LinkButton
+              size="sm"
+              icon={<IconSettings />}
+              aria-label={t('Settings')}
+              to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
+            />
+          )}
           <ConfirmDelete
             message={t(
               'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'

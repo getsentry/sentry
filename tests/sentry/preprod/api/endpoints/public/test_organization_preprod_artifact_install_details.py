@@ -27,25 +27,12 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
             build_number=42,
         )
 
-        self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
-        self.feature_context.__enter__()
-
-    def tearDown(self):
-        self.feature_context.__exit__(None, None, None)
-        super().tearDown()
-
     def _get_url(self, artifact_id=None):
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
             self.endpoint,
             args=[self.organization.slug, artifact_id],
         )
-
-    def test_feature_flag_disabled(self):
-        with self.feature({"organizations:preprod-frontend-routes": False}):
-            response = self.client.get(self._get_url())
-            assert response.status_code == 403
-            assert response.json()["detail"] == "Feature not enabled"
 
     def test_artifact_not_found(self):
         response = self.client.get(self._get_url(artifact_id=999999))

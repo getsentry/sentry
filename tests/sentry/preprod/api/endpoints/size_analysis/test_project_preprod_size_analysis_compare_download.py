@@ -1,7 +1,6 @@
 from datetime import timedelta
 from unittest.mock import patch
 
-from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -13,7 +12,6 @@ from sentry.preprod.models import (
 from sentry.testutils.cases import TestCase
 
 
-@override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
 class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

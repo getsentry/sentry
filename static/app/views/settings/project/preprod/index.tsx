@@ -28,48 +28,44 @@ const DISTRIBUTION_ENABLED_QUERY_WRITE_KEY = 'preprodDistributionEnabledQuery';
 export default function PreprodSettings() {
   return (
     <Fragment>
-      <Feature features="organizations:preprod-frontend-routes" renderDisabled>
-        <SentryDocumentTitle title={t('Mobile Builds')} />
-        <SettingsPageHeader
-          title={t('Mobile Builds')}
-          action={
-            <Grid flow="column" align="center" gap="lg">
-              <FeedbackButton />
-            </Grid>
-          }
+      <SentryDocumentTitle title={t('Mobile Builds')} />
+      <SettingsPageHeader
+        title={t('Mobile Builds')}
+        action={
+          <Grid flow="column" align="center" gap="lg">
+            <FeedbackButton />
+          </Grid>
+        }
+      />
+      <TextBlock>
+        {t('Configure status checks and thresholds for your mobile build size analysis.')}
+      </TextBlock>
+      <PreprodQuotaAlert />
+      <Stack gap="lg">
+        <FeatureFilter
+          enabledReadKey={SIZE_ENABLED_READ_KEY}
+          enabledWriteKey={SIZE_ENABLED_WRITE_KEY}
+          queryReadKey={SIZE_ENABLED_QUERY_READ_KEY}
+          queryWriteKey={SIZE_ENABLED_QUERY_WRITE_KEY}
+          title={t('Size Analysis')}
+          successMessage={t('Size analysis settings updated')}
+          docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
         />
-        <TextBlock>
-          {t(
-            'Configure status checks and thresholds for your mobile build size analysis.'
-          )}
-        </TextBlock>
-        <PreprodQuotaAlert />
-        <Stack gap="lg">
-          <FeatureFilter
-            enabledReadKey={SIZE_ENABLED_READ_KEY}
-            enabledWriteKey={SIZE_ENABLED_WRITE_KEY}
-            queryReadKey={SIZE_ENABLED_QUERY_READ_KEY}
-            queryWriteKey={SIZE_ENABLED_QUERY_WRITE_KEY}
-            title={t('Size Analysis')}
-            successMessage={t('Size analysis settings updated')}
-            docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
-          />
-          <StatusCheckRules />
-          <FeatureFilter
-            enabledReadKey={DISTRIBUTION_ENABLED_READ_KEY}
-            enabledWriteKey={DISTRIBUTION_ENABLED_WRITE_KEY}
-            queryReadKey={DISTRIBUTION_ENABLED_QUERY_READ_KEY}
-            queryWriteKey={DISTRIBUTION_ENABLED_QUERY_WRITE_KEY}
-            title={t('Build Distribution')}
-            successMessage={t('Build distribution settings updated')}
-            docsUrl="https://docs.sentry.io/product/build-distribution/"
-            display={PreprodBuildsDisplay.DISTRIBUTION}
-          />
-          <Feature features="organizations:preprod-build-distribution-pr-comments">
-            <PrCommentsToggle />
-          </Feature>
-        </Stack>
-      </Feature>
+        <StatusCheckRules />
+        <FeatureFilter
+          enabledReadKey={DISTRIBUTION_ENABLED_READ_KEY}
+          enabledWriteKey={DISTRIBUTION_ENABLED_WRITE_KEY}
+          queryReadKey={DISTRIBUTION_ENABLED_QUERY_READ_KEY}
+          queryWriteKey={DISTRIBUTION_ENABLED_QUERY_WRITE_KEY}
+          title={t('Build Distribution')}
+          successMessage={t('Build distribution settings updated')}
+          docsUrl="https://docs.sentry.io/product/build-distribution/"
+          display={PreprodBuildsDisplay.DISTRIBUTION}
+        />
+        <Feature features="organizations:preprod-build-distribution-pr-comments">
+          <PrCommentsToggle />
+        </Feature>
+      </Stack>
     </Fragment>
   );
 }

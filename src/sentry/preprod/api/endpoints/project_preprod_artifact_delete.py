@@ -5,7 +5,7 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -33,11 +33,6 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
         head_artifact: PreprodArtifact,
     ) -> Response:
         """Delete a preprod artifact and all associated data"""
-
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
-            return Response({"error": "Feature not enabled"}, status=403)
 
         analytics.record(
             PreprodArtifactApiDeleteEvent(
