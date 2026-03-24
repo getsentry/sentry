@@ -190,6 +190,15 @@ def test_rate_limited_action(action: Callable[..., Any], kwargs: dict[str, Any])
         action(scm, **kwargs)
 
 
+def test_scm_is_instance_of_scm():
+    # This weird test is justified by the creation of the dynamic Facade subclass in SourceCodeManager.__new__.
+    # In a previous version, it was returning a subclass of Facade, but not of SourceCodeManager.
+    provider = BaseTestProvider()
+    scm = SourceCodeManager(provider)
+    assert isinstance(scm, SourceCodeManager)
+    assert scm.provider is provider
+
+
 def test_repository_not_found():
     with raises_with_code(SCMCodedError, "repository_not_found"):
         SourceCodeManager.make_from_repository_id(
