@@ -2423,7 +2423,7 @@ dev = [
     { name = "responses", specifier = ">=0.23.1" },
     { name = "ruff", specifier = ">=0.14.0" },
     { name = "selenium", specifier = ">=4.16.0" },
-    { name = "sentry-cli", specifier = ">=3.1.0" },
+    { name = "sentry-cli", specifier = ">=3.3.0" },
     { name = "sentry-covdefaults-disable-branch-coverage", specifier = ">=1.0.2" },
     { name = "sentry-devenv", specifier = ">=1.28.0" },
     { name = "time-machine", specifier = ">=2.16.0" },
@@ -2460,12 +2460,12 @@ wheels = [
 
 [[package]]
 name = "sentry-cli"
-version = "3.1.0"
+version = "3.3.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-3.1.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:1d8764eecf9ea7b6b5362bb81a297d7419de0618cc0305061a3ac80ab0df6e48" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-3.1.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_2_aarch64.whl", hash = "sha256:7f82d14ad5774e7586c2ec6345f02464c501c3ca04136ecfea73ca6d1e38f61f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-3.1.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.musllinux_1_2_x86_64.whl", hash = "sha256:8dbd75494ed846f327eadac437143a1d5216a7f86668859d8e5b8157ae06f5ee" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-3.3.3-py3-none-macosx_11_0_arm64.whl", hash = "sha256:37d235bf0b2bb5ce2526928d6584441879aa0bcf023e0bc4f43a52c043e996d8" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-3.3.3-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_2_aarch64.whl", hash = "sha256:9ba4b3199bcfefe40f9e9e7e6ee42f7ecd7b1702af743b2263a78fe8f363bbfd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-3.3.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.musllinux_1_2_x86_64.whl", hash = "sha256:49f1d757778db87c40abb0d0b692938019c13a6d67e14976bd87b66f4ea9820b" },
 ]
 
 [[package]]
