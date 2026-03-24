@@ -197,7 +197,8 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_manage.change_sort': 'Dashboards Manager: Sort By Changed',
   'dashboards_manage.change_view_type': 'Dashboards Manager: View Type Toggled',
   'dashboards_manage.create.start': 'Dashboards Manager: Dashboard Create Started',
-  'dashboards_manage.generate.start': 'Dashboards Manager: Dashboard Generate Started',
+  'dashboards_manage.generate.start':
+    'Dashboards Manager: Dashboard Seer Generate Started',
   'dashboards_manage.delete': 'Dashboards Manager: Dashboard Deleted',
   'dashboards_manage.duplicate': 'Dashboards Manager: Dashboard Duplicated',
   'dashboards_manage.paginate': 'Dashboards Manager: Paginate',
