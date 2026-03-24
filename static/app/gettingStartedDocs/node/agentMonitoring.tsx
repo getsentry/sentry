@@ -428,20 +428,20 @@ const text = response.content;`,
         {
           label: 'JavaScript',
           language: 'javascript',
-          code: `const { createAgent } = require("langchain");
+          code: `const { createReactAgent } = require("@langchain/langgraph/prebuilt");
+const { ChatOpenAI } = require("@langchain/openai");
+
+const model = new ChatOpenAI({ modelName: "gpt-5.4" });
 
 // Setting the agent name helps Sentry identify and group agent activity
-const agent = createAgent({
-  model: "openai:gpt-5.4",
+const agent = createReactAgent({
+  llm: model,
   tools: [],
   name: "joke_agent",
 });
 
 const result = await agent.invoke({
-  messages: [
-    { role: "system", content: "You are a helpful assistant." },
-    { role: "user", content: "Tell me a joke" },
-  ],
+  messages: [{ role: "user", content: "Tell me a joke" }],
 });
 
 const messages = result.messages;

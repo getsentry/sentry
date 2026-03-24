@@ -446,7 +446,7 @@ print(result)
         {
           type: 'text',
           text: t(
-            'Verify that agent monitoring is working correctly by creating a LangGraph workflow:'
+            'Verify that agent monitoring is working correctly by creating a LangGraph agent:'
           ),
         },
         {
@@ -454,7 +454,7 @@ print(result)
           language: 'python',
           code: `
 import random
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
 
@@ -466,7 +466,7 @@ def roll_die(sides: int = 6) -> str:
 model = init_chat_model("gpt-5.4", model_provider="openai")
 
 # Setting the agent name helps Sentry identify and group agent activity
-agent = create_agent(model, [roll_die], name="dice_agent")
+agent = create_react_agent(model, [roll_die], name="dice_agent")
 
 result = agent.invoke({"messages": [("user", "Please roll a six-sided die.")]})
 print(result)
