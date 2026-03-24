@@ -1,3 +1,5 @@
+import {useCallback} from 'react';
+
 import {formatRootCauseText} from 'sentry/components/events/autofix/autofixRootCause';
 import {formatSolutionText} from 'sentry/components/events/autofix/autofixSolution';
 import {
@@ -12,6 +14,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 
 export function getRootCauseDescription(autofixData: AutofixData) {
@@ -184,14 +187,52 @@ export function hasPullRequest(autofixData: AutofixData | null | undefined): boo
   return Boolean(changesStep?.changes?.some(change => change.pull_request));
 }
 
-const supportedProviders = [
+const BASE_SUPPORTED_PROVIDERS = [
   'github',
   'integrations:github',
   'integrations:github_enterprise',
 ];
-export const isSupportedAutofixProvider = (provider: {id: string; name: string}) => {
-  return supportedProviders.includes(provider.id);
+
+const GITLAB_PROVIDERS = ['gitlab', 'integrations:gitlab'];
+
+export const isSupportedAutofixProvider = (
+  provider: {id: string; name: string},
+  hasGitlabSupport?: boolean
+) => {
+  const providers = hasGitlabSupport
+    ? [...BASE_SUPPORTED_PROVIDERS, ...GITLAB_PROVIDERS]
+    : BASE_SUPPORTED_PROVIDERS;
+  return providers.includes(provider.id);
 };
+
+/**
+ * Hook that checks if the organization has GitLab support enabled for Seer.
+ * GitLab is only supported for seat-based-billing features (code review, seer explorer).
+ * Centralizes the feature flag checks so consumers don't need to know the flag names.
+ */
+export function useHasGitlabSupport(): boolean {
+  const organization = useOrganization();
+  return (
+    organization.features.includes('seer-gitlab-support') &&
+    organization.features.includes('seat-based-seer-enabled')
+  );
+}
+
+/**
+ * Hook that returns a provider-check callback with the GitLab feature flag baked in.
+ * Use this in React components instead of calling isSupportedAutofixProvider directly.
+ */
+export function useIsSeerSupportedProvider(): (provider: {
+  id: string;
+  name: string;
+}) => boolean {
+  const hasGitlabSupport = useHasGitlabSupport();
+  return useCallback(
+    (provider: {id: string; name: string}) =>
+      isSupportedAutofixProvider(provider, hasGitlabSupport),
+    [hasGitlabSupport]
+  );
+}
 
 export interface AutofixProgressDetails {
   overallProgress: number;

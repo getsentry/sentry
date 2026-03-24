@@ -17,6 +17,7 @@ import type {
   ProjectSeerPreferences,
   RepoSettings,
 } from 'sentry/components/events/autofix/types';
+import {useHasGitlabSupport} from 'sentry/components/events/autofix/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -38,6 +39,7 @@ interface ProjectSeerProps {
 export function AutofixRepositories({project}: ProjectSeerProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const hasGitlabSupport = useHasGitlabSupport();
   const {data: repositories, isFetching: isFetchingRepositories} =
     useOrganizationRepositories();
   const {
@@ -247,12 +249,25 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         <Flex align="center" gap="xs">
           {t('Working Repositories')}
           <QuestionTooltip
-            title={tct(
-              'Seer will only be able to see code from and make PRs to the repos that you select here. The [link:GitHub integration] is required for Seer to access these repos.',
-              {
-                link: <Link to={`/settings/${organization.slug}/integrations/github/`} />,
-              }
-            )}
+            title={
+              hasGitlabSupport
+                ? tct(
+                    'Seer will only be able to see code from and make PRs to the repos that you select here. A supported [link:source code integration] is required for Seer to access these repos.',
+                    {
+                      link: <Link to={`/settings/${organization.slug}/integrations/`} />,
+                    }
+                  )
+                : tct(
+                    'Seer will only be able to see code from and make PRs to the repos that you select here. The [link:GitHub integration] is required for Seer to access these repos.',
+                    {
+                      link: (
+                        <Link
+                          to={`/settings/${organization.slug}/integrations/github/`}
+                        />
+                      ),
+                    }
+                  )
+            }
             size="sm"
             isHoverable
           />
@@ -282,6 +297,20 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
                 ),
                 to: `/settings/${organization.slug}/integrations/github_enterprise/`,
               },
+              ...(hasGitlabSupport
+                ? [
+                    {
+                      key: 'gitlab',
+                      label: (
+                        <Flex gap="sm" align="center">
+                          <PluginIcon pluginId="gitlab" size={16} />
+                          <div>{t('GitLab')}</div>
+                        </Flex>
+                      ),
+                      to: `/settings/${organization.slug}/integrations/gitlab/`,
+                    },
+                  ]
+                : []),
             ]}
           />
           <Tooltip

@@ -12,7 +12,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
-import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
+import {
+  isSupportedAutofixProvider,
+  useHasGitlabSupport,
+} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -55,6 +58,8 @@ export function SeerRepoTable() {
     parseAsSort.withDefault({field: 'name', kind: 'asc'})
   );
 
+  const hasGitlabSupport = useHasGitlabSupport();
+
   const queryOptions = organizationRepositoriesInfiniteOptions({
     organization,
     query: {per_page: 100, query: searchTerm, sort},
@@ -68,7 +73,8 @@ export function SeerRepoTable() {
       )
         .filter(
           repository =>
-            repository.externalId && isSupportedAutofixProvider(repository.provider)
+            repository.externalId &&
+            isSupportedAutofixProvider(repository.provider, hasGitlabSupport)
         )
         .sort((a, b) => {
           if (sort.field === 'name') {

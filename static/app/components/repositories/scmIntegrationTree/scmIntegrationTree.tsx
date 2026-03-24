@@ -8,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, hideRepository} from 'sentry/actionCreators/integrations';
+import {useHasGitlabSupport} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -105,6 +106,8 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     });
   }, []);
 
+  const hasGitlabSupport = useHasGitlabSupport();
+
   // Flatten the tree into a list based on current expansion state
   const flatNodes = useMemo<TreeNode[]>(
     () =>
@@ -121,6 +124,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
         search,
         repoFilter,
         providerFilter,
+        hasGitlabSupport,
       }),
     [
       scmProviders,
@@ -135,6 +139,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
       search,
       repoFilter,
       providerFilter,
+      hasGitlabSupport,
     ]
   );
 
