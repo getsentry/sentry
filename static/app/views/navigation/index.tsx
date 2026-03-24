@@ -25,6 +25,7 @@ import {
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {MobileSecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
@@ -56,11 +57,9 @@ function UserAndOrganizationNavigation() {
   return (
     <NavigationLayout>
       {layout === 'mobile' ? (
-        hasPageFrame ? (
-          <MobilePageFrameNavigation />
-        ) : (
-          <MobileNavigation />
-        )
+        <MobileSecondaryNavigationContextProvider>
+          {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}
+        </MobileSecondaryNavigationContextProvider>
       ) : (
         <DesktopNavigation />
       )}

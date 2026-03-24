@@ -67,3 +67,26 @@ export function SecondaryNavigationContextProvider(
     </SecondaryNavigationContext.Provider>
   );
 }
+
+/**
+ * Mobile-only secondary navigation context provider. Unlike the desktop
+ * provider, state is stored entirely in memory (no localStorage) and only
+ * supports 'expanded' | 'collapsed' — mobile has no hover-based 'peek' state.
+ *
+ * Rendering the mobile navigation tree inside this provider ensures mobile
+ * open/close interactions never bleed into the desktop navigation's persisted
+ * collapsed preference.
+ */
+export function MobileSecondaryNavigationContextProvider(
+  props: SecondaryNavigationContextProviderProps
+) {
+  const [view, setView] = useState<'expanded' | 'collapsed'>('expanded');
+
+  const value = useMemo(() => ({view, setView}), [view]);
+
+  return (
+    <SecondaryNavigationContext.Provider value={value}>
+      {props.children}
+    </SecondaryNavigationContext.Provider>
+  );
+}
