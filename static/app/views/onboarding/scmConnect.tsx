@@ -76,25 +76,27 @@ export function ScmConnect({onComplete}: StepProps) {
   }
 
   return (
-    <Flex direction="column" align="center" gap="xl" flexGrow={1}>
+    <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
       <Stack align="center" gap="md">
         <Flex align="center" gap="lg">
-          <Text variant="muted" size="lg">
+          <Text variant="muted" size="lg" bold>
             {t('Step 1 of 3')}
           </Text>
           <Tag variant="muted">{t('Optional')}</Tag>
         </Flex>
-        <Heading as="h2" size="3xl">
-          {t('Connect a repository')}
-        </Heading>
-        <Text variant="muted" size="lg">
-          {t('Link your source control for enhanced debugging features')}
-        </Text>
+        <Stack align="center" gap="sm">
+          <Heading as="h2" size="3xl">
+            {t('Connect a repository')}
+          </Heading>
+          <Text variant="muted" size="lg" bold>
+            {t('Link your source control for enhanced debugging features')}
+          </Text>
+        </Stack>
       </Stack>
 
       <Stack gap="lg" width="100%" maxWidth="506px">
         {effectiveIntegration ? (
-          <Stack gap="lg">
+          <Stack gap="xl">
             <Flex align="center" justify="between">
               <Tag variant="success" icon={<IconCheckmark />}>
                 {t(
@@ -110,14 +112,21 @@ export function ScmConnect({onComplete}: StepProps) {
             {selectedRepository && <ScmBenefitsCard />}
           </Stack>
         ) : (
-          <Stack gap="lg">
+          <Stack gap="2xl">
             <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
             <ScmBenefitsCard showTitle />
           </Stack>
         )}
       </Stack>
 
-      <Flex gap="lg" align="center">
+      <Flex
+        gap="lg"
+        align="center"
+        justify="end"
+        width="100%"
+        maxWidth="506px"
+        paddingTop="3xl"
+      >
         {!selectedRepository && (
           <Button
             analyticsEventKey="onboarding.scm_connect_skip_clicked"

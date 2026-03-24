@@ -12,31 +12,32 @@ interface ScmProviderPillsProps {
 
 export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) {
   return (
-    <Flex gap="lg" wrap="wrap" justify="center">
+    <Flex gap="lg">
       {providers.map(provider => (
-        <IntegrationContext
-          key={provider.key}
-          value={{
-            provider,
-            type: 'first_party',
-            installStatus: 'Not Installed',
-            analyticsParams: {
-              view: 'onboarding',
-              already_installed: false,
-            },
-          }}
-        >
-          <IntegrationButton
-            userHasAccess
-            onAddIntegration={onInstall}
-            onExternalClick={() => {}}
-            buttonProps={{
-              size: 'sm',
-              icon: getIntegrationIcon(provider.key, 'sm'),
-              buttonText: provider.name,
+        <Flex key={provider.key} flex={1}>
+          <IntegrationContext
+            value={{
+              provider,
+              type: 'first_party',
+              installStatus: 'Not Installed',
+              analyticsParams: {
+                view: 'onboarding',
+                already_installed: false,
+              },
             }}
-          />
-        </IntegrationContext>
+          >
+            <IntegrationButton
+              userHasAccess
+              onAddIntegration={onInstall}
+              onExternalClick={() => {}}
+              buttonProps={{
+                icon: getIntegrationIcon(provider.key, 'sm'),
+                buttonText: provider.name,
+                style: {width: '100%'},
+              }}
+            />
+          </IntegrationContext>
+        </Flex>
       ))}
     </Flex>
   );
