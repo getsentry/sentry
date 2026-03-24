@@ -4,7 +4,10 @@ import type {ContentVariant, IconSize} from 'sentry/utils/theme';
 
 import {useIconDefaults} from './useIconDefaults';
 
-export interface SVGIconProps extends Omit<React.SVGAttributes<SVGSVGElement>, 'color'> {
+export interface SVGIconProps extends Omit<
+  React.SVGAttributes<SVGSVGElement>,
+  'color' | 'type'
+> {
   /**
    * DO NOT USE THIS! Please use the `size` prop
    *
