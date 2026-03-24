@@ -246,12 +246,12 @@ function IssueStackTraceContent({
                 mechanism={exc.mechanism}
                 meta={excMeta}
               />
+              <IssueStackTraceLineCoverageLegend />
             </Flex>
           )}
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
           </ErrorBoundary>
-          <IssueStackTraceLineCoverageLegend />
           <StackTraceProvider
             exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
             event={event}
