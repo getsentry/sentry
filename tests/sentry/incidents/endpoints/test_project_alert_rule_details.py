@@ -11,6 +11,7 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -107,15 +108,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         )
 
 
+@with_feature(["organizations:incidents", "organizations:workflow-engine-rule-serializers"])
 class AlertRuleDetailsGetEndpointWorkflowEngineTest(AlertRuleDetailsBase):
     def test_dual_written_resolves_detector(self) -> None:
         _, _, _, detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        with self.feature(
-            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
-        ):
-            resp = self.get_success_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id
-            )
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, self.alert_rule.id
+        )
         assert resp.data["id"] == str(self.alert_rule.id)
         assert resp.data["name"] == self.alert_rule.name
 
@@ -125,20 +124,12 @@ class AlertRuleDetailsGetEndpointWorkflowEngineTest(AlertRuleDetailsBase):
         _, _, _, detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
         AlertRuleDetector.objects.filter(detector=detector).delete()
         fake_id = get_fake_id_from_object_id(detector.id)
-        with self.feature(
-            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
-        ):
-            resp = self.get_success_response(self.organization.slug, self.project.slug, fake_id)
+        resp = self.get_success_response(self.organization.slug, self.project.slug, fake_id)
         assert resp.data["name"] == detector.name
 
     def test_single_written_fake_id_not_found_returns_404(self) -> None:
         fake_id = get_fake_id_from_object_id(999999999)
-        with self.feature(
-            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
-        ):
-            self.get_error_response(
-                self.organization.slug, self.project.slug, fake_id, status_code=404
-            )
+        self.get_error_response(self.organization.slug, self.project.slug, fake_id, status_code=404)
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
