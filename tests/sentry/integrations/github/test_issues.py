@@ -87,6 +87,12 @@ class GitHubIssueBasicAllSiloTest(TestCase):
             ],
         )
 
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/getsentry/issue-types",
+            json=[{"name": "bug"}, {"name": "task"}],
+        )
+
         install = self.install
         config = install.get_create_issue_config(None, self.user, params={})
         [repo_field, assignee_field, label_field] = config
