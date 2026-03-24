@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {explodeFieldString} from 'sentry/utils/discover/fields';
@@ -23,22 +24,38 @@ type RawCountConfig = {
 };
 
 export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): string {
-  const parts = traceMetrics.map(traceMetric => {
-    const filters = [
-      `metric.name:${traceMetric.name}`,
-      `metric.type:${traceMetric.type}`,
-    ];
+  const search = new MutableSearch('');
+  traceMetrics.forEach((traceMetric, index) => {
+    // Open the parentheses around this tracemetric filter
+    search.addOp('(');
 
-    if (traceMetric.unit === NONE_UNIT) {
-      filters.push(`( !has:metric.unit OR metric.unit:${NONE_UNIT} )`);
-    } else if (traceMetric.unit) {
-      filters.push(`metric.unit:${traceMetric.unit}`);
+    search.addFilterValue('metric.name', traceMetric.name);
+    search.addFilterValue('metric.type', traceMetric.type);
+    const addNoneOperators = traceMetric.unit === NONE_UNIT;
+    if (addNoneOperators) {
+      search.addOp('(');
+      search.addFilterValue('!has', 'metric.unit');
+      search.addOp('OR');
     }
 
-    return `( ${filters.join(' ')} )`;
+    if (traceMetric.unit) {
+      search.addFilterValue('metric.unit', traceMetric.unit);
+    }
+
+    if (addNoneOperators) {
+      search.addOp(')');
+    }
+
+    // Close the parentheses around this tracemetric filter
+    search.addOp(')');
+
+    // Add the OR operator between this tracemetric filter and the next one
+    if (index < traceMetrics.length - 1) {
+      search.addOp('OR');
+    }
   });
 
-  return parts.join(' OR ');
+  return search.toString();
 }
 
 export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null {
