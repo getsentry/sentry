@@ -529,7 +529,7 @@ def _write_preferences_to_sentry_db(
         project_ids = {project.id for project, _ in project_preferences}
 
         # Lock project rows to serialize concurrent preference writes.
-        list(Project.objects.select_for_update().filter(id__in=project_ids))
+        list(Project.objects.select_for_update().order_by("id").filter(id__in=project_ids))
 
         # Delete existing project repos and branch overrides.
         SeerProjectRepository.objects.filter(project_id__in=project_ids).delete()
