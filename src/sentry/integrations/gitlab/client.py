@@ -128,7 +128,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
     def request(self, *args: Any, **kwargs: Any):
         if SiloMode.get_current_mode() == SiloMode.CELL:
-            # Skip token refreshes in Region silo, as these will
+            # Skip token refreshes in Cell silo, as these will
             # be handled below by the control silo when the
             # integration proxy invokes the client code.
             return super().request(*args, **kwargs)

@@ -316,7 +316,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         #
         # NOTE: Publication of the event assumes the event has been properly authorized (as it has
         #       been above).
-        # NOTE: We are in the correct region silo at this stage. The IntegrationControlMiddleware
+        # NOTE: We are in the correct cell silo at this stage. The IntegrationControlMiddleware
         #       middleware has handled routing.
         produce_event_to_scm_stream(
             {

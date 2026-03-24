@@ -95,7 +95,7 @@ export function StreamlinedSidebar({group, event, project}: Props) {
           <StyledBreak />
           {showSeerSection && (
             <ErrorBoundary mini>
-              {organization.features.includes('autofix-on-explorer-v2') ? (
+              {organization.features.includes('autofix-on-explorer') ? (
                 <AutofixSection group={group} project={project} event={event} />
               ) : (
                 <SeerSection group={group} project={project} event={event} />

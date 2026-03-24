@@ -270,7 +270,7 @@ function AttributesHighlights({
         }
 
         return (
-          <Flex align="center" gap="md" key={highlight.key}>
+          <Flex align="center" gap="md" flex="0 0 auto" key={highlight.key}>
             <HighlightsIconWrapper>{summary.icon}</HighlightsIconWrapper>
             <HighlightsDescription>{summary.description}</HighlightsDescription>
           </Flex>

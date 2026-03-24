@@ -8,6 +8,7 @@ from django.db import IntegrityError
 from django.utils import timezone
 from objectstore_client.client import RequestError
 from pydantic import ValidationError
+from taskbroker_client.retry import Retry
 
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.models import PreprodArtifact
@@ -25,7 +26,6 @@ from sentry.preprod.vcs.status_checks.snapshots.tasks import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -518,9 +518,9 @@ def compare_snapshots(
         time_now = timezone.now()
 
         metric_tags = {
-            "org_id": str(org_id),
-            "project_id": str(project_id),
-            "app_id": head_artifact.app_id or "",
+            "org_id_temp": str(org_id),
+            "project_id_temp": str(project_id),
+            "app_id_temp": head_artifact.app_id or "",
         }
 
         diff_duration_s = (time_now - task_start_time).total_seconds()

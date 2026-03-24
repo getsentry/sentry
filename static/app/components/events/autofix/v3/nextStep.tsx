@@ -21,33 +21,61 @@ import {
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerDrawerNextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
+  group: Group;
   sections: AutofixSection[];
 }
 
-export function SeerDrawerNextStep({sections, autofix}: SeerDrawerNextStepProps) {
+export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextStepProps) {
   const runId = autofix.runState?.run_id;
   const section = sections[sections.length - 1];
+  const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   if (!defined(runId) || !defined(section)) {
     return null;
   }
 
   if (isRootCauseSection(section)) {
-    return <RootCauseNextStep autofix={autofix} runId={runId} section={section} />;
+    return (
+      <RootCauseNextStep
+        group={group}
+        autofix={autofix}
+        runId={runId}
+        section={section}
+        referrer={referrer}
+      />
+    );
   }
 
   if (isSolutionSection(section)) {
-    return <SolutionNextStep autofix={autofix} runId={runId} section={section} />;
+    return (
+      <SolutionNextStep
+        group={group}
+        autofix={autofix}
+        runId={runId}
+        section={section}
+        referrer={referrer}
+      />
+    );
   }
 
   if (isCodeChangesSection(section)) {
-    return <CodeChangesNextStep autofix={autofix} runId={runId} section={section} />;
+    return (
+      <CodeChangesNextStep
+        group={group}
+        autofix={autofix}
+        runId={runId}
+        section={section}
+        referrer={referrer}
+      />
+    );
   }
 
   return null;
@@ -55,22 +83,45 @@ export function SeerDrawerNextStep({sections, autofix}: SeerDrawerNextStepProps)
 
 interface NextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
+  group: Group;
   runId: number;
   section: AutofixSection;
+  referrer?: string;
 }
 
-function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
+function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
+  const organization = useOrganization();
   const {isPolling, startStep} = autofix;
+
+  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents({
+    autofix,
+    runId,
+    group,
+    step: 'root_cause',
+    referrer,
+  });
 
   const handleYesClick = useCallback(() => {
     startStep('solution', runId);
-  }, [startStep, runId]);
+    trackAnalytics('autofix.root_cause.find_solution', {
+      organization,
+      group_id: group.id,
+      mode: 'explorer',
+      referrer,
+    });
+  }, [organization, group, startStep, runId, referrer]);
 
   const handleNoClick = useCallback(
     (userContext: string) => {
       startStep('root_cause', runId, userContext);
+      trackAnalytics('autofix.root_cause.re_run', {
+        organization,
+        group_id: group.id,
+        mode: 'explorer',
+        referrer,
+      });
     },
-    [startStep, runId]
+    [organization, group, startStep, runId, referrer]
   );
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
@@ -91,44 +142,45 @@ function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
       rethinkPrompt={t('How can this root cause be improved?')}
       labelNevermind={t('Nevermind, make an implementation plan')}
       labelRethink={t('Rethink root cause')}
+      codingAgentIntegrations={codingAgentIntegrations}
+      onCodingAgentHandoff={handleCodingAgentHandoff}
     />
   );
 }
 
-function SolutionNextStep({autofix, runId, section}: NextStepProps) {
+function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const organization = useOrganization();
-  const {isPolling, startStep, triggerCodingAgentHandoff} = autofix;
+  const {isPolling, startStep} = autofix;
 
-  const {data: codingAgentResponse} = useQuery(
-    organizationIntegrationsCodingAgents(organization)
-  );
-  const codingAgentIntegrations = useMemo(
-    () => codingAgentResponse?.integrations,
-    [codingAgentResponse?.integrations]
-  );
-
-  const handleCodingAgentHandoff = useCallback(
-    (integration: CodingAgentIntegration) => {
-      // OAuth redirect for integrations without identity
-      if (integration.requires_identity && !integration.has_identity) {
-        const currentUrl = window.location.href;
-        window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
-        return;
-      }
-      triggerCodingAgentHandoff(runId, integration);
-    },
-    [triggerCodingAgentHandoff, runId]
-  );
+  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents({
+    autofix,
+    runId,
+    group,
+    step: 'solution',
+    referrer,
+  });
 
   const handleYesClick = useCallback(() => {
     startStep('code_changes', runId);
-  }, [startStep, runId]);
+    trackAnalytics('autofix.solution.code', {
+      organization,
+      group_id: group.id,
+      mode: 'explorer',
+      referrer,
+    });
+  }, [organization, group, startStep, runId, referrer]);
 
   const handleNoClick = useCallback(
     (userContext: string) => {
       startStep('solution', runId, userContext);
+      trackAnalytics('autofix.solution.re_run', {
+        organization,
+        group_id: group.id,
+        mode: 'explorer',
+        referrer,
+      });
     },
-    [startStep, runId]
+    [organization, group, startStep, runId, referrer]
   );
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
@@ -157,18 +209,31 @@ function SolutionNextStep({autofix, runId, section}: NextStepProps) {
   );
 }
 
-function CodeChangesNextStep({autofix, runId, section}: NextStepProps) {
+function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
+  const organization = useOrganization();
   const {isPolling, createPR, startStep} = autofix;
 
   const handleYesClick = useCallback(() => {
     createPR(runId);
-  }, [createPR, runId]);
+    trackAnalytics('autofix.create_pr_clicked', {
+      organization,
+      group_id: group.id,
+      mode: 'explorer',
+      referrer,
+    });
+  }, [organization, group, createPR, runId, referrer]);
 
   const handleNoClick = useCallback(
     (userContext: string) => {
       startStep('code_changes', runId, userContext);
+      trackAnalytics('autofix.code_changes.re_run', {
+        organization,
+        group_id: group.id,
+        mode: 'explorer',
+        referrer,
+      });
     },
-    [startStep, runId]
+    [organization, group, startStep, runId, referrer]
   );
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
@@ -302,4 +367,54 @@ function NextStepTemplate({
       </Flex>
     </Flex>
   );
+}
+
+interface UseCodingAgentsOptions {
+  autofix: ReturnType<typeof useExplorerAutofix>;
+  group: Group;
+  referrer: string | undefined;
+  runId: number;
+  step: 'root_cause' | 'solution';
+}
+
+function useCodingAgents({
+  autofix,
+  group,
+  runId,
+  step,
+  referrer,
+}: UseCodingAgentsOptions) {
+  const organization = useOrganization();
+  const {triggerCodingAgentHandoff} = autofix;
+
+  const {data: codingAgentResponse} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
+  const codingAgentIntegrations = useMemo(
+    () => codingAgentResponse?.integrations,
+    [codingAgentResponse?.integrations]
+  );
+
+  const handleCodingAgentHandoff = useCallback(
+    (integration: CodingAgentIntegration) => {
+      // OAuth redirect for integrations without identity
+      if (integration.requires_identity && !integration.has_identity) {
+        const currentUrl = window.location.href;
+        window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+        return;
+      }
+      triggerCodingAgentHandoff(runId, integration);
+      trackAnalytics('autofix.coding_agent.launch', {
+        organization,
+        group_id: group.id,
+        step,
+        provider: integration.provider,
+        mode: 'explorer',
+        referrer,
+      });
+    },
+    [triggerCodingAgentHandoff, organization, runId, group, step, referrer]
+  );
+
+  return {codingAgentIntegrations, handleCodingAgentHandoff};
 }

@@ -2638,6 +2638,24 @@ describe('SearchQueryBuilder', () => {
         expect(within(valueButton).getAllByText('or')).toHaveLength(2);
       });
 
+      it('renders and between negated multi-value filters', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="!browser.name:[one,two,three]"
+          />
+        );
+
+        const valueButton = await screen.findByRole('button', {
+          name: 'Edit value for filter: browser.name',
+        });
+        expect(within(valueButton).getByText('one')).toBeInTheDocument();
+        expect(within(valueButton).getByText('two')).toBeInTheDocument();
+        expect(within(valueButton).getByText('three')).toBeInTheDocument();
+        expect(within(valueButton).getAllByText('and')).toHaveLength(2);
+        expect(within(valueButton).queryByText('or')).not.toBeInTheDocument();
+      });
+
       it('moves selected values to the top when opening a predefined multi-select', async () => {
         render(
           <SearchQueryBuilder

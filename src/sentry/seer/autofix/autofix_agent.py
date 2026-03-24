@@ -14,6 +14,7 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
     TriageArtifact,
 )
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.prompts import (
     code_changes_prompt,
     impact_assessment_prompt,
@@ -21,7 +22,11 @@ from sentry.seer.autofix.prompts import (
     solution_prompt,
     triage_prompt,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_autofix_state,
+    get_project_seer_preferences,
+)
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
@@ -187,6 +192,7 @@ def get_autofix_explorer_client(
 def trigger_autofix_explorer(
     group: Group,
     step: AutofixStep,
+    referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "low",
@@ -213,12 +219,15 @@ def trigger_autofix_explorer(
     )
 
     prompt = build_step_prompt(step, group, user_context)
-    prompt_metadata = {"step": step.value}
+    prompt_metadata = {
+        "step": step.value,
+        "referrer": referrer.value,
+    }
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = {"group_id": group.id}
+        metadata = {"group_id": group.id, "referrer": referrer.value}
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
@@ -451,6 +460,27 @@ def trigger_coding_agent_handoff(
     state = client.get_run(run_id)
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
+
+    # If branch_name is unset in preferences, resolve it from the autofix run state
+    if not repo.branch_name:
+        try:
+            autofix_state = get_autofix_state(run_id=run_id, organization_id=group.organization.id)
+            if autofix_state:
+                state_repo = next(
+                    (
+                        r
+                        for r in autofix_state.request.repos
+                        if r.owner == repo.owner and r.name == repo.name
+                    ),
+                    None,
+                )
+                if state_repo and state_repo.branch_name:
+                    repo = repo.copy(update={"branch_name": state_repo.branch_name})
+        except Exception:
+            logger.exception(
+                "autofix.coding_agent_handoff.get_branch_name_error",
+                extra={"owner": repo.owner, "repo": repo.name, "run_id": run_id},
+            )
 
     short_id = group.qualified_short_id
 

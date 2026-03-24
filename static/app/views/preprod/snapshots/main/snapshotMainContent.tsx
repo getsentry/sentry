@@ -3,9 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -51,13 +53,38 @@ export function SnapshotMainContent({
   }
 
   if (selectedItem.type === 'changed') {
-    const displayName = getImageName(selectedItem.pair.head_image);
+    const currentPair = selectedItem.pairs[variantIndex];
+    if (!currentPair) {
+      return null;
+    }
+    const totalVariants = selectedItem.pairs.length;
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
         <Flex align="center" justify="between" gap="md" padding="xl">
-          <Text size="lg" bold>
-            {displayName}
-          </Text>
+          <Flex align="center" gap="md">
+            {totalVariants > 1 && (
+              <VariantNavigation
+                variantIndex={variantIndex}
+                totalVariants={totalVariants}
+                onVariantChange={onVariantChange}
+              />
+            )}
+            <Stack gap="md">
+              <Flex align="center" gap="md">
+                {currentPair.head_image.display_name && (
+                  <Text size="lg" bold>
+                    {currentPair.head_image.display_name}
+                  </Text>
+                )}
+                <ImageFileName fileName={currentPair.head_image.image_file_name} />
+              </Flex>
+              {totalVariants > 1 && (
+                <Text variant="muted" size="sm">
+                  {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+                </Text>
+              )}
+            </Stack>
+          </Flex>
           {diffMode === 'split' && (
             <OverlayControls
               showOverlay={showOverlay}
@@ -69,7 +96,7 @@ export function SnapshotMainContent({
         </Flex>
         <Separator orientation="horizontal" />
         <DiffImageDisplay
-          pair={selectedItem.pair}
+          pair={currentPair}
           imageBaseUrl={imageBaseUrl}
           diffImageBaseUrl={diffImageBaseUrl}
           showOverlay={showOverlay}
@@ -94,24 +121,11 @@ export function SnapshotMainContent({
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
         <Flex align="center" gap="md" padding="xl">
           {totalVariants > 1 && (
-            <Flex align="center" gap="sm">
-              <Button
-                size="md"
-                priority="transparent"
-                icon={<IconChevron direction="left" />}
-                aria-label={t('Previous variant')}
-                disabled={variantIndex === 0}
-                onClick={() => onVariantChange(variantIndex - 1)}
-              />
-              <Button
-                size="md"
-                priority="transparent"
-                icon={<IconChevron direction="right" />}
-                aria-label={t('Next variant')}
-                disabled={variantIndex === totalVariants - 1}
-                onClick={() => onVariantChange(variantIndex + 1)}
-              />
-            </Flex>
+            <VariantNavigation
+              variantIndex={variantIndex}
+              totalVariants={totalVariants}
+              onVariantChange={onVariantChange}
+            />
           )}
           <Stack gap="md">
             <Text size="lg" bold>
@@ -130,30 +144,164 @@ export function SnapshotMainContent({
     );
   }
 
-  const image = selectedItem.image;
-  const displayName = getImageName(image);
-  const imageUrl = `${imageBaseUrl}${image.key}/`;
+  if (selectedItem.type === 'renamed') {
+    const currentPair = selectedItem.pairs[variantIndex];
+    if (!currentPair) {
+      return null;
+    }
+    const totalVariants = selectedItem.pairs.length;
+    const imageUrl = `${imageBaseUrl}${currentPair.head_image.key}/`;
+    const displayName = getImageName(currentPair.head_image);
+
+    return (
+      <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+        <Flex align="center" gap="md" padding="xl">
+          {totalVariants > 1 && (
+            <VariantNavigation
+              variantIndex={variantIndex}
+              totalVariants={totalVariants}
+              onVariantChange={onVariantChange}
+            />
+          )}
+          <Stack gap="md">
+            <Flex align="center" gap="md">
+              {currentPair.head_image.display_name && (
+                <Text size="lg" bold>
+                  {currentPair.head_image.display_name}
+                </Text>
+              )}
+              <ImageFileName
+                fileName={currentPair.head_image.image_file_name}
+                previousFileName={currentPair.base_image.image_file_name}
+              />
+            </Flex>
+            <Flex align="center" gap="sm">
+              <Text variant="muted" size="sm">
+                ({t('Renamed')})
+              </Text>
+              {totalVariants > 1 && (
+                <Text variant="muted" size="sm">
+                  {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+                </Text>
+              )}
+            </Flex>
+          </Stack>
+        </Flex>
+        <Separator orientation="horizontal" />
+        <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
+      </Flex>
+    );
+  }
+
+  // added, removed, unchanged
+  const currentImage = selectedItem.images[variantIndex];
+  if (!currentImage) {
+    return null;
+  }
+  const displayName = getImageName(currentImage);
+  const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
+  const totalVariants = selectedItem.images.length;
   const STATUS_LABELS: Record<string, string> = {
     added: t('Added'),
     removed: t('Removed'),
-    renamed: t('Renamed'),
   };
   const statusLabel = STATUS_LABELS[selectedItem.type] ?? t('Unchanged');
 
   return (
     <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
       <Flex align="center" gap="md" padding="xl">
-        <Text size="lg" bold>
-          {displayName}
-        </Text>
-        <Text variant="muted" size="sm">
-          ({statusLabel})
-        </Text>
+        {totalVariants > 1 && (
+          <VariantNavigation
+            variantIndex={variantIndex}
+            totalVariants={totalVariants}
+            onVariantChange={onVariantChange}
+          />
+        )}
+        <Stack gap="md">
+          <Flex align="center" gap="md">
+            {currentImage.display_name && (
+              <Text size="lg" bold>
+                {currentImage.display_name}
+              </Text>
+            )}
+            <ImageFileName fileName={currentImage.image_file_name} />
+          </Flex>
+          <Flex align="center" gap="sm">
+            <Text variant="muted" size="sm">
+              ({statusLabel})
+            </Text>
+            {totalVariants > 1 && (
+              <Text variant="muted" size="sm">
+                {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+              </Text>
+            )}
+          </Flex>
+        </Stack>
       </Flex>
       <Separator orientation="horizontal" />
       <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
     </Flex>
   );
+}
+
+function VariantNavigation({
+  variantIndex,
+  totalVariants,
+  onVariantChange,
+}: {
+  onVariantChange: (index: number) => void;
+  totalVariants: number;
+  variantIndex: number;
+}) {
+  return (
+    <Flex align="center" gap="sm">
+      <Button
+        size="md"
+        priority="transparent"
+        icon={<IconChevron direction="left" />}
+        aria-label={t('Previous variant')}
+        disabled={variantIndex === 0}
+        onClick={() => onVariantChange(variantIndex - 1)}
+      />
+      <Button
+        size="md"
+        priority="transparent"
+        icon={<IconChevron direction="right" />}
+        aria-label={t('Next variant')}
+        disabled={variantIndex === totalVariants - 1}
+        onClick={() => onVariantChange(variantIndex + 1)}
+      />
+    </Flex>
+  );
+}
+
+function ImageFileName({
+  fileName,
+  previousFileName,
+}: {
+  fileName: string;
+  previousFileName?: string;
+}) {
+  if (!fileName) {
+    return null;
+  }
+  if (previousFileName) {
+    return (
+      <Tooltip
+        title={
+          <span>
+            <InlineCode>{previousFileName}</InlineCode>
+            {' → '}
+            <InlineCode>{fileName}</InlineCode>
+          </span>
+        }
+        maxWidth={2000}
+      >
+        <InlineCode>{fileName}</InlineCode>
+      </Tooltip>
+    );
+  }
+  return <InlineCode variant="neutral">{fileName}</InlineCode>;
 }
 
 function OverlayControls({

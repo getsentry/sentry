@@ -319,6 +319,7 @@ def _build_seer_request(
         "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
         "model": model_version,
         "training_mode": training_mode,
+        "platform": event.platform or "unknown",
     }
     event.data.pop("stacktrace_string", None)
 

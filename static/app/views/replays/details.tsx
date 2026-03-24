@@ -22,6 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ReplayDetailsProviders} from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import {ReplayDetailsHeaderActions} from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
 import {ReplayDetailsMetadata} from 'sentry/views/replays/detail/header/replayDetailsMetadata';
@@ -81,9 +82,11 @@ function ReplayDetailsContent() {
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
+  const hasPageFrame = useHasPageFrameFeature();
+
   const content = (
     <Fragment>
-      <Flex direction="column">
+      <Flex direction="column" background={hasPageFrame ? 'primary' : undefined}>
         <TopHeader justify="between" align="center" gap="md">
           <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
           <ReplayDetailsHeaderActions readerResult={readerResult} />
@@ -99,15 +102,20 @@ function ReplayDetailsContent() {
 
   return (
     <SentryDocumentTitle title={title}>
-      <FullViewport>
-        {replay ? (
-          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
-            {content}
-          </ReplayDetailsProviders>
-        ) : (
-          content
-        )}
-      </FullViewport>
+      <Layout.Page>
+        <FullViewport>
+          {replay ? (
+            <ReplayDetailsProviders
+              replay={replay}
+              projectSlug={readerResult.projectSlug}
+            >
+              {content}
+            </ReplayDetailsProviders>
+          ) : (
+            content
+          )}
+        </FullViewport>
+      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

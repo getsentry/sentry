@@ -37,6 +37,7 @@ import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layou
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconAllProjects, IconChevron, IconGrabbable, IconMyProjects} from 'sentry/icons';
@@ -68,6 +69,7 @@ import {
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const MotionContainer = motion.create(Container);
 
@@ -76,7 +78,6 @@ interface SecondarySidebarProps {
 }
 
 function SecondarySidebar({children}: SecondarySidebarProps) {
-  const theme = useTheme();
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -105,7 +106,12 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
       description={NAVIGATION_TOUR_CONTENT[stepId].description}
       title={NAVIGATION_TOUR_CONTENT[stepId].title}
     >
-      {({ref, ...props}) => (
+      {({ref, 'aria-expanded': _ariaExpanded, ...props}) => (
+        // aria-expanded is omitted here because TourGuide passes it via useOverlay's
+        // triggerProps (designed for button/disclosure triggers), but this element is
+        // a plain container div with no role that supports aria-expanded. Spreading it
+        // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
+        // without a matching ARIA role.
         <Container
           height="100%"
           right="0"
@@ -124,7 +130,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
               exit={{x: 6, opacity: 0}}
-              transition={theme.motion.framer.smooth.fast}
+              transition={{duration: 0.06}}
             >
               <Grid
                 rows="auto 1fr auto"
@@ -165,10 +171,15 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
 
 function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
+  const secondaryNavigation = useSecondaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
     <Container
       background="secondary"
-      borderRight="primary"
+      borderRight={
+        hasPageFrame && secondaryNavigation.view === 'expanded' ? undefined : 'primary'
+      }
       position="relative"
       height="100%"
     >
@@ -256,15 +267,14 @@ interface SecondaryNavigationHeaderProps {
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
-  const organization = useOrganization();
   const isCollapsed = view !== 'expanded';
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Grid
       columns="1fr auto"
       align="center"
-      borderBottom="muted"
+      borderBottom={hasPageFrame ? 'primary' : 'muted'}
       height={
         layout === 'mobile'
           ? undefined
@@ -339,7 +349,7 @@ function SectionTitle(props: SectionTitleProps) {
             <Text bold ellipsis align="left">
               {props.children}
             </Text>
-            <Flex align="center" flexShrink={0}>
+            <Flex align="center" flexShrink={0} aria-hidden="true">
               {props.trailingItems ? (
                 <div onClick={e => e.stopPropagation()}>{props.trailingItems}</div>
               ) : (
@@ -426,14 +436,13 @@ function SecondaryNavigationLink({
 
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   const sharedLinkProps = {
     ...linkProps,
     state: {source: SIDEBAR_NAVIGATION_SOURCE},
     to,
     'aria-current': isActive ? ('page' as const) : undefined,
-    'aria-selected': isActive,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (analyticsItemName) {
         trackAnalytics('navigation.secondary_item_clicked', {
@@ -501,22 +510,38 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
   switch (props.projectPlatforms.length) {
     case 0:
       icons = props.allProjects ? (
-        <IconAllProjects size="md" />
+        <IconAllProjects size="md" aria-hidden="true" />
       ) : (
-        <IconMyProjects size="md" />
+        <IconMyProjects size="md" aria-hidden="true" />
       );
       break;
     case 1:
-      icons = <PlatformIcon platform={props.projectPlatforms[0]!} size={16} />;
+      icons = (
+        <PlatformIcon platform={props.projectPlatforms[0]!} size={16} aria-hidden />
+      );
       break;
     default:
       icons = (
         <Fragment>
           <Container position="absolute" top="0" right="6px" width="12px" height="12px">
-            {p => <PlatformIcon {...p} platform={props.projectPlatforms[0]!} size={12} />}
+            {p => (
+              <PlatformIcon
+                {...p}
+                platform={props.projectPlatforms[0]!}
+                size={12}
+                aria-hidden
+              />
+            )}
           </Container>
           <Container position="absolute" bottom="0" right="0" width="12px" height="12px">
-            {p => <PlatformIcon {...p} platform={props.projectPlatforms[1]!} size={12} />}
+            {p => (
+              <PlatformIcon
+                {...p}
+                platform={props.projectPlatforms[1]!}
+                size={12}
+                aria-hidden
+              />
+            )}
           </Container>
         </Fragment>
       );
@@ -531,6 +556,7 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
       height="18px"
       position="relative"
       data-project-icon
+      aria-hidden="true"
     >
       {icons}
     </Stack>
@@ -626,7 +652,7 @@ function navigationItemStyles(p: {layout: 'mobile' | 'sidebar'; theme: Theme}) {
         .hover};
     }
 
-    &[aria-selected='true'] {
+    &[aria-current='page'] {
       color: ${p.theme.tokens.interactive.link.accent.rest};
       background-color: ${p.theme.tokens.interactive.transparent.accent.selected
         .background.rest};
@@ -676,7 +702,7 @@ const MobileNavigationLink = styled(Link)`
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
@@ -751,12 +777,14 @@ function ReorderableListItem<T extends {id: string | number}>(
       value={{attributes, isDragging, listeners, setActivatorNodeRef}}
     >
       <Container
+        as="li"
         radius="md"
         position="relative"
         background={isDragging ? 'secondary' : undefined}
         ref={setNodeRef}
         data-is-dragging={isDragging ? true : undefined}
         style={{
+          listStyleType: 'none',
           transform: CSS.Transform.toString(transform),
           transition: transition ?? undefined,
           zIndex: isDragging ? 1 : undefined,
@@ -795,7 +823,12 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
     setItems(props.items);
   }, [props.items]);
 
+  // During a keyboard-driven drag, lock page scroll so ArrowUp/Down don't
+  // scroll the sidebar behind the dragged item.
+  const scrollLock = useScrollLock(document.body);
+
   function handleDragEnd(event: DragEndEvent) {
+    scrollLock.release();
     const {active, over} = event;
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex(item => item.id === active.id);
@@ -811,10 +844,12 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      onDragStart={() => scrollLock.acquire()}
       onDragEnd={handleDragEnd}
+      onDragCancel={() => scrollLock.release()}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <Stack direction="column" padding="0" width="100%">
+        <Stack direction="column" as="ul" padding="0" width="100%" margin="0">
           {items.map(item => (
             <ReorderableListItem key={item.id} item={item}>
               {props.children(item)}
@@ -853,7 +888,7 @@ function SecondaryNavigationReorderableLink({
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {isDragging} = useReorderableItemContext();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   function handleNavigate() {
     if (isDragging) {
@@ -876,7 +911,6 @@ function SecondaryNavigationReorderableLink({
     layout,
     isDragging,
     'aria-current': isActive ? ('page' as const) : undefined,
-    'aria-selected': isActive,
     onClick: handleNavigate,
     onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
       // When the grab handle has focus, dnd-kit owns Space/Enter for pick-up
@@ -951,7 +985,7 @@ function GrabHandle(props: FlexProps<'div'>) {
           style={{cursor: isDragging ? 'grabbing' : 'grab'}}
           onClick={e => e.stopPropagation()}
         >
-          <IconGrabbable variant="muted" />
+          <IconGrabbable variant="muted" aria-hidden="true" />
         </GrabHandleAnimation>
       )}
     </Flex>
@@ -966,6 +1000,7 @@ const GrabHandleAnimation = styled('div')`
     opacity ${p => p.theme.motion.smooth.moderate},
     transform ${p => p.theme.motion.smooth.moderate};
   transform: translate(-50%, -50%);
+
   &:active {
     cursor: grabbing;
   }
@@ -1038,7 +1073,8 @@ const StyledReorderableFakeLink = styled('div')<{
       scale 150ms ease;
   }
 
-  :hover [data-reorderable-handle-slot] {
+  :hover [data-reorderable-handle-slot],
+  :has(:focus-visible) [data-reorderable-handle-slot] {
     opacity: 0;
     scale: 0.95;
   }
@@ -1063,6 +1099,9 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  /* We need to cap the height at sm size as some items like the reorderable link with icons
+   * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
+  height: ${p => p.theme.form.sm.height};
   padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
@@ -1086,7 +1125,7 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
       p.theme.tokens.interactive.transparent.accent.background.active};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
@@ -1159,7 +1198,7 @@ const SidebarNavigationLink = styled(Link)`
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
@@ -1183,6 +1222,9 @@ const PageFrameSidebarNavigationLink = styled(Link)`
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  /* We need to cap the height at sm size as some items like the reorderable link with icons
+   * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
+  height: ${p => p.theme.form.sm.height};
   padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
@@ -1200,7 +1242,7 @@ const PageFrameSidebarNavigationLink = styled(Link)`
       p.theme.tokens.interactive.transparent.accent.background.active};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};

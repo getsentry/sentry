@@ -15,7 +15,10 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.search.eap import constants
-from sentry.search.eap.aggregate_utils import count_processor, resolve_key_eq_value_filter
+from sentry.search.eap.aggregate_utils import (
+    count_processor,
+    resolve_key_eq_value_filter,
+)
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
@@ -24,6 +27,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     count_argument_resolver_optimized,
 )
+from sentry.search.eap.common_aggregates import count_unique_aggregate_definition
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.validator import literal_validator, number_validator
 
@@ -662,24 +666,5 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
     ),
-    "count_unique": AggregateDefinition(
-        internal_function=Function.FUNCTION_UNIQ,
-        default_search_type="integer",
-        infer_search_type_from_arguments=False,
-        processor=count_processor,
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "string",
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-    ),
+    "count_unique": count_unique_aggregate_definition(),
 }

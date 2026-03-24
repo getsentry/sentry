@@ -1,22 +1,19 @@
-import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
+import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
 
 import {validateDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {CreateFromSeerLoading} from 'sentry/views/dashboards/createFromSeerLoading';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
@@ -92,18 +89,6 @@ function extractDashboardFromSession(
   return null;
 }
 
-function extractMessages(
-  session: NonNullable<SeerExplorerResponse['session']>
-): string[] {
-  const messages: string[] = [];
-  for (const block of session.blocks ?? []) {
-    if (block.message?.content) {
-      messages.push(block.message.content);
-    }
-  }
-  return messages;
-}
-
 async function validateDashboardAndRecordMetrics(
   organization: Organization,
   newDashboard: DashboardDetails,
@@ -112,11 +97,22 @@ async function validateDashboardAndRecordMetrics(
   try {
     await validateDashboard(organization.slug, newDashboard);
     Sentry.metrics.count('dashboards.seer.validation', 1, {
-      attributes: {status: 'success', ...(seerRunId ? {seer_run_id: seerRunId} : {})},
+      attributes: {
+        status: 'success',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+      },
     });
   } catch (error) {
     Sentry.metrics.count('dashboards.seer.validation', 1, {
-      attributes: {status: 'failure', ...(seerRunId ? {seer_run_id: seerRunId} : {})},
+      attributes: {
+        status: 'failure',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+      },
+    });
+    Sentry.captureException(error, {
+      tags: {seer_run_id: seerRunId},
     });
   }
 }
@@ -148,6 +144,10 @@ export default function CreateFromSeer() {
   // validation errors.
   const completedAtRef = useRef<number | null>(null);
 
+  // Additional guards to prevent duplicate metrics recording and on reload
+  const hasValidatedRef = useRef(false);
+  const hasSeenNonTerminalRef = useRef(false);
+
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
     {
@@ -155,9 +155,6 @@ export default function CreateFromSeer() {
       retry: false,
       enabled: !!seerRunId && hasFeature,
       refetchInterval: query => {
-        if (isUpdating) {
-          return POLL_INTERVAL_MS;
-        }
         const status = query.state.data?.[0]?.session?.status;
         if (statusIsTerminal(status)) {
           if (completedAtRef.current === null) {
@@ -166,11 +163,17 @@ export default function CreateFromSeer() {
           if (Date.now() - completedAtRef.current < POST_COMPLETE_POLL_MS) {
             return POLL_INTERVAL_MS;
           }
-          validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
+          if (!hasValidatedRef.current && hasSeenNonTerminalRef.current) {
+            hasValidatedRef.current = true;
+            validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
+          }
           return false;
         }
-        // Status left "completed" (hook triggered a re-run), reset
-        completedAtRef.current = null;
+        if (status !== undefined && !statusIsTerminal(status)) {
+          hasSeenNonTerminalRef.current = true;
+          hasValidatedRef.current = false;
+          completedAtRef.current = null;
+        }
         return POLL_INTERVAL_MS;
       },
     }
@@ -186,7 +189,10 @@ export default function CreateFromSeer() {
     }
     const prevUpdatedAt = prevSessionStatusRef.current.updated_at;
     const prevStatus = prevSessionStatusRef.current.status;
-    prevSessionStatusRef.current = {status: sessionStatus, updated_at: sessionUpdatedAt};
+    prevSessionStatusRef.current = {
+      status: sessionStatus,
+      updated_at: sessionUpdatedAt,
+    };
 
     const isTerminal = statusIsTerminal(sessionStatus);
     const wasTerminal = statusIsTerminal(prevStatus);
@@ -207,11 +213,6 @@ export default function CreateFromSeer() {
       }
     }
   }, [organization, seerRunId, isUpdating, sessionStatus, session, sessionUpdatedAt]);
-
-  const blockMessages = useMemo(
-    () => (session ? extractMessages(session) : []),
-    [session]
-  );
 
   const isLoading = !statusIsTerminal(sessionStatus) && !isError;
 
@@ -254,6 +255,7 @@ export default function CreateFromSeer() {
       }
       setisUpdating(true);
       completedAtRef.current = null;
+      hasValidatedRef.current = false;
       try {
         const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
         const {url} = parseQueryKey(queryKey);
@@ -283,21 +285,12 @@ export default function CreateFromSeer() {
     );
   }
 
+  if (!seerRunId) {
+    return null;
+  }
+
   if (isLoading && !isUpdating) {
-    return (
-      <Layout.Page withPadding>
-        <Flex direction="column" gap="lg" align="center">
-          <LoadingIndicator>{t('Generating dashboard...')}</LoadingIndicator>
-          {blockMessages.length > 0 && (
-            <Flex direction="column" gap="sm" maxWidth="600px">
-              {blockMessages.map((message, index) => (
-                <MessageBlock key={index} text={message} />
-              ))}
-            </Flex>
-          )}
-        </Flex>
-      </Layout.Page>
-    );
+    return <CreateFromSeerLoading blocks={session?.blocks ?? []} seerRunId={seerRunId} />;
   }
 
   return (
@@ -320,15 +313,3 @@ export default function CreateFromSeer() {
 }
 
 const MemoizedDashboardDetail = memo(DashboardDetail);
-
-const MessageBlock = styled(MarkedText)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  background: ${p => p.theme.tokens.background.secondary};
-  border-radius: ${p => p.theme.radius.md};
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-
-  p {
-    margin-bottom: 0;
-  }
-`;

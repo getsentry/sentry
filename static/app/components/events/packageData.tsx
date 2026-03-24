@@ -1,17 +1,13 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {ClippedBox} from 'sentry/components/clippedBox';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   event: Event;
@@ -19,9 +15,8 @@ type Props = {
 
 export function EventPackageData({event}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const columnCount = useIssueDetailsColumnCount(containerRef) + 1;
-  let longKeys: boolean, title: string;
+  let title: string;
 
   const packages = Object.entries(event.packages || {}).map(([key, value]) => ({
     key,
@@ -32,15 +27,12 @@ export function EventPackageData({event}: Props) {
 
   switch (event.platform) {
     case 'csharp':
-      longKeys = true;
       title = t('Assemblies');
       break;
     case 'java':
-      longKeys = true;
       title = t('Dependencies');
       break;
     default:
-      longKeys = false;
       title = t('Packages');
   }
 
@@ -73,15 +65,7 @@ export function EventPackageData({event}: Props) {
       ref={containerRef}
       initialCollapse
     >
-      {hasStreamlinedUI ? (
-        <ColumnsContainer columnCount={columnCount}>{columns}</ColumnsContainer>
-      ) : (
-        <ClippedBox>
-          <ErrorBoundary mini>
-            <KeyValueList data={packages} longKeys={longKeys} />
-          </ErrorBoundary>
-        </ClippedBox>
-      )}
+      <ColumnsContainer columnCount={columnCount}>{columns}</ColumnsContainer>
     </InterimSection>
   );
 }
