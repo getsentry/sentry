@@ -551,6 +551,7 @@ function DataWidgetViewerModal(props: Props) {
         <AgentsTracesTableWidgetVisualization
           limit={FULL_TABLE_ITEM_LIMIT}
           tableWidths={widget.tableWidths}
+          isFullscreen
         />
       );
     }
