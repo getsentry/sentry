@@ -184,7 +184,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         if default_repo:
             owner, repo = default_repo.split("/")
             labels = self.get_repo_labels(owner, repo)
-            types = self.get_repo_types(owner)
+            types = self.get_org_types(owner)
 
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
@@ -222,7 +222,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             {
                 "name": "type",
                 "label": "Type",
-                "default": [],
+                "default": "",
                 "type": "select",
                 "multiple": False,
                 "required": False,
@@ -384,15 +384,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         except Exception as e:
             self.raise_error(e)
 
-        def natural_sort_pair(pair: tuple[str, str]) -> list[str | int]:
-            return [
-                int(text) if text.isdecimal() else text.lower()
-                for text in re.split("([0-9]+)", pair[0])
-            ]
-
         # sort alphabetically
         labels = tuple(
-            sorted([(label["name"], label["name"]) for label in response], key=natural_sort_pair)
+            sorted([(label["name"], label["name"]) for label in response], key=self.natural_sort_pair)
         )
 
         return labels
@@ -404,15 +398,15 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         except Exception as e:
             self.raise_error(e)
 
-        def natural_sort_pair(pair: tuple[str, str]) -> list[str | int]:
+        # sort alphabetically
+        types = tuple(
+            sorted([(type_obj["name"], type_obj["name"]) for type_obj in response], key=self.natural_sort_pair)
+        )
+
+        return types
+
+    def natural_sort_pair(self, response, pair: tuple[str, str]) -> list[str | int]:
             return [
                 int(text) if text.isdecimal() else text.lower()
                 for text in re.split("([0-9]+)", pair[0])
             ]
-
-        # sort alphabetically
-        types = tuple(
-            sorted([(type_obj["name"], type_obj["name"]) for type_obj in response], key=natural_sort_pair)
-        )
-
-        return types
