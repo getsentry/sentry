@@ -164,7 +164,7 @@ def get_raw_body_async(
     # wsgiref will raise an exception and hang when attempting to read wsgi.input while there's no body.
     # For now, support bodies only on PUT and POST requests when not using Granian.
     if request.method not in ("PUT", "POST"):
-        return None
+        return BodyAsyncWrapper(b"")
 
     # wsgiref (dev/test server)
     if (

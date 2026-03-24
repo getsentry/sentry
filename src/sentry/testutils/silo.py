@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import contextlib
+import contextvars
 import functools
 import inspect
 import os
 import re
 import sys
-import threading
 import typing
 from collections.abc import Callable, Collection, Generator, Iterable, Mapping, MutableSet, Sequence
 from contextlib import contextmanager, nullcontext
@@ -35,46 +35,43 @@ SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 
 def monkey_patch_single_process_silo_mode_state():
-    class LocalSiloModeState(threading.local):
-        mode: SiloMode | None = None
-        cell: Cell | None = None
-
-    state = LocalSiloModeState()
+    _silo_mode_var: contextvars.ContextVar[SiloMode | None] = contextvars.ContextVar(
+        "silo_mode", default=None
+    )
+    _silo_cell_var: contextvars.ContextVar[Cell | None] = contextvars.ContextVar(
+        "silo_cell", default=None
+    )
 
     @contextlib.contextmanager
     def enter(mode: SiloMode, cell: Cell | None = None) -> Generator[None]:
-        assert state.mode is None, (
+        assert _silo_mode_var.get() is None, (
             "Re-entrant invariant broken! Use exit_single_process_silo_context "
             "to explicit pass 'fake' RPC boundaries."
         )
 
-        old_mode = state.mode
-        old_cell = state.cell
-        state.mode = mode
-        state.cell = cell
+        mode_token = _silo_mode_var.set(mode)
+        cell_token = _silo_cell_var.set(cell)
         try:
             yield
         finally:
-            state.mode = old_mode
-            state.cell = old_cell
+            _silo_mode_var.reset(mode_token)
+            _silo_cell_var.reset(cell_token)
 
     @contextlib.contextmanager
     def exit() -> Generator[None]:
-        old_mode = state.mode
-        old_cell = state.cell
-        state.mode = None
-        state.cell = None
+        mode_token = _silo_mode_var.set(None)
+        cell_token = _silo_cell_var.set(None)
         try:
             yield
         finally:
-            state.mode = old_mode
-            state.cell = old_cell
+            _silo_mode_var.reset(mode_token)
+            _silo_cell_var.reset(cell_token)
 
     def get_mode() -> SiloMode | None:
-        return state.mode
+        return _silo_mode_var.get()
 
     def get_cell() -> Cell | None:
-        return state.cell
+        return _silo_cell_var.get()
 
     SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
     SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
