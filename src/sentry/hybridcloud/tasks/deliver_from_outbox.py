@@ -6,6 +6,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from django.db.models import Max, Min
+from taskbroker_client.task import Task
 
 from sentry.hybridcloud.models.outbox import (
     CellOutboxBase,
@@ -17,7 +18,6 @@ from sentry.hybridcloud.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks, hybridcloud_tasks
-from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
 

@@ -9,12 +9,12 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.users.models.user import User
 from sentry.workflow_engine.models import Action
 
 
-@control_silo_test(regions=create_test_regions("us", "de"))
+@control_silo_test(cells=create_test_cells("us", "de"))
 class TestSentryAppDeletionTask(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()

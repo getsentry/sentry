@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from taskbroker_client.task import Task
+
 from sentry import options
 from sentry.db.models import control_silo_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.control_fileblobowner import ControlFileBlobOwner
 from sentry.options.manager import UnknownOption
 from sentry.tasks.files import delete_file_control
-from sentry.taskworker.task import Task
 
 
 def control_file_storage_config() -> dict[str, Any] | None:

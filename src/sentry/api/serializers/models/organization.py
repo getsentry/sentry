@@ -39,7 +39,6 @@ from sentry.constants import (
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
     ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
@@ -58,6 +57,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -554,9 +554,10 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
-    enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
+    defaultCodingAgent: str | None
+    defaultCodingAgentIntegrationId: int | None
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
@@ -718,12 +719,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
             ),
-            "enablePrReviewTestGeneration": bool(
-                obj.get_option(
-                    "sentry:enable_pr_review_test_generation",
-                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-                )
-            ),
             "enableSeerEnhancedAlerts": bool(
                 obj.get_option(
                     "sentry:enable_seer_enhanced_alerts",
@@ -735,6 +730,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     "sentry:enable_seer_coding",
                     ENABLE_SEER_CODING_DEFAULT,
                 )
+            ),
+            "defaultCodingAgent": obj.get_option(
+                "sentry:seer_default_coding_agent",
+                SEER_DEFAULT_CODING_AGENT_DEFAULT,
+            ),
+            "defaultCodingAgentIntegrationId": obj.get_option(
+                "sentry:seer_default_coding_agent_integration_id",
+                None,
             ),
             "autoOpenPrs": bool(
                 obj.get_option(

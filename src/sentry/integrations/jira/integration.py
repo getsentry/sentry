@@ -1200,10 +1200,10 @@ class JiraIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = JiraIntegration
 
-    # Jira is region-restricted because the JiraSentryIssueDetailsView view does not currently
-    # contain organization-identifying information aside from the ExternalIssue. Multiple regions
+    # Jira is cell-restricted because the JiraSentryIssueDetailsView view does not currently
+    # contain organization-identifying information aside from the ExternalIssue. Multiple cells
     # may contain a matching ExternalIssue and we could leak data across the organizations.
-    is_region_restricted = True
+    is_cell_restricted = True
 
     features = frozenset(
         [

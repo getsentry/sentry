@@ -64,15 +64,15 @@ T = TypeVar("T", bound=Model)
 
 
 def maybe_process_tombstone(
-    model: type[T], object_identifier: int, region_name: str | None = None
+    model: type[T], object_identifier: int, cell_name: str | None = None
 ) -> T | None:
     if instance := model.objects.filter(id=object_identifier).last():
         return instance
 
     tombstone = RpcTombstone(table_name=model._meta.db_table, identifier=object_identifier)
-    # tombstones sent from control must have a region name, and monolith needs to provide a region_name
-    if region_name or SiloMode.get_current_mode() == SiloMode.CONTROL:
-        cell_tombstone_service.record_remote_tombstone(region_name=region_name, tombstone=tombstone)
+    # tombstones sent from control must have a cell name, and monolith needs to provide a cell_name
+    if cell_name or SiloMode.get_current_mode() == SiloMode.CONTROL:
+        cell_tombstone_service.record_remote_tombstone(cell_name=cell_name, tombstone=tombstone)
     else:
         control_tombstone_service.record_remote_tombstone(tombstone=tombstone)
     return None

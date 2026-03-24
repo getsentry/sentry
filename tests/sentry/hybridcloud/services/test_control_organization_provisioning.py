@@ -23,7 +23,7 @@ from sentry.services.organization import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
 from sentry.types.cell import get_local_cell
 from sentry.utils.security.orgauthtoken_token import hash_token
 
@@ -97,7 +97,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
         assert old_organization == new_organization
 
 
-@all_silo_test(regions=create_test_regions("us"))
+@all_silo_test(cells=create_test_cells("us"))
 class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBase):
     def test_organization_provisioning_happy_path(self) -> None:
         rpc_org_slug = self.provision_organization()
@@ -110,7 +110,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             name="sentry", slug="sentry", email="test-owner@sentry.io", default_team=True
         )
         slug = control_organization_provisioning_rpc_service.provision_organization(
-            region_name="us", org_provision_args=provisioning_options
+            cell_name="us", org_provision_args=provisioning_options
         )
         self.assert_slug_reservation_and_org_exist(
             rpc_org_slug=slug,
@@ -170,7 +170,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
         )
 
 
-@all_silo_test(regions=create_test_regions("us", "de"))
+@all_silo_test(cells=create_test_cells("us", "de"))
 class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProvisioningBase):
     def test_updates_exact_slug(self) -> None:
         org_slug_res = self.provision_organization()

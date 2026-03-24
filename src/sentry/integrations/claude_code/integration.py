@@ -14,8 +14,6 @@ from typing import Any, Literal
 
 from django import forms
 from django.conf import settings as django_settings
-from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 from pydantic import BaseModel
 
@@ -76,7 +74,7 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     api_key: str
     domain_name: Literal["anthropic.com"] = "anthropic.com"
     environment_id: str | None = None
-    workspace_name: str | None = None
+    workspace_name: str | None = "default"
     agent_id: str | None = None
     agent_version: str | None = None
 
@@ -130,38 +128,6 @@ class ClaudeCodeApiKeyForm(forms.Form):
     )
 
 
-class ClaudeCodeEnvironmentForm(forms.Form):
-    """Step 2: Select an environment and optionally provide a workspace name."""
-
-    environment_id = forms.ChoiceField(
-        label=_("Environment"),
-        help_text=_(
-            "Select an existing environment, or leave as default "
-            "to use the sentry-autofix-agents environment."
-        ),
-        required=False,
-    )
-    workspace_name = forms.CharField(
-        label=_("Workspace Name (optional)"),
-        help_text=_(
-            "Your Anthropic workspace name (from platform.claude.com URL). "
-            "Used to link to session details."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": _("my-workspace")}),
-        max_length=255,
-        required=False,
-    )
-
-    def __init__(
-        self, *args: Any, environment_choices: list[tuple[str, str]] | None = None, **kwargs: Any
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        choices: list[tuple[str, str]] = _build_environment_choices(environment_choices)
-        env_field = self.fields["environment_id"]
-        assert isinstance(env_field, forms.ChoiceField)
-        env_field.choices = choices
-
-
 class ClaudeCodeApiKeyPipelineView(CodingAgentPipelineView):
     """Pipeline step 1: Collect API key."""
 
@@ -178,46 +144,6 @@ class ClaudeCodeApiKeyPipelineView(CodingAgentPipelineView):
         pipeline.bind_state(self.get_state_key(), form.cleaned_data["api_key"])
 
 
-class ClaudeCodeEnvironmentPipelineView(CodingAgentPipelineView):
-    """Pipeline step 2: Select environment and workspace name."""
-
-    def get_form_class(self) -> type[forms.Form]:
-        return ClaudeCodeEnvironmentForm
-
-    def get_template_name(self) -> str:
-        return "sentry/integrations/claude-code-environment.html"
-
-    def get_state_key(self) -> str:
-        return "environment"
-
-    def _fetch_environment_choices(self, api_key: str) -> list[tuple[str, str]]:
-        """Fetch environments from the Anthropic API and return as form choices."""
-        client_class = _get_client_class()
-        client = client_class(api_key=api_key)
-        environments = client.list_environments()
-        return [(env["id"], env.get("name") or env["id"]) for env in environments if env.get("id")]
-
-    def get_form_kwargs(
-        self, request: HttpRequest, pipeline: IntegrationPipeline
-    ) -> dict[str, Any]:
-        api_key: str | None = pipeline.fetch_state("api_key")
-        if not api_key:
-            return {"environment_choices": []}
-        try:
-            environment_choices = self._fetch_environment_choices(api_key)
-        except Exception:
-            logger.exception("claude_code.fetch_environments_failed")
-            environment_choices = []
-        return {"environment_choices": environment_choices}
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        api_key = pipeline.fetch_state("api_key")
-        if not api_key:
-            pipeline.state.step_index = 0
-            return pipeline.current_step()
-        return super().dispatch(request, pipeline)
-
-
 class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     """
     Integration provider for Claude Code Agent.
@@ -231,7 +157,7 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     metadata = metadata
 
     def get_pipeline_views(self):
-        return [ClaudeCodeApiKeyPipelineView(), ClaudeCodeEnvironmentPipelineView()]
+        return [ClaudeCodeApiKeyPipelineView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         api_key = state.get("api_key")
@@ -257,9 +183,8 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
                 "Unable to validate Anthropic API key. Please check your credentials."
             ) from e
 
-        environment_config = state.get("environment", {})
-        environment_id = environment_config.get("environment_id") or None
-        workspace_name = environment_config.get("workspace_name") or None
+        environment_id = None
+        workspace_name = "default"
 
         integration_metadata = ClaudeCodeIntegrationMetadata(
             domain_name="anthropic.com",
@@ -321,13 +246,13 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             {
                 "name": "workspace_name",
                 "type": "text",
-                "label": _("Workspace Name (optional)"),
+                "label": _("Workspace Name"),
                 "help": _(
-                    "Your Anthropic workspace name (from platform.claude.com URL). "
-                    "Used to link to session details."
+                    "Your Anthropic workspace name (from platform.claude.com URL), used to link to session details. "
+                    "Defaults to 'default' — override this if your workspace has a different name."
                 ),
                 "required": False,
-                "placeholder": "my-workspace",
+                "placeholder": "default",
                 "formatMessageValue": False,
             },
         ]

@@ -4,6 +4,7 @@ import pickBy from 'lodash/pickBy';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -29,10 +30,13 @@ import {
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   extractTraceMetricFromAggregates,
+  extractTraceMetricFromColumn,
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import {
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
@@ -82,32 +86,55 @@ function TraceMetricsSearchBar({
     selection: {projects},
   } = usePageFilters();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
+  const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 
   const aggregateSource = getTraceMetricAggregateSource(
     widgetBuilderState.displayType,
     widgetBuilderState.yAxis,
     widgetBuilderState.fields
   );
-  const traceMetric = extractTraceMetricFromAggregates(aggregateSource) ?? {
-    name: '',
-    type: '',
-  };
+  const traceMetrics =
+    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
 
+  const hasMultipleMetrics = hasMultipleMetricsSelected(
+    traceMetrics,
+    hasMultiMetricSelection
+  );
+
+  // In the case of multiple metrics, wipe the query so it fetches all attributes
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: createTraceMetricFilter(traceMetric)},
+      {
+        query:
+          !hasMultipleMetrics && traceMetrics[0]
+            ? createTraceMetricFilter(traceMetrics[0])
+            : undefined,
+        enabled: defined(traceMetrics[0]), // Only enable if there is at least one metric
+      },
       'string',
       HiddenTraceMetricSearchFields
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: createTraceMetricFilter(traceMetric)},
+      {
+        query:
+          !hasMultipleMetrics && traceMetrics[0]
+            ? createTraceMetricFilter(traceMetrics[0])
+            : undefined,
+        enabled: defined(traceMetrics[0]),
+      },
       'number',
       HiddenTraceMetricSearchFields
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: createTraceMetricFilter(traceMetric)},
+      {
+        query:
+          !hasMultipleMetrics && traceMetrics[0]
+            ? createTraceMetricFilter(traceMetrics[0])
+            : undefined,
+        enabled: defined(traceMetrics[0]),
+      },
       'boolean',
       HiddenTraceMetricSearchFields
     );
@@ -129,7 +156,8 @@ function TraceMetricsSearchBar({
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
       }}
-      namespace={traceMetric?.name}
+      namespace={hasMultipleMetrics ? undefined : traceMetrics?.[0]?.name}
+      disableRecentSearches={hasMultipleMetrics}
     />
   );
 }
@@ -297,8 +325,8 @@ export const TraceMetricsConfig: DatasetConfig<
       };
     });
   },
-  getCustomFieldRenderer: (field, meta, _organization) => {
-    return getFieldRenderer(field, meta, false);
+  getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
+    return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
   getFieldHeaderMap: widgetQuery => {
     return (
@@ -311,33 +339,24 @@ export const TraceMetricsConfig: DatasetConfig<
       ) ?? {}
     );
   },
-  getSeriesResultType(data, widgetQuery) {
+  getSeriesResultType(data, _widgetQuery) {
     return data.timeSeries.reduce(
       (acc, timeSeries) => {
-        const label = formatMetricsTimeseriesLabel({
-          widgetQuery,
-          timeSeries,
-        });
-        acc[label] = timeSeries.meta.valueType as AggregationOutputType;
+        acc[timeSeries.yAxis] = timeSeries.meta.valueType as AggregationOutputType;
         return acc;
       },
       {} as Record<string, AggregationOutputType>
     );
   },
-  getSeriesResultUnit: (data, widgetQuery) => {
+  getSeriesResultUnit: (data, _widgetQuery) => {
     return data.timeSeries.reduce(
       (acc, timeSeries) => {
-        const label = formatMetricsTimeseriesLabel({
-          widgetQuery,
-          timeSeries,
-        });
-
-        if (label.includes('per_second(')) {
-          acc[label] = RateUnit.PER_SECOND;
-        } else if (label.includes('per_minute(')) {
-          acc[label] = RateUnit.PER_MINUTE;
+        if (timeSeries.yAxis.includes('per_second(')) {
+          acc[timeSeries.yAxis] = RateUnit.PER_SECOND;
+        } else if (timeSeries.yAxis.includes('per_minute(')) {
+          acc[timeSeries.yAxis] = RateUnit.PER_MINUTE;
         } else {
-          acc[label] = timeSeries.meta.valueUnit as DataUnit;
+          acc[timeSeries.yAxis] = timeSeries.meta.valueUnit as DataUnit;
         }
         return acc;
       },
@@ -405,7 +424,7 @@ function formatMetricsTimeseriesLabel({
 
   // When we have both multiple aggregates and groupings, append function name for uniqueness
   if (multiYAxis && hasGroupings && func) {
-    baseName = `${baseName} : ${func.name}(…)`;
+    baseName = `${baseName} : ${func.name}(${func.arguments[1] ?? '…'})`;
   }
 
   // Add query name prefix with appropriate separator if an alias is present

@@ -148,15 +148,12 @@ export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [
-            SpanFields.NORMALIZED_DESCRIPTION,
-            `p75(${SpanFields.SPAN_SELF_TIME})`,
-          ],
-          aggregates: [`p75(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [SpanFields.NORMALIZED_DESCRIPTION, `p75(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`p75(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
           fieldAliases: [''],
           conditions: `${SpanFields.DB_SYSTEM}:[${Object.values(SupportedDatabaseSystem).join(',')}]`,
-          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `-sum(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
@@ -192,7 +189,7 @@ export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           orderby: `-equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
         },
       ],
-      limit: 4,
+      limit: 3,
       widgetType: WidgetType.SPANS,
     },
   ],

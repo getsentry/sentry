@@ -11,10 +11,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
-import type {EAPTraceMeta} from './types';
+import type {EAPTraceMeta, TraceMeta} from './types';
 
 type TraceMetaQueryParams =
   | {
@@ -26,10 +28,15 @@ type TraceMetaQueryParams =
       timestamp: number;
     };
 
+function isEmptyMeta(meta: TraceMeta | EAPTraceMeta): boolean {
+  return meta.span_count === 0 && meta.errors === 0 && meta.performance_issues === 0;
+}
+
 function getMetaQueryParams(
   row: ReplayTrace,
   normalizedParams: any,
-  filters: Partial<PageFilters> = {}
+  filters: Partial<PageFilters> = {},
+  statsPeriodOverride?: string
 ): TraceMetaQueryParams {
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
@@ -38,18 +45,25 @@ function getMetaQueryParams(
     ...(row.timestamp
       ? {timestamp: row.timestamp}
       : {
-          statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
+          statsPeriod:
+            statsPeriodOverride ??
+            (statsPeriod || filters?.datetime?.period) ??
+            DEFAULT_STATS_PERIOD,
         }),
   };
 }
 
 async function fetchSingleTraceMetaNew(
+  type: 'non-eap' | 'eap',
   api: Client,
   organization: Organization,
   replayTrace: ReplayTrace,
   queryParams: any
 ) {
-  const url = `/organizations/${organization.slug}/trace-meta/${replayTrace.traceSlug}/`;
+  const url =
+    type === 'eap'
+      ? `/organizations/${organization.slug}/trace-meta/${replayTrace.traceSlug}/`
+      : `/organizations/${organization.slug}/events-trace-meta/${replayTrace.traceSlug}/`;
 
   const data = await api.requestPromise(url, {
     method: 'GET',
@@ -59,31 +73,49 @@ async function fetchSingleTraceMetaNew(
 }
 
 async function fetchTraceMetaInBatches(
+  type: 'non-eap' | 'eap',
   api: Client,
   organization: Organization,
   replayTraces: ReplayTrace[],
   normalizedParams: any,
-  filters: Partial<PageFilters> = {}
+  filters: Partial<PageFilters> = {},
+  statsPeriodOverride?: string
 ) {
   const clonedTraceIds = [...replayTraces];
-  const meta: EAPTraceMeta = {
-    errors: 0,
-    logs: 0,
-    performance_issues: 0,
-    span_count: 0,
-    span_count_map: {},
-    transaction_child_count_map: {},
-    uptime_checks: 0,
-  };
+  const meta: TraceMeta | EAPTraceMeta =
+    type === 'eap'
+      ? {
+          errors: 0,
+          logs: 0,
+          performance_issues: 0,
+          span_count: 0,
+          span_count_map: {},
+          transaction_child_count_map: {},
+          uptime_checks: 0,
+        }
+      : {
+          errors: 0,
+          performance_issues: 0,
+          projects: 0,
+          transactions: 0,
+          transaction_child_count_map: {},
+          span_count: 0,
+          span_count_map: {},
+        };
 
   const apiErrors: Error[] = [];
 
   while (clonedTraceIds.length > 0) {
     const batch = clonedTraceIds.splice(0, 3);
-    const results = await Promise.allSettled<EAPTraceMeta>(
+    const results = await Promise.allSettled<TraceMeta | EAPTraceMeta>(
       batch.map(replayTrace => {
-        const queryParams = getMetaQueryParams(replayTrace, normalizedParams, filters);
-        return fetchSingleTraceMetaNew(api, organization, replayTrace, queryParams);
+        const queryParams = getMetaQueryParams(
+          replayTrace,
+          normalizedParams,
+          filters,
+          statsPeriodOverride
+        );
+        return fetchSingleTraceMetaNew(type, api, organization, replayTrace, queryParams);
       })
     );
 
@@ -91,7 +123,16 @@ async function fetchTraceMetaInBatches(
       if (result.status === 'fulfilled') {
         acc.errors += result.value.errors;
         acc.performance_issues += result.value.performance_issues;
-        acc.logs += result.value.logs;
+
+        if ('projects' in acc && 'projects' in result.value) {
+          acc.projects = Math.max(acc.projects, result.value.projects);
+        }
+        if ('transactions' in acc && 'transactions' in result.value) {
+          acc.transactions += result.value.transactions;
+        }
+        if ('logs' in acc && 'logs' in result.value) {
+          acc.logs += result.value.logs;
+        }
 
         // Turn the transaction_child_count_map array into a map of transaction id to child count
         // for more efficient lookups.
@@ -104,7 +145,6 @@ async function fetchTraceMetaInBatches(
         }
 
         acc.span_count += result.value.span_count;
-        acc.uptime_checks += result.value.uptime_checks;
         Object.entries(result.value.span_count_map).forEach(([span_op, count]: any) => {
           acc.span_count_map[span_op] = (acc.span_count_map[span_op] ?? 0) + count;
         });
@@ -119,7 +159,7 @@ async function fetchTraceMetaInBatches(
 }
 
 export type TraceMetaQueryResults = {
-  data: EAPTraceMeta | undefined;
+  data: TraceMeta | EAPTraceMeta | undefined;
   errors: Error[];
   status: QueryStatus;
 };
@@ -128,6 +168,8 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   const api = useApi();
   const filters = usePageFilters();
   const organization = useOrganization();
+  const isEAP = useIsEAPTraceEnabled();
+  const maxPickableDays = useDefaultMaxPickableDays();
 
   const normalizedParams = useMemo(() => {
     const query = qs.parse(location.search);
@@ -143,20 +185,43 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   const query = useQuery<
     {
       apiErrors: Error[];
-      meta: EAPTraceMeta;
+      meta: TraceMeta | EAPTraceMeta;
     },
     Error
   >({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
-    queryFn: () =>
-      fetchTraceMetaInBatches(
+    queryFn: async () => {
+      const result = await fetchTraceMetaInBatches(
+        isEAP ? 'eap' : 'non-eap',
         api,
         organization,
         replayTraces,
         normalizedParams,
         filters.selection
-      ),
+      );
+
+      const hasStatsPeriodTrace = replayTraces.some(t => !t.timestamp);
+      const defaultStatsDays = parseInt(DEFAULT_STATS_PERIOD, 10);
+      if (
+        result.apiErrors.length === 0 &&
+        isEmptyMeta(result.meta) &&
+        hasStatsPeriodTrace &&
+        maxPickableDays > defaultStatsDays
+      ) {
+        return fetchTraceMetaInBatches(
+          isEAP ? 'eap' : 'non-eap',
+          api,
+          organization,
+          replayTraces,
+          normalizedParams,
+          filters.selection,
+          `${maxPickableDays}d`
+        );
+      }
+
+      return result;
+    },
     staleTime: 1000 * 60 * 10,
     enabled: replayTraces.length > 0,
   });
@@ -178,19 +243,29 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   // The trace meta query has to reflect this by returning a single transaction and project.
   const demoResults = useMemo(() => {
     return {
-      data: {
-        errors: 0,
-        logs: 0,
-        performance_issues: 0,
-        span_count: 0,
-        span_count_map: {},
-        transaction_child_count_map: {},
-        uptime_checks: 0,
-      } as EAPTraceMeta,
-      errors: [] as Error[],
+      data: isEAP
+        ? {
+            errors: 0,
+            logs: 0,
+            performance_issues: 0,
+            span_count: 0,
+            span_count_map: {},
+            transaction_child_count_map: {},
+            uptime_checks: 0,
+          }
+        : {
+            errors: 0,
+            performance_issues: 0,
+            projects: 1,
+            transactions: 1,
+            transaction_child_count_map: {},
+            span_count: 0,
+            span_count_map: {},
+          },
+      errors: [],
       status: 'success' as QueryStatus,
     };
-  }, []);
+  }, [isEAP]);
 
   return mode === 'demo' ? demoResults : results;
 }

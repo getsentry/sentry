@@ -128,11 +128,11 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: '',
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -145,11 +145,11 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`sum(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`sum(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`sum(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`sum(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: '',
-          orderby: `sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `sum(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -186,11 +186,11 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: '',
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -240,13 +240,13 @@ const ASSETS_TABLE_WIDGET: Widget = {
       fields: [
         SpanFields.TRANSACTION,
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
         SpanFields.RESOURCE_RENDER_BLOCKING_STATUS,
       ],
       aggregates: [
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.RESOURCE_RENDER_BLOCKING_STATUS],

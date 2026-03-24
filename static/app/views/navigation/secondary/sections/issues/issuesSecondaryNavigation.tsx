@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,7 +12,6 @@ import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issu
 
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
-  const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
 
@@ -31,17 +30,17 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
+            {hasTopIssuesUI && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/supergroups/`}
+                  analyticsItemName="issues_supergroups"
+                >
+                  {t('Supergroups')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
           </SecondaryNavigation.List>
-          {hasTopIssuesUI && (
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link
-                to={`${baseUrl}/supergroups/`}
-                analyticsItemName="issues_supergroups"
-              >
-                {t('Supergroups')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
-          )}
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-types">
@@ -91,7 +90,7 @@ export function IssuesSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        <IssueViews sectionRef={sectionRef} />
+        <IssueViews />
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNavigation.Body>
     </Fragment>

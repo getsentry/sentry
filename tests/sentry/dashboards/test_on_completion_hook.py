@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from pydantic import ValidationError
-
 from sentry.dashboards.on_completion_hook import (
     FIX_PROMPT,
     FIX_PROMPT_SECONDARY,
@@ -56,7 +54,7 @@ VALID_ARTIFACT = {
     ],
 }
 
-INVALID_ARTIFACT = {
+INVALID_PYDANTIC_ARTIFACT = {
     "title": "Test Dashboard",
     "widgets": [
         {
@@ -75,8 +73,31 @@ INVALID_ARTIFACT = {
     ],
 }
 
+INVALID_SERIALIZER_ARTIFACT = {
+    "title": "Test Dashboard",
+    "widgets": [
+        {
+            "title": "Bad Widget",
+            "description": "Uses nonexistent aggregate",
+            "display_type": "line",
+            "widget_type": "error-events",
+            "queries": [
+                {
+                    "aggregates": ["nonexistent_function()"],
+                    "columns": [],
+                }
+            ],
+            "layout": {"x": 0, "y": 0, "w": 3, "h": 2, "min_h": 2},
+        }
+    ],
+}
+
 
 class DashboardOnCompletionHookTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.project
+
     @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
     def test_valid_artifact_passes(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = _make_state(artifact_data=VALID_ARTIFACT)
@@ -86,8 +107,8 @@ class DashboardOnCompletionHookTest(TestCase):
             mock_fix.assert_not_called()
 
     @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
-    def test_invalid_artifact_triggers_fix(self, mock_fetch: MagicMock) -> None:
-        mock_fetch.return_value = _make_state(artifact_data=INVALID_ARTIFACT)
+    def test_invalid_pydantic_artifact_triggers_fix(self, mock_fetch: MagicMock) -> None:
+        mock_fetch.return_value = _make_state(artifact_data=INVALID_PYDANTIC_ARTIFACT)
 
         with patch.object(DashboardOnCompletionHook, "_request_fix") as mock_fix:
             DashboardOnCompletionHook.execute(self.organization, run_id=1)
@@ -95,7 +116,21 @@ class DashboardOnCompletionHookTest(TestCase):
             args = mock_fix.call_args
             assert args[0][0] == self.organization
             assert args[0][1] == 1
-            assert isinstance(args[0][2], ValidationError)
+            assert isinstance(args[0][2], str)
+            assert "spm" in args[0][2]
+
+    @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
+    def test_invalid_serializer_artifact_triggers_fix(self, mock_fetch: MagicMock) -> None:
+        """An artifact that passes Pydantic but fails the DRF serializer should trigger a fix."""
+        mock_fetch.return_value = _make_state(artifact_data=INVALID_SERIALIZER_ARTIFACT)
+
+        with patch.object(DashboardOnCompletionHook, "_request_fix") as mock_fix:
+            DashboardOnCompletionHook.execute(self.organization, run_id=1)
+            mock_fix.assert_called_once()
+            args = mock_fix.call_args
+            assert args[0][0] == self.organization
+            assert args[0][1] == 1
+            assert isinstance(args[0][2], str)
 
     @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
     def test_valid_artifact_after_prior_fix_still_passes(self, mock_fetch: MagicMock) -> None:
@@ -136,7 +171,7 @@ class DashboardOnCompletionHookTest(TestCase):
                 )
             )
         mock_fetch.return_value = _make_state(
-            artifact_data=INVALID_ARTIFACT,
+            artifact_data=INVALID_PYDANTIC_ARTIFACT,
             previous_blocks=blocks,
         )
 
@@ -167,7 +202,7 @@ class DashboardOnCompletionHookTest(TestCase):
             )
         )
         mock_fetch.return_value = _make_state(
-            artifact_data=INVALID_ARTIFACT,
+            artifact_data=INVALID_PYDANTIC_ARTIFACT,
             previous_blocks=blocks,
         )
 

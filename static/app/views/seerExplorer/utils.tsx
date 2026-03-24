@@ -120,8 +120,8 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     if (event_id) {
       // For backwards compatibility. event_id arg only present in an older version (issue_and_event_details)
       return isLoading
-        ? `Inspecting event ${event_id.slice(0, 8)}...`
-        : `Inspected event ${event_id.slice(0, 8)}`;
+        ? `Analyzing event ${event_id.slice(0, 8)}...`
+        : `Analyzed event ${event_id.slice(0, 8)}`;
     }
 
     if (issue_id) {
@@ -145,24 +145,24 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     // event ID mode
     if (event_id) {
       return isLoading
-        ? `Inspecting event ${event_id.slice(0, 8)}...`
-        : `Inspected event ${event_id.slice(0, 8)}`;
+        ? `Analyzing event ${event_id.slice(0, 8)}...`
+        : `Analyzed event ${event_id.slice(0, 8)}`;
     }
 
     // recommended event mode
     if (issue_id) {
       if (start && end) {
         return isLoading
-          ? `Inspecting recommended event for issue ${issue_id} between ${start} to ${end}...`
-          : `Inspected recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`} between ${start} to ${end}`;
+          ? `Analyzing recommended event for issue ${issue_id}, sampled from ${start} to ${end}...`
+          : `Analyzed recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}, sampled from ${start} to ${end}`;
       }
       return isLoading
-        ? `Inspecting recommended event for issue ${issue_id}...`
-        : `Inspected recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}`;
+        ? `Analyzing recommended event for issue ${issue_id}...`
+        : `Analyzed recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}`;
     }
 
     // shouldn't happen (either event_id or issue_id required)
-    return isLoading ? `Inspecting event...` : `Inspected event`;
+    return isLoading ? `Analyzing event...` : `Analyzed event`;
   },
 
   code_search: (args, isLoading) => {
@@ -410,7 +410,7 @@ function linkifyIssueShortIds(text: string): string {
   // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
   // Requires at least 2 chars before hyphen and 1+ chars after
   // First segment must contain at least one uppercase letter (all letters must be uppercase)
-  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]{1,}|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
+  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
 
   // Track positions that should be excluded (inside code blocks, links, or URLs)
   const excludedRanges: Array<{end: number; start: number}> = [];
@@ -432,7 +432,7 @@ function linkifyIssueShortIds(text: string): string {
     });
   }
   // Find all URLs (http://, https://, or starting with /)
-  const urlPattern = /(https?:\/\/[^\s]+|\/[^\s)]+)/g;
+  const urlPattern = /(https?:\/\/\S+|\/[^\s)]+)/g;
   for (const urlMatch of text.matchAll(urlPattern)) {
     excludedRanges.push({
       end: urlMatch.index + urlMatch[0].length,
