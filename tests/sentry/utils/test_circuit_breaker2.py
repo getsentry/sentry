@@ -552,9 +552,9 @@ class RateBasedCircuitBreakerTest(TestCase):
 
     def test_high_error_count_low_rate_does_not_trip(self) -> None:
         """If error count >= floor but rate < threshold, don't trip."""
-        for _ in range(900):
+        for _ in range(1000):
             self.breaker.record_success()
-        for _ in range(99):
+        for _ in range(101):
             self.breaker.record_error()
 
         assert self.breaker.should_allow_request() is True
