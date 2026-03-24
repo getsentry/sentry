@@ -19,6 +19,7 @@ export const modalCss = (theme: Theme) => {
     [role='document'] {
       padding: 0;
 
+      background-color: ${theme.tokens.background.primary};
       border-top-left-radius: calc(${theme.radius.lg} + 1px);
       border-top-right-radius: calc(${theme.radius.lg} + 1px);
     }
