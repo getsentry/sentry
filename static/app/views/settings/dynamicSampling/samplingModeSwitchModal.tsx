@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -13,6 +13,8 @@ import {
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 
 interface Props {
@@ -29,9 +31,16 @@ interface Props {
 
 const schema = z.object({
   targetSampleRate: z
-    .number()
-    .min(0, {message: t('Must be between 0% and 100%')})
-    .max(100, {message: t('Must be between 0% and 100%')}),
+    .string()
+    .min(1, t('This field is required.'))
+    .refine(val => !isNaN(Number(val)), {message: t('Please enter a valid number.')})
+    .refine(
+      val => {
+        const n = Number(val);
+        return n >= 0 && n <= 100;
+      },
+      {message: t('Must be between 0% and 100%')}
+    ),
 });
 
 function SamplingModeSwitchModal({
@@ -58,7 +67,7 @@ function SamplingModeSwitchModal({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
-      targetSampleRate: Math.round(initialTargetRate * 100 * 100) / 100,
+      targetSampleRate: formatPercent(initialTargetRate || 0),
     },
     validators: {
       onDynamic: schema,
@@ -66,9 +75,9 @@ function SamplingModeSwitchModal({
     onSubmit: ({value}) => {
       const changes: Parameters<typeof updateOrganization>[0] = {samplingMode};
       if (samplingMode === 'organization') {
-        changes.targetSampleRate = value.targetSampleRate / 100;
+        changes.targetSampleRate = parsePercent(value.targetSampleRate);
       }
-      return updateOrganization(changes);
+      return updateOrganization(changes).catch(() => {});
     },
   });
 
@@ -82,54 +91,59 @@ function SamplingModeSwitchModal({
         </h5>
       </Header>
       <Body>
-        <p>
-          {samplingMode === 'organization'
-            ? tct(
-                'Deactivating advanced mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [learnMoreLink:Learn more]',
-                {
-                  learnMoreLink: (
-                    <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/" />
-                  ),
-                }
-              )
-            : tct(
-                'Switching to advanced mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. [prioritiesLink:Dynamic sampling priorities] continue to apply within the projects. [learnMoreLink:Learn more]',
-                {
-                  prioritiesLink: (
-                    <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities" />
-                  ),
-                  learnMoreLink: (
-                    <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#advanced-mode" />
-                  ),
-                }
+        <Stack gap="2xl">
+          <span>
+            {samplingMode === 'organization'
+              ? tct(
+                  'Deactivating advanced mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [learnMoreLink:Learn more]',
+                  {
+                    learnMoreLink: (
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/" />
+                    ),
+                  }
+                )
+              : tct(
+                  'Switching to advanced mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. [prioritiesLink:Dynamic sampling priorities] continue to apply within the projects. [learnMoreLink:Learn more]',
+                  {
+                    prioritiesLink: (
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities" />
+                    ),
+                    learnMoreLink: (
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#advanced-mode" />
+                    ),
+                  }
+                )}
+          </span>
+          {samplingMode === 'organization' ? (
+            <form.AppField name="targetSampleRate">
+              {field => (
+                <field.Layout.Stack label={t('Global Target Sample Rate')} required>
+                  {/* Match the width of PercentInput (120px) */}
+                  <div style={{width: 120}}>
+                    <field.Input
+                      type="number"
+                      step="any"
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={isPending}
+                      trailingItems={<strong>%</strong>}
+                    />
+                  </div>
+                </field.Layout.Stack>
               )}
-        </p>
-        {samplingMode === 'organization' ? (
-          <form.AppField name="targetSampleRate">
-            {field => (
-              <field.Layout.Stack label={t('Global Target Sample Rate')} required>
-                <field.Number
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  min={0}
-                  max={100}
-                  disabled={isPending}
-                  trailingItems={<strong>%</strong>}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-        ) : null}
-        <p>
-          {samplingMode === 'organization'
-            ? tct(
-                'By deactivating advanced mode, [strong:you will lose your manually configured sample rates].',
-                {
-                  strong: <strong />,
-                }
-              )
-            : t('You can deactivate advanced mode at any time.')}
-        </p>
+            </form.AppField>
+          ) : null}
+          <span>
+            {samplingMode === 'organization'
+              ? tct(
+                  'By deactivating advanced mode, [strong:you will lose your manually configured sample rates].',
+                  {
+                    strong: <strong />,
+                  }
+                )
+              : t('You can deactivate advanced mode at any time.')}
+          </span>
+        </Stack>
       </Body>
       <Footer>
         <Flex gap="xl">
