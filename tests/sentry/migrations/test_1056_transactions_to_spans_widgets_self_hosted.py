@@ -5,7 +5,7 @@ from sentry.models.organization import Organization
 from sentry.testutils.cases import SnubaTestCase, TestMigrations
 
 
-class MigrateDiscoverQueriesToExploreQueriesSelfHostedTest(TestMigrations, SnubaTestCase):
+class MigrateTransactionsToSpansWidgetsSelfHostedTest(TestMigrations, SnubaTestCase):
     migrate_from = "1055_rename_regiontombstone_to_celltombstone"
     migrate_to = "1056_transactions_to_spans_widgets_self_hosted"
 
