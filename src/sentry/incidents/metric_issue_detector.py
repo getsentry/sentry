@@ -327,7 +327,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                     update_detector_data(instance, validated_data_source)
             except Exception as e:
                 # don't update the snuba query if we failed to send data to Seer
-                raise serializers.ValidationError(e.message)
+                raise serializers.ValidationError(str(e))
 
         extrapolation_mode = format_extrapolation_mode(
             data_source.get("extrapolation_mode", snuba_query.extrapolation_mode)
@@ -367,7 +367,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 seer_updated = True
             except Exception as e:
                 # Don't update if we failed to send data to Seer
-                raise serializers.ValidationError(e.message)
+                raise serializers.ValidationError(str(e))
 
         elif (
             validated_data.get("config")
