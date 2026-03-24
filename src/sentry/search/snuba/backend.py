@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
@@ -555,6 +555,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
     ) -> Mapping[str, Condition]:
+        organization = projects[0].organization
+
         queryset_conditions: dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
             "substatus": QCallbackCondition(lambda substatuses: Q(substatus__in=substatuses)),
@@ -590,7 +592,11 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
             "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
-            "issue.seer_last_run": ScalarCondition("seer_autofix_last_triggered"),
+            "issue.seer_last_run": ScalarCondition(
+                "seer_explorer_autofix_last_triggered"
+                if features.has("organization:autofix-on-explorer", organization)
+                else "seer_autofix_last_triggered"
+            ),
             "issue.id": QCallbackCondition(
                 lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])
             ),
@@ -605,7 +611,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                             # if environment(s) are selected, we just filter on the group
                             # environment's first_release attribute.
                             id__in=GroupEnvironment.objects.filter(
-                                first_release__organization_id=projects[0].organization_id,
+                                first_release__organization_id=organization.id,
                                 first_release__version__in=versions,
                                 environment_id__in=environment_ids,
                             ).values_list("group_id"),

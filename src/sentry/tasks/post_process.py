@@ -1582,9 +1582,14 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
+
             # Long-term check to avoid re-running
             if group.seer_autofix_last_triggered is not None:
                 return
+
+            if group.seer_explorer_autofix_last_triggered is not None:
+                if features.has("organizations:autofix-on-explorer", group.organization):
+                    return
 
             # Don't run automation on old issues
             if group.first_seen < (timezone.now() - timedelta(days=14)):

@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -363,6 +363,7 @@ class GroupSerializerBase(Serializer, ABC):
         share_id = attrs["share_id"]
         priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
         issue_category = obj.issue_category_v2.name.lower()
+
         group_dict: BaseGroupSerializerResponse = {
             "id": str(obj.id),
             "shareId": share_id,
@@ -392,7 +393,11 @@ class GroupSerializerBase(Serializer, ABC):
             "priority": priority_label,
             "priorityLockedAt": obj.priority_locked_at,
             "seerFixabilityScore": obj.seer_fixability_score,
-            "seerAutofixLastTriggered": obj.seer_autofix_last_triggered,
+            "seerAutofixLastTriggered": (
+                obj.seer_explorer_autofix_last_triggered
+                if features.has("organization:autofix-on-explorer", obj.organization)
+                else obj.seer_autofix_last_triggered
+            ),
         }
 
         # This attribute is currently feature gated
