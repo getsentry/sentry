@@ -635,7 +635,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "https://api.github.com/repos/getsentry/sentry/labels",
             json=[{"name": "bug"}, {"name": "enhancement"}],
         )
-        # Mock organization issue types endpoint used by get_types()/get_org_types()
         responses.add(
             responses.GET,
             "https://api.github.com/orgs/getsentry/issue-types",
@@ -792,6 +791,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/labels",
             json=[{"name": "bug"}, {"name": "enhancement"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/getsentry/issue-types",
+            json=[{"name": "bug"}, {"name": "task"}],
         )
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
