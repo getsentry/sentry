@@ -107,6 +107,7 @@ class RetentionsConfig(TypedDict, total=False):
     traceMetric: RetentionSettings
     traceAttachment: RetentionSettings
 
+    @staticmethod
     def from_mapping(mapping: Mapping[DataCategory, RetentionSettings]) -> RetentionsConfig:
         """
         Creates a Relay-shaped RetentionsConfig from a
