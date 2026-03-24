@@ -25,6 +25,7 @@ import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -168,9 +169,14 @@ const LogsSearchSection = memo(function LogsSearchSection({
     return [];
   }, []);
 
+  const organization = useOrganization();
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
+
   return (
     <SearchQueryBuilderProvider
-      enableAISearch
+      enableAISearch={hasTranslateEndpoint}
       aiSearchBadgeType="alpha"
       {...searchQueryBuilderProviderProps}
     >
