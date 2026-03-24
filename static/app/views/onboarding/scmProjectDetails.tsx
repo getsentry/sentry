@@ -26,8 +26,7 @@ import {
 import type {StepProps} from './types';
 
 export function ScmProjectDetails({onComplete}: StepProps) {
-  const {selectedPlatform, selectedRepository, setCreatedProjectSlug} =
-    useOnboardingContext();
+  const {selectedPlatform, setCreatedProjectSlug} = useOnboardingContext();
   const {teams} = useTeams();
   const createProjectAndRules = useCreateProjectAndRules();
 
@@ -45,7 +44,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     () => teams.find((team: Team) => team.access.includes('team:admin')),
     [teams]
   );
-  const defaultName = slugify(selectedRepository?.name ?? selectedPlatform?.key ?? '');
+  const defaultName = slugify(selectedPlatform?.key ?? '');
 
   // State tracks user edits; derived values fall back to defaults from context/teams
   const [projectName, setProjectName] = useState<string | null>(null);

@@ -68,7 +68,7 @@ describe('ScmProjectDetails', () => {
     expect(input).toHaveValue('javascript-nextjs');
   });
 
-  it('renders project name defaulted from repository name when SCM connected', async () => {
+  it('uses platform key as default name even when repository is in context', async () => {
     render(
       <ScmProjectDetails
         onComplete={jest.fn()}
@@ -84,9 +84,8 @@ describe('ScmProjectDetails', () => {
       }
     );
 
-    // slugify('getsentry/sentry') strips the slash -> 'getsentrysentry'
     const input = await screen.findByPlaceholderText('project-name');
-    expect(input).toHaveValue('getsentrysentry');
+    expect(input).toHaveValue('javascript-nextjs');
   });
 
   it('renders alert frequency options', async () => {
