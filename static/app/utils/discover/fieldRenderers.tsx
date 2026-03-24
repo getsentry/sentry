@@ -68,6 +68,7 @@ import {
   NUMBER_MAX_FRACTION_DIGITS,
   NUMBER_MIN_VALUE,
 } from 'sentry/views/dashboards/widgets/common/settings';
+import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -313,7 +314,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       if (data[field] > 0 && data[field] < NUMBER_MIN_VALUE) {
         return (
           <NumberContainer>
-            <Tooltip title={data[field].toLocaleString()}>
+            <Tooltip title={formatTooltipValue(data[field], 'number')}>
               <span>{`<${NUMBER_MIN_VALUE}`}</span>
             </Tooltip>
           </NumberContainer>
