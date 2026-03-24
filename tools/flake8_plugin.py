@@ -133,6 +133,8 @@ class SentryVisitor(ast.NodeVisitor):
                 and "sentry.testutils" in alias.name
             ):
                 self.errors.append((node.lineno, node.col_offset, S007_msg))
+            elif alias.name == "concurrent.futures" or alias.name.startswith("concurrent.futures."):
+                self.errors.append((node.lineno, node.col_offset, S016_msg))
 
         self.generic_visit(node)
 
