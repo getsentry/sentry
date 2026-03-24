@@ -9,7 +9,7 @@ import {
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {GlobalModal} from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';

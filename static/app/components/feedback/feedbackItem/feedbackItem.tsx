@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';

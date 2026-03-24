@@ -26,7 +26,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-class ForkCustomerAction extends Component<Props> {
+export class ForkCustomerAction extends Component<Props> {
   state: State = {
     regionUrl: '',
   };
@@ -81,5 +81,3 @@ class ForkCustomerAction extends Component<Props> {
     );
   }
 }
-
-export default ForkCustomerAction;

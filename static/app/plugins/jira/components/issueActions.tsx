@@ -1,9 +1,9 @@
-import Form from 'sentry/components/deprecatedforms/form';
-import FormState from 'sentry/components/forms/state';
-import DefaultIssueActions from 'sentry/plugins/components/issueActions';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {FormState} from 'sentry/components/forms/state';
+import {IssueActions as DefaultIssueActions} from 'sentry/plugins/components/issueActions';
 import type {Writable} from 'sentry/types/core';
 
-class IssueActions extends DefaultIssueActions {
+export class IssueActions extends DefaultIssueActions {
   changeField = (
     action: DefaultIssueActions['props']['actionType'],
     name: string,
@@ -116,5 +116,3 @@ class IssueActions extends DefaultIssueActions {
     return form;
   }
 }
-
-export default IssueActions;

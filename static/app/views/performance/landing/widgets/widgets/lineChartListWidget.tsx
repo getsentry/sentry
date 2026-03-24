@@ -7,14 +7,14 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {EventsRequest as _EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {Count} from 'sentry/components/count';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {Truncate} from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {

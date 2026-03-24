@@ -14,7 +14,7 @@ import type {ReleaseProject} from 'sentry/types/release';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {toArray} from 'sentry/utils/array/toArray';
 import type {EventData} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';

@@ -598,6 +598,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/seer/                                         @getsentry/machine-learning-ai
 /src/sentry/seer/fetch_issues/                              @getsentry/machine-learning-ai @getsentry/coding-workflows-sentry-backend
 /tests/sentry/seer/fetch_issues/                            @getsentry/machine-learning-ai @getsentry/coding-workflows-sentry-backend
+/src/sentry/tasks/seer/                                     @getsentry/machine-learning-ai
+/tests/sentry/tasks/seer/                                   @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Issues
@@ -648,7 +650,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issue-detection-backend
 /src/sentry/tasks/codeowners/                               @getsentry/issue-detection-backend
 /src/sentry/tasks/commit_context.py                         @getsentry/issue-detection-backend
-/src/sentry/tasks/delete_seer_grouping_records.py           @getsentry/issue-detection-backend
+/src/sentry/tasks/seer/delete_seer_grouping_records.py      @getsentry/issue-detection-backend
 /src/sentry/tasks/embeddings_grouping/                      @getsentry/issue-detection-backend
 /src/sentry/tasks/groupowner.py                             @getsentry/issue-detection-backend
 /src/sentry/tasks/merge.py                                  @getsentry/issue-detection-backend
@@ -686,14 +688,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issue-detection-backend
-/tests/sentry/tasks/test_backfill_seer_grouping_records.py  @getsentry/issue-detection-backend
+/tests/sentry/tasks/seer/test_delete_seer_grouping_records.py @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_snoozes.py           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_code_owners.py                     @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_commit_context.py                  @getsentry/issue-detection-backend
-/tests/sentry/tasks/test_delete_seer_grouping_records.py    @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_groupowner.py                      @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_merge.py                           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issue-detection-backend

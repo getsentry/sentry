@@ -1,4 +1,4 @@
-import InputField from 'sentry/components/deprecatedforms/inputField';
+import {InputField} from 'sentry/components/deprecatedforms/inputField';
 import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 
 // XXX: This is ONLY used in GenericField. If we can delete that this can go.
