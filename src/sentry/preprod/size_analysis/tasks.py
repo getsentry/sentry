@@ -8,7 +8,9 @@ from django.db import router, transaction
 from django.utils import timezone
 
 from sentry import features
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
+from sentry.preprod.artifact_search import get_sequential_base_artifact
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -21,7 +23,7 @@ from sentry.preprod.size_analysis.grouptype import (
     SizeAnalysisMetadata,
     SizeAnalysisValue,
 )
-from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
+from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 from sentry.preprod.size_analysis.webhooks import send_size_analysis_webhook
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -93,6 +95,8 @@ def compare_preprod_artifact_size_analysis(
                             "caller": "compare_build_config_mismatch",
                         }
                     )
+                    # Still evaluate sequential monitors even on build config mismatch
+                    maybe_emit_issues_from_diff_size_results(artifact, org_id)
                     return
 
                 base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
@@ -267,6 +271,9 @@ def compare_preprod_artifact_size_analysis(
             )
     finally:
         send_size_analysis_webhook(artifact=artifact, organization_id=org_id)
+
+    # Evaluate sequential monitors unconditionally — independent of git metadata
+    maybe_emit_issues_from_diff_size_results(artifact, org_id)
 
 
 @instrumented_task(
@@ -532,50 +539,39 @@ def _run_size_analysis_comparison(
         comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
         comparison.save()
 
-    maybe_emit_issues(
-        comparison_results=comparison_results,
-        head_metric=head_size_metric,
-        base_metric=base_size_metric,
-    )
-
     logger.info(
         "preprod.size_analysis.compare.success",
         extra={"comparison_id": comparison.id},
     )
 
 
-def maybe_emit_issues(
-    comparison_results: ComparisonResults,
-    head_metric: PreprodArtifactSizeMetrics,
-    base_metric: PreprodArtifactSizeMetrics,
+def maybe_emit_issues_from_diff_size_results(
+    artifact: PreprodArtifact,
+    org_id: int,
 ) -> None:
     try:
-        _maybe_emit_issues(
-            comparison_results=comparison_results, head_metric=head_metric, base_metric=base_metric
-        )
+        _maybe_emit_issues_from_diff_size_results(artifact=artifact, org_id=org_id)
     except Exception:
-        logger.exception("Error emitting issues")
+        logger.exception("Error emitting issues from diff size results")
 
 
 def _get_platform(artifact: PreprodArtifact) -> str:
     return artifact.platform or "unknown"
 
 
-def _maybe_emit_issues(
-    comparison_results: ComparisonResults,
-    head_metric: PreprodArtifactSizeMetrics,
-    base_metric: PreprodArtifactSizeMetrics,
+def _maybe_emit_issues_from_diff_size_results(
+    artifact: PreprodArtifact,
+    org_id: int,
 ) -> None:
-    project = head_metric.preprod_artifact.project
+    project = artifact.project
     project_id = project.id
-    organization_id = project.organization.id
 
     if not features.has("organizations:preprod-issues", project.organization):
         logger.info(
-            "preprod.size_analysis.compare.issues.disabled",
+            "preprod.size_analysis.diff_results.issues.disabled",
             extra={
                 "project_id": project_id,
-                "organization_id": organization_id,
+                "organization_id": org_id,
             },
         )
         return
@@ -589,62 +585,107 @@ def _maybe_emit_issues(
     )
     if not detectors:
         logger.info(
-            "preprod.size_analysis.no_detectors",
+            "preprod.size_analysis.diff_results.no_detectors",
             extra={"project_id": project_id},
         )
         return
 
-    # Only process diff-based detectors from the comparison path
     detectors = [d for d in detectors if d.config.get("threshold_type") in DIFF_THRESHOLD_TYPES]
     if not detectors:
         logger.info(
-            "preprod.size_analysis.no_diff_detectors",
+            "preprod.size_analysis.diff_results.no_diff_detectors",
             extra={"project_id": project_id},
         )
         return
 
-    diff = comparison_results.size_metric_diff_item
-    head_artifact = head_metric.preprod_artifact
-    base_artifact = base_metric.preprod_artifact
-
-    metadata: SizeAnalysisMetadata = {
-        "platform": _get_platform(head_artifact),
-        "head_metric_id": head_metric.id,
-        "base_metric_id": base_metric.id,
-        "head_artifact_id": head_artifact.id,
-        "base_artifact_id": base_artifact.id,
-        "head_artifact": head_artifact,
-        "base_artifact": base_artifact,
-    }
-
-    size_data: SizeAnalysisValue = {
-        "head_install_size_bytes": diff.head_install_size,
-        "head_download_size_bytes": diff.head_download_size,
-        "base_install_size_bytes": diff.base_install_size,
-        "base_download_size_bytes": diff.base_download_size,
-        "metadata": metadata,
-    }
-
-    data_packet: SizeAnalysisDataPacket = DataPacket(
-        source_id=f"preprod-size-analysis:{project_id}",
-        packet=size_data,
+    head_metrics = list(
+        PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
     )
+    if not head_metrics:
+        logger.info(
+            "preprod.size_analysis.diff_results.no_head_metrics",
+            extra={"artifact_id": artifact.id},
+        )
+        return
 
-    logger.info(
-        "preprod.size_analysis.process_detectors.starting",
-        extra={
-            "project_id": project_id,
-            "detector_count": len(detectors),
-        },
-    )
-    results = process_detectors(data_packet, detectors)
-    logger.info(
-        "preprod.size_analysis.process_detectors.completed",
-        extra={
-            "project_id": project_id,
-            "detector_count": len(results),
-        },
-    )
+    head_metric = head_metrics[0]
+    organization = project.organization
+
+    # Batch-resolve sequential bases by unique query string
+    query_to_base: dict[str, PreprodArtifact | None] = {}
+    for detector in detectors:
+        query = detector.config.get("query", "")
+        normalized_query = query.strip() if query else ""
+        if normalized_query not in query_to_base:
+            try:
+                base = get_sequential_base_artifact(artifact, normalized_query, organization)
+            except InvalidSearchQuery:
+                logger.exception(
+                    "preprod.size_analysis.diff_results.invalid_query",
+                    extra={"detector_id": detector.id, "query": normalized_query},
+                )
+                base = None
+            query_to_base[normalized_query] = base
+
+    for detector in detectors:
+        query = detector.config.get("query", "")
+        normalized_query = query.strip() if query else ""
+        base_artifact = query_to_base.get(normalized_query)
+        if base_artifact is None:
+            logger.info(
+                "preprod.size_analysis.diff_results.no_base",
+                extra={"detector_id": detector.id, "artifact_id": artifact.id},
+            )
+            continue
+
+        base_metrics = list(
+            PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact=base_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
+        )
+        if not base_metrics:
+            continue
+
+        base_metric = base_metrics[0]
+
+        metadata: SizeAnalysisMetadata = {
+            "platform": _get_platform(artifact),
+            "head_metric_id": head_metric.id,
+            "base_metric_id": base_metric.id,
+            "head_artifact_id": artifact.id,
+            "base_artifact_id": base_artifact.id,
+            "head_artifact": artifact,
+            "base_artifact": base_artifact,
+        }
+
+        size_data: SizeAnalysisValue = {
+            "head_install_size_bytes": head_metric.max_install_size or 0,
+            "head_download_size_bytes": head_metric.max_download_size or 0,
+            "base_install_size_bytes": base_metric.max_install_size or 0,
+            "base_download_size_bytes": base_metric.max_download_size or 0,
+            "metadata": metadata,
+        }
+
+        data_packet: SizeAnalysisDataPacket = DataPacket(
+            source_id=f"preprod-size-analysis:{project_id}",
+            packet=size_data,
+        )
+
+        logger.info(
+            "preprod.size_analysis.diff_results.evaluating",
+            extra={
+                "detector_id": detector.id,
+                "artifact_id": artifact.id,
+                "base_artifact_id": base_artifact.id,
+            },
+        )
+        process_detectors(data_packet, [detector])
 
 
 def maybe_emit_issues_from_absolute_size_results(
