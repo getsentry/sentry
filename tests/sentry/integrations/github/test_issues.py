@@ -641,11 +641,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "https://api.github.com/repos/getsentry/sentry/labels",
             json=[{"name": "bug"}, {"name": "enhancement"}],
         )
-        # responses.add(
-        #     responses.GET,
-        #     "https://api.github.com/orgs/getsentry/issue-types",
-        #     json=[{"name": "bug"}, {"name": "task"}],
-        # )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/getsentry/issue-types",
+            json=[{"name": "bug"}, {"name": "task"}],
+        )
 
         responses.add(
             responses.GET,
