@@ -1,7 +1,8 @@
-import {useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
+import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -20,6 +21,10 @@ import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/si
 import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
+import {
+  MetricsFrozenContextProvider,
+  type TracePeriod,
+} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -43,6 +48,10 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     canChangeOrientation,
   } = useTableOrientationControl();
   const [infoContentHidden, setInfoContentHidden] = useState(false);
+  const [selectedTableRange, setSelectedTableRange] = useState<Selection | null>(null);
+  const [tableTracePeriod, setTableTracePeriod] = useState<TracePeriod | undefined>(
+    undefined
+  );
   const {isMetricOptionsEmpty} = useMetricOptions({enabled: Boolean(traceMetric.name)});
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
@@ -87,25 +96,42 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     panelIndex: queryIndex,
   });
 
+  useEffect(() => {
+    setSelectedTableRange(null);
+    setTableTracePeriod(undefined);
+  }, [traceMetric.name, traceMetric.type, traceMetric.unit]);
+
+  const handleTableSelectionChange = useCallback(
+    (selection: Selection | null, tracePeriod?: TracePeriod) => {
+      setSelectedTableRange(selection);
+      setTableTracePeriod(tracePeriod);
+    },
+    []
+  );
+
   if (hasMetricsUIRefresh) {
     return (
       <Panel data-test-id="metric-panel">
         <PanelBody>
-          <Stack gap="sm">
-            <MetricsGraph
-              timeseriesResult={timeseriesResult}
-              orientation={orientation}
-              isMetricOptionsEmpty={isMetricOptionsEmpty}
-              queryIndex={queryIndex}
-            />
-            <MetricInfoTabs
-              traceMetric={traceMetric}
-              additionalActions={undefined}
-              contentsHidden={infoContentHidden}
-              orientation={orientation}
-              isMetricOptionsEmpty={isMetricOptionsEmpty}
-            />
-          </Stack>
+          <MetricsFrozenContextProvider traceIds={[]} tracePeriod={tableTracePeriod}>
+            <Stack gap="sm">
+              <MetricsGraph
+                timeseriesResult={timeseriesResult}
+                orientation={orientation}
+                isMetricOptionsEmpty={isMetricOptionsEmpty}
+                queryIndex={queryIndex}
+                tableSelection={selectedTableRange}
+                onTableSelectionChange={handleTableSelectionChange}
+              />
+              <MetricInfoTabs
+                traceMetric={traceMetric}
+                additionalActions={undefined}
+                contentsHidden={infoContentHidden}
+                orientation={orientation}
+                isMetricOptionsEmpty={isMetricOptionsEmpty}
+              />
+            </Stack>
+          </MetricsFrozenContextProvider>
         </PanelBody>
       </Panel>
     );

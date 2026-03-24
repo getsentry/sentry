@@ -1,13 +1,15 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {IconClock, IconGraph} from 'sentry/icons';
+import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
+import {IconClock, IconClose, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -21,6 +23,7 @@ import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVis
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
+import type {TracePeriod} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {
   useMetricLabel,
   useMetricName,
@@ -31,6 +34,7 @@ import {
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {getTracePeriodFromSelection} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
@@ -60,7 +64,12 @@ interface MetricsGraphProps {
   additionalActions?: React.ReactNode;
   infoContentHidden?: boolean;
   isMetricOptionsEmpty?: boolean;
+  onTableSelectionChange?: (
+    selection: Selection | null,
+    tracePeriod?: TracePeriod
+  ) => void;
   queryIndex?: number;
+  tableSelection?: Selection | null;
 }
 
 export function MetricsGraph({
@@ -70,6 +79,8 @@ export function MetricsGraph({
   additionalActions,
   infoContentHidden,
   isMetricOptionsEmpty,
+  tableSelection,
+  onTableSelectionChange,
 }: MetricsGraphProps) {
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
@@ -97,6 +108,8 @@ export function MetricsGraph({
       infoContentHidden={infoContentHidden}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
       queryIndex={queryIndex}
+      tableSelection={tableSelection}
+      onTableSelectionChange={onTableSelectionChange}
     />
   );
 }
@@ -117,8 +130,11 @@ function Graph({
   additionalActions,
   isMetricOptionsEmpty,
   queryIndex = 0,
+  tableSelection,
+  onTableSelectionChange,
 }: GraphProps) {
   const organization = useOrganization();
+  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const metricLabel = useMetricLabel();
@@ -187,7 +203,7 @@ function Graph({
     return metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
   }, [aggregate, metricLabel, metricName, visualizes.length]);
 
-  const Title = canUseMetricsUIRefresh(organization) ? (
+  const Title = hasMetricsUIRefresh ? (
     <Flex align="center" gap="xs">
       <VisualizeLabel
         justify="center"
@@ -253,6 +269,15 @@ function Graph({
         menuTitle="Interval"
         options={intervalOptions}
       />
+      {hasMetricsUIRefresh && tableSelection ? (
+        <Button
+          aria-label={t('Clear table time range')}
+          icon={<IconClose />}
+          priority="transparent"
+          size="xs"
+          onClick={() => onTableSelectionChange?.(null)}
+        />
+      ) : null}
       {additionalActions}
     </Fragment>
   );
@@ -264,7 +289,7 @@ function Graph({
   if (visualize.visible) {
     if (orientation === 'bottom' || infoContentHidden) {
       height = STACKED_GRAPH_HEIGHT;
-    } else if (canUseMetricsUIRefresh(organization)) {
+    } else if (hasMetricsUIRefresh) {
       height = STACKED_GRAPH_HEIGHT;
     } else {
       height = undefined;
@@ -272,9 +297,7 @@ function Graph({
   }
 
   return (
-    <WidgetWrapper
-      hideFooterBorder={orientation === 'bottom' || canUseMetricsUIRefresh(organization)}
-    >
+    <WidgetWrapper hideFooterBorder={orientation === 'bottom' || hasMetricsUIRefresh}>
       <Widget
         Title={Title}
         Actions={Actions}
@@ -293,7 +316,30 @@ function Graph({
               )}
             />
           ) : showChart ? (
-            <ChartVisualization chartInfo={chartInfo} />
+            <ChartVisualization
+              chartInfo={chartInfo}
+              chartXRangeSelection={
+                hasMetricsUIRefresh
+                  ? {
+                      disabled: false,
+                      initialSelection: tableSelection ?? undefined,
+                      onSelectionEnd: ({selectionState}) => {
+                        if (!selectionState) {
+                          return;
+                        }
+
+                        onTableSelectionChange?.(
+                          selectionState.selection,
+                          getTracePeriodFromSelection(selectionState.selection)
+                        );
+                      },
+                      onClearSelection: () => {
+                        onTableSelectionChange?.(null);
+                      },
+                    }
+                  : undefined
+              }
+            />
           ) : undefined
         }
         Footer={
