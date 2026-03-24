@@ -73,7 +73,7 @@ function SamplingModeSwitchModal({
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <Header>
         <h5>
           {samplingMode === 'organization'
