@@ -13,7 +13,6 @@ import {
   IconMegaphone,
   IconOpen,
   IconQuestion,
-  IconSearch,
   IconSentry,
   IconSupport,
 } from 'sentry/icons';
@@ -58,11 +57,6 @@ export function PrimaryNavigationHelpMenu() {
               {
                 key: 'search',
                 label: t('Search support, docs and more'),
-                leadingItems: hasPageFrame ? (
-                  <MenuIcon>
-                    <IconSearch />
-                  </MenuIcon>
-                ) : undefined,
                 onAction() {
                   openHelpSearchModal({organization});
                 },
