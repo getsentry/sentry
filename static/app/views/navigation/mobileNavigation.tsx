@@ -42,8 +42,6 @@ export function MobileNavigation() {
   const {layout, activeGroup} = usePrimaryNavigation();
   const {currentStepId, endTour} = useNavigationTour();
 
-  const hasPageFrame = useHasPageFrameFeature();
-
   /** Close menu after any location pathname change */
   useEffect(() => setView('closed'), [location.pathname]);
 
@@ -84,32 +82,6 @@ export function MobileNavigation() {
     !ConfigStore.get('isSelfHosted') &&
     !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
-  if (hasPageFrame) {
-    return (
-      <SizeProvider size="sm">
-        <MobileNavigationHeader
-          height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`}
-          padding="sm"
-        >
-          <Flex align="center" gap="md" justify="between" width="100%">
-            <Button
-              ref={closeButtonRef}
-              onClick={handleClick}
-              icon={<IconMenu aria-hidden="true" />}
-              aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
-            />
-            <Stack gap="md" direction="row">
-              <PrimaryNavigation.ButtonBar orientation="horizontal">
-                <PrimaryNavigationFooterItems />
-              </PrimaryNavigation.ButtonBar>
-              <PrimaryNavigationFooterItemsUserDropdown />
-            </Stack>
-          </Flex>
-        </MobileNavigationHeader>
-      </SizeProvider>
-    );
-  }
-
   return (
     <MobileNavigationHeader>
       <SizeProvider size="xs">
@@ -138,9 +110,9 @@ export function MobileNavigation() {
           <SizeProvider size="sm">
             {view === 'primary' ? (
               <Stack height="100%" justify="between">
-                <Stack>
+                <PrimaryNavigation.List>
                   <PrimaryNavigationItems />
-                </Stack>
+                </PrimaryNavigation.List>
                 <Stack>
                   <PrimaryNavigationFooterItems />
                   <PrimaryNavigationFooterItemsUserDropdown />
@@ -238,8 +210,10 @@ export function MobilePageFrameNavigation() {
       scrollLock.acquire();
     } else {
       main?.removeAttribute('inert');
+      if (scrollLock.held()) {
+        setView('expanded');
+      }
       scrollLock.release();
-      setView('expanded');
     }
     return () => {
       main?.removeAttribute('inert');

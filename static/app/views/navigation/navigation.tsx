@@ -131,17 +131,18 @@ export function Navigation() {
 }
 
 interface PrimaryNavigationItemsProps {
-  listRef: RefObject<HTMLUListElement | null>;
+  listRef?: RefObject<HTMLUListElement | null>;
 }
 
 export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
 
+  const fallbackRef = useRef<HTMLUListElement>(null);
   const hasPageFrame = useHasPageFrameFeature();
 
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({
-    ref: listRef,
+    ref: listRef ?? fallbackRef,
   });
 
   return (
