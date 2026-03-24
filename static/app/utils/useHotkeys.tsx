@@ -44,6 +44,12 @@ type Hotkey = {
    * Do not call preventDefault on the keydown event
    */
   skipPreventDefault?: boolean;
+  /**
+   * Register the listener on the capture phase instead of the bubble phase.
+   * Use this when the shortcut must fire even if a child component calls
+   * `stopPropagation()` on the keydown event (e.g., the search query builder).
+   */
+  useCapture?: boolean;
 };
 
 /**
@@ -63,8 +69,12 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
   });
 
   useEffect(() => {
-    const onKeyDown = (evt: KeyboardEvent) => {
+    const makeHandler = (capture: boolean) => (evt: KeyboardEvent) => {
       for (const hotkey of hotkeysRef.current) {
+        if (!!hotkey.useCapture !== capture) {
+          continue;
+        }
+
         const preventDefault = !hotkey.skipPreventDefault;
         const keysets = toArray(hotkey.match).map(keys => keys.toLowerCase());
 
@@ -92,10 +102,15 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
       }
     };
 
+    const onKeyDown = makeHandler(false);
+    const onKeyDownCapture = makeHandler(true);
+
     document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keydown', onKeyDownCapture, true);
 
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keydown', onKeyDownCapture, true);
     };
   }, []);
 }

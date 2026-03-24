@@ -42,6 +42,8 @@ function UserAndOrganizationNavigation() {
       : [
           {
             match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+            includeInputs: true,
+            useCapture: true,
             callback: () => {
               if (organization.features.includes('cmd-k-supercharged')) {
                 openCommandPalette();

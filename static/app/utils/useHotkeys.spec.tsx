@@ -157,6 +157,50 @@ describe('useHotkeys', () => {
     expect(callback).toHaveBeenCalled();
   });
 
+  it('registers on capture phase with useCapture', () => {
+    const callback = jest.fn();
+
+    renderHook(p => useHotkeys(p), {
+      initialProps: [{match: 'command+k', callback, useCapture: true}],
+    });
+
+    expect(document.addEventListener).toHaveBeenCalledWith(
+      'keydown',
+      expect.any(Function),
+      true
+    );
+
+    const captureCall = (document.addEventListener as jest.Mock).mock.calls.find(
+      call => call[0] === 'keydown' && call[2] === true
+    );
+    expect(captureCall).toBeDefined();
+
+    const captureHandler = captureCall[1];
+    const evt = makeKeyEventFixture('k', {metaKey: true});
+    captureHandler(evt);
+
+    expect(callback).toHaveBeenCalled();
+  });
+
+  it('does not fire capture hotkeys on bubble phase', () => {
+    const callback = jest.fn();
+
+    renderHook(p => useHotkeys(p), {
+      initialProps: [{match: 'command+k', callback, useCapture: true}],
+    });
+
+    const bubbleCall = (document.addEventListener as jest.Mock).mock.calls.find(
+      call => call[0] === 'keydown' && call[2] !== true
+    );
+    expect(bubbleCall).toBeDefined();
+
+    const bubbleHandler = bubbleCall[1];
+    const evt = makeKeyEventFixture('k', {metaKey: true});
+    bubbleHandler(evt);
+
+    expect(callback).not.toHaveBeenCalled();
+  });
+
   it('skips preventDefault', () => {
     const callback = jest.fn();
 
