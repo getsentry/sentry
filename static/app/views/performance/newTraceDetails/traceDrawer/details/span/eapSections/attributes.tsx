@@ -143,7 +143,7 @@ export function Attributes({
         traceSlug,
         spanId: node.value.event_id,
         timestamp: node.value.start_timestamp,
-        dateSelection: normalizeDateTimeParams(selection),
+        dateSelection: normalizeDateTimeParams(selection.datetime),
         location: {
           ...currentLocation,
           query: {},
