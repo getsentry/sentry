@@ -141,6 +141,7 @@ export function Attributes({
       const target = getTraceDetailsUrl({
         organization,
         traceSlug,
+        spanId: node.value.event_id,
         timestamp: node.value.start_timestamp,
         dateSelection: normalizeDateTimeParams(selection),
         location: {
