@@ -38,12 +38,8 @@ export function NewDetectorFooter({
               <Button
                 priority="primary"
                 type="submit"
-                disabled={
-                  !!disabledCreate ||
-                  form?.isFormIncomplete ||
-                  form?.isError ||
-                  form?.isSaving
-                }
+                busy={form?.isSaving}
+                disabled={!!disabledCreate || form?.isFormIncomplete || form?.isError}
                 tooltipProps={{
                   title: form
                     ? getSubmitButtonTitle(form, disabledCreate)

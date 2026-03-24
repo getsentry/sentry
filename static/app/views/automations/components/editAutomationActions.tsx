@@ -73,7 +73,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
         </Button>
         <Observer>
           {() => (
-            <Button type="submit" priority="primary" size="sm" disabled={form.isSaving}>
+            <Button type="submit" priority="primary" size="sm" busy={form.isSaving}>
               {t('Save')}
             </Button>
           )}
