@@ -16,5 +16,4 @@ export const WIDGET_COLUMN_LABELS = {
   p75: 'P75',
   p95: 'P95',
   timeSpent: t('Time Spent'),
-  transaction: t('Transaction'),
 } as const;

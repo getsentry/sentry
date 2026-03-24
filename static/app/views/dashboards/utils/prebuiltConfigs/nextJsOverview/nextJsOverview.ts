@@ -162,7 +162,7 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
       columns: [SpanFields.TRANSACTION, SpanFields.SPAN_OP, SpanFields.PROJECT],
       fields: CLIENT_TRANSACTIONS_TABLE_FIELDS,
       fieldAliases: [
-        WIDGET_COLUMN_LABELS.transaction,
+        t('Transaction'),
         '',
         t('Operation'),
         t('Views'),
@@ -214,7 +214,7 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
       columns: [SpanFields.TRANSACTION, SpanFields.PROJECT],
       fields: SERVER_TRANSACTIONS_TABLE_FIELDS,
       fieldAliases: [
-        WIDGET_COLUMN_LABELS.transaction,
+        t('Transaction'),
         '',
         t('Views'),
         t('Error Rate'),

@@ -212,7 +212,7 @@ const TRANSACTIONS_TABLE: Widget = {
       fields: TABLE_FIELDS,
       fieldAliases: [
         '',
-        WIDGET_COLUMN_LABELS.transaction,
+        t('Transaction'),
         t('Project'),
         t('TPM'),
         WIDGET_COLUMN_LABELS.p50,

@@ -240,7 +240,7 @@ const TRANSACTIONS_TABLE: Widget = {
       fieldAliases: [
         '',
         t('HTTP Method'),
-        WIDGET_COLUMN_LABELS.transaction,
+        t('Transaction'),
         t('Operation'),
         t('Project'),
         t('TPM'),
