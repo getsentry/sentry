@@ -93,7 +93,7 @@ from sentry.spans.buffer_logger import (
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.spans.segment_key import (
-    DistributedPayloadKey,
+    PayloadKey,
     SegmentKey,
     parse_segment_key,
     segment_key_to_span_id,
@@ -148,6 +148,7 @@ class FlushedSegment(NamedTuple):
         0.0  # Queue score at flush time, used for conditional cleanup in done_flush_segments
     )
     ingested_count: int = 0  # Ingested count at flush time, used for conditional data cleanup
+    payload_keys: list[PayloadKey] = []  # For cleanup
 
 
 class SpansBuffer:
@@ -177,9 +178,7 @@ class SpansBuffer:
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
-    def _get_distributed_payload_key(
-        self, project_and_trace: str, span_id: str
-    ) -> DistributedPayloadKey:
+    def _get_payload_key(self, project_and_trace: str, span_id: str) -> PayloadKey:
         return f"span-buf:s:{{{project_and_trace}:{span_id}}}:{span_id}".encode("ascii")
 
     def _get_payload_key_index(self, segment_key: SegmentKey) -> bytes:
@@ -238,10 +237,7 @@ class SpansBuffer:
                     for (project_and_trace, parent_span_id), subsegment in batch:
                         set_members = self._prepare_payloads(subsegment)
                         if write_distributed_payloads:
-                            # Write to distributed key.
-                            dist_key = self._get_distributed_payload_key(
-                                project_and_trace, parent_span_id
-                            )
+                            dist_key = self._get_payload_key(project_and_trace, parent_span_id)
                             p.sadd(dist_key, *set_members)
                             p.expire(dist_key, redis_ttl)
 
@@ -573,7 +569,7 @@ class SpansBuffer:
             segment_to_queue = {
                 segment_key: queue_key for _, queue_key, segment_key, _ in segment_keys
             }
-            segments, ingested_counts = self._load_segment_data(
+            segments, payload_keys_map, ingested_counts = self._load_segment_data(
                 [k for _, _, k, _ in segment_keys],
                 segment_to_queue,
                 now,
@@ -625,6 +621,7 @@ class SpansBuffer:
                 project_id=int(project_id.decode("ascii")),
                 score=score,
                 ingested_count=ingested_counts.get(segment_key, 0),
+                payload_keys=payload_keys_map.get(segment_key, []),
             )
             num_has_root_spans += int(has_root_span)
 
@@ -673,7 +670,9 @@ class SpansBuffer:
         segment_keys: list[SegmentKey],
         segment_to_queue: dict[SegmentKey, QueueKey],
         now: int,
-    ) -> tuple[dict[SegmentKey, list[bytes]], dict[SegmentKey, int]]:
+    ) -> tuple[
+        dict[SegmentKey, list[bytes]], dict[SegmentKey, list[PayloadKey]], dict[SegmentKey, int]
+    ]:
         """
         Loads the segments from Redis, given a list of segment keys. Segments
         exceeding a certain size are skipped, and an error is logged.
@@ -690,13 +689,14 @@ class SpansBuffer:
         write_distributed_payloads = options.get("spans.buffer.write-distributed-payloads")
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
+        payload_keys_map: dict[SegmentKey, list[PayloadKey]] = {key: [] for key in segment_keys}
         sizes: dict[SegmentKey, int] = {key: 0 for key in segment_keys}
         self._last_decompress_latency_ms = 0
         decompress_latency_ms = 0.0
 
         # Maps each scan key back to the segment it belongs to. For merged
         # keys these are the same; for distributed keys many map to one segment.
-        scan_key_to_segment: dict[SegmentKey | DistributedPayloadKey, SegmentKey] = {}
+        scan_key_to_segment: dict[SegmentKey | PayloadKey, SegmentKey] = {}
 
         # When read_distributed_payloads is off, scan merged segment keys directly.
         # When on, skip them — all data lives in distributed keys.
@@ -715,13 +715,16 @@ class SpansBuffer:
             for key, payload_key_span_ids in zip(segment_keys, mk_results):
                 project_id, trace_id, _ = parse_segment_key(key)
                 project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+                segment_payload_keys: list[PayloadKey] = []
                 for payload_key_span_id in payload_key_span_ids:
-                    distributed_key = self._get_distributed_payload_key(
+                    payload_key = self._get_payload_key(
                         project_and_trace, payload_key_span_id.decode("ascii")
                     )
+                    segment_payload_keys.append(payload_key)
                     if read_distributed_payloads:
-                        scan_key_to_segment[distributed_key] = key
-                        cursors[distributed_key] = 0
+                        scan_key_to_segment[payload_key] = key
+                        cursors[payload_key] = 0
+                payload_keys_map[key] = segment_payload_keys
 
         dropped_segments: set[SegmentKey] = set()
 
@@ -864,13 +867,12 @@ class SpansBuffer:
 
         self._last_decompress_latency_ms = int(decompress_latency_ms)
 
-        return payloads, ingested_counts
+        return payloads, payload_keys_map, ingested_counts
 
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
             use_conditional_cleanup = options.get("spans.buffer.done-flush-conditional-zrem")
-            write_distributed_payloads = options.get("spans.buffer.write-distributed-payloads")
 
             segments_to_skip: set[SegmentKey] = set()
             if use_conditional_cleanup:
@@ -929,18 +931,6 @@ class SpansBuffer:
                         amount=skipped,
                     )
 
-            distributed_payload_key_spans: dict[SegmentKey, set[bytes]] = {}
-            if write_distributed_payloads:
-                active_keys = [sk for sk in segment_keys if sk not in segments_to_skip]
-                if active_keys:
-                    with self.client.pipeline(transaction=False) as p:
-                        for segment_key in active_keys:
-                            p.smembers(self._get_payload_key_index(segment_key))
-                        mk_results = p.execute()
-                    for segment_key, payload_key_span_ids in zip(active_keys, mk_results):
-                        if payload_key_span_ids:
-                            distributed_payload_key_spans[segment_key] = payload_key_span_ids
-
             queue_removals: dict[bytes, list[SegmentKey]] = {}
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
@@ -975,19 +965,11 @@ class SpansBuffer:
 
                         queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
 
-                    payload_key_span_ids = distributed_payload_key_spans.get(segment_key)
-                    if payload_key_span_ids:
-                        project_id, trace_id, _ = parse_segment_key(segment_key)
-                        project_and_trace = (
-                            f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
-                        )
-                        p.delete(self._get_payload_key_index(segment_key))
-                        for span_id in payload_key_span_ids:
-                            p.unlink(
-                                self._get_distributed_payload_key(
-                                    project_and_trace, span_id.decode("ascii")
-                                )
-                            )
+                    if flushed_segment.payload_keys:
+                        mk_key = self._get_payload_key_index(segment_key)
+                        p.delete(mk_key)
+                        for payload_key in flushed_segment.payload_keys:
+                            p.unlink(payload_key)
 
                 for queue_key, keys in queue_removals.items():
                     for key_batch in itertools.batched(keys, 100):
