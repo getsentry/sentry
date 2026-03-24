@@ -101,11 +101,11 @@ function ConfidenceMessage({
         ? t('%s matches', <Count value={sampleCount} />)
         : t('%s match', <Count value={sampleCount} />);
 
-    const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
-      rawMetricCounts.highAccuracy.count > 1 ? (
-        t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
+    const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
+      rawMetricCounts.total.count > 1 ? (
+        t('%s data points', <Count value={rawMetricCounts.total.count} />)
       ) : (
-        t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
+        t('%s data point', <Count value={rawMetricCounts.total.count} />)
       )
     ) : (
       <Placeholder width={40} />
@@ -146,11 +146,11 @@ function ConfidenceMessage({
           ? t('%s samples', <Count value={sampleCount} />)
           : t('%s sample', <Count value={sampleCount} />);
 
-      const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
-        rawMetricCounts.highAccuracy.count > 1 ? (
-          t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
+      const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
+        rawMetricCounts.total.count > 1 ? (
+          t('%s data points', <Count value={rawMetricCounts.total.count} />)
         ) : (
-          t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
+          t('%s data point', <Count value={rawMetricCounts.total.count} />)
         )
       ) : (
         <Placeholder width={40} />
@@ -220,7 +220,7 @@ function ConfidenceMessage({
         : t('%s match', <Count value={sampleCount} />);
 
     const scannedMetricsCount = defined(rawMetricCounts.normal.count) ? (
-      rawMetricCounts.normal.count > 1 ? (
+      rawMetricCounts.normal.count > 1 || rawMetricCounts.normal.count === 0 ? (
         t('%s samples', <Count value={rawMetricCounts.normal.count} />)
       ) : (
         t('%s sample', <Count value={rawMetricCounts.normal.count} />)
@@ -229,11 +229,11 @@ function ConfidenceMessage({
       <Placeholder width={40} />
     );
 
-    const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
-      rawMetricCounts.highAccuracy.count > 1 ? (
-        t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
+    const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
+      rawMetricCounts.total.count > 1 ? (
+        t('%s data points', <Count value={rawMetricCounts.total.count} />)
       ) : (
-        t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
+        t('%s data point', <Count value={rawMetricCounts.total.count} />)
       )
     ) : (
       <Placeholder width={40} />
@@ -273,11 +273,11 @@ function ConfidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-  const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
-    rawMetricCounts.highAccuracy.count > 1 ? (
-      t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
+  const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
+    rawMetricCounts.total.count > 1 ? (
+      t('%s data points', <Count value={rawMetricCounts.total.count} />)
     ) : (
-      t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
+      t('%s data point', <Count value={rawMetricCounts.total.count} />)
     )
   ) : (
     <Placeholder width={40} />
