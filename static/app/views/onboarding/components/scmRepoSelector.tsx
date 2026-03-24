@@ -17,6 +17,11 @@ import {useScmRepoSelection} from './useScmRepoSelection';
  * Custom Control that prepends a search icon inside the select input.
  * Control is the outermost flex container around ValueContainer + Indicators,
  * so adding a child here doesn't break react-select's internal layout.
+ *
+ * Props are typed as `any` because react-select's ControlProps generic is
+ * contravariant on the option type, making it incompatible with the narrowed
+ * `{ value: string }` option used by our Select wrapper. This matches the
+ * pattern used elsewhere in the codebase (e.g. ruleConditionsForm, typeSelector).
  */
 function SearchControl({children, ...props}: any) {
   return (
@@ -58,21 +63,16 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     reposByIdentifier,
   });
 
-  // Ensure the selected repo is always in the options list so the Select
-  // can resolve the value and display it. Search results change as the user
-  // types, so the selected option may no longer be in dropdownItems.
+  // Prepend the selected repo so the Select can always resolve and display
+  // it, even when search results no longer include it.
   const options = useMemo(() => {
-    if (!selectedRepository) {
-      return dropdownItems;
-    }
-    const selectedSlug = selectedRepository.externalSlug;
-    const alreadyIncluded = dropdownItems.some(item => item.value === selectedSlug);
-    if (alreadyIncluded) {
+    const selectedSlug = selectedRepository?.externalSlug;
+    if (!selectedSlug || dropdownItems.some(item => item.value === selectedSlug)) {
       return dropdownItems;
     }
     return [
       {
-        value: selectedSlug ?? '',
+        value: selectedSlug,
         label: selectedRepository.name,
         textValue: selectedRepository.name,
         disabled: true,
@@ -110,6 +110,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
           setSearch(value);
         }
       }}
+      // Disable client-side filtering; search is handled server-side.
       filterOption={() => true}
       noOptionsMessage={noOptionsMessage}
       isLoading={isFetching}
