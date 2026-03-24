@@ -126,10 +126,6 @@ const Details = styled(Name)`
 `;
 
 const StyledPills = styled(Pills)`
-  > li {
-    margin-bottom: 0;
-  }
-
   span:nth-of-type(2) {
     display: inline;
     white-space: nowrap;
