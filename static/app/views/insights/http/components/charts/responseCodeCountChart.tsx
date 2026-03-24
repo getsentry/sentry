@@ -134,11 +134,14 @@ function getResponseCode(series: TimeSeries) {
 function isNumeric(
   maybeNumber: string | number | boolean | null | undefined
 ): maybeNumber is string | number {
-  if (!maybeNumber || typeof maybeNumber === 'boolean') {
+  if (typeof maybeNumber === 'boolean') {
     return false;
   }
   if (typeof maybeNumber === 'number') {
     return true;
+  }
+  if (!maybeNumber) {
+    return false;
   }
   return /^\d+$/.test(maybeNumber);
 }
