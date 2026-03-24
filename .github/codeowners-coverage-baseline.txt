@@ -869,7 +869,6 @@ static/app/components/modals/explore/saveQueryModal.spec.tsx
 static/app/components/modals/explore/saveQueryModal.tsx
 static/app/components/modals/featureTourModal.spec.tsx
 static/app/components/modals/featureTourModal.tsx
-static/app/components/modals/generateDashboardFromSeerModal.tsx
 static/app/components/modals/helpSearchModal.spec.tsx
 static/app/components/modals/helpSearchModal.tsx
 static/app/components/modals/importDashboardFromFileModal.tsx
