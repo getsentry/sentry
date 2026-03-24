@@ -55,12 +55,12 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
   const searchQuery = decodeScalar(location.query.query, '');
 
   const defaultQuery = new MutableSearch(searchQuery);
-  defaultQuery.addFilterValue('is_transaction', '1');
-  defaultQuery.addFilterValue('transaction', transactionName);
+  defaultQuery.setFilterValues('is_transaction', ['1']);
+  defaultQuery.setFilterValues('transaction', [transactionName]);
 
   const countQuery = new MutableSearch(searchQuery);
-  countQuery.addFilterValue('is_transaction', '1');
-  countQuery.addFilterValue('transaction', transactionName);
+  countQuery.setFilterValues('is_transaction', ['1']);
+  countQuery.setFilterValues('transaction', [transactionName]);
 
   const {data: numEvents, error: numEventsError} = useSpans(
     {
