@@ -12,7 +12,7 @@ import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
-import {SizeProvider} from '@sentry/scraps/sizeContext';
+import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -32,6 +32,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
@@ -70,6 +71,7 @@ interface PrimaryNavigationSidebarHeaderProps extends Omit<FlexProps<'header'>, 
 
 function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderProps) {
   const theme = useTheme();
+  const {layout} = usePrimaryNavigation();
   const organization = useOrganization({allowNull: true});
   const showSuperuserWarning =
     isActiveSuperuser() &&
@@ -87,8 +89,20 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         justify="center"
         borderBottom={hasPageFrame ? 'primary' : undefined}
         width={hasPageFrame ? '100%' : undefined}
-        height={hasPageFrame ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
-        minHeight={hasPageFrame ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
+        minHeight={
+          hasPageFrame
+            ? layout === 'mobile'
+              ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+              : `${PRIMARY_HEADER_HEIGHT}px`
+            : undefined
+        }
+        height={
+          hasPageFrame
+            ? layout === 'mobile'
+              ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+              : `${PRIMARY_HEADER_HEIGHT}px`
+            : undefined
+        }
         {...props}
       >
         {props.children}
@@ -161,6 +175,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
   const theme = useTheme();
@@ -184,7 +199,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
   };
 
-  if (layout === 'mobile') {
+  if (layout === 'mobile' && !isMobilePageFrame) {
     return (
       <MobileNavigationLink {...sharedLinkProps}>
         {props.children}
@@ -237,6 +252,8 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
   const organization = useOrganization({allowNull: true});
+  const hasPageFrame = useHasPageFrameFeature();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   return (
     <Tooltip
@@ -272,7 +289,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
           )
         }
       >
-        {layout === 'mobile' ? props.label : null}
+        {layout === 'mobile' && !isMobilePageFrame ? props.label : null}
         {props.children}
       </NavigationButton>
     </Tooltip>
@@ -322,6 +339,8 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
@@ -329,15 +348,17 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
     portalContainerRef.current = document.body;
   }, []);
 
+  const sizeContext = useSizeContext();
+
   return (
     <DropdownMenu
       usePortal
+      size={sizeContext}
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
-      size="sm"
       minMenuWidth={200}
       trigger={triggerProps => {
         return (
@@ -374,12 +395,12 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
                   )
                 }
               >
-                {layout === 'mobile' ? (
+                {layout === 'mobile' && !isMobilePageFrame ? (
                   <Fragment>
                     {props.label}
                     {props.children}
                   </Fragment>
-                ) : (
+                ) : layout === 'mobile' ? null : (
                   props.children
                 )}
               </NavigationButton>
@@ -394,21 +415,24 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
 
 function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
   const {layout} = usePrimaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Flex
       align="center"
-      height={layout === 'mobile' ? 'auto' : undefined}
-      width={layout === 'mobile' ? '100%' : undefined}
-      padding={layout === 'mobile' ? 'md lg' : 'xs'}
-      justify={layout === 'mobile' ? 'start' : 'center'}
+      height={layout === 'mobile' && !hasPageFrame ? 'auto' : undefined}
+      width={layout === 'mobile' && !hasPageFrame ? '100%' : undefined}
+      padding={layout === 'mobile' && !hasPageFrame ? 'md lg' : 'xs'}
+      justify={layout === 'mobile' && !hasPageFrame ? 'start' : 'center'}
     >
       {p => (
         <Button
           {...p}
           {...props}
           {...(layout === 'mobile'
-            ? {size: 'zero' as const, priority: 'transparent'}
+            ? hasPageFrame
+              ? {priority: 'default'}
+              : {size: 'zero' as const, priority: 'transparent'}
             : {priority: props.priority})}
         />
       )}
@@ -417,13 +441,7 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
 }
 
 function PrimaryNavigationButtonBar(props: ButtonBarProps) {
-  const hasPageFrame = useHasPageFrameFeature();
-
-  return (
-    <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
-      <ButtonBar {...props} width="100%" />
-    </SizeProvider>
-  );
+  return <ButtonBar {...props} width="100%" />;
 }
 
 interface PrimaryNavigationFooterItemsProps {
@@ -617,23 +635,19 @@ const DesktopNavigationLink = styled((props: LinkProps) => (
   }
 `;
 
-const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
-  const hasPageFrame = useHasPageFrameFeature();
-
-  return (
-    <Flex
-      position="relative"
-      width="100%"
-      align="center"
-      direction="column"
-      justify="center"
-      gap="xs"
-      padding={hasPageFrame ? 'xs' : 'md 0 xs 0'}
-    >
-      {p => <Link {...mergeProps(p, props)} />}
-    </Flex>
-  );
-})`
+const DesktopPageFrameNavigationLink = styled((props: LinkProps) => (
+  <Flex
+    position="relative"
+    width="100%"
+    align="center"
+    direction="column"
+    justify="center"
+    gap="xs"
+    padding="xs"
+  >
+    {p => <Link {...mergeProps(p, props)} />}
+  </Flex>
+))`
   outline: none;
   box-shadow: none;
   transition: none;
