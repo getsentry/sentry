@@ -114,24 +114,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Verify New Password'),
     hintText: t('Verify your new password'),
   },
-  'csp.sentry:csp_ignored_sources_defaults': {
-    name: 'sentry:csp_ignored_sources_defaults',
-    formId: 'csp',
-    route: '/settings/:orgId/projects/:projectId/security-headers/csp/',
-    label: t('Use default ignored sources'),
-    hintText: t(
-      'Our default list will attempt to ignore common issues and reduce noise.'
-    ),
-  },
-  'csp.sentry:csp_ignored_sources': {
-    name: 'sentry:csp_ignored_sources',
-    formId: 'csp',
-    route: '/settings/:orgId/projects/:projectId/security-headers/csp/',
-    label: t('Additional ignored sources'),
-    hintText: t(
-      'Discard reports about requests from the given sources. Separate multiple entries with a newline.'
-    ),
-  },
   'project-ownership.autoAssignment': {
     name: 'autoAssignment',
     formId: 'project-ownership',

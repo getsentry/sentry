@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -133,7 +133,7 @@ export default function ProjectCspReports() {
       <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <FieldGroup title={t('CSP Settings')}>
-            <AutoSaveField
+            <AutoSaveForm
               name="sentry:csp_ignored_sources_defaults"
               schema={cspSchema}
               initialValue={
@@ -157,9 +157,9 @@ export default function ProjectCspReports() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
 
-            <AutoSaveField
+            <AutoSaveForm
               name="sentry:csp_ignored_sources"
               schema={cspSchema}
               initialValue={
@@ -188,7 +188,7 @@ export default function ProjectCspReports() {
                   </Text>
                 </field.Layout.Stack>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           </FieldGroup>
         )}
       </Access>
