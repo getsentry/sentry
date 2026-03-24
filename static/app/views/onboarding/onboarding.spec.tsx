@@ -9,6 +9,7 @@ import {
   act,
   render,
   renderGlobalModal,
+  renderHookWithProviders,
   screen,
   userEvent,
   waitFor,
@@ -908,21 +909,17 @@ describe('Onboarding', () => {
 
       sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
 
-      let contextValue: ReturnType<typeof useOnboardingContext>;
-      function ContextReader() {
-        contextValue = useOnboardingContext();
-        return null;
-      }
-
-      render(
-        <OnboardingContextProvider initialValue={initialContext}>
-          <ContextReader />
-        </OnboardingContextProvider>,
-        {organization: scmOrganization}
-      );
+      const {result} = renderHookWithProviders(() => useOnboardingContext(), {
+        organization: scmOrganization,
+        additionalWrapper: ({children}) => (
+          <OnboardingContextProvider initialValue={initialContext}>
+            {children}
+          </OnboardingContextProvider>
+        ),
+      });
 
       act(() => {
-        contextValue!.clearDerivedState();
+        result.current.clearDerivedState();
       });
 
       const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
