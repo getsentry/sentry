@@ -559,6 +559,36 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group_without_seer.id)
 
+    def test_has_seer_last_run_with_explorer_flag(self) -> None:
+        """Test filtering issues by seer_explorer_autofix_last_triggered when feature flag is on."""
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["explorer-seer-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_with_explorer = event1.group
+        group_with_explorer.update(seer_explorer_autofix_last_triggered=timezone.now())
+        event2 = self.store_event(
+            data={
+                "fingerprint": ["no-explorer-seer-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_without_explorer = event2.group
+
+        self.login_as(user=self.user)
+        with self.feature("organizations:autofix-on-explorer"):
+            response = self.get_success_response(query="has:issue.seer_last_run")
+            assert len(response.data) == 1
+            assert response.data[0]["id"] == str(group_with_explorer.id)
+
+            response = self.get_success_response(query="!has:issue.seer_last_run")
+            assert len(response.data) == 1
+            assert response.data[0]["id"] == str(group_without_explorer.id)
+
     def test_lookup_by_event_id(self) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)

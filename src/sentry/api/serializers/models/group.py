@@ -395,7 +395,7 @@ class GroupSerializerBase(Serializer, ABC):
             "seerFixabilityScore": obj.seer_fixability_score,
             "seerAutofixLastTriggered": (
                 obj.seer_explorer_autofix_last_triggered
-                if features.has("organization:autofix-on-explorer", obj.organization)
+                if features.has("organizations:autofix-on-explorer", obj.organization)
                 else obj.seer_autofix_last_triggered
             ),
         }

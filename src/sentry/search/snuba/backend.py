@@ -594,7 +594,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
             "issue.seer_last_run": ScalarCondition(
                 "seer_explorer_autofix_last_triggered"
-                if features.has("organization:autofix-on-explorer", organization)
+                if features.has("organizations:autofix-on-explorer", organization)
                 else "seer_autofix_last_triggered"
             ),
             "issue.id": QCallbackCondition(

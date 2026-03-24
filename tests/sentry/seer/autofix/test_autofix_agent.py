@@ -354,6 +354,29 @@ class TestTriggerAutofixExplorer(TestCase):
         call_kwargs = mock_client.start_run.call_args.kwargs
         assert call_kwargs["metadata"] == {"group_id": self.group.id, "referrer": "unknown"}
 
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_autofix_explorer_updates_explorer_last_triggered(
+        self, mock_client_class, mock_broadcast
+    ):
+        """trigger_autofix_explorer sets seer_explorer_autofix_last_triggered on the group."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        assert self.group.seer_explorer_autofix_last_triggered is None
+
+        trigger_autofix_explorer(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
+
+        self.group.refresh_from_db()
+        assert self.group.seer_explorer_autofix_last_triggered is not None
+        assert self.group.seer_autofix_last_triggered is None
+
 
 class TestTriggerCodingAgentHandoff(TestCase):
     """Tests for trigger_coding_agent_handoff function."""

@@ -463,6 +463,29 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert serialized["issueCategory"] == "db_query"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
 
+    def test_seer_autofix_last_triggered_without_explorer_flag(self) -> None:
+        user = self.create_user()
+        group = self.create_group()
+        now = timezone.now()
+        group.update(seer_autofix_last_triggered=now)
+
+        result = serialize(group, user)
+        assert result["seerAutofixLastTriggered"] == now
+
+    def test_seer_autofix_last_triggered_with_explorer_flag(self) -> None:
+        user = self.create_user()
+        group = self.create_group()
+        old_time = timezone.now() - timedelta(hours=1)
+        new_time = timezone.now()
+        group.update(
+            seer_autofix_last_triggered=old_time,
+            seer_explorer_autofix_last_triggered=new_time,
+        )
+
+        with self.feature("organizations:autofix-on-explorer"):
+            result = serialize(group, user)
+        assert result["seerAutofixLastTriggered"] == new_time
+
 
 class SimpleGroupSerializerTest(TestCase):
     def test_simple_group_serializer(self) -> None:
