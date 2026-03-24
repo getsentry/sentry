@@ -54,7 +54,7 @@ export default function OrganizationMcpCli() {
             <Heading as="h3">{t('Sentry CLI')}</Heading>
             <Text variant="muted" size="lg">
               {t(
-                'Install the Sentry CLI and authenticate to manage releases, source maps, debug symbols, and more from your terminal.'
+                'A command-line tool for developers and agents. Browse issues, get AI-powered root cause analysis, autodetect your project, and pipe structured output to your favorite tools.'
               )}
             </Text>
             <TextCopyInput>curl https://cli.sentry.dev/install -fsS | bash</TextCopyInput>
