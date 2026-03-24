@@ -335,24 +335,18 @@ class SlackEventEndpoint(SlackDMEndpoint):
             organization_id = ois[0].organization_id
             lifecycle.add_extra("organization_id", organization_id)
 
-            organization_context = organization_service.get_organization_by_id(
-                id=organization_id,
-                user_id=None,
-                include_projects=False,
-                include_teams=False,
+            installation = slack_request.integration.get_installation(
+                organization_id=organization_id
             )
-            if not organization_context:
-                lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_FOUND)
-                return self.respond()
+            assert isinstance(installation, SlackIntegration)
+            organization = installation.organization
 
-            if organization_context.organization.status != OrganizationStatus.ACTIVE:
-                lifecycle.add_extra("status", organization_context.organization.status)
+            if organization.status != OrganizationStatus.ACTIVE:
+                lifecycle.add_extra("status", organization.status)
                 lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_ACTIVE)
                 return self.respond()
 
-            if not features.has(
-                "organizations:seer-slack-explorer", organization_context.organization
-            ):
+            if not features.has("organizations:seer-slack-explorer", organization):
                 lifecycle.record_halt(AppMentionHaltReason.FEATURE_NOT_ENABLED)
                 return self.respond()
 
@@ -365,10 +359,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return self.respond()
 
             try:
-                installation = slack_request.integration.get_installation(
-                    organization_id=organization_id
-                )
-                assert isinstance(installation, SlackIntegration)
                 installation.set_thread_status(
                     channel_id=channel_id,
                     thread_ts=thread_ts,
