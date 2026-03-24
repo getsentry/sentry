@@ -96,7 +96,7 @@ describe('useDsnLookupActions', () => {
     );
   });
 
-  it('returns empty array for non-DSN query', () => {
+  it('returns empty array for non-DSN query', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/dsn-lookup/`,
       body: {},
@@ -104,11 +104,13 @@ describe('useDsnLookupActions', () => {
 
     renderWithProvider('some random text');
 
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+    await waitFor(() => {
+      expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+    });
     expect(mockApi).not.toHaveBeenCalled();
   });
 
-  it('returns empty array for empty query', () => {
+  it('returns empty array for empty query', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/dsn-lookup/`,
       body: {},
@@ -116,7 +118,9 @@ describe('useDsnLookupActions', () => {
 
     renderWithProvider('');
 
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+    await waitFor(() => {
+      expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+    });
     expect(mockApi).not.toHaveBeenCalled();
   });
 });
