@@ -392,6 +392,6 @@ with sentry_sdk.start_span(op="gen_ai.handoff", name=f"handoff from {a} to {b}")
 2. **All complex data must be JSON-stringified** - span attributes only accept primitives
 3. **\`gen_ai.request.model\` is required** on \`gen_ai.request\` and \`gen_ai.invoke_agent\` spans
 4. **Nest spans correctly:** \`gen_ai.invoke_agent\` spans should contain \`gen_ai.request\` and \`gen_ai.execute_tool\` spans as children
-5. **JS min version:** \`@sentry/node@10.28.0\` or later
+5. **JS min version:** \`@sentry/node@10.28.0\` or later. If the project does not have the Sentry SDK installed yet, prefer installing the latest version
 6. **Enable PII:** \`sendDefaultPii: true\` (JS) / \`send_default_pii=True\` (Python) to capture inputs/outputs
 `;
