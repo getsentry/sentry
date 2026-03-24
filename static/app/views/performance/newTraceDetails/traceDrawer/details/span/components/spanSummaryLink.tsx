@@ -13,6 +13,7 @@ import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import {usePrebuiltDashboardUrl} from 'sentry/views/dashboards/utils/usePrebuiltDashboardUrl';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {hasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import { useModuleURL } from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   querySummaryRouteWithQuery,
@@ -29,6 +30,9 @@ interface Props {
 
 export function SpanSummaryLink(props: Props) {
   const location = useLocation();
+  const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
+  const queryBaseUrl = useModuleURL(ModuleName.DB);
+
   const isPlatformized = hasPlatformizedInsights(props.organization);
   const spanGroupFilter = props.group
     ? {
@@ -67,7 +71,7 @@ export function SpanSummaryLink(props: Props) {
     const target = isPlatformized
       ? platformizedQueryUrl
       : querySummaryRouteWithQuery({
-          base: platformizedQueryUrl,
+          base: queryBaseUrl,
           query: location.query,
           group: props.group,
           projectID: props.project_id,
@@ -97,7 +101,7 @@ export function SpanSummaryLink(props: Props) {
     const target = isPlatformized
       ? platformizedResourceUrl
       : resourceSummaryRouteWithQuery({
-          baseUrl: platformizedResourceUrl,
+          baseUrl: resourceBaseUrl,
           query: location.query,
           group: props.group,
           projectID: props.project_id,
