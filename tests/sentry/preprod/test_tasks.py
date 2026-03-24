@@ -632,7 +632,7 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         )
         return status, details
 
-    @patch("sentry.preprod.build_distribution_webhooks.send_build_distribution_webhook")
+    @patch("sentry.preprod.tasks.send_build_distribution_webhook")
     def test_assemble_preprod_artifact_installable_app_success(self, mock_send_webhook) -> None:
         status, details = self._run_task_and_verify_status(b"test installable app content")
 
@@ -653,7 +653,7 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         call_kwargs = mock_send_webhook.call_args
         assert call_kwargs.kwargs["organization_id"] == self.organization.id
 
-    @patch("sentry.preprod.build_distribution_webhooks.send_build_distribution_webhook")
+    @patch("sentry.preprod.tasks.send_build_distribution_webhook")
     def test_assemble_preprod_artifact_installable_app_error_cases(self, mock_send_webhook) -> None:
         # Test nonexistent artifact
         status, details = self._run_task_and_verify_status(
