@@ -11,7 +11,6 @@ export const TABLE_MIN_HEIGHT = 2;
  */
 export const WIDGET_COLUMN_LABELS = {
   avg: t('Avg'),
-  avgDuration: t('Avg Duration'),
   calls: t('Calls'),
   count: t('Count'),
   errorRate: t('Error Rate'),
@@ -21,7 +20,6 @@ export const WIDGET_COLUMN_LABELS = {
   p50: 'P50',
   p75: 'P75',
   p95: 'P95',
-  p95Duration: t('P95 Duration'),
   project: t('Project'),
   requests: t('Requests'),
   spanDescription: t('Span Description'),

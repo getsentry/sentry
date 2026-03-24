@@ -44,7 +44,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_PROMPT_NAME, `avg(${SpanFields.SPAN_DURATION})`],
           aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_PROMPT_NAME],
-          fieldAliases: [t('Prompt'), WIDGET_COLUMN_LABELS.avgDuration],
+          fieldAliases: [t('Prompt'), WIDGET_COLUMN_LABELS.avg],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
       ],

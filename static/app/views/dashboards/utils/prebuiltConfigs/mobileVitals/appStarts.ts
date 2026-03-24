@@ -253,7 +253,7 @@ const COLD_OPERATIONS_TABLE: Widget = {
       fieldAliases: [
         WIDGET_COLUMN_LABELS.operation,
         WIDGET_COLUMN_LABELS.spanDescription,
-        WIDGET_COLUMN_LABELS.avgDuration,
+        WIDGET_COLUMN_LABELS.avg,
       ],
       conditions: COLD_START_TABLE_OPERATIONS_CONDITION,
       orderby: '-avg(span.self_time)',
@@ -289,7 +289,7 @@ const WARM_OPERATIONS_TABLE: Widget = {
       fieldAliases: [
         WIDGET_COLUMN_LABELS.operation,
         WIDGET_COLUMN_LABELS.spanDescription,
-        WIDGET_COLUMN_LABELS.avgDuration,
+        WIDGET_COLUMN_LABELS.avg,
       ],
       conditions: WARM_START_TABLE_OPERATIONS_CONDITION,
       orderby: '-avg(span.self_time)',

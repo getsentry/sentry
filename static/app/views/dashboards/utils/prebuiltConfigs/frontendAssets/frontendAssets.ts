@@ -84,7 +84,7 @@ const ASSETS_TABLE: Widget = {
       fieldAliases: [
         t('Asset description'),
         t('Requests per Minute'),
-        WIDGET_COLUMN_LABELS.avgDuration,
+        WIDGET_COLUMN_LABELS.avg,
         WIDGET_COLUMN_LABELS.timeSpent,
         t('Avg Encoded Size'),
       ],
