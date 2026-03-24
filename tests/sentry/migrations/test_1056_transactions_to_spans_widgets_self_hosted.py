@@ -6,11 +6,10 @@ from sentry.testutils.cases import SnubaTestCase, TestMigrations
 
 
 class MigrateDiscoverQueriesToExploreQueriesSelfHostedTest(TestMigrations, SnubaTestCase):
-    migrate_from = "1013_add_repositorysettings_table"
-    migrate_to = "1014_transactions_to_spans_widgets_self_hosted"
+    migrate_from = "1055_rename_regiontombstone_to_celltombstone"
+    migrate_to = "1056_transactions_to_spans_widgets_self_hosted"
 
     def setup_before_migration(self, apps):
-
         with outbox_context(flush=False):
             self.org = Organization.objects.create(name="test", slug="test")
             self.dashboard = Dashboard.objects.create(
