@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {Select} from '@sentry/scraps/select';
 
@@ -18,7 +18,10 @@ import {useScmRepoSelection} from './useScmRepoSelection';
  * Control is the outermost flex container around ValueContainer + Indicators,
  * so adding a child here doesn't break react-select's internal layout.
  */
-function SearchControl({children, ...props}: any) {
+function SearchControl({
+  children,
+  ...props
+}: React.ComponentProps<typeof selectComponents.Control>) {
   return (
     <selectComponents.Control {...props}>
       <IconSearch size="sm" variant="muted" style={{marginLeft: 12, flexShrink: 0}} />
@@ -81,18 +84,15 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     ];
   }, [dropdownItems, selectedRepository]);
 
-  const handleChange = useCallback(
-    (option: {value: string} | null) => {
-      if (option === null) {
-        handleRemove();
-      } else {
-        handleSelect(option);
-      }
-    },
-    [handleSelect, handleRemove]
-  );
+  function handleChange(option: {value: string} | null) {
+    if (option === null) {
+      handleRemove();
+    } else {
+      handleSelect(option);
+    }
+  }
 
-  const noOptionsMessage = useCallback(() => {
+  function noOptionsMessage() {
     if (isError) {
       return t('Failed to search repositories. Please try again.');
     }
@@ -100,7 +100,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
       return t('No repositories found.');
     }
     return t('Type to search repositories');
-  }, [isError, debouncedSearch]);
+  }
 
   return (
     <Select

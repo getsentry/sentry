@@ -4,6 +4,7 @@ import {motion} from 'framer-motion';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -71,6 +72,7 @@ export function ScmConnect({onComplete}: StepProps) {
   if (isError) {
     return (
       <Flex direction="column" align="center" gap="lg" flexGrow={1}>
+        <Text variant="muted">{t('Failed to load integrations.')}</Text>
         <Button onClick={() => refetch()}>{t('Retry')}</Button>
       </Flex>
     );
@@ -124,7 +126,6 @@ export function ScmConnect({onComplete}: StepProps) {
             analyticsEventName="Onboarding: SCM Connect Skip Clicked"
             analyticsParams={{
               has_integration: !!effectiveIntegration,
-              has_repo: !!selectedRepository,
             }}
             onClick={() => onComplete()}
           >

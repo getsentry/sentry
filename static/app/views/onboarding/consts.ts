@@ -25,6 +25,12 @@ export const SCM_STEP_FADE_IN: MotionProps = {
   transition: testableTransition({duration: 0.4}),
 };
 
+/**
+ * Shared layout constants for SCM onboarding steps.
+ * Matches the Figma content area width (506px).
+ */
+export const SCM_STEP_CONTENT_WIDTH = '506px';
+
 export function scmStepFadeIn(delay: number): MotionProps {
   return {
     initial: {opacity: 0, y: 20},
