@@ -43,6 +43,7 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
   isEmbedded?: boolean;
+  isGeneratedDashboard?: boolean;
   isMobile?: boolean;
   isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
@@ -156,7 +157,11 @@ export function SortableWidget(props: Props) {
       data-test-id="sortable-widget"
     >
       <DashboardsMEPProvider>
-        <LazyRender containerHeight={200} withoutContainer disabled={props.isPreview}>
+        <LazyRender
+          containerHeight={200}
+          withoutContainer
+          disabled={props.isGeneratedDashboard}
+        >
           <WidgetCard {...widgetProps} />
           {props.isEditingDashboard && (
             <Toolbar
