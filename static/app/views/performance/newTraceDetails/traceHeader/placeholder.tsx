@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import {usePrebuiltDashboardUrlOrModuleUrlBuilder} from 'sentry/views/insights/common/utils/usePrebuiltDashboardUrl';
+import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
@@ -22,9 +22,7 @@ export function PlaceHolder({
   project?: Project;
 }) {
   const {view} = useDomainViewFilters();
-  const prebuiltDashboardUrlBuilder = usePrebuiltDashboardUrlOrModuleUrlBuilder({
-    bare: true,
-  });
+  const moduleURLBuilder = useModuleURLBuilder(true);
   const location = useLocation();
 
   return (
@@ -35,7 +33,7 @@ export function PlaceHolder({
             crumbs={getTraceViewBreadcrumbs({
               organization,
               location,
-              prebuiltDashboardUrlBuilder,
+              moduleURLBuilder,
               traceSlug,
               project,
               view,

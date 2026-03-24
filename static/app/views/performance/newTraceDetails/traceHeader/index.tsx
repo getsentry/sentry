@@ -12,7 +12,7 @@ import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
-import {usePrebuiltDashboardUrlOrModuleUrlBuilder} from 'sentry/views/insights/common/utils/usePrebuiltDashboardUrl';
+import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -42,9 +42,7 @@ export interface TraceMetadataHeaderProps {
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
   const {view} = useDomainViewFilters();
-  const prebuiltDashboardUrlBuilder = usePrebuiltDashboardUrlOrModuleUrlBuilder({
-    bare: true,
-  });
+  const moduleURLBuilder = useModuleURLBuilder(true);
   const {projects} = useProjects();
   const {hasLogs, hasMetrics} = useTraceContextSections({
     tree: props.tree,
@@ -84,7 +82,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             crumbs={getTraceViewBreadcrumbs({
               organization: props.organization,
               location,
-              prebuiltDashboardUrlBuilder,
+              moduleURLBuilder,
               traceSlug: props.traceSlug,
               project,
               view,
