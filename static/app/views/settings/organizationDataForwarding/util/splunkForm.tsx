@@ -147,7 +147,7 @@ export function SplunkSetupForm({
     validators: { onDynamic: splunkSchema },
     onSubmit: ({ value }) => {
       const {
-        is_enabled,
+        is_enabled: _is_enabled,
         enroll_new_projects,
         project_ids = [],
         ...configFields
@@ -155,7 +155,7 @@ export function SplunkSetupForm({
       onSubmit({
         provider: DataForwarderProviderSlug.SPLUNK,
         config: buildSplunkConfig(configFields),
-        is_enabled,
+        is_enabled: true,
         enroll_new_projects,
         project_ids,
       } satisfies DataForwarderPayload);
