@@ -105,16 +105,8 @@ export function Slider({
     }
 
     if ('interval' in ticks) {
-      const result: number[] = [];
-      let current = min;
-      while (current <= max) {
-        result.push(current);
-        current = parseFloat((current + ticks.interval).toFixed(10));
-      }
-      if (result[result.length - 1] !== max) {
-        result.push(max);
-      }
-      return result;
+      const count = Math.floor((max - min) / ticks.interval) + 1;
+      return Array.from({length: count}, (_, i) => min + i * ticks.interval);
     }
 
     if (ticks.count >= 2) {
