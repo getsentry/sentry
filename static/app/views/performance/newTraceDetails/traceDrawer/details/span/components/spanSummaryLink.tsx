@@ -13,7 +13,7 @@ import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import {usePrebuiltDashboardUrl} from 'sentry/views/dashboards/utils/usePrebuiltDashboardUrl';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {hasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
-import { useModuleURL } from 'sentry/views/insights/common/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   querySummaryRouteWithQuery,
