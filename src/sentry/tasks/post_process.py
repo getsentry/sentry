@@ -6,7 +6,7 @@ import uuid
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime, timedelta
 from time import time
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -1520,7 +1520,24 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
         set_project_flag_and_signal(project, "has_flags", first_flag_received)
 
 
-def _get_default_seer_automation_skip_reason(job: PostProcessJob) -> str | None:
+SeerAutomationSkipReason = Literal[
+    "already_has_fixability_score",
+    "already_triggered",
+    "automation_already_dispatched",
+    "fixability_too_low",
+    "issue_too_old",
+    "lock_already_held",
+    "no_connected_repos",
+    "not_eligible",
+    "rate_limited",
+    "summary_already_cached",
+    "summary_already_dispatched",
+]
+
+
+def _get_default_seer_automation_skip_reason(
+    job: PostProcessJob,
+) -> SeerAutomationSkipReason | None:
     """Return skip reason for the default (non-seat-based) automation path, or None if eligible."""
     from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
     from sentry.seer.autofix.utils import (
@@ -1548,7 +1565,9 @@ def _get_default_seer_automation_skip_reason(job: PostProcessJob) -> str | None:
     return None
 
 
-def _get_seat_based_seer_automation_skip_reason(job: PostProcessJob) -> str | None:
+def _get_seat_based_seer_automation_skip_reason(
+    job: PostProcessJob,
+) -> SeerAutomationSkipReason | None:
     """Return skip reason for the seat-based automation path, or None if eligible."""
     from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
     from sentry.seer.autofix.utils import (
