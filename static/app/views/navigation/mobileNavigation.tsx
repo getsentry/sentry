@@ -211,16 +211,19 @@ export function MobilePageFrameNavigation() {
       scrollLock.acquire();
     } else {
       main?.removeAttribute('inert');
+      if (scrollLock.held()) {
+        setView('expanded');
+      }
       scrollLock.release();
     }
     return () => {
       main?.removeAttribute('inert');
       scrollLock.release();
     };
-  }, [isOpen, scrollLock]);
+  }, [isOpen, scrollLock, setView]);
 
-  // Close the panel when the secondary nav's collapse button is clicked,
-  // which sets view to 'collapsed' in the mobile-scoped context.
+  // Close the panel when the secondary nav's IconPanel button is clicked,
+  // which sets view to 'collapsed'.
   useEffect(() => {
     if (isOpen && view === 'collapsed') {
       setIsOpen(false);

@@ -15,6 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScmProviderPills} from './components/scmProviderPills';
 import {ScmRepoSelector} from './components/scmRepoSelector';
+import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import {useScmProviders} from './components/useScmProviders';
 import type {StepProps} from './types';
 
@@ -34,6 +35,9 @@ export function ScmConnect({onComplete}: StepProps) {
     refetchIntegrations,
     activeIntegrationExisting,
   } = useScmProviders();
+
+  // Pre-warm platform detection so results are cached when the user advances
+  useScmPlatformDetection(selectedRepository?.id);
 
   // Derive integration from explicit selection, falling back to existing
   const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
