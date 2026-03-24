@@ -115,7 +115,11 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
       options={options}
       value={selectedRepository?.externalSlug ?? null}
       onChange={handleChange}
-      onInputChange={setSearch}
+      onInputChange={(value, actionMeta) => {
+        if (actionMeta.action === 'input-change') {
+          setSearch(value);
+        }
+      }}
       filterOption={() => true}
       noOptionsMessage={noOptionsMessage}
       isLoading={isFetching}
