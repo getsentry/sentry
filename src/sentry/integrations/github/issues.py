@@ -405,7 +405,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return types
 
-    def natural_sort_pair(self, response, pair: tuple[str, str]) -> list[str | int]:
+    def natural_sort_pair(self, pair: tuple[str, str]) -> list[str | int]:
             return [
                 int(text) if text.isdecimal() else text.lower()
                 for text in re.split("([0-9]+)", pair[0])
