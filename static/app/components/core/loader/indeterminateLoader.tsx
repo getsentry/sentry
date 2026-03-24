@@ -1,6 +1,8 @@
+import {useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 export interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'vibrant' | 'monochrome';
@@ -20,14 +22,44 @@ const indeterminateFast = keyframes`
   100% { left: 107%; right: -8%; }
 `;
 
+// Lerp animation timing based on track width.
+// Small (~100px): 0.6s duration, 0.3s delay
+// Large (~400px+): 2.1s duration, 1.15s delay
+const MIN_WIDTH = 128;
+const MAX_WIDTH = 400;
+
+function lerp(min: number, max: number, t: number): number {
+  return min + (max - min) * Math.min(1, Math.max(0, t));
+}
+
+function useAnimationTiming() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [duration, setDuration] = useState(2.1);
+  const [delay, setDelay] = useState(1.15);
+
+  useResizeObserver({
+    ref,
+    onResize() {
+      const w = ref.current?.offsetWidth ?? MAX_WIDTH;
+      const t = (w - MIN_WIDTH) / (MAX_WIDTH - MIN_WIDTH);
+      setDuration(lerp(1.3, 2.1, t));
+      setDelay(lerp(0.65, 1.15, t));
+    },
+  });
+
+  return {ref, duration, delay};
+}
+
 export function IndeterminateLoader({
   variant = 'vibrant',
   ...props
 }: IndeterminateLoaderProps) {
   const theme = useTheme();
+  const {ref, duration, delay} = useAnimationTiming();
 
   return (
     <Track
+      ref={ref}
       role="progressbar"
       aria-label="Loading"
       opacity={variant === 'monochrome' ? '0.2' : '1'}
@@ -41,6 +73,7 @@ export function IndeterminateLoader({
           }
           animation={indeterminateSlow}
           timing="cubic-bezier(0.65, 0.815, 0.735, 0.395)"
+          duration={`${duration}s`}
           delay="0s"
         />
         <Bar
@@ -49,7 +82,8 @@ export function IndeterminateLoader({
           }
           animation={indeterminateFast}
           timing="cubic-bezier(0.165, 0.84, 0.44, 1)"
-          delay="1.15s"
+          duration={`${duration}s`}
+          delay={`${delay}s`}
         />
       </ColorMask>
     </Track>
@@ -93,6 +127,7 @@ const Bar = styled('span')<{
   animation: ReturnType<typeof keyframes>;
   color: string;
   delay: string;
+  duration: string;
   timing: string;
 }>`
   position: absolute;
@@ -101,5 +136,6 @@ const Bar = styled('span')<{
   left: 0;
   right: 0;
   background: ${p => p.color};
-  animation: ${p => p.animation} 2.1s ${p => p.timing} ${p => p.delay} infinite backwards;
+  animation: ${p => p.animation} ${p => p.duration} ${p => p.timing} ${p => p.delay}
+    infinite backwards;
 `;
