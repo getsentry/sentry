@@ -10,7 +10,7 @@ from sentry.scm.private.providers.github import (
     GitHubProvider,
     GitHubProviderApiClient,
 )
-from sentry.scm.types import Repository
+from sentry.scm.types import Referrer, Repository
 from tests.sentry.scm.test_fixtures import (
     make_github_branch,
     make_github_check_run,
@@ -78,6 +78,9 @@ class RecordingClient:
         if not self.responses[operation]:
             raise AssertionError(f"No queued response for {operation}")
         return self.responses[operation].pop(0)
+
+    def is_rate_limited(self, referrer: Referrer) -> bool:
+        return False
 
     def get(
         self,
