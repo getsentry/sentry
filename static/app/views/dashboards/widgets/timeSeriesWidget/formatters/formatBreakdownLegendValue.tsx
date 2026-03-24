@@ -20,7 +20,12 @@ export function formatBreakdownLegendValue(
     return '—';
   }
 
-  if (type === 'number' && value > 0 && value < NUMBER_MIN_VALUE) {
+  if (
+    type === 'number' &&
+    typeof value === 'number' &&
+    value > 0 &&
+    value < NUMBER_MIN_VALUE
+  ) {
     return `<${NUMBER_MIN_VALUE}`;
   }
 
