@@ -124,4 +124,59 @@ describe('CommandPaletteContent', () => {
     expect(onChild).toHaveBeenCalled();
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
+
+  describe('search', () => {
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('typing a query filters results to matching items only', async () => {
+      // Type "route" and expect "Go to route" to be visible but "Other" and "Parent action" to be hidden
+    });
+
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('non-matching items are not shown', async () => {
+      // Type a query that matches nothing and expect no options to be in the document
+    });
+
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('clearing the query restores all top-level items', async () => {
+      // Type a query, then clear it — all top-level actions should reappear
+    });
+
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('child actions are hidden when query is empty', async () => {
+      // Without typing anything, child actions of group actions should not be visible
+    });
+
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('child actions are directly searchable without drilling into the group', async () => {
+      // Type "child" and expect "Parent action → Child action" to appear in the flat results
+    });
+
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('search is case-insensitive', async () => {
+      // Type "ROUTE" (uppercase) and expect "Go to route" to still match
+    });
+
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('actions are ranked by match quality — better matches appear first', async () => {
+      // Given actions where one label starts with the query and another contains it later,
+      // the one with the earlier / stronger match should rank first
+    });
+
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('top-level actions rank before child actions when both match the query', async () => {
+      // Given a query that matches both a top-level action label and a child action label,
+      // the top-level action should appear before the child action in the results
+    });
+
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('actions with matching keywords are included in results', async () => {
+      // Register an action whose label does not contain the query but whose keywords[] do,
+      // and expect it to appear in the filtered results
+    });
+
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip("searching within a drilled-in group filters that group's children", async () => {
+      // Drill into a group, then type a query — only matching children should be visible
+    });
+  });
 });
