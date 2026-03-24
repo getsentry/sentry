@@ -11,7 +11,7 @@ from django.urls import reverse
 from sentry import quotas
 from sentry.constants import ObjectStatus
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
-from sentry.relay.config import RetentionsConfig
+from sentry.quotas.base import RetentionsConfig
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe

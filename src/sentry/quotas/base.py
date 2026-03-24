@@ -61,6 +61,38 @@ class RetentionSettings(TypedDict):
     downsampled: int
 
 
+# This mirrors the `RetentionsConfig` struct in relay
+# https://github.com/getsentry/relay/blob/075960210b205fd096e338fe1798cef87ce60507/relay-dynamic-config/src/project.rs#L258-L270
+class RetentionsConfig(TypedDict, total=False):
+    log: RetentionSettings
+    span: RetentionSettings
+    traceMetric: RetentionSettings
+    traceAttachment: RetentionSettings
+
+    @staticmethod
+    def from_mapping(mapping: Mapping[DataCategory, RetentionSettings]) -> RetentionsConfig:
+        """
+        Creates a Relay-shaped RetentionsConfig from a
+        mapping of DataCategories to RetentionSettings.
+
+        Categories that Relay doesn't handle will be discarded.
+        """
+
+        return {
+            RETENTIONS_CONFIG_MAPPING[c]: v
+            for c, v in mapping.items()
+            if c in RETENTIONS_CONFIG_MAPPING
+        }
+
+
+RETENTIONS_CONFIG_MAPPING = {
+    DataCategory.LOG_BYTE: "log",
+    DataCategory.TRANSACTION: "span",
+    DataCategory.SPAN: "span",
+    DataCategory.TRACE_METRIC: "traceMetric",
+}
+
+
 class TrimmingConfig(TypedDict):
     maxSize: int
 

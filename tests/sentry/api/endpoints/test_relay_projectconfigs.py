@@ -14,7 +14,7 @@ from sentry import quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.project import Project
 from sentry.models.relay import Relay
-from sentry.relay.config import RetentionsConfig
+from sentry.quotas.base import RetentionsConfig
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe
@@ -199,7 +199,7 @@ def test_parse_retentions(call_endpoint, default_project):
 
 @django_db_all
 def test_parse_retentions_with_transactions(call_endpoint, default_project):
-    with patch(
+    with patch.multiple(
         "sentry.quotas.backend",
         get_retentions=lambda x: {
             DataCategory.ERROR: {"standard": 10, "downsampled": 20},

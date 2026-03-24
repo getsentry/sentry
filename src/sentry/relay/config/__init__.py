@@ -13,7 +13,6 @@ from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import (
     HEALTH_CHECK_GLOBS,
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
-    DataCategory,
     ObjectStatus,
 )
 from sentry.dynamic_sampling import generate_rules
@@ -38,7 +37,7 @@ from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.quotas.base import RetentionSettings
+from sentry.quotas.base import RetentionsConfig
 from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
@@ -89,37 +88,7 @@ EXTRACT_ABNORMAL_MECHANISM_VERSION = 2
 #: and start marking all URL transactions as sanitized.
 MIN_CLUSTERER_RUNS = 10
 
-RETENTION_CATEGORY_MAPPING = {
-    DataCategory.LOG_BYTE: "log",
-    DataCategory.TRANSACTION: "span",
-    DataCategory.SPAN: "span",
-    DataCategory.TRACE_METRIC: "traceMetric",
-}
-
 logger = logging.getLogger(__name__)
-
-
-# This mirrors the `RetentionsConfig` struct in relay
-# https://github.com/getsentry/relay/blob/075960210b205fd096e338fe1798cef87ce60507/relay-dynamic-config/src/project.rs#L258-L270
-class RetentionsConfig(TypedDict, total=False):
-    log: RetentionSettings
-    span: RetentionSettings
-    traceMetric: RetentionSettings
-    traceAttachment: RetentionSettings
-
-    def from_mapping(mapping: Mapping[DataCategory, RetentionSettings]) -> RetentionsConfig:
-        """
-        Creates a Relay-shaped RetentionsConfig from a
-        mapping of DataCategories to RetentionSettings.
-
-        Categories that Relay doesn't handle will be discarded.
-        """
-
-        return {
-            RETENTION_CATEGORY_MAPPING[c]: v
-            for c, v in mapping.items()
-            if c in RETENTION_CATEGORY_MAPPING
-        }
 
 
 def get_exposed_features(project: Project) -> Sequence[str]:
