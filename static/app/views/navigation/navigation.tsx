@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import Feature from 'sentry/components/acl/feature';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
   IconCompass,

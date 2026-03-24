@@ -8,7 +8,7 @@ import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
 import {ReplayViewers} from 'sentry/components/replays/header/replayViewers';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {RawReplayError} from 'sentry/utils/replays/types';

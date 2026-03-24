@@ -14,7 +14,7 @@ import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SimilarStackTraceItem} from './item';
-import Toolbar from './toolbar';
+import {SimilarToolbar} from './toolbar';
 
 type DefaultProps = {
   filteredItems: SimilarItem[];
@@ -84,7 +84,7 @@ export function List({
         )}
       </Flex>
       <Panel>
-        <Toolbar
+        <SimilarToolbar
           onMerge={onMerge}
           groupId={groupId}
           project={project}

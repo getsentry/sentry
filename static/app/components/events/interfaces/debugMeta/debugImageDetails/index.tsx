@@ -26,7 +26,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getPrettyFileType} from 'sentry/views/settings/projectDebugFiles/utils';
 
-import Candidates from './candidates';
+import {Candidates} from './candidates';
 import {GeneralInfo} from './generalInfo';
 import {ReprocessAlert} from './reprocessAlert';
 import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';

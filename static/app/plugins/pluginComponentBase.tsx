@@ -9,7 +9,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {GenericField} from 'sentry/components/deprecatedforms/genericField';
-import FormState from 'sentry/components/forms/state';
+import {FormState} from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 
 const callbackWithArgs = function (context: any, callback: any, ...args: any) {
@@ -22,7 +22,7 @@ type Props = Record<string, unknown>;
 
 type State = {state: FormState};
 
-abstract class PluginComponentBase<
+export abstract class PluginComponentBase<
   P extends Props = Props,
   S extends State = State,
 > extends Component<P, S> {
@@ -156,5 +156,3 @@ abstract class PluginComponentBase<
     return <GenericField key={newProps.config?.name} {...newProps} />;
   }
 }
-
-export default PluginComponentBase;

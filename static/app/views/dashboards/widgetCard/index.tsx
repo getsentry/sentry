@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   isWidgetViewerPath,
   WidgetViewerQueryField,
@@ -49,7 +49,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 

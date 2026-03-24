@@ -3,7 +3,7 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
-import FeatureTourModal from 'sentry/components/modals/featureTourModal';
+import {FeatureTourModal} from 'sentry/components/modals/featureTourModal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

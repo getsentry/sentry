@@ -3,7 +3,7 @@ import type {Location, Query} from 'history';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {
   isAggregateField,
   SPAN_OP_BREAKDOWN_FIELDS,

@@ -16,7 +16,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
