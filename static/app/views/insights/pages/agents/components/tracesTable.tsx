@@ -349,7 +349,7 @@ const BodyCell = memo(function BodyCell({
         const traceUrl = getTraceDetailsUrl({
           organization,
           traceSlug: dataRow.traceId,
-          dateSelection: normalizeDateTimeParams(selection),
+          dateSelection: normalizeDateTimeParams(selection.datetime),
           timestamp: dataRow.timestamp / 1000,
           location: {
             ...location,
