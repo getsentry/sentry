@@ -274,9 +274,16 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
 
     def get_current_step_info(self) -> dict[str, Any]:
         """Returns structured data describing the current pipeline step for API consumers."""
+        if self.state.uid is not None and self.state.uid != self.request.user.id:
+            raise PermissionError(ERR_MISMATCHED_USER)
+
         api_steps = self.get_pipeline_api_steps()
         assert api_steps is not None
         step_index = self.step_index
+
+        if step_index >= len(api_steps):
+            raise IndexError("Pipeline already completed")
+
         api_step = self._resolve_api_step(api_steps[step_index])
         return {
             "step": api_step.step_name,
@@ -288,9 +295,16 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
 
     def api_advance(self, request: HttpRequest, data: Mapping[str, Any]) -> PipelineStepResult:
         """Validates and processes the current step in API mode, advancing the pipeline."""
+        if self.state.uid is not None and self.state.uid != self.request.user.id:
+            return PipelineStepResult.error(ERR_MISMATCHED_USER)
+
         api_steps = self.get_pipeline_api_steps()
         assert api_steps is not None
         step_index = self.step_index
+
+        if step_index >= len(api_steps):
+            return self.api_finish_pipeline()
+
         api_step = self._resolve_api_step(api_steps[step_index])
 
         serializer_cls = api_step.get_serializer_cls()
