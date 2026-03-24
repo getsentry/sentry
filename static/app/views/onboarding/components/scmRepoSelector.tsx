@@ -8,6 +8,8 @@ import {useOnboardingContext} from 'sentry/components/onboarding/onboardingConte
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useScmRepoSearch} from './useScmRepoSearch';
 import {useScmRepoSelection} from './useScmRepoSelection';
@@ -17,13 +19,23 @@ interface ScmRepoSelectorProps {
 }
 
 export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
+  const organization = useOrganization();
   const {selectedRepository, setSelectedRepository} = useOnboardingContext();
   const {reposByIdentifier, dropdownItems, isFetching, debouncedSearch, setSearch} =
     useScmRepoSearch(integration.id, selectedRepository);
 
   const {busy, handleSelect, handleRemove} = useScmRepoSelection({
     integration,
-    onSelect: setSelectedRepository,
+    onSelect: repo => {
+      setSelectedRepository(repo);
+      if (repo) {
+        trackAnalytics('onboarding.scm_connect_repo_selected', {
+          organization,
+          provider: integration.provider.key,
+          repo: repo.name,
+        });
+      }
+    },
     reposByIdentifier,
   });
 
