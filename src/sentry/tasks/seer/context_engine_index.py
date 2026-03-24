@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta, timezone
 import sentry_sdk
 from taskbroker_client.retry import Retry
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -36,8 +36,6 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.utils.hashlib import md5_text
-from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
@@ -210,41 +208,12 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
         raise
 
 
-def get_allowed_org_ids_context_engine_indexing() -> list[int]:
-    """
-    Get the list of allowed organizations for context engine indexing.
-
-    Divides all active orgs into 24 buckets via md5 hash of org ID. Only the bucket matching the current
-    hour is checked for the seer-explorer-context-engine feature flag, keeping feature check
-    volume at ~1/24th of total orgs.
-    """
-    with sentry_sdk.start_span(
-        op="explorer.context_engine.get_allowed_org_ids_context_engine_indexing"
-    ):
-        now = datetime.now(UTC)
-        TOTAL_HOURLY_SLOTS = 24
-
-        eligible_org_ids: list[int] = []
-
-        for org in RangeQuerySetWrapper(
-            Organization.objects.filter(status=ObjectStatus.ACTIVE),
-            result_value_getter=lambda o: o.id,
-        ):
-            # Ordering of these if blocks is very crucial. We want to check the hour first as
-            # checking the feature flag is an expensive operation and we want to avoid it if possible.
-            if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == now.hour:
-                if features.has("organizations:seer-explorer-context-engine", org):
-                    eligible_org_ids.append(org.id)
-
-        return eligible_org_ids
-
-
 @instrumented_task(
     name="sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
     namespace=seer_tasks,
     processing_deadline_duration=30 * 60,
 )
-def schedule_context_engine_indexing_tasks() -> None:
+def schedule_context_engine_indexing_tasks(allowed_org_ids: list[int]) -> None:
     """
     Schedule context engine indexing tasks for all allowed organizations.
 
@@ -254,8 +223,6 @@ def schedule_context_engine_indexing_tasks() -> None:
     if not options.get("explorer.context_engine_indexing.enable"):
         logger.info("explorer.context_engine_indexing.enable flag is disabled")
         return
-
-    allowed_org_ids = get_allowed_org_ids_context_engine_indexing()
 
     dispatched = 0
     for org_id in allowed_org_ids:
