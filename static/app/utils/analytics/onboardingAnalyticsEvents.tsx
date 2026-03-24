@@ -43,7 +43,7 @@ export type OnboardingEventParameters = {
     provider: string;
     repo: string;
   };
-  'onboarding.scm_connect_step_viewed': Record<string, never>;
+  'onboarding.scm_connect_step_viewed': Record<string, unknown>;
   'onboarding.select_framework_modal_close_button_clicked': {
     platform: string;
   };
