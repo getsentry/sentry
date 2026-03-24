@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-export interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> {
+interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'vibrant' | 'monochrome';
 }
 

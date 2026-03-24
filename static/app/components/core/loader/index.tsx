@@ -1,1 +1,1 @@
-export {IndeterminateLoader, type IndeterminateLoaderProps} from './indeterminateLoader';
+export {IndeterminateLoader} from './indeterminateLoader';
