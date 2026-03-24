@@ -42,14 +42,6 @@ class CircuitBreakerConfig(TypedDict):
     # How long, in seconds, to stay in the BROKEN state (blocking all requests) before entering the
     # RECOVERY phase
     broken_state_duration: int
-    # The number of errors within the given time period necessary to trip the breaker. Required when
-    # no `trip_strategies` are provided to `CircuitBreaker`; ignored if `trip_strategies` is given
-    # (use `CountBasedTripStrategy(error_limit=...)` instead).
-    error_limit: NotRequired[int]
-    # The number of errors within the given time period necessary to trip the breaker while in
-    # RECOVERY. Only used when no `trip_strategies` are provided. Will be set automatically to 10%
-    # of `error_limit` if not provided.
-    recovery_error_limit: NotRequired[int]
     # The length, in seconds, of each time bucket ("granule") used by the underlying rate limiter -
     # effectively the resolution of the time window. Will be set automatically based on
     # `error_limit_window` if not provided.
@@ -66,6 +58,21 @@ class CircuitBreakerConfig(TypedDict):
 # Used by rate-based strategies as a very large quota capacity — effectively unlimited, so
 # error_count and total_requests can be counted accurately without hitting the cap.
 _COUNTER_QUOTA_LIMIT = 2_000_000_000
+
+
+class CountBasedTripStrategyConfig(CircuitBreakerConfig):
+    # The number of errors within the given time period necessary to trip the breaker.
+    error_limit: int
+    # The number of errors within the given time period necessary to trip the breaker while in
+    # RECOVERY.
+    recovery_error_limit: NotRequired[int]
+
+
+class RateBasedTripStrategyConfig(CircuitBreakerConfig):
+    # What % of total requests must be errors to trip the breaker.
+    threshold: float
+    # Minimum amount of errors to trip the breaker.
+    floor: int
 
 
 class TripStrategy(Protocol):
@@ -102,6 +109,13 @@ class TripStrategy(Protocol):
 
 class CountBasedTripStrategy(TripStrategy):
     """Trips the breaker when the error count within the window reaches a fixed threshold."""
+
+    @classmethod
+    def from_config(cls, config: CountBasedTripStrategyConfig) -> "CountBasedTripStrategy":
+        return cls(
+            error_limit=config["error_limit"],
+            recovery_error_limit=config.get("recovery_error_limit"),
+        )
 
     def __init__(self, error_limit: int, recovery_error_limit: int | None = None) -> None:
         self.error_limit = error_limit
@@ -157,6 +171,10 @@ class CountBasedTripStrategy(TripStrategy):
 
 class RateBasedTripStrategy(TripStrategy):
     """Trips the breaker when error_count >= floor AND error_count / total_requests >= threshold."""
+
+    @classmethod
+    def from_config(cls, config: RateBasedTripStrategyConfig) -> "RateBasedTripStrategy":
+        return cls(threshold=config["threshold"], floor=config["floor"])
 
     def __init__(self, threshold: float, floor: int) -> None:
         self.threshold = threshold
@@ -258,10 +276,12 @@ class CircuitBreaker:
     Usage:
 
     def get_top_dogs(payload):
-        # See `CircuitBreakerConfig` class for config options
+        # See `CircuitBreakerConfig` and `CountBasedTripStrategyConfig` for config options
+        config = options.get("squirrel_chasing.circuit_breaker_config")
         breaker = CircuitBreaker(
             settings.SQUIRREL_CHASING_CIRCUIT_BREAKER_KEY,
-            options.get("squirrel_chasing.circuit_breaker_config"),
+            config,
+            CountBasedTripStrategy.from_config(config),
         )
 
         # Check the state of the breaker before calling the service
@@ -302,7 +322,7 @@ class CircuitBreaker:
         self,
         key: str,
         config: CircuitBreakerConfig,
-        trip_strategies: list[TripStrategy] | None = None,
+        trip_strategy: TripStrategy,
     ):
         self.key = key
         self.metrics_key = config.get("metrics_key", key)
@@ -324,29 +344,13 @@ class CircuitBreaker:
         )
         self.redis_pipeline = self.limiter.client.pipeline()
 
-        # Determine strategies: use provided list, or build a CountBasedTripStrategy from config
-        if trip_strategies is not None:
-            self.trip_strategies = trip_strategies
-        else:
-            if "error_limit" not in config:
-                raise ValueError(
-                    "CircuitBreaker requires either 'trip_strategies' or 'error_limit' in config"
-                )
-            self.trip_strategies = [
-                CountBasedTripStrategy(config["error_limit"], config.get("recovery_error_limit"))
-            ]
-
-        if not self.trip_strategies:
-            raise ValueError("CircuitBreaker requires at least one trip strategy")
+        self.trip_strategy = trip_strategy
 
         # Initialize each strategy (validation and Redis quota setup happen here)
-        for s in self.trip_strategies:
-            s.initialize(key, self.window, self.window_granularity)
+        self.trip_strategy.initialize(key, self.window, self.window_granularity)
 
-        # Derive quota limits from strategies: use the most permissive (largest) to ensure all
-        # strategies can accurately count errors up to their thresholds.
-        primary_limit = max(s.primary_quota_limit() for s in self.trip_strategies)
-        recovery_limit = max(s.recovery_quota_limit() for s in self.trip_strategies)
+        primary_limit = self.trip_strategy.primary_quota_limit()
+        recovery_limit = self.trip_strategy.recovery_quota_limit()
 
         self.primary_quota = Quota(
             self.window,
@@ -392,11 +396,9 @@ class CircuitBreaker:
         if state == CircuitBreakerState.BROKEN:
             return
 
-        tracking = [
-            q
-            for s in self.trip_strategies
-            for q in s.tracking_quotas(is_recovery=state == CircuitBreakerState.RECOVERY)
-        ]
+        tracking = self.trip_strategy.tracking_quotas(
+            is_recovery=state == CircuitBreakerState.RECOVERY
+        )
         if not tracking:
             return
 
@@ -411,16 +413,13 @@ class CircuitBreaker:
         window_end_time = int(time.time())
         remaining = self._get_remaining_error_quota(controlling_quota, window_end_time)
         is_recovery = controlling_quota is self.recovery_quota
-        return any(
-            s.should_trip(
-                controlling_quota,
-                remaining,
-                self.limiter,
-                self.key,
-                window_end_time,
-                is_recovery=is_recovery,
-            )
-            for s in self.trip_strategies
+        return self.trip_strategy.should_trip(
+            controlling_quota,
+            remaining,
+            self.limiter,
+            self.key,
+            window_end_time,
+            is_recovery=is_recovery,
         )
 
     def record_error(self) -> None:
@@ -456,11 +455,7 @@ class CircuitBreaker:
         )
         quotas = [
             *quotas,
-            *[
-                q
-                for s in self.trip_strategies
-                for q in s.tracking_quotas(is_recovery=state == CircuitBreakerState.RECOVERY)
-            ],
+            *self.trip_strategy.tracking_quotas(is_recovery=state == CircuitBreakerState.RECOVERY),
         ]
 
         self.limiter.use_quotas(

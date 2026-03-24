@@ -3,7 +3,6 @@ from typing import Any
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, patch
 
-import pytest
 import time_machine
 from django.conf import settings
 from redis.client import Pipeline
@@ -18,16 +17,17 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.circuit_breaker2 import (
     _COUNTER_QUOTA_LIMIT,
     CircuitBreaker,
-    CircuitBreakerConfig,
     CircuitBreakerState,
     CountBasedTripStrategy,
+    CountBasedTripStrategyConfig,
     RateBasedTripStrategy,
+    RateBasedTripStrategyConfig,
 )
 
 # Note: These need to be relatively big. If the limit is too low, the RECOVERY quota isn't big
 # enough to be useful, and if the window is too short, redis (which doesn't seem to listen to the
 # @freezetime decorator) will expire the state keys.
-DEFAULT_CONFIG: CircuitBreakerConfig = {
+DEFAULT_CONFIG: CountBasedTripStrategyConfig = {
     "error_limit": 200,
     "error_limit_window": 3600,  # 1 hr
     "broken_state_duration": 120,  # 2 min
@@ -124,7 +124,9 @@ class MockCircuitBreaker(CircuitBreaker):
 class CircuitBreakerTest(TestCase):
     def setUp(self) -> None:
         self.config = DEFAULT_CONFIG
-        self.breaker = MockCircuitBreaker("dogs_are_great", self.config)
+        self.breaker = MockCircuitBreaker(
+            "dogs_are_great", self.config, CountBasedTripStrategy.from_config(self.config)
+        )
 
         # Clear all existing keys from redis
         self.breaker.redis_pipeline.flushall()
@@ -148,7 +150,7 @@ class CircuitBreakerTest(TestCase):
             "primary_quota": ANY,
             "recovery_quota": ANY,
             "redis_pipeline": ANY,
-            "trip_strategies": ANY,
+            "trip_strategy": ANY,
         }
         assert isinstance(breaker.limiter, RedisSlidingWindowRateLimiter)
         assert isinstance(breaker.primary_quota, Quota)
@@ -168,13 +170,17 @@ class CircuitBreakerTest(TestCase):
         assert isinstance(breaker.redis_pipeline, Pipeline)
 
     def test_metrics_key_defaults_to_key(self) -> None:
-        breaker = MockCircuitBreaker("dogs_are_great", DEFAULT_CONFIG)
+        breaker = MockCircuitBreaker(
+            "dogs_are_great", DEFAULT_CONFIG, CountBasedTripStrategy.from_config(DEFAULT_CONFIG)
+        )
         assert breaker.metrics_key == "dogs_are_great"
 
     @patch("sentry.utils.circuit_breaker2.metrics.incr")
     def test_metrics_key_override_used_in_metrics(self, mock_metrics_incr: MagicMock) -> None:
-        config: CircuitBreakerConfig = {**DEFAULT_CONFIG, "metrics_key": "system.webhook"}
-        breaker = MockCircuitBreaker("sentry_app.12345", config)
+        config: CountBasedTripStrategyConfig = {**DEFAULT_CONFIG, "metrics_key": "system.webhook"}
+        breaker = MockCircuitBreaker(
+            "sentry_app.12345", config, CountBasedTripStrategy.from_config(config)
+        )
         assert breaker.key == "sentry_app.12345"
         assert breaker.metrics_key == "system.webhook"
 
@@ -188,7 +194,7 @@ class CircuitBreakerTest(TestCase):
 
     @patch("sentry.utils.circuit_breaker2.logger")
     def test_fixes_too_loose_recovery_limit(self, mock_logger: MagicMock) -> None:
-        config: CircuitBreakerConfig = {
+        config: CountBasedTripStrategyConfig = {
             **DEFAULT_CONFIG,
             "error_limit": 200,
             "recovery_error_limit": 400,
@@ -199,7 +205,9 @@ class CircuitBreakerTest(TestCase):
             (False, mock_logger.warning),
         ]:
             settings.DEBUG = settings_debug_value
-            breaker = MockCircuitBreaker("dogs_are_great", config)
+            breaker = MockCircuitBreaker(
+                "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
+            )
 
             expected_log_function.assert_called_with(
                 "Circuit breaker '%s' has a recovery error limit (%d) greater than or equal"
@@ -214,7 +222,7 @@ class CircuitBreakerTest(TestCase):
 
     @patch("sentry.utils.circuit_breaker2.logger")
     def test_fixes_mismatched_state_durations(self, mock_logger: MagicMock) -> None:
-        config: CircuitBreakerConfig = {
+        config: CountBasedTripStrategyConfig = {
             **DEFAULT_CONFIG,
             "error_limit_window": 600,
             "broken_state_duration": 100,
@@ -225,7 +233,9 @@ class CircuitBreakerTest(TestCase):
             (False, mock_logger.warning),
         ]:
             settings.DEBUG = settings_debug_value
-            breaker = MockCircuitBreaker("dogs_are_great", config)
+            breaker = MockCircuitBreaker(
+                "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
+            )
 
             expected_log_function.assert_called_with(
                 "Circuit breaker '%s' has BROKEN and RECOVERY state durations (%d and %d sec, respectively)"
@@ -246,7 +256,9 @@ class CircuitBreakerTest(TestCase):
 class RecordErrorTest(TestCase):
     def setUp(self) -> None:
         self.config = DEFAULT_CONFIG
-        self.breaker = MockCircuitBreaker("dogs_are_great", self.config)
+        self.breaker = MockCircuitBreaker(
+            "dogs_are_great", self.config, CountBasedTripStrategy.from_config(self.config)
+        )
 
         # Clear all existing keys from redis
         self.breaker.redis_pipeline.flushall()
@@ -418,7 +430,9 @@ class RecordErrorTest(TestCase):
 class ShouldAllowRequestTest(TestCase):
     def setUp(self) -> None:
         self.config = DEFAULT_CONFIG
-        self.breaker = MockCircuitBreaker("dogs_are_great", self.config)
+        self.breaker = MockCircuitBreaker(
+            "dogs_are_great", self.config, CountBasedTripStrategy.from_config(self.config)
+        )
 
         # Clear all existing keys from redis
         self.breaker.redis_pipeline.flushall()
@@ -483,15 +497,22 @@ class ShouldAllowRequestTest(TestCase):
 
 # --- Rate-based circuit breaker tests ---
 
+DEFAULT_RATE_BASED_CONFIG: RateBasedTripStrategyConfig = {
+    "error_limit_window": 3600,  # 1 hr
+    "broken_state_duration": 120,  # 2 min
+    "threshold": 0.1,  # 10% of total requests must be errors to trip the breaker
+    "floor": 100,  # Minimum amount of errors to trip the breaker
+}
+
 
 @freeze_time()
 class RateBasedCircuitBreakerTest(TestCase):
     def setUp(self) -> None:
-        self.config = DEFAULT_CONFIG
+        self.config: RateBasedTripStrategyConfig = DEFAULT_RATE_BASED_CONFIG
         self.breaker = MockCircuitBreaker(
             "test_rate_breaker",
             self.config,
-            trip_strategies=[RateBasedTripStrategy(threshold=0.5, floor=100)],
+            trip_strategy=RateBasedTripStrategy.from_config(DEFAULT_RATE_BASED_CONFIG),
         )
 
         # Clear all existing keys from redis
@@ -500,10 +521,9 @@ class RateBasedCircuitBreakerTest(TestCase):
 
     def test_sets_rate_based_defaults(self) -> None:
         breaker = self.breaker
-        assert len(breaker.trip_strategies) == 1
-        strategy = breaker.trip_strategies[0]
+        strategy = breaker.trip_strategy
         assert isinstance(strategy, RateBasedTripStrategy)
-        assert strategy.threshold == 0.5
+        assert strategy.threshold == 0.1
         assert strategy.floor == 100
 
         # Validate tracking quotas during OK state are setup correctly
@@ -534,7 +554,7 @@ class RateBasedCircuitBreakerTest(TestCase):
         """If error count >= floor but rate < threshold, don't trip."""
         for _ in range(900):
             self.breaker.record_success()
-        for _ in range(100):
+        for _ in range(99):
             self.breaker.record_error()
 
         assert self.breaker.should_allow_request() is True
@@ -565,7 +585,7 @@ class RateBasedCircuitBreakerTest(TestCase):
 
     def test_recovery_to_broken_on_recovery_errors(self) -> None:
         """During RECOVERY, rate is computed from recovery traffic only, not diluted by OK-state traffic."""
-        strategy = self.breaker.trip_strategies[0]
+        strategy = self.breaker.trip_strategy
         assert isinstance(strategy, RateBasedTripStrategy)
 
         # Simulate a large volume of pre-BROKEN OK-state requests by directly writing to
@@ -590,8 +610,8 @@ class RateBasedCircuitBreakerTest(TestCase):
         self.breaker.record_success()
 
         now = int(time.time())
-        assert isinstance(self.breaker.trip_strategies[0], RateBasedTripStrategy)
-        total_requests_quota = self.breaker.trip_strategies[0]._total_requests_quota
+        assert isinstance(self.breaker.trip_strategy, RateBasedTripStrategy)
+        total_requests_quota = self.breaker.trip_strategy._total_requests_quota
         assert total_requests_quota is not None
         _, grants = self.breaker.limiter.check_within_quotas(
             [
@@ -612,8 +632,8 @@ class RateBasedCircuitBreakerTest(TestCase):
 
         now = int(time.time())
         # Check total requests
-        assert isinstance(self.breaker.trip_strategies[0], RateBasedTripStrategy)
-        total_requests_quota = self.breaker.trip_strategies[0]._total_requests_quota
+        assert isinstance(self.breaker.trip_strategy, RateBasedTripStrategy)
+        total_requests_quota = self.breaker.trip_strategy._total_requests_quota
         assert total_requests_quota is not None
         _, total_grants = self.breaker.limiter.check_within_quotas(
             [
@@ -648,8 +668,8 @@ class RateBasedCircuitBreakerTest(TestCase):
         self.breaker.record_success()
 
         now = int(time.time())
-        assert isinstance(self.breaker.trip_strategies[0], RateBasedTripStrategy)
-        total_requests_quota = self.breaker.trip_strategies[0]._total_requests_quota
+        assert isinstance(self.breaker.trip_strategy, RateBasedTripStrategy)
+        total_requests_quota = self.breaker.trip_strategy._total_requests_quota
         assert total_requests_quota is not None
         _, grants = self.breaker.limiter.check_within_quotas(
             [
@@ -666,16 +686,18 @@ class RateBasedCircuitBreakerTest(TestCase):
 
     def test_record_success_noop_when_not_rate_based(self) -> None:
         """record_success() should be a no-op for count-based breakers."""
-        count_breaker = MockCircuitBreaker("count_only", DEFAULT_CONFIG)
+        count_breaker = MockCircuitBreaker(
+            "count_only", DEFAULT_CONFIG, CountBasedTripStrategy.from_config(DEFAULT_CONFIG)
+        )
         count_breaker.redis_pipeline.flushall()
         count_breaker.redis_pipeline.execute()
 
-        assert isinstance(count_breaker.trip_strategies[0], CountBasedTripStrategy)
-        assert count_breaker.trip_strategies[0].tracking_quotas() == []
+        assert isinstance(count_breaker.trip_strategy, CountBasedTripStrategy)
+        assert count_breaker.trip_strategy.tracking_quotas() == []
         count_breaker.record_success()  # should be a no-op, no assertion needed beyond no exception
 
     def test_record_success_in_ok_does_not_increment_recovery_quota(self) -> None:
-        strategy = self.breaker.trip_strategies[0]
+        strategy = self.breaker.trip_strategy
         assert isinstance(strategy, RateBasedTripStrategy)
 
         self.breaker.record_success()  # breaker is in OK state by default
@@ -689,7 +711,7 @@ class RateBasedCircuitBreakerTest(TestCase):
         assert recovery_quota.limit - grants[0].granted == 0
 
     def test_record_success_and_error_in_recovery_increment_recovery_quota(self) -> None:
-        strategy = self.breaker.trip_strategies[0]
+        strategy = self.breaker.trip_strategy
         assert isinstance(strategy, RateBasedTripStrategy)
 
         self.breaker._set_breaker_state(CircuitBreakerState.RECOVERY)
@@ -705,7 +727,7 @@ class RateBasedCircuitBreakerTest(TestCase):
         assert recovery_quota.limit - grants[0].granted == 2
 
     def test_record_success_and_error_in_recovery_also_increment_total_quota(self) -> None:
-        strategy = self.breaker.trip_strategies[0]
+        strategy = self.breaker.trip_strategy
         assert isinstance(strategy, RateBasedTripStrategy)
 
         self.breaker._set_breaker_state(CircuitBreakerState.RECOVERY)
@@ -843,98 +865,3 @@ class TripStrategyTest(TestCase):
             == "test_key.circuit_breaker.recovery.total_recovery_requests"
         )
         assert recovery_quotas[1].prefix_override == "test_key.circuit_breaker.total_requests"
-
-
-@freeze_time()
-class MultipleStrategiesTest(TestCase):
-    """Tests for circuit breakers with multiple trip strategies (OR semantics)."""
-
-    def setUp(self) -> None:
-        self.breaker = MockCircuitBreaker(
-            "multi_strategy",
-            {
-                "error_limit_window": 3600,
-                "broken_state_duration": 120,
-            },
-            trip_strategies=[
-                CountBasedTripStrategy(error_limit=50),
-                RateBasedTripStrategy(threshold=0.5, floor=10),
-            ],
-        )
-        self.breaker.redis_pipeline.flushall()
-        self.breaker.redis_pipeline.execute()
-
-    def test_trips_when_count_strategy_fires(self) -> None:
-        """Breaker trips when only the count condition is met."""
-        # 50 errors at 100% rate → count strategy fires (rate strategy also would, but count fires first)
-        for _ in range(50):
-            self.breaker.record_error()
-
-        state, _ = self.breaker._get_state_and_remaining_time()
-        assert state == CircuitBreakerState.BROKEN
-
-    def test_trips_when_rate_strategy_fires_before_count_limit(self) -> None:
-        """Breaker trips when only the rate condition is met, well below the count limit."""
-        # 40 successes + 10 errors = 20% error rate below 50% threshold — no trip
-        for _ in range(40):
-            self.breaker.record_success()
-        for _ in range(10):
-            self.breaker.record_error()
-        assert self.breaker.should_allow_request() is True
-
-        # 5 more successes + 15 more errors (total 45 success, 25 errors = 36% rate) — no trip
-        for _ in range(5):
-            self.breaker.record_success()
-        for _ in range(15):
-            self.breaker.record_error()
-        assert self.breaker.should_allow_request() is True
-
-        # 5 more errors (total 45 success, 30 errors = 40% rate) — still no trip
-        for _ in range(5):
-            self.breaker.record_error()
-        assert self.breaker.should_allow_request() is True
-
-        # 10 more errors (total 45 success, 40 errors = 47% rate — still below 50%) — no trip
-        for _ in range(10):
-            self.breaker.record_error()
-        assert self.breaker.should_allow_request() is True
-
-        # note: 40 errors out of 85 total = 47%, not yet 50%
-        # 5 more errors (total 45 success, 45 errors = 50% rate) — rate strategy trips!
-        for _ in range(5):
-            self.breaker.record_error()
-
-        state, _ = self.breaker._get_state_and_remaining_time()
-        assert state == CircuitBreakerState.BROKEN
-
-    def test_quota_limits_are_max_of_strategies(self) -> None:
-        """When mixing count-based and rate-based, quotas use the larger (rate-based) limits."""
-        # CountBasedTripStrategy(50) → primary_quota_limit=50, recovery_quota_limit=5
-        # RateBasedTripStrategy → primary_quota_limit=2B, recovery_quota_limit=2B
-        # Breaker uses max: 2B for both
-        assert self.breaker.primary_quota.limit == _COUNTER_QUOTA_LIMIT
-        assert self.breaker.recovery_quota.limit == _COUNTER_QUOTA_LIMIT
-
-    def test_tracking_quotas_aggregated_from_all_strategies(self) -> None:
-        """tracking_quotas flattens all strategies' quotas."""
-        all_tracking = [q for s in self.breaker.trip_strategies for q in s.tracking_quotas()]
-        # CountBasedTripStrategy has no tracking quotas; RateBasedTripStrategy has 1
-        assert len(all_tracking) == 1
-        assert all_tracking[0].prefix_override == "multi_strategy.circuit_breaker.total_requests"
-
-    def test_empty_strategies_raises(self) -> None:
-        """Passing an empty list of strategies raises ValueError."""
-        with pytest.raises(ValueError, match="at least one"):
-            MockCircuitBreaker(
-                "empty_strategies",
-                {"error_limit_window": 3600, "broken_state_duration": 120},
-                trip_strategies=[],
-            )
-
-    def test_requires_error_limit_or_trip_strategies(self) -> None:
-        """Config without error_limit and no trip_strategies raises ValueError."""
-        with pytest.raises(ValueError, match="requires either"):
-            MockCircuitBreaker(
-                "no_config",
-                {"error_limit_window": 3600, "broken_state_duration": 120},
-            )
