@@ -595,6 +595,6 @@ describe('AutofixSection', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Outline a plan')).toBeInTheDocument();
     expect(screen.getByText('Create a code fix')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Fix the Issue'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
   });
 });
