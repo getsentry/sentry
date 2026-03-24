@@ -13,7 +13,9 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as ModalActionCreators from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {Navigation} from 'sentry/views/navigation';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
@@ -858,6 +860,70 @@ describe('desktop navigation', () => {
           ).toBeInTheDocument();
         });
       });
+    });
+  });
+
+  describe('command palette hotkeys', () => {
+    it('does not open deprecated command palette when an input has focus', async () => {
+      const openCommandPaletteDeprecatedSpy = jest
+        .spyOn(ModalActionCreators, 'openCommandPaletteDeprecated')
+        .mockResolvedValue();
+
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      input.focus();
+
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
+
+      await userEvent.keyboard('{Control>}k{/Control}');
+
+      expect(openCommandPaletteDeprecatedSpy).not.toHaveBeenCalled();
+
+      openCommandPaletteDeprecatedSpy.mockRestore();
+      input.remove();
+    });
+
+    it('does not close a replacement modal after command palette is replaced', async () => {
+      ModalStore.closeModal();
+
+      const commandPaletteRenderer = jest.fn(() => null);
+      const replacementModalRenderer = jest.fn(() => null);
+      const openCommandPaletteSpy = jest
+        .spyOn(ModalActionCreators, 'openCommandPalette')
+        .mockImplementation(() => {
+          ModalStore.openModal(commandPaletteRenderer, {});
+          return Promise.resolve();
+        });
+
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: {
+            features: [...ALL_AVAILABLE_FEATURES, 'cmd-k-supercharged'],
+          },
+        })
+      );
+
+      await userEvent.keyboard('{Control>}k{/Control}');
+      expect(ModalStore.getState().renderer).toBe(commandPaletteRenderer);
+
+      ModalStore.openModal(replacementModalRenderer, {});
+      await waitFor(() => {
+        expect(ModalStore.getState().renderer).toBe(replacementModalRenderer);
+      });
+
+      await userEvent.keyboard('{Control>}k{/Control}');
+      expect(ModalStore.getState().renderer).toBe(replacementModalRenderer);
+
+      openCommandPaletteSpy.mockRestore();
+      ModalStore.closeModal();
     });
   });
 });

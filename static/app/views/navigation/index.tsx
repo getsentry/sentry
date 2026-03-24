@@ -33,30 +33,50 @@ import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetAct
 function UserAndOrganizationNavigation() {
   const organization = useOrganization();
   const {layout} = usePrimaryNavigation();
-  const {visible} = useGlobalModal();
+  const {visible, renderer} = useGlobalModal();
   const hasPageFrame = useHasPageFrameFeature();
 
   useGlobalCommandPaletteActions();
 
   const commandPaletteOpenRef = useRef(false);
+  const commandPaletteRendererRef = useRef<typeof renderer>(null);
+  const hasSuperchargedCommandPalette =
+    organization.features.includes('cmd-k-supercharged');
 
   useEffect(() => {
     if (!visible) {
       commandPaletteOpenRef.current = false;
+      commandPaletteRendererRef.current = null;
+      return;
     }
-  }, [visible]);
+
+    if (!commandPaletteOpenRef.current || !renderer) {
+      return;
+    }
+
+    if (commandPaletteRendererRef.current === null) {
+      commandPaletteRendererRef.current = renderer;
+      return;
+    }
+
+    if (commandPaletteRendererRef.current !== renderer) {
+      commandPaletteOpenRef.current = false;
+      commandPaletteRendererRef.current = null;
+    }
+  }, [visible, renderer]);
 
   useHotkeys([
     {
       match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-      includeInputs: true,
+      includeInputs: hasSuperchargedCommandPalette,
       callback: () => {
-        if (organization.features.includes('cmd-k-supercharged')) {
+        if (hasSuperchargedCommandPalette) {
           if (visible && commandPaletteOpenRef.current) {
             closeModal();
           } else if (!visible) {
             openCommandPalette();
             commandPaletteOpenRef.current = true;
+            commandPaletteRendererRef.current = null;
           }
         } else if (!visible) {
           openCommandPaletteDeprecated();
