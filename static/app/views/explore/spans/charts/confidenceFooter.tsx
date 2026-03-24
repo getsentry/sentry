@@ -69,8 +69,8 @@ function confidenceMessage({
   // so make sure to have a backup when this happens.
   if (!defined(rawSpanCounts)) {
     const matchingSpansCount = usePluralSampleCount
-      ? t('%s span', <Count value={sampleCount} />)
-      : t('%s spans', <Count value={sampleCount} />);
+      ? t('%s spans', <Count value={sampleCount} />)
+      : t('%s span', <Count value={sampleCount} />);
 
     if (isTopN) {
       return tct(
