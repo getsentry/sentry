@@ -225,14 +225,11 @@ function MobilePrimaryNavigation() {
 
 export function MobilePageFrameNavigation() {
   const theme = useTheme();
-  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const navPanelRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const {view, setView} = useSecondaryNavigation();
   const scrollLock = useScrollLock(document.getElementById('main')!);
-
-  useEffect(() => setIsOpen(false), [location.pathname]);
 
   useEffect(() => {
     const main = document.getElementById('main');
