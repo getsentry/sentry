@@ -920,6 +920,13 @@ class GitHubBaseClient(
         """
         return self._get_with_pagination(f"/repos/{owner}/{repo}/labels")
 
+    def get_types(self, owner: str) -> list[Any]:
+        """
+        Fetches all issue types for an organization.
+        https://docs.github.com/en/rest/orgs/issue-types#list-issue-types-for-an-organization
+        """
+        return self._get_with_pagination(f"/orgs/{owner}/issue-types")
+
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
