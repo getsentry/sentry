@@ -131,6 +131,8 @@ export function Slider({
   );
 
   const hasTicks = allTickValues.length > 0;
+  const tickAnimationDuration = hasTicks ? 160 : 60;
+  const tickDelay = hasTicks ? tickAnimationDuration / allTickValues.length : 0;
 
   return (
     <SliderWrapper
@@ -143,17 +145,14 @@ export function Slider({
           <ActiveTrack style={{width: `${thumbPercent * 100}%`}} />
           <InactiveTrack style={{width: `${(1 - thumbPercent) * 100}%`}} />
 
-          {allTickValues.map((tickValue, index) => (
+          {allTickValues.slice(1, -1).map(tickValue => (
             <SliderTick
               key={tickValue}
               aria-hidden
               data-filled={tickValue <= thumbValue || undefined}
-              style={
-                {
-                  '--i': index.toString(),
-                  left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`,
-                } as React.CSSProperties
-              }
+              style={{
+                left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`,
+              }}
             />
           ))}
         </SliderTrackBar>
@@ -187,21 +186,29 @@ export function Slider({
       </TrackArea>
 
       <TrackLabels aria-hidden>
-        <TrackLabel data-position="start">{getFormattedValue(min)}</TrackLabel>
+        <TrackLabel data-position="start" style={{transitionDelay: '0ms'}}>
+          {getFormattedValue(min)}
+        </TrackLabel>
         {hasTicks &&
-          allTickValues.slice(1, -1).map(tickValue => (
+          allTickValues.slice(1, -1).map((tickValue, index) => (
             <TrackLabel
               key={tickValue}
               data-intermediate
               data-show={ticks?.labels || undefined}
               style={{
+                transitionDelay: `${((index + 1) * tickDelay).toFixed(2)}ms`,
                 left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`,
               }}
             >
               {getFormattedValue(tickValue)}
             </TrackLabel>
           ))}
-        <TrackLabel data-position="end">{getFormattedValue(max)}</TrackLabel>
+        <TrackLabel
+          data-position="end"
+          style={{transitionDelay: `${tickAnimationDuration}ms`}}
+        >
+          {getFormattedValue(max)}
+        </TrackLabel>
       </TrackLabels>
     </SliderWrapper>
   );
@@ -321,11 +328,6 @@ const SliderTick = styled('div')`
   border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
   pointer-events: none;
 
-  &:first-of-type,
-  &:last-of-type {
-    visibility: hidden;
-  }
-
   &[data-filled] {
     border-color: ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
   }
@@ -358,9 +360,8 @@ const TrackLabel = styled('span')`
   white-space: nowrap;
   transform: translate(var(--tx, 0), var(--ty, 0));
   transition:
-    transform ${p => p.theme.motion.snap.fast},
+    transform ${p => p.theme.motion.enter.fast},
     opacity ${p => p.theme.motion.enter.fast};
-  transition-delay: calc(var(--i, 1) * 10ms);
 
   &[data-intermediate] {
     --tx: -50%;
@@ -368,7 +369,7 @@ const TrackLabel = styled('span')`
   }
 
   &[data-intermediate]:not([data-show]) {
-    display: none;
+    --opacity: 0;
   }
 
   ${SliderWrapper}[aria-disabled] & {
