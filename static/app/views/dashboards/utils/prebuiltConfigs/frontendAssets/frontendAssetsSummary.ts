@@ -3,6 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
+import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -251,9 +252,9 @@ const ASSETS_TABLE_WIDGET: Widget = {
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.RESOURCE_RENDER_BLOCKING_STATUS],
       fieldAliases: [
-        t('Transaction'),
+        FIELD_ALIASES.transaction,
         t('Requests per Minute'),
-        t('Avg Duration'),
+        FIELD_ALIASES.avgDuration,
         t('Avg Encoded Size'),
         t('Render Blocking'),
       ],

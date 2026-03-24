@@ -2,7 +2,10 @@ import {t} from 'sentry/locale';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  FIELD_ALIASES,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
@@ -77,12 +80,12 @@ const TRANSACTION_TABLE: Widget = {
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.PROJECT],
       fieldAliases: [
-        t('Transaction'),
-        t('Project'),
+        FIELD_ALIASES.transaction,
+        FIELD_ALIASES.project,
         t('Avg Value Size'),
         t('Requests Per Minute'),
         t('Miss Rate'),
-        t('Time Spent'),
+        FIELD_ALIASES.timeSpent,
       ],
       conditions: BASE_CONDITION,
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,

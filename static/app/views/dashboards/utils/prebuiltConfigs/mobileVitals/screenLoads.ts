@@ -3,6 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_CONDITION = `is_transaction:true ${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
@@ -262,8 +263,8 @@ const SPAN_OPERATIONS_TABLE: Widget = {
       ],
       columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
       fieldAliases: [
-        'Operation',
-        'Span Description',
+        FIELD_ALIASES.operation,
+        FIELD_ALIASES.spanDescription,
         'TTID Contribution Rate',
         'TTFD Contribution Rate',
         'Avg Self Time',

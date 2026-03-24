@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -23,7 +24,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_RESOURCE_URI, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_RESOURCE_URI],
-          fieldAliases: [t('Resource'), t('Calls')],
+          fieldAliases: [t('Resource'), FIELD_ALIASES.calls],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -43,7 +44,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_RESOURCE_URI, `avg(${SpanFields.SPAN_DURATION})`],
           aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_RESOURCE_URI],
-          fieldAliases: [t('Resource'), t('Avg Duration')],
+          fieldAliases: [t('Resource'), FIELD_ALIASES.avgDuration],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -63,7 +64,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_RESOURCE_URI, `${SpanFunction.FAILURE_RATE}()`],
           aggregates: [`${SpanFunction.FAILURE_RATE}()`],
           columns: [SpanFields.MCP_RESOURCE_URI],
-          fieldAliases: [t('Resource'), t('Error Rate')],
+          fieldAliases: [t('Resource'), FIELD_ALIASES.errorRate],
           orderby: `-${SpanFunction.FAILURE_RATE}()`,
         },
       ],
@@ -102,11 +103,11 @@ const RESOURCES_TABLE = {
       columns: [SpanFields.MCP_RESOURCE_URI],
       fieldAliases: [
         t('Resource URI'),
-        t('Requests'),
-        t('Error Rate'),
-        t('Errors'),
-        t('Avg'),
-        'P95',
+        FIELD_ALIASES.requests,
+        FIELD_ALIASES.errorRate,
+        FIELD_ALIASES.errors,
+        FIELD_ALIASES.avg,
+        FIELD_ALIASES.p95,
       ],
       orderby: '-count()',
     },

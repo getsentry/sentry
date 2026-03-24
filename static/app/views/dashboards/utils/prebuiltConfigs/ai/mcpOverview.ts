@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -24,7 +25,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [`count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          fieldAliases: [t('Count')],
+          fieldAliases: [FIELD_ALIASES.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -43,7 +44,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_CLIENT_NAME, 'count()'],
           aggregates: ['count()'],
           columns: [SpanFields.MCP_CLIENT_NAME],
-          fieldAliases: [t('Client'), t('Count')],
+          fieldAliases: [t('Client'), FIELD_ALIASES.count],
           orderby: '-count()',
         },
       ],
@@ -63,7 +64,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_TRANSPORT, 'count()'],
           aggregates: ['count()'],
           columns: [SpanFields.MCP_TRANSPORT],
-          fieldAliases: [t('Transport'), t('Count')],
+          fieldAliases: [t('Transport'), FIELD_ALIASES.count],
           orderby: '-count()',
         },
       ],
@@ -90,7 +91,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_TOOL_NAME],
-          fieldAliases: [t('Tool'), t('Count')],
+          fieldAliases: [FIELD_ALIASES.tool, FIELD_ALIASES.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
@@ -117,7 +118,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_RESOURCE_URI, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_RESOURCE_URI],
-          fieldAliases: [t('Resource'), t('Count')],
+          fieldAliases: [t('Resource'), FIELD_ALIASES.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
@@ -144,7 +145,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_PROMPT_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_PROMPT_NAME],
-          fieldAliases: [t('Prompt'), t('Count')],
+          fieldAliases: [t('Prompt'), FIELD_ALIASES.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
@@ -189,12 +190,12 @@ const OVERVIEW_TABLE = {
       ],
       columns: [SpanFields.SPAN_DESCRIPTION],
       fieldAliases: [
-        t('Span Description'),
-        t('Requests'),
-        t('Error Rate'),
-        t('Errors'),
-        t('Avg'),
-        'P95',
+        FIELD_ALIASES.spanDescription,
+        FIELD_ALIASES.requests,
+        FIELD_ALIASES.errorRate,
+        FIELD_ALIASES.errors,
+        FIELD_ALIASES.avg,
+        FIELD_ALIASES.p95,
       ],
       orderby: '-count()',
     },

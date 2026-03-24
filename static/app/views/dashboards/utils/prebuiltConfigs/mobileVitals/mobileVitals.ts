@@ -3,7 +3,10 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  FIELD_ALIASES,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
@@ -340,7 +343,12 @@ const SCREEN_RENDERING_TABLE: Widget = {
         `count(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
-      fieldAliases: ['Transaction', 'Slow Frame %', 'Frozen Frame %', 'Screen Loads'],
+      fieldAliases: [
+        FIELD_ALIASES.transaction,
+        'Slow Frame %',
+        'Frozen Frame %',
+        'Screen Loads',
+      ],
       conditions: SCREEN_RENDERING_CONDITION,
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
       linkedDashboards: [

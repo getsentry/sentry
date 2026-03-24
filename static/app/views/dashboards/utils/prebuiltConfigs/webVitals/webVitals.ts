@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -297,7 +298,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: `-equation|opportunity_score(measurements.score.total)`,
           fieldAliases: [
             t('Pages'),
-            t('Project'),
+            FIELD_ALIASES.project,
             t('Pageloads'),
             t('LCP'),
             t('FCP'),

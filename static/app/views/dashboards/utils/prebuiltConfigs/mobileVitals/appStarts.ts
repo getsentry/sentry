@@ -3,6 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
@@ -249,7 +250,11 @@ const COLD_OPERATIONS_TABLE: Widget = {
       ],
       aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
       columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
-      fieldAliases: [t('Operation'), t('Span Description'), t('Avg Duration')],
+      fieldAliases: [
+        FIELD_ALIASES.operation,
+        FIELD_ALIASES.spanDescription,
+        FIELD_ALIASES.avgDuration,
+      ],
       conditions: COLD_START_TABLE_OPERATIONS_CONDITION,
       orderby: '-avg(span.self_time)',
     },
@@ -281,7 +286,11 @@ const WARM_OPERATIONS_TABLE: Widget = {
       ],
       aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
       columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
-      fieldAliases: [t('Operation'), t('Span Description'), t('Avg Duration')],
+      fieldAliases: [
+        FIELD_ALIASES.operation,
+        FIELD_ALIASES.spanDescription,
+        FIELD_ALIASES.avgDuration,
+      ],
       conditions: WARM_START_TABLE_OPERATIONS_CONDITION,
       orderby: '-avg(span.self_time)',
     },

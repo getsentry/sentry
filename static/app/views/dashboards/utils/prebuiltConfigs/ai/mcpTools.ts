@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -23,7 +24,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_TOOL_NAME],
-          fieldAliases: [t('Tool'), t('Calls')],
+          fieldAliases: [FIELD_ALIASES.tool, FIELD_ALIASES.calls],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -43,7 +44,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_TOOL_NAME, `avg(${SpanFields.SPAN_DURATION})`],
           aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_TOOL_NAME],
-          fieldAliases: [t('Tool'), t('Avg Duration')],
+          fieldAliases: [FIELD_ALIASES.tool, FIELD_ALIASES.avgDuration],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -63,7 +64,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_TOOL_NAME, `${SpanFunction.FAILURE_RATE}()`],
           aggregates: [`${SpanFunction.FAILURE_RATE}()`],
           columns: [SpanFields.MCP_TOOL_NAME],
-          fieldAliases: [t('Tool'), t('Error Rate')],
+          fieldAliases: [FIELD_ALIASES.tool, FIELD_ALIASES.errorRate],
           orderby: `-${SpanFunction.FAILURE_RATE}()`,
         },
       ],
@@ -102,11 +103,11 @@ const TOOLS_TABLE = {
       columns: [SpanFields.MCP_TOOL_NAME],
       fieldAliases: [
         t('Tool Name'),
-        t('Requests'),
-        t('Error Rate'),
-        t('Errors'),
-        t('Avg'),
-        'P95',
+        FIELD_ALIASES.requests,
+        FIELD_ALIASES.errorRate,
+        FIELD_ALIASES.errors,
+        FIELD_ALIASES.avg,
+        FIELD_ALIASES.p95,
       ],
       orderby: '-count()',
     },

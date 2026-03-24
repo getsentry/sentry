@@ -5,7 +5,10 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
 import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  FIELD_ALIASES,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {
@@ -237,15 +240,15 @@ const TRANSACTIONS_TABLE: Widget = {
       fieldAliases: [
         '',
         t('HTTP Method'),
-        t('Transaction'),
-        t('Operation'),
-        t('Project'),
+        FIELD_ALIASES.transaction,
+        FIELD_ALIASES.operation,
+        FIELD_ALIASES.project,
         t('TPM'),
-        'P50',
-        'P95',
+        FIELD_ALIASES.p50,
+        FIELD_ALIASES.p95,
         t('Failure rate'),
-        t('Users'),
-        t('Time Spent'),
+        FIELD_ALIASES.users,
+        FIELD_ALIASES.timeSpent,
       ],
       conditions: TABLE_QUERY.formatString(),
       orderby: '-sum(span.duration)',

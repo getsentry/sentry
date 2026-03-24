@@ -7,6 +7,7 @@ import {
   QUERIES_PER_MINUTE_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/constants';
 import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
+import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -127,7 +128,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: ['transaction', 'epm()', `sum(${SpanFields.SPAN_DURATION})`],
           aggregates: ['epm()', `sum(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.TRANSACTION],
-          fieldAliases: [t('Found In'), t('Queries Per Minute'), t('Time Spent')],
+          fieldAliases: [t('Found In'), t('Queries Per Minute'), FIELD_ALIASES.timeSpent],
           conditions: BASE_FILTER_STRING,
           orderby: `-sum(${SpanFields.SPAN_DURATION})`,
           onDemand: [],

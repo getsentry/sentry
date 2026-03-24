@@ -4,7 +4,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  FIELD_ALIASES,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/rageAndDeadClicksWidget';
 import {SERVER_TREE_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/serverTreeWidget';
@@ -159,13 +162,13 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
       columns: [SpanFields.TRANSACTION, SpanFields.SPAN_OP, SpanFields.PROJECT],
       fields: CLIENT_TRANSACTIONS_TABLE_FIELDS,
       fieldAliases: [
-        t('Transaction'),
+        FIELD_ALIASES.transaction,
         '',
-        t('Operation'),
-        t('Views'),
-        t('Error Rate'),
-        t('Avg Duration'),
-        t('P95 Duration'),
+        FIELD_ALIASES.operation,
+        FIELD_ALIASES.views,
+        FIELD_ALIASES.errorRate,
+        FIELD_ALIASES.avgDuration,
+        FIELD_ALIASES.p95Duration,
         t('Perf Score'),
       ],
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
@@ -211,13 +214,13 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
       columns: [SpanFields.TRANSACTION, SpanFields.PROJECT],
       fields: SERVER_TRANSACTIONS_TABLE_FIELDS,
       fieldAliases: [
-        t('Transaction'),
+        FIELD_ALIASES.transaction,
         '',
-        t('Views'),
-        t('Error Rate'),
-        t('Avg Duration'),
-        t('P95 Duration'),
-        t('Time Spent'),
+        FIELD_ALIASES.views,
+        FIELD_ALIASES.errorRate,
+        FIELD_ALIASES.avgDuration,
+        FIELD_ALIASES.p95Duration,
+        FIELD_ALIASES.timeSpent,
       ],
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
     },

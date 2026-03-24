@@ -3,7 +3,10 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  FIELD_ALIASES,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -51,7 +54,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [`count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          fieldAliases: [t('Count')],
+          fieldAliases: [FIELD_ALIASES.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -69,7 +72,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [`count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          fieldAliases: [t('Count')],
+          fieldAliases: [FIELD_ALIASES.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -93,7 +96,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
             `p95(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
-          fieldAliases: [t('Avg Duration'), t('P95 Duration')],
+          fieldAliases: [FIELD_ALIASES.avgDuration, FIELD_ALIASES.p95Duration],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -118,7 +121,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.GEN_AI_REQUEST_MODEL, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.GEN_AI_REQUEST_MODEL],
-          fieldAliases: [t('Model'), t('Calls')],
+          fieldAliases: [FIELD_ALIASES.model, FIELD_ALIASES.calls],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
@@ -148,7 +151,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           ],
           aggregates: [`sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`],
           columns: [SpanFields.GEN_AI_REQUEST_MODEL],
-          fieldAliases: [t('Model'), t('Total Tokens')],
+          fieldAliases: [FIELD_ALIASES.model, t('Total Tokens')],
           orderby: `-sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
           linkedDashboards: [
             {
@@ -175,7 +178,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.GEN_AI_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.GEN_AI_TOOL_NAME],
-          fieldAliases: [t('Tool'), t('Calls')],
+          fieldAliases: [FIELD_ALIASES.tool, FIELD_ALIASES.calls],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
