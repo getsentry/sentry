@@ -370,8 +370,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     thread_ts=thread_ts,
                     status="Thinking...",
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                _logger.debug(
+                    "on_app_mention.set-status-failed",
+                    extra={
+                        "integration_id": slack_request.integration.id,
+                        "channel_id": channel_id,
+                        "thread_ts": thread_ts,
+                        "error": str(e),
+                    },
+                )
 
             authorizations = slack_request.data.get("authorizations") or []
             bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
@@ -387,7 +395,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     "bot_user_id": bot_user_id,
                 }
             )
-            return self.respond()
+
+        return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     def post(self, request: Request) -> Response:
