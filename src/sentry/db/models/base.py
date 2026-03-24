@@ -392,12 +392,12 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"Please set `__relocation_scope__ = RelocationScope.Excluded` on the model definition."
         )
 
-    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
+    from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 
     if issubclass(sender, ReplicatedControlModel):
         sender.category.connect_control_model_updates(sender)
-    elif issubclass(sender, ReplicatedRegionModel):
-        sender.category.connect_region_model_updates(sender)
+    elif issubclass(sender, ReplicatedCellModel):
+        sender.category.connect_cell_model_updates(sender)
 
 
 signals.pre_save.connect(__model_pre_save)

@@ -6,7 +6,7 @@
 import abc
 
 from sentry.hybridcloud.rpc.resolvers import ByCellName
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.seer.services.test_generation.model import CreateUnitTestResponse
 from sentry.silo.base import SiloMode
 
@@ -25,10 +25,16 @@ class TestGenerationService(RpcService):
 
         return RegionBackedTestGenerationService()
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def start_unit_test_generation(
-        self, *, region_name: str, github_org: str, repo: str, pr_id: int, external_id: str
+        self,
+        *,
+        cell_name: str,
+        github_org: str,
+        repo: str,
+        pr_id: int,
+        external_id: str,
     ) -> CreateUnitTestResponse:
         pass
 

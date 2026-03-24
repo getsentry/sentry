@@ -7,12 +7,13 @@ import omit from 'lodash/omit';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
-import TransactionsList from 'sentry/components/discover/transactionsList';
+import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {IconWarning} from 'sentry/icons';
@@ -32,7 +33,7 @@ import {
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -42,11 +43,13 @@ import Tags from 'sentry/views/discover/results/tags';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SegmentSpansTable} from 'sentry/views/performance/eap/segmentSpansTable';
-import Filter, {
+import {
   decodeFilterFromLocation,
+  Filter,
   filterToField,
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
@@ -96,6 +99,27 @@ type Props = {
 };
 
 export const SEGMENT_SPANS_CURSOR_NAME = 'segmentSpansCursor';
+
+function EAPSearchQueryBuilder({
+  projects,
+  initialQuery,
+  onSearch,
+}: {
+  initialQuery: string;
+  onSearch: (query: string) => void;
+  projects: number[];
+}) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects,
+    initialQuery,
+    onSearch,
+    searchSource: 'transaction_summary',
+  });
+
+  return (
+    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} disallowFreeText />
+  );
+}
 
 function EAPSummaryContentInner({
   eventView,
@@ -236,13 +260,10 @@ function EAPSummaryContentInner({
 
   function renderSearchBar() {
     return (
-      <TransactionSearchQueryBuilder
+      <EAPSearchQueryBuilder
         projects={projectIds}
         initialQuery={query}
         onSearch={handleSearch}
-        searchSource="transaction_summary"
-        disableLoadingTags // already loaded by the parent component
-        filterKeyMenuWidth={420}
       />
     );
   }

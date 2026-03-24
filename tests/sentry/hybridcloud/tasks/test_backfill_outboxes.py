@@ -6,7 +6,7 @@ from django.apps import apps
 from django.test.utils import override_settings
 
 from sentry.db.models import BaseModel
-from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.base import run_outbox_replications_for_self_hosted
 from sentry.hybridcloud.tasks.backfill_outboxes import (
     backfill_outboxes_for,
@@ -62,18 +62,18 @@ def test_processing_awaits_options() -> None:
 
 
 @django_db_all
-def test_region_processing(task_runner: Callable[..., Any]) -> None:
+def test_cell_processing(task_runner: Callable[..., Any]) -> None:
     with outbox_context(flush=False):
         for i in range(5):
             Factories.create_organization()
-    RegionOutbox.objects.all().delete()
+    CellOutbox.objects.all().delete()
 
     with outbox_runner(), task_runner():
         while backfill_outboxes_for(SiloMode.CELL, 0, 1, force_synchronous=True):
             pass
-        assert RegionOutbox.objects.all().count() == 5
+        assert CellOutbox.objects.all().count() == 5
 
-    assert RegionOutbox.objects.all().count() == 0
+    assert CellOutbox.objects.all().count() == 0
     with assume_test_silo_mode(SiloMode.CONTROL):
         assert OrganizationMapping.objects.all().count() == 5
 
@@ -175,7 +175,7 @@ def test_run_outbox_replications_for_self_hosted() -> None:
         AuthProvider.objects.create(organization_id=org.id, provider="meethub", config={})
 
     ControlOutbox.objects.all().delete()
-    RegionOutbox.objects.all().delete()
+    CellOutbox.objects.all().delete()
 
     with override_settings(SENTRY_SELF_HOSTED=True):
         run_outbox_replications_for_self_hosted()

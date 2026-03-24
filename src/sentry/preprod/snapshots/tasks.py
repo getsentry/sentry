@@ -5,8 +5,10 @@ from typing import NamedTuple
 
 import orjson
 from django.db import IntegrityError
+from django.utils import timezone
 from objectstore_client.client import RequestError
 from pydantic import ValidationError
+from taskbroker_client.retry import Retry
 
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.models import PreprodArtifact
@@ -24,7 +26,7 @@ from sentry.preprod.vcs.status_checks.snapshots.tasks import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +123,7 @@ def compare_snapshots(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
+    task_start_time = timezone.now()
     logger.info(
         "Snapshot comparison kicked off for artifacts",
         extra={
@@ -325,6 +328,9 @@ def compare_snapshots(
             },
         )
 
+        total_fetched_bytes = 0
+        total_fetched_count = 0
+
         batches = _create_pixel_batches(eligible, MAX_PIXELS_PER_BATCH)
 
         logger.info(
@@ -368,6 +374,8 @@ def compare_snapshots(
                             "reason": "image_fetch_failed",
                         }
                         continue
+                    total_fetched_bytes += len(head_data) + len(base_data)
+                    total_fetched_count += 2
                     diff_pairs.append((base_data, head_data))
                     batch_names.append(candidate.name)
                     batch_hashes.append((candidate.head_hash, candidate.base_hash))
@@ -506,6 +514,47 @@ def compare_snapshots(
                 "date_updated",
             ]
         )
+
+        time_now = timezone.now()
+
+        metric_tags = {
+            "org_id_temp": str(org_id),
+            "project_id_temp": str(project_id),
+            "app_id_temp": head_artifact.app_id or "",
+        }
+
+        diff_duration_s = (time_now - task_start_time).total_seconds()
+        metrics.distribution(
+            "preprod.snapshots.diff.duration_s",
+            diff_duration_s,
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+
+        e2e_duration_s = (time_now - head_artifact.date_added).total_seconds()
+        metrics.distribution(
+            "preprod.snapshots.e2e_duration_s",
+            e2e_duration_s,
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+
+        if total_fetched_count > 0:
+            metrics.distribution(
+                "preprod.snapshots.image.avg_size_bytes",
+                total_fetched_bytes / total_fetched_count,
+                sample_rate=1.0,
+                tags=metric_tags,
+            )
+
+        if (
+            changed_count == 0
+            and not added
+            and not removed
+            and not renamed_pairs
+            and not error_count
+        ):
+            metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0, tags=metric_tags)
 
         create_preprod_snapshot_status_check_task.apply_async(
             kwargs={

@@ -130,6 +130,20 @@ describe('getReadableQueryParamsFromLocation', () => {
     expect(queryParams).toEqual(new ReadableQueryParams(readableQueryParamOptions()));
   });
 
+  it('strips empty field values from location', () => {
+    const location = locationFixture({field: ['timestamp', '', 'span.op']});
+    const queryParams = getReadableQueryParamsFromLocation(location);
+
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          fields: ['timestamp', 'span.op'],
+          sortBys: [{field: 'timestamp', kind: 'desc'}],
+        })
+      )
+    );
+  });
+
   it('decodes custom fields correctly', () => {
     const location = locationFixture({
       field: ['id', 'span.op', 'span.duration', 'timestamp'],

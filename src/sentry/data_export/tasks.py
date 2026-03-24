@@ -10,6 +10,7 @@ import sentry_sdk
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
+from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
 from sentry.data_export.processors.explore import ExploreProcessor
 from sentry.models.files.file import File
@@ -19,7 +20,6 @@ from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, Assemble
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import export_tasks
-from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 

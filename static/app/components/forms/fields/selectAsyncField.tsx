@@ -8,7 +8,7 @@ import type {
 } from '@sentry/scraps/select';
 import {SelectAsync} from '@sentry/scraps/select';
 
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -24,7 +24,7 @@ export interface SelectAsyncFieldProps
   onChangeOption?: (option: GeneralSelectValue, event: any) => void;
 }
 
-function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
+export function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
   const [results, setResults] = useState<Result[]>([]);
   const [latestSelection, setLatestSelection] = useState<
     GeneralSelectValue | undefined
@@ -95,5 +95,3 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
     </FormField>
   );
 }
-
-export default SelectAsyncField;

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {LazyRender} from 'sentry/components/lazyRender';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -138,13 +137,6 @@ export function SortableWidget(props: Props) {
     index,
     dashboardFilters,
     widgetLegendState,
-    renderErrorMessage: errorMessage => {
-      return (
-        typeof errorMessage === 'string' && (
-          <PanelAlert variant="danger">{errorMessage}</PanelAlert>
-        )
-      );
-    },
     isMobile,
     windowWidth,
     tableItemLimit:

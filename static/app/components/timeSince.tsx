@@ -105,7 +105,7 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
   unitStyle?: UnitStyle;
 }
 
-function TimeSince({
+export function TimeSince({
   date,
   disabledAbsoluteTooltip,
   tooltipShowSeconds,
@@ -179,8 +179,6 @@ function TimeSince({
     </Tooltip>
   );
 }
-
-export default TimeSince;
 
 export function getRelativeDate(
   currentDateTime: RelaxedDateType,

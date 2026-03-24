@@ -4,10 +4,8 @@ import {crashReport} from './crashReport';
 import {logs} from './logs';
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReport,
   logsOnboarding: logs,
 };
-
-export default docs;

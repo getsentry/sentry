@@ -7,7 +7,7 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {TeamWithProjects} from 'sentry/types/project';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,9 +18,9 @@ import {StatsHeader as Header} from 'sentry/views/organizationStats/header';
 
 import {TeamStatsControls} from './controls';
 import {DescriptionCard} from './descriptionCard';
-import TeamAlertsTriggered from './teamAlertsTriggered';
+import {TeamAlertsTriggered} from './teamAlertsTriggered';
 import {TeamMiseryWrapper as TeamMisery} from './teamMisery';
-import TeamReleases from './teamReleases';
+import {TeamReleases} from './teamReleases';
 import {TeamStability} from './teamStability';
 import {dataDatetime} from './utils';
 

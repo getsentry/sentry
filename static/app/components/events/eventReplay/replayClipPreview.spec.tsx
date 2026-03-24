@@ -8,7 +8,7 @@ import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingL
 
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 import ReplayClipPreview from './replayClipPreview';

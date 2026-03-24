@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 
 import {Grid} from '@sentry/scraps/layout';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {
   EventDrawerBody,
   EventNavigator,

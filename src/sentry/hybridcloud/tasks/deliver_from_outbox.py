@@ -6,18 +6,18 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from django.db.models import Max, Min
+from taskbroker_client.task import Task
 
 from sentry.hybridcloud.models.outbox import (
+    CellOutboxBase,
     ControlOutboxBase,
     OutboxBase,
     OutboxFlushError,
-    RegionOutboxBase,
 )
 from sentry.hybridcloud.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks, hybridcloud_tasks
-from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
 
@@ -146,7 +146,7 @@ def drain_outbox_shards(
             outbox_name = settings.SENTRY_OUTBOX_MODELS["REGION"][0]
 
         assert outbox_name, "Could not determine outbox name"
-        outbox_model: type[RegionOutboxBase] = RegionOutboxBase.from_outbox_name(outbox_name)
+        outbox_model: type[CellOutboxBase] = CellOutboxBase.from_outbox_name(outbox_name)
 
         process_outbox_batch(outbox_identifier_hi, outbox_identifier_low, outbox_model)
     except Exception:

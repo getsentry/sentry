@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
+import {SearchBar, SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';

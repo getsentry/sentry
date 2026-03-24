@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -13,7 +13,7 @@ import {TagDetailsLink} from 'sentry/views/issueDetails/groupTags/tagDetailsLink
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-export default function TagDrawerContent({
+export function TagDrawerContent({
   group,
   organization,
   project,

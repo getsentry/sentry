@@ -41,7 +41,7 @@ describe('CustomResolutionModal', () => {
 
     const trigger = screen.getByRole('button', {name: /version/i});
     await userEvent.click(trigger);
-    const option = await screen.findByRole('option', {name: /1\.2\.0/i});
+    const option = await screen.findByRole('option', {name: /1\.2\.0/});
     await userEvent.click(option);
 
     await userEvent.click(screen.getByText('Resolve'));
@@ -145,7 +145,7 @@ describe('CustomResolutionModal', () => {
     // selecting clears the error
     const trigger = screen.getByRole('button', {name: /version/i});
     await userEvent.click(trigger);
-    const option = await screen.findByRole('option', {name: /1\.2\.0/i});
+    const option = await screen.findByRole('option', {name: /1\.2\.0/});
     await userEvent.click(option);
     expect(screen.queryByText('Please select a release.')).not.toBeInTheDocument();
   });

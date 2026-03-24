@@ -1,19 +1,23 @@
-import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 
+/**
+ * The three possible states of the secondary navigation sidebar:
+ * - 'expanded': Sidebar is always visible (user preference)
+ * - 'collapsed': Sidebar is hidden (user preference, persisted)
+ * - 'peek': Sidebar is temporarily visible via hover/focus while collapsed
+ */
+type SecondaryNavState = 'expanded' | 'collapsed' | 'peek';
+
 interface SecondaryNavigationContext {
-  endInteraction: () => void;
-  isCollapsed: boolean;
-  isInteractingRef: React.RefObject<boolean | null>;
-  isOpen: boolean;
-  setIsCollapsed: (isCollapsed: boolean) => void;
-  setIsOpen: (isOpen: boolean) => void;
-  startInteraction: () => void;
+  setView: (view: SecondaryNavState) => void;
+  view: SecondaryNavState;
 }
 
-const SecondaryNavigationContext = createContext<SecondaryNavigationContext | null>(null);
+export const SecondaryNavigationContext =
+  createContext<SecondaryNavigationContext | null>(null);
 
 export function useSecondaryNavigation(): SecondaryNavigationContext {
   const context = useContext(SecondaryNavigationContext);
@@ -32,39 +36,30 @@ interface SecondaryNavigationContextProviderProps {
 export function SecondaryNavigationContextProvider(
   props: SecondaryNavigationContextProviderProps
 ) {
-  const [isCollapsed, setIsCollapsed] = useLocalStorageState(
+  const [isCollapsedPersisted, setIsCollapsedPersisted] = useLocalStorageState(
     NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
     false
   );
-  const [isOpen, setIsOpen] = useState(false);
+  const [view, setViewState] = useState<SecondaryNavState>(
+    isCollapsedPersisted ? 'collapsed' : 'expanded'
+  );
 
-  const isInteractingRef = useRef(false);
-  const startInteraction = useCallback(() => {
-    isInteractingRef.current = true;
-  }, []);
-  const endInteraction = useCallback(() => {
-    isInteractingRef.current = false;
-  }, []);
+  const setView = useCallback(
+    (nextView: SecondaryNavState) => {
+      setViewState(nextView);
+      if (nextView !== 'peek') {
+        setIsCollapsedPersisted(nextView === 'collapsed');
+      }
+    },
+    [setIsCollapsedPersisted]
+  );
 
   const value = useMemo(() => {
     return {
-      isCollapsed,
-      setIsCollapsed,
-      isOpen,
-      setIsOpen,
-      isInteractingRef,
-      startInteraction,
-      endInteraction,
+      view,
+      setView,
     };
-  }, [
-    isCollapsed,
-    setIsCollapsed,
-    isOpen,
-    setIsOpen,
-    isInteractingRef,
-    startInteraction,
-    endInteraction,
-  ]);
+  }, [view, setView]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>

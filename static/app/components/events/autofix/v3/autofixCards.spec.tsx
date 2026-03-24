@@ -1,15 +1,21 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {
   AutofixArtifact,
   AutofixSection,
   RootCauseArtifact,
   SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
+import type {
+  ExplorerCodingAgentState,
+  ExplorerFilePatch,
+  RepoPRState,
+} from 'sentry/views/seerExplorer/types';
 
 import {
   CodeChangesCard,
+  CodingAgentCard,
   PullRequestsCard,
   RootCauseCard,
   SolutionCard,
@@ -58,6 +64,16 @@ function makePR(overrides: Partial<RepoPRState> = {}): RepoPRState {
   };
 }
 
+const mockAutofix = {
+  runState: null,
+  isLoading: false,
+  isPolling: false,
+  startStep: jest.fn(),
+  createPR: jest.fn(),
+  reset: jest.fn(),
+  triggerCodingAgentHandoff: jest.fn(),
+};
+
 function makeRootCauseArtifact(data: RootCauseArtifact | null) {
   return {
     key: 'root-cause',
@@ -83,7 +99,10 @@ describe('RootCauseCard', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
@@ -97,7 +116,10 @@ describe('RootCauseCard', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Why did this happen?')).toBeInTheDocument();
@@ -114,7 +136,10 @@ describe('RootCauseCard', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Reproduction Steps')).toBeInTheDocument();
@@ -122,14 +147,23 @@ describe('RootCauseCard', () => {
     expect(screen.getByText('Click button')).toBeInTheDocument();
   });
 
-  it('returns null when artifact data is null', () => {
+  it('renders card shell when artifact data is null', () => {
     const artifact = makeRootCauseArtifact(null);
 
-    const {container} = render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+    render(
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('Root Cause')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer failed to generate a root cause. This one is on us. Try running it again.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
   });
 
   it('handles empty five_whys with placeholder', () => {
@@ -139,7 +173,10 @@ describe('RootCauseCard', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
@@ -154,7 +191,12 @@ describe('SolutionCard', () => {
       steps: [{title: 'Step 1', description: 'Add guard'}],
     });
 
-    render(<SolutionCard section={makeSection('solution', 'completed', [artifact])} />);
+    render(
+      <SolutionCard
+        autofix={mockAutofix}
+        section={makeSection('solution', 'completed', [artifact])}
+      />
+    );
 
     expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
@@ -169,7 +211,12 @@ describe('SolutionCard', () => {
       ],
     });
 
-    render(<SolutionCard section={makeSection('solution', 'completed', [artifact])} />);
+    render(
+      <SolutionCard
+        autofix={mockAutofix}
+        section={makeSection('solution', 'completed', [artifact])}
+      />
+    );
 
     expect(screen.getByText('Steps to Resolve')).toBeInTheDocument();
     expect(screen.getByText('Add validation')).toBeInTheDocument();
@@ -178,14 +225,23 @@ describe('SolutionCard', () => {
     expect(screen.getByText('Handle edge case')).toBeInTheDocument();
   });
 
-  it('returns null when artifact data is null', () => {
+  it('renders card shell when artifact data is null', () => {
     const artifact = makeSolutionArtifact(null);
 
-    const {container} = render(
-      <SolutionCard section={makeSection('solution', 'completed', [artifact])} />
+    render(
+      <SolutionCard
+        autofix={mockAutofix}
+        section={makeSection('solution', 'completed', [artifact])}
+      />
     );
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
   });
 });
 
@@ -193,6 +249,7 @@ describe('CodeChangesCard', () => {
   it('renders single file in single repo', () => {
     render(
       <CodeChangesCard
+        autofix={mockAutofix}
         section={makeSection('code_changes', 'completed', [
           [makePatch('org/repo', 'src/app.py')],
         ])}
@@ -206,6 +263,7 @@ describe('CodeChangesCard', () => {
   it('renders multiple files in single repo', () => {
     render(
       <CodeChangesCard
+        autofix={mockAutofix}
         section={makeSection('code_changes', 'completed', [
           [
             makePatch('org/repo', 'src/app.py'),
@@ -222,6 +280,7 @@ describe('CodeChangesCard', () => {
   it('renders multiple files in multiple repos', () => {
     render(
       <CodeChangesCard
+        autofix={mockAutofix}
         section={makeSection('code_changes', 'completed', [
           [
             makePatch('org/repo-a', 'src/app.py'),
@@ -238,6 +297,7 @@ describe('CodeChangesCard', () => {
   it('renders repository name labels', () => {
     render(
       <CodeChangesCard
+        autofix={mockAutofix}
         section={makeSection('code_changes', 'completed', [
           [
             makePatch('org/repo-a', 'src/app.py'),
@@ -251,12 +311,21 @@ describe('CodeChangesCard', () => {
     expect(screen.getByText('org/repo-b')).toBeInTheDocument();
   });
 
-  it('returns null when no code changes artifact found', () => {
-    const {container} = render(
-      <CodeChangesCard section={makeSection('code_changes', 'completed', [])} />
+  it('renders card shell when no code changes artifact found', () => {
+    render(
+      <CodeChangesCard
+        autofix={mockAutofix}
+        section={makeSection('code_changes', 'completed', [])}
+      />
     );
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('Code Changes')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer failed to generate a code change. This one is on us. Try running it again.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
   });
 });
 
@@ -264,13 +333,14 @@ describe('PullRequestsCard', () => {
   it('renders PR link buttons with correct text and href', () => {
     render(
       <PullRequestsCard
+        autofix={mockAutofix}
         section={makeSection('pull_request', 'completed', [[makePR()]])}
       />
     );
 
     expect(screen.getByText('Pull Requests')).toBeInTheDocument();
     const button = screen.getByRole('button', {
-      name: 'View PR#42 in org/repo',
+      name: 'View org/repo#42',
     });
     expect(button).toHaveAttribute('href', 'https://github.com/org/repo/pull/42');
   });
@@ -278,6 +348,7 @@ describe('PullRequestsCard', () => {
   it('renders multiple PR buttons', () => {
     render(
       <PullRequestsCard
+        autofix={mockAutofix}
         section={makeSection('pull_request', 'completed', [
           [
             makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
@@ -287,21 +358,18 @@ describe('PullRequestsCard', () => {
       />
     );
 
-    expect(
-      screen.getByRole('button', {name: 'View PR#10 in org/repo-a'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'View PR#20 in org/repo-b'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View org/repo-a#10'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View org/repo-b#20'})).toBeInTheDocument();
   });
 
   it('skips PRs with missing pr_url or pr_number', () => {
     render(
       <PullRequestsCard
+        autofix={mockAutofix}
         section={makeSection('pull_request', 'completed', [
           [
-            makePR({pr_url: null}),
-            makePR({pr_number: null}),
+            makePR({repo_name: 'org/repo-a', pr_url: null}),
+            makePR({repo_name: 'org/repo-b', pr_number: null}),
             makePR({
               repo_name: 'org/valid',
               pr_number: 55,
@@ -312,7 +380,7 @@ describe('PullRequestsCard', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: /View PR#/})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: /View org\/valid#55/})).toHaveAttribute(
       'href',
       'https://pr/55'
     );
@@ -327,7 +395,10 @@ describe('ArtifactCard expand/collapse', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Visible why')).toBeInTheDocument();
@@ -340,7 +411,10 @@ describe('ArtifactCard expand/collapse', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
@@ -356,7 +430,10 @@ describe('ArtifactCard expand/collapse', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Bug')).toBeVisible();
@@ -369,5 +446,147 @@ describe('ArtifactCard expand/collapse', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
     expect(screen.getByText('Bug')).toBeVisible();
     expect(screen.getByText('Toggle why')).toBeVisible();
+  });
+});
+
+function makeCodingAgent(
+  overrides: Partial<ExplorerCodingAgentState> = {}
+): ExplorerCodingAgentState {
+  return {
+    id: 'agent-1',
+    name: 'My Agent Task',
+    provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+    started_at: '2026-01-01T00:00:00Z',
+    status: 'running',
+    ...overrides,
+  };
+}
+
+describe('CodingAgentCard', () => {
+  it('renders agent name based on Cursor provider', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [makeCodingAgent({provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT})],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('Cursor Cloud Agent')).toBeInTheDocument();
+  });
+
+  it('renders agent name based on Claude provider', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT})],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('Claude Agent')).toBeInTheDocument();
+  });
+
+  it('renders agent name based on GitHub Copilot provider', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT})],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('GitHub Copilot')).toBeInTheDocument();
+  });
+
+  it('renders default agent name for unknown provider', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [makeCodingAgent({provider: 'unknown_provider' as any})],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('Coding Agent')).toBeInTheDocument();
+  });
+
+  it('renders agent status tags', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [makeCodingAgent({status: 'running'})],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('running')).toBeInTheDocument();
+  });
+
+  it('renders "Open in" link when agent_url is present', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [
+            makeCodingAgent({
+              agent_url: 'https://cursor.com/agent/1',
+            }),
+          ],
+        ])}
+      />
+    );
+
+    const link = screen.getByRole('button', {name: /Open in/});
+    expect(link).toHaveAttribute('href', 'https://cursor.com/agent/1');
+  });
+
+  it('renders result PR links when results have pr_url', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [
+            makeCodingAgent({
+              results: [
+                {
+                  description: 'Fixed',
+                  repo_full_name: 'org/repo',
+                  repo_provider: 'github',
+                  pr_url: 'https://github.com/org/repo/pull/99',
+                },
+              ],
+            }),
+          ],
+        ])}
+      />
+    );
+
+    const link = screen.getByRole('button', {name: 'View Pull Request'});
+    expect(link).toHaveAttribute('href', 'https://github.com/org/repo/pull/99');
+  });
+
+  it('handles multiple coding agents', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [
+            makeCodingAgent({id: 'agent-1', name: 'Agent One', status: 'completed'}),
+            makeCodingAgent({id: 'agent-2', name: 'Agent Two', status: 'running'}),
+          ],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('Agent One')).toBeInTheDocument();
+    expect(screen.getByText('Agent Two')).toBeInTheDocument();
+    expect(screen.getByText('completed')).toBeInTheDocument();
+    expect(screen.getByText('running')).toBeInTheDocument();
   });
 });

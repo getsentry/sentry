@@ -2,7 +2,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
 import type {useErrorFilters} from 'sentry/views/replays/detail/errorList/useErrorFilters';

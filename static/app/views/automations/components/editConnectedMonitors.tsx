@@ -1,21 +1,20 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -206,11 +205,6 @@ function AllProjectIssuesSection({
           multiple
         />
       </Container>
-      <Alert variant="muted">
-        {t(
-          '‘All issues’ includes Error, Feedback, and Performance issue types. Select specific monitors to alert on Metric, Cron, and Uptime.'
-        )}
-      </Alert>
     </Stack>
   );
 }

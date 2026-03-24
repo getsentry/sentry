@@ -2,12 +2,11 @@ import {useCallback} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
-import Placeholder from 'sentry/components/placeholder';
-import {t, tct} from 'sentry/locale';
+import {Placeholder} from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQuery} from 'sentry/utils/queryClient';
@@ -75,13 +74,8 @@ export function GithubCopilotIntegrationCta() {
             </Flex>
           </Heading>
           <Text>
-            {tct(
-              'Connect GitHub Copilot to hand off Seer root cause analysis to GitHub Copilot coding agent for seamless code fixes. [docsLink:Read the docs] to learn more.',
-              {
-                docsLink: (
-                  <ExternalLink href="https://docs.sentry.io/organization/integrations/github-copilot/" />
-                ),
-              }
+            {t(
+              'Connect GitHub Copilot to hand off Seer root cause analysis to GitHub Copilot coding agent for seamless code fixes.'
             )}
           </Text>
           <div>
@@ -114,13 +108,8 @@ export function GithubCopilotIntegrationCta() {
           </Flex>
         </Heading>
         <Text>
-          {tct(
-            'GitHub Copilot integration is installed. You can trigger GitHub Copilot from Issue Fix to create pull requests. [docsLink:Read the docs] to learn more.',
-            {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/organization/integrations/github-copilot/" />
-              ),
-            }
+          {t(
+            'GitHub Copilot integration is installed. You can trigger GitHub Copilot from Issue Fix to create pull requests.'
           )}
         </Text>
       </Flex>

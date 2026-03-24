@@ -74,7 +74,7 @@ const CULPRIT_FRAMES: SuspectFrame[] = [
     ),
   },
   {
-    module: /^android\.app\.SharedPreferencesImpl\$EditorImpl\$[0-9]/,
+    module: /^android\.app\.SharedPreferencesImpl\$EditorImpl\$\d/,
     functions: ['run'],
     offendingThreadStates: [
       ThreadStates.WAITING,

@@ -76,6 +76,12 @@ describe('ExploreToolbar', () => {
       ],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'boolean'})],
+    });
   });
 
   it('disables changing visualize fields for count', async () => {

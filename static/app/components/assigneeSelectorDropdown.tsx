@@ -200,7 +200,7 @@ function AssigneeAvatar({
   );
 }
 
-export default function AssigneeSelectorDropdown({
+export function AssigneeSelectorDropdown({
   className,
   group,
   loading,

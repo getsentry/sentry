@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 
 import {updateUser} from 'sentry/actionCreators/account';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
@@ -13,7 +13,7 @@ import languages from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import {StacktraceOrder, type User} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   setApiQueryData,
@@ -172,7 +172,7 @@ function AccountDetails() {
       <SettingsPageHeader title={t('Account Details')} />
       <FormSearch route="/settings/account/details/">
         <FieldGroup title={t('Account Details')}>
-          <AutoSaveField
+          <AutoSaveForm
             name="name"
             schema={accountDetailsSchema}
             initialValue={user.name}
@@ -187,10 +187,10 @@ function AccountDetails() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
           {user.email !== user.username && (
-            <AutoSaveField
+            <AutoSaveForm
               name="username"
               schema={accountDetailsSchema}
               initialValue={user.username}
@@ -206,10 +206,10 @@ function AccountDetails() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           )}
 
-          <AutoSaveField
+          <AutoSaveForm
             name="id"
             schema={accountDetailsSchema}
             initialValue={user.id}
@@ -229,11 +229,11 @@ function AccountDetails() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         </FieldGroup>
 
         <FieldGroup title={t('Preferences')}>
-          <AutoSaveField
+          <AutoSaveForm
             name="theme"
             schema={preferencesSchema}
             initialValue={user.options.theme}
@@ -253,9 +253,9 @@ function AccountDetails() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
-          <AutoSaveField
+          <AutoSaveForm
             name="language"
             schema={preferencesSchema}
             initialValue={user.options.language as Language}
@@ -270,9 +270,9 @@ function AccountDetails() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
-          <AutoSaveField
+          <AutoSaveForm
             name="timezone"
             schema={preferencesSchema}
             initialValue={user.options.timezone}
@@ -287,9 +287,9 @@ function AccountDetails() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
-          <AutoSaveField
+          <AutoSaveForm
             name="clock24Hours"
             schema={preferencesSchema}
             initialValue={user.options.clock24Hours}
@@ -300,9 +300,9 @@ function AccountDetails() {
                 <field.Switch checked={field.state.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
-          <AutoSaveField
+          <AutoSaveForm
             name="stacktraceOrder"
             schema={preferencesSchema}
             initialValue={String(user.options.stacktraceOrder)}
@@ -320,9 +320,9 @@ function AccountDetails() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
-          <AutoSaveField
+          <AutoSaveForm
             name="defaultIssueEvent"
             schema={preferencesSchema}
             initialValue={user.options.defaultIssueEvent}
@@ -340,7 +340,7 @@ function AccountDetails() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         </FieldGroup>
       </FormSearch>
       <AvatarChooser

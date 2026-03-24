@@ -32,6 +32,7 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ERRORS, t('Errors')],
   [WidgetType.SPANS, t('Spans')],
   [WidgetType.LOGS, t('Logs')],
+  [WidgetType.TRACEMETRICS, t('Metrics')],
   [WidgetType.RELEASE, t('Releases')],
   [WidgetType.ISSUE, t('Issues')],
 ]);
@@ -50,7 +51,11 @@ type AddFilterProps = {
   onAddFilter: (filter: GlobalFilter) => void;
 };
 
-function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProps) {
+export function AddFilter({
+  globalFilters,
+  getSearchBarData,
+  onAddFilter,
+}: AddFilterProps) {
   const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
   const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
   const [isSelectingFilterKey, setIsSelectingFilterKey] = useState(false);
@@ -193,5 +198,3 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
     />
   );
 }
-
-export default AddFilter;

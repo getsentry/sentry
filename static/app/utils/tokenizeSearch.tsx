@@ -72,7 +72,7 @@ function isProperlyQuoted(value: string): boolean {
 }
 
 function requiresQuotes(value: string): boolean {
-  return /[\s()\\"]/g.test(value);
+  return /[\s()\\"]/.test(value);
 }
 
 function generateFilterValue(token: Token, operator: string): string {
@@ -710,5 +710,5 @@ export function escapeFilterValue(value: string) {
   // Need to dig deeper to see where exactly it's wrong.
   //
   // astericks (*) is used for wildcard searches
-  return typeof value === 'string' ? value.replace(/([*])/g, '\\$1') : value;
+  return typeof value === 'string' ? value.replace(/(\*)/g, '\\$1') : value;
 }

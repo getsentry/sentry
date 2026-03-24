@@ -4,12 +4,12 @@ import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -106,7 +106,7 @@ export default function ProjectUserFeedback() {
         <Access access={['project:write']} project={project}>
           {({hasAccess}) => (
             <FieldGroup title={t('Settings')}>
-              <AutoSaveField
+              <AutoSaveForm
                 name="feedback:branding"
                 schema={userFeedbackSchema}
                 initialValue={Boolean(options['feedback:branding'])}
@@ -126,9 +126,9 @@ export default function ProjectUserFeedback() {
                     />
                   </field.Layout.Row>
                 )}
-              </AutoSaveField>
+              </AutoSaveForm>
 
-              <AutoSaveField
+              <AutoSaveForm
                 name="sentry:feedback_user_report_notifications"
                 schema={userFeedbackSchema}
                 initialValue={Boolean(
@@ -161,10 +161,10 @@ export default function ProjectUserFeedback() {
                     </Text>
                   </field.Layout.Stack>
                 )}
-              </AutoSaveField>
+              </AutoSaveForm>
 
               {features.has('user-feedback-spam-ingest') && hasAiEnabled && (
-                <AutoSaveField
+                <AutoSaveForm
                   name="sentry:feedback_ai_spam_detection"
                   schema={userFeedbackSchema}
                   initialValue={Boolean(options['sentry:feedback_ai_spam_detection'])}
@@ -185,7 +185,7 @@ export default function ProjectUserFeedback() {
                       <AiPrivacyNotice />
                     </field.Layout.Stack>
                   )}
-                </AutoSaveField>
+                </AutoSaveForm>
               )}
             </FieldGroup>
           )}

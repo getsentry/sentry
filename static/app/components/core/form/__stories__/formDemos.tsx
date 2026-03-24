@@ -5,10 +5,13 @@
  * indentation inside exported functions when dotted component names are used
  * (e.g. form.AppForm, field.Layout.Row).
  */
+
+import {useState} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {
-  AutoSaveField,
+  AutoSaveForm,
   defaultFormOptions,
   FieldGroup,
   useScrapsForm,
@@ -36,7 +39,8 @@ export function QuickStartDemo() {
     validators: {
       onDynamic: quickStartSchema,
     },
-    onSubmit: ({value}) => {
+    onSubmit: async ({value}) => {
+      await sleep(1000);
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value, null, 2));
     },
@@ -245,7 +249,7 @@ export function BaseFieldDemo() {
 }
 
 // ──────────────────────────────────────────────
-// autoSaveField.mdx demos
+// autoSaveForm.mdx demos
 // ──────────────────────────────────────────────
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -254,20 +258,26 @@ const basicSchema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
 });
 
-const basicMutationOptions = {
-  mutationFn: async (data: unknown) => {
-    await sleep(1000);
-    return data;
-  },
-};
-
 export function BasicAutoSaveDemo() {
+  // Simulated server state for demonstration
+  const [serverState, setServerState] = useState({displayName: 'Jane Doe'});
+
+  const basicMutationOptions = mutationOptions({
+    mutationFn: async (data: {displayName: string}) => {
+      await sleep(1000);
+      return data;
+    },
+    onSuccess: data => {
+      setServerState({displayName: data.displayName.toUpperCase()});
+    },
+  });
+
   return (
     <FieldGroup title={t('Profile Settings')}>
-      <AutoSaveField
+      <AutoSaveForm
         name="displayName"
         schema={basicSchema}
-        initialValue="Jane Doe"
+        initialValue={serverState.displayName}
         mutationOptions={basicMutationOptions}
       >
         {field => (
@@ -275,7 +285,7 @@ export function BasicAutoSaveDemo() {
             <field.Input value={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     </FieldGroup>
   );
 }
@@ -305,7 +315,7 @@ export function FullAutoSaveDemo() {
 
   return (
     <FieldGroup title={t('User Settings')}>
-      <AutoSaveField
+      <AutoSaveForm
         name="name"
         schema={fullSchema}
         initialValue="Jane Doe"
@@ -316,9 +326,9 @@ export function FullAutoSaveDemo() {
             <field.Input value={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
 
-      <AutoSaveField
+      <AutoSaveForm
         name="notifications"
         schema={fullSchema}
         initialValue={false}
@@ -337,9 +347,9 @@ export function FullAutoSaveDemo() {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
 
-      <AutoSaveField
+      <AutoSaveForm
         name="tags"
         schema={fullSchema}
         initialValue={[]}
@@ -355,9 +365,9 @@ export function FullAutoSaveDemo() {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
 
-      <AutoSaveField
+      <AutoSaveForm
         name="priority"
         schema={fullSchema}
         initialValue="medium"
@@ -377,9 +387,9 @@ export function FullAutoSaveDemo() {
             </field.Layout.Row>
           </field.Radio.Group>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
 
-      <AutoSaveField
+      <AutoSaveForm
         name="bio"
         schema={fullSchema}
         initialValue=""
@@ -393,9 +403,9 @@ export function FullAutoSaveDemo() {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
 
-      <AutoSaveField
+      <AutoSaveForm
         name="volume"
         schema={fullSchema}
         initialValue={50}
@@ -412,7 +422,7 @@ export function FullAutoSaveDemo() {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     </FieldGroup>
   );
 }

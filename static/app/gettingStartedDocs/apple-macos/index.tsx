@@ -5,7 +5,7 @@ import {metrics} from 'sentry/gettingStartedDocs/apple-macos/metrics';
 import {onboarding} from 'sentry/gettingStartedDocs/apple-macos/onboarding';
 import {profiling} from 'sentry/gettingStartedDocs/apple-macos/profiling';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: crashReport,
   crashReportOnboarding: crashReport,
@@ -13,5 +13,3 @@ const docs: Docs = {
   logsOnboarding: logs,
   metricsOnboarding: metrics,
 };
-
-export default docs;

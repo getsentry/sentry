@@ -53,4 +53,23 @@ describe('WidgetBuilder', () => {
       await screen.findByText('Title is required during creation.')
     ).toBeInTheDocument();
   });
+
+  it('does not show the add description button for text widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderNameAndDescription />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {displayType: 'text'},
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
+    expect(screen.queryByTestId('add-description')).not.toBeInTheDocument();
+  });
 });

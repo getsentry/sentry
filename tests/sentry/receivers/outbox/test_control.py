@@ -10,42 +10,38 @@ from sentry.receivers.outbox.control import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.users.models.identity import Identity
 
-_TEST_REGION = Cell("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
+_TEST_CELL = Cell("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
 
 
-@control_silo_test(regions=[_TEST_REGION])
+@control_silo_test(cells=[_TEST_CELL])
 class ProcessControlOutboxTest(TestCase):
     identifier = 1
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_integration_updates(self, mock_maybe_process: MagicMock) -> None:
-        process_integration_updates(
-            object_identifier=self.identifier, region_name=_TEST_REGION.name
-        )
+        process_integration_updates(object_identifier=self.identifier, region_name=_TEST_CELL.name)
         mock_maybe_process.assert_called_with(
-            Integration, self.identifier, region_name=_TEST_REGION.name
+            Integration, self.identifier, cell_name=_TEST_CELL.name
         )
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_identity_updates(self, mock_maybe_process: MagicMock) -> None:
-        process_identity_updates(object_identifier=self.identifier, region_name=_TEST_REGION.name)
-        mock_maybe_process.assert_called_with(
-            Identity, self.identifier, region_name=_TEST_REGION.name
-        )
+        process_identity_updates(object_identifier=self.identifier, region_name=_TEST_CELL.name)
+        mock_maybe_process.assert_called_with(Identity, self.identifier, cell_name=_TEST_CELL.name)
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_api_application_updates(self, mock_maybe_process: MagicMock) -> None:
         process_api_application_updates(
-            object_identifier=self.identifier, region_name=_TEST_REGION.name
+            object_identifier=self.identifier, region_name=_TEST_CELL.name
         )
         mock_maybe_process.assert_called_with(
-            ApiApplication, self.identifier, region_name=_TEST_REGION.name
+            ApiApplication, self.identifier, cell_name=_TEST_CELL.name
         )
 
-    @patch("sentry.sentry_apps.tasks.sentry_apps.region_caching_service")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.cell_caching_service")
     def test_process_sentry_app_updates(self, mock_caching: MagicMock) -> None:
         org = self.create_organization()
         sentry_app = self.create_sentry_app()
@@ -58,27 +54,25 @@ class ProcessControlOutboxTest(TestCase):
         )
 
         with self.tasks():
-            process_sentry_app_updates(
-                object_identifier=sentry_app.id, region_name=_TEST_REGION.name
-            )
+            process_sentry_app_updates(object_identifier=sentry_app.id, region_name=_TEST_CELL.name)
         mock_caching.clear_key.assert_any_call(
-            key=f"app_service.get_installation:{install.id}", region_name=_TEST_REGION.name
+            key=f"app_service.get_installation:{install.id}", cell_name=_TEST_CELL.name
         )
         mock_caching.clear_key.assert_any_call(
-            key=f"app_service.get_installation:{install_dupe.id}", region_name=_TEST_REGION.name
+            key=f"app_service.get_installation:{install_dupe.id}", cell_name=_TEST_CELL.name
         )
         mock_caching.clear_key.assert_any_call(
-            key=f"app_service.get_installation:{install_two.id}", region_name=_TEST_REGION.name
+            key=f"app_service.get_installation:{install_two.id}", cell_name=_TEST_CELL.name
         )
         mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_by_application_id:{sentry_app.application_id}",
-            region_name=_TEST_REGION.name,
+            cell_name=_TEST_CELL.name,
         )
         mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_installed_for_organization:{org.id}",
-            region_name=_TEST_REGION.name,
+            cell_name=_TEST_CELL.name,
         )
         mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_installed_for_organization:{org_two.id}",
-            region_name=_TEST_REGION.name,
+            cell_name=_TEST_CELL.name,
         )

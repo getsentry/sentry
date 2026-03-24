@@ -42,12 +42,13 @@ const OnboardingAlertHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-export default function ReplayOnboardingPanel() {
+export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
-  const {isCollapsed} = useSecondaryNavigation();
+  const {view} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
 
   const supportedPlatforms = replayPlatforms;
 
@@ -58,11 +59,11 @@ export default function ReplayOnboardingPanel() {
   const hasSelectedProjects = selectedProjects.length > 0;
 
   const allProjectsUnsupported = projects.projects.every(
-    p => !supportedPlatforms.includes(p.platform as (typeof supportedPlatforms)[number])
+    p => !p.platform || !supportedPlatforms.includes(p.platform)
   );
 
   const allSelectedProjectsUnsupported = selectedProjects.every(
-    p => !supportedPlatforms.includes(p.platform as (typeof supportedPlatforms)[number])
+    p => !p.platform || !supportedPlatforms.includes(p.platform)
   );
 
   // if all projects are unsupported we should prompt the user to create a project

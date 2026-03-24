@@ -13,7 +13,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -78,7 +78,7 @@ jest.mock('@tanstack/react-virtual', () => {
 
 describe('LogsInfiniteTable', () => {
   const organization = OrganizationFixture({
-    features: ['ourlogs-enabled', 'ourlogs-replay-ui'],
+    features: ['ourlogs-enabled'],
   });
   const project = ProjectFixture();
 
