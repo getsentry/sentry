@@ -18,10 +18,7 @@ import {useScmRepoSelection} from './useScmRepoSelection';
  * Control is the outermost flex container around ValueContainer + Indicators,
  * so adding a child here doesn't break react-select's internal layout.
  */
-function SearchControl({
-  children,
-  ...props
-}: React.ComponentProps<typeof selectComponents.Control>) {
+function SearchControl({children, ...props}: any) {
   return (
     <selectComponents.Control {...props}>
       <IconSearch size="sm" variant="muted" style={{marginLeft: 12, flexShrink: 0}} />
@@ -92,6 +89,8 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     }
   }
 
+  const customComponents = useMemo(() => ({Control: SearchControl}), []);
+
   function noOptionsMessage() {
     if (isError) {
       return t('Failed to search repositories. Please try again.');
@@ -119,7 +118,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
       isDisabled={busy}
       clearable
       searchable
-      components={{Control: SearchControl}}
+      components={customComponents}
     />
   );
 }
