@@ -1,5 +1,3 @@
-import {css, Global} from '@emotion/react';
-
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
@@ -21,6 +19,7 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
@@ -63,23 +62,7 @@ export default function LogsContent() {
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
           source="location"
         >
-          <Global
-            styles={css`
-              /* Lock the layout to viewport height when a viewport-constrained page is active */
-              div:has(> div > div#main > [data-viewport-constrained]) {
-                height: 100vh;
-                height: 100dvh;
-                overflow: hidden;
-              }
-              div:has(> div#main > [data-viewport-constrained]) {
-                min-height: 0;
-              }
-            `}
-          />
-          <Layout.Page
-            data-viewport-constrained
-            style={{minHeight: 0, overflow: 'hidden'}}
-          >
+          <ViewportConstrainedPage>
             <LogsHeader />
             <LogsPageDataProvider allowHighFidelity>
               {defined(onboardingProject) ? (
@@ -92,7 +75,7 @@ export default function LogsContent() {
                 <LogsTabContent datePageFilterProps={datePageFilterProps} />
               )}
             </LogsPageDataProvider>
-          </Layout.Page>
+          </ViewportConstrainedPage>
         </LogsQueryParamsProvider>
       </PageFiltersContainer>
     </SentryDocumentTitle>

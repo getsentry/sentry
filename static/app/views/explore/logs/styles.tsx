@@ -134,6 +134,8 @@ export const LogTable = styled(Table)`
   margin-bottom: 0;
   overflow-x: hidden;
 
+  /* PanelBody inside Table's Panel wrapper needs flex sizing to let
+     LogTableBody fill the available height and scroll internally. */
   > div {
     flex: 1;
     min-height: 0;
@@ -314,33 +316,36 @@ export function TableActionsContainer(props: FlexProps<'div'>) {
   return <Flex justify="end" align="center" gap="md" {...props} />;
 }
 
-export const LogsItemContainer = styled('div')`
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-  position: relative;
-  display: flex;
-  flex-direction: column;
-`;
+export function LogsItemContainer(props: FlexProps<'div'>) {
+  return (
+    <Flex
+      direction="column"
+      flex="1 1 auto"
+      minHeight="0"
+      overflow="hidden"
+      position="relative"
+      {...props}
+    />
+  );
+}
 
-export const LogsTableActionsContainer = styled(LogsItemContainer)`
-  flex: 0 0 auto;
-  overflow: visible;
-  margin-bottom: 0;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-`;
+export function LogsTableActionsContainer(props: FlexProps<'div'>) {
+  return (
+    <Flex
+      direction="row"
+      flex="0 0 auto"
+      overflow="visible"
+      justify="between"
+      {...props}
+    />
+  );
+}
 
-export const LogsGraphContainer = styled(LogsItemContainer)`
-  flex: 0 0 auto;
-  overflow: visible;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
+export function LogsGraphContainer(props: FlexProps<'div'>) {
+  return (
+    <Flex direction="column" flex="0 0 auto" overflow="visible" gap="md" {...props} />
+  );
+}
 
 export const AutoRefreshLabel = styled('label')`
   display: flex;

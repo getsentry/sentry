@@ -438,37 +438,44 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
         <ExploreControlSection expanded={sidebarOpen}>
           {sidebarOpen ? <LogsToolbar /> : null}
         </ExploreControlSection>
-        <ExploreContentSection>
-          <OverChartButtonGroup style={expando.expanded ? {display: 'none'} : undefined}>
-            <LogsSidebarCollapseButton
-              sidebarOpen={sidebarOpen}
-              aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-              size="xs"
-              icon={
-                <IconChevron
-                  isDouble
-                  direction={sidebarOpen ? 'left' : 'right'}
-                  size="xs"
-                />
-              }
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? null : t('Advanced')}
-            </LogsSidebarCollapseButton>
-            <LogsExportButton
-              isLoading={tableData.isPending}
-              tableData={tableData.data}
-              error={tableData.error}
-            />
-          </OverChartButtonGroup>
+        <ExploreContentSection gap="md">
+          {!expando.expanded && (
+            <OverChartButtonGroup>
+              <LogsSidebarCollapseButton
+                sidebarOpen={sidebarOpen}
+                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                size="xs"
+                icon={
+                  <IconChevron
+                    isDouble
+                    direction={sidebarOpen ? 'left' : 'right'}
+                    size="xs"
+                  />
+                }
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? null : t('Advanced')}
+              </LogsSidebarCollapseButton>
+              <LogsExportButton
+                isLoading={tableData.isPending}
+                tableData={tableData.data}
+                error={tableData.error}
+              />
+            </OverChartButtonGroup>
+          )}
           <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
           <LogsDownSamplingAlert
             timeseriesResult={timeseriesResult}
             tableResult={infiniteLogsQueryResult}
           />
-          <LogsGraphContainer style={expando.expanded ? {display: 'none'} : undefined}>
-            <LogsGraph rawLogCounts={rawLogCounts} timeseriesResult={timeseriesResult} />
-          </LogsGraphContainer>
+          {!expando.expanded && (
+            <LogsGraphContainer>
+              <LogsGraph
+                rawLogCounts={rawLogCounts}
+                timeseriesResult={timeseriesResult}
+              />
+            </LogsGraphContainer>
+          )}
           <LogsTableActionsContainer>
             <Tabs value={tableTab} onChange={setTableTab} size="sm">
               <TabList variant="floating">

@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, type ContainerProps} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -30,7 +30,7 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   }
 `;
 
-export function ExploreContentSection(props: ContainerProps) {
+export function ExploreContentSection(props: FlexProps<'div'>) {
   const hasPageFrame = useHasPageFrameFeature();
   return (
     <Flex
