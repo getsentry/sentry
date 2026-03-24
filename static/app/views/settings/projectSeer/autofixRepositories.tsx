@@ -17,7 +17,7 @@ import type {
   ProjectSeerPreferences,
   RepoSettings,
 } from 'sentry/components/events/autofix/types';
-import {useHasGitlabSupport} from 'sentry/components/events/autofix/utils';
+import {useSeerSupportedProviderIds} from 'sentry/components/events/autofix/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -39,7 +39,8 @@ interface ProjectSeerProps {
 export function AutofixRepositories({project}: ProjectSeerProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const hasGitlabSupport = useHasGitlabSupport();
+  const supportedProviderIds = useSeerSupportedProviderIds();
+  const hasNonGithubProviders = supportedProviderIds.some(id => !id.includes('github'));
   const {data: repositories, isFetching: isFetchingRepositories} =
     useOrganizationRepositories();
   const {
@@ -250,7 +251,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           {t('Working Repositories')}
           <QuestionTooltip
             title={
-              hasGitlabSupport
+              hasNonGithubProviders
                 ? tct(
                     'Seer will only be able to see code from and make PRs to the repos that you select here. A supported [link:source code integration] is required for Seer to access these repos.',
                     {
@@ -297,7 +298,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
                 ),
                 to: `/settings/${organization.slug}/integrations/github_enterprise/`,
               },
-              ...(hasGitlabSupport
+              ...(hasNonGithubProviders
                 ? [
                     {
                       key: 'gitlab',

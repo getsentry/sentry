@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {formatRootCauseText} from 'sentry/components/events/autofix/autofixRootCause';
 import {formatSolutionText} from 'sentry/components/events/autofix/autofixSolution';
@@ -193,44 +193,68 @@ const BASE_SUPPORTED_PROVIDERS = [
   'integrations:github_enterprise',
 ];
 
-const GITLAB_PROVIDERS = ['gitlab', 'integrations:gitlab'];
-
-export const isSupportedAutofixProvider = (
-  provider: {id: string; name: string},
-  hasGitlabSupport?: boolean
-) => {
-  const providers = hasGitlabSupport
-    ? [...BASE_SUPPORTED_PROVIDERS, ...GITLAB_PROVIDERS]
-    : BASE_SUPPORTED_PROVIDERS;
-  return providers.includes(provider.id);
-};
+/**
+ * Feature-gated providers. Each entry maps a feature flag to the provider IDs
+ * it unlocks. Add new providers here as they become supported.
+ */
+const FEATURE_GATED_PROVIDERS: Array<{
+  flag: string;
+  providerIds: string[];
+  requiresSeatBased: boolean;
+}> = [
+  {
+    flag: 'seer-gitlab-support',
+    providerIds: ['gitlab', 'integrations:gitlab'],
+    requiresSeatBased: true,
+  },
+];
 
 /**
- * Hook that checks if the organization has GitLab support enabled for Seer.
- * GitLab is only supported for seat-based-billing features (code review, seer explorer).
- * Centralizes the feature flag checks so consumers don't need to know the flag names.
+ * Pure function for non-hook contexts (e.g. buildIntegrationTreeNodes).
+ * Returns true if the provider is in the supported list.
  */
-export function useHasGitlabSupport(): boolean {
-  const organization = useOrganization();
-  return (
-    organization.features.includes('seer-gitlab-support') &&
-    organization.features.includes('seat-based-seer-enabled')
-  );
+export function isSeerSupportedProvider(
+  provider: {id: string; name: string},
+  supportedProviderIds: string[]
+): boolean {
+  return supportedProviderIds.includes(provider.id);
 }
 
 /**
- * Hook that returns a provider-check callback with the GitLab feature flag baked in.
- * Use this in React components instead of calling isSupportedAutofixProvider directly.
+ * Returns the list of provider IDs supported for Seer based on the
+ * organization's feature flags. To support a new provider, add an entry
+ * to FEATURE_GATED_PROVIDERS above.
+ */
+export function useSeerSupportedProviderIds(): string[] {
+  const organization = useOrganization();
+  return useMemo(() => {
+    const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
+    const ids = [...BASE_SUPPORTED_PROVIDERS];
+    for (const {flag, providerIds, requiresSeatBased} of FEATURE_GATED_PROVIDERS) {
+      if (requiresSeatBased && !hasSeatBasedSeer) {
+        continue;
+      }
+      if (organization.features.includes(flag)) {
+        ids.push(...providerIds);
+      }
+    }
+    return ids;
+  }, [organization.features]);
+}
+
+/**
+ * Convenience hook that returns a provider-check callback.
+ * Use this in React components that need to test individual providers.
  */
 export function useIsSeerSupportedProvider(): (provider: {
   id: string;
   name: string;
 }) => boolean {
-  const hasGitlabSupport = useHasGitlabSupport();
+  const supportedProviderIds = useSeerSupportedProviderIds();
   return useCallback(
     (provider: {id: string; name: string}) =>
-      isSupportedAutofixProvider(provider, hasGitlabSupport),
-    [hasGitlabSupport]
+      isSeerSupportedProvider(provider, supportedProviderIds),
+    [supportedProviderIds]
   );
 }
 
