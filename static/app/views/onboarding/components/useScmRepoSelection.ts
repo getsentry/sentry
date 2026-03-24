@@ -93,14 +93,6 @@ export function useScmRepoSelection({
     const optimistic = buildOptimisticRepo(repo, integration);
     onSelect(optimistic);
 
-    // eslint-disable-next-line no-console
-    console.log('[useScmRepoSelection]', {
-      isInstalled: repo.isInstalled,
-      identifier: repo.identifier,
-      existingRepoKeys: [...existingReposBySlug.keys()],
-      existingMatch: existingReposBySlug.get(repo.identifier),
-    });
-
     if (repo.isInstalled) {
       // Repo already exists in Sentry — use the existing record if we can
       // find it, otherwise keep the optimistic value. Either way, no POST needed.
