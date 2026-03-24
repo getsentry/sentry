@@ -1,5 +1,4 @@
-import {Container} from '@sentry/scraps/layout';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconCommit, IconGeneric, IconJson, IconTag} from 'sentry/icons';

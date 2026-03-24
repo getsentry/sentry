@@ -14,29 +14,28 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
   return (
     <Flex gap="lg" wrap="wrap" justify="center">
       {providers.map(provider => (
-        <Flex key={provider.key}>
-          <IntegrationContext
-            value={{
-              provider,
-              type: 'first_party',
-              installStatus: 'Not Installed',
-              analyticsParams: {
-                view: 'onboarding',
-                already_installed: false,
-              },
+        <IntegrationContext
+          key={provider.key}
+          value={{
+            provider,
+            type: 'first_party',
+            installStatus: 'Not Installed',
+            analyticsParams: {
+              view: 'onboarding',
+              already_installed: false,
+            },
+          }}
+        >
+          <IntegrationButton
+            userHasAccess
+            onAddIntegration={onInstall}
+            onExternalClick={() => {}}
+            buttonProps={{
+              icon: getIntegrationIcon(provider.key, 'sm'),
+              buttonText: provider.name,
             }}
-          >
-            <IntegrationButton
-              userHasAccess
-              onAddIntegration={onInstall}
-              onExternalClick={() => {}}
-              buttonProps={{
-                icon: getIntegrationIcon(provider.key, 'sm'),
-                buttonText: provider.name,
-              }}
-            />
-          </IntegrationContext>
-        </Flex>
+          />
+        </IntegrationContext>
       ))}
     </Flex>
   );
