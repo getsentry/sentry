@@ -5,12 +5,15 @@ import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
+import {StackedGroup} from 'sentry/components/stream/stackedGroup';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
+import {useSuperGroupForIssues} from 'sentry/utils/supergroup/useSuperGroupForIssues';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import NoGroupsHandler from './noGroupsHandler';
@@ -123,6 +126,60 @@ export function GroupListBody({
   );
 }
 
+type RenderItem =
+  | {type: 'single'; id: string}
+  | {type: 'stack'; supergroup: SupergroupDetail; ids: string[]};
+
+/**
+ * Groups issue IDs by their supergroup membership.
+ * Issues sharing a supergroup are collected into a single stack entry,
+ * positioned where the first member appears in the list.
+ */
+function buildRenderItems(
+  groupIds: string[],
+  getSuperGroupForIssue: (id: string) => SupergroupDetail | null | undefined,
+  enabled: boolean
+): RenderItem[] {
+  if (!enabled) {
+    return groupIds.map(id => ({type: 'single' as const, id}));
+  }
+
+  // First pass: resolve supergroup for each ID and collect groups
+  const sgForId = new Map<string, SupergroupDetail | null>();
+  const sgMembers = new Map<number, string[]>();
+
+  for (const id of groupIds) {
+    const sg = getSuperGroupForIssue(id);
+    if (sg === undefined || sg === null) {
+      sgForId.set(id, null);
+    } else {
+      sgForId.set(id, sg);
+      if (!sgMembers.has(sg.id)) {
+        sgMembers.set(sg.id, []);
+      }
+      sgMembers.get(sg.id)!.push(id);
+    }
+  }
+
+  // Second pass: build ordered render items, collapsing supergroup members
+  const seen = new Set<number>();
+  const items: RenderItem[] = [];
+
+  for (const id of groupIds) {
+    const sg = sgForId.get(id);
+    if (sg) {
+      if (!seen.has(sg.id)) {
+        seen.add(sg.id);
+        items.push({type: 'stack', supergroup: sg, ids: sgMembers.get(sg.id)!});
+      }
+    } else {
+      items.push({type: 'single', id});
+    }
+  }
+
+  return items;
+}
+
 function GroupList({
   groupIds,
   memberList,
@@ -132,6 +189,8 @@ function GroupList({
   onActionTaken,
 }: GroupListProps) {
   const theme = useTheme();
+  const organization = useOrganization();
+  const {getSuperGroupForIssue} = useSuperGroupForIssues();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -141,29 +200,56 @@ function GroupList({
     `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
 
+  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
+  const renderItems = buildRenderItems(groupIds, getSuperGroupForIssue, hasTopIssuesUI);
+
+  const renderStreamGroup = (group: Group) => (
+    <StreamGroup
+      key={group.id}
+      group={group}
+      statsPeriod={groupStatsPeriod}
+      query={query}
+      hasGuideAnchor={group.id === topIssue}
+      memberList={group.project ? memberList[group.project.slug] : undefined}
+      displayReprocessingLayout={displayReprocessingLayout}
+      useFilteredStats
+      canSelect={!selectDisabled}
+      onPriorityChange={priority => onActionTaken([group.id], {priority})}
+      withColumns={COLUMNS}
+    />
+  );
+
   return (
     <PanelBody>
-      {groupIds.map(id => {
-        const hasGuideAnchor = id === topIssue;
-        const group = GroupStore.get(id) as Group | undefined;
+      {renderItems.map(item => {
+        if (item.type === 'single') {
+          const group = GroupStore.get(item.id) as Group | undefined;
+          if (!group) {
+            return null;
+          }
+          return renderStreamGroup(group);
+        }
 
-        if (!group) {
+        // Stack: collect resolved Group objects
+        const groups = item.ids
+          .map(id => GroupStore.get(id) as Group | undefined)
+          .filter((g): g is Group => g !== undefined);
+
+        if (groups.length === 0) {
           return null;
         }
 
+        // Single-issue supergroups don't need the stack treatment
+        if (item.supergroup.group_ids.length <= 1) {
+          return renderStreamGroup(groups[0]!);
+        }
+
         return (
-          <StreamGroup
-            key={id}
-            group={group}
-            statsPeriod={groupStatsPeriod}
-            query={query}
-            hasGuideAnchor={hasGuideAnchor}
-            memberList={group.project ? memberList[group.project.slug] : undefined}
-            displayReprocessingLayout={displayReprocessingLayout}
-            useFilteredStats
-            canSelect={!selectDisabled}
-            onPriorityChange={priority => onActionTaken([id], {priority})}
-            withColumns={COLUMNS}
+          <StackedGroup
+            key={`stack-${item.supergroup.id}`}
+            supergroup={item.supergroup}
+            groups={groups}
+            renderGroup={renderStreamGroup}
           />
         );
       })}
