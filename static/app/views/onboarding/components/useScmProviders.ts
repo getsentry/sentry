@@ -5,6 +5,12 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+// V1 only supports these 4 SCM providers in onboarding, matching the design.
+// GitHub Enterprise, Bitbucket Server, and Perforce also have the 'commits'
+// feature gate but are excluded for the initial onboarding flow.
+// Order matches the Figma design: GitHub, GitLab, Bitbucket, Azure DevOps.
+const SCM_PROVIDER_ORDER: string[] = ['github', 'gitlab', 'bitbucket', 'vsts'];
+
 type ScmProvidersData = {
   activeIntegrationExisting: Integration | null;
   isError: boolean;
@@ -36,13 +42,15 @@ export function useScmProviders(): ScmProvidersData {
     )
   );
 
-  const scmProviders = useMemo(
-    () =>
-      (providersQuery.data?.providers ?? []).filter(p =>
-        p.metadata.features.some(f => f.featureGate.includes('commits'))
-      ),
-    [providersQuery.data]
-  );
+  const scmProviders = useMemo(() => {
+    const providersByKey = new Map(
+      (providersQuery.data?.providers ?? []).map(p => [p.key, p])
+    );
+    return SCM_PROVIDER_ORDER.flatMap(key => {
+      const provider = providersByKey.get(key);
+      return provider ? [provider] : [];
+    });
+  }, [providersQuery.data]);
 
   // Use integrationType=source_code_management to filter server-side to
   // GitHub, GitLab, Bitbucket, Azure DevOps. Still need client-side active
