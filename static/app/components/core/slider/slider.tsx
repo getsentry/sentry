@@ -64,8 +64,27 @@ export function Slider({
   const trackRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const {value, onChange, ...restProps} = props as ControlledProps;
+  const {
+    value,
+    onChange,
+    defaultValue,
+    'aria-valuetext': ariaValueText,
+    ...restProps
+  } = props;
   const effectiveValue = value === '' ? undefined : value;
+
+  // Separate event handler props (onXxx) so they can be forwarded to the
+  // hidden <input> where user interactions actually occur, rather than the
+  // wrapper <div> where they would never fire.
+  const eventHandlerProps: Record<string, unknown> = {};
+  const htmlProps: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(restProps)) {
+    if (/^on[A-Z]/.test(key)) {
+      eventHandlerProps[key] = val;
+    } else {
+      htmlProps[key] = val;
+    }
+  }
 
   const numberFormatter = useNumberFormatter(formatOptions ?? {});
 
@@ -74,11 +93,11 @@ export function Slider({
     maxValue: max,
     step,
     isDisabled: disabled,
-    'aria-label': restProps['aria-label'],
-    'aria-labelledby': restProps['aria-labelledby'],
+    'aria-label': htmlProps['aria-label'] as string | undefined,
+    'aria-labelledby': htmlProps['aria-labelledby'] as string | undefined,
     ...(effectiveValue !== undefined && {value: [effectiveValue]}),
-    ...(props.defaultValue !== undefined &&
-      effectiveValue === undefined && {defaultValue: [props.defaultValue]}),
+    ...(defaultValue !== undefined &&
+      effectiveValue === undefined && {defaultValue: [defaultValue]}),
     onChange: (values: number | number[]) =>
       onChange?.(Array.isArray(values) ? (values[0] ?? min) : values),
   };
@@ -141,7 +160,7 @@ export function Slider({
   return (
     <SliderWrapper
       {...groupProps}
-      {...restProps}
+      {...htmlProps}
       className={className}
       aria-disabled={disabled || undefined}
     >
@@ -170,9 +189,11 @@ export function Slider({
             <input
               ref={inputRef}
               {...inputProps}
+              {...eventHandlerProps}
               name={name}
               id={id ?? inputProps.id}
-              aria-invalid={restProps['aria-invalid'] ?? undefined}
+              aria-invalid={htmlProps['aria-invalid'] as boolean | undefined}
+              {...(ariaValueText !== undefined && {'aria-valuetext': ariaValueText})}
             />
           </VisuallyHidden>
         </SliderThumbHitbox>
