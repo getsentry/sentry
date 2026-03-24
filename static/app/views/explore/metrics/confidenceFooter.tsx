@@ -77,13 +77,11 @@ function ConfidenceMessage({
 
   const isTopN = defined(topEvents) && topEvents > 1;
   const noSampling = defined(isSampled) && !isSampled;
-  const usePluralSampleCount = sampleCount > 1 || sampleCount === 0;
+  const usePluralSampleCount = sampleCount !== 1;
   const usePluralNormalMetricsCount =
-    defined(rawMetricCounts.normal.count) &&
-    (rawMetricCounts.normal.count > 1 || rawMetricCounts.normal.count === 0);
+    defined(rawMetricCounts.normal.count) && rawMetricCounts.normal.count !== 1;
   const usePluralTotalMetricsCount =
-    defined(rawMetricCounts.total.count) &&
-    (rawMetricCounts.total.count > 1 || rawMetricCounts.total.count === 0);
+    defined(rawMetricCounts.total.count) && rawMetricCounts.total.count !== 1;
 
   // No sampling happened, so don't mention estimations.
   if (noSampling) {

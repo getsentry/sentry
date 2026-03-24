@@ -46,13 +46,11 @@ function confidenceMessage({
 
   const isTopN = defined(topEvents) && topEvents > 1;
   const noSampling = defined(isSampled) && !isSampled;
-  const usePluralSampleCount = sampleCount > 1 || sampleCount === 0;
+  const usePluralSampleCount = sampleCount !== 1;
   const usePluralNormalSpansCount =
-    defined(rawSpanCounts?.normal.count) &&
-    (rawSpanCounts.normal.count > 1 || rawSpanCounts.normal.count === 0);
+    defined(rawSpanCounts?.normal.count) && rawSpanCounts.normal.count !== 1;
   const usePluralTotalSpansCount =
-    defined(rawSpanCounts?.total.count) &&
-    (rawSpanCounts.total.count > 1 || rawSpanCounts.total.count === 0);
+    defined(rawSpanCounts?.total.count) && rawSpanCounts.total.count !== 1;
 
   const maybeWarning =
     confidence === 'low' ? tct('[warning] ', {warning: <WarningIcon />}) : null;
