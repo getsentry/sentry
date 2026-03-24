@@ -245,7 +245,10 @@ export function MobilePageFrameNavigation() {
         <Flex align="center" gap="md" justify="between" width="100%">
           <Button
             ref={toggleButtonRef}
-            onClick={() => setIsOpen(v => !v)}
+            onClick={() => {
+              if (!isOpen) setView('expanded');
+              setIsOpen(v => !v);
+            }}
             icon={<IconMenu aria-hidden="true" />}
             aria-label={isOpen ? t('Close main menu') : t('Open main menu')}
           />

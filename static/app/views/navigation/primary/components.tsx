@@ -416,15 +416,14 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
 function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
   const {layout} = usePrimaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   return (
     <Flex
       align="center"
-      height={layout === 'mobile' && !isMobilePageFrame ? 'auto' : undefined}
-      width={layout === 'mobile' && !isMobilePageFrame ? '100%' : undefined}
-      padding={layout === 'mobile' && !isMobilePageFrame ? 'md lg' : 'xs'}
-      justify={layout === 'mobile' && !isMobilePageFrame ? 'start' : 'center'}
+      height={layout === 'mobile' && !hasPageFrame ? 'auto' : undefined}
+      width={layout === 'mobile' && !hasPageFrame ? '100%' : undefined}
+      padding={layout === 'mobile' && !hasPageFrame ? 'md lg' : 'xs'}
+      justify={layout === 'mobile' && !hasPageFrame ? 'start' : 'center'}
     >
       {p => (
         <Button
