@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import {useCommandPaletteQueryState} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {
@@ -18,7 +19,8 @@ const ICONS: React.ReactElement[] = [
   <IconList key="list" />,
 ];
 
-export function useDsnLookupActions(query: string): void {
+export function useDsnLookupActions(): void {
+  const {query} = useCommandPaletteQueryState();
   const organization = useOrganization({allowNull: true});
   const hasDsnLookup = organization?.features?.includes('cmd-k-dsn-lookup') ?? false;
   const isDsn = DSN_PATTERN.test(query);

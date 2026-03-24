@@ -10,6 +10,7 @@ import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette
 import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCommandPaletteState';
+import {useDocsSearchActions} from 'sentry/components/commandPalette/useDocsSearchActions';
 import {useDsnLookupActions} from 'sentry/components/commandPalette/useDsnLookupActions';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -27,7 +28,7 @@ function actionToMenuItem(
 ): CommandPaletteActionMenuItem {
   return {
     key: action.key,
-    label: action.display.label,
+    label: action.display.labelNode ?? action.display.label,
     details: action.display.details,
     leadingItems: action.display.icon ? (
       <IconWrap align="center" justify="center">
@@ -42,7 +43,8 @@ function actionToMenuItem(
 export function CommandPaletteContent() {
   const {actions, selectedAction, selectAction, clearSelection, query, setQuery} =
     useCommandPaletteState();
-  useDsnLookupActions(query);
+  useDsnLookupActions();
+  useDocsSearchActions();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 

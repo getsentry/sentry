@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -5,17 +6,25 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {
   CommandPaletteProvider,
   useCommandPaletteActions as useRegisteredActions,
+  useCommandPaletteQueryState,
 } from 'sentry/components/commandPalette/context';
 import {useDsnLookupActions} from 'sentry/components/commandPalette/useDsnLookupActions';
 
 const org = OrganizationFixture({features: ['cmd-k-dsn-lookup']});
 
+function SetQuery({query}: {query: string}) {
+  const {setQuery} = useCommandPaletteQueryState();
+  useEffect(() => setQuery(query), [query, setQuery]);
+  return null;
+}
+
 function DsnLookupHarness({query}: {query: string}) {
-  useDsnLookupActions(query);
+  useDsnLookupActions();
   const actions = useRegisteredActions();
 
   return (
     <ul>
+      <SetQuery query={query} />
       {actions.map(action => (
         <li
           key={action.key}
