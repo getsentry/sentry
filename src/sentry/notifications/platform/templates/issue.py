@@ -15,7 +15,7 @@ from sentry.notifications.platform.types import (
 )
 
 
-class NotificationRuleInfo(BaseModel):
+class SerializableRuleProxy(BaseModel):
     """
     A pydantic-serializable representation of a rule for notification render code.
     """
@@ -29,12 +29,12 @@ class NotificationRuleInfo(BaseModel):
     project_id: int
 
     @classmethod
-    def from_rule(cls, rule: Rule) -> NotificationRuleInfo:
+    def from_rule(cls, rule: Rule) -> SerializableRuleProxy:
         """
         Temporary method to convert a Rule to a NotificationRuleInfo. This will
         be removed once we no longer rely on the Rule ORM model.
         """
-        return NotificationRuleInfo(
+        return cls(
             id=rule.id,
             label=rule.label,
             data=rule.data,
@@ -61,7 +61,7 @@ class IssueNotificationData(NotificationData):
 
     group_id: int
     event_id: str | None = None
-    rule: NotificationRuleInfo | None = None
+    rule: SerializableRuleProxy | None = None
     tags: set[str] = Field(default_factory=set)
     notes: str = ""
     notification_uuid: str = ""
@@ -76,7 +76,7 @@ class IssueNotificationTemplate(NotificationTemplate[IssueNotificationData]):
         tags={"environment", "level"},
         notes="example note",
         notification_uuid="test-uuid",
-        rule=NotificationRuleInfo(
+        rule=SerializableRuleProxy(
             id=1, project_id=2, environment_id=3, label="Example Rule", data={}
         ),
     )

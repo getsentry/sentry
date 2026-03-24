@@ -14,7 +14,7 @@ from sentry.notifications.platform.slack.renderers.issue import IssueSlackRender
 from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     IssueNotificationTemplate,
-    NotificationRuleInfo,
+    SerializableRuleProxy,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -95,7 +95,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.notes == "test note"
         assert result.notification_uuid == "test-uuid-123"
 
-        assert isinstance(result.rule, NotificationRuleInfo)
+        assert isinstance(result.rule, SerializableRuleProxy)
         assert result.rule.id == invocation.action.id
         assert result.rule.label == "Test Detector"
         assert result.rule.environment_id is None

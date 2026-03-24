@@ -11,7 +11,7 @@ from sentry.notifications.notification_action.registry import (
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
-    NotificationRuleInfo,
+    SerializableRuleProxy,
 )
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
@@ -128,7 +128,7 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
         detector=detector,
         event_data=event_data,
     )
-    rule = NotificationRuleInfo.from_rule(rule_instance)
+    rule = SerializableRuleProxy.from_rule(rule_instance)
 
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
 
