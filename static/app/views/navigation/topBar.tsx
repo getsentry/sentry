@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
@@ -10,12 +11,17 @@ import {PRIMARY_HEADER_HEIGHT} from './constants';
 
 export function TopBar() {
   const theme = useTheme();
-  const secondaryNavigation = useContext(SecondaryNavigationContext);
   const flexRef = useRef<HTMLDivElement>(null);
+  const primaryNavigation = usePrimaryNavigation();
+  const secondaryNavigation = useContext(SecondaryNavigationContext);
   const hasPageFrame = useHasPageFrameFeature();
 
   useEffect(() => {
     if (!flexRef.current) {
+      return undefined;
+    }
+
+    if (primaryNavigation.layout === 'mobile') {
       return undefined;
     }
 
@@ -26,6 +32,10 @@ export function TopBar() {
 
     const handleScroll = () => {
       if (!flexRef.current) {
+        return;
+      }
+
+      if (primaryNavigation.layout === 'mobile') {
         return;
       }
 
@@ -42,7 +52,7 @@ export function TopBar() {
     handleScroll();
     window.addEventListener('scroll', handleScroll, {passive: true});
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [theme.tokens.border.primary, secondaryNavigation?.view]);
+  }, [theme.tokens.border.primary, secondaryNavigation?.view, primaryNavigation.layout]);
 
   if (!hasPageFrame) {
     return null;
@@ -57,6 +67,7 @@ export function TopBar() {
       align="center"
       padding="md lg"
       position="sticky"
+      borderBottom={primaryNavigation.layout === 'mobile' ? undefined : 'primary'}
       top={0}
       // Keep the top bar in a cascade slightly below the sidebar panel so that when the sidebar panel
       // is in the hover preview state, the top bar does not sit over it.
