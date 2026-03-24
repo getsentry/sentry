@@ -4,7 +4,6 @@ import {motion} from 'framer-motion';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -13,7 +12,6 @@ import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableTransition} from 'sentry/utils/testableTransition';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScmBenefitsCard} from './components/scmBenefitsCard';
@@ -95,17 +93,12 @@ export function ScmConnect({onComplete}: StepProps) {
               animate={{opacity: 1, y: 0}}
               transition={testableTransition({duration: 0.4})}
             >
-              <Flex align="center" justify="between">
-                <Tag variant="success" icon={<IconCheckmark />}>
-                  {t(
-                    'Connected to %s',
-                    effectiveIntegration.domainName || effectiveIntegration.provider.name
-                  )}
-                </Tag>
-                <Link to={normalizeUrl(`/settings/${organization.slug}/integrations/`)}>
-                  {t('Manage in Settings')}
-                </Link>
-              </Flex>
+              <Tag variant="success" icon={<IconCheckmark />}>
+                {t(
+                  'Connected to %s',
+                  effectiveIntegration.domainName || effectiveIntegration.provider.name
+                )}
+              </Tag>
             </motion.div>
             <motion.div
               initial={{opacity: 0, y: 20}}
