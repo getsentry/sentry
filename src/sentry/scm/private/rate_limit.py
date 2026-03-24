@@ -17,6 +17,7 @@ def total_limit_key(provider: str, organization_id: int) -> str:
 
 class RateLimitProvider(Protocol):
     def get_and_set_rate_limit(
+        self,
         total_key: str,
         usage_key: str,
         expiration: int,
@@ -30,11 +31,11 @@ class RateLimitProvider(Protocol):
         """
         ...
 
-    def get_accounted_usage(keys: list[str]) -> int:
+    def get_accounted_usage(self, keys: list[str]) -> int:
         """Return the sum of a given set of keys."""
         ...
 
-    def set_key_values(kvs: dict[str, tuple[int, int | None]]) -> None:
+    def set_key_values(self, kvs: dict[str, tuple[int, int | None]]) -> None:
         """For a given set of key, value pairs set them in the Redis Cluster."""
         ...
 
@@ -57,16 +58,16 @@ class DynamicRateLimiter:
         provider: str,
         rate_limit_provider: RateLimitProvider,
         rate_limit_window_seconds: int,
-        recorded_capacity: int | None,
         referrer_allocation: dict[Referrer, float],
+        recorded_capacity: int | None = None,
     ) -> None:
         self.get_time_in_seconds = get_time_in_seconds
         self.organization_id = organization_id
         self.provider = provider
         self.rate_limit_provider = rate_limit_provider
         self.rate_limit_window_seconds = rate_limit_window_seconds
-        self.recorded_capacity = recorded_capacity
         self.referrer_allocation = referrer_allocation
+        self.recorded_capacity = recorded_capacity
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
         """
@@ -104,8 +105,12 @@ class DynamicRateLimiter:
         if service_capacity is None:
             return False
 
-        # If the referrer exists in the allocation pool then we compute its capacity otherwise we need
-        # to compute the total unallocated "shared" capacity.
+        # Cache this value on the class instance. We'll return back to it later when updating the
+        # rate-limit metadata.
+        self.recorded_capacity = service_capacity
+
+        # If the referrer exists in the allocation pool then we compute its capacity otherwise we
+        # need to compute the total unallocated "shared" capacity.
         if referrer == "shared":
             referrer_capacity = int(
                 service_capacity * (1.0 - sum(self.referrer_allocation.values()))
@@ -133,11 +138,11 @@ class DynamicRateLimiter:
         # TODO: This might be a little GitHub specific but we don't have another usage example.
         specified_bucket = (next_window_start // self.rate_limit_window_seconds) - 1
 
-        kvs = {}
+        kvs: dict[str, tuple[int, int | None]] = {}
 
         # If the limit we have recorded in Sentry is different from the rate-limit recording in
         # the service-provider we need to update our limit to match.
-        if self.recorded_limit != capacity:
+        if self.recorded_capacity != capacity:
             kvs[total_limit_key(self.provider, self.organization_id)] = (capacity, None)
 
         # If we share the same window as the service-provider we can update our rate-limits to match
