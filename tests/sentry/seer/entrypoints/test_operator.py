@@ -740,7 +740,7 @@ class TestSeerOperatorCompletionHook(TestCase):
 
         mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
-            summary="Explorer result could not be fetched. Please try again.",
+            summary=None,
             run_id=MOCK_RUN_ID,
         )
 
@@ -823,6 +823,6 @@ class TestSeerOperatorCompletionHook(TestCase):
 
         mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
-            summary="Explorer result could not be fetched. Please try again.",
+            summary=None,
             run_id=MOCK_RUN_ID,
         )
