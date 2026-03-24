@@ -34,6 +34,7 @@ import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetect
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {getDetectorSystemCreatedNotice} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type DetectorLinkProps = {
@@ -79,6 +80,32 @@ function formatCondition({condition, unit}: {condition: DataCondition; unit: str
   return `${comparison}${threshold} ${priority}`;
 }
 
+function formatPercentCondition({
+  condition,
+  timeRange,
+  unit,
+}: {
+  condition: DataCondition;
+  timeRange: string;
+  unit: string;
+}) {
+  if (
+    !condition.conditionResult ||
+    condition.conditionResult === DetectorPriorityLevel.OK ||
+    typeof condition.comparison !== 'number'
+  ) {
+    return null;
+  }
+
+  const threshold = `${percentThresholdAbsoluteToDelta(condition.comparison)}${unit}`;
+  const direction = condition.comparison >= 100 ? t('higher') : t('lower');
+  return t('%(threshold)s %(direction)s than previous %(timeRange)s', {
+    threshold,
+    direction,
+    timeRange,
+  });
+}
+
 function DetailItem({children}: {children: React.ReactNode}) {
   if (!children) {
     return null;
@@ -115,8 +142,10 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
       return <DetailItem>{text}</DetailItem>;
     }
     case 'percent': {
+      const comparisonDelta = detector.config.comparisonDelta ?? 3600;
+      const timeRange = getDuration(comparisonDelta);
       const text = conditions
-        .map(condition => formatCondition({condition, unit}))
+        .map(condition => formatPercentCondition({condition, timeRange, unit}))
         .filter(defined)
         .join(', ');
       if (!text) {

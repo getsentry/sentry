@@ -505,14 +505,21 @@ export const limitedMetricsSupportPrefixes = new Set<string>([
   'dotnet',
   'electron',
   'go',
+  'godot',
   'java',
   'javascript',
+  'native',
+  'nintendo-switch',
   'node',
+  'playstation',
   'python',
   'php',
   'react-native',
   'ruby',
   'flutter',
+  'unity',
+  'unreal',
+  'xbox',
 ]);
 
 export const profiling: PlatformKey[] = [

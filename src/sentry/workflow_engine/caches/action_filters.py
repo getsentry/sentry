@@ -28,6 +28,7 @@ class _CacheResults(NamedTuple):
 _action_filters_cache = CacheMapping[_ActionFilterCacheKey, list[DataConditionGroup]](
     lambda key: f"{key.workflow_id}",
     namespace=f"workflow:{ACTION_FILTER_CACHE_NAME}",
+    ttl_seconds=CACHE_TTL,
 )
 
 
@@ -73,7 +74,7 @@ def _populate_cache(action_filters_by_workflow: ActionFiltersByWorkflow) -> None
         for workflow_id, action_filters in action_filters_by_workflow.items()
     }
 
-    _action_filters_cache.set_many(cache_items, CACHE_TTL)
+    _action_filters_cache.set_many(cache_items)
 
 
 @scopedstats.timer()
