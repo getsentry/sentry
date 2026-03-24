@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {
@@ -636,6 +637,15 @@ describe('Onboarding', () => {
       features: ['commits'],
     });
 
+    const nextJsPlatform = {
+      key: 'javascript-nextjs' as PlatformKey,
+      type: 'framework' as const,
+      language: 'javascript' as const,
+      category: 'browser' as const,
+      name: 'Next.js',
+      link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+    };
+
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/config/integrations/`,
@@ -765,18 +775,7 @@ describe('Onboarding', () => {
 
     it('renders scm-project-details step with project details form', () => {
       render(
-        <OnboardingContextProvider
-          initialValue={{
-            selectedPlatform: {
-              key: 'javascript-nextjs' as PlatformKey,
-              type: 'framework',
-              language: 'javascript',
-              category: 'browser',
-              name: 'Next.js',
-              link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
-            },
-          }}
-        >
+        <OnboardingContextProvider initialValue={{selectedPlatform: nextJsPlatform}}>
           <OnboardingWithoutContext />
         </OnboardingContextProvider>,
         {
@@ -833,14 +832,7 @@ describe('Onboarding', () => {
       });
 
       const initialContext = {
-        selectedPlatform: {
-          key: nextJsProject.slug as PlatformKey,
-          type: 'framework',
-          language: 'javascript',
-          category: 'browser',
-          name: 'Next.js',
-          link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
-        },
+        selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
       };
 
@@ -890,19 +882,12 @@ describe('Onboarding', () => {
             aspects: {},
           },
         }),
-        selectedRepository: {
+        selectedRepository: RepositoryFixture({
           id: '42',
           name: 'getsentry/sentry',
           externalSlug: 'getsentry/sentry',
-        } as any,
-        selectedPlatform: {
-          key: 'javascript-nextjs' as PlatformKey,
-          type: 'framework' as const,
-          language: 'javascript' as const,
-          category: 'browser' as const,
-          name: 'Next.js',
-          link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
-        },
+        }),
+        selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
         createdProjectSlug: 'javascript-nextjs',
       };
