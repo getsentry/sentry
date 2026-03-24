@@ -200,12 +200,10 @@ const BASE_SUPPORTED_PROVIDERS = [
 const FEATURE_GATED_PROVIDERS: Array<{
   flag: string;
   providerIds: string[];
-  requiresSeatBased: boolean;
 }> = [
   {
     flag: 'seer-gitlab-support',
     providerIds: ['gitlab', 'integrations:gitlab'],
-    requiresSeatBased: true,
   },
 ];
 
@@ -228,12 +226,8 @@ export function isSeerSupportedProvider(
 export function useSeerSupportedProviderIds(): string[] {
   const organization = useOrganization();
   return useMemo(() => {
-    const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
     const ids = [...BASE_SUPPORTED_PROVIDERS];
-    for (const {flag, providerIds, requiresSeatBased} of FEATURE_GATED_PROVIDERS) {
-      if (requiresSeatBased && !hasSeatBasedSeer) {
-        continue;
-      }
+    for (const {flag, providerIds} of FEATURE_GATED_PROVIDERS) {
       if (organization.features.includes(flag)) {
         ids.push(...providerIds);
       }

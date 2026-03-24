@@ -1251,7 +1251,7 @@ describe('ProjectSeer', () => {
 
     it('shows GitLab repos as selectable when seer-gitlab-support flag is on', async () => {
       const orgWithGitlabSupport = OrganizationFixture({
-        features: ['seer-gitlab-support', 'seat-based-seer-enabled'],
+        features: ['seer-gitlab-support'],
       });
 
       // Override the repos mock from beforeEach to include a GitLab repo
