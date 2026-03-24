@@ -47,6 +47,9 @@ function confidenceMessage({
   const isTopN = defined(topEvents) && topEvents > 1;
   const noSampling = defined(isSampled) && !isSampled;
   const usePluralSampleCount = sampleCount > 1 || sampleCount === 0;
+  const usePluralNormalSpansCount =
+    defined(rawSpanCounts?.normal.count) &&
+    (rawSpanCounts.normal.count > 1 || rawSpanCounts.normal.count === 0);
   const usePluralTotalSpansCount =
     defined(rawSpanCounts?.total.count) &&
     (rawSpanCounts.total.count > 1 || rawSpanCounts.total.count === 0);
@@ -219,7 +222,7 @@ function confidenceMessage({
       : t('%s match', <Count value={sampleCount} />);
 
     const scannedSpansCount = defined(rawSpanCounts.normal.count) ? (
-      usePluralTotalSpansCount ? (
+      usePluralNormalSpansCount ? (
         t('%s samples', <Count value={rawSpanCounts.normal.count} />)
       ) : (
         t('%s sample', <Count value={rawSpanCounts.normal.count} />)

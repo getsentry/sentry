@@ -78,6 +78,9 @@ function ConfidenceMessage({
   const isTopN = defined(topEvents) && topEvents > 1;
   const noSampling = defined(isSampled) && !isSampled;
   const usePluralSampleCount = sampleCount > 1 || sampleCount === 0;
+  const usePluralNormalMetricsCount =
+    defined(rawMetricCounts.normal.count) &&
+    (rawMetricCounts.normal.count > 1 || rawMetricCounts.normal.count === 0);
   const usePluralTotalMetricsCount =
     defined(rawMetricCounts.total.count) &&
     (rawMetricCounts.total.count > 1 || rawMetricCounts.total.count === 0);
@@ -219,7 +222,7 @@ function ConfidenceMessage({
       : t('%s match', <Count value={sampleCount} />);
 
     const scannedMetricsCount = defined(rawMetricCounts.normal.count) ? (
-      usePluralTotalMetricsCount ? (
+      usePluralNormalMetricsCount ? (
         t('%s samples', <Count value={rawMetricCounts.normal.count} />)
       ) : (
         t('%s sample', <Count value={rawMetricCounts.normal.count} />)
