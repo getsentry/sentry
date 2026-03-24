@@ -24,6 +24,7 @@ import {
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
+import {PrimaryNavigationSearch} from 'sentry/views/navigation/primary/search';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
@@ -217,8 +218,9 @@ export function PrimaryNavigationItems() {
             <PrimaryNavigationServiceIncidents />
           </ErrorBoundary>
           <ErrorBoundary customComponent={null}>
-            <PrimaryNavigationWhatsNew />
+            <PrimaryNavigationSearch />
           </ErrorBoundary>
+          <PrimaryNavigationWhatsNew />
           <PrimaryNavigationHelpMenu />
         </PrimaryNavigation.FooterItems>
         <PrimaryNavigation.FooterItems>
