@@ -302,7 +302,7 @@ function Graph({
           showChart && (
             <ConfidenceFooter
               chartInfo={chartInfo}
-              isLoading={timeseriesResult.isFetching}
+              isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}
               hasUserQuery={!!userQuery}
               rawMetricCounts={rawMetricCounts}
             />

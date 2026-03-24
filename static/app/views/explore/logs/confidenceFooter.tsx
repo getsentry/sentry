@@ -77,14 +77,17 @@ function ConfidenceMessage({
 
   const isTopN = defined(topEvents) && topEvents > 1;
   const noSampling = defined(isSampled) && !isSampled;
+  const usePluralSampleCount = sampleCount > 1 || sampleCount === 0;
+  const usePluralTotalLogsCount =
+    defined(rawLogCounts.total.count) &&
+    (rawLogCounts.total.count > 1 || rawLogCounts.total.count === 0);
 
   // No sampling happened, so don't mention estimations.
   if (noSampling) {
     if (!hasUserQuery) {
-      const matchingLogsCount =
-        sampleCount > 1
-          ? t('%s logs', <Count value={sampleCount} />)
-          : t('%s log', <Count value={sampleCount} />);
+      const matchingLogsCount = usePluralSampleCount
+        ? t('%s logs', <Count value={sampleCount} />)
+        : t('%s log', <Count value={sampleCount} />);
 
       if (isTopN) {
         return tct('[matchingLogsCount] for top [topEvents] groups', {
@@ -96,13 +99,12 @@ function ConfidenceMessage({
       return matchingLogsCount;
     }
 
-    const matchingLogsCount =
-      sampleCount > 1
-        ? t('%s matches', <Count value={sampleCount} />)
-        : t('%s match', <Count value={sampleCount} />);
+    const matchingLogsCount = usePluralSampleCount
+      ? t('%s matches', <Count value={sampleCount} />)
+      : t('%s match', <Count value={sampleCount} />);
 
     const totalLogsCount = defined(rawLogCounts.total.count) ? (
-      rawLogCounts.total.count > 1 ? (
+      usePluralTotalLogsCount ? (
         t('%s logs', <Count value={rawLogCounts.total.count} />)
       ) : (
         t('%s log', <Count value={rawLogCounts.total.count} />)
@@ -136,13 +138,12 @@ function ConfidenceMessage({
     // partial scans means that we didnt scan all the data so it's useful
     // to mention the total number of logs available
     if (dataScanned === 'partial') {
-      const matchingLogsCount =
-        sampleCount > 1
-          ? t('%s samples', <Count value={sampleCount} />)
-          : t('%s sample', <Count value={sampleCount} />);
+      const matchingLogsCount = usePluralSampleCount
+        ? t('%s samples', <Count value={sampleCount} />)
+        : t('%s sample', <Count value={sampleCount} />);
 
       const totalLogsCount = defined(rawLogCounts.total.count) ? (
-        rawLogCounts.total.count > 1 ? (
+        usePluralTotalLogsCount ? (
           t('%s logs', <Count value={rawLogCounts.total.count} />)
         ) : (
           t('%s log', <Count value={rawLogCounts.total.count} />)
@@ -178,10 +179,9 @@ function ConfidenceMessage({
     // otherwise, a full scan was done
     // full scan means we scanned all the data available so no need to repeat that information twice
 
-    const matchingLogsCount =
-      sampleCount > 1
-        ? t('%s logs', <Count value={sampleCount} />)
-        : t('%s log', <Count value={sampleCount} />);
+    const matchingLogsCount = usePluralSampleCount
+      ? t('%s logs', <Count value={sampleCount} />)
+      : t('%s log', <Count value={sampleCount} />);
 
     if (isTopN) {
       return tct(
@@ -209,13 +209,12 @@ function ConfidenceMessage({
   // partial scans means that we didnt scan all the data so it's useful
   // to mention the total number of logs available
   if (dataScanned === 'partial') {
-    const matchingLogsCount =
-      sampleCount > 1
-        ? t('%s matches', <Count value={sampleCount} />)
-        : t('%s match', <Count value={sampleCount} />);
+    const matchingLogsCount = usePluralSampleCount
+      ? t('%s matches', <Count value={sampleCount} />)
+      : t('%s match', <Count value={sampleCount} />);
 
     const scannedLogsCount = defined(rawLogCounts.normal.count) ? (
-      rawLogCounts.normal.count > 1 ? (
+      usePluralTotalLogsCount ? (
         t('%s samples', <Count value={rawLogCounts.normal.count} />)
       ) : (
         t('%s sample', <Count value={rawLogCounts.normal.count} />)
@@ -225,7 +224,7 @@ function ConfidenceMessage({
     );
 
     const totalLogsCount = defined(rawLogCounts.total.count) ? (
-      rawLogCounts.total.count > 1 ? (
+      usePluralTotalLogsCount ? (
         t('%s logs', <Count value={rawLogCounts.total.count} />)
       ) : (
         t('%s log', <Count value={rawLogCounts.total.count} />)
@@ -263,13 +262,12 @@ function ConfidenceMessage({
   // otherwise, a full scan was done
   // full scan means we scanned all the data available so no need to repeat that information twice
 
-  const matchingLogsCount =
-    sampleCount > 1
-      ? t('%s matches', <Count value={sampleCount} />)
-      : t('%s match', <Count value={sampleCount} />);
+  const matchingLogsCount = usePluralSampleCount
+    ? t('%s matches', <Count value={sampleCount} />)
+    : t('%s match', <Count value={sampleCount} />);
 
   const totalLogsCount = defined(rawLogCounts.total.count) ? (
-    rawLogCounts.total.count > 1 ? (
+    usePluralTotalLogsCount ? (
       t('%s logs', <Count value={rawLogCounts.total.count} />)
     ) : (
       t('%s log', <Count value={rawLogCounts.total.count} />)
