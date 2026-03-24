@@ -306,7 +306,7 @@ export function getMenuOptions(
         const search = new MutableSearch(baseQuery);
         for (const group of timeSeries.groupBy ?? []) {
           if (group.value !== null && !Array.isArray(group.value)) {
-            search.addFilterValue(group.key, group.value);
+            search.addFilterValue(group.key, String(group.value));
           }
         }
 

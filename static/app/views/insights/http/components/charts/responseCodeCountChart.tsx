@@ -131,8 +131,10 @@ function getResponseCode(series: TimeSeries) {
   return responseCodeGroupBy.value;
 }
 
-function isNumeric(maybeNumber: string | number | null | undefined) {
-  if (!maybeNumber) {
+function isNumeric(
+  maybeNumber: string | number | boolean | null | undefined
+): maybeNumber is string | number {
+  if (!maybeNumber || typeof maybeNumber === 'boolean') {
     return false;
   }
   if (typeof maybeNumber === 'number') {
