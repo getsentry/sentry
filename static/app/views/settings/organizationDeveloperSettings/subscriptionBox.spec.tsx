@@ -82,4 +82,12 @@ describe('SubscriptionBox', () => {
       )
     ).toBeInTheDocument();
   });
+
+  describe('preprod_artifact resource subscription', () => {
+    it('renders preprod_artifact checkbox enabled', () => {
+      renderComponent({resource: 'preprod_artifact'});
+
+      expect(screen.getByRole('checkbox')).toBeEnabled();
+    });
+  });
 });

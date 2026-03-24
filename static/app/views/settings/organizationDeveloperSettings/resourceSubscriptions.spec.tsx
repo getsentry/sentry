@@ -23,11 +23,13 @@ describe('Resource Subscriptions', () => {
         </Form>
       );
 
-      expect(screen.getAllByRole('checkbox')).toHaveLength(4);
+      expect(screen.getAllByRole('checkbox')).toHaveLength(5);
       expect(screen.getByRole('checkbox', {name: 'issue'})).toBeDisabled();
       expect(screen.getByRole('checkbox', {name: 'error'})).toBeDisabled();
       expect(screen.getByRole('checkbox', {name: 'comment'})).toBeDisabled();
       expect(screen.getByRole('checkbox', {name: 'seer'})).toBeDisabled();
+      // preprod_artifact requires Project permission which is 'write' here, so it's enabled
+      expect(screen.getByRole('checkbox', {name: 'preprod_artifact'})).toBeEnabled();
     });
 
     it('updates events state when new permissions props is passed', () => {

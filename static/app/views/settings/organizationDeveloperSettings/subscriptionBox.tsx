@@ -56,6 +56,7 @@ function SubscriptionBox({
     error: 'created',
     comment: 'created, edited, deleted',
     seer: 'root_cause_started, root_cause_completed, solution_started, solution_completed, coding_started, coding_completed, pr_created',
+    preprod_artifact: 'size_analysis_completed, build_distribution_completed',
   };
 
   return (
