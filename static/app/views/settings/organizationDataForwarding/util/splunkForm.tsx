@@ -1,13 +1,17 @@
-import {z} from 'zod';
+import { z } from "zod";
 
-import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm, withFieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import { Button } from "@sentry/scraps/button";
+import {
+  defaultFormOptions,
+  useScrapsForm,
+  withFieldGroup,
+} from "@sentry/scraps/form";
+import { Flex } from "@sentry/scraps/layout";
 
-import {IconDelete} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
+import { IconDelete } from "sentry/icons";
+import { t } from "sentry/locale";
+import type { Project } from "sentry/types/project";
+import { DataForwarderDeleteConfirm } from "sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm";
 import {
   baseDataForwarderSchema,
   baseFormEditDefaults,
@@ -15,31 +19,31 @@ import {
   buildProjectOptions,
   EnablementFields,
   ProjectConfigFields,
-} from 'sentry/views/settings/organizationDataForwarding/util/forms';
+} from "sentry/views/settings/organizationDataForwarding/util/forms";
 import {
   DataForwarderProviderSlug,
   type DataForwarder,
   type DataForwarderPayload,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+} from "sentry/views/settings/organizationDataForwarding/util/types";
 
 const splunkSchema = baseDataForwarderSchema.extend({
-  instance_url: z.string().min(1, t('Instance URL is required')),
-  token: z.string().min(1, t('Token is required')),
-  index: z.string().min(1, t('Index is required')),
-  source: z.string().min(1, t('Source is required')),
+  instance_url: z.string().min(1, t("Instance URL is required")),
+  token: z.string().min(1, t("Token is required")),
+  index: z.string().min(1, t("Index is required")),
+  source: z.string().min(1, t("Source is required")),
 });
 
 const splunkDefaults = {
-  instance_url: '',
-  token: '',
-  index: 'main',
-  source: 'sentry',
+  instance_url: "",
+  token: "",
+  index: "",
+  source: "",
 };
 
 function buildSplunkConfig(
   fields: Omit<
     z.infer<typeof splunkSchema>,
-    'is_enabled' | 'enroll_new_projects' | 'project_ids'
+    "is_enabled" | "enroll_new_projects" | "project_ids"
   >
 ): Record<string, string | undefined> {
   return {
@@ -55,20 +59,20 @@ function buildSplunkConfig(
  */
 const SplunkConfigFields = withFieldGroup({
   defaultValues: splunkDefaults,
-  props: {disabled: false},
-  render: ({group, disabled}) => (
-    <group.FieldGroup title={t('Global Configuration')}>
+  props: { disabled: false },
+  render: ({ group, disabled }) => (
+    <group.FieldGroup title={t("Global Configuration")}>
       <group.AppField name="instance_url">
-        {field => (
+        {(field) => (
           <field.Layout.Row
-            label={t('Instance URL')}
+            label={t("Instance URL")}
             hintText={t(
-              'The HTTP Event Collector endpoint for your Splunk instance. Ensure indexer acknowledgement is disabled.'
+              "The HTTP Event Collector endpoint for your Splunk instance. Ensure indexer acknowledgement is disabled."
             )}
             required
           >
             <field.Input
-              value={field.state.value ?? ''}
+              value={field.state.value ?? ""}
               onChange={field.handleChange}
               placeholder="e.g. https://input-foo.cloud.splunk.com:8088"
               disabled={disabled}
@@ -77,14 +81,14 @@ const SplunkConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="token">
-        {field => (
+        {(field) => (
           <field.Layout.Row
-            label={t('Token')}
-            hintText={t('The token generated for your HTTP Event Collector.')}
+            label={t("Token")}
+            hintText={t("The token generated for your HTTP Event Collector.")}
             required
           >
             <field.Input
-              value={field.state.value ?? ''}
+              value={field.state.value ?? ""}
               onChange={field.handleChange}
               placeholder="e.g. ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY"
               disabled={disabled}
@@ -93,14 +97,14 @@ const SplunkConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="index">
-        {field => (
+        {(field) => (
           <field.Layout.Row
-            label={t('Index')}
-            hintText={t('The index to use for the events.')}
+            label={t("Index")}
+            hintText={t("The index to use for the events.")}
             required
           >
             <field.Input
-              value={field.state.value ?? ''}
+              value={field.state.value ?? ""}
               onChange={field.handleChange}
               placeholder="e.g. main"
               disabled={disabled}
@@ -109,14 +113,14 @@ const SplunkConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="source">
-        {field => (
+        {(field) => (
           <field.Layout.Row
-            label={t('Source')}
-            hintText={t('The source to use for the events.')}
+            label={t("Source")}
+            hintText={t("The source to use for the events.")}
             required
           >
             <field.Input
-              value={field.state.value ?? ''}
+              value={field.state.value ?? ""}
               onChange={field.handleChange}
               placeholder="e.g. sentry"
               disabled={disabled}
@@ -139,10 +143,15 @@ export function SplunkSetupForm({
 }) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {...baseFormSetupDefaults, ...splunkDefaults},
-    validators: {onDynamic: splunkSchema},
-    onSubmit: ({value}) => {
-      const {is_enabled, enroll_new_projects, project_ids = [], ...configFields} = value;
+    defaultValues: { ...baseFormSetupDefaults, ...splunkDefaults },
+    validators: { onDynamic: splunkSchema },
+    onSubmit: ({ value }) => {
+      const {
+        is_enabled,
+        enroll_new_projects,
+        project_ids = [],
+        ...configFields
+      } = value;
       onSubmit({
         provider: DataForwarderProviderSlug.SPLUNK,
         config: buildSplunkConfig(configFields),
@@ -160,31 +169,33 @@ export function SplunkSetupForm({
       <form.FormWrapper>
         <EnablementFields
           form={form}
-          fields={{is_enabled: 'is_enabled'}}
+          fields={{ is_enabled: "is_enabled" }}
           disabled={disabled}
           isSetup
         />
         <SplunkConfigFields
           form={form}
           fields={{
-            instance_url: 'instance_url',
-            token: 'token',
-            index: 'index',
-            source: 'source',
+            instance_url: "instance_url",
+            token: "token",
+            index: "index",
+            source: "source",
           }}
           disabled={disabled}
         />
         <ProjectConfigFields
           form={form}
           fields={{
-            enroll_new_projects: 'enroll_new_projects',
-            project_ids: 'project_ids',
+            enroll_new_projects: "enroll_new_projects",
+            project_ids: "project_ids",
           }}
           disabled={disabled}
           projectOptions={projectOptions}
         />
         <Flex justify="end" padding="lg">
-          <form.SubmitButton disabled={disabled}>{t('Complete Setup')}</form.SubmitButton>
+          <form.SubmitButton disabled={disabled}>
+            {t("Complete Setup")}
+          </form.SubmitButton>
         </Flex>
       </form.FormWrapper>
     </form.AppForm>
@@ -209,9 +220,14 @@ export function SplunkEditForm({
       ...splunkDefaults,
       ...dataForwarder.config,
     },
-    validators: {onDynamic: splunkSchema},
-    onSubmit: ({value}) => {
-      const {is_enabled, enroll_new_projects, project_ids = [], ...configFields} = value;
+    validators: { onDynamic: splunkSchema },
+    onSubmit: ({ value }) => {
+      const {
+        is_enabled,
+        enroll_new_projects,
+        project_ids = [],
+        ...configFields
+      } = value;
       onSubmit({
         provider: DataForwarderProviderSlug.SPLUNK,
         config: buildSplunkConfig(configFields),
@@ -229,25 +245,25 @@ export function SplunkEditForm({
       <form.FormWrapper>
         <EnablementFields
           form={form}
-          fields={{is_enabled: 'is_enabled'}}
+          fields={{ is_enabled: "is_enabled" }}
           disabled={disabled}
           isSetup={false}
         />
         <SplunkConfigFields
           form={form}
           fields={{
-            instance_url: 'instance_url',
-            token: 'token',
-            index: 'index',
-            source: 'source',
+            instance_url: "instance_url",
+            token: "token",
+            index: "index",
+            source: "source",
           }}
           disabled={disabled}
         />
         <ProjectConfigFields
           form={form}
           fields={{
-            enroll_new_projects: 'enroll_new_projects',
-            project_ids: 'project_ids',
+            enroll_new_projects: "enroll_new_projects",
+            project_ids: "project_ids",
           }}
           disabled={disabled}
           projectOptions={projectOptions}
@@ -255,11 +271,11 @@ export function SplunkEditForm({
         <Flex justify="end" gap="md" padding="lg 0">
           <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
             <Button icon={<IconDelete variant="danger" />}>
-              {t('Delete Data Forwarder')}
+              {t("Delete Data Forwarder")}
             </Button>
           </DataForwarderDeleteConfirm>
           <form.SubmitButton disabled={disabled}>
-            {t('Update Forwarder')}
+            {t("Update Forwarder")}
           </form.SubmitButton>
         </Flex>
       </form.FormWrapper>
