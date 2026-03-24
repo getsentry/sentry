@@ -11,7 +11,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {dataForwarderOverrideSchema} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {useMutateDataForwarderProject} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import {
