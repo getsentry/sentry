@@ -110,6 +110,8 @@ export function MetricSelector({
   const searchRef = useRef<HTMLInputElement>(null);
   const listElementRef = useRef<HTMLUListElement>(null);
   const scrollElementRef = useRef<HTMLDivElement>(null);
+  const isPointerSelectingRef = useRef(false);
+  const skipTriggerFocusRestoreRef = useRef(false);
 
   const [searchInputValue, setSearchInputValue] = useState('');
   const debouncedSearch = useDebouncedValue(searchInputValue, DEFAULT_DEBOUNCE_DURATION);
@@ -136,6 +138,8 @@ export function MetricSelector({
     onOpenChange: open => {
       nextFrameCallback(() => {
         if (open) {
+          isPointerSelectingRef.current = false;
+          skipTriggerFocusRestoreRef.current = false;
           updateOverlay?.();
           if (searchRef.current) {
             searchRef.current.focus();
@@ -155,6 +159,10 @@ export function MetricSelector({
         }
 
         setSearchInputValue('');
+        if (skipTriggerFocusRestoreRef.current) {
+          skipTriggerFocusRestoreRef.current = false;
+          return;
+        }
         if (
           document.activeElement === document.body ||
           wrapperRef.current?.contains(document.activeElement)
@@ -295,6 +303,8 @@ export function MetricSelector({
         type: option.metricType,
         unit: hasMetricUnitsUI ? option.metricUnit : undefined,
       });
+      skipTriggerFocusRestoreRef.current = isPointerSelectingRef.current;
+      isPointerSelectingRef.current = false;
       overlayState.close();
     },
     [onChange, hasMetricUnitsUI, overlayState]
@@ -534,6 +544,9 @@ export function MetricSelector({
                         >
                           <ListWrap
                             {...listBoxProps}
+                            onPointerDownCapture={() => {
+                              isPointerSelectingRef.current = true;
+                            }}
                             style={{
                               ...listBoxProps.style,
                               padding: 0,
