@@ -28,17 +28,18 @@ export default function OrganizationMcpCli() {
             <Heading as="h3">{t('MCP Server')}</Heading>
             <Text variant="muted" size="lg">
               {t(
-                'Add this URL as a streamable HTTP MCP server in your client. Authentication happens automatically via your browser.'
+                'Connect AI assistants to Sentry for searching errors, analyzing performance, triaging issues, and managing projects via the Model Context Protocol. Add this URL as a streamable HTTP MCP server in your client.'
               )}
             </Text>
             <TextCopyInput>https://mcp.sentry.dev/mcp</TextCopyInput>
             <Text variant="muted">
               {t(
-                'You can scope the connection to a specific organization or project by appending query parameters to the URL:'
+                'You can scope the connection to a specific organization or project. Scoping to a project is recommended when possible — it sets defaults automatically and hides unnecessary discovery tools.'
               )}
             </Text>
+            <TextCopyInput>https://mcp.sentry.dev/mcp/your-org</TextCopyInput>
             <TextCopyInput>
-              https://mcp.sentry.dev/mcp/example-org/example-project
+              https://mcp.sentry.dev/mcp/your-org/your-project
             </TextCopyInput>
             <div>
               <LinkButton href="https://mcp.sentry.dev" external priority="default">
