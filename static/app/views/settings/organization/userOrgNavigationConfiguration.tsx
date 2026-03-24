@@ -143,8 +143,10 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         },
         {
           path: `${organizationSettingsPathPrefix}/repos/`,
-          title: t('Repositories'),
-          description: t('Manage repositories connected to the organization'),
+          title: t('Source Code'),
+          description: t(
+            'Manage source code integrations, repositories, and code mappings'
+          ),
           id: 'repos',
         },
         {
