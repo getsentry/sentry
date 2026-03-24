@@ -8,8 +8,8 @@ from sentry.testutils.cases import SnubaTestCase, TestMigrations
 
 
 class MigrateDiscoverQueriesToExploreQueriesSelfHostedTest(TestMigrations, SnubaTestCase):
-    migrate_from = "1010_add_organizationcontributors_table"
-    migrate_to = "1011_discover_to_explore_queries_self_hosted"
+    migrate_from = "1055_rename_regiontombstone_to_celltombstone"
+    migrate_to = "1056_discover_to_explore_queries_self_hosted"
 
     def setup_before_migration(self, apps):
         User = apps.get_model("sentry", "User")

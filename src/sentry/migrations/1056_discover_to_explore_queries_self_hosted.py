@@ -78,7 +78,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1010_add_organizationcontributors_table"),
+        ("sentry", "1055_rename_regiontombstone_to_celltombstone"),
         ("discover", "0003_discover_json_field"),
         ("explore", "0006_add_changed_reason_field_explore"),
     ]
