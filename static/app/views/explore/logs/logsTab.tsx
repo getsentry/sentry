@@ -25,7 +25,6 @@ import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -122,7 +121,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
   datePageFilterProps,
   searchBarWidthOffset,
 }: LogsSearchSectionProps) {
-  const organization = useOrganization();
   const logsSearch = useQueryParamsSearch();
   const logsSearchQuery = logsSearch.formatString();
   const groupBys = useQueryParamsGroupBys();
@@ -130,12 +128,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const [interval] = useChartInterval();
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
-
-  // AI search is gated behind the gen-ai-search-agent-translate feature flag
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
 
   const saveAsItems = useSaveAsItems({
     visualizes,
@@ -178,7 +170,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
 
   return (
     <SearchQueryBuilderProvider
-      enableAISearch={areAiFeaturesAllowed}
+      enableAISearch
       aiSearchBadgeType="alpha"
       {...searchQueryBuilderProviderProps}
     >
