@@ -35,20 +35,21 @@ export function IndeterminateLoader({
       role="progressbar"
       aria-label="Loading"
       trackColor={isMonochrome ? 'currentColor' : theme.tokens.border.secondary}
-      trackOpacity={isMonochrome ? 0.25 : 1}
       {...props}
     >
-      <ColorLayer
-        color={isMonochrome ? 'currentColor' : theme.tokens.border.accent.vibrant}
-      />
+      {isMonochrome ? null : (
+        <ColorLayer
+          color={isMonochrome ? 'currentColor' : theme.tokens.border.accent.vibrant}
+        />
+      )}
     </Track>
   );
 }
 
-const Track = styled('div')<{trackColor: string; trackOpacity: number}>`
+const Track = styled('div')<{trackColor: string}>`
   position: relative;
   width: 100%;
-  width: calc(round(down, 100% - 8px, 16px) + 8px);
+  width: calc(round(down, 100% - 4px, 8px) + 4px);
   height: 8px;
 
   &::before {
