@@ -1,8 +1,13 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {Select} from '@sentry/scraps/select';
 
+import {
+  components as selectComponents,
+  type SingleValueProps,
+} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -10,6 +15,23 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useScmRepoSearch} from './useScmRepoSearch';
 import {useScmRepoSelection} from './useScmRepoSelection';
+
+function SearchValueContainer({children, ...props}: any) {
+  return (
+    <selectComponents.ValueContainer {...props}>
+      <IconSearch size="sm" style={{marginRight: 8, flexShrink: 0}} />
+      {children}
+    </selectComponents.ValueContainer>
+  );
+}
+
+function SearchSingleValue(props: SingleValueProps<any>) {
+  return (
+    <selectComponents.SingleValue {...props}>
+      {props.data.label}
+    </selectComponents.SingleValue>
+  );
+}
 
 interface ScmRepoSelectorProps {
   integration: Integration;
@@ -67,6 +89,14 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     return t('Type to search repositories');
   }, [isError, debouncedSearch]);
 
+  const customComponents = useMemo(
+    () => ({
+      ValueContainer: SearchValueContainer,
+      SingleValue: SearchSingleValue,
+    }),
+    []
+  );
+
   return (
     <Select
       placeholder={t('Search repositories')}
@@ -78,8 +108,9 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
       noOptionsMessage={noOptionsMessage}
       isLoading={isFetching}
       isDisabled={busy}
-      clearable={!!selectedRepository}
+      clearable
       searchable
+      components={customComponents}
     />
   );
 }
