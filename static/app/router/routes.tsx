@@ -2433,7 +2433,10 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: TabPaths[Tab.ACTIVITY],
-      component: make(() => import('sentry/views/issueDetails/groupActivity')),
+      component: make(
+        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+        <GroupEventDetailsLoading />
+      ),
     },
     {
       path: TabPaths[Tab.EVENTS],
