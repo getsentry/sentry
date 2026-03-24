@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+from taskbroker_client.retry import Retry
+
 from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
 from sentry.integrations.gitlab.metrics import (
@@ -15,7 +17,6 @@ from sentry.integrations.services.repository import repository_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
