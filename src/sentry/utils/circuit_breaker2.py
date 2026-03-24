@@ -37,22 +37,32 @@ class CircuitBreakerState(Enum):
 
 
 class CircuitBreakerConfig(TypedDict):
-    # The time period, in seconds, over which we're tracking errors
     error_limit_window: int
-    # How long, in seconds, to stay in the BROKEN state (blocking all requests) before entering the
-    # RECOVERY phase
+    """
+    The time period, in seconds, over which we're tracking errors
+    """
     broken_state_duration: int
-    # The length, in seconds, of each time bucket ("granule") used by the underlying rate limiter -
-    # effectively the resolution of the time window. Will be set automatically based on
-    # `error_limit_window` if not provided.
+    """
+    How long, in seconds, to stay in the BROKEN state (blocking all requests) before entering the
+    RECOVERY phase
+    """
     error_limit_window_granularity: NotRequired[int]
-    # How long, in seconds, to stay in the RECOVERY state (allowing requests but with a stricter
-    # error limit) before returning to normal operation. Will be set to twice `error_limit_window`
-    # if not provided.
+    """
+    The length, in seconds, of each time bucket ("granule") used by the underlying rate limiter -
+    effectively the resolution of the time window. Will be set automatically based on
+    `error_limit_window` if not provided.
+    """
     recovery_duration: NotRequired[int]
-    # Optional override for the key used in metric names. Use when the cache key is high-cardinality
-    # (e.g. per-app) but metrics should aggregate at a system level. Defaults to `key`.
+    """
+    How long, in seconds, to stay in the RECOVERY state (allowing requests but with a stricter
+    error limit) before returning to normal operation. Will be set to twice `error_limit_window`
+    if not provided.
+    """
     metrics_key: NotRequired[str]
+    """
+    Optional override for the key used in metric names. Use when the cache key is high-cardinality
+    (e.g. per-app) but metrics should aggregate at a system level. Defaults to `key`.
+    """
 
 
 # Used by rate-based strategies as a very large quota capacity — effectively unlimited, so
@@ -61,18 +71,25 @@ _COUNTER_QUOTA_LIMIT = 2_000_000_000
 
 
 class CountBasedTripStrategyConfig(CircuitBreakerConfig):
-    # The number of errors within the given time period necessary to trip the breaker.
     error_limit: int
-    # The number of errors within the given time period necessary to trip the breaker while in
-    # RECOVERY.
-    recovery_error_limit: NotRequired[int]
+    """
+    The number of errors within the given time period necessary to trip the breaker.
+    """
+    recovery_error_limit: NotRequired[int] = None
+    """
+    The number of errors within the given time period necessary to trip the breaker while in RECOVERY.
+    """
 
 
 class RateBasedTripStrategyConfig(CircuitBreakerConfig):
-    # What % of total requests must be errors to trip the breaker.
     threshold: float
-    # Minimum amount of errors to trip the breaker.
+    """
+    What % of total requests must be errors to trip the breaker.
+    """
     floor: int
+    """
+    Minimum amount of errors to trip the breaker.
+    """
 
 
 class TripStrategy(Protocol):
