@@ -27,7 +27,7 @@ type Props = {
   teamValue: string | number;
 };
 
-class MemberTeamFields extends Component<Props> {
+export class MemberTeamFields extends Component<Props> {
   handleChange = (attribute: 'targetType' | 'targetIdentifier', newValue: string) => {
     const {onChange, ruleData} = this.props;
     if (newValue === ruleData[attribute]) {
@@ -131,5 +131,3 @@ const PanelItemGrid = styled(PanelItem)`
 const SelectWrapper = styled('div')`
   width: 200px;
 `;
-
-export default MemberTeamFields;

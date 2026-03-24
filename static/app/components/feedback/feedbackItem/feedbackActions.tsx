@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackAssignedTo} from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import {useFeedbackActions} from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
 import {IconCopy, IconEllipsis} from 'sentry/icons';

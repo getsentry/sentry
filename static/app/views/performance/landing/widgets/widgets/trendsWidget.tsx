@@ -64,10 +64,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     InteractiveTitle,
   } = props;
 
-  const withBreakpoint =
-    organization.features.includes('performance-new-trends') &&
-    !isCardinalityCheckLoading &&
-    !outcome?.forceTransactionsOnly;
+  const withBreakpoint = !isCardinalityCheckLoading && !outcome?.forceTransactionsOnly;
 
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED

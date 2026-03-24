@@ -125,7 +125,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   const eventView = generateMobilePerformanceEventView(
     location,
     projects,
-    generateGenericPerformanceEventView(location, withStaticFilters, organization),
+    generateGenericPerformanceEventView(location, withStaticFilters),
     withStaticFilters,
     true
   );

@@ -37,7 +37,7 @@ import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import {OrganizationContainerRoute} from 'sentry/views/organizationContainer';
 import {OrganizationLayout} from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
-import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
 import {redirectDeprecatedProjectRoute} from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import {RouteNotFound} from 'sentry/views/routeNotFound';

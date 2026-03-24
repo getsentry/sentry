@@ -103,7 +103,7 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
   const eventView = generateMobilePerformanceEventView(
     location,
     projects,
-    generateGenericPerformanceEventView(location, withStaticFilters, organization),
+    generateGenericPerformanceEventView(location, withStaticFilters),
     withStaticFilters
   );
   const searchBarEventView = eventView.clone();

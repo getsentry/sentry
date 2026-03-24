@@ -24,8 +24,8 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
-import Add from './modals/add';
-import Edit from './modals/edit';
+import {Add} from './modals/add';
+import {Edit} from './modals/edit';
 import {EmptyState} from './emptyState';
 import {List} from './list';
 

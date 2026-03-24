@@ -1,14 +1,14 @@
 import {LinkButton} from '@sentry/scraps/button';
 
 import {ChartType} from 'sentry/chartcuterie/types';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventsStatsData} from 'sentry/types/organization';
 import {toArray} from 'sentry/utils/array/toArray';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
