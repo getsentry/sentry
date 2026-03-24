@@ -213,8 +213,8 @@ function parseSelection(value: unknown): [number, number] | undefined {
   if (
     !Array.isArray(value) ||
     value.length !== 2 ||
-    typeof value[0] !== 'number' ||
-    typeof value[1] !== 'number'
+    !Number.isFinite(value[0]) ||
+    !Number.isFinite(value[1])
   ) {
     return undefined;
   }

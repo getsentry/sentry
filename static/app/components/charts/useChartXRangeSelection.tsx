@@ -403,6 +403,10 @@ export function useChartXRangeSelection({
         selectionState.selection.range[1]
       );
 
+      if (pixelMin === null || pixelMax === null) {
+        return;
+      }
+
       chartInstance.dispatchAction({
         type: 'brush',
         areas: [
