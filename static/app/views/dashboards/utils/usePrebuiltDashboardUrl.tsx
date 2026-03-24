@@ -73,14 +73,10 @@ export function usePrebuiltDashboardUrl(
 
   if (isPlatformized && prebuiltDashboard.id) {
     applyDashboardFilters(queryParams, filters);
-    const query = Object.keys(queryParams).length
-      ? `?${qs.stringify(queryParams)}`
-      : '';
+    const query = Object.keys(queryParams).length ? `?${qs.stringify(queryParams)}` : '';
     return bare
       ? `dashboard/${prebuiltDashboard.id}/${query}`
-      : normalizeUrl(
-          `/organizations/${slug}/dashboard/${prebuiltDashboard.id}/${query}`
-        );
+      : normalizeUrl(`/organizations/${slug}/dashboard/${prebuiltDashboard.id}/${query}`);
   }
 
   return '';
