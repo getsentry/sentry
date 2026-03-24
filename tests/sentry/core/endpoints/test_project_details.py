@@ -1631,7 +1631,7 @@ class ProjectDeleteTest(APITestCase):
         ).exists()
 
     @mock.patch(
-        "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
         self, mock_call_seer_delete_project_grouping_records

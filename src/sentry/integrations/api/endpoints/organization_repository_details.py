@@ -23,7 +23,7 @@ from sentry.models.commit import Commit
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.tasks.repository import repository_cascade_delete_on_hide
-from sentry.tasks.seer import cleanup_seer_repository_preferences
+from sentry.tasks.seer.cleanup import cleanup_seer_repository_preferences
 
 
 class RepositorySerializer(serializers.Serializer):

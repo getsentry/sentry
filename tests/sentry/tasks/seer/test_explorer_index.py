@@ -6,7 +6,7 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.models.promptsactivity import PromptsActivity
-from sentry.tasks.seer_explorer_index import (
+from sentry.tasks.seer.explorer_index import (
     dispatch_explorer_index_projects,
     get_seer_explorer_enabled_projects,
     run_explorer_index_for_projects,
@@ -125,7 +125,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             }
         ):
             with mock.patch(
-                "sentry.tasks.seer_explorer_index.in_rollout_group", return_value=False
+                "sentry.tasks.seer.explorer_index.in_rollout_group", return_value=False
             ):
                 result = list(get_seer_explorer_enabled_projects())
 
@@ -280,7 +280,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
                 "organizations:seer-added": [org.slug],
             }
         ):
-            with mock.patch("sentry.tasks.seer_explorer_index.in_rollout_group", return_value=True):
+            with mock.patch("sentry.tasks.seer.explorer_index.in_rollout_group", return_value=True):
                 result = list(get_seer_explorer_enabled_projects())
 
         project_ids = [p[0] for p in result]
@@ -308,7 +308,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
                 "organizations:seat-based-seer-enabled": [org.slug],
             }
         ):
-            with mock.patch("sentry.tasks.seer_explorer_index.in_rollout_group", return_value=True):
+            with mock.patch("sentry.tasks.seer.explorer_index.in_rollout_group", return_value=True):
                 result = list(get_seer_explorer_enabled_projects())
 
         project_ids = [p[0] for p in result]
@@ -337,7 +337,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             }
         ):
             with mock.patch(
-                "sentry.tasks.seer_explorer_index.in_rollout_group", return_value=False
+                "sentry.tasks.seer.explorer_index.in_rollout_group", return_value=False
             ):
                 result = list(get_seer_explorer_enabled_projects())
 
@@ -350,7 +350,7 @@ class TestScheduleExplorerIndex(TestCase):
     def test_skips_when_option_disabled(self):
         with self.options({"seer.explorer_index.enable": False}):
             with mock.patch(
-                "sentry.tasks.seer_explorer_index.get_seer_explorer_enabled_projects"
+                "sentry.tasks.seer.explorer_index.get_seer_explorer_enabled_projects"
             ) as mock_get_projects:
                 schedule_explorer_index()
                 mock_get_projects.assert_not_called()
@@ -378,7 +378,7 @@ class TestScheduleExplorerIndex(TestCase):
                 }
             ):
                 with mock.patch(
-                    "sentry.tasks.seer_explorer_index.dispatch_explorer_index_projects"
+                    "sentry.tasks.seer.explorer_index.dispatch_explorer_index_projects"
                 ) as mock_dispatch:
                     mock_dispatch.return_value = iter([])
                     schedule_explorer_index()
@@ -393,7 +393,7 @@ class TestDispatchExplorerIndexProjects(TestCase):
         projects = [(i, 1) for i in range(150)]
 
         with mock.patch(
-            "sentry.tasks.seer_explorer_index.run_explorer_index_for_projects.apply_async"
+            "sentry.tasks.seer.explorer_index.run_explorer_index_for_projects.apply_async"
         ) as mock_task:
             result = list(dispatch_explorer_index_projects(iter(projects), timestamp))
 
@@ -410,7 +410,7 @@ class TestDispatchExplorerIndexProjects(TestCase):
 
 @django_db_all
 class TestRunExplorerIndexForProjects(TestCase):
-    @patch("sentry.tasks.seer_explorer_index.make_explorer_index_request")
+    @patch("sentry.tasks.seer.explorer_index.make_explorer_index_request")
     def test_calls_seer_endpoint_successfully(self, mock_request):
         mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {"scheduled_count": 3, "projects": []}
@@ -429,7 +429,7 @@ class TestRunExplorerIndexForProjects(TestCase):
             {"org_id": 200, "project_id": 3},
         ]
 
-    @patch("sentry.tasks.seer_explorer_index.make_explorer_index_request")
+    @patch("sentry.tasks.seer.explorer_index.make_explorer_index_request")
     def test_handles_request_error(self, mock_request):
         mock_request.return_value.status = 500
 
@@ -443,7 +443,7 @@ class TestRunExplorerIndexForProjects(TestCase):
     def test_skips_when_option_disabled(self):
         with self.options({"seer.explorer_index.enable": False}):
             with mock.patch(
-                "sentry.tasks.seer_explorer_index.make_explorer_index_request"
+                "sentry.tasks.seer.explorer_index.make_explorer_index_request"
             ) as mock_request:
                 run_explorer_index_for_projects([(1, 100)], "2024-01-15T12:00:00+00:00")
                 mock_request.assert_not_called()
