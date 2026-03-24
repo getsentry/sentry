@@ -63,21 +63,25 @@ export function ProjectOverrideForm({
   const hasOverrides =
     projectConfig?.overrides && Object.keys(projectConfig.overrides).length > 0;
 
+  const emptyDefaults = {
+    is_enabled: projectConfig?.isEnabled ?? false,
+    queue_url: '',
+    region: '',
+    access_key: '',
+    secret_key: '',
+    message_group_id: '',
+    s3_bucket: '',
+    write_key: '',
+    instance_url: '',
+    token: '',
+    index: '',
+    source: '',
+  };
+
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
-      is_enabled: projectConfig?.isEnabled ?? false,
-      queue_url: '',
-      region: '',
-      access_key: '',
-      secret_key: '',
-      message_group_id: '',
-      s3_bucket: '',
-      write_key: '',
-      instance_url: '',
-      token: '',
-      index: '',
-      source: '',
+      ...emptyDefaults,
       ...projectConfig?.overrides,
     },
     validators: {onDynamic: dataForwarderOverrideSchema},
@@ -344,11 +348,16 @@ export function ProjectOverrideForm({
                 size="sm"
                 disabled={disabled}
                 onClick={() => {
-                  updateDataForwarder({
-                    project_id: `${project.id}`,
-                    overrides: {},
-                    is_enabled: projectConfig?.isEnabled ?? false,
-                  });
+                  updateDataForwarder(
+                    {
+                      project_id: `${project.id}`,
+                      overrides: {},
+                      is_enabled: projectConfig?.isEnabled ?? false,
+                    },
+                    {
+                      onSuccess: () => form.reset(emptyDefaults),
+                    }
+                  );
                 }}
               >
                 {t('Clear Override')}
