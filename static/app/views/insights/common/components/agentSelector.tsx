@@ -5,10 +5,11 @@ import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
@@ -161,6 +162,10 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
         setQueryStates({
           [AGENT_URL_PARAM]: values.length > 0 ? values : null,
           [TableUrlParams.CURSOR]: null,
+        });
+        trackAnalytics('agent-monitoring.page-filter-change', {
+          organization,
+          filter: 'agent',
         });
       }}
     />

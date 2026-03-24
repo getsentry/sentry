@@ -18,6 +18,7 @@ from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisGroupType,
     SizeAnalysisDataPacket,
+    SizeAnalysisMetadata,
     SizeAnalysisValue,
 )
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
@@ -27,6 +28,11 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import metrics
+
+# Threshold type categories for filtering detectors by path.
+# These must stay in sync with the enum in PreprodSizeAnalysisGroupType.detector_settings.config_schema.
+DIFF_THRESHOLD_TYPES = frozenset({"absolute_diff", "relative_diff"})
+ABSOLUTE_THRESHOLD_TYPES = frozenset({"absolute"})
 from sentry.utils.json import dumps_htmlsafe
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors.detector import process_detectors
@@ -38,7 +44,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def compare_preprod_artifact_size_analysis(
     project_id: int,
@@ -104,7 +110,11 @@ def compare_preprod_artifact_size_analysis(
             preprod_artifact_id__in=[artifact_id],
             preprod_artifact__project__organization_id=org_id,
             preprod_artifact__project_id=project_id,
-        ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
+        ).select_related(
+            "preprod_artifact",
+            "preprod_artifact__mobile_app_info",
+            "preprod_artifact__commit_comparison",
+        )
         head_size_metrics = list(head_size_metrics_qs)
 
         validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
@@ -154,7 +164,11 @@ def compare_preprod_artifact_size_analysis(
             preprod_artifact_id__in=[head_artifact.id],
             preprod_artifact__project__organization_id=org_id,
             preprod_artifact__project_id=project_id,
-        ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
+        ).select_related(
+            "preprod_artifact",
+            "preprod_artifact__mobile_app_info",
+            "preprod_artifact__commit_comparison",
+        )
         head_size_metrics = list(head_size_metrics_qs)
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
@@ -253,7 +267,7 @@ def compare_preprod_artifact_size_analysis(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
     namespace=preprod_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def manual_size_analysis_comparison(
     project_id: int,
@@ -309,6 +323,7 @@ def manual_size_analysis_comparison(
         )
         .select_related("preprod_artifact")
         .select_related("preprod_artifact__mobile_app_info")
+        .select_related("preprod_artifact__commit_comparison")
     )
     head_size_metrics = list(head_size_metrics_qs)
 
@@ -536,6 +551,10 @@ def maybe_emit_issues(
         logger.exception("Error emitting issues")
 
 
+def _get_platform(artifact: PreprodArtifact) -> str:
+    return artifact.platform or "unknown"
+
+
 def _maybe_emit_issues(
     comparison_results: ComparisonResults,
     head_metric: PreprodArtifactSizeMetrics,
@@ -569,12 +588,35 @@ def _maybe_emit_issues(
         )
         return
 
+    # Only process diff-based detectors from the comparison path
+    detectors = [d for d in detectors if d.config.get("threshold_type") in DIFF_THRESHOLD_TYPES]
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.no_diff_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
     diff = comparison_results.size_metric_diff_item
+    head_artifact = head_metric.preprod_artifact
+    base_artifact = base_metric.preprod_artifact
+
+    metadata: SizeAnalysisMetadata = {
+        "platform": _get_platform(head_artifact),
+        "head_metric_id": head_metric.id,
+        "base_metric_id": base_metric.id,
+        "head_artifact_id": head_artifact.id,
+        "base_artifact_id": base_artifact.id,
+        "head_artifact": head_artifact,
+        "base_artifact": base_artifact,
+    }
+
     size_data: SizeAnalysisValue = {
         "head_install_size_bytes": diff.head_install_size,
         "head_download_size_bytes": diff.head_download_size,
         "base_install_size_bytes": diff.base_install_size,
         "base_download_size_bytes": diff.base_download_size,
+        "metadata": metadata,
     }
 
     data_packet: SizeAnalysisDataPacket = DataPacket(
@@ -592,6 +634,92 @@ def _maybe_emit_issues(
     results = process_detectors(data_packet, detectors)
     logger.info(
         "preprod.size_analysis.process_detectors.completed",
+        extra={
+            "project_id": project_id,
+            "detector_count": len(results),
+        },
+    )
+
+
+def maybe_emit_issues_from_absolute_size_results(
+    head_metric: PreprodArtifactSizeMetrics,
+) -> None:
+    try:
+        _maybe_emit_issues_from_absolute_size_results(head_metric=head_metric)
+    except Exception:
+        logger.exception("Error emitting issues from absolute size results")
+
+
+def _maybe_emit_issues_from_absolute_size_results(
+    head_metric: PreprodArtifactSizeMetrics,
+) -> None:
+    project = head_metric.preprod_artifact.project
+    project_id = project.id
+    organization_id = project.organization.id
+
+    if not features.has("organizations:preprod-issues", project.organization):
+        logger.info(
+            "preprod.size_analysis.size_results.issues.disabled",
+            extra={
+                "project_id": project_id,
+                "organization_id": organization_id,
+            },
+        )
+        return
+
+    detectors = list(
+        Detector.objects.filter(
+            project_id=project_id,
+            type=PreprodSizeAnalysisGroupType.slug,
+            enabled=True,
+        )
+    )
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.size_results.no_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
+    # Only process absolute detectors from the single-build path
+    detectors = [d for d in detectors if d.config.get("threshold_type") in ABSOLUTE_THRESHOLD_TYPES]
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.size_results.no_absolute_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
+    head_artifact = head_metric.preprod_artifact
+
+    metadata: SizeAnalysisMetadata = {
+        "platform": _get_platform(head_artifact),
+        "head_metric_id": head_metric.id,
+        "head_artifact_id": head_artifact.id,
+        "head_artifact": head_artifact,
+    }
+
+    size_data: SizeAnalysisValue = {
+        "head_install_size_bytes": head_metric.max_install_size or 0,
+        "head_download_size_bytes": head_metric.max_download_size or 0,
+        "metadata": metadata,
+    }
+
+    data_packet: SizeAnalysisDataPacket = DataPacket(
+        source_id=f"preprod-size-analysis:{project_id}",
+        packet=size_data,
+    )
+
+    logger.info(
+        "preprod.size_analysis.size_results.process_detectors.starting",
+        extra={
+            "project_id": project_id,
+            "detector_count": len(detectors),
+        },
+    )
+    results = process_detectors(data_packet, detectors)
+    logger.info(
+        "preprod.size_analysis.size_results.process_detectors.completed",
         extra={
             "project_id": project_id,
             "detector_count": len(results),

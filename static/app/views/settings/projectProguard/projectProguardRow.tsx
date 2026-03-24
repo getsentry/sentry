@@ -6,14 +6,13 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
-import Confirm from 'sentry/components/confirm';
-import FileSize from 'sentry/components/fileSize';
-import TimeSince from 'sentry/components/timeSince';
+import {Confirm} from 'sentry/components/confirm';
+import {FileSize} from 'sentry/components/fileSize';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
 
@@ -25,7 +24,7 @@ type Props = {
   associations?: ProguardMappingAssociation;
 };
 
-function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
+export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
   const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
@@ -107,19 +106,17 @@ const SizeColumn = styled('div')`
 const ActionsColumn = styled(SizeColumn)``;
 
 const Name = styled('div')`
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
   overflow-wrap: break-word;
   word-break: break-all;
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.font.size.md};
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
-
-export default ProjectProguardRow;

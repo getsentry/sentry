@@ -7,42 +7,44 @@ import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import Hook from 'sentry/components/hook';
-import LogoSentry from 'sentry/components/logoSentry';
+import {LogoSentry} from 'sentry/components/logoSentry';
 import {
   OnboardingContextProvider,
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
-import Redirect from 'sentry/components/redirect';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Redirect} from 'sentry/components/redirect';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {categoryList} from 'sentry/data/platformPickerCategories';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import testableTransition from 'sentry/utils/testableTransition';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import PageCorners from 'sentry/views/onboarding/components/pageCorners';
+import {PageCorners} from 'sentry/views/onboarding/components/pageCorners';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {NewWelcomeUI} from './components/newWelcome';
-import Stepper from './components/stepper';
+import {Stepper} from './components/stepper';
 import {PlatformSelection} from './platformSelection';
-import SetupDocs from './setupDocs';
+import {ScmConnect} from './scmConnect';
+import {ScmPlatformFeatures} from './scmPlatformFeatures';
+import {ScmProjectDetails} from './scmProjectDetails';
+import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
-import TargetedOnboardingWelcome from './welcome';
+import {TargetedOnboardingWelcome} from './welcome';
 
-export const onboardingSteps: StepDescriptor[] = [
+const legacyOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
@@ -54,6 +56,40 @@ export const onboardingSteps: StepDescriptor[] = [
     title: t('Select platform'),
     Component: PlatformSelection,
     hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SETUP_DOCS,
+    title: t('Install the Sentry SDK'),
+    Component: SetupDocs,
+    hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+];
+
+const scmOnboardingSteps: StepDescriptor[] = [
+  {
+    id: OnboardingStepId.WELCOME,
+    title: t('Welcome'),
+    Component: WelcomeVariable,
+    cornerVariant: 'top-right',
+  },
+  {
+    id: OnboardingStepId.SCM_CONNECT,
+    title: t('Connect repository'),
+    Component: ScmConnect,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SCM_PLATFORM_FEATURES,
+    title: t('Platform & features'),
+    Component: ScmPlatformFeatures,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SCM_PROJECT_DETAILS,
+    title: t('Project details'),
+    Component: ScmProjectDetails,
     cornerVariant: 'top-left',
   },
   {
@@ -127,12 +163,13 @@ export function OnboardingWithoutContext() {
   const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
 
   const hasNewWelcomeUI = useHasNewWelcomeUI();
+  const hasScmOnboarding = organization.features.includes('onboarding-scm');
+  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
-  const projectSlug =
-    stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
+  const projectSlug = stepObj?.id === 'setup-docs' ? selectedProjectSlug : undefined;
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
@@ -146,7 +183,7 @@ export function OnboardingWithoutContext() {
   useEffect(() => {
     if (
       normalizeUrl(location.pathname, {forceCustomerDomain: true}) ===
-        `/onboarding/${onboardingSteps[2]!.id}/` &&
+        `/onboarding/${OnboardingStepId.SETUP_DOCS}/` &&
       location.query?.platform &&
       onboardingContext.selectedPlatform === undefined
     ) {
@@ -154,11 +191,12 @@ export function OnboardingWithoutContext() {
         p => p.id === location.query.platform
       );
 
-      // if no platform found, we redirect the user to the platform select page
+      // if no platform found, redirect to the appropriate platform selection step
       if (!platform) {
-        navigate(
-          normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[1]!.id}/`)
-        );
+        const fallbackStep = hasScmOnboarding
+          ? OnboardingStepId.SCM_PLATFORM_FEATURES
+          : OnboardingStepId.SELECT_PLATFORM;
+        navigate(normalizeUrl(`/onboarding/${organization.slug}/${fallbackStep}/`));
         return;
       }
 
@@ -176,7 +214,14 @@ export function OnboardingWithoutContext() {
         name: platform.name,
       });
     }
-  }, [location.query, navigate, onboardingContext, organization.slug, location.pathname]);
+  }, [
+    location.query,
+    navigate,
+    onboardingContext,
+    organization.slug,
+    location.pathname,
+    hasScmOnboarding,
+  ]);
 
   const shallProjectBeDeleted =
     stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
@@ -203,6 +248,7 @@ export function OnboardingWithoutContext() {
 
   const {handleGoBack} = useBackActions({
     stepIndex,
+    onboardingSteps,
     goToStep,
     recentCreatedProject,
     isRecentCreatedProjectActive: isProjectActive,
@@ -213,13 +259,17 @@ export function OnboardingWithoutContext() {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      if (nextStep.id === 'setup-docs' && !platform) {
+      if (
+        nextStep.id === OnboardingStepId.SETUP_DOCS &&
+        !platform &&
+        !onboardingContext.selectedPlatform
+      ) {
         return;
       }
 
       navigate(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
     },
-    [organization.slug, navigate]
+    [organization.slug, navigate, onboardingSteps, onboardingContext.selectedPlatform]
   );
 
   const genSkipOnboardingLink = () => {
@@ -353,7 +403,7 @@ const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   justify-content: center;
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   overflow: hidden;
 
   width: 100%;
@@ -361,7 +411,7 @@ const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   margin-bottom: ${p => p.hasFooter && '72px'};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(4)} ${space(3)};
+    padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
   }
 `;
 
@@ -371,7 +421,7 @@ const Container = styled('div')<{hasFooter: boolean}>`
   flex-direction: column;
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
-  padding: 120px ${space(3)};
+  padding: 120px ${p => p.theme.space['2xl']};
   width: 100%;
   margin: 0 auto;
   padding-bottom: ${p => p.hasFooter && '72px'};
@@ -380,8 +430,8 @@ const Container = styled('div')<{hasFooter: boolean}>`
 
 const Header = styled('header')`
   background: ${p => p.theme.tokens.background.primary};
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
+  padding-right: ${p => p.theme.space['3xl']};
   position: sticky;
   height: 80px;
   align-items: center;
@@ -438,7 +488,7 @@ const BackMotionDiv = styled(motion.div)`
 `;
 
 const SkipOnboardingLink = styled(Link)`
-  margin: auto ${space(4)};
+  margin: auto ${p => p.theme.space['3xl']};
 `;
 
 const UpsellWrapper = styled('div')`

@@ -6,14 +6,13 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section, {SectionSubHeading} from 'sentry/components/workflowEngine/ui/section';
+import {Section, SectionSubHeading} from 'sentry/components/workflowEngine/ui/section';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {
   CRON_DEFAULT_CHECKIN_MARGIN,
@@ -45,7 +44,6 @@ function ScheduleTypeField() {
       hideLabel
       options={SCHEDULE_OPTIONS}
       defaultValue={CRON_DEFAULT_SCHEDULE_TYPE}
-      orientInline
       required
       stacked
       inline={false}
@@ -237,7 +235,7 @@ const SubSectionSeparator = styled('hr')`
 const InputGroup = styled('div')<{removeFieldPadding?: boolean}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   ${p =>
     p.removeFieldPadding &&
@@ -263,7 +261,7 @@ const LabelText = styled(Text)`
 const MultiColumnInput = styled('div')<{columns?: string}>`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: ${p => p.columns};
 
   ${FieldWrapper} {

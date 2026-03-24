@@ -16,15 +16,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import UserBadge from 'sentry/components/idBadge/userBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
@@ -201,7 +200,7 @@ function AssigneeAvatar({
   );
 }
 
-export default function AssigneeSelectorDropdown({
+export function AssigneeSelectorDropdown({
   className,
   group,
   loading,
@@ -583,8 +582,8 @@ const AssigneeWrapper = styled('div')`
 
 const AssigneeTrigger = styled(OverlayTrigger.Button)`
   z-index: 0;
-  padding-left: ${space(0.5)};
-  padding-right: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
+  padding-right: ${p => p.theme.space.xs};
 `;
 
 const StyledIconUser = styled(IconUser)`

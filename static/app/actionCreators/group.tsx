@@ -1,8 +1,8 @@
 import type {RequestCallbacks, RequestOptions} from 'sentry/api';
 import {Client} from 'sentry/api';
-import GroupStore from 'sentry/stores/groupStore';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {Tag as GroupTag, TagValue} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -112,7 +112,7 @@ export function bulkDelete(
   const {itemIds} = params;
   const path = getUpdateUrl(params);
 
-  const query: QueryArgs = paramsToQueryArgs(params);
+  const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
   GroupStore.onDelete(id, itemIds);
@@ -147,7 +147,7 @@ export function bulkUpdate(
   const {itemIds, failSilently, data} = params;
   const path = getUpdateUrl(params);
 
-  const query: QueryArgs = paramsToQueryArgs(params);
+  const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
   GroupStore.onUpdate(id, itemIds, data);
@@ -180,7 +180,7 @@ export function mergeGroups(
   const {itemIds} = params;
   const path = getUpdateUrl(params);
 
-  const query: QueryArgs = paramsToQueryArgs(params);
+  const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
   GroupStore.onMerge(id, itemIds);

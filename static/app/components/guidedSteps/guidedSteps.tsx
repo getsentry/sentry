@@ -18,7 +18,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
   children: React.ReactNode;
@@ -103,16 +103,6 @@ function useGuidedStepsContentValue({
     }
   }, [getFirstIncompleteStep]);
 
-  // On initial load, set the current step to the first incomplete step
-  // if the initial step is not defined.
-  useEffect(() => {
-    if (defined(initialStep)) {
-      return;
-    }
-    const firstIncompleteStep = getFirstIncompleteStep();
-    setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
-  }, [getFirstIncompleteStep, initialStep]);
-
   const handleSetCurrentStep = useCallback(
     (step: number) => {
       setCurrentStep(step);
@@ -120,6 +110,25 @@ function useGuidedStepsContentValue({
     },
     [onStepChange]
   );
+
+  // On initial load, set the current step to the first incomplete step
+  // if the initial step is not defined. If initialStep exceeds the number
+  // of available steps (e.g. the guidedStep URL param persists from a
+  // project with more steps), reset to step 1.
+  useEffect(() => {
+    // Wait for steps to register before running initialization
+    if (totalSteps === 0) {
+      return;
+    }
+    if (defined(initialStep)) {
+      if (initialStep > totalSteps) {
+        handleSetCurrentStep(1);
+      }
+      return;
+    }
+    const firstIncompleteStep = getFirstIncompleteStep();
+    handleSetCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
+  }, [getFirstIncompleteStep, initialStep, totalSteps, handleSetCurrentStep]);
 
   return useMemo(
     () => ({

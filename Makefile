@@ -50,7 +50,7 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 
 watch-api-docs:
 	@cd api-docs/ && pnpm install --frozen-lockfile
-	@cd api-docs/ && node --experimental-transform-types ./watch.ts
+	@cd api-docs/ && node ./watch.ts
 
 diff-api-docs:
 	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
@@ -209,16 +209,14 @@ test-monolith-dbs:
 test-tools:
 	@echo "--> Running tools tests"
 	@# bogus configuration to force vanilla pytest
-	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools --reuse-db -vv --junit-xml=.artifacts/tools.junit.xml -o junit_suite_name=tools
+	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools .github/workflows/scripts --reuse-db -vv --junit-xml=.artifacts/tools.junit.xml -o junit_suite_name=tools
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 # Running Locally: Run `devservices up` before starting these tests
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	python3 -b -m pytest tests/symbolicator --reuse-db -vv --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
-	python3 -b -m pytest tests/relay_integration/lang/javascript/ --reuse-db -vv -m symbolicator
-	python3 -b -m pytest tests/relay_integration/lang/java/ --reuse-db -vv -m symbolicator
+	python3 -b -m pytest tests/symbolicator tests/relay_integration/lang/javascript/ tests/relay_integration/lang/java/ tests/sentry/ -m symbolicator --reuse-db -vv --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
 	@echo ""
 
 test-acceptance:

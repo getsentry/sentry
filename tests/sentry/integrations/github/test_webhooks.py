@@ -74,6 +74,43 @@ class WebhookTest(APITestCase):
 
         assert response.status_code == 401
 
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_invalid_signature_emits_hmac_failure_metric(self, mock_metrics: MagicMock) -> None:
+        self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        mock_metrics.incr.assert_called_with(
+            "github.webhook.hmac_failure",
+            tags={"reason": "invalid_signature"},
+            sample_rate=1.0,
+        )
+
+    @patch("sentry.integrations.github.webhook.metrics")
+    @patch.object(GitHubIntegrationsWebhookEndpoint, "get_secret", return_value=None)
+    def test_missing_secret_emits_hmac_failure_metric(
+        self, mock_get_secret: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        mock_metrics.incr.assert_called_with(
+            "github.webhook.hmac_failure",
+            tags={"reason": "missing_secret"},
+            sample_rate=1.0,
+        )
+
     def test_missing_signature_event(self) -> None:
         response = self.client.post(
             path=self.url,
@@ -187,7 +224,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
             integration_id=integration.id,
         )
 
-        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
             response = self.client.post(
                 path=self.url,
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,
@@ -204,7 +241,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         assert integration.name == "octocat"
         assert integration.status == ObjectStatus.DISABLED
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.DISABLED
 
@@ -268,7 +305,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         )
         integration.add_organization(self.project.organization.id, self.user)
 
-        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
             response = self.client.post(
                 path=self.url,
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,
@@ -312,7 +349,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         )
         integration.add_organization(self.project.organization.id, self.user)
 
-        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
             response = self.client.post(
                 path=self.url,
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,

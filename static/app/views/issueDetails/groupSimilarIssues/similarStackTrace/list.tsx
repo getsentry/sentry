@@ -3,15 +3,15 @@ import {Fragment, useState} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import SimilarSpectrum from 'sentry/components/similarSpectrum';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {SimilarSpectrum} from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SimilarStackTraceItem} from './item';
 import Toolbar from './toolbar';
@@ -41,7 +41,7 @@ function Empty() {
   );
 }
 
-function List({
+export function List({
   groupId,
   project,
   items,
@@ -117,5 +117,3 @@ function List({
     </Fragment>
   );
 }
-
-export default List;

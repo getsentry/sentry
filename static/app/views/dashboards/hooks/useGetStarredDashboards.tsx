@@ -1,11 +1,11 @@
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
-export function getQueryKey(organization: Organization): ApiQueryKey {
+export function getStarredDashboardsQueryKey(organization: Organization): ApiQueryKey {
   const DASHBOARDS_QUERY_KEY = [
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
       path: {organizationIdOrSlug: organization.slug},
@@ -29,7 +29,7 @@ export function getQueryKey(organization: Organization): ApiQueryKey {
 
 export function useGetStarredDashboards() {
   const organization = useOrganization();
-  return useApiQuery<DashboardListItem[]>(getQueryKey(organization), {
+  return useApiQuery<DashboardListItem[]>(getStarredDashboardsQueryKey(organization), {
     staleTime: Infinity,
   });
 }

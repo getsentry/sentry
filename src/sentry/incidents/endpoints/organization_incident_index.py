@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.incident import IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -21,12 +21,15 @@ from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
-from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 from .utils import parse_team_params
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -49,6 +52,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         incidents = Incident.objects.fetch_for_organization(
             organization, self.get_projects(request, organization)
         )
+        report_used_legacy_models()
 
         envs = self.get_environments(request, organization)
         if envs:

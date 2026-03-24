@@ -2,14 +2,13 @@ import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {barAxisLabel, sortSeriesByDay} from './utils';
@@ -22,7 +21,7 @@ interface TeamResolutionTimeProps extends DateTimeObject {
   environment?: string;
 }
 
-function TeamResolutionTime({
+export function TeamResolutionTime({
   organization,
   teamSlug,
   environment,
@@ -110,8 +109,6 @@ function TeamResolutionTime({
   );
 }
 
-export default TeamResolutionTime;
-
 const ChartWrapper = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
 `;

@@ -6,10 +6,12 @@ import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import router, transaction
 from django.utils import timezone
+from taskbroker_client.retry import LastAction, Retry
+from taskbroker_client.task import Task
 
 from sentry.deletions.models.scheduleddeletion import (
     BaseScheduledDeletion,
-    RegionScheduledDeletion,
+    CellScheduledDeletion,
     ScheduledDeletion,
 )
 from sentry.exceptions import DeleteAborted
@@ -17,8 +19,6 @@ from sentry.signals import pending_delete
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
-from sentry.taskworker.retry import LastAction, Retry
-from sentry.taskworker.task import Task
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger("sentry.deletions.api")
@@ -39,10 +39,10 @@ def reattempt_deletions_control() -> None:
 @instrumented_task(
     name="sentry.deletions.tasks.reattempt_deletions",
     namespace=deletion_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def reattempt_deletions() -> None:
-    _reattempt_deletions(RegionScheduledDeletion)
+    _reattempt_deletions(CellScheduledDeletion)
 
 
 def _reattempt_deletions(model_class: type[BaseScheduledDeletion]) -> None:
@@ -73,7 +73,7 @@ def run_scheduled_deletions_control() -> None:
 )
 def run_scheduled_deletions() -> None:
     _run_scheduled_deletions(
-        model_class=RegionScheduledDeletion,
+        model_class=CellScheduledDeletion,
         process_task=run_deletion,
     )
 
@@ -124,14 +124,14 @@ def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: An
         times_exceeded=LastAction.Discard,
         delay=60 * 5,
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(exclude=(DeleteAborted,), timeouts=True)
 def run_deletion(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,
         first_pass=first_pass,
-        model_class=RegionScheduledDeletion,
+        model_class=CellScheduledDeletion,
         process_task=run_deletion,
     )
 

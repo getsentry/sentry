@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from enum import IntEnum
-from typing import ClassVar, Self
+from enum import IntEnum, StrEnum
+from typing import ClassVar, Self, assert_never
 
 import sentry_sdk
 from django.db import models
@@ -11,7 +11,7 @@ from django.db.models import BooleanField, Case, IntegerField, OuterRef, Subquer
 from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import DefaultFieldsModel, region_silo_model
+from sentry.db.models.base import DefaultFieldsModel, cell_silo_model
 from sentry.db.models.fields.bounded import (
     BoundedBigIntegerField,
     BoundedPositiveBigIntegerField,
@@ -80,7 +80,12 @@ class PreprodArtifactModelManager(BaseManager["PreprodArtifact"]):
         return PreprodArtifactQuerySet(self.model, using=self._db)
 
 
-@region_silo_model
+class Platform(StrEnum):
+    APPLE = "apple"
+    ANDROID = "android"
+
+
+@cell_silo_model
 class PreprodArtifact(DefaultFieldsModel):
     """
     A pre-production artifact provided by the user, presumably from their CI/CD pipeline or a manual build.
@@ -155,6 +160,8 @@ class PreprodArtifact(DefaultFieldsModel):
         """No quota available for distribution."""
         SKIPPED = 2
         """Distribution was not requested on this build."""
+        PROCESSING_ERROR = 3
+        """Distribution failed due to a processing error."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -162,6 +169,7 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.UNKNOWN, "unknown"),
                 (cls.NO_QUOTA, "no_quota"),
                 (cls.SKIPPED, "skipped"),
+                (cls.PROCESSING_ERROR, "processing_error"),
             )
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -220,6 +228,22 @@ class PreprodArtifact(DefaultFieldsModel):
         choices=InstallableAppErrorCode.as_choices(), null=True
     )
     installable_app_error_message = models.TextField(null=True)
+
+    def get_mobile_app_info(self) -> PreprodArtifactMobileAppInfo | None:
+        """Safely access the related mobile_app_info without raising RelatedObjectDoesNotExist."""
+        return getattr(self, "mobile_app_info", None)
+
+    @property
+    def platform(self) -> Platform | None:
+        if self.artifact_type is None:
+            return None
+        match self.artifact_type:
+            case self.ArtifactType.XCARCHIVE:
+                return Platform.APPLE
+            case self.ArtifactType.AAB | self.ArtifactType.APK:
+                return Platform.ANDROID
+            case _:
+                assert_never(self.artifact_type)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
@@ -513,7 +537,7 @@ class PreprodArtifact(DefaultFieldsModel):
         ]
 
 
-@region_silo_model
+@cell_silo_model
 class PreprodBuildConfiguration(DefaultFieldsModel):
     """The build configuration used to build the artifact, e.g. "Debug" or "Release"."""
 
@@ -528,7 +552,7 @@ class PreprodBuildConfiguration(DefaultFieldsModel):
         unique_together = ("project", "name")
 
 
-@region_silo_model
+@cell_silo_model
 class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     """
     Metrics about the size analysis of a pre-production artifact. Each PreprodArtifact can have 0 or many
@@ -649,7 +673,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         ]
 
 
-@region_silo_model
+@cell_silo_model
 class InstallablePreprodArtifact(DefaultFieldsModel):
     """
     A model that represents an installable preprod artifact with an expiring URL.
@@ -674,7 +698,7 @@ class InstallablePreprodArtifact(DefaultFieldsModel):
         db_table = "sentry_installablepreprodartifact"
 
 
-@region_silo_model
+@cell_silo_model
 class PreprodArtifactSizeComparison(DefaultFieldsModel):
     """
     Represents a size comparison between two preprod artifact size analyses.
@@ -747,7 +771,7 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
         unique_together = ("organization_id", "head_size_analysis", "base_size_analysis")
 
 
-@region_silo_model
+@cell_silo_model
 class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     """
     Information about a mobile app, e.g. iOS or Android.
@@ -770,12 +794,20 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     # Miscellaneous fields that we don't need columns for
     extras = models.JSONField(null=True)
 
+    def format_version_string(self, default: str = "--") -> str:
+        parts: list[str] = []
+        if self.build_version:
+            parts.append(self.build_version)
+        if self.build_number:
+            parts.append(f"({self.build_number})")
+        return " ".join(parts) if parts else default
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactmobileappinfo"
 
 
-@region_silo_model
+@cell_silo_model
 class PreprodComparisonApproval(DefaultFieldsModel):
     """
     Tracks approval status for preprod comparisons (size or snapshot).

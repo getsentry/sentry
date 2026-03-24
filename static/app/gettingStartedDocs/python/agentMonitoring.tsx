@@ -7,7 +7,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
-import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 
 import {getPythonInstallCodeBlock} from './utils';
 
@@ -15,7 +15,11 @@ const MIN_REQUIRED_VERSION = '2.43.0';
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (
-    <SdkUpdateAlert projectId={params.project.id} minVersion={MIN_REQUIRED_VERSION} />
+    <SdkUpdateAlert
+      projectId={params.project.id}
+      minVersion={MIN_REQUIRED_VERSION}
+      packageName="sentry-sdk"
+    />
   ),
   install: () => {
     return [
@@ -247,22 +251,18 @@ sentry_sdk.init(
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
+    send_default_pii=True,
 )`,
         },
         {
-          type: 'text',
-          text: tct(
-            'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-              ),
-            }
-          ),
-        },
-        {
           type: 'custom',
-          content: <CopyLLMPromptButton />,
+          content: (
+            <ManualInstrumentationNote
+              docsLink={
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+              }
+            />
+          ),
         },
       ],
     };

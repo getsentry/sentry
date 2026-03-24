@@ -38,6 +38,7 @@ from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import SnubaParams
 from sentry.seer.breakpoints import BreakpointData
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
@@ -393,8 +394,17 @@ def _detect_transaction_change_points(
         (projects_by_id[item[0]], item[1]) for item in transactions if item[0] in projects_by_id
     ]
 
+    viewer_context = None
+    if transaction_pairs:
+        project = transaction_pairs[0][0]
+        viewer_context = SeerViewerContext(organization_id=project.organization_id)
+
     regressions = EndpointRegressionDetector.detect_regressions(
-        transaction_pairs, start, "p95(transaction.duration)", TIMESERIES_PER_BATCH
+        transaction_pairs,
+        start,
+        "p95(transaction.duration)",
+        TIMESERIES_PER_BATCH,
+        viewer_context=viewer_context,
     )
     regressions = EndpointRegressionDetector.save_regressions_with_versions(regressions)
 
@@ -483,8 +493,13 @@ def _detect_function_change_points(
         (projects_by_id[item[0]], item[1]) for item in functions_list if item[0] in projects_by_id
     ]
 
+    viewer_context = None
+    if function_pairs:
+        project = function_pairs[0][0]
+        viewer_context = SeerViewerContext(organization_id=project.organization_id)
+
     regressions = FunctionRegressionDetector.detect_regressions(
-        function_pairs, start, "p95()", TIMESERIES_PER_BATCH
+        function_pairs, start, "p95()", TIMESERIES_PER_BATCH, viewer_context=viewer_context
     )
     regressions = FunctionRegressionDetector.save_regressions_with_versions(regressions)
 

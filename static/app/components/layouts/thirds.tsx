@@ -1,20 +1,46 @@
-import type {HTMLAttributes} from 'react';
+import {useContext, type HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
-import {space} from 'sentry/styles/space';
+import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 /**
  * Main container for a page.
  */
-export const Page = styled('main')<{withPadding?: boolean}>`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  ${p => p.withPadding && `padding: ${space(3)} ${space(4)}`};
+export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
+  const hasPageFrame = useHasPageFrameFeature();
+  const secondaryNavigation = useContext(SecondaryNavigationContext);
+
+  const {withPadding, ...rest} = props;
+
+  if (hasPageFrame) {
+    return (
+      <StyledPageFrameStack
+        flex="1"
+        as="main"
+        padding={props.withPadding ? '2xl 3xl' : undefined}
+        radius={secondaryNavigation?.view === 'expanded' ? 'lg 0 0 0' : undefined}
+        borderTop={secondaryNavigation?.view === 'expanded' ? 'primary' : undefined}
+        borderLeft={secondaryNavigation?.view === 'expanded' ? 'primary' : undefined}
+        background="secondary"
+        {...rest}
+      />
+    );
+  }
+
+  return (
+    <Stack flex="1" padding={withPadding ? '2xl 3xl' : undefined} as="main" {...rest} />
+  );
+}
+
+const StyledPageFrameStack = styled(Stack)`
+  > :first-child {
+    border-top-left-radius: ${p => p.theme.radius.lg};
+  }
 `;
 
 /**
@@ -40,7 +66,7 @@ export const Header = styled('header')<{
   grid-template-columns: ${p =>
     p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
   background-color: ${p => p.theme.tokens.background.primary};
 
   ${p =>
@@ -50,7 +76,8 @@ export const Header = styled('header')<{
     `}
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(2)} ${space(4)} 0 ${space(4)};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']} 0
+      ${p => p.theme.space['3xl']};
     grid-template-columns: minmax(0, 1fr) auto;
   }
 `;
@@ -63,7 +90,7 @@ export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   max-width: 100%;
 
   ${p =>
@@ -82,11 +109,11 @@ export const HeaderActions = styled('div')`
   flex-direction: column;
   justify-content: normal;
   min-width: max-content;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     width: max-content;
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -112,12 +139,12 @@ export const Title = styled('h1')<{withMargins?: boolean}>`
   letter-spacing: -0.01em;
   margin: 0;
   color: ${p => p.theme.tokens.content.primary};
-  margin-bottom: ${p => p.withMargins && space(3)};
-  margin-top: ${p => p.withMargins && space(1)};
+  margin-bottom: ${p => (p.withMargins ? p.theme.space['2xl'] : undefined)};
+  margin-top: ${p => (p.withMargins ? p.theme.space.md : undefined)};
   line-height: 40px;
 
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
@@ -132,20 +159,23 @@ export const HeaderTabs = styled(Tabs)`
  * Base container for 66/33 containers.
  */
 export const Body = styled('div')<{noRowGap?: boolean}>`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   margin: 0;
   background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => (p.noRowGap ? `${space(2)} ${space(4)}` : `${space(3)} ${space(4)}`)};
+    padding: ${p =>
+      p.noRowGap
+        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
+        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${p => (p.noRowGap ? `0 ${space(3)}` : `${space(3)}`)};
+    gap: ${p => (p.noRowGap ? `0 ${p.theme.space['2xl']}` : p.theme.space['2xl'])};
   }
 `;
 

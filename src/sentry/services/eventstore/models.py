@@ -119,8 +119,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
 
         timestamp = self.data["timestamp"]
-        date = datetime.fromtimestamp(timestamp)
-        date = date.replace(tzinfo=timezone.utc)
+        date = datetime.fromtimestamp(timestamp, tz=timezone.utc)
         return date
 
     @property

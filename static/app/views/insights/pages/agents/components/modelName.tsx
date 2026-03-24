@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {SpaceSize} from 'sentry/utils/theme';
 
 interface ModelNameProps {
-  modelId: string;
+  modelId: string | null;
   gap?: SpaceSize;
   provider?: string;
   size?: number;
@@ -21,7 +21,9 @@ export function ModelName({modelId, provider, size = 16, gap = 'md'}: ModelNameP
       <IconWrapper>
         <PlatformIcon platform={platform ?? 'unknown'} size={size} />
       </IconWrapper>
-      <NameWrapper>{modelId === 'null' ? t('(no value)') : modelId}</NameWrapper>
+      <NameWrapper>
+        {!modelId || modelId === 'null' ? t('(no value)') : modelId}
+      </NameWrapper>
     </Flex>
   );
 }
@@ -39,9 +41,13 @@ const NameWrapper = styled('div')`
   min-width: 0;
 `;
 
-export function getModelPlatform(modelId: string, provider?: string) {
+export function getModelPlatform(modelId: string | null, provider?: string) {
   if (provider) {
     return provider;
+  }
+
+  if (!modelId) {
+    return null;
   }
 
   const lowerCaseModelId = modelId.toLowerCase();

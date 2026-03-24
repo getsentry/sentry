@@ -1,4 +1,4 @@
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

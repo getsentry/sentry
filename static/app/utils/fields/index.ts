@@ -426,8 +426,8 @@ const IsFieldDescriptions: Record<IsFieldValues, string> = {
   [IsFieldValues.ASSIGNED]: t('Issues assigned to a team member'),
   [IsFieldValues.UNASSIGNED]: t('Issues not assigned to anyone'),
   [IsFieldValues.FOR_REVIEW]: t('Issues pending review'),
-  [IsFieldValues.LINKED]: t('Issues linked to other issues'),
-  [IsFieldValues.UNLINKED]: t('Issues not linked to other issues'),
+  [IsFieldValues.LINKED]: t('Issues linked via an integration'),
+  [IsFieldValues.UNLINKED]: t('Issues not linked via an integration'),
 };
 
 export function getIsFieldDescriptionFromValue(
@@ -2566,7 +2566,7 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   git_pr_number: {
     desc: t('The pull request number associated with a build'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    valueType: FieldValueType.INTEGER,
   },
 };
 
@@ -2757,7 +2757,7 @@ export const ISSUE_FIELDS: FieldKey[] = [
  * Search locations are defined in sentry/snuba/events.py, anything that
  * references a tag should not be defined here.
  */
-export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new Set([
+export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>([
   FieldKey.APP_IN_FOREGROUND,
   FieldKey.DEVICE_ARCH,
   FieldKey.DEVICE_BRAND,
@@ -3588,7 +3588,7 @@ export function isDeviceClass(key: any): boolean {
 
 export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];
 
-const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
+const TYPED_TAG_KEY_RE = /tags\[(\S*),(\S*)\]/;
 
 export function classifyTagKey(key: string): FieldKind {
   const result = key.match(TYPED_TAG_KEY_RE);

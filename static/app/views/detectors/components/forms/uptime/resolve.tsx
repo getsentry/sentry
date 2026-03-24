@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import NumberField from 'sentry/components/forms/fields/numberField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {UPTIME_DEFAULT_RECOVERY_THRESHOLD} from 'sentry/views/detectors/components/forms/uptime/fields';
 
 export function UptimeDetectorResolveSection() {

@@ -21,7 +21,7 @@
     "editor.formatOnSave": true,
     "editor.tabSize": 2,
     "editor.insertSpaces": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "explicit"
     }
@@ -60,7 +60,7 @@
     "editor.detectIndentation": false,
     "editor.tabSize": 2,
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
 
   "[yaml]": {
@@ -68,7 +68,7 @@
     "editor.detectIndentation": false,
     "editor.tabSize": 2,
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
 
   "[markdown]": {
@@ -99,7 +99,6 @@
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.testing.pytestArgs": ["tests"],
   "python.analysis.autoImportCompletions": true,
-  "prettier.configPath": "prettier.config.mjs",
   "biome.enabled": false,
   "cursorpyright.analysis.autoImportCompletions": true,
   "mypy-type-checker.path": ["${workspaceFolder}/.venv/bin/mypy"],

@@ -4,10 +4,9 @@ import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   NEGATIVE_POLARITY_COLOR_ORDER,
   POSITIVE_POLARITY_COLOR_ORDER,
@@ -80,5 +79,5 @@ const ContextTitle = styled('h6')`
 `;
 
 const StyledIndicator = styled(CircleIndicator)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;

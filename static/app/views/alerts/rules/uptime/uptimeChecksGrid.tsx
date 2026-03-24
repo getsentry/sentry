@@ -6,16 +6,15 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import Placeholder from 'sentry/components/placeholder';
+import {Duration} from 'sentry/components/duration';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -285,7 +284,7 @@ const Cell = styled('div')`
   display: flex;
   align-items: center;
   text-align: left;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TimeCell = styled(Cell)`
@@ -295,7 +294,7 @@ const TimeCell = styled(Cell)`
 `;
 
 const TraceCell = styled(Cell)`
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const StatusCell = styled(Cell)<{color: string}>`

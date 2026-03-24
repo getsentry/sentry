@@ -3,20 +3,20 @@ import {Fragment, useContext} from 'react';
 import {Container} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import routeTitleGen from 'sentry/utils/routeTitle';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useReleaseRepositories} from 'sentry/utils/useReleaseRepositories';
 import {useRepositories} from 'sentry/utils/useRepositories';
@@ -31,7 +31,7 @@ import {
 import {useReleaseCommits} from 'sentry/views/releases/utils/useReleaseCommits';
 
 import {EmptyState, NoReleaseRepos, NoRepositories} from './emptyState';
-import RepositorySwitcher from './repositorySwitcher';
+import {RepositorySwitcher} from './repositorySwitcher';
 
 interface CommitsProps {
   organization: Organization;
@@ -60,9 +60,7 @@ function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
   });
   const commitsByRepository = getCommitsByRepository(commitList);
   const reposToRender = getReposToRender(Object.keys(commitsByRepository));
-  const activeRepoName: string | undefined = activeReleaseRepo
-    ? activeReleaseRepo.name
-    : reposToRender[0];
+  const activeRepoName = activeReleaseRepo ? activeReleaseRepo.name : reposToRender[0];
 
   return (
     <Layout.Body>

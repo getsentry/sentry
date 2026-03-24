@@ -173,7 +173,7 @@ class TestDelegatedByOpenTransaction(TestCase):
         service: Any = silo_mode_delegation(
             {
                 SiloMode.CONTROL: lambda: FakeControlService(),
-                SiloMode.REGION: lambda: FakeRegionService(),
+                SiloMode.CELL: lambda: FakeRegionService(),
                 SiloMode.MONOLITH: lambda: FakeRegionService(),
             }
         )
@@ -183,7 +183,7 @@ class TestDelegatedByOpenTransaction(TestCase):
             with transaction.atomic(router.db_for_write(User)):
                 assert service.a() == FakeControlService().a()
 
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             assert service.a() == FakeRegionService().a()
             with transaction.atomic(router.db_for_write(Organization)):
                 assert service.a() == FakeRegionService().a()
@@ -201,7 +201,7 @@ class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
         service: Any = silo_mode_delegation(
             {
                 SiloMode.CONTROL: lambda: FakeControlService(),
-                SiloMode.REGION: lambda: FakeRegionService(),
+                SiloMode.CELL: lambda: FakeRegionService(),
                 SiloMode.MONOLITH: lambda: FakeRegionService(),
             }
         )
@@ -211,7 +211,7 @@ class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
             with transaction.atomic(router.db_for_write(User)):
                 assert service.a() == FakeControlService().a()
 
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             assert service.a() == FakeRegionService().a()
             with transaction.atomic(router.db_for_write(Organization)):
                 assert service.a() == FakeRegionService().a()

@@ -14,6 +14,7 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
     TriageArtifact,
 )
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.prompts import (
     code_changes_prompt,
     impact_assessment_prompt,
@@ -21,10 +22,15 @@ from sentry.seer.autofix.prompts import (
     solution_prompt,
     triage_prompt,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
-from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_autofix_state,
+    get_project_seer_preferences,
+)
+from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.models import SeerRepoDefinition
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -105,7 +111,7 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
 }
 
 
-def build_step_prompt(step: AutofixStep, group: Group) -> str:
+def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None = None) -> str:
     """
     Build the prompt for a step using issue details.
 
@@ -117,12 +123,23 @@ def build_step_prompt(step: AutofixStep, group: Group) -> str:
         Formatted prompt string
     """
     config = STEP_CONFIGS[step]
-    return config.prompt_fn(
+    prompt = config.prompt_fn(
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
     )
+
+    parts = [prompt]
+
+    user_context = user_context or ""
+    user_context = user_context.strip()
+    if user_context:
+        parts.append("")
+        parts.append("Use the following user context to aid your thinking")
+        parts.append(user_context)
+
+    return "\n".join(parts)
 
 
 def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerActionType:
@@ -151,12 +168,35 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
     return step_to_action_type[step][is_completed]
 
 
+def get_autofix_explorer_client(
+    group: Group,
+    intelligence_level: Literal["low", "medium", "high"] = "low",
+    enable_coding: bool = False,
+) -> SeerExplorerClient:
+    from sentry.seer.autofix.on_completion_hook import (
+        AutofixOnCompletionHook,  # nested to avoid circular import
+    )
+
+    return SeerExplorerClient(
+        organization=group.organization,
+        project=group.project,
+        user=None,  # No user personalization for autofix
+        category_key="autofix",
+        category_value=str(group.id),
+        intelligence_level=intelligence_level,
+        on_completion_hook=AutofixOnCompletionHook,
+        enable_coding=enable_coding,
+    )
+
+
 def trigger_autofix_explorer(
     group: Group,
     step: AutofixStep,
+    referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "low",
+    user_context: str | None = None,
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -170,29 +210,24 @@ def trigger_autofix_explorer(
     Returns:
         The run ID
     """
-    from sentry.seer.autofix.on_completion_hook import (
-        AutofixOnCompletionHook,  # nested to avoid circular import
-    )
 
     config = STEP_CONFIGS[step]
-    client = SeerExplorerClient(
-        organization=group.organization,
-        project=group.project,
-        user=None,  # No user personalization for autofix
-        category_key="autofix",
-        category_value=str(group.id),
+    client = get_autofix_explorer_client(
+        group,
         intelligence_level=intelligence_level,
-        on_completion_hook=AutofixOnCompletionHook,
         enable_coding=config.enable_coding,
     )
 
-    prompt = build_step_prompt(step, group)
-    prompt_metadata = {"step": step.value}
+    prompt = build_step_prompt(step, group, user_context)
+    prompt_metadata = {
+        "step": step.value,
+        "referrer": referrer.value,
+    }
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = {"group_id": group.id}
+        metadata = {"group_id": group.id, "referrer": referrer.value}
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
@@ -224,7 +259,7 @@ def trigger_autofix_explorer(
     event_type = f"seer.{event_name}"
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
-        if SeerOperator.has_access(organization=group.organization):
+        if SeerAutofixOperator.has_access(organization=group.organization):
             process_autofix_updates.apply_async(
                 kwargs={
                     "event_type": sentry_app_event_type,
@@ -301,7 +336,7 @@ def generate_autofix_handoff_prompt(
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
 
     if short_id:
-        parts.append(f"Include 'Fixes {short_id}' in the pull request description.")
+        parts.append(f"Include 'Fixes {short_id}' in the commit message.")
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -337,6 +372,37 @@ def generate_autofix_handoff_prompt(
     return "\n\n".join(parts)
 
 
+def _get_relevant_repo(
+    state: SeerRunState,
+    repo_definitions: list[SeerRepoDefinition],
+    run_id: int,
+    group: Group,
+) -> SeerRepoDefinition:
+    root_cause_artifact = state.get_artifacts().get("root_cause")
+    relevant_repo: str | None = (
+        (root_cause_artifact.data or {}).get("relevant_repo") if root_cause_artifact else None
+    )
+    warning_extras = {
+        "organization_id": group.organization.id,
+        "run_id": run_id,
+        "project_id": group.project_id,
+    }
+    if relevant_repo:
+        match = next((r for r in repo_definitions if f"{r.owner}/{r.name}" == relevant_repo), None)
+        if match:
+            return match
+        logger.warning(
+            "autofix.coding_agent_handoff.relevant_repo_not_found",
+            extra={**warning_extras, "relevant_repo": relevant_repo},
+        )
+    else:
+        logger.warning(
+            "autofix.coding_agent_handoff.no_relevant_repo",
+            extra=warning_extras,
+        )
+    return repo_definitions[0]
+
+
 def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
@@ -362,13 +428,11 @@ def trigger_coding_agent_handoff(
     """
     # Fetch project preferences for repos and auto_create_pr setting
     auto_create_pr = False
-    repos: list[str] = []
+    repo_definitions: list[SeerRepoDefinition] = []
     try:
         preference_response = get_project_seer_preferences(group.project_id)
         if preference_response and preference_response.preference:
-            repos = [
-                f"{repo.owner}/{repo.name}" for repo in preference_response.preference.repositories
-            ]
+            repo_definitions = list(preference_response.preference.repositories)
             if preference_response.preference.automation_handoff:
                 auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
     except Exception:
@@ -381,7 +445,7 @@ def trigger_coding_agent_handoff(
             },
         )
 
-    if not repos:
+    if not repo_definitions:
         return {
             "successes": [],
             "failures": [{"error_message": "No repositories configured in project preferences"}],
@@ -395,6 +459,29 @@ def trigger_coding_agent_handoff(
     )
     state = client.get_run(run_id)
 
+    repo = _get_relevant_repo(state, repo_definitions, run_id, group)
+
+    # If branch_name is unset in preferences, resolve it from the autofix run state
+    if not repo.branch_name:
+        try:
+            autofix_state = get_autofix_state(run_id=run_id, organization_id=group.organization.id)
+            if autofix_state:
+                state_repo = next(
+                    (
+                        r
+                        for r in autofix_state.request.repos
+                        if r.owner == repo.owner and r.name == repo.name
+                    ),
+                    None,
+                )
+                if state_repo and state_repo.branch_name:
+                    repo = repo.copy(update={"branch_name": state_repo.branch_name})
+        except Exception:
+            logger.exception(
+                "autofix.coding_agent_handoff.get_branch_name_error",
+                extra={"owner": repo.owner, "repo": repo.name, "run_id": run_id},
+            )
+
     short_id = group.qualified_short_id
 
     prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
@@ -405,7 +492,7 @@ def trigger_coding_agent_handoff(
         provider=provider,
         user_id=user_id,
         prompt=prompt,
-        repos=repos,
+        repos=[repo],
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
     )

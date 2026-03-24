@@ -14,7 +14,7 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -54,7 +54,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {
   getAllViews,
   getTransactionViews,
@@ -64,6 +64,27 @@ import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
 import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+/**
+ * @returns whether `widgetType` is one that stores a {@link DisplayType} directly
+ * in `eventView.display`, rather than a {@link DisplayModes} value that needs conversion.
+ */
+function widgetTypeUsesDisplayTypeDirectly(widgetType: WidgetType | undefined) {
+  return (
+    widgetType === WidgetType.SPANS ||
+    widgetType === WidgetType.LOGS ||
+    widgetType === WidgetType.TRACEMETRICS
+  );
+}
+
+function resolveDisplayType(
+  widgetType: WidgetType | undefined,
+  eventViewDisplay: string | undefined
+) {
+  return widgetTypeUsesDisplayTypeDirectly(widgetType)
+    ? (eventViewDisplay as DisplayType)
+    : displayModeToDisplayType(eventViewDisplay as DisplayModes);
+}
 
 const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',
@@ -170,7 +191,7 @@ export function getPrebuiltQueries(organization: Organization) {
 function disableMacros(value: string | null | boolean | number) {
   const unsafeCharacterRegex = /^[=+\-@]/;
 
-  if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
+  if (typeof value === 'string' && value.match(unsafeCharacterRegex)) {
     return `'${value}`;
   }
 
@@ -347,7 +368,7 @@ function generateAdditionalConditions(
       const shouldQuote =
         value === null || value === undefined
           ? false
-          : /[\s()\\"]/g.test(String(value).trim());
+          : /[\s()\\"]/.test(String(value).trim());
       const nextValue =
         value === null || value === undefined
           ? ''
@@ -650,10 +671,7 @@ export function handleAddQueryToDashboard({
   query?: NewQuery;
   yAxis?: string | string[];
 }) {
-  const displayType =
-    widgetType === WidgetType.SPANS || widgetType === WidgetType.TRACEMETRICS
-      ? (eventView.display as DisplayType)
-      : displayModeToDisplayType(eventView.display as DisplayModes);
+  const displayType = resolveDisplayType(widgetType, eventView.display);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
@@ -736,10 +754,7 @@ export function handleAddMultipleQueriesToDashboard({
   }
 
   const widgets = eventViews.map(eventView => {
-    const displayType =
-      widgetType === WidgetType.SPANS || widgetType === WidgetType.TRACEMETRICS
-        ? (eventView.display as DisplayType)
-        : displayModeToDisplayType(eventView.display as DisplayModes);
+    const displayType = resolveDisplayType(widgetType, eventView.display);
 
     const defaultWidgetQuery = eventViewToWidgetQuery({
       eventView,
@@ -840,10 +855,7 @@ export function constructAddQueryToDashboardLink({
   widgetType?: WidgetType;
   yAxis?: string | string[];
 }) {
-  const displayType =
-    widgetType === WidgetType.SPANS
-      ? (eventView.display as DisplayType)
-      : displayModeToDisplayType(eventView.display as DisplayModes);
+  const displayType = resolveDisplayType(widgetType, eventView.display);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
@@ -870,8 +882,7 @@ export function constructAddQueryToDashboardLink({
         aggregates: [...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']))],
         fields: eventView.getFields(),
         columns:
-          widgetType === WidgetType.SPANS ||
-          widgetType === WidgetType.TRACEMETRICS ||
+          widgetTypeUsesDisplayTypeDirectly(widgetType) ||
           displayType === DisplayType.TOP_N ||
           eventView.display === DisplayModes.DAILYTOP5
             ? eventView
@@ -888,7 +899,7 @@ export function constructAddQueryToDashboardLink({
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
-      ...convertWidgetToBuilderStateParams(widget),
+      ...convertWidgetToQueryParams(widget),
       source,
     },
   };

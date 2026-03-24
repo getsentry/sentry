@@ -10,7 +10,7 @@ from sentry import audit_log
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
@@ -28,6 +28,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
     log_alerting_quota_hit,
     toggle_detector,
+    update_owner,
 )
 from sentry.workflow_engine.models import (
     DataConditionGroup,
@@ -51,6 +52,12 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     """
     Set to True in subclasses to enforce that only a single data source can be configured.
     This prevents invalid configurations for detector types that don't support multiple data sources.
+    """
+
+    data_source_required = True
+    """
+    Set to False in subclasses if data sources are not required for this detector type.
+    By default, data sources are required when creating a new detector.
     """
 
     name = serializers.CharField(
@@ -137,6 +144,17 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
 
         return value
 
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate detector data, enforcing data source requirements if configured.
+        """
+        # Check if data sources are missing when creating a new detector
+        if self.data_source_required and not self.instance and not attrs.get("data_sources"):
+            raise serializers.ValidationError(
+                {"data_sources": ["This field is required when creating a detector."]}
+            )
+        return attrs
+
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 
@@ -176,18 +194,9 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
 
             # Handle owner field update
             if "owner" in validated_data:
-                owner = validated_data.get("owner")
-                if owner:
-                    if owner.is_user:
-                        instance.owner_user_id = owner.id
-                        instance.owner_team_id = None
-                    elif owner.is_team:
-                        instance.owner_user_id = None
-                        instance.owner_team_id = owner.id
-                else:
-                    # Clear owner if None is passed
-                    instance.owner_user_id = None
-                    instance.owner_team_id = None
+                instance.owner_user_id, instance.owner_team_id = update_owner(
+                    validated_data.pop("owner")
+                )
 
             if "condition_group" in validated_data:
                 condition_group = validated_data.pop("condition_group")
@@ -227,7 +236,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         They should call super().delete() to perform the actual deletion.
         """
         assert self.instance is not None
-        RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
+        CellScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
         self.instance.update(status=ObjectStatus.PENDING_DELETION)
 
     def _create_data_source(
@@ -263,14 +272,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                         condition_group=condition_group,
                     )
 
-            owner = validated_data.get("owner")
-            owner_user_id = None
-            owner_team_id = None
-            if owner:
-                if owner.is_user:
-                    owner_user_id = owner.id
-                elif owner.is_team:
-                    owner_team_id = owner.id
+            owner_user_id, owner_team_id = update_owner(validated_data.get("owner"))
 
             detector = Detector(
                 project_id=self.context["project"].id,

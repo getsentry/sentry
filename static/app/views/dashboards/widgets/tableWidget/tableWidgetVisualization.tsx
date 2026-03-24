@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {defined} from 'sentry/utils';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -21,8 +21,8 @@ import {FieldValueType} from 'sentry/utils/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularColumn,
@@ -30,8 +30,9 @@ import type {
   TabularMeta,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
-import CellAction, {
+import {
   Actions,
+  CellAction,
   copyToClipboard,
 } from 'sentry/views/discover/table/cellAction';
 
@@ -134,7 +135,7 @@ interface TableWidgetVisualizationProps {
   sort?: Sort;
 }
 
-const FRAMELESS_STYLES = {
+export const FRAMELESS_STYLES = {
   borderTopLeftRadius: 0,
   borderTopRightRadius: 0,
   marginBottom: 0,

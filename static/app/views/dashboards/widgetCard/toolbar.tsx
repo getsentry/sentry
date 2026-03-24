@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/dashboard';
 
 type ToolbarProps = {
@@ -127,7 +126,7 @@ const ToolbarPanel = styled('div')`
 
 const IconContainer = styled('div')`
   display: flex;
-  margin: ${space(1)};
+  margin: ${p => p.theme.space.md};
   touch-action: none;
 `;
 

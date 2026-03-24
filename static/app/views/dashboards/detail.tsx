@@ -23,18 +23,17 @@ import {
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   isWidgetViewerPath,
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -50,16 +49,16 @@ import {QueryClient, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useRouter} from 'sentry/utils/useRouter';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -69,30 +68,32 @@ import {
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {WidgetBuilderV2} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {
+  addWidgetBuilderSessionStorageParams,
+  cleanupWidgetBuilderSessionStorage,
+  DataSet,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
-import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
-import type {WidgetViewerContextProps} from './widgetViewer/widgetViewerContext';
-import {WidgetViewerContext} from './widgetViewer/widgetViewerContext';
-import Controls from './controls';
-import Dashboard from './dashboard';
+import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
+import {Controls} from './controls';
+import {Dashboard} from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
-import FiltersBar from './filtersBar';
+import {FiltersBar} from './filtersBar';
 import {
   assignDefaultLayout,
   assignTempId,
   calculateColumnDepths,
   getDashboardLayout,
 } from './layoutUtils';
-import DashboardTitle from './title';
+import {DashboardTitle} from './title';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -145,7 +146,6 @@ type Props = {
   children?: React.ReactNode;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   storageNamespace?: string;
-  useTimeseriesVisualization?: boolean;
   widgetInterval?: string;
 };
 
@@ -159,7 +159,7 @@ type State = {
   widgetLimitReached: boolean;
   newlyAddedWidget?: Widget;
   openWidgetTemplates?: boolean;
-} & WidgetViewerContextProps;
+};
 
 function getDashboardLocation({
   organization,
@@ -178,6 +178,7 @@ function getDashboardLocation({
     'statsPeriod',
     'start',
     'end',
+    'interval',
   ]);
 
   const commonPath = defined(dashboardId)
@@ -199,9 +200,6 @@ class DashboardDetail extends Component<Props, State> {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
-    setData: data => {
-      this.setState(data);
-    },
     widgetLegendState: new WidgetLegendSelectionState({
       dashboard: this.props.dashboard,
       organization: this.props.organization,
@@ -245,6 +243,14 @@ class DashboardDetail extends Component<Props, State> {
       this.setState({dashboardState: this.props.initialState});
     }
 
+    // Update modified dashboard to trigger re-render when dashboard prop changes in preview state
+    if (prevProps.dashboard !== this.props.dashboard && this.isPreview) {
+      this.setState({
+        modifiedDashboard: cloneDashboard(this.props.dashboard),
+        widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
+      });
+    }
+
     if (
       prevProps.organization !== this.props.organization ||
       // The only part of `location` used by `WidgetLegendSelectionState` is
@@ -280,40 +286,24 @@ class DashboardDetail extends Component<Props, State> {
       router,
       navigate,
     } = this.props;
-    const {
-      seriesData,
-      tableData,
-      pageLinks,
-      totalIssuesCount,
-      seriesResultsType,
-      confidence,
-      sampleCount,
-      modifiedDashboard,
-    } = this.state;
+    const {modifiedDashboard} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
           organization,
           widget,
-          seriesData: WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(
-            widget,
-            seriesData
-          ),
-          seriesResultsType,
-          tableData,
-          pageLinks,
-          totalIssuesCount,
           widgetLegendState: this.state.widgetLegendState,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           dashboardPermissions: dashboard.permissions,
           dashboardCreator: dashboard.createdBy,
+          widgetInterval: this.props.widgetInterval,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
             navigate(
               {
-                pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
+                pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
                 query,
               },
               {preventScrollReset: true}
@@ -337,8 +327,6 @@ class DashboardDetail extends Component<Props, State> {
             this.onEditWidget(widget);
             return;
           },
-          confidence,
-          sampleCount,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
@@ -652,9 +640,9 @@ class DashboardDetail extends Component<Props, State> {
               ...location.query,
               ...(openWidgetTemplates
                 ? defaultLibraryWidget
-                  ? convertWidgetToBuilderStateParams(defaultLibraryWidget)
+                  ? convertWidgetToQueryParams(defaultLibraryWidget)
                   : {}
-                : convertWidgetToBuilderStateParams(
+                : convertWidgetToQueryParams(
                     getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
                   )),
             },
@@ -699,12 +687,15 @@ class DashboardDetail extends Component<Props, State> {
     const path = defined(dashboardId)
       ? `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`
       : `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`;
+
+    addWidgetBuilderSessionStorageParams(widget);
+
     navigate(
       normalizeUrl({
         pathname: path,
         query: {
           ...location.query,
-          ...convertWidgetToBuilderStateParams(widget),
+          ...convertWidgetToQueryParams(widget),
         },
       }),
       {preventScrollReset: true}
@@ -809,6 +800,8 @@ class DashboardDetail extends Component<Props, State> {
       };
     }
 
+    cleanupWidgetBuilderSessionStorage();
+
     navigate(
       getDashboardLocation({
         organization,
@@ -860,15 +853,29 @@ class DashboardDetail extends Component<Props, State> {
                   browserHistory.replace(
                     normalizeUrl({
                       pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                      query: {
-                        query: omit(location.query, Object.values(DashboardFilterKeys)),
-                      },
+                      query: omit(location.query, Object.values(DashboardFilterKeys)),
                     })
                   );
                 }
               );
             },
-            () => undefined
+            error => {
+              const seerRunId = location.query?.seerRunId;
+              // Currently only runs for seer-generated dashboards
+              if (seerRunId && typeof seerRunId === 'string') {
+                Sentry.withScope(scope => {
+                  scope.setFingerprint(['generated-dashboard-save-failed']);
+                  scope.setTag('seer.run_id', seerRunId);
+                  scope.setLevel('error');
+                  Sentry.captureMessage('Generated dashboard failed to save', {
+                    extra: {
+                      dashboard_title: newModifiedDashboard.title,
+                      error_message: error?.message,
+                    },
+                  });
+                });
+              }
+            }
           );
         }
         break;
@@ -1023,17 +1030,21 @@ class DashboardDetail extends Component<Props, State> {
                         location={location}
                         forceTransactions={metricsDataSide.forceTransactionsOnly}
                       >
-                        <Dashboard
-                          dashboard={modifiedDashboard ?? dashboard}
-                          isEditingDashboard={this.isEditingDashboard}
-                          widgetLimitReached={widgetLimitReached}
-                          onUpdate={this.handleUpdateEditStateWidgets}
-                          handleUpdateWidgetList={this.handleUpdateWidgetList}
-                          handleAddCustomWidget={this.handleAddCustomWidget}
-                          isEmbedded={this.isEmbedded}
-                          isPreview={this.isPreview}
-                          widgetLegendState={this.state.widgetLegendState}
-                        />
+                        <PrebuiltDashboardOnboardingGate
+                          prebuiltId={dashboard.prebuiltId}
+                        >
+                          <Dashboard
+                            dashboard={modifiedDashboard ?? dashboard}
+                            isEditingDashboard={this.isEditingDashboard}
+                            widgetLimitReached={widgetLimitReached}
+                            onUpdate={this.handleUpdateEditStateWidgets}
+                            handleUpdateWidgetList={this.handleUpdateWidgetList}
+                            handleAddCustomWidget={this.handleAddCustomWidget}
+                            isEmbedded={this.isEmbedded}
+                            isPreview={this.isPreview}
+                            widgetLegendState={this.state.widgetLegendState}
+                          />
+                        </PrebuiltDashboardOnboardingGate>
                       </MEPSettingProvider>
                     )}
                   </MetricsDataSwitcher>
@@ -1067,14 +1078,11 @@ class DashboardDetail extends Component<Props, State> {
       location,
       onDashboardUpdate,
       projects,
-      useTimeseriesVisualization,
     } = this.props;
     const {
       modifiedDashboard,
       dashboardState,
       widgetLimitReached,
-      seriesData,
-      setData,
       newlyAddedWidget,
       isCommittingChanges,
     } = this.state;
@@ -1198,6 +1206,9 @@ class DashboardDetail extends Component<Props, State> {
                                 filters:
                                   getDashboardFiltersFromURL(location) ??
                                   (modifiedDashboard ?? dashboard).filters,
+                                ...(defined(dashboard.prebuiltId) && {
+                                  widgets: undefined,
+                                }),
                               };
                               this.setState({isSavingDashboardFilters: true});
                               addLoadingMessage(t('Saving dashboard filters'));
@@ -1248,9 +1259,11 @@ class DashboardDetail extends Component<Props, State> {
                             }}
                           />
 
-                          <WidgetViewerContext value={{seriesData, setData}}>
-                            <Fragment>
-                              <WidgetQueryQueueProvider>
+                          <Fragment>
+                            <WidgetQueryQueueProvider>
+                              <PrebuiltDashboardOnboardingGate
+                                prebuiltId={dashboard.prebuiltId}
+                              >
                                 <Dashboard
                                   dashboard={modifiedDashboard ?? dashboard}
                                   isEditingDashboard={this.isEditingDashboard}
@@ -1267,29 +1280,25 @@ class DashboardDetail extends Component<Props, State> {
                                   onNewWidgetScrollComplete={
                                     this.handleScrollToNewWidgetComplete
                                   }
-                                  useTimeseriesVisualization={useTimeseriesVisualization}
                                   widgetInterval={this.props.widgetInterval}
                                 />
-                              </WidgetQueryQueueProvider>
+                              </PrebuiltDashboardOnboardingGate>
+                            </WidgetQueryQueueProvider>
 
-                              <WidgetBuilderV2
-                                isOpen={this.state.isWidgetBuilderOpen}
-                                openWidgetTemplates={
-                                  this.state.openWidgetTemplates ?? false
-                                }
-                                setOpenWidgetTemplates={
-                                  this.handleChangeWidgetBuilderView
-                                }
-                                onClose={this.handleCloseWidgetBuilder}
-                                dashboardFilters={
-                                  getDashboardFiltersFromURL(location) ??
-                                  dashboard.filters
-                                }
-                                dashboard={modifiedDashboard ?? dashboard}
-                                onSave={this.handleSaveWidget}
-                              />
-                            </Fragment>
-                          </WidgetViewerContext>
+                            <WidgetBuilderV2
+                              isOpen={this.state.isWidgetBuilderOpen}
+                              openWidgetTemplates={
+                                this.state.openWidgetTemplates ?? false
+                              }
+                              setOpenWidgetTemplates={this.handleChangeWidgetBuilderView}
+                              onClose={this.handleCloseWidgetBuilder}
+                              dashboardFilters={
+                                getDashboardFiltersFromURL(location) ?? dashboard.filters
+                              }
+                              dashboard={modifiedDashboard ?? dashboard}
+                              onSave={this.handleSaveWidget}
+                            />
+                          </Fragment>
                         </MEPSettingProvider>
                       )}
                     </MetricsDataSwitcher>
@@ -1375,13 +1384,13 @@ class DashboardDetail extends Component<Props, State> {
 const StyledPageHeader = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-row-gap: ${space(2)};
+  grid-row-gap: ${p => p.theme.space.xl};
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(0, 1fr) max-content;
-    grid-column-gap: ${space(2)};
+    grid-column-gap: ${p => p.theme.space.xl};
     height: 40px;
   }
 `;
@@ -1399,7 +1408,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'queryClient'
 > {}
 
-export default function DashboardDetailWithInjectedProps(
+export function DashboardDetailWithInjectedProps(
   props: DashboardDetailWithInjectedPropsProps
 ) {
   const theme = useTheme();

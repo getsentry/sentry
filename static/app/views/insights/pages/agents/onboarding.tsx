@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -8,10 +9,11 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
+  CopyMarkdownButton,
   OnboardingCopyMarkdownButton,
   useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
@@ -29,32 +31,39 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {
-  agentMonitoringPlatforms,
-  javascriptMetaFrameworks,
-} from 'sentry/data/platformCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {
+  CopyLLMPromptButton,
+  LLM_ONBOARDING_INSTRUCTIONS,
+  LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE,
+} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {
+  BulletList,
+  HeaderText,
+  PulseSpacer,
+  PulsingIndicator,
+  SubTitle,
+  useOnboardingProject,
+} from 'sentry/views/insights/pages/onboardingUtils';
 
 import {
   AGENT_INTEGRATION_ICONS,
@@ -63,28 +72,6 @@ import {
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from './utils/agentIntegrations';
-
-const serverSideNodeIntegrations = new Set([
-  AgentIntegration.VERCEL_AI,
-  AgentIntegration.MASTRA,
-]);
-
-function useOnboardingProject() {
-  const {projects} = useProjects();
-  const pageFilters = usePageFilters();
-  const selectedProject = getSelectedProjectList(
-    pageFilters.selection.projects,
-    projects
-  );
-  const agentMonitoringProjects = selectedProject.filter(p =>
-    agentMonitoringPlatforms.has(p.platform as PlatformKey)
-  );
-
-  if (agentMonitoringProjects.length > 0) {
-    return agentMonitoringProjects[0];
-  }
-  return selectedProject[0];
-}
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
@@ -151,6 +138,7 @@ function StepRenderer({
   stepIndex: number;
   trailingItems?: React.ReactNode;
 }) {
+  const theme = useTheme();
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
@@ -158,7 +146,7 @@ function StepRenderer({
       trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
-        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+        <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
       </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
@@ -253,39 +241,27 @@ export function Onboarding() {
 
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
-  const isNodePlatform = (project?.platform ?? '').startsWith('node');
-  const isFullStackJsPlatform = javascriptMetaFrameworks.includes(
-    project?.platform ?? 'other'
-  );
-  const hasServerSideNode = isNodePlatform || isFullStackJsPlatform;
+
+  const integrations = isPythonPlatform
+    ? PYTHON_AGENT_INTEGRATIONS
+    : NODE_AGENT_INTEGRATIONS;
 
   const integrationOptions = {
     integration: {
       label: t('Integration'),
-      items: isPythonPlatform
-        ? PYTHON_AGENT_INTEGRATIONS.map(integration => ({
-            label: AGENT_INTEGRATION_LABELS[integration],
-            value: integration,
-            leadingItems: (
-              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
-            ),
-          }))
-        : (hasServerSideNode
-            ? NODE_AGENT_INTEGRATIONS
-            : NODE_AGENT_INTEGRATIONS.filter(
-                integration => !serverSideNodeIntegrations.has(integration)
-              )
-          ).map(integration => ({
-            label: AGENT_INTEGRATION_LABELS[integration],
-            value: integration,
-            leadingItems: (
-              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
-            ),
-          })),
+      items: integrations.map(integration => ({
+        label: AGENT_INTEGRATION_LABELS[integration],
+        value: integration,
+        leadingItems: (
+          <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+        ),
+      })),
     },
   };
 
   const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+  const isManualIntegration =
+    selectedPlatformOptions.integration === AgentIntegration.MANUAL;
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -377,6 +353,20 @@ export function Onboarding() {
                   borderless
                   steps={steps}
                   source="agent_monitoring_onboarding"
+                  postamble={
+                    isManualIntegration
+                      ? `${LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE}\n\n${LLM_ONBOARDING_INSTRUCTIONS}`
+                      : undefined
+                  }
+                  onCopy={
+                    isManualIntegration
+                      ? () => {
+                          trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
+                            organization,
+                          });
+                        }
+                      : undefined
+                  }
                 />
               ) : undefined
             }
@@ -387,13 +377,37 @@ export function Onboarding() {
   );
 }
 
-function UnsupportedPlatformOnboarding({
+function CopyInstructionsButton() {
+  const organization = useOrganization();
+  const copySetupInstructionsEnabled = useCopySetupInstructionsEnabled();
+
+  if (!copySetupInstructionsEnabled) {
+    return <CopyLLMPromptButton />;
+  }
+
+  return (
+    <CopyMarkdownButton
+      title={t('Copies setup instructions as Markdown, optimized for use with an LLM.')}
+      source="agent_monitoring_onboarding"
+      getMarkdown={() => LLM_ONBOARDING_INSTRUCTIONS}
+      onCopy={() => {
+        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
+          organization,
+        });
+      }}
+    />
+  );
+}
+
+export function UnsupportedPlatformOnboarding({
   project,
   platformName,
 }: {
   platformName: string;
   project: Project;
 }) {
+  const copyEnabled = useCopySetupInstructionsEnabled();
+
   return (
     <OnboardingPanel project={project}>
       <DescriptionWrapper>
@@ -406,22 +420,34 @@ function UnsupportedPlatformOnboarding({
           )}
         </p>
         <p>
-          {tct(
-            'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or use an AI coding agent to do it for you.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-              ),
-            }
-          )}
+          {copyEnabled
+            ? tct(
+                'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+                  ),
+                  bold: <strong />,
+                }
+              )
+            : tct(
+                'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or use an AI coding agent to do it for you.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+                  ),
+                }
+              )}
         </p>
-        <CopyLLMPromptButton />
+        <CopyInstructionsButton />
       </DescriptionWrapper>
     </OnboardingPanel>
   );
 }
 
-function NoDocsOnboarding({project}: {project: Project}) {
+export function NoDocsOnboarding({project}: {project: Project}) {
+  const copyEnabled = useCopySetupInstructionsEnabled();
+
   return (
     <OnboardingPanel project={project}>
       <DescriptionWrapper>
@@ -432,16 +458,26 @@ function NoDocsOnboarding({project}: {project: Project}) {
           )}
         </p>
         <p>
-          {tct(
-            'You can set up the Sentry SDK by following our [link:documentation], or use an AI coding agent to do it for you.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-              ),
-            }
-          )}
+          {copyEnabled
+            ? tct(
+                'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
+                  ),
+                  bold: <strong />,
+                }
+              )
+            : tct(
+                'You can set up the Sentry SDK by following our [link:documentation], or use an AI coding agent to do it for you.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
+                  ),
+                }
+              )}
         </p>
-        <CopyLLMPromptButton />
+        <CopyInstructionsButton />
       </DescriptionWrapper>
     </OnboardingPanel>
   );
@@ -465,32 +501,9 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   padding-right: ${p => p.theme.space['3xl']};
 `;
 
-const PulseSpacer = styled('div')`
-  height: ${p => p.theme.space['3xl']};
-`;
-
-const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
-  flex-shrink: 0;
-`;
-
-const SubTitle = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BulletList = styled('ul')`
-  list-style-type: disc;
-  padding-left: 20px;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  li {
-    margin-bottom: ${p => p.theme.space.md};
-  }
 `;
 
 const HeaderWrapper = styled('div')`
@@ -499,14 +512,6 @@ const HeaderWrapper = styled('div')`
   gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
-`;
-
-const HeaderText = styled('div')`
-  flex: 0.65;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-  }
 `;
 
 const BodyTitle = styled('div')`
@@ -572,15 +577,13 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const CONTENT_SPACING = space(1);
-
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
     color: ${p => p.theme.colors.pink500};
   }
 
   :not(:last-child) {
-    margin-bottom: ${CONTENT_SPACING};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   && > h4,
@@ -594,7 +597,7 @@ const DescriptionWrapper = styled('div')`
   && > * {
     margin: 0;
     &:not(:last-child) {
-      margin-bottom: ${CONTENT_SPACING};
+      margin-bottom: ${p => p.theme.space.md};
     }
   }
 `;

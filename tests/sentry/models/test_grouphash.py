@@ -2,13 +2,13 @@ from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
 
-from sentry import options
 from sentry.grouping.ingest.caching import (
     get_grouphash_existence_cache_key,
     get_grouphash_object_cache_key,
     invalidate_grouphash_cache_on_save,
     invalidate_grouphash_caches_on_delete,
 )
+from sentry.grouping.ingest.hashing import GROUPHASH_CACHE_EXPIRY_SECONDS
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.testutils.cases import TestCase
@@ -123,7 +123,7 @@ class CacheInvalidationTest(TestCase):
     def test_removes_from_cache_on_queryset_update(self) -> None:
         project = self.project
         get_cache_key = get_grouphash_object_cache_key
-        cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+        cache_expiry_seconds = GROUPHASH_CACHE_EXPIRY_SECONDS
 
         maisey_key = get_cache_key(hash_value="maisey", project_id=project.id)
         charlie_key = get_cache_key(hash_value="charlie", project_id=project.id)
@@ -155,7 +155,7 @@ class CacheInvalidationTest(TestCase):
     def test_removes_from_cache_on_model_update(self) -> None:
         project = self.project
         get_cache_key = get_grouphash_object_cache_key
-        cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+        cache_expiry_seconds = GROUPHASH_CACHE_EXPIRY_SECONDS
 
         maisey_key = get_cache_key(hash_value="maisey", project_id=project.id)
         charlie_key = get_cache_key(hash_value="charlie", project_id=project.id)
@@ -188,7 +188,7 @@ class CacheInvalidationTest(TestCase):
     def test_removes_from_cache_on_model_save(self) -> None:
         project = self.project
         get_cache_key = get_grouphash_object_cache_key
-        cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+        cache_expiry_seconds = GROUPHASH_CACHE_EXPIRY_SECONDS
 
         maisey_key = get_cache_key(hash_value="maisey", project_id=project.id)
         charlie_key = get_cache_key(hash_value="charlie", project_id=project.id)
@@ -224,7 +224,7 @@ class CacheInvalidationTest(TestCase):
         project = self.project
         get_object_cache_key = get_grouphash_object_cache_key
         get_existence_cache_key = get_grouphash_existence_cache_key
-        cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+        cache_expiry_seconds = GROUPHASH_CACHE_EXPIRY_SECONDS
 
         maisey_object_key = get_object_cache_key(hash_value="maisey", project_id=project.id)
         charlie_object_key = get_object_cache_key(hash_value="charlie", project_id=project.id)
@@ -270,7 +270,7 @@ class CacheInvalidationTest(TestCase):
         project = self.project
         get_object_cache_key = get_grouphash_object_cache_key
         get_existence_cache_key = get_grouphash_existence_cache_key
-        cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+        cache_expiry_seconds = GROUPHASH_CACHE_EXPIRY_SECONDS
 
         maisey_object_key = get_object_cache_key(hash_value="maisey", project_id=project.id)
         charlie_object_key = get_object_cache_key(hash_value="charlie", project_id=project.id)

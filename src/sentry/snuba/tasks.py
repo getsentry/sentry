@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from snuba_sdk import Request
+from taskbroker_client.retry import Retry
 
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -25,7 +26,6 @@ from sentry.snuba.models import ExtrapolationMode, QuerySubscription, SnubaQuery
 from sentry.snuba.utils import build_query_strings
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import alerts_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics, snuba_rpc
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
 

@@ -19,12 +19,17 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
-from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.code_review.models import SeerCodeReviewTrigger
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 
 from .metrics import CodeReviewErrorType, record_webhook_handler_error
 
 logger = logging.getLogger(__name__)
+
+seer_code_review_connection_pool = connection_from_url(
+    settings.SEER_PREVENT_AI_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
+)
 
 
 class Log(enum.StrEnum):
@@ -66,34 +71,38 @@ def convert_enum_keys_to_strings(obj: Any) -> Any:
 
 # These values need to match the value defined in the Seer API.
 class SeerEndpoint(StrEnum):
-    # https://github.com/getsentry/seer/blob/main/src/seer/routes/automation_request.py#L57
-    OVERWATCH_REQUEST = "/v1/automation/overwatch-request"
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
-    PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
+    PR_REVIEW_RERUN = "/v1/code_review/check/rerun"
+    CODE_REVIEW_REVIEW_REQUEST = "/v1/code_review/review-request"
+    CODE_REVIEW_PR_CLOSED = "/v1/code_review/pr-closed"
 
 
-def get_seer_endpoint_for_event(github_event: str) -> SeerEndpoint:
+def get_seer_path_for_request(github_event: str, github_event_action: str | None = None) -> str:
     """
-    Get the appropriate Seer endpoint for a given GitHub webhook event.
+    Get the Seer API path for a webhook request based on event type and action.
 
-    Args:
-        github_event: The GitHub webhook event type (as string, after Celery deserialization)
-
-    Returns:
-        The SeerEndpoint to use for the event
+    CHECK_RUN events use the rerun endpoint. PR and issue_comment events use the
+    dedicated review-request or pr-closed endpoint based on event action.
     """
     if github_event == GithubWebhookType.CHECK_RUN.value:
-        return SeerEndpoint.PR_REVIEW_RERUN
-    return SeerEndpoint.OVERWATCH_REQUEST
+        return SeerEndpoint.PR_REVIEW_RERUN.value
+    if github_event_action == "closed":
+        return SeerEndpoint.CODE_REVIEW_PR_CLOSED.value
+    return SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value
 
 
-def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
+def make_seer_request(
+    path: str,
+    payload: Mapping[str, Any],
+    viewer_context: SeerViewerContext | None = None,
+) -> bytes:
     """
     Make a request to the Seer API and return the response data.
 
     Args:
         path: The path to the Seer API
         payload: The payload to send to the Seer API
+        viewer_context: Optional viewer context for access control
 
     Raises:
         HTTPError: If the Seer API returns a retryable status
@@ -104,9 +113,10 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     """
     logger.info("seer.code_review.sending_request_to_seer")
     response = make_signed_seer_api_request(
-        connection_pool=connection_from_url(settings.SEER_PREVENT_AI_URL),
+        connection_pool=seer_code_review_connection_pool,
         path=path,
         body=orjson.dumps(payload),
+        viewer_context=viewer_context,
     )
     # Retry on server errors (5xx) and rate limits (429), but not client errors (4xx)
     if response.status >= 500 or response.status == 429:
@@ -188,7 +198,7 @@ def _get_target_commit_sha(
             raise ValueError("missing-pr-number-for-sha")
 
         client = integration.get_installation(organization_id=repo.organization_id).get_client()
-        sha = client.get_pull_request(repo.name, pr_number).get("head", {}).get("sha")
+        sha = client.get_pull_request(repo.name, str(pr_number)).get("head", {}).get("sha")
         if not isinstance(sha, str) or not sha:
             raise ValueError("missing-api-pr-head-sha")
         return sha
@@ -217,7 +227,7 @@ def transform_webhook_to_codegen_request(
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
 
     Returns:
-        Dictionary with request_type, data, and external_owner_id that matches either
+        Dictionary with data, and external_owner_id that matches either
         SeerCodeReviewTaskRequestForPrReview or SeerCodeReviewTaskRequestForPrClosed format,
         or None if the event is not PR-related (e.g., issue_comment on regular issues)
     """
@@ -234,13 +244,15 @@ def transform_webhook_to_codegen_request(
 
 
 def _common_codegen_request_payload(
-    request_type: SeerCodeReviewRequestType,
+    *,
+    add_experiment_enabled: bool,
     repo: Repository,
     target_commit_sha: str,
     organization: Organization,
+    event_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
     data: dict[str, Any] = {
-        "repo": _build_repo_definition(repo, target_commit_sha),
+        "repo": _build_repo_definition(repo, target_commit_sha, event_payload),
         "bug_prediction_specific_information": {
             "organization_id": organization.id,
             "organization_slug": organization.slug,
@@ -251,13 +263,11 @@ def _common_codegen_request_payload(
         },
     }
 
-    # Add experiment_enabled flag ONLY for pr-review requests
-    if request_type == SeerCodeReviewRequestType.PR_REVIEW:
+    # Add experiment_enabled flag ONLY for pr-review requests (not for pr-closed / pr-reopened)
+    if add_experiment_enabled:
         data["experiment_enabled"] = is_org_enabled_for_code_review_experiments(organization)
 
     return {
-        # In Seer,src/seer/routes/automation_request.py:overwatch_request_endpoint
-        "request_type": request_type.value,
         "external_owner_id": repo.external_id,
         "data": data,
     }
@@ -275,10 +285,11 @@ def transform_issue_comment_to_codegen_request(
     Returns a dictionary matching SeerCodeReviewTaskRequestForPrReview format.
     """
     payload = _common_codegen_request_payload(
-        SeerCodeReviewRequestType.PR_REVIEW,  # An issue comment on a PR is a PR review request
+        add_experiment_enabled=True,  # Issue comment on a PR is always a PR review request
         repo=repo,
         target_commit_sha=target_commit_sha,
         organization=organization,
+        event_payload=event_payload,
     )
     payload["data"]["pr_id"] = event_payload["issue"]["number"]
     config = payload["data"]["config"]
@@ -307,24 +318,20 @@ def transform_pull_request_to_codegen_request(
         case "synchronize":
             review_request_trigger = SeerCodeReviewTrigger.ON_NEW_COMMIT
 
-    request_type = (
-        SeerCodeReviewRequestType.PR_REVIEW
-        if github_event_action != "closed"
-        else SeerCodeReviewRequestType.PR_CLOSED
-    )
     payload = _common_codegen_request_payload(
-        request_type,
+        add_experiment_enabled=(github_event_action not in ("closed", "reopened")),
         repo=repo,
         target_commit_sha=target_commit_sha,
         organization=organization,
+        event_payload=event_payload,
     )
     pull_request = event_payload.get("pull_request", {})
     payload["data"]["pr_id"] = pull_request.get("number")
     config = payload["data"]["config"]
     trigger_metadata = _get_trigger_metadata_for_pull_request(event_payload)
     # In Seer, used here:
-    # src/seer/automation/codegen/tasks.py
-    # src/seer/automation/codegen/pr_review_step.py
+    # src/code_review/tasks.py
+    # src/code_review/pr_review_step.py
     config["trigger"] = review_request_trigger.value
     config["trigger_user"] = trigger_metadata["trigger_user"]
     config["trigger_user_id"] = trigger_metadata["trigger_user_id"]
@@ -335,7 +342,11 @@ def transform_pull_request_to_codegen_request(
     return payload
 
 
-def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str, Any]:
+def _build_repo_definition(
+    repo: Repository,
+    target_commit_sha: str,
+    event_payload: Mapping[str, Any],
+) -> dict[str, Any]:
     """
     Build the repository definition for code review requests.
     """
@@ -351,6 +362,7 @@ def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str
         "external_id": repo.external_id,
         "base_commit_sha": target_commit_sha,
         "organization_id": repo.organization_id,
+        "is_private": event_payload.get("repository", {}).get("private"),
     }
 
     # add integration_id which is used in pr_closed_step for product metrics dashboarding only
@@ -417,6 +429,7 @@ def get_tags(
             - scm_owner: The repository owner/organization name
             - scm_provider: Always "github"
             - scm_repo_full_name: The repository full name (owner/repo)
+            - scm_repo_is_private: Whether the repo is private (if available)
             - scm_repo_name: The repository name
             - sentry_integration_id: The Sentry integration ID
             - sentry_organization_id: Sentry organization ID (if available)
@@ -440,6 +453,8 @@ def get_tags(
             result["scm_repo_name"] = repo_name
         if owner_repo_name := repository.get("full_name"):
             result["scm_repo_full_name"] = owner_repo_name
+        if (repo_private := repository.get("private")) is not None:
+            result["scm_repo_is_private"] = str(repo_private)
 
     github_event_action = event.get("action")
     if github_event_action:

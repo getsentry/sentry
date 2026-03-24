@@ -9,7 +9,7 @@ This skill provides patterns for building forms using Sentry's new form system b
 
 ## Core Principle
 
-- Always use the new form system (`useScrapsForm`, `AutoSaveField`) for new forms. Never create new forms with the legacy JsonForm or Reflux-based systems.
+- Always use the new form system (`useScrapsForm`, `AutoSaveForm`) for new forms. Never create new forms with the legacy JsonForm or Reflux-based systems.
 
 - All forms should be schema based. DO NOT create a form without schema validation.
 
@@ -21,7 +21,7 @@ All form components are exported from `@sentry/scraps/form`:
 import {z} from 'zod';
 
 import {
-  AutoSaveField,
+  AutoSaveForm,
   defaultFormOptions,
   setFieldErrors,
   useScrapsForm,
@@ -65,18 +65,16 @@ function MyForm() {
   });
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <form.AppField name="email">
-          {field => (
-            <field.Layout.Stack label="Email" required>
-              <field.Input value={field.state.value} onChange={field.handleChange} />
-            </field.Layout.Stack>
-          )}
-        </form.AppField>
+    <form.AppForm form={form}>
+      <form.AppField name="email">
+        {field => (
+          <field.Layout.Stack label="Email" required>
+            <field.Input value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Stack>
+        )}
+      </form.AppField>
 
-        <form.SubmitButton>Submit</form.SubmitButton>
-      </form.FormWrapper>
+      <form.SubmitButton>Submit</form.SubmitButton>
     </form.AppForm>
   );
 }
@@ -86,16 +84,15 @@ function MyForm() {
 
 ### Returned Properties
 
-| Property         | Description                                    |
-| ---------------- | ---------------------------------------------- |
-| `AppForm`        | Root wrapper component (provides form context) |
-| `FormWrapper`    | Form element wrapper (handles submit)          |
-| `AppField`       | Field renderer component                       |
-| `FieldGroup`     | Section grouping with title                    |
-| `SubmitButton`   | Pre-wired submit button                        |
-| `Subscribe`      | Subscribe to form state changes                |
-| `reset()`        | Reset form to default values                   |
-| `handleSubmit()` | Manually trigger submission                    |
+| Property         | Description                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `AppForm`        | Root wrapper component (provides form context and renders `<form>` element). Must receive `form={form}` prop. |
+| `AppField`       | Field renderer component                                                                                      |
+| `FieldGroup`     | Section grouping with title                                                                                   |
+| `SubmitButton`   | Pre-wired submit button                                                                                       |
+| `Subscribe`      | Subscribe to form state changes                                                                               |
+| `reset()`        | Reset form to default values                                                                                  |
+| `handleSubmit()` | Manually trigger submission                                                                                   |
 
 ---
 
@@ -223,6 +220,85 @@ All fields are accessed via the `field` render prop and follow consistent patter
   )}
 </form.AppField>
 ```
+
+### Radio Field
+
+Radio fields use a composable API with `Radio.Group` and `Radio.Item`. `Radio.Group` provides group context that changes how the label is rendered for proper accessibility semantics.
+
+> **Important**: The layout (and its label) **must** be rendered _inside_ `Radio.Group`. The group context is provided by `Radio.Group`, so placing the layout outside will result in incorrect accessibility semantics.
+
+```tsx
+<form.AppField name="priority">
+  {field => (
+    <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+      <field.Layout.Stack label="Priority">
+        <field.Radio.Item value="low">Low</field.Radio.Item>
+        <field.Radio.Item value="medium">Medium</field.Radio.Item>
+        <field.Radio.Item value="high" description="Urgent issues">
+          High
+        </field.Radio.Item>
+      </field.Layout.Stack>
+    </field.Radio.Group>
+  )}
+</form.AppField>
+```
+
+For horizontal arrangement of radio items, use a `Flex` or `Stack` wrapper inside the layout:
+
+```tsx
+import {Flex} from '@sentry/scraps/layout';
+
+<field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+  <field.Layout.Row label="Priority">
+    <Flex gap="lg">
+      <field.Radio.Item value="low">Low</field.Radio.Item>
+      <field.Radio.Item value="high">High</field.Radio.Item>
+    </Flex>
+  </field.Layout.Row>
+</field.Radio.Group>;
+```
+
+### Custom Fields with BaseField
+
+For one-off fields that don't have a built-in component (e.g. a color picker, or any custom input), use `field.Base`. It provides a render prop with all the necessary accessibility and form integration props (`ref`, `disabled`, `aria-invalid`, `aria-describedby`, `onBlur`, `name`, `id`) that you spread onto your native element.
+
+```tsx
+<form.AppField name="color">
+  {field => (
+    <field.Layout.Row label="Brand Color">
+      <field.Base<HTMLInputElement>>
+        {(baseProps, {indicator}) => (
+          <Flex flexGrow={1}>
+            <input
+              {...baseProps}
+              type="color"
+              value={field.state.value}
+              onChange={e => field.handleChange(e.target.value)}
+            />
+            {indicator}
+          </Flex>
+        )}
+      </field.Base>
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+The render prop receives two arguments:
+
+1. **`baseProps`** — accessibility and form integration props (`ref`, `disabled`, `aria-invalid`, `aria-describedby`, `onBlur`, `name`, `id`) to spread onto your element
+2. **`{indicator}`** — the auto-save status indicator (spinner/checkmark) as a React node, which you can place wherever makes sense in your custom layout
+
+The element type is inferred from the passed `ref`, so if you don't pass one, you have to manually annotate it with `<field.Base<HTMLInputElement>>`.
+
+`field.Base` automatically handles:
+
+- Merging refs (for scroll-to-hash and external ref forwarding)
+- Disabling the field when auto-save is pending
+- Setting `aria-invalid` based on validation state
+- Linking to hint text via `aria-describedby`
+
+Use `field.Base` instead of building custom wrappers that duplicate this logic. It works with any native HTML element or third-party component that accepts standard props.
 
 ---
 
@@ -363,6 +439,44 @@ const userSchema = z.object({
 });
 ```
 
+### Nullable Fields with Refine
+
+When a field starts as `null` (e.g., a required select with no initial selection), use `.nullable().refine()` in the schema. This creates a difference between the schema's _input_ type (which accepts `null`) and its _output_ type (which does not). To handle this correctly:
+
+1. Type `defaultValues` explicitly as `z.input<typeof schema>` — this allows `null` as an initial value.
+2. Call `schema.parse(value)` inside `onSubmit` to narrow from `z.input` to `z.output`, stripping the `null` before passing to your mutation.
+
+```tsx
+const schema = z.object({
+  provider: z
+    .enum(['GitHub', 'LaunchDarkly'])
+    .nullable()
+    .refine(v => v !== null, 'Provider is required'),
+  name: z.string().min(1, 'Name is required'),
+});
+
+// z.input allows null for the provider field
+const defaultValues: z.input<typeof schema> = {
+  provider: null,
+  name: '',
+};
+
+// z.output<typeof schema> has provider as non-null after refine
+type FormOutput = z.output<typeof schema>;
+
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  onSubmit: ({value}) => {
+    // schema.parse narrows null away — mutation receives z.output
+    return mutation.mutateAsync(schema.parse(value)).catch(() => {});
+  },
+});
+```
+
+> **Important**: Do NOT use non-null assertions (`value.provider!`) or type casts to work around nullable fields. The `schema.parse()` approach is both type-safe and validates at runtime.
+
 ### Conditional Validation
 
 Use `.refine()` for cross-field validation:
@@ -456,14 +570,14 @@ Validation errors automatically show as a warning icon with tooltip in the field
 
 ## Auto-Save Pattern
 
-For settings pages where each field saves independently, use `AutoSaveField`.
+For settings pages where each field saves independently, use `AutoSaveForm`.
 
-### Basic Auto-Save Field
+### Basic Auto-Save Form
 
 ```tsx
 import {z} from 'zod';
 
-import {AutoSaveField} from '@sentry/scraps/form';
+import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
 
@@ -473,7 +587,7 @@ const schema = z.object({
 
 function SettingsForm() {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="displayName"
       schema={schema}
       initialValue={user.displayName}
@@ -496,7 +610,7 @@ function SettingsForm() {
           <field.Input value={field.state.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 ```
@@ -509,6 +623,7 @@ function SettingsForm() {
 | Select (single)   | Immediately when selection changes                          |
 | Select (multiple) | When menu closes, or when X/clear clicked while menu closed |
 | Switch            | Immediately when toggled                                    |
+| Radio             | Immediately when selection changes                          |
 | Range             | When user releases the slider, or immediately with keyboard |
 
 ### Auto-Save Status Indicators
@@ -519,12 +634,14 @@ The form system automatically shows:
 - **Checkmark** on success (fades after 2s)
 - **Warning icon** on validation error (with tooltip)
 
+> **Important**: Do NOT use toasts to communicate auto-save status. The built-in inline indicators (spinner, checkmark, warning icon) are the correct feedback mechanism. Toasts are noisy and disruptive for fields that save frequently on every change.
+
 ### Confirmation Dialogs
 
 For dangerous operations (security settings, permissions), use the `confirm` prop to show a confirmation modal before saving. The `confirm` prop accepts either a string or a function.
 
 ```tsx
-<AutoSaveField
+<AutoSaveForm
   name="require2FA"
   schema={schema}
   initialValue={false}
@@ -540,7 +657,7 @@ For dangerous operations (security settings, permissions), use the `confirm` pro
       <field.Switch checked={field.state.value} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
-</AutoSaveField>
+</AutoSaveForm>
 ```
 
 **Confirm Config Options:**
@@ -615,6 +732,20 @@ function MyForm() {
 }
 ```
 
+### Resetting After Save
+
+When a form stays on the page after submission (e.g., settings pages), call `form.reset()` after a successful mutation. This re-syncs the form with updated `defaultValues` so it becomes pristine again — any UI that depends on the form being dirty (like conditionally shown Save/Cancel buttons) will update correctly.
+
+```tsx
+onSubmit: ({value}) =>
+  mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {}),
+```
+
+> **Note**: `AutoSaveForm` handles this automatically. You only need to add this when using `useScrapsForm`.
+
 ### Submit Button
 
 ```tsx
@@ -662,6 +793,33 @@ const form = useScrapsForm({
 });
 ```
 
+### Nullable Default Values
+
+```tsx
+// ❌ Don't use non-null assertions or type casts
+onSubmit: ({value}) => {
+  return mutation.mutateAsync({...value, provider: value.provider!});
+};
+
+// ❌ Don't skip typing defaultValues when the schema has refine
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues: {provider: null, name: ''}, // type is inferred but imprecise
+});
+
+// ✅ Use z.input for defaultValues and schema.parse in onSubmit
+const defaultValues: z.input<typeof schema> = {provider: null, name: ''};
+
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  onSubmit: ({value}) => {
+    return mutation.mutateAsync(schema.parse(value)).catch(() => {});
+  },
+});
+```
+
 ### Form Submissions
 
 ```tsx
@@ -684,7 +842,11 @@ onSubmit: ({value}) => {
   // Return the promise to keep form.isSubmitting working
   // Add .catch(() => {}) to avoid unhandled rejection - error handling
   // is done by TanStack Query (onError callback, mutation.isError state)
-  return mutation.mutateAsync(value).catch(() => {});
+  // Add .then(() => form.reset()) if the form stays on the page after save
+  return mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {});
 };
 ```
 
@@ -708,7 +870,30 @@ z.string().min(1);
 z.string().min(1, 'Email address is required');
 ```
 
+### Auto-Save Feedback
+
+```tsx
+// ❌ Don't use toasts for auto-save status
+mutationOptions={{
+  mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
+  onSuccess: () => {
+    addSuccessMessage('Saved!'); // ❌ noisy and disruptive
+  },
+}}
+
+// ✅ Rely on built-in inline indicators (spinner, checkmark, warning icon)
+mutationOptions={{
+  mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
+  onSuccess: (data) => {
+    queryClient.setQueryData(['user'], old => ({...old, ...data}));
+    // No toast needed - AutoSaveForm shows a checkmark automatically
+  },
+}}
+```
+
 ### Auto-Save Cache Updates
+
+Always update the data store or cache in `onSuccess`. Without this, toggling a field back to its original value won't trigger a save — TanStack Form compares against `defaultValues` (derived from `initialValue`) and skips submission when the value matches.
 
 ```tsx
 // ❌ Don't forget to update the cache after auto-save
@@ -725,31 +910,45 @@ mutationOptions={{
 }}
 ```
 
-### Auto-Save Mutation Typing with Mixed-Type Schemas
+### Auto-Save Mutation Typing
 
-When using `AutoSaveField` with schemas that have mixed types (e.g., strings and booleans), the mutation options must be typed using the schema-inferred type. Using generic types like `Record<string, unknown>` breaks TanStack Form's ability to narrow field types.
+Type the `mutationFn` with the API's data type, **not** the zod schema type. The schema is for client-side field validation — the mutation should accept whatever the API endpoint accepts. Don't use generic types like `Record<string, unknown>` either, as that breaks TanStack Form's ability to narrow field types.
 
 ```tsx
-const preferencesSchema = z.object({
-  theme: z.string(),
-  language: z.string(),
-  notifications: z.boolean(),
-});
-
-type Preferences = z.infer<typeof preferencesSchema>;
-
 // ❌ Don't use generic types - breaks field type narrowing
-const mutationOptions = mutationOptions({
+const opts = mutationOptions({
   mutationFn: (data: Record<string, unknown>) => fetchMutation({...}),
 });
 
-// ✅ Use schema-inferred type for proper type narrowing
-const mutationOptions = mutationOptions({
-  mutationFn: (data: Partial<Preferences>) => fetchMutation({...}),
+// ❌ Don't tie mutation type to the zod schema
+const opts = mutationOptions({
+  mutationFn: (data: Partial<z.infer<typeof preferencesSchema>>) => fetchMutation({...}),
+});
+
+// ✅ Use the API's data type
+const opts = mutationOptions({
+  mutationFn: (data: Partial<UserDetails>) => fetchMutation({...}),
 });
 ```
 
-This ensures that when you use `name="theme"`, the field correctly infers `string` type, and `name="notifications"` infers `boolean` type.
+Make sure the zod schema's types are compatible with the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
+
+### Form Reset After Save
+
+```tsx
+// ❌ Don't forget to reset forms that stay on the page after save
+onSubmit: ({value}) => {
+  return mutation.mutateAsync(value).catch(() => {});
+};
+
+// ✅ Call form.reset() after successful save to sync with updated defaultValues
+onSubmit: ({value}) => {
+  return mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {});
+};
+```
 
 ### Layout Choice
 
@@ -770,17 +969,18 @@ When creating a new form:
 - [ ] Import from `@sentry/scraps/form` and `zod`
 - [ ] Define Zod schema with helpful error messages
 - [ ] Use `useScrapsForm` with `...defaultFormOptions`
-- [ ] Set `defaultValues` matching schema shape
+- [ ] Set `defaultValues` matching schema shape (use `z.input<typeof schema>` if schema has `.refine()`)
 - [ ] Set `validators: {onDynamic: schema}`
-- [ ] Wrap with `<form.AppForm>` and `<form.FormWrapper>`
+- [ ] Wrap with `<form.AppForm form={form}>`
 - [ ] Use `<form.AppField>` for each field
 - [ ] Choose appropriate layout (Stack or Row)
 - [ ] Handle server errors with `setFieldErrors`
 - [ ] Add `<form.SubmitButton>` for submission
+- [ ] Call `form.reset()` after successful mutation if the form stays on the page
 
 When creating auto-save fields:
 
-- [ ] Use `<AutoSaveField>` component
+- [ ] Use `<AutoSaveForm>` component
 - [ ] Pass `schema` for validation
 - [ ] Pass `initialValue` from current data
 - [ ] Configure `mutationOptions` with `mutationFn`
@@ -790,10 +990,10 @@ When creating auto-save fields:
 
 ## File References
 
-| File                                                      | Purpose                     |
-| --------------------------------------------------------- | --------------------------- |
-| `static/app/components/core/form/scrapsForm.tsx`          | Main form hook              |
-| `static/app/components/core/form/field/autoSaveField.tsx` | Auto-save wrapper           |
-| `static/app/components/core/form/field/*.tsx`             | Individual field components |
-| `static/app/components/core/form/layout/index.tsx`        | Layout components           |
-| `static/app/components/core/form/form.stories.tsx`        | Usage examples              |
+| File                                               | Purpose                     |
+| -------------------------------------------------- | --------------------------- |
+| `static/app/components/core/form/scrapsForm.tsx`   | Main form hook              |
+| `static/app/components/core/form/autoSaveForm.tsx` | Auto-save wrapper           |
+| `static/app/components/core/form/field/*.tsx`      | Individual field components |
+| `static/app/components/core/form/layout/index.tsx` | Layout components           |
+| `static/app/components/core/form/form.stories.tsx` | Usage examples              |

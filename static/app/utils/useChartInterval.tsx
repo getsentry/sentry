@@ -12,7 +12,7 @@ import {
   THIRTY_DAYS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -69,7 +69,7 @@ function useChartIntervalImpl({
     [datetime]
   );
 
-  const interval: string = useMemo(() => {
+  const interval = useMemo(() => {
     const decodedInterval = decodeScalar(location.query.interval);
 
     // Default to the second largest option or largest option

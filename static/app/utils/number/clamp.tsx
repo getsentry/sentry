@@ -1,4 +1,4 @@
-export default function clamp(
+export function clamp(
   num: number,
   min: number = Number.MIN_SAFE_INTEGER,
   max: number = Number.MAX_SAFE_INTEGER

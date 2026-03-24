@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
 
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface ListLinkProps extends Omit<
@@ -24,7 +24,7 @@ interface ListLinkProps extends Omit<
   isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
 }
 
-function ListLink({
+export function ListLink({
   children,
   className,
   isActive,
@@ -50,8 +50,6 @@ function ListLink({
     </StyledLi>
   );
 }
-
-export default ListLink;
 
 const StyledLi = styled('li', {
   shouldForwardProp: prop => prop !== 'disabled',

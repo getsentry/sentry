@@ -86,7 +86,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 200
         assert response.data["id"] == str(self.codeowners.id)
         assert response.data["raw"] == raw.strip()
-        codeowner = ProjectCodeOwners.objects.filter(id=self.codeowners.id)[0]
+        codeowner = ProjectCodeOwners.objects.get(id=self.codeowners.id)
         assert codeowner.date_updated.strftime("%Y-%m-%d %H:%M:%S") == "2023-10-03 00:00:00"
 
     def test_wrong_codeowners_id(self) -> None:

@@ -18,21 +18,23 @@ import type {
   Detector,
   MetricCondition,
   MetricDetector,
+  PreprodDetector,
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {getDetectorSystemCreatedNotice} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type DetectorLinkProps = {
@@ -78,6 +80,32 @@ function formatCondition({condition, unit}: {condition: DataCondition; unit: str
   return `${comparison}${threshold} ${priority}`;
 }
 
+function formatPercentCondition({
+  condition,
+  timeRange,
+  unit,
+}: {
+  condition: DataCondition;
+  timeRange: string;
+  unit: string;
+}) {
+  if (
+    !condition.conditionResult ||
+    condition.conditionResult === DetectorPriorityLevel.OK ||
+    typeof condition.comparison !== 'number'
+  ) {
+    return null;
+  }
+
+  const threshold = `${percentThresholdAbsoluteToDelta(condition.comparison)}${unit}`;
+  const direction = condition.comparison >= 100 ? t('higher') : t('lower');
+  return t('%(threshold)s %(direction)s than previous %(timeRange)s', {
+    threshold,
+    direction,
+    timeRange,
+  });
+}
+
 function DetailItem({children}: {children: React.ReactNode}) {
   if (!children) {
     return null;
@@ -114,8 +142,10 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
       return <DetailItem>{text}</DetailItem>;
     }
     case 'percent': {
+      const comparisonDelta = detector.config.comparisonDelta ?? 3600;
+      const timeRange = getDuration(comparisonDelta);
       const text = conditions
-        .map(condition => formatCondition({condition, unit}))
+        .map(condition => formatPercentCondition({condition, timeRange, unit}))
         .filter(defined)
         .join(', ');
       if (!text) {
@@ -189,6 +219,15 @@ function CronDetectorDetails({detector}: {detector: CronDetector}) {
   return <DetailItem>{scheduleAsText(config)}</DetailItem>;
 }
 
+function PreprodDetectorDetails({detector}: {detector: PreprodDetector}) {
+  const {measurement, thresholdType} = detector.config;
+  return (
+    <DetailItem>
+      {measurement} {thresholdType}
+    </DetailItem>
+  );
+}
+
 function Details({detector}: {detector: Detector}) {
   const detectorType = detector.type;
   switch (detectorType) {
@@ -198,6 +237,8 @@ function Details({detector}: {detector: Detector}) {
       return <UptimeDetectorDetails detector={detector} />;
     case 'monitor_check_in_failure':
       return <CronDetectorDetails detector={detector} />;
+    case 'preprod_size_analysis':
+      return <PreprodDetectorDetails detector={detector} />;
     case 'error':
     case 'issue_stream':
       return null;

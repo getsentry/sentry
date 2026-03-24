@@ -1,9 +1,10 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import FilterSelector from 'sentry/views/dashboards/globalFilter/filterSelector';
+import {FilterSelector} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 describe('FilterSelector', () => {
   const mockOnUpdateFilter = jest.fn();
@@ -106,5 +107,87 @@ describe('FilterSelector', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove Filter'}));
 
     expect(mockOnRemoveFilter).toHaveBeenCalledWith(mockGlobalFilter);
+  });
+
+  it('does not reset selected values when dismissing the select without applying', async () => {
+    const fiveValueSearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () =>
+        Promise.resolve(['chrome', 'firefox', 'safari', 'edge', 'opera']),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: 'browser:[firefox,chrome]'}}
+        searchBarData={fiveValueSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    // Open the select
+    const button = screen.getByRole('button', {name: /browser/});
+    await userEvent.click(button);
+
+    // Wait for options to load
+    expect(await screen.findByText('chrome')).toBeInTheDocument();
+
+    // Dismiss by clicking outside (without applying)
+    await userEvent.click(document.body);
+
+    // Wait for the dropdown to close (overlay removed from DOM)
+    await waitFor(() => {
+      expect(screen.queryByText('safari')).not.toBeInTheDocument();
+    });
+
+    // Flush requestAnimationFrame callbacks (control.tsx uses nextFrameCallback for onClose)
+    await act(async () => {
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    });
+
+    // The underlying filter value should not have been modified
+    expect(mockOnUpdateFilter).not.toHaveBeenCalled();
+
+    // The trigger should still show the selected values, not "All"
+    expect(screen.queryByText('All')).not.toBeInTheDocument();
+    expect(screen.getByText('firefox')).toBeInTheDocument();
+  });
+
+  it('translates subregion codes to human-readable names for spans dataset', async () => {
+    const subregionFilter: GlobalFilter = {
+      dataset: WidgetType.SPANS,
+      tag: {
+        key: SpanFields.USER_GEO_SUBREGION,
+        name: 'User Geo Subregion',
+        kind: FieldKind.FIELD,
+      },
+      value: '',
+    };
+
+    const subregionSearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () => Promise.resolve(['21', '154']),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={subregionFilter}
+        searchBarData={subregionSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {
+      name: SpanFields.USER_GEO_SUBREGION + ' :',
+    });
+    await userEvent.click(button);
+
+    expect(screen.getByRole('row', {name: 'North America'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Northern Europe'})).toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: '21'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: '154'})).not.toBeInTheDocument();
   });
 });

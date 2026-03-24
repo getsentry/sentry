@@ -12,16 +12,15 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PluginNoProject, PluginProjectItem} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
@@ -176,7 +175,7 @@ class InstalledPlugin extends Component<Props> {
 export default withApi(InstalledPlugin);
 
 const Container = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: none;
   background-color: ${p => p.theme.tokens.background.primary};

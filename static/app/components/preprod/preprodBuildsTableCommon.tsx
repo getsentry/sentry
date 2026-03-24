@@ -9,9 +9,8 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
@@ -65,34 +64,32 @@ export function PreprodBuildsRowCells({
                   {build.app_info?.name || '--'}
                 </Text>
               </Container>
-              <Feature features="organizations:preprod-build-distribution">
-                {(build.distribution_info?.is_installable ||
-                  showInstallabilityIndicator) && (
-                  <Flex align="center">
-                    {build.distribution_info?.is_installable ? (
-                      <InstallAppButton
-                        projectId={build.project_slug}
-                        artifactId={build.id}
-                        platform={build.app_info.platform ?? null}
-                        source="builds_table"
-                        variant="icon"
-                      />
-                    ) : (
-                      <Tooltip title={t('Not installable')} skipWrapper>
-                        <span>
-                          <Button
-                            aria-label={t('Not installable')}
-                            icon={<IconNot variant="danger" size="xs" />}
-                            priority="transparent"
-                            size="zero"
-                            disabled
-                          />
-                        </span>
-                      </Tooltip>
-                    )}
-                  </Flex>
-                )}
-              </Feature>
+              {(build.distribution_info?.is_installable ||
+                showInstallabilityIndicator) && (
+                <Flex align="center">
+                  {build.distribution_info?.is_installable ? (
+                    <InstallAppButton
+                      projectId={build.project_slug}
+                      artifactId={build.id}
+                      platform={build.app_info.platform ?? null}
+                      source="builds_table"
+                      variant="icon"
+                    />
+                  ) : (
+                    <Tooltip title={t('Not installable')} skipWrapper>
+                      <span>
+                        <Button
+                          aria-label={t('Not installable')}
+                          icon={<IconNot variant="danger" size="xs" />}
+                          priority="transparent"
+                          size="zero"
+                          disabled
+                        />
+                      </span>
+                    </Tooltip>
+                  )}
+                </Flex>
+              )}
             </Flex>
             <Flex align="center" gap="xs">
               <Text size="sm" variant="muted">

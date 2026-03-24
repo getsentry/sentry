@@ -6,8 +6,8 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -24,7 +24,7 @@ import {isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   Table,
   TableBody,
@@ -118,11 +118,10 @@ export function SuspectFunctionsTable({
   const organization = useOrganization();
 
   const flamegraphQuery = useAggregateFlamegraphQuery({
-    // User query is only permitted when using transactions.
-    // If this is to be reused for strictly continuous profiling,
-    // it'll need to be swapped to use the `profiles` data source
-    // with no user query.
-    dataSource: 'transactions',
+    // Note: the 'profiles' data source does not support user queries.
+    // If reusing this for continuous profiling, remove the query param
+    // and switch to dataSource: 'profiles'.
+    dataSource: 'spans',
     query: eventView.query,
     metrics: true,
   });
@@ -132,7 +131,7 @@ export function SuspectFunctionsTable({
     const frameInfos = flamegraphQuery.data?.shared?.frame_infos ?? [];
     const profileExamples = flamegraphQuery.data?.shared?.profiles ?? [];
 
-    const examples: Array<Array<Exclude<Profiling.ProfileReference, string>>> = new Array(
+    const examples = new Array<Array<Exclude<Profiling.ProfileReference, string>>>(
       frames.length
     );
 
@@ -179,9 +178,7 @@ export function SuspectFunctionsTable({
         continue;
       }
 
-      const frameExamples:
-        | Array<Exclude<Profiling.ProfileReference, string>>
-        | undefined = examples[i];
+      const frameExamples = examples[i];
       if (!frameExamples?.length) {
         continue;
       }
@@ -270,7 +267,7 @@ export function SuspectFunctionsTable({
             <TableStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
-          ) : flamegraphQuery.isFetched ? (
+          ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
             metrics.map((metric, i) => (
               <TableEntry
                 key={i}

@@ -9,22 +9,23 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 
 ## Feature Mapping
 
-| Old System           | New System          | Notes                                        |
-| -------------------- | ------------------- | -------------------------------------------- |
-| `saveOnBlur: true`   | `AutoSaveField`     | Default behavior                             |
-| `confirm`            | `confirm` prop      | `string \| ((value) => string \| undefined)` |
-| `showHelpInTooltip`  | `variant="compact"` | On layout components                         |
-| `disabledReason`     | `disabled="reason"` | String shows tooltip                         |
-| `extraHelp`          | JSX in layout       | Render `<Text>` below field                  |
-| `getData`            | `mutationFn`        | Transform data in mutation function          |
-| `mapFormErrors`      | `setFieldErrors`    | Transform API errors in catch block          |
-| `saveMessage`        | `onSuccess`         | Show toast in mutation onSuccess callback    |
-| `formatMessageValue` | `onSuccess`         | Control toast content in onSuccess callback  |
-| `resetOnError`       | `onError`           | Call form.reset() in mutation onError        |
-| `saveOnBlur: false`  | `useScrapsForm`     | Use regular form with explicit Save button   |
-| `help`               | `hintText`          | On layout components                         |
-| `label`              | `label`             | On layout components                         |
-| `required`           | `required`          | On layout + Zod schema                       |
+| Old System           | New System          | Notes                                                |
+| -------------------- | ------------------- | ---------------------------------------------------- |
+| `saveOnBlur: true`   | `AutoSaveForm`      | Default behavior                                     |
+| `confirm`            | `confirm` prop      | `string \| ((value) => string \| undefined)`         |
+| `showHelpInTooltip`  | `variant="compact"` | On layout components                                 |
+| `disabledReason`     | `disabled="reason"` | String shows tooltip                                 |
+| `extraHelp`          | JSX in layout       | Render `<Text>` below field                          |
+| `getData`            | `mutationFn`        | Transform data in mutation function                  |
+| `mapFormErrors`      | `setFieldErrors`    | Transform API errors in catch block                  |
+| `saveMessage`        | `onSuccess`         | Show toast in mutation onSuccess callback            |
+| `formatMessageValue` | `onSuccess`         | Control toast content in onSuccess callback          |
+| `resetOnError`       | `onError`           | Call form.reset() in mutation onError                |
+| `saveOnBlur: false`  | `useScrapsForm`     | Use regular form with explicit Save button           |
+| (automatic)          | `form.reset()`      | Call after successful mutation if form stays on page |
+| `help`               | `hintText`          | On layout components                                 |
+| `label`              | `label`             | On layout components                                 |
+| `required`           | `required`          | On layout + Zod schema                               |
 
 ## Feature Details
 
@@ -47,7 +48,7 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 **New:**
 
 ```tsx
-<AutoSaveField
+<AutoSaveForm
   name="require2FA"
   confirm={value =>
     value
@@ -148,7 +149,7 @@ The `getData` function transformed field data before sending to the API. In the 
 **New:**
 
 ```tsx
-<AutoSaveField
+<AutoSaveForm
   name="sentry:csp_ignored_sources_defaults"
   schema={schema}
   initialValue={project.options['sentry:csp_ignored_sources_defaults']}
@@ -169,7 +170,7 @@ The `getData` function transformed field data before sending to the API. In the 
       <field.Switch checked={field.state.value} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
-</AutoSaveField>
+</AutoSaveForm>
 ```
 
 **Simpler pattern** - If you just need to wrap the value:
@@ -186,19 +187,11 @@ mutationOptions={{
 }}
 ```
 
-**Important: Typing mutations with mixed-type schemas**
+**Important: Typing mutations correctly**
 
-When using `AutoSaveField` with schemas that have mixed types (e.g., strings and booleans), the mutation function must be typed using the schema-inferred type. Using generic types like `Record<string, unknown>` breaks TanStack Form's ability to narrow field types based on the field name.
+The `mutationFn` should be typed with the API's data type (e.g., `Partial<Organization>`, `Partial<Project>`), **not** the schema-inferred type. The schema is for client-side field validation only — the mutation receives whatever the API endpoint accepts. Tying the mutation to the schema couples two unrelated concerns and can cause type errors when the schema types don't exactly match the API types.
 
 ```tsx
-const preferencesSchema = z.object({
-  theme: z.string(),
-  language: z.string(),
-  notifications: z.boolean(),
-});
-
-type Preferences = z.infer<typeof preferencesSchema>;
-
 // ❌ Don't use generic types - breaks field type narrowing
 mutationOptions={{
   mutationFn: (data: Record<string, unknown>) => {
@@ -206,13 +199,22 @@ mutationOptions={{
   },
 }}
 
-// ✅ Use schema-inferred type for proper type narrowing
+// ❌ Don't tie mutation type to the zod schema
 mutationOptions={{
-  mutationFn: (data: Partial<Preferences>) => {
+  mutationFn: (data: Partial<z.infer<typeof preferencesSchema>>) => {
+    return fetchMutation({url: '/user/', method: 'PUT', data: {options: data}});
+  },
+}}
+
+// ✅ Use the API's data type
+mutationOptions={{
+  mutationFn: (data: Partial<UserDetails>) => {
     return fetchMutation({url: '/user/', method: 'PUT', data: {options: data}});
   },
 }}
 ```
+
+Make sure the zod schema's types are compatible with (i.e., assignable to) the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
 
 ### mapFormErrors → `setFieldErrors`
 
@@ -312,7 +314,7 @@ The `saveMessage` showed a custom toast/alert after successful save. In the new 
 ```tsx
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 
-<AutoSaveField
+<AutoSaveForm
   name="fingerprintingRules"
   schema={schema}
   initialValue={project.fingerprintingRules}
@@ -390,10 +392,10 @@ const form = useScrapsForm({
 });
 ```
 
-**New (with AutoSaveField):**
+**New (with AutoSaveForm):**
 
 ```tsx
-<AutoSaveField
+<AutoSaveForm
   name="enabled"
   schema={schema}
   initialValue={settings.enabled}
@@ -407,7 +409,21 @@ const form = useScrapsForm({
 >
 ```
 
-> **Note**: AutoSaveField with TanStack Query already handles error states gracefully - the mutation's `isError` state is reflected in the UI. Manual reset is typically only needed for specific UX requirements like password fields.
+> **Note**: AutoSaveForm with TanStack Query already handles error states gracefully - the mutation's `isError` state is reflected in the UI. Manual reset is typically only needed for specific UX requirements like password fields.
+
+### Resetting After Save
+
+When using `useScrapsForm` for a form that stays on the page after save, call `form.reset()` after a successful mutation. This re-syncs the form with updated `defaultValues` so it becomes pristine again — any UI that depends on the form being dirty (like conditionally shown Save/Cancel buttons) will update correctly.
+
+```tsx
+onSubmit: ({value}) =>
+  mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {}),
+```
+
+> **Note**: `AutoSaveForm` handles this automatically. You only need to add this when using `useScrapsForm`.
 
 ### saveOnBlur: false → `useScrapsForm`
 
@@ -452,7 +468,7 @@ function SlugForm({project}: {project: Project}) {
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="slug">
         {field => (
           <field.Layout.Stack label="Project Slug">
@@ -494,13 +510,13 @@ import {FormSearch} from 'sentry/components/core/form';
 
 <FormSearch route="/settings/account/details/">
   <FieldGroup title={t('Account Details')}>
-    <AutoSaveField name="name" schema={schema} initialValue={user.name} mutationOptions={...}>
+    <AutoSaveForm name="name" schema={schema} initialValue={user.name} mutationOptions={...}>
       {field => (
         <field.Layout.Row label={t('Name')} hintText={t('Your full name')} required>
           <field.Input />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   </FieldGroup>
 </FormSearch>
 ```
@@ -516,7 +532,7 @@ import {FormSearch} from 'sentry/components/core/form';
 
 - The `route` must match the settings page URL exactly (including trailing slash).
 - Wrap the **entire form section** with a single `FormSearch`, not individual fields.
-- Every `<AutoSaveField>` or `<form.AppField>` inside a `FormSearch` will be indexed. Make sure `label` and `hintText` are plain string literals or `t()` calls — computed/dynamic strings will be skipped by the extractor.
+- Every `<AutoSaveForm>` or `<form.AppField>` inside a `FormSearch` will be indexed. Make sure `label` and `hintText` are plain string literals or `t()` calls — computed/dynamic strings will be skipped by the extractor.
 
 ### The Form Field Registry
 
@@ -534,6 +550,49 @@ This script (`scripts/extractFormFields.ts`) scans all TSX files, finds `<FormSe
 
 If the legacy `JsonForm` being migrated was already indexed by SettingsSearch (i.e., it had entries in `sentry/data/forms`), you **must** add a `FormSearch` wrapper to the new form so search functionality is preserved. The old and new sources coexist — new registry entries take precedence over old ones for the same route + field combination — but once you remove the legacy form the old entries will disappear.
 
+## Handling Nullable Initial Values
+
+Legacy select fields often started with an empty/undefined value and required a selection. In the new system, use `.nullable().refine()` in the schema, type `defaultValues` with `z.input<typeof schema>`, and call `schema.parse(value)` in `onSubmit`.
+
+**Old:**
+
+```tsx
+{
+  name: 'provider',
+  type: 'select',
+  required: true,
+  choices: [['github', 'GitHub'], ['launchdarkly', 'LaunchDarkly']],
+}
+```
+
+**New:**
+
+```tsx
+const schema = z.object({
+  provider: z
+    .enum(['github', 'launchdarkly'])
+    .nullable()
+    .refine(v => v !== null, 'Provider is required'),
+});
+
+// z.input accepts null; z.output (after refine) does not
+const defaultValues: z.input<typeof schema> = {
+  provider: null,
+};
+
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  onSubmit: ({value}) => {
+    // schema.parse narrows null away — mutation receives z.output
+    return mutation.mutateAsync(schema.parse(value)).catch(() => {});
+  },
+});
+```
+
+This pattern is necessary whenever a required field has no meaningful initial value. The `z.input` / `z.output` distinction ensures the form accepts `null` as default while the mutation receives the validated, non-null type.
+
 ## Intentionally Not Migrated
 
 | Feature     | Usage   | Reason                                                                                |
@@ -542,7 +601,7 @@ If the legacy `JsonForm` being migrated was already indexed by SettingsSearch (i
 
 ## Migration Checklist
 
-- [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveField
+- [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveForm
 - [ ] Convert field config objects to JSX AppField components
 - [ ] Replace `help` → `hintText` on layouts
 - [ ] Replace `showHelpInTooltip` → `variant="compact"`
@@ -553,6 +612,7 @@ If the legacy `JsonForm` being migrated was already indexed by SettingsSearch (i
 - [ ] Handle `mapFormErrors` with setFieldErrors in catch
 - [ ] Handle `saveMessage` in onSuccess callback
 - [ ] Convert `saveOnBlur: false` fields to regular forms with Save button
+- [ ] Call `form.reset()` after successful mutation (for forms that stay on page)
 - [ ] Verify `onSuccess` cache updates merge with existing data (use updater function) — some API endpoints may return partial objects
 - [ ] Wrap the migrated form with `<FormSearch route="...">` if the old form was searchable in SettingsSearch
 - [ ] Run `pnpm run extract-form-fields` and commit the updated `generatedFieldRegistry.ts`

@@ -25,7 +25,7 @@ import {
   getReservedBudgetCategoryFromCategories,
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {
   formatOnDemandBudget,
   hasOnDemandBudgetsFeature,
@@ -39,7 +39,7 @@ type Props = {
   subscription: Subscription;
 };
 
-function PendingChanges({organization, subscription}: Props) {
+export function PendingChanges({organization, subscription}: Props) {
   const {pendingChanges} = subscription;
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -173,14 +173,19 @@ function PendingChanges({organization, subscription}: Props) {
           pendingReserved !== RESERVED_BUDGET_QUOTA &&
           pendingReserved !== 0
         ) {
+          const formattedQuantity = formatReservedWithUnits(
+            pendingReserved ?? null,
+            category
+          );
+          const displayName = getPlanCategoryName({
+            plan: pendingChanges.planDetails,
+            category,
+            capitalize: false,
+          });
           results.push(
             tct('Reserved [displayName] change to [quantity]', {
-              displayName: getPlanCategoryName({
-                plan: pendingChanges.planDetails,
-                category,
-                capitalize: false,
-              }),
-              quantity: formatReservedWithUnits(pendingReserved ?? null, category),
+              displayName,
+              quantity: formattedQuantity,
             })
           );
         }
@@ -461,5 +466,3 @@ const StyledAlert = styled(Alert)`
     padding: 0;
   }
 `;
-
-export default PendingChanges;

@@ -4,13 +4,12 @@ import styled from '@emotion/styled';
 
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -99,7 +98,7 @@ function GroupUserFeedback() {
 }
 
 const StyledEventUserFeedback = styled(EventUserFeedback)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
@@ -108,10 +107,10 @@ const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
     css`
       border: 1px solid ${p.theme.tokens.border.primary};
       border-radius: ${p.theme.radius.md};
-      padding: ${space(1.5)} 0;
+      padding: ${p.theme.space.lg} 0;
 
       @media (min-width: ${p.theme.breakpoints.md}) {
-        padding: ${space(1.5)};
+        padding: ${p.theme.space.lg};
       }
     `}
 `;
@@ -121,8 +120,8 @@ const FilterMessage = styled('div')`
 `;
 
 const StyledBreak = styled('hr')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
   border-color: ${p => p.theme.tokens.border.primary};
 `;
 

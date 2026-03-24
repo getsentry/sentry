@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
@@ -393,7 +393,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
       },
     };
 
-    const getAggregateFieldDefinition: FieldDefinitionGetter = (key: string) => {
+    const getAggregateFieldDefinition: FieldDefinitionGetter = key => {
       switch (key) {
         case 'apdex':
           return {
@@ -779,7 +779,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
-          matchKeySuggestions={[{key: 'id', valuePattern: /^[0-9]{3}$/}]}
+          matchKeySuggestions={[{key: 'id', valuePattern: /^\d{3}$/}]}
         />
         <p>
           You can also pass multiple values in the prop to show suggestions for multiple
@@ -792,8 +792,8 @@ export default Storybook.story('SearchQueryBuilder', story => {
           getTagValues={getTagValues}
           searchSource="storybook"
           matchKeySuggestions={[
-            {key: 'test-1.id', valuePattern: /^[0-9]{3}$/},
-            {key: 'test-2.id', valuePattern: /^[0-9]{3}$/},
+            {key: 'test-1.id', valuePattern: /^\d{3}$/},
+            {key: 'test-2.id', valuePattern: /^\d{3}$/},
           ]}
         />
       </Fragment>

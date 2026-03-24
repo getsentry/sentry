@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.helpers.environments import get_environment
 from sentry.api.paginator import OffsetPaginator
@@ -27,7 +27,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectReleasesEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

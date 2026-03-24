@@ -5,32 +5,31 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import CreateAlertButton from 'sentry/components/createAlertButton';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import Hook from 'sentry/components/hook';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
+import {HookStore} from 'sentry/stores/hookStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
-import type {AlertType, MetricAlertType, WizardRuleTemplate} from './options';
+import type {AlertType, MetricAlertType} from './options';
 import {
   AlertWizardAlertNames,
   AlertWizardExtraContent,
@@ -38,7 +37,7 @@ import {
   getAlertWizardCategories,
 } from './options';
 import {getAlertWizardPanelContent} from './panelContent';
-import RadioPanelGroup from './radioPanelGroup';
+import {RadioPanelGroup} from './radioPanelGroup';
 
 const DEFAULT_ALERT_OPTION = 'issues';
 
@@ -67,7 +66,7 @@ export default function AlertWizard() {
     setAlertOption(option);
   };
 
-  let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+  let metricRuleTemplate =
     alertOption in AlertWizardRuleTemplates
       ? AlertWizardRuleTemplates[alertOption as MetricAlertType]
       : undefined;
@@ -249,22 +248,22 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 const CategoryTitle = styled('h2')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(1)} !important;
+  margin-bottom: ${p => p.theme.space.md} !important;
 `;
 
 const WizardOptions = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   flex: 3;
-  margin-right: ${space(3)};
-  padding-right: ${space(3)};
+  margin-right: ${p => p.theme.space['2xl']};
+  padding-right: ${p => p.theme.space['2xl']};
   max-width: 300px;
 `;
 
 const WizardImage = styled('img')`
   max-height: 300px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const WizardPanel = styled(Panel)<{visible?: boolean}>`
@@ -292,7 +291,7 @@ const WizardPanel = styled(Panel)<{visible?: boolean}>`
 `;
 
 const ExampleList = styled(List)`
-  margin-bottom: ${space(2)} !important;
+  margin-bottom: ${p => p.theme.space.xl} !important;
 `;
 
 const WizardPanelBody = styled(PanelBody)`
@@ -301,11 +300,11 @@ const WizardPanelBody = styled(PanelBody)`
 `;
 
 const PanelDescription = styled('p')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ExampleHeader = styled('div')`
-  margin: 0 0 ${space(1)} 0;
+  margin: 0 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.lg};
 `;
 
@@ -315,14 +314,15 @@ const ExampleItem = styled(ListItem)`
 
 const WizardFooter = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.lg}
+    ${p => p.theme.space.lg};
 `;
 
 const WizardButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
   a:not(:last-child) {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
   }
 `;
 

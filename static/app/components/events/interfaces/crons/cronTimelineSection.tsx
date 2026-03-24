@@ -14,12 +14,11 @@ import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
 import {Overlay} from 'sentry/components/overlay';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -174,11 +173,11 @@ const EventLineLabel = styled(Overlay, {
   shouldForwardProp: prop => prop !== 'left' && prop !== 'timelineWidth',
 })<{left: number; timelineWidth: number}>`
   width: max-content;
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
   position: absolute;
-  bottom: ${space(1)};
+  bottom: ${p => p.theme.space.md};
   left: clamp(0px, ${p => p.left}px, calc(${p => p.timelineWidth}px - 50px));
   transform: translateX(-50%);
 `;

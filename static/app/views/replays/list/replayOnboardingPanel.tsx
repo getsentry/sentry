@@ -8,23 +8,22 @@ import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Accordion from 'sentry/components/container/accordion';
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
+import {Accordion} from 'sentry/components/container/accordion';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
-import ReplayPanel from 'sentry/views/replays/list/replayPanel';
+import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
+import {ReplayPanel} from 'sentry/views/replays/list/replayPanel';
 
 type Breakpoints = {
   lg: string;
@@ -43,12 +42,13 @@ const OnboardingAlertHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-export default function ReplayOnboardingPanel() {
+export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
-  const {isCollapsed} = useNavContext();
+  const {view} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
 
   const supportedPlatforms = replayPlatforms;
 
@@ -59,11 +59,11 @@ export default function ReplayOnboardingPanel() {
   const hasSelectedProjects = selectedProjects.length > 0;
 
   const allProjectsUnsupported = projects.projects.every(
-    p => !supportedPlatforms.includes(p.platform!)
+    p => !p.platform || !supportedPlatforms.includes(p.platform)
   );
 
   const allSelectedProjectsUnsupported = selectedProjects.every(
-    p => !supportedPlatforms.includes(p.platform!)
+    p => !p.platform || !supportedPlatforms.includes(p.platform)
   );
 
   // if all projects are unsupported we should prompt the user to create a project
@@ -347,13 +347,13 @@ const ButtonList = styled((props: GridProps) => (
 `;
 
 const StyledWidgetContainer = styled(WidgetContainer)`
-  margin: ${space(4)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space['3xl']} 0 ${p => p.theme.space.md} 0;
 `;
 
 const AnswerContent = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const QuestionContent = styled('div')`
@@ -366,6 +366,6 @@ const StyledHeaderContainer = styled(HeaderContainer)`
   font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.secondary};
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
 `;

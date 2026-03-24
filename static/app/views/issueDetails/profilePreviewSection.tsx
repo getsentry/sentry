@@ -7,19 +7,18 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import platforms from 'sentry/data/platforms';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {
@@ -143,8 +142,7 @@ function InlineFlamegraphPreview({
     profileGroup.profiles[0] ??
     null;
 
-  const sort: 'left heavy' | 'call order' =
-    viewMode === 'timeline' ? 'call order' : 'left heavy';
+  const sort = viewMode === 'timeline' ? 'call order' : 'left heavy';
 
   const flamegraph = useMemo(
     () => (active ? new FlamegraphModel(active, {sort}) : null),
@@ -273,6 +271,6 @@ function getProfileTimeWindow(event: Event): {end: string; start: string} | null
 
 const ProfilePreviewContainer = styled('div')`
   height: 200px;
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
   position: relative;
 `;

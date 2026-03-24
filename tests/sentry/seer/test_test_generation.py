@@ -7,14 +7,14 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test
 
 
-@patch("sentry.seer.services.test_generation.impl.make_signed_seer_api_request")
+@patch("sentry.seer.services.test_generation.impl.make_unit_test_generation_request")
 @django_db_all
 @control_silo_test
 def test_start_unit_test_generation(mock_request: MagicMock) -> None:
     mock_request.return_value.status = 200
     mock_request.return_value.json.return_value = {}
     response = test_generation_service.start_unit_test_generation(
-        region_name=settings.SENTRY_MONOLITH_REGION,
+        cell_name=settings.SENTRY_MONOLITH_REGION,
         github_org="some-org",
         repo="some-repo",
         pr_id=1,

@@ -16,7 +16,12 @@ from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
+from sentry.issues.auto_source_code_config.code_mapping import (
+    convert_stacktrace_frame_path_to_source_path,
+    get_sorted_code_mapping_configs,
+)
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
@@ -32,11 +37,12 @@ from sentry.seer.autofix.types import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    autofix_connection_pool,
     get_autofix_repos_from_project_code_mappings,
+    make_autofix_start_request,
+    make_autofix_update_request,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
@@ -44,6 +50,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.event_frames import EventFrame
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +179,102 @@ def _get_serialized_event(
     return serialized_event, event
 
 
+def _pre_resolve_stacktrace_frames(
+    serialized_event: dict[str, Any],
+    code_mappings: list[RepositoryProjectPathConfig],
+) -> None:
+    """
+    Pre-resolve stacktrace frame repo_name and filename using Sentry's code mappings
+    before sending to Seer, so Seer can skip its expensive git tree fetch for large repos.
+    """
+    if not code_mappings:
+        return
+
+    platform = serialized_event.get("platform")
+    sdk_name = serialized_event.get("sdk", {}).get("name") if serialized_event.get("sdk") else None
+
+    # Build ordered list of (repo_full_name, code_mapping) preserving global priority
+    ordered_mappings: list[tuple[str, RepositoryProjectPathConfig]] = []
+    for cm in code_mappings:
+        repo = cm.repository
+        repo_name_sections = repo.name.split("/")
+        if len(repo_name_sections) > 1 and repo.provider:
+            ordered_mappings.append((repo.name, cm))
+
+    resolved = 0
+    total_in_app = 0
+
+    for entry in serialized_event.get("entries", []):
+        frames = None
+        if entry.get("type") == "exception":
+            for exception in entry.get("data", {}).get("values", []):
+                frames = (exception.get("stacktrace") or {}).get("frames")
+                if frames:
+                    r, t = _resolve_frames(frames, ordered_mappings, platform, sdk_name)
+                    resolved += r
+                    total_in_app += t
+        elif entry.get("type") == "threads":
+            for thread in entry.get("data", {}).get("values", []):
+                frames = (thread.get("stacktrace") or {}).get("frames")
+                if frames:
+                    r, t = _resolve_frames(frames, ordered_mappings, platform, sdk_name)
+                    resolved += r
+                    total_in_app += t
+
+    logger.info(
+        "autofix.pre_resolve_stacktrace_frames",
+        extra={
+            "resolved_frames": resolved,
+            "unresolved_frames": total_in_app - resolved,
+            "total_in_app_frames": total_in_app,
+            "platform": platform,
+        },
+    )
+
+
+def _resolve_frames(
+    frames: list[dict[str, Any]],
+    ordered_mappings: list[tuple[str, RepositoryProjectPathConfig]],
+    platform: str | None,
+    sdk_name: str | None,
+) -> tuple[int, int]:
+    """Resolve each frame's repo_name using code mappings in global priority order.
+
+    Returns (resolved_count, total_in_app_count).
+    """
+    resolved = 0
+    total_in_app = 0
+
+    for frame in frames:
+        if not frame.get("inApp"):
+            continue
+
+        total_in_app += 1
+
+        # Serialized events use camelCase keys but EventFrame expects snake_case
+        event_frame = EventFrame(
+            filename=frame.get("filename"),
+            abs_path=frame.get("absPath"),
+            module=frame.get("module"),
+            package=frame.get("package"),
+            function=frame.get("function"),
+            in_app=frame.get("inApp"),
+            lineno=frame.get("lineNo"),
+        )
+
+        for repo_full_name, cm in ordered_mappings:
+            source_path = convert_stacktrace_frame_path_to_source_path(
+                event_frame, cm, platform, sdk_name
+            )
+            if source_path:
+                frame["repo_name"] = repo_full_name
+                frame["filename"] = source_path
+                resolved += 1
+                break
+
+    return resolved, total_in_app
+
+
 def _get_trace_tree_for_event(
     event: Event | GroupEvent, project: Project, timeout: int = 15
 ) -> dict[str, Any] | None:
@@ -204,7 +307,9 @@ def _get_trace_tree_for_event(
         )
 
         trace_endpoint = OrganizationTraceEndpoint()
-        trace = trace_endpoint.query_trace_data(snuba_params, trace_id)
+        trace = trace_endpoint.query_trace_data(
+            snuba_params, trace_id, organization=project.organization
+        )
 
         if not trace:
             logger.info(
@@ -424,7 +529,6 @@ def _call_autofix(
     stopping_point: AutofixStoppingPoint | None = None,
     github_username: str | None = None,
 ):
-    path = "/v1/automation/autofix/start"
     body = orjson.dumps(
         {
             "organization_id": group.organization.id,
@@ -456,21 +560,21 @@ def _call_autofix(
             "options": {
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
-                "referrer": referrer,
+                "referrer": referrer.value,
                 "disable_coding_step": not group.organization.get_option(
                     "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
                 ),
-                "stopping_point": stopping_point,
+                "stopping_point": stopping_point.value if stopping_point else None,
             },
         },
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    response = make_signed_seer_api_request(
-        autofix_connection_pool,
-        path,
-        body,
-    )
+    viewer_context = SeerViewerContext(organization_id=group.organization.id)
+    if not isinstance(user, AnonymousUser):
+        viewer_context["user_id"] = user.id
+
+    response = make_autofix_start_request(body, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -630,7 +734,15 @@ def trigger_autofix(
     if serialized_event is None:
         return _respond_with_error("Cannot fix issues without an event.", 400)
 
-    repos = get_autofix_repos_from_project_code_mappings(group.project)
+    code_mappings = get_sorted_code_mapping_configs(group.project)
+    repos = get_autofix_repos_from_project_code_mappings(group.project, code_mappings=code_mappings)
+
+    # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
+    # expensive git tree fetches for large repos.
+    try:
+        _pre_resolve_stacktrace_frames(serialized_event, code_mappings)
+    except Exception:
+        logger.exception("Failed to pre-resolve stacktrace frames")
 
     # get trace tree of transactions and errors for this event
     try:
@@ -720,14 +832,10 @@ def update_autofix(
     Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
     """
 
-    path = "/v1/automation/autofix/update"
     data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
     body = orjson.dumps(data)
-    response = make_signed_seer_api_request(
-        autofix_connection_pool,
-        path,
-        body,
-    )
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    response = make_autofix_update_request(body, viewer_context=viewer_context)
 
     if response.status >= 400:
         return Response({"detail": "Failed to update autofix run"}, status=500)

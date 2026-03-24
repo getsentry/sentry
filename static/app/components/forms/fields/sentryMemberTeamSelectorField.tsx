@@ -1,13 +1,13 @@
 import {useContext, useMemo} from 'react';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import {useOwnerOptions} from 'sentry/utils/useOwnerOptions';
 import {useOwners} from 'sentry/utils/useOwners';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {SelectFieldProps} from './selectField';
-import SelectField from './selectField';
+import {SelectField} from './selectField';
 
 // projects can be passed as a direct prop as well
 interface RenderFieldProps extends SelectFieldProps<any> {
@@ -23,7 +23,7 @@ interface RenderFieldProps extends SelectFieldProps<any> {
   valueIsSlug?: boolean;
 }
 
-function SentryMemberTeamSelectorField({
+export function SentryMemberTeamSelectorField({
   avatarSize = 20,
   placeholder = t('Choose Teams and Members'),
   memberOfProjectSlugs,
@@ -64,5 +64,3 @@ function SentryMemberTeamSelectorField({
     />
   );
 }
-
-export default SentryMemberTeamSelectorField;

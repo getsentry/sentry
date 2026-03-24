@@ -12,8 +12,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -55,7 +55,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     },
   ];
 
-  const values: string[] = useMemo(() => {
+  const values = useMemo(() => {
     const value: string[] = [];
     if (props.autogroup) {
       value.push('autogroup');

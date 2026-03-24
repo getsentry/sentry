@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -31,7 +31,7 @@ function TestForm({
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="bio">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
@@ -65,7 +65,7 @@ function AutoSaveTestForm({
   label = 'Bio',
 }: AutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="bio"
       schema={testSchema}
       initialValue={initialValue}
@@ -76,7 +76,7 @@ function AutoSaveTestForm({
           <field.TextArea value={field.state.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 
@@ -108,16 +108,20 @@ describe('TextAreaField disabled', () => {
   it('is disabled when disabled prop is true', () => {
     render(<TestForm label="Bio" disabled />);
 
-    expect(screen.getByRole('textbox')).toHaveAttribute('readonly');
+    expect(screen.getByRole('textbox')).toBeDisabled();
   });
 
-  it('shows tooltip with reason when disabled is a string', async () => {
+  it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<TestForm label="Bio" disabled="Feature not available" />);
 
-    expect(screen.getByRole('textbox')).toHaveAttribute('readonly');
+    expect(screen.getByRole('textbox')).toBeDisabled();
 
-    // Hover on the textarea to trigger tooltip
-    await userEvent.hover(screen.getByRole('textbox'));
+    // Lock icon should be visible
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();
@@ -133,7 +137,7 @@ describe('TextAreaField auto-save', () => {
 
     const textarea = screen.getByRole('textbox');
     await userEvent.type(textarea, 'test');
-    // AutoSaveField triggers mutation on blur for string fields
+    // AutoSaveForm triggers mutation on blur for string fields
     await userEvent.tab();
 
     expect(await screen.findByRole('status', {name: 'Saving bio'})).toBeInTheDocument();
@@ -147,7 +151,7 @@ describe('TextAreaField auto-save', () => {
 
     const textarea = screen.getByRole('textbox');
     await userEvent.type(textarea, 'test');
-    // AutoSaveField triggers mutation on blur for string fields
+    // AutoSaveForm triggers mutation on blur for string fields
     await userEvent.tab();
 
     await waitFor(() => {
@@ -163,11 +167,11 @@ describe('TextAreaField auto-save', () => {
 
     const textarea = screen.getByRole('textbox');
     await userEvent.type(textarea, 'test');
-    // AutoSaveField triggers mutation on blur for string fields
+    // AutoSaveForm triggers mutation on blur for string fields
     await userEvent.tab();
 
     await waitFor(() => {
-      expect(textarea).toHaveAttribute('readonly');
+      expect(textarea).toBeDisabled();
     });
   });
 

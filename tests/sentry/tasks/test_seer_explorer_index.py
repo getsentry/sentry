@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 from unittest import mock
 from unittest.mock import patch
 
-import orjson
 import pytest
 
 from sentry.constants import ObjectStatus
@@ -411,7 +410,7 @@ class TestDispatchExplorerIndexProjects(TestCase):
 
 @django_db_all
 class TestRunExplorerIndexForProjects(TestCase):
-    @patch("sentry.tasks.seer_explorer_index.make_signed_seer_api_request")
+    @patch("sentry.tasks.seer_explorer_index.make_explorer_index_request")
     def test_calls_seer_endpoint_successfully(self, mock_request):
         mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {"scheduled_count": 3, "projects": []}
@@ -423,14 +422,14 @@ class TestRunExplorerIndexForProjects(TestCase):
             run_explorer_index_for_projects(projects, start)
 
         mock_request.assert_called_once()
-        body = orjson.loads(mock_request.call_args[0][2])
+        body = mock_request.call_args[0][0]
         assert body["projects"] == [
             {"org_id": 100, "project_id": 1},
             {"org_id": 100, "project_id": 2},
             {"org_id": 200, "project_id": 3},
         ]
 
-    @patch("sentry.tasks.seer_explorer_index.make_signed_seer_api_request")
+    @patch("sentry.tasks.seer_explorer_index.make_explorer_index_request")
     def test_handles_request_error(self, mock_request):
         mock_request.return_value.status = 500
 
@@ -444,7 +443,7 @@ class TestRunExplorerIndexForProjects(TestCase):
     def test_skips_when_option_disabled(self):
         with self.options({"seer.explorer_index.enable": False}):
             with mock.patch(
-                "sentry.tasks.seer_explorer_index.make_signed_seer_api_request"
+                "sentry.tasks.seer_explorer_index.make_explorer_index_request"
             ) as mock_request:
                 run_explorer_index_for_projects([(1, 100)], "2024-01-15T12:00:00+00:00")
                 mock_request.assert_not_called()

@@ -4,7 +4,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import {ReleaseStatus} from 'sentry/types/release';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -126,7 +126,7 @@ describe('Quick Context', () => {
       await userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Release/i)).toBeInTheDocument();
-      expect(screen.getByText(/22.10.0/i)).toBeInTheDocument();
+      expect(screen.getByText(/22.10.0/)).toBeInTheDocument();
       expect(screen.getByText(/(aaf33944f93d)/i)).toBeInTheDocument();
       expect(
         screen.getByTestId('quick-context-hover-header-copy-button')

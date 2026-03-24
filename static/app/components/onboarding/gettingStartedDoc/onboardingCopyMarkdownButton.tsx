@@ -8,12 +8,14 @@ import {stepsToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdow
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface CopyMarkdownButtonProps {
   getMarkdown: () => string;
   source: string;
   borderless?: boolean;
+  onCopy?: () => void;
+  title?: string;
 }
 
 /**
@@ -29,12 +31,17 @@ export function CopyMarkdownButton({
   getMarkdown,
   source,
   borderless,
+  onCopy,
+  title,
 }: CopyMarkdownButtonProps) {
   return (
     <Tooltip
-      title={t(
-        'Copies all steps and code examples as Markdown, optimized for use with an LLM.'
-      )}
+      title={
+        title ??
+        t(
+          'Copies all steps and code examples as Markdown, optimized for use with an LLM.'
+        )
+      }
       position="auto"
     >
       <Button
@@ -43,7 +50,10 @@ export function CopyMarkdownButton({
         analyticsEventKey="setup_guide.copy_as_markdown"
         analyticsEventName="Setup Guide: Copy as Markdown"
         analyticsParams={{format: 'markdown', source}}
-        onClick={() => copyToClipboard(getMarkdown())}
+        onClick={() => {
+          copyToClipboard(getMarkdown());
+          onCopy?.();
+        }}
         size="xs"
       >
         {t('Copy instructions')}
@@ -56,6 +66,14 @@ interface OnboardingCopyMarkdownButtonProps {
   source: string;
   steps: OnboardingStep[];
   borderless?: boolean;
+  onCopy?: () => void;
+  /**
+   * Optional markdown content to append after the steps. Use this to
+   * include additional context or instructions (e.g. a decision tree for
+   * manual instrumentation) that should be part of the copied output but are
+   * not represented as onboarding steps.
+   */
+  postamble?: string;
 }
 
 /**
@@ -66,16 +84,24 @@ export function OnboardingCopyMarkdownButton({
   steps,
   source,
   borderless,
+  postamble,
+  onCopy,
 }: OnboardingCopyMarkdownButtonProps) {
   const authToken = useAuthToken();
   const tabSelectionsMap = useTabSelectionsMap();
 
   const getMarkdown = () => {
     try {
-      return stepsToMarkdown(steps, {
+      const stepsMarkdown = stepsToMarkdown(steps, {
         tabSelectionsMap,
         authToken,
       });
+
+      if (!postamble) {
+        return stepsMarkdown;
+      }
+
+      return `${stepsMarkdown}\n\n---\n\n${postamble}`;
     } catch {
       return '';
     }
@@ -86,24 +112,37 @@ export function OnboardingCopyMarkdownButton({
       getMarkdown={getMarkdown}
       source={source}
       borderless={borderless}
+      onCopy={onCopy}
     />
   );
 }
 
-const FEATURE_FLAG = 'onboarding-copy-setup-instructions';
+type CopySetupInstructionsType = 'onboarding' | 'project_creation';
+
+const FEATURE_FLAGS: Record<CopySetupInstructionsType, string> = {
+  onboarding: 'onboarding-copy-setup-instructions',
+  project_creation: 'onboarding-copy-setup-instructions-project-creation',
+};
 
 /**
- * Feature-gated wrapper that renders its children only when the
- * `onboarding-copy-setup-instructions` flag is enabled. Includes spacing
- * so callsites don't render an empty Container when the flag is off.
+ * Returns whether the copy setup instructions button should be shown
+ * for the given context type.
  */
-export function useCopySetupInstructionsEnabled(): boolean {
+export function useCopySetupInstructionsEnabled(
+  type: CopySetupInstructionsType = 'onboarding'
+): boolean {
   const organization = useOrganization();
-  return organization.features.includes(FEATURE_FLAG);
+  return organization.features.includes(FEATURE_FLAGS[type]);
 }
 
-export function CopySetupInstructionsGate({children}: {children: React.ReactNode}) {
-  const enabled = useCopySetupInstructionsEnabled();
+export function CopySetupInstructionsGate({
+  children,
+  type,
+}: {
+  children: React.ReactNode;
+  type?: CopySetupInstructionsType;
+}) {
+  const enabled = useCopySetupInstructionsEnabled(type);
   if (!enabled) {
     return null;
   }

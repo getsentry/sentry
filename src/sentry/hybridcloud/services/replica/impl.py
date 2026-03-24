@@ -1,7 +1,8 @@
+import logging
 from collections.abc import Iterator, Mapping
 from typing import Any
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
 from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, RpcAuthProvider
@@ -15,12 +16,13 @@ from sentry.hybridcloud.models import (
     ExternalActorReplica,
     OrgAuthTokenReplica,
 )
-from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
-from sentry.hybridcloud.services.replica.service import ControlReplicaService, RegionReplicaService
+from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
+from sentry.hybridcloud.services.replica.service import CellReplicaService, ControlReplicaService
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.models.apikey import ApiKey
@@ -34,11 +36,14 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.projectkeymapping import ProjectKeyMapping
 from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
 from sentry.notifications.services import RpcExternalActor
 from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.users.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 def get_foreign_key_columns(
@@ -115,7 +120,7 @@ def get_conflicting_unique_columns(
 
 
 def handle_replication(
-    source_model: type[ReplicatedControlModel] | type[ReplicatedRegionModel],
+    source_model: type[ReplicatedControlModel] | type[ReplicatedCellModel],
     destination: BaseModel,
     fk: str | None = None,
 ) -> None:
@@ -141,8 +146,13 @@ def handle_replication(
             destination.save()
 
 
-class DatabaseBackedRegionReplicaService(RegionReplicaService):
-    def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
+class DatabaseBackedCellReplicaService(CellReplicaService):
+    def upsert_replicated_api_token(
+        self,
+        *,
+        api_token: RpcApiToken,
+        cell_name: str,
+    ) -> None:
         organization: Organization | None = None
         if api_token.organization_id is not None:
             try:
@@ -167,12 +177,22 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         )
         handle_replication(ApiToken, destination)
 
-    def delete_replicated_api_token(self, *, apitoken_id: int, region_name: str) -> None:
+    def delete_replicated_api_token(
+        self,
+        *,
+        apitoken_id: int,
+        cell_name: str,
+    ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(ApiTokenReplica))):
             api_token_qs = ApiTokenReplica.objects.filter(apitoken_id=apitoken_id)
             api_token_qs.delete()
 
-    def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
+    def upsert_replicated_org_auth_token(
+        self,
+        *,
+        token: RpcOrgAuthToken,
+        cell_name: str,
+    ) -> None:
         try:
             organization = Organization.objects.get(id=token.organization_id)
         except Organization.DoesNotExist:
@@ -190,7 +210,10 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         handle_replication(OrgAuthToken, destination)
 
     def upsert_replicated_auth_provider(
-        self, *, auth_provider: RpcAuthProvider, region_name: str
+        self,
+        *,
+        auth_provider: RpcAuthProvider,
+        cell_name: str,
     ) -> None:
         try:
             organization = Organization.objects.get(id=auth_provider.organization_id)
@@ -211,7 +234,10 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         handle_replication(AuthProvider, destination)
 
     def upsert_replicated_auth_identity(
-        self, *, auth_identity: RpcAuthIdentity, region_name: str
+        self,
+        *,
+        auth_identity: RpcAuthIdentity,
+        cell_name: str,
     ) -> None:
         destination = AuthIdentityReplica(
             auth_identity_id=auth_identity.id,
@@ -224,7 +250,12 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
 
         handle_replication(AuthIdentity, destination)
 
-    def upsert_replicated_api_key(self, *, api_key: RpcApiKey, region_name: str) -> None:
+    def upsert_replicated_api_key(
+        self,
+        *,
+        api_key: RpcApiKey,
+        cell_name: str,
+    ) -> None:
         try:
             organization = Organization.objects.get(id=api_key.organization_id)
         except Organization.DoesNotExist:
@@ -243,7 +274,10 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         handle_replication(ApiKey, destination)
 
     def upsert_replicated_org_slug_reservation(
-        self, *, slug_reservation: RpcOrganizationSlugReservation, region_name: str
+        self,
+        *,
+        slug_reservation: RpcOrganizationSlugReservation,
+        cell_name: str,
     ) -> None:
         with enforce_constraints(
             transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
@@ -262,13 +296,16 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
                 slug=slug_reservation.slug,
                 organization_id=slug_reservation.organization_id,
                 user_id=slug_reservation.user_id,
-                region_name=slug_reservation.region_name,
+                cell_name=slug_reservation.region_name,
                 reservation_type=slug_reservation.reservation_type,
                 organization_slug_reservation_id=slug_reservation.id,
             )
 
     def delete_replicated_org_slug_reservation(
-        self, *, organization_slug_reservation_id: int, region_name: str
+        self,
+        *,
+        organization_slug_reservation_id: int,
+        cell_name: str,
     ) -> None:
         with enforce_constraints(
             transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
@@ -278,7 +315,12 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             )
             org_slug_qs.delete()
 
-    def delete_replicated_auth_provider(self, *, auth_provider_id: int, region_name: str) -> None:
+    def delete_replicated_auth_provider(
+        self,
+        *,
+        auth_provider_id: int,
+        cell_name: str,
+    ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
             AuthProviderReplica.objects.filter(auth_provider_id=auth_provider_id).delete()
 
@@ -334,3 +376,24 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
         )
 
         handle_replication(Team, destination)
+
+    def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
+        try:
+            with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
+                ProjectKeyMapping.objects.update_or_create(
+                    project_key_id=project_key.id,
+                    cell_name=project_key.cell_name,
+                    defaults={"public_key": project_key.public_key},
+                )
+        except IntegrityError:
+            logger.error(
+                "project_key_mapping.conflict",
+                extra={"project_key_id": project_key.id, "cell_name": project_key.cell_name},
+            )
+            return False
+        return True
+
+    def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
+        ProjectKeyMapping.objects.filter(
+            project_key_id=project_key_id, cell_name=cell_name
+        ).delete()

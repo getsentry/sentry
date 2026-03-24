@@ -11,9 +11,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import Placeholder from 'sentry/components/placeholder';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
@@ -21,16 +21,15 @@ import {
 } from 'sentry/components/timeRangeSelector';
 import {IconClose} from 'sentry/icons';
 import {t, tct, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
+import {AnomalyDetectionFeedbackBanner} from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
-import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
+import {MetricHistory} from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
@@ -52,10 +51,10 @@ import {
 
 import type {TimePeriodType} from './constants';
 import {SELECTOR_RELATIVE_PERIODS} from './constants';
-import MetricChart from './metricChart';
+import {MetricChart} from './metricChart';
 import {MetricAlertOngoingIssues} from './ongoingIssues';
-import RelatedIssues from './relatedIssues';
-import RelatedTransactions from './relatedTransactions';
+import {RelatedIssues} from './relatedIssues';
+import {RelatedTransactions} from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
 import {getFilter, getIsMigratedExtrapolationMode, getPeriodInterval} from './utils';
 
@@ -68,7 +67,7 @@ interface MetricDetailsBodyProps {
   selectedIncident?: Incident | null;
 }
 
-export default function MetricDetailsBody({
+export function MetricDetailsBody({
   project,
   rule,
   incidents,
@@ -397,11 +396,11 @@ const StyledLayoutBody = styled(Layout.Body)`
 `;
 
 const ChartPanel = styled(Panel)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledCloseButton = styled(Button)`

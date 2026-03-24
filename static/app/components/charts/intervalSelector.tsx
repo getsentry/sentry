@@ -145,11 +145,7 @@ function bindInterval(
   return intervalHours < intervalOption.min || intervalHours > optionMax;
 }
 
-export default function IntervalSelector({
-  displayMode,
-  eventView,
-  onIntervalChange,
-}: Props) {
+export function IntervalSelector({displayMode, eventView, onIntervalChange}: Props) {
   // Get the interval from the eventView if one was set, otherwise determine what the default is
   // TODO: use the INTERVAL_OPTIONS default instead
   // Can't just do usingDefaultInterval ? ... : ...; here cause the type of interval will include undefined

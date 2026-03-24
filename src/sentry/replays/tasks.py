@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from google.cloud.exceptions import NotFound
+from taskbroker_client.retry import Retry
 
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import (
@@ -25,7 +26,6 @@ from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import replays_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -37,7 +37,7 @@ logger = logging.getLogger()
     namespace=replays_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def delete_replay(
     project_id: int,
@@ -64,7 +64,7 @@ def delete_replay(
     namespace=replays_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def delete_replays_script_async(
     retention_days: int,
@@ -102,7 +102,7 @@ def delete_replays_script_async(
     namespace=replays_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
     delete_replay_recording(project_id, replay_id)
@@ -163,7 +163,7 @@ def _delete_if_exists(filename: str) -> None:
     namespace=replays_tasks,
     retry=Retry(times=5),
     processing_deadline_duration=300,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_bulk_replay_delete_job(
     replay_delete_job_id: int, offset: int, limit: int = 100, has_seer_data: bool = False

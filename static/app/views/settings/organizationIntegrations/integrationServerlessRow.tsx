@@ -11,14 +11,13 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   OrganizationIntegration,
   ServerlessFunction,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IntegrationServerlessRowProps {
   integration: OrganizationIntegration;
@@ -142,14 +141,14 @@ export function IntegrationServerlessRow({
 }
 
 const Item = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   align-items: center;
   grid-template-columns: 2fr 1fr 0.5fr;
   grid-template-areas: 'function-name layer-status enable-switch';
@@ -177,7 +176,7 @@ const StyledSwitch = styled(Switch)`
 const UpdateButton = styled(Button)``;
 
 const Name = styled(`span`)`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 `;
 
 const RuntimeAndVersion = styled('div')`

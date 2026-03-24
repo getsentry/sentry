@@ -336,6 +336,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             tokens=LLM_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id_1,
+            messages=[{"role": "user", "content": "Research this topic"}],
+            response_text="Here are the research results",
         )
 
         self.store_ai_span(
@@ -356,6 +358,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             tokens=LLM_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id_2,
+            messages=[{"role": "user", "content": "Summarize the results"}],
+            response_text="Here is the summary",
         )
 
         query = {
@@ -393,6 +397,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             operation_type="ai_client",
             tokens=LLM_TOKENS,
             cost=LLM_COST,
+            messages=[{"role": "user", "content": "Hello"}],
+            response_text="Hi there",
         )
 
         self.store_ai_span(
@@ -402,6 +408,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             operation_type="ai_client",
             tokens=LLM_TOKENS,
             cost=LLM_COST,
+            messages=[{"role": "user", "content": "Help me"}],
+            response_text="Sure thing",
         )
 
         query = {
@@ -423,17 +431,14 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
         for i in range(3):
             conversation_id = uuid4().hex
-            span = self.create_span(
-                {
-                    "description": "test",
-                    "sentry_tags": {"status": "ok", "op": "gen_ai.chat"},
-                    "data": {
-                        "gen_ai.conversation.id": conversation_id,
-                    },
-                },
-                start_ts=now - timedelta(minutes=i),
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(minutes=i),
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                messages=[{"role": "user", "content": "test"}],
+                response_text="test response",
             )
-            self.store_spans([span])
 
         query = {
             "project": [self.project.id],
@@ -457,21 +462,18 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert len(response.data) == 1
 
     def test_zero_values(self) -> None:
-        """Test conversations with zero values for metrics and no agent spans"""
+        """Test conversations with zero values for token metrics but with input/output"""
         now = before_now(days=60).replace(microsecond=0)
         conversation_id = uuid4().hex
 
-        span = self.create_span(
-            {
-                "description": "test",
-                "sentry_tags": {"status": "ok", "op": "gen_ai.chat"},
-                "data": {
-                    "gen_ai.conversation.id": conversation_id,
-                },
-            },
-            start_ts=now,
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            messages=[{"role": "user", "content": "test"}],
+            response_text="test response",
         )
-        self.store_spans([span])
 
         query = {
             "project": [self.project.id],
@@ -486,14 +488,14 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         conversation = response.data[0]
         assert conversation["conversationId"] == conversation_id
         assert conversation["errors"] == 0
-        assert conversation["llmCalls"] == 0
+        assert conversation["llmCalls"] == 1
         assert conversation["toolCalls"] == 0
         assert conversation["totalTokens"] == 0
         assert conversation["totalCost"] == 0.0
         assert conversation["flow"] == []
         assert len(conversation["traceIds"]) == 1
-        assert conversation["firstInput"] is None
-        assert conversation["lastOutput"] is None
+        assert conversation["firstInput"] == "test"
+        assert conversation["lastOutput"] == "test response"
         assert conversation["user"] is None
 
     def test_mixed_error_statuses(self) -> None:
@@ -512,12 +514,17 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         ]
 
         for i, span_status in enumerate(statuses):
+            extra_kwargs: dict[str, Any] = {}
+            if i == 0:
+                extra_kwargs["messages"] = [{"role": "user", "content": "test"}]
+                extra_kwargs["response_text"] = "test response"
             self.store_ai_span(
                 conversation_id=conversation_id,
                 timestamp=now - timedelta(seconds=i),
                 op="gen_ai.chat",
                 status=span_status,
                 trace_id=trace_id,
+                **extra_kwargs,
             )
 
         query = {
@@ -556,6 +563,16 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 trace_id=trace_id,
             )
 
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            messages=[{"role": "user", "content": "test"}],
+            response_text="test response",
+        )
+
         query = {
             "project": [self.project.id],
             "start": (now - timedelta(hours=1)).isoformat(),
@@ -586,6 +603,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             tokens=100,
             cost=0.01,
             trace_id=trace_id,
+            messages=[{"role": "user", "content": "old request"}],
+            response_text="old response",
         )
 
         self.store_ai_span(
@@ -596,6 +615,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             tokens=50,
             cost=0.005,
             trace_id=trace_id,
+            messages=[{"role": "user", "content": "recent request"}],
+            response_text="recent response",
         )
 
         query = {
@@ -676,13 +697,13 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["firstInput"] == first_user_content
         assert conversation["lastOutput"] == last_response_text
 
-    def test_first_input_last_output_no_ai_client_spans(self) -> None:
-        """Test firstInput and lastOutput are None when no ai_client spans exist"""
+    def test_no_ai_client_spans_filtered_out(self) -> None:
+        """Test conversations without input/output are filtered out"""
         now = before_now(days=91).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
-        # Only invoke_agent spans, no ai_client spans
+        # Only invoke_agent spans, no ai_client spans with input/output
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=2),
@@ -707,11 +728,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert len(response.data) == 1
-
-        conversation = response.data[0]
-        assert conversation["firstInput"] is None
-        assert conversation["lastOutput"] is None
+        assert len(response.data) == 0
 
     def test_query_filter(self) -> None:
         """Test that query parameter filters conversations"""
@@ -719,27 +736,31 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         conversation_id_1 = uuid4().hex
         conversation_id_2 = uuid4().hex
 
-        # Conversation 1 with specific agent
+        # Conversation 1 with specific response text
         self.store_ai_span(
             conversation_id=conversation_id_1,
             timestamp=now - timedelta(seconds=2),
-            op="gen_ai.invoke_agent",
-            agent_name="WeatherBot",
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            messages=[{"role": "user", "content": "What is the weather?"}],
+            response_text="It is sunny today",
         )
 
-        # Conversation 2 with different agent
+        # Conversation 2 with different response text
         self.store_ai_span(
             conversation_id=conversation_id_2,
             timestamp=now - timedelta(seconds=1),
-            op="gen_ai.invoke_agent",
-            agent_name="NewsBot",
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            messages=[{"role": "user", "content": "Tell me the news"}],
+            response_text="Here are the latest headlines",
         )
 
         query = {
             "project": [self.project.id],
             "start": (now - timedelta(hours=1)).isoformat(),
             "end": (now + timedelta(hours=1)).isoformat(),
-            "query": "gen_ai.agent.name:WeatherBot",
+            "query": f"gen_ai.conversation.id:{conversation_id_1}",
         }
 
         response = self.do_request(query)
@@ -764,6 +785,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             user_email="test@example.com",
             user_username="testuser",
             user_ip="192.168.1.1",
+            messages=[{"role": "user", "content": "Hello"}],
+            response_text="Hi there",
         )
 
         # Second span with different user data (should not override first)
@@ -775,6 +798,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             trace_id=trace_id,
             user_id="user-456",
             user_email="other@example.com",
+            messages=[{"role": "user", "content": "Thanks"}],
+            response_text="You're welcome",
         )
 
         query = {
@@ -809,6 +834,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             operation_type="ai_client",
             trace_id=trace_id,
             user_email="partial@example.com",
+            messages=[{"role": "user", "content": "Hello"}],
+            response_text="Hi there",
         )
 
         query = {
@@ -1035,6 +1062,16 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         spans = [
             self.store_ai_span(
                 conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=5),
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                trace_id=trace_id,
+                messages=[{"role": "user", "content": "Use tools to help me"}],
+                response_text="I'll use some tools",
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id,
                 timestamp=now - timedelta(seconds=4),
                 op="gen_ai.execute_tool",
                 operation_type="tool",
@@ -1096,6 +1133,16 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         trace_id = uuid4().hex
 
         spans = [
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=5),
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                trace_id=trace_id,
+                messages=[{"role": "user", "content": "Run some tools"}],
+                response_text="Running tools",
+                store=False,
+            ),
             # Successful tool call
             self.store_ai_span(
                 conversation_id=conversation_id,
@@ -1176,6 +1223,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             op="gen_ai.chat",
             operation_type="ai_client",
             trace_id=trace_id,
+            messages=[{"role": "user", "content": "Hello"}],
+            response_text="Hi there",
         )
 
         self.store_ai_span(
@@ -1234,6 +1283,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             trace_id=trace_id,
             tokens=100,
             cost=0.01,
+            messages=[{"role": "user", "content": "test"}],
+            response_text="test response",
         )
 
         query = {

@@ -1,6 +1,7 @@
 import {z} from 'zod';
 
 import {
+  fireEvent,
   render,
   renderGlobalModal,
   screen,
@@ -8,7 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -36,7 +37,7 @@ function TestForm({
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="enabled">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
@@ -70,7 +71,7 @@ function AutoSaveTestForm({
   onError,
 }: AutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="enabled"
       schema={testSchema}
       initialValue={initialValue}
@@ -81,7 +82,7 @@ function AutoSaveTestForm({
           <field.Switch checked={field.state.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 
@@ -124,13 +125,17 @@ describe('SwitchField disabled', () => {
     expect(screen.getByRole('checkbox')).toBeDisabled();
   });
 
-  it('shows tooltip with reason when disabled is a string', async () => {
+  it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<TestForm label="Enable Feature" disabled="Feature not available" />);
 
     expect(screen.getByRole('checkbox')).toBeDisabled();
 
-    // Hover on the switch to trigger tooltip
-    await userEvent.hover(screen.getByRole('checkbox'));
+    // Lock icon should be visible
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();
@@ -183,23 +188,24 @@ describe('SwitchField auto-save', () => {
     });
   });
 
-  it('does not trigger mutation when toggling back to initial value', async () => {
+  it('triggers mutation on every toggle because form resets after each save', async () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={false} />);
 
     const checkbox = screen.getByRole('checkbox');
-    // Toggle on then off - ends up at initial value
-    await userEvent.click(checkbox);
-    // First click triggers mutation
-    expect(mutationFn).toHaveBeenCalledTimes(1);
 
-    // Clear mock to check next behavior
+    // First click: OFF → ON, triggers mutation
+    await userEvent.click(checkbox);
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+    expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+
+    // After save succeeds, form.reset() resets to initialValue (false/OFF).
+    // Second click: OFF → ON again, triggers another mutation.
     mutationFn.mockClear();
     await userEvent.click(checkbox);
-
-    // Second click back to initial value should not trigger mutation
-    expect(mutationFn).not.toHaveBeenCalled();
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+    expect(mutationFn).toHaveBeenCalledWith({enabled: true});
   });
 
   it('does not hang when mutation fails', async () => {
@@ -227,6 +233,49 @@ describe('SwitchField auto-save', () => {
     await waitFor(() => {
       expect(checkbox).toBeEnabled();
     });
+  });
+
+  it('restores focus to the field after auto-save completes', async () => {
+    let resolveMutation: (value: {enabled: boolean}) => void;
+    const mutationFn = jest.fn(
+      () =>
+        new Promise<{enabled: boolean}>(resolve => {
+          resolveMutation = resolve;
+        })
+    );
+
+    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={false} />);
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // Field should be disabled while mutation is pending
+    await waitFor(() => {
+      expect(checkbox).toBeDisabled();
+    });
+
+    // In real browsers, disabling an element fires a blur event and
+    // moves focus to the body. JSDOM doesn't do this, so we simulate
+    // both: the blur event (triggers the listener) and the focus move.
+    fireEvent.blur(checkbox);
+    document.body.tabIndex = -1;
+    document.body.focus();
+    document.body.removeAttribute('tabindex');
+
+    // Set up a spy on focus after the blur to only capture
+    // the focus restoration call (not the initial click focus)
+    const focusSpy = jest.spyOn(checkbox, 'focus');
+
+    // Resolve the mutation
+    resolveMutation!({enabled: true});
+
+    // Field should be enabled again and focus() should be called
+    // to restore focus
+    await waitFor(() => {
+      expect(checkbox).toBeEnabled();
+    });
+    expect(focusSpy).toHaveBeenCalled();
+    focusSpy.mockRestore();
   });
 });
 
@@ -278,7 +327,7 @@ describe('SwitchField with confirm', () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -290,7 +339,7 @@ describe('SwitchField with confirm', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -310,7 +359,7 @@ describe('SwitchField with confirm', () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -322,7 +371,7 @@ describe('SwitchField with confirm', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -342,7 +391,7 @@ describe('SwitchField with confirm', () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue
@@ -354,7 +403,7 @@ describe('SwitchField with confirm', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -376,7 +425,7 @@ describe('SwitchField with confirm', () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -388,7 +437,7 @@ describe('SwitchField with confirm', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -412,7 +461,7 @@ describe('SwitchField with confirm', () => {
     const onError = jest.fn();
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -424,7 +473,7 @@ describe('SwitchField with confirm', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -457,7 +506,7 @@ describe('SwitchField with confirm', () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -469,7 +518,7 @@ describe('SwitchField with confirm', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -496,7 +545,7 @@ describe('SwitchField with confirm', () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -508,7 +557,7 @@ describe('SwitchField with confirm', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -527,7 +576,7 @@ describe('SwitchField with confirm', () => {
 
     // Test enabling: start with false, toggle to true
     const {unmount} = render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -541,7 +590,7 @@ describe('SwitchField with confirm', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     await userEvent.click(screen.getByRole('checkbox'));
@@ -557,7 +606,7 @@ describe('SwitchField with confirm', () => {
 
     // Test disabling: start with true, toggle to false
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue
@@ -571,7 +620,7 @@ describe('SwitchField with confirm', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     await userEvent.click(screen.getByRole('checkbox'));
@@ -588,7 +637,7 @@ describe('SwitchField resetOnError', () => {
     const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -599,7 +648,7 @@ describe('SwitchField resetOnError', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -618,7 +667,7 @@ describe('SwitchField resetOnError', () => {
     const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -630,7 +679,7 @@ describe('SwitchField resetOnError', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -652,7 +701,7 @@ describe('SwitchField failed to save error', () => {
     const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -663,7 +712,7 @@ describe('SwitchField failed to save error', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     await userEvent.click(screen.getByRole('checkbox'));
@@ -680,7 +729,7 @@ describe('SwitchField failed to save error', () => {
     const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -692,7 +741,7 @@ describe('SwitchField failed to save error', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     await userEvent.click(screen.getByRole('checkbox'));
@@ -715,7 +764,7 @@ describe('SwitchField failed to save error', () => {
     });
 
     render(
-      <AutoSaveField
+      <AutoSaveForm
         name="enabled"
         schema={testSchema}
         initialValue={false}
@@ -726,7 +775,7 @@ describe('SwitchField failed to save error', () => {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
 
     const checkbox = screen.getByRole('checkbox');

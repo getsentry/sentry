@@ -1,4 +1,4 @@
-export default function printConsoleBanner(color: string, fontFamily: string) {
+export function printConsoleBanner(color: string, fontFamily: string) {
   // eslint-disable-next-line no-console
   console.log(
     `%c

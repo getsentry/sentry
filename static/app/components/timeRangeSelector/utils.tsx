@@ -11,7 +11,7 @@ import {
   getFormattedDate,
 } from 'sentry/utils/dates';
 
-import TimeRangeItemLabel from './timeRangeItemLabel';
+import {TimeRangeItemLabel} from './timeRangeItemLabel';
 import type {TimeRangeItem} from './types';
 
 type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
@@ -29,7 +29,7 @@ type RelativeUnitsMapping = Record<
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
-const STATS_PERIOD_REGEX = /^(\d+)([mhdw]{1})$/;
+const STATS_PERIOD_REGEX = /^(\d+)([mhdw])$/;
 
 const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
   m: {
@@ -202,7 +202,7 @@ function filterItems(items: TimeRangeItem[], inputValue: string): TimeRangeItem[
   return items.filter(item =>
     (typeof item.textValue === 'string' && item.textValue.length > 0
       ? item.textValue
-      : `${item.value}`
+      : item.value
     )
       .toLowerCase()
       .includes(inputValue.toLowerCase())

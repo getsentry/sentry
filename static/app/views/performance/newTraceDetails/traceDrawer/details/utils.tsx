@@ -66,7 +66,7 @@ export function getSearchInExploreTarget(
   if (kind === TraceDrawerActionKind.INCLUDE) {
     search.setFilterValues(key, [value]);
   } else if (kind === TraceDrawerActionKind.EXCLUDE) {
-    search.setFilterValues(`!${key}`, [`${value}`]);
+    search.setFilterValues(`!${key}`, [value]);
   } else if (kind === TraceDrawerActionKind.GREATER_THAN) {
     search.setFilterValues(key, [`>${value}`]);
   } else {
@@ -262,10 +262,9 @@ export function tryParseJson(value: unknown): unknown {
   }
 }
 
-/**
- * Attempts to parse a JSON string, with fallback to fix invalid JSON.
- * Returns the parsed result and whether the JSON needed fixing.
- */
+function containsFilteredPlaceholder(value: string): boolean {
+  return value.includes('[Filtered]');
+}
 export function parseJsonWithFix(value: string): {
   fixedInvalidJson: boolean;
   parsed: any;
@@ -274,9 +273,22 @@ export function parseJsonWithFix(value: string): {
     const parsed = JSON.parse(value);
     return {parsed, fixedInvalidJson: false};
   } catch {
-    const fixed = fixJson(value);
-    const parsed = JSON.parse(fixed);
-    return {parsed, fixedInvalidJson: true};
+    // Only treat [Filtered] as unfixable when JSON.parse actually fails.
+    // Valid JSON that happens to contain "[Filtered]" in a quoted string
+    // will have been parsed successfully above.
+    if (containsFilteredPlaceholder(value)) {
+      return {parsed: null, fixedInvalidJson: true};
+    }
+
+    try {
+      const fixed = fixJson(value);
+      const parsed = JSON.parse(fixed);
+      return {parsed, fixedInvalidJson: true};
+    } catch {
+      // fixJson could not repair the string (e.g. bad escape sequences).
+      // Return a graceful result so the caller can fall back to the raw string.
+      return {parsed: null, fixedInvalidJson: true};
+    }
   }
 }
 

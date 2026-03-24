@@ -1,19 +1,19 @@
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
-from sentry.types.region import Region, get_region_by_name
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_cells
+from sentry.types.cell import Cell, get_cell_by_name, get_global_directory
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
-@control_silo_test(regions=create_test_regions("us", "de"))
+@control_silo_test(cells=create_test_cells("us", "de"))
 class OrganizationRegionTest(APITestCase):
     endpoint = "sentry-api-0-organization-region"
 
     def setUp(self) -> None:
         super().setUp()
         self.org_owner = self.create_user()
-        us_region = get_region_by_name("us")
+        us_region = get_cell_by_name("us")
         self.org = self.create_organization(owner=self.org_owner, region=us_region)
         self.test_project = self.create_project(organization=self.org, name="test_project")
 
@@ -26,8 +26,10 @@ class OrganizationRegionTest(APITestCase):
 
         return (internal_integration, integration_token)
 
-    def create_auth_token_for_org(self, org: Organization, region: Region, scopes: list[str]):
-        org_auth_token_str = generate_token(org.slug, region.to_url(""))
+    def create_auth_token_for_org(self, org: Organization, region: Cell, scopes: list[str]):
+        locality = get_global_directory().get_locality_for_cell(region.name)
+        assert locality is not None
+        org_auth_token_str = generate_token(org.slug, locality.to_url(""))
         self.create_org_auth_token(
             organization_id=org.id,
             scope_list=scopes,
@@ -51,8 +53,9 @@ class OrganizationRegionTest(APITestCase):
         response = self.get_response(self.org.slug)
 
         assert response.status_code == 200
-        us_region = get_region_by_name("us")
-        assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
+        us_locality = get_global_directory().get_locality_for_cell("us")
+        assert us_locality is not None
+        assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
 
     def test_non_org_member_has_no_access(self) -> None:
         non_member_user = self.create_user()
@@ -61,18 +64,19 @@ class OrganizationRegionTest(APITestCase):
         assert response.status_code == 403
 
     def test_org_auth_token_access_with_org_read(self) -> None:
-        us_region = get_region_by_name("us")
+        us_region = get_cell_by_name("us")
         org_auth_token_str = self.create_auth_token_for_org(
             region=us_region, org=self.org, scopes=["org:ci"]
         )
         response = self.send_get_request_with_auth(self.org.slug, org_auth_token_str)
 
-        us_region = get_region_by_name("us")
-        assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
+        us_locality = get_global_directory().get_locality_for_cell("us")
+        assert us_locality is not None
+        assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
         assert response.status_code == 200
 
     def test_org_auth_token_access_with_incorrect_scopes(self) -> None:
-        us_region = get_region_by_name("us")
+        us_region = get_cell_by_name("us")
         org_auth_token_str = self.create_auth_token_for_org(
             region=us_region, org=self.org, scopes=[]
         )
@@ -81,7 +85,7 @@ class OrganizationRegionTest(APITestCase):
         assert response.status_code == 403
 
     def test_org_auth_token_access_for_different_organization(self) -> None:
-        us_region = get_region_by_name("us")
+        us_region = get_cell_by_name("us")
 
         other_user = self.create_user()
         org_auth_token_str = self.create_auth_token_for_org(
@@ -99,8 +103,9 @@ class OrganizationRegionTest(APITestCase):
         response = self.send_get_request_with_auth(self.org.slug, token.token)
 
         assert response.status_code == 200
-        us_region = get_region_by_name("us")
-        assert response.data == {"name": us_region.name, "url": us_region.to_url("")}
+        us_locality = get_global_directory().get_locality_for_cell("us")
+        assert us_locality is not None
+        assert response.data == {"name": us_locality.name, "url": us_locality.to_url("")}
 
     def test_integration_token_with_invalid_scopes(self) -> None:
         integration, token = self.create_internal_integration_for_org(self.org, self.org_owner, [])
@@ -127,8 +132,9 @@ class OrganizationRegionTest(APITestCase):
         response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
 
         assert response.status_code == 200
-        us_region = get_region_by_name("us")
-        assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
+        us_locality = get_global_directory().get_locality_for_cell("us")
+        assert us_locality is not None
+        assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
 
     def test_user_auth_token_for_member(self) -> None:
         org_user = self.create_user()
@@ -141,8 +147,9 @@ class OrganizationRegionTest(APITestCase):
         response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
 
         assert response.status_code == 200
-        us_region = get_region_by_name("us")
-        assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
+        us_locality = get_global_directory().get_locality_for_cell("us")
+        assert us_locality is not None
+        assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
 
     def test_user_auth_token_for_non_member(self) -> None:
         user_auth_token = self.create_user_auth_token(

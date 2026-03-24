@@ -9,7 +9,7 @@ interface ClientDetails {
   clientSecret: string;
 }
 
-function ClientSecretModal({
+export function ClientSecretModal({
   Body,
   Header,
   clientSecret,
@@ -30,5 +30,3 @@ function ClientSecretModal({
     </Fragment>
   );
 }
-
-export default ClientSecretModal;

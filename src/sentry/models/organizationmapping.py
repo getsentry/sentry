@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from django.db import models
-from django.db.models.functions import Now
+from django.db.models.functions import Now, TruncSecond
 from django.utils import timezone
 
 from sentry import roles
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_model
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 from sentry.models.organization import OrganizationStatus
 
@@ -21,11 +22,11 @@ if TYPE_CHECKING:
 class OrganizationMapping(Model):
     """
     This model is used to:
-    * Map org slugs to a specific organization and region
+    * Map org slugs to a specific organization and cell
     * Safely reserve organization slugs via an eventually consistent cross silo workflow
     """
 
-    # This model is "autocreated" via an outbox write from the regional `Organization` it
+    # This model is "autocreated" via an outbox write from the `Organization` in the cell it
     # references, so there is no need to explicitly include it in the export.
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -38,8 +39,8 @@ class OrganizationMapping(Model):
     # If a record already exists with the same slug, the organization_id can only be
     # updated IF the idempotency key is identical.
     idempotency_key = models.CharField(max_length=IDEMPOTENCY_KEY_LENGTH)
-    # TODO(cells): rename to cell_name
-    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
+    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, db_column="region_name")
+
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 
     # Replicated from the Organization.flags attribute
@@ -55,13 +56,26 @@ class OrganizationMapping(Model):
     prevent_superuser_access = models.BooleanField(default=False, db_default=False)
     disable_member_invite = models.BooleanField(default=False, db_default=False)
 
-    date_updated = models.DateTimeField(db_default=Now(), auto_now=True, db_index=True)
+    date_updated = models.DateTimeField(db_default=Now(), auto_now=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmapping"
+        indexes = [
+            IndexWithPostgresNameLimits(
+                TruncSecond("date_updated"),
+                "id",
+                name="sentry_orgmapping_date_updated_id_idx",
+            ),
+            IndexWithPostgresNameLimits(
+                "cell_name",
+                TruncSecond("date_updated"),
+                "id",
+                name="sentry_orgmapping_cell_name_date_updated_id_idx",
+            ),
+        ]
 
-    __repr__ = sane_repr("organization_id", "slug", "region_name", "verified")
+    __repr__ = sane_repr("organization_id", "slug", "cell_name", "verified")
 
     @staticmethod
     def find_expected_provisioned(user_id: int, slug: str) -> OrganizationMapping | None:

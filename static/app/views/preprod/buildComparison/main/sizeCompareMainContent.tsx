@@ -5,22 +5,20 @@ import {parseAsBoolean, useQueryState} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import parseApiError from 'sentry/utils/parseApiError';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {parseApiError} from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
 import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
@@ -29,15 +27,15 @@ import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/ma
 import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {
-  isSizeAnalysisComparisonInProgress,
-  MetricsArtifactType,
-  SizeAnalysisComparisonState,
-} from 'sentry/views/preprod/types/appSizeTypes';
 import type {
   SizeAnalysisComparison,
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
+} from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  isSizeAnalysisComparisonInProgress,
+  MetricsArtifactType,
+  SizeAnalysisComparisonState,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import {
   getCompareApiUrl,
@@ -65,14 +63,6 @@ export function SizeCompareMainContent() {
   const params = useParams();
   const headArtifactId = params.headArtifactId;
   const baseArtifactId = params.baseArtifactId;
-  const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
-  // TODO(EME-735): Remove this once refactoring is complete and we don't need to extract projects from the URL.
-  if (projectIds.length !== 1) {
-    throw new Error(
-      `Expected exactly one project in query string but got ${projectIds.length}`
-    );
-  }
-  const projectId = projectIds[0]!;
 
   // These parameters are part of the route and must always be present
   if (headArtifactId === undefined) {
@@ -84,20 +74,18 @@ export function SizeCompareMainContent() {
 
   const compareUrl = getCompareApiUrl({
     organizationSlug: organization.slug,
-    projectId,
     headArtifactId,
     baseArtifactId,
   });
 
-  const sizeComparisonQuery: UseApiQueryResult<SizeComparisonApiResponse, RequestError> =
-    useApiQuery<SizeComparisonApiResponse>([compareUrl], {
-      staleTime: 0,
-      enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
-      refetchInterval: query => {
-        const mainComparison = getMainComparison(query.state.data?.[0]);
-        return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
-      },
-    });
+  const sizeComparisonQuery = useApiQuery<SizeComparisonApiResponse>([compareUrl], {
+    staleTime: 0,
+    enabled: !!headArtifactId && !!baseArtifactId,
+    refetchInterval: query => {
+      const mainComparison = getMainComparison(query.state.data?.[0]);
+      return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
+    },
+  });
 
   const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
 
@@ -109,7 +97,7 @@ export function SizeCompareMainContent() {
         {
           path: {
             organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectId,
+            projectIdOrSlug: sizeComparisonQuery.data?.head_build_details.project_slug!,
             headSizeMetricId: mainArtifactComparison?.head_size_metric_id!,
             baseSizeMetricId: mainArtifactComparison?.base_size_metric_id!,
           },
@@ -122,7 +110,8 @@ export function SizeCompareMainContent() {
         !!mainArtifactComparison?.head_size_metric_id &&
         !!mainArtifactComparison?.base_size_metric_id &&
         !!organization.slug &&
-        !!baseArtifactId,
+        !!baseArtifactId &&
+        mainArtifactComparison?.state === SizeAnalysisComparisonState.SUCCESS,
     }
   );
 
@@ -138,7 +127,6 @@ export function SizeCompareMainContent() {
       navigate(
         getCompareBuildPath({
           organizationSlug: organization.slug,
-          projectId,
           headArtifactId,
           baseArtifactId,
         })
@@ -295,7 +283,6 @@ export function SizeCompareMainContent() {
           navigate(
             getCompareBuildPath({
               organizationSlug: organization.slug,
-              projectId,
               headArtifactId,
             })
           );
@@ -310,12 +297,19 @@ export function SizeCompareMainContent() {
       {/* Insights Section */}
       {comparisonDataQuery.data?.insight_diff_items &&
         comparisonDataQuery.data.insight_diff_items.length > 0 && (
-          <InsightComparisonSection
-            totalInstallSizeBytes={
-              comparisonDataQuery.data?.size_metric_diff_item.head_install_size
-            }
-            insightDiffItems={comparisonDataQuery.data.insight_diff_items}
-          />
+          <Stack gap="xl">
+            <Separator orientation="horizontal" border="primary" />
+            <Stack gap="md">
+              <Heading as="h2">{t('Insight Diff')}</Heading>
+              <InsightComparisonSection
+                totalInstallSizeBytes={
+                  comparisonDataQuery.data?.size_metric_diff_item.head_install_size
+                }
+                insightDiffItems={comparisonDataQuery.data.insight_diff_items}
+              />
+            </Stack>
+            <Separator orientation="horizontal" border="primary" />
+          </Stack>
         )}
 
       {/* Items Changed Section */}
@@ -390,7 +384,13 @@ export function SizeCompareMainContent() {
       {/* Treemap Diff Section */}
       {comparisonDataQuery.data?.diff_items &&
         comparisonDataQuery.data.diff_items.length > 0 && (
-          <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+          <Stack gap="xl">
+            <Separator orientation="horizontal" border="primary" />
+            <Stack gap="md">
+              <Heading as="h2">{t('X-Ray Diff')}</Heading>
+              <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+            </Stack>
+          </Stack>
         )}
     </Flex>
   );

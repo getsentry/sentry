@@ -6,6 +6,7 @@ from rest_framework import status
 from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
+from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test
 
 
@@ -445,3 +446,52 @@ class OrganizationAuthTokenDetailsPermissionTest(PermissionTestCase):
 
     def test_member_cannot_delete(self) -> None:
         self.assert_member_cannot_access(self.path, method="DELETE")
+
+
+@control_silo_test
+class OrganizationAuthTokenDetailsImpersonationTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.impersonator = self.create_user(is_superuser=True)
+        self.token = OrgAuthToken.objects.create(
+            organization_id=self.organization.id,
+            name="token 1",
+            token_hashed="ABCDEF",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
+
+    def test_impersonated_put_blocked(self) -> None:
+        url = reverse(
+            "sentry-api-0-org-auth-token-details",
+            args=[self.organization.slug, self.token.id],
+        )
+        self.login_as(self.user)
+        with simulate_impersonation(self.impersonator):
+            response = self.client.put(url, data={"name": "renamed"})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        self.token.refresh_from_db()
+        assert self.token.name == "token 1"
+
+    def test_impersonated_delete_blocked(self) -> None:
+        url = reverse(
+            "sentry-api-0-org-auth-token-details",
+            args=[self.organization.slug, self.token.id],
+        )
+        self.login_as(self.user)
+        with simulate_impersonation(self.impersonator):
+            response = self.client.delete(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        self.token.refresh_from_db()
+        assert self.token.date_deactivated is None
+
+    def test_impersonated_get_allowed(self) -> None:
+        url = reverse(
+            "sentry-api-0-org-auth-token-details",
+            args=[self.organization.slug, self.token.id],
+        )
+        self.login_as(self.user)
+        with simulate_impersonation(self.impersonator):
+            response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK

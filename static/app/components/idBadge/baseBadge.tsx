@@ -10,11 +10,11 @@ import {
 } from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 
-import {space, type ValidSize} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {AvatarUser} from 'sentry/types/user';
+import type {SpaceSize} from 'sentry/utils/theme';
 
 export interface BaseBadgeProps {
   avatarProps?: Record<string, any>;
@@ -52,15 +52,16 @@ export const BaseBadge = memo(
     actor,
     className,
   }: AllBaseBadgeProps) => {
-    // Space items appropriatley depending on avatar size
-    const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
+    // Space items appropriately depending on avatar size
+    const wrapperGap: SpaceSize =
+      avatarSize <= 14 ? 'xs' : avatarSize <= 20 ? 'sm' : 'md';
 
     return (
       <Flex
         align="center"
+        gap={wrapperGap}
         flexShrink={0}
         className={className}
-        style={{gap: space(wrapperGap)}}
         onClick={onClick}
       >
         {!hideAvatar && (
@@ -136,7 +137,7 @@ const DisplayName = styled('span')`
 
 const Description = styled('div')`
   font-size: 0.875em;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.secondary};
   line-height: 14px;
   display: block;

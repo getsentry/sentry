@@ -10,14 +10,11 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
-)
+from sentry.seer.signed_seer_api import make_seer_models_request
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
 
@@ -44,7 +41,7 @@ class SeerModelsResponse(TypedDict):
 
 
 @extend_schema(tags=["Seer"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class SeerModelsEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -82,16 +79,8 @@ class SeerModelsEndpoint(Endpoint):
         if cached_data is not None:
             return Response(cached_data, status=200)
 
-        path = "/v1/models"
-
         try:
-            response = make_signed_seer_api_request(
-                seer_autofix_default_connection_pool,
-                path,
-                b"",
-                timeout=5,
-                method="GET",
-            )
+            response = make_seer_models_request(timeout=5)
             if response.status >= 400:
                 raise SeerApiError("Seer request failed", response.status)
 

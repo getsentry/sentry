@@ -3,7 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
 import type {ResponseMeta} from 'sentry/api';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
@@ -16,7 +16,7 @@ import {
 import {TOP_N} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
@@ -42,6 +42,7 @@ export function getReferrer(displayType: DisplayType) {
 
 export type OnDataFetchedProps = {
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
@@ -56,6 +57,7 @@ export type OnDataFetchedProps = {
 export type GenericWidgetQueriesResult = {
   loading: boolean;
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
@@ -119,18 +121,14 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
  * Used when legendType is 'breakdown' to fetch aggregate values for the legend.
  */
 function createBreakdownTableWidgetFromTimeSeriesWidget(widget: Widget): Widget {
-  // rendering of the breakdown table assuming one query
-  const queries = [];
-  const firstQuery = widget.queries[0];
+  const queries = widget.queries.map(query => {
+    const aggregates = [...(query.aggregates ?? [])];
+    const columns = [...(query.columns ?? [])];
 
-  if (firstQuery) {
-    const aggregates = [...(firstQuery.aggregates ?? [])];
-    const columns = [...(firstQuery.columns ?? [])];
-
-    if (firstQuery.orderby) {
+    if (query.orderby) {
       // TODO: table requests uses `eventViewFromWidget`, which does not automatically add orderby's to the fields to prevent the error
       // `orderby must also be in the selected columns or groupby`
-      const orderbyField = trimStart(firstQuery.orderby, '-');
+      const orderbyField = trimStart(query.orderby, '-');
       if (isAggregateField(orderbyField) && !aggregates.includes(orderbyField)) {
         aggregates.push(orderbyField);
       }
@@ -138,13 +136,14 @@ function createBreakdownTableWidgetFromTimeSeriesWidget(widget: Widget): Widget 
         columns.push(orderbyField);
       }
     }
-    queries.push({
-      ...firstQuery,
+    return {
+      ...query,
       fields: [...columns, ...aggregates],
       aggregates,
       columns,
-    });
-  }
+    };
+  });
+
   return {
     ...widget,
     displayType: DisplayType.TABLE,

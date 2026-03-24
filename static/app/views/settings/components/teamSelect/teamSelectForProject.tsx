@@ -4,16 +4,15 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import Confirm from 'sentry/components/confirm';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {Confirm} from 'sentry/components/confirm';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -30,7 +29,7 @@ type Props = TeamSelectProps & {
   selectedTeams: Team[];
 };
 
-function TeamSelect({
+export function TeamSelect({
   disabled,
   canCreateTeam,
   project,
@@ -147,7 +146,7 @@ function TeamRow({
 }
 
 const TeamPanelItem = styled(PanelItem)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   align-items: center;
   justify-content: space-between;
 `;
@@ -155,5 +154,3 @@ const TeamPanelItem = styled(PanelItem)`
 const TeamPanelItemLeft = styled('div')`
   flex-grow: 4;
 `;
-
-export default TeamSelect;

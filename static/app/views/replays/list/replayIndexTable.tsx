@@ -4,15 +4,16 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
 } from 'sentry/components/replays/jetpackComposePiiNotice';
-import ReplayTable from 'sentry/components/replays/table/replayTable';
-import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
+import {ReplayTable} from 'sentry/components/replays/table/replayTable';
+import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {t, tct} from 'sentry/locale';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -20,18 +21,18 @@ import {
   MIN_DEAD_RAGE_CLICK_SDK,
   MIN_REPLAY_CLICK_SDK,
 } from 'sentry/utils/replays/sdkVersions';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
-import BulkDeleteAlert from 'sentry/views/replays/list/bulkDeleteAlert';
-import ReplaysFilters from 'sentry/views/replays/list/filters';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
+import {BulkDeleteAlert} from 'sentry/views/replays/list/bulkDeleteAlert';
+import {ReplaysFilters} from 'sentry/views/replays/list/filters';
 import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
-import ReplaysSearch from 'sentry/views/replays/list/search';
-import useReplayIndexTableColumns from 'sentry/views/replays/list/useReplayIndexTableColumns';
-import DeadRageSelectorCards from 'sentry/views/replays/selectors/deadRageSelectorCards';
+import {ReplaysSearch} from 'sentry/views/replays/list/search';
+import {useReplayIndexTableColumns} from 'sentry/views/replays/list/useReplayIndexTableColumns';
+import {DeadRageSelectorCards} from 'sentry/views/replays/selectors/deadRageSelectorCards';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
@@ -42,7 +43,7 @@ interface Props {
   replays: ReplayListRecord[];
 }
 
-export default function ReplayIndexTable({
+export function ReplayIndexTable({
   error,
   hasMoreResults,
   isPending,
@@ -70,8 +71,9 @@ export default function ReplayIndexTable({
   const {allMobileProj} = useAllMobileProj({});
   const columns = useReplayIndexTableColumns({allMobileProj, tableDimensions});
 
+  const {options} = parseQueryKey(queryKey);
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch({
-    search: queryKey[1]?.query?.query,
+    search: options?.query?.query,
   });
 
   const showDeadRageClickCards =

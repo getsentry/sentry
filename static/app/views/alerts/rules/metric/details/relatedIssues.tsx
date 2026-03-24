@@ -5,13 +5,12 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GroupList from 'sentry/components/issues/groupList';
-import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {GroupList} from 'sentry/components/issues/groupList';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -36,7 +35,7 @@ interface Props {
   skipHeader?: boolean;
 }
 
-export default function RelatedIssues({
+export function RelatedIssues({
   rule,
   organization,
   projects,
@@ -146,9 +145,9 @@ export default function RelatedIssues({
 }
 
 const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   ${Panel} {
     /* smaller space between table and pagination */
-    margin-bottom: -${space(1)};
+    margin-bottom: -${p => p.theme.space.md};
   }
 `;
