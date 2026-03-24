@@ -17,8 +17,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  NAVIGATION_MOBILE_PANEL_INSET,
   NAVIGATION_MOBILE_TOPBAR_HEIGHT,
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  PRIMARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
 import {
   PrimaryNavigationFooterItems,
@@ -29,7 +31,9 @@ import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function MobileNavigation() {
@@ -174,6 +178,7 @@ export function MobileNavigation() {
     </MobileNavigationHeader>
   );
 }
+
 function MobileNavigationHeader(props: FlexProps<'header'>) {
   const theme = useTheme();
   return (
@@ -193,6 +198,116 @@ function MobileNavigationHeader(props: FlexProps<'header'>) {
       style={{zIndex: theme.zIndex.sidebar}}
       {...props}
     />
+  );
+}
+
+export function MobilePrimaryNavigation() {
+  const {view} = useSecondaryNavigation();
+
+  return (
+    <SizeProvider size="sm">
+      <PrimaryNavigation.Sidebar>
+        <PrimaryNavigation.SidebarHeader>
+          <OrganizationDropdown />
+        </PrimaryNavigation.SidebarHeader>
+        <PrimaryNavigation.List>
+          <PrimaryNavigationItems />
+        </PrimaryNavigation.List>
+      </PrimaryNavigation.Sidebar>
+      {view === 'expanded' && (
+        <SecondaryNavigation.Sidebar
+          width={`calc(100vw - ${NAVIGATION_MOBILE_PANEL_INSET}px - ${PRIMARY_SIDEBAR_WIDTH}px)`}
+          disableResize
+        >
+          <SecondaryNavigationContent />
+        </SecondaryNavigation.Sidebar>
+      )}
+    </SizeProvider>
+  );
+}
+
+export function MobilePageFrameNavigation() {
+  const theme = useTheme();
+  const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+  const navPanelRef = useRef<HTMLDivElement>(null);
+  const toggleButtonRef = useRef<HTMLButtonElement>(null);
+  const {view, setView} = useSecondaryNavigation();
+  const scrollLock = useScrollLock(document.getElementById('main')!);
+
+  useEffect(() => setIsOpen(false), [location.pathname]);
+
+  useEffect(() => {
+    const main = document.getElementById('main');
+    if (isOpen) {
+      main?.setAttribute('inert', '');
+      scrollLock.acquire();
+    } else {
+      main?.removeAttribute('inert');
+      scrollLock.release();
+      setView('expanded');
+    }
+    return () => {
+      main?.removeAttribute('inert');
+      scrollLock.release();
+    };
+  }, [isOpen, scrollLock, setView]);
+
+  // Close the panel when the secondary nav's IconPanel button is clicked,
+  // which sets view to 'collapsed'.
+  useEffect(() => {
+    if (isOpen && view === 'collapsed') {
+      setIsOpen(false);
+    }
+  }, [isOpen, view]);
+
+  const handleClickOutside = useCallback(
+    (e: MouseEvent | TouchEvent) => {
+      if (toggleButtonRef.current?.contains(e.target as Node)) return;
+      setIsOpen(false);
+    },
+    [] // setIsOpen and toggleButtonRef are stable
+  );
+
+  useOnClickOutside(navPanelRef, handleClickOutside);
+
+  return (
+    <SizeProvider size="sm">
+      <MobileNavigationHeader
+        height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`}
+        padding="sm"
+      >
+        <Flex align="center" gap="md" justify="between" width="100%">
+          <Button
+            ref={toggleButtonRef}
+            onClick={() => setIsOpen(v => !v)}
+            icon={<IconMenu aria-hidden="true" />}
+            aria-label={t('Open main menu')}
+          />
+          <Stack gap="md" direction="row">
+            <PrimaryNavigation.ButtonBar orientation="horizontal">
+              <PrimaryNavigationFooterItems />
+            </PrimaryNavigation.ButtonBar>
+            <PrimaryNavigationFooterItemsUserDropdown />
+          </Stack>
+        </Flex>
+      </MobileNavigationHeader>
+      {isOpen &&
+        createPortal(
+          <Flex
+            ref={navPanelRef}
+            position="fixed"
+            top={0}
+            left={0}
+            bottom={0}
+            width={`calc(100vw - ${NAVIGATION_MOBILE_PANEL_INSET}px)`}
+            style={{zIndex: theme.zIndex.modal}}
+          >
+            <MobilePrimaryNavigation />
+          </Flex>,
+          document.body
+        )}
+    </SizeProvider>
   );
 }
 

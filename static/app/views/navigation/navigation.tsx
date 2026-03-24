@@ -105,11 +105,7 @@ export function Navigation() {
         )}
       </PrimaryNavigation.Sidebar>
 
-      {layout === 'mobile' ? (
-        <SecondaryNavigation.Sidebar>
-          <SecondaryNavigationContent />
-        </SecondaryNavigation.Sidebar>
-      ) : isCollapsed ? (
+      {isCollapsed ? (
         <CollapsedSecondaryWrapper
           data-visible={collapsedNavigation.view === 'peek'}
           data-test-id="collapsed-secondary-sidebar"

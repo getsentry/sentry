@@ -40,7 +40,13 @@ import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {IconAllProjects, IconChevron, IconGrabbable, IconMyProjects} from 'sentry/icons';
+import {
+  IconAllProjects,
+  IconChevron,
+  IconGrabbable,
+  IconMyProjects,
+  IconPanel,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableTransition} from 'sentry/utils/testableTransition';
@@ -51,6 +57,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_HEADER_HEIGHT,
@@ -75,9 +82,11 @@ const MotionContainer = motion.create(Container);
 
 interface SecondarySidebarProps {
   children: ReactNode;
+  disableResize?: boolean;
+  width?: string;
 }
 
-function SecondarySidebar({children}: SecondarySidebarProps) {
+function SecondarySidebar({children, width, disableResize}: SecondarySidebarProps) {
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -116,7 +125,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
           height="100%"
           right="0"
           {...props}
-          width={`${size}px`}
+          width={width ?? `${size}px`}
           ref={mergeRefs(resizableContainerRef, ref)}
           {...{
             [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
@@ -140,27 +149,29 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               >
                 {children}
               </Grid>
-              <Container
-                top="0"
-                right="0"
-                bottom="0"
-                width="8px"
-                radius="lg"
-                position="absolute"
-              >
-                {p => (
-                  <ResizeHandle
-                    {...p}
-                    ref={resizeHandleRef}
-                    onMouseDown={handleStartResize}
-                    onDoubleClick={() => {
-                      setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
-                    }}
-                    atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-                    atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-                  />
-                )}
-              </Container>
+              {!disableResize && (
+                <Container
+                  top="0"
+                  right="0"
+                  bottom="0"
+                  width="8px"
+                  radius="lg"
+                  position="absolute"
+                >
+                  {p => (
+                    <ResizeHandle
+                      {...p}
+                      ref={resizeHandleRef}
+                      onMouseDown={handleStartResize}
+                      onDoubleClick={() => {
+                        setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                      }}
+                      atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                      atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+                    />
+                  )}
+                </Container>
+              )}
             </MotionContainer>
           </AnimatePresence>
         </Container>
@@ -173,12 +184,15 @@ function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
   const secondaryNavigation = useSecondaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
+  const {layout} = usePrimaryNavigation();
 
   return (
     <Container
       background="secondary"
       borderRight={
-        hasPageFrame && secondaryNavigation.view === 'expanded' ? undefined : 'primary'
+        hasPageFrame && secondaryNavigation.view === 'expanded' && layout !== 'mobile'
+          ? undefined
+          : 'primary'
       }
       position="relative"
       height="100%"
@@ -276,11 +290,13 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       align="center"
       borderBottom={hasPageFrame ? 'primary' : 'muted'}
       height={
-        layout === 'mobile'
-          ? undefined
-          : hasPageFrame
-            ? `${PRIMARY_HEADER_HEIGHT}px`
-            : '44px'
+        layout === 'mobile' && hasPageFrame
+          ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+          : layout === 'mobile'
+            ? undefined
+            : hasPageFrame
+              ? `${PRIMARY_HEADER_HEIGHT}px`
+              : '44px'
       }
       padding={layout === 'mobile' ? 'md xl' : '0 md 0 xl'}
     >
@@ -290,7 +306,15 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
         </Text>
       </div>
       <div>
-        {layout === 'mobile' ? null : (
+        {layout === 'mobile' && hasPageFrame ? (
+          <Button
+            size="xs"
+            icon={<IconPanel direction="left" />}
+            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
+            priority="default"
+          />
+        ) : layout === 'mobile' ? null : (
           <Button
             size="xs"
             icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}

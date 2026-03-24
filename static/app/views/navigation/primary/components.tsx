@@ -191,7 +191,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
   };
 
-  if (layout === 'mobile') {
+  if (layout === 'mobile' && !hasPageFrame) {
     return (
       <MobileNavigationLink {...sharedLinkProps}>
         {props.children}
@@ -280,7 +280,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
           )
         }
       >
-        {hasPageFrame ? null : layout === 'mobile' ? props.label : null}
+        {!hasPageFrame && layout === 'mobile' ? props.label : null}
         {props.children}
       </NavigationButton>
     </Tooltip>
@@ -385,12 +385,12 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
                   )
                 }
               >
-                {layout === 'mobile' && hasPageFrame ? null : layout === 'mobile' ? (
+                {layout === 'mobile' && !hasPageFrame ? (
                   <Fragment>
-                    {hasPageFrame ? null : props.label}
+                    {props.label}
                     {props.children}
                   </Fragment>
-                ) : (
+                ) : layout === 'mobile' ? null : (
                   props.children
                 )}
               </NavigationButton>
@@ -625,23 +625,19 @@ const DesktopNavigationLink = styled((props: LinkProps) => (
   }
 `;
 
-const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
-  const hasPageFrame = useHasPageFrameFeature();
-
-  return (
-    <Flex
-      position="relative"
-      width="100%"
-      align="center"
-      direction="column"
-      justify="center"
-      gap="xs"
-      padding={hasPageFrame ? 'xs' : 'md 0 xs 0'}
-    >
-      {p => <Link {...mergeProps(p, props)} />}
-    </Flex>
-  );
-})`
+const DesktopPageFrameNavigationLink = styled((props: LinkProps) => (
+  <Flex
+    position="relative"
+    width="100%"
+    align="center"
+    direction="column"
+    justify="center"
+    gap="xs"
+    padding="xs"
+  >
+    {p => <Link {...mergeProps(p, props)} />}
+  </Flex>
+))`
   outline: none;
   box-shadow: none;
   transition: none;
