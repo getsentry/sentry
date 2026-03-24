@@ -93,7 +93,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
             `p95(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
-          fieldAliases: [t('Avg Duration'), 'P95 Duration'],
+          fieldAliases: [t('Avg Duration'), t('P95 Duration')],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
