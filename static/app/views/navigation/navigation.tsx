@@ -54,7 +54,7 @@ export function Navigation() {
   const hasPageFrame = useHasPageFrameFeature();
   const {view} = useSecondaryNavigation();
 
-  const ref = useRef<HTMLUListElement>(null);
+  const ref = useRef<HTMLUListElement | null>(null);
 
   const {layout} = usePrimaryNavigation();
   const isMobilePageFrame = hasPageFrame && layout === 'mobile';
@@ -130,19 +130,18 @@ export function Navigation() {
   );
 }
 
-export function PrimaryNavigationItems({
-  listRef,
-}: {
-  listRef?: RefObject<HTMLUListElement>;
-}) {
+interface PrimaryNavigationItemsProps {
+  listRef: RefObject<HTMLUListElement | null>;
+}
+
+export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
-  const fallbackRef = useRef<HTMLUListElement>(null);
 
   const hasPageFrame = useHasPageFrameFeature();
 
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({
-    ref: listRef ?? fallbackRef,
+    ref: listRef,
   });
 
   return (
