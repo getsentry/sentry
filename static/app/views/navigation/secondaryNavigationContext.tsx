@@ -80,9 +80,15 @@ export function SecondaryNavigationContextProvider(
 export function MobileSecondaryNavigationContextProvider(
   props: SecondaryNavigationContextProviderProps
 ) {
-  const [view, setView] = useState<'expanded' | 'collapsed'>('expanded');
+  const [view, setViewState] = useState<'expanded' | 'collapsed'>('expanded');
 
-  const value = useMemo(() => ({view, setView}), [view]);
+  const setView = useCallback((nextView: SecondaryNavState) => {
+    if (nextView !== 'peek') {
+      setViewState(nextView);
+    }
+  }, []);
+
+  const value = useMemo(() => ({view, setView}), [view, setView]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>
