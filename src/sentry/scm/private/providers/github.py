@@ -9,6 +9,11 @@ import requests
 
 from sentry.integrations.github.client import GitHubApiClient
 from sentry.scm.errors import SCMProviderException
+from sentry.scm.private.rate_limit import (
+    DynamicRateLimiter,
+    RateLimitProvider,
+    RedisRateLimitProvider,
+)
 from sentry.scm.types import (
     SHA,
     ActionResult,
@@ -121,11 +126,14 @@ mutation MinimizeComment($commentId: ID!, $reason: ReportedContentClassifiers!) 
 """
 
 
-# TODO: Rate-limits are dynamic per org. Some will have higher limits. We need to dynamically
-#       configure the shared pool. The absolute allocation amount for explicit referrers can
-#       remain unchanged.
-REFERRER_ALLOCATION: dict[Referrer, float] = {"emerge": 0.1}
+REFERRER_ALLOCATION: dict[Referrer, float] = {"emerge": 0.05}
+
 GITHUB_RATE_LIMIT_WINDOW = 3600
+GITHUB_RATE_LIMIT_CAPACITY = "x-ratelimit-limit"
+GITHUB_RATE_LIMIT_USED = "x-ratelimit-used"
+GITHUB_RATE_LIMIT_RESET = "x-ratelimit-reset"
+GITHUB_RATE_LIMIT_REMAINING = "x-ratelimit-remaining"
+GITHUB_RATE_LIMIT_RETRY_AFTER = "retry-after"
 
 
 def _extract_response_meta(response: requests.Response) -> ResponseMeta:
@@ -138,8 +146,35 @@ def _extract_response_meta(response: requests.Response) -> ResponseMeta:
 
 
 class GitHubProviderApiClient:
-    def __init__(self, client: GitHubApiClient) -> None:
+    def __init__(
+        self,
+        client: GitHubApiClient,
+        organization_id: int,
+        rate_limit_provider: RateLimitProvider,
+        get_time_in_seconds: Callable[[], int] = lambda: int(time.time()),
+    ) -> None:
         self.client = client
+        self.rate_limiter = DynamicRateLimiter(
+            get_time_in_seconds=get_time_in_seconds,
+            organization_id=organization_id,
+            provider="github",
+            rate_limit_provider=rate_limit_provider,
+            rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
+            referrer_allocation=REFERRER_ALLOCATION,
+            recorded_capacity=None,
+        )
+
+    def is_rate_limited(self, referrer: Referrer) -> bool:
+        """Return true if access to the resource has been blocked."""
+        # If the referrer has allocated quota and that quota has not been exhausted we eagerly
+        # exit by returning false. Otherwise we consume from the shared quota pool.
+        if (
+            referrer in self.rate_limiter.referrer_allocation
+            and not self.rate_limiter.is_rate_limited(referrer)
+        ):
+            return False
+        else:
+            return self.rate_limiter.is_rate_limited("shared")
 
     def request(
         self,
@@ -160,6 +195,42 @@ class GitHubProviderApiClient:
                 raw_response=True,
                 allow_redirects=allow_redirects,
             )
+
+            # If GitHub returned rate-limit information we update our internal representation
+            # to match.
+            if (
+                GITHUB_RATE_LIMIT_CAPACITY in response.headers
+                and GITHUB_RATE_LIMIT_USED in response.headers
+                and GITHUB_RATE_LIMIT_RESET in response.headers
+            ):
+                self.rate_limiter.update_rate_limit_meta(
+                    capacity=int(response.headers[GITHUB_RATE_LIMIT_CAPACITY]),
+                    consumed=int(response.headers[GITHUB_RATE_LIMIT_USED]),
+                    next_window_start=int(response.headers[GITHUB_RATE_LIMIT_RESET]),
+                )
+
+            # TODO: GitHub tells us when we've hit a rate-limit. We could update our system to
+            #       match. However, I feel there's some subtlety here. Is retry-after API wide
+            #       or just for the requested resource? GitHub tells us its reset but our clocks
+            #       do not agree. How do we ensure we're not blocking? Probably time bucket
+            #       comparisons like we do elsewhere.
+            #
+            # # From GitHub:
+            # #   > Continuing to make requests while you are rate limited may result in the
+            # #   > banning of your integration.
+            # if response.status_code in (403, 429):
+            #     # A secondary rate-limit was breached. Back off for "retry-after" seconds.
+            #     if GITHUB_RATE_LIMIT_RETRY_AFTER in response.headers:
+            #         retry_after = int(response.headers[GITHUB_RATE_LIMIT_RETRY_AFTER])
+
+            #     # A primary rate-limit was breached. No requests until the next window.
+            #     elif (
+            #         GITHUB_RATE_LIMIT_RESET in response.headers
+            #         and GITHUB_RATE_LIMIT_REMAINING in response.headers
+            #         and response.headers[GITHUB_RATE_LIMIT_REMAINING] == "0"
+            #     ):
+            #         next_window_start = int(response.headers[GITHUB_RATE_LIMIT_RESET])
+
             response.raise_for_status()
             return response
         except requests.RequestException as e:
@@ -249,30 +320,20 @@ class GitHubProvider:
         client: GitHubApiClient,
         organization_id: int,
         repository: Repository,
-        get_and_set_rate_limit: Callable[[str, str], tuple[int | None, int]],
+        rate_limit_provider: RateLimitProvider | None = None,
+        get_time_in_seconds: Callable[[], int] = lambda: int(time.time()),
     ) -> None:
-        self.client = GitHubProviderApiClient(client)
+        self.client = GitHubProviderApiClient(
+            client,
+            organization_id=organization_id,
+            rate_limit_provider=rate_limit_provider or RedisRateLimitProvider(),
+            get_time_in_seconds=get_time_in_seconds,
+        )
         self.organization_id = organization_id
         self.repository = repository
-        self.get_and_set_rate_limit = get_and_set_rate_limit
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
-        # Find the window of the request.
-        window = int(time.time()) // GITHUB_RATE_LIMIT_WINDOW
-
-        total_key = f"limit:scm:gh:{self.organization_id}"
-        referrer_key = f"rl:scm:gh:{self.organization_id}:{referrer}:{window}"
-
-        limit, used = self.get_and_set_rate_limit(total_key, referrer_key)
-
-        # If no limit could be found we fail open. We'll populate the limit
-        # on the other-side of the HTTP request.
-        if limit is None:
-            return True
-
-        # If a limit was found we compute the amount of available quota for the referrer.
-        limit_by_referrer = int(limit * REFERRERS[referrer])
-        return used >= limit_by_referrer
+        return self.client.is_rate_limited(referrer)
 
     def get_issue_comments(
         self,

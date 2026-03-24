@@ -17,10 +17,7 @@ def total_limit_key(provider: str, organization_id: int) -> str:
 
 class RateLimitProvider(Protocol):
     def get_and_set_rate_limit(
-        self,
-        total_key: str,
-        usage_key: str,
-        expiration: int,
+        self, total_key: str, usage_key: str, expiration: int
     ) -> tuple[int | None, int]:
         """
         Get the request limit and incr/expire quota usage for the key.
