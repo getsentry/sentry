@@ -60,23 +60,15 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_response.data = data
         return mock_response
 
-    def _create_mock_task_state(self, retries_remaining: bool = True) -> MagicMock:
-        """Helper to create a mock CurrentTaskState object."""
-        mock_state = MagicMock()
-        mock_state.retries_remaining = retries_remaining
-        return mock_state
-
-    @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
     def test_server_error_response_raises_for_retry(
-        self, mock_metrics: MagicMock, mock_request: MagicMock, mock_current_task: MagicMock
+        self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that Seer 5xx responses are raised to trigger task retry."""
         mock_request.return_value = self._mock_response(
             500, b'{"detail": "Error handling check_run rerun."}'
         )
-        mock_current_task.return_value = self._create_mock_task_state(retries_remaining=False)
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
@@ -94,15 +86,13 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
         assert "HTTPError" in str(outcome_calls[0])
 
-    @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
     def test_service_unavailable_response_raises_for_retry(
-        self, mock_metrics: MagicMock, mock_request: MagicMock, mock_current_task: MagicMock
+        self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that Seer 503 (service unavailable) responses are raised to trigger task retry."""
         mock_request.return_value = self._mock_response(503, b'{"detail": "Service unavailable"}')
-        mock_current_task.return_value = self._create_mock_task_state(retries_remaining=False)
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
@@ -120,15 +110,13 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
         assert "HTTPError" in str(outcome_calls[0])
 
-    @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
     def test_rate_limit_response_raises_for_retry(
-        self, mock_metrics: MagicMock, mock_request: MagicMock, mock_current_task: MagicMock
+        self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that Seer 429 (rate limit) responses are raised to trigger task retry."""
         mock_request.return_value = self._mock_response(429, b'{"detail": "Rate limit exceeded"}')
-        mock_current_task.return_value = self._create_mock_task_state(retries_remaining=False)
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
@@ -171,17 +159,15 @@ class ProcessGitHubWebhookEventTest(TestCase):
         outcome_call = outcome_calls[0]
         assert "seer.code_review.task.error" in str(outcome_call)
 
-    @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
     def test_network_error_raises_for_retry(
-        self, mock_metrics: MagicMock, mock_request: MagicMock, mock_current_task: MagicMock
+        self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that network errors are re-raised to trigger task retry."""
         from urllib3.exceptions import MaxRetryError
 
         mock_request.side_effect = MaxRetryError(None, "test", reason="Connection failed")  # type: ignore[arg-type]
-        mock_current_task.return_value = self._create_mock_task_state(retries_remaining=False)
 
         with pytest.raises(MaxRetryError):
             process_github_webhook_event._func(
@@ -199,17 +185,15 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
         assert "MaxRetryError" in str(outcome_calls[0])
 
-    @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
     def test_timeout_error_raises_for_retry(
-        self, mock_metrics: MagicMock, mock_request: MagicMock, mock_current_task: MagicMock
+        self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that timeout errors are re-raised to trigger task retry."""
         from urllib3.exceptions import TimeoutError
 
         mock_request.side_effect = TimeoutError("Request timed out")
-        mock_current_task.return_value = self._create_mock_task_state(retries_remaining=False)
 
         with pytest.raises(TimeoutError):
             process_github_webhook_event._func(
@@ -227,17 +211,15 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
         assert "TimeoutError" in str(outcome_calls[0])
 
-    @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
     def test_ssl_error_raises_for_retry(
-        self, mock_metrics: MagicMock, mock_request: MagicMock, mock_current_task: MagicMock
+        self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that SSL errors are re-raised to trigger task retry."""
         from urllib3.exceptions import SSLError
 
         mock_request.side_effect = SSLError("Certificate verification failed")
-        mock_current_task.return_value = self._create_mock_task_state(retries_remaining=False)
 
         with pytest.raises(SSLError):
             process_github_webhook_event._func(
@@ -255,17 +237,15 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
         assert "SSLError" in str(outcome_calls[0])
 
-    @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
     def test_new_connection_error_raises_for_retry(
-        self, mock_metrics: MagicMock, mock_request: MagicMock, mock_current_task: MagicMock
+        self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that connection errors are re-raised to trigger task retry."""
         from urllib3.exceptions import NewConnectionError
 
         mock_request.side_effect = NewConnectionError(None, "Failed to establish connection")  # type: ignore[arg-type]
-        mock_current_task.return_value = self._create_mock_task_state(retries_remaining=False)
 
         with pytest.raises(NewConnectionError):
             process_github_webhook_event._func(
@@ -283,17 +263,15 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
         assert "NewConnectionError" in str(outcome_calls[0])
 
-    @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
     def test_network_error_not_logged_on_early_retry(
-        self, mock_metrics: MagicMock, mock_request: MagicMock, mock_current_task: MagicMock
+        self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that network errors are raised on early retry attempts to trigger retry."""
         from urllib3.exceptions import TimeoutError
 
         mock_request.side_effect = TimeoutError("Request timed out")
-        mock_current_task.return_value = self._create_mock_task_state(retries_remaining=True)
 
         with pytest.raises(TimeoutError):
             process_github_webhook_event._func(
@@ -302,7 +280,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 tags={},
             )
 
-        # Verify metric is incremented exactly once (not double-counted)
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
@@ -311,7 +288,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
         assert "TimeoutError" in str(outcome_calls[0])
 
-        # Verify latency is NOT recorded on early retries (retries remaining)
         mock_metrics.timing.assert_not_called()
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
@@ -375,11 +351,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         mock_metrics.timing.assert_not_called()
 
-    @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
     def test_max_retry_attempts_each_record_error_metric(
-        self, mock_metrics: MagicMock, mock_request: MagicMock, mock_current_task: MagicMock
+        self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
         """Each failed attempt increments the error metric; e2e latency is not emitted."""
         from urllib3.exceptions import MaxRetryError
@@ -387,11 +362,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.side_effect = MaxRetryError(None, "test", reason="Connection failed")  # type: ignore[arg-type]
 
         for retry_count in range(MAX_RETRIES):
-            retries_remaining = retry_count < MAX_RETRIES - 1
-            mock_current_task.return_value = self._create_mock_task_state(
-                retries_remaining=retries_remaining
-            )
-
             with pytest.raises(MaxRetryError):
                 process_github_webhook_event._func(
                     seer_path="/v1/code_review/check/rerun",
