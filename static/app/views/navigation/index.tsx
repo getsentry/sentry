@@ -1,3 +1,4 @@
+import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -5,6 +6,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
+  closeModal,
   openCommandPalette,
   openCommandPaletteDeprecated,
 } from 'sentry/actionCreators/modal';
@@ -36,22 +38,32 @@ function UserAndOrganizationNavigation() {
 
   useGlobalCommandPaletteActions();
 
-  useHotkeys(
-    visible
-      ? []
-      : [
-          {
-            match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-            callback: () => {
-              if (organization.features.includes('cmd-k-supercharged')) {
-                openCommandPalette();
-              } else {
-                openCommandPaletteDeprecated();
-              }
-            },
-          },
-        ]
-  );
+  const commandPaletteOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible) {
+      commandPaletteOpenRef.current = false;
+    }
+  }, [visible]);
+
+  useHotkeys([
+    {
+      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+      includeInputs: true,
+      callback: () => {
+        if (organization.features.includes('cmd-k-supercharged')) {
+          if (visible && commandPaletteOpenRef.current) {
+            closeModal();
+          } else if (!visible) {
+            openCommandPalette();
+            commandPaletteOpenRef.current = true;
+          }
+        } else if (!visible) {
+          openCommandPaletteDeprecated();
+        }
+      },
+    },
+  ]);
 
   return (
     <NavigationLayout>
