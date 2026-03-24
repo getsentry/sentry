@@ -159,13 +159,10 @@ class SourceCodeManager(Facade):
 
 
 def get_capabilities(scm: SourceCodeManager) -> Iterable[str]:
-    """
-    Get the names of the capabilities implemented by the given SourceCodeManager.
-    Names correspond to the protocol class names, minus the "Protocol" suffix.
-    """
+    """Get the names of the protocols implemented by the given SourceCodeManager."""
     for protocol in ALL_PROTOCOLS:
         if isinstance(scm, protocol):
-            yield protocol.__name__.removesuffix("Protocol")
+            yield protocol.__name__
 
 
 def get_issue_comments(
