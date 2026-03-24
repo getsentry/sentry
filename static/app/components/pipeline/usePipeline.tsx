@@ -9,12 +9,7 @@ import type {
   ProvidersByType,
   RegisteredPipelineType,
 } from './registry';
-import type {
-  ApiPipeline,
-  PipelineAdvanceResponse,
-  PipelineStepProps,
-  PipelineStepResponse,
-} from './types';
+import type {ApiPipeline, PipelineAdvanceResponse, PipelineStepResponse} from './types';
 import {PIPELINE_NAME_MAP} from './types';
 
 type PipelineState =
@@ -162,11 +157,11 @@ export function usePipeline<T extends RegisteredPipelineType>(
           break;
         case 'complete': {
           const rawData = response.data ?? {};
-          setState({status: 'complete', data: rawData});
           const transformed = definition?.onComplete(rawData) as
             | CompletionDataFor<T, ProvidersByType[T]>
             | undefined;
-          if (transformed) {
+          setState({status: 'complete', data: transformed ?? rawData});
+          if (transformed !== undefined) {
             onCompleteRef.current?.(transformed);
           }
           break;
