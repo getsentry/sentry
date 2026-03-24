@@ -117,8 +117,30 @@ def _validate_and_get_integration(organization, integration_id: int):
         integration_id=integration_id_int,
     )
 
-    if not org_integration or org_integration.status != ObjectStatus.ACTIVE:
-        raise NotFound("Integration not found")
+    if not org_integration:
+        logger.warning(
+            "coding_agent.integration_not_connected",
+            extra={
+                "organization_id": organization.id,
+                "integration_id": integration_id_int,
+            },
+        )
+        raise NotFound(
+            f"Integration {integration_id_int} is not connected to organization {organization.id}"
+        )
+
+    if org_integration.status != ObjectStatus.ACTIVE:
+        logger.warning(
+            "coding_agent.integration_not_active",
+            extra={
+                "organization_id": organization.id,
+                "integration_id": integration_id_int,
+                "status": org_integration.status,
+            },
+        )
+        raise NotFound(
+            f"Integration {integration_id_int} is not active for organization {organization.id}"
+        )
 
     integration = integration_service.get_integration(
         organization_integration_id=org_integration.id,
@@ -126,15 +148,40 @@ def _validate_and_get_integration(organization, integration_id: int):
     )
 
     if not integration:
+        logger.warning(
+            "coding_agent.integration_deleted",
+            extra={
+                "organization_id": organization.id,
+                "integration_id": integration_id_int,
+                "organization_integration_id": org_integration.id,
+            },
+        )
         raise NotFound("Integration not found")
 
     # Verify it's a coding agent integration
     if integration.provider not in get_coding_agent_providers():
+        logger.warning(
+            "coding_agent.invalid_provider",
+            extra={
+                "organization_id": organization.id,
+                "integration_id": integration_id_int,
+                "provider": integration.provider,
+                "valid_providers": get_coding_agent_providers(),
+            },
+        )
         raise ValidationError("Not a coding agent integration")
 
     # Get the installation
     installation = integration.get_installation(organization.id)
     if not isinstance(installation, CodingAgentIntegration):
+        logger.warning(
+            "coding_agent.invalid_installation",
+            extra={
+                "organization_id": organization.id,
+                "integration_id": integration_id_int,
+                "installation_type": type(installation).__name__,
+            },
+        )
         raise ValidationError("Invalid coding agent integration")
 
     return integration, installation

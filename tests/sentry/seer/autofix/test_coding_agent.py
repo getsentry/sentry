@@ -1,6 +1,10 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
+from rest_framework.exceptions import NotFound, ValidationError
+
+from sentry.constants import ObjectStatus
 from sentry.integrations.claude_code.utils import ClaudeSessionEvent
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
@@ -10,6 +14,7 @@ from sentry.integrations.github_copilot.models import (
 )
 from sentry.seer.autofix.coding_agent import (
     _launch_agents_for_repos,
+    _validate_and_get_integration,
     extract_result_from_events,
     poll_claude_code_agents,
     poll_github_copilot_agents,
@@ -25,6 +30,70 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
+
+
+class TestValidateAndGetIntegration(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+
+    def test_integration_not_connected_to_organization(self):
+        other_organization = self.create_organization()
+        integration = self.create_integration(
+            organization=other_organization,
+            provider="cursor",
+            external_id="cursor-123",
+        )
+
+        with pytest.raises(NotFound) as exc_info:
+            _validate_and_get_integration(self.organization, integration.id)
+
+        assert (
+            f"Integration {integration.id} is not connected to organization {self.organization.id}"
+            in str(exc_info.value)
+        )
+
+    def test_integration_not_active(self):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor",
+            external_id="cursor-123",
+            status=ObjectStatus.DISABLED,
+        )
+
+        with pytest.raises(NotFound) as exc_info:
+            _validate_and_get_integration(self.organization, integration.id)
+
+        assert (
+            f"Integration {integration.id} is not active for organization {self.organization.id}"
+            in str(exc_info.value)
+        )
+
+    def test_integration_deleted(self):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor",
+            external_id="cursor-123",
+        )
+        integration_id = integration.id
+        integration.delete()
+
+        with pytest.raises(NotFound) as exc_info:
+            _validate_and_get_integration(self.organization, integration_id)
+
+        assert "not connected to organization" in str(exc_info.value).lower()
+
+    def test_not_a_coding_agent_integration(self):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github-123",
+        )
+
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_and_get_integration(self.organization, integration.id)
+
+        assert "Not a coding agent integration" in str(exc_info.value)
 
 
 class TestLaunchAgentsForRepos(TestCase):

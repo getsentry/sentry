@@ -579,7 +579,7 @@ def trigger_coding_agent_launch(
         trigger_source: Either "root_cause" or "solution" (default: "solution")
 
     Returns:
-        dict: {"success": bool}
+        dict: {"success": bool, "error": str | None}
     """
     try:
         launch_coding_agents_for_run(
@@ -588,17 +588,18 @@ def trigger_coding_agent_launch(
             run_id=run_id,
             trigger_source=AutofixTriggerSource(trigger_source),
         )
-        return {"success": True}
-    except (NotFound, PermissionDenied, ValidationError, APIException):
+        return {"success": True, "error": None}
+    except (NotFound, PermissionDenied, ValidationError, APIException) as e:
         logger.exception(
             "coding_agent.rpc_launch_error",
             extra={
                 "organization_id": organization_id,
                 "integration_id": integration_id,
                 "run_id": run_id,
+                "error_type": type(e).__name__,
             },
         )
-        return {"success": False}
+        return {"success": False, "error": str(e)}
 
 
 def has_repo_code_mappings(
