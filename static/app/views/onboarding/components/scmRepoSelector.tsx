@@ -102,13 +102,6 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     return t('Type to search repositories');
   }, [isError, debouncedSearch]);
 
-  const customComponents = useMemo(
-    () => ({
-      Control: SearchControl,
-    }),
-    []
-  );
-
   return (
     <Select
       placeholder={t('Search repositories')}
@@ -126,7 +119,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
       isDisabled={busy}
       clearable
       searchable
-      components={customComponents}
+      components={{Control: SearchControl}}
     />
   );
 }
