@@ -9,7 +9,7 @@ import orjson
 import pytest
 import sentry_kafka_schemas
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
-from sentry_redis_tools.clients import StrictRedis
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
@@ -118,7 +118,7 @@ def buffer(request):
             yield buf
 
 
-def assert_ttls(client: StrictRedis[bytes]):
+def assert_ttls(client: StrictRedis[bytes] | RedisCluster[bytes]):
     """
     Check that all keys have a TTL, because if the consumer dies before
     flushing, we should not leak memory.
@@ -128,7 +128,7 @@ def assert_ttls(client: StrictRedis[bytes]):
         assert client.ttl(k) > -1, k
 
 
-def assert_clean(client: StrictRedis[bytes]):
+def assert_clean(client: StrictRedis[bytes] | RedisCluster[bytes]):
     """
     Check that there's no leakage.
 
@@ -1380,16 +1380,36 @@ def _dspan(
     )
 
 
-@pytest.fixture(params=["phase1", "phase2", "phase3"])
+@pytest.fixture(
+    params=[
+        pytest.param(("cluster", phase), id=f"cluster-{phase}")
+        for phase in DISTRIBUTED_PHASE_OPTIONS
+    ]
+    + [pytest.param(("single", phase), id=f"single-{phase}") for phase in DISTRIBUTED_PHASE_OPTIONS]
+)
 def distributed_buffer(request):
-    opts = DISTRIBUTED_PHASE_OPTIONS[request.param]
+    redis_type, phase = request.param
+    opts = DISTRIBUTED_PHASE_OPTIONS[phase]
     with override_options(opts):
-        buf = SpansBuffer(assigned_shards=list(range(32)))
-        buf.client.flushdb()
-        yield buf
+        if redis_type == "cluster":
+            from sentry.testutils.helpers.redis import use_redis_cluster
+            from sentry.utils import redis as redis_utils
+
+            with use_redis_cluster(
+                "span-buffer",
+                with_settings={"SENTRY_SPAN_BUFFER_CLUSTER": "span-buffer"},
+            ):
+                buf = SpansBuffer(assigned_shards=list(range(32)))
+                buf.client.flushall()
+                yield buf
+                redis_utils.redis_clusters._clusters_bytes.pop("span-buffer", None)
+        else:
+            buf = SpansBuffer(assigned_shards=list(range(32)))
+            buf.client.flushdb()
+            yield buf
 
 
-def assert_clean_distributed(client: StrictRedis[bytes]):
+def assert_clean_distributed(client: StrictRedis[bytes] | RedisCluster[bytes]):
     remaining = [x for x in client.keys("*") if b":hrs:" not in x]
     assert not remaining, f"Leaked keys: {remaining}"
 
