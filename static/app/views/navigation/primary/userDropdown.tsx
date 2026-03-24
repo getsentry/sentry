@@ -32,6 +32,7 @@ export function UserDropdown() {
   const portalContainerRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
   const hasPageFrame = useHasPageFrameFeature();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   useEffect(() => {
     portalContainerRef.current = document.body;
@@ -72,7 +73,7 @@ export function UserDropdown() {
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
       minMenuWidth={200}
       trigger={triggerProps =>
-        layout === 'mobile' && !hasPageFrame ? (
+        layout === 'mobile' && !isMobilePageFrame ? (
           <Flex justify="start" padding="md 2xl">
             {props => (
               <PrimaryNavigation.Button

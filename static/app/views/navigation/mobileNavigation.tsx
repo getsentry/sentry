@@ -96,7 +96,7 @@ export function MobileNavigation() {
               ref={closeButtonRef}
               onClick={handleClick}
               icon={<IconMenu aria-hidden="true" />}
-              aria-label={t('Open main menu')}
+              aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
             />
             <Stack gap="md" direction="row">
               <PrimaryNavigation.ButtonBar orientation="horizontal">
@@ -265,9 +265,6 @@ export function MobilePageFrameNavigation() {
 
   useOnClickOutside(navPanelRef, handleClickOutside);
 
-  const hasPageFrame = useHasPageFrameFeature();
-  const {layout} = usePrimaryNavigation();
-
   return (
     <SizeProvider size="sm">
       <MobileNavigationHeader
@@ -279,7 +276,7 @@ export function MobilePageFrameNavigation() {
             ref={toggleButtonRef}
             onClick={() => setIsOpen(v => !v)}
             icon={<IconMenu aria-hidden="true" />}
-            aria-label={t('Open main menu')}
+            aria-label={isOpen ? t('Close main menu') : t('Open main menu')}
           />
           <Stack gap="md" direction="row">
             <PrimaryNavigation.ButtonBar orientation="horizontal">
@@ -297,8 +294,8 @@ export function MobilePageFrameNavigation() {
             top={0}
             left={0}
             bottom={0}
-            width={hasPageFrame && layout === 'mobile' ? '100vw' : undefined}
-            maxWidth={hasPageFrame && layout === 'mobile' ? '368px' : undefined}
+            width="100vw"
+            maxWidth="368px"
             style={{zIndex: theme.zIndex.modal}}
           >
             <MobilePrimaryNavigation />

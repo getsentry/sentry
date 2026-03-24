@@ -108,6 +108,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
 
   const {activeGroup} = usePrimaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   return (
     <SecondarySidebarWrapper
@@ -125,12 +126,8 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
           height="100%"
           right="0"
           {...props}
-          width={hasPageFrame && layout === 'mobile' ? '100%' : `${size}px`}
-          ref={
-            hasPageFrame && layout === 'mobile'
-              ? undefined
-              : mergeRefs(resizableContainerRef, ref)
-          }
+          width={isMobilePageFrame ? '100%' : `${size}px`}
+          ref={isMobilePageFrame ? undefined : mergeRefs(resizableContainerRef, ref)}
           {...{
             [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
           }}
@@ -160,7 +157,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
                 width="8px"
                 radius="lg"
                 position="absolute"
-                display={hasPageFrame && layout === 'mobile' ? 'none' : undefined}
+                display={isMobilePageFrame ? 'none' : undefined}
               >
                 {p => (
                   <ResizeHandle
@@ -188,12 +185,13 @@ function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const secondaryNavigation = useSecondaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
   const {layout} = usePrimaryNavigation();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   return (
     <Container
       background="secondary"
       borderRight={
-        hasPageFrame && secondaryNavigation.view === 'expanded' && layout !== 'mobile'
+        hasPageFrame && secondaryNavigation.view === 'expanded' && !isMobilePageFrame
           ? undefined
           : 'primary'
       }
@@ -286,6 +284,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
   const hasPageFrame = useHasPageFrameFeature();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   return (
     <Grid
@@ -293,7 +292,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       align="center"
       borderBottom={hasPageFrame ? 'primary' : 'muted'}
       height={
-        layout === 'mobile' && hasPageFrame
+        isMobilePageFrame
           ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
           : layout === 'mobile'
             ? undefined
@@ -301,7 +300,9 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
               ? `${PRIMARY_HEADER_HEIGHT}px`
               : '44px'
       }
-      padding={layout === 'mobile' ? (hasPageFrame ? 'md lg' : 'md xl') : '0 md 0 xl'}
+      padding={
+        layout === 'mobile' ? (isMobilePageFrame ? 'md lg' : 'md xl') : '0 md 0 xl'
+      }
     >
       <div>
         <Text size="md" bold>
@@ -309,7 +310,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
         </Text>
       </div>
       <div>
-        {layout === 'mobile' && hasPageFrame ? (
+        {isMobilePageFrame ? (
           <Button
             size="xs"
             icon={<IconClose />}

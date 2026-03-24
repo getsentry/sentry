@@ -57,6 +57,7 @@ export function Navigation() {
   const ref = useRef<HTMLUListElement>(null);
 
   const {layout} = usePrimaryNavigation();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   useNavigationTourModal();
 
@@ -87,7 +88,7 @@ export function Navigation() {
           <PrimaryNavigationItems />
         </PrimaryNavigation.List>
 
-        {!hasPageFrame && layout === 'mobile' ? null : (
+        {!isMobilePageFrame && layout === 'mobile' ? null : (
           <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
             <Stack
               gap={layout === 'mobile' ? undefined : 'md'}
