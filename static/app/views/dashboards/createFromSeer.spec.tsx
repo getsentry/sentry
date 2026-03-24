@@ -98,6 +98,16 @@ describe('CreateFromSeer', () => {
       method: 'POST',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('shows loading state while session is processing', () => {

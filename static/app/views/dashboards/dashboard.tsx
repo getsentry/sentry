@@ -133,6 +133,7 @@ export function Dashboard({
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const forceCheckTimeout = useRef<number | undefined>(undefined);
+  const isGeneratedDashboard = location.query.seerRunId !== undefined;
 
   const debouncedHandleResize = useMemo(
     () =>
@@ -444,6 +445,7 @@ export function Dashboard({
               isEmbedded={isEmbedded}
               isPreview={isPreview}
               isPrebuiltDashboard={defined(dashboard.prebuiltId)}
+              isGeneratedDashboard={isGeneratedDashboard}
               dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
               dashboardPermissions={dashboard.permissions}
               dashboardCreator={dashboard.createdBy}
