@@ -22,6 +22,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
+import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
@@ -241,6 +242,9 @@ function WidgetCard(props: Props) {
       return;
     }
     if (currentDashboardId) {
+      if (CAN_MARK) {
+        performance.mark('dashboard.widget.fullScreenViewClick');
+      }
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
