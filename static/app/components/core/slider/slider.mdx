@@ -205,7 +205,7 @@ export function TickLabelsDemo() {
 
 ## Label Formatting
 
-Use the `formatLabel` callback to customize how values are displayed in the value label, edge labels, and tick labels:
+Use the `formatOptions` prop to customize how values are displayed in the value label, edge labels, and tick labels. It accepts standard [`Intl.NumberFormatOptions`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat):
 
 export function FormatDemo() {
   const [value1, setValue1] = useState(50);
@@ -219,7 +219,7 @@ export function FormatDemo() {
         <Slider
           value={value1}
           onChange={setValue1}
-          formatLabel={v => `${v}%`}
+          formatOptions={{style: 'unit', unit: 'percent'}}
           aria-label="Percentage slider"
         />
       </Stack>
@@ -233,7 +233,7 @@ export function FormatDemo() {
           min={0}
           max={1000}
           step={50}
-          formatLabel={v => `$${v}`}
+          formatOptions={{style: 'currency', currency: 'USD', maximumFractionDigits: 0}}
           aria-label="Currency slider"
         />
       </Stack>
@@ -246,9 +246,9 @@ export function FormatDemo() {
 </Storybook.Demo>
 
 ```jsx
-<Slider formatLabel={v => `${v}%`} />
+<Slider formatOptions={{style: 'unit', unit: 'percent'}} />
 
-<Slider formatLabel={v => `$${v}`} />
+<Slider formatOptions={{style: 'currency', currency: 'USD', maximumFractionDigits: 0}} />
 ```
 
 ## Disabled State
@@ -320,8 +320,8 @@ The component automatically includes:
 
 **Value Communication**
 
-- Use `formatLabel` to provide meaningful value displays
-- The slider's built-in value label, edge labels, and tick labels all use `formatLabel`
+- Use `formatOptions` to provide meaningful value displays
+- The slider's built-in value label, edge labels, and tick labels all use `formatOptions`
 
 **Keyboard Interaction**
 
