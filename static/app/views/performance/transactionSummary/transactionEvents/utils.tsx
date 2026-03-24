@@ -241,23 +241,16 @@ export function generateTransactionEventsEventView({
   if (shouldUseEAP) {
     orderby = orderby.replace('transaction.duration', 'span.duration');
 
-    const fields = [
-      'id',
-      'user.email',
-      'user.username',
-      'user.id',
-      'user.ip',
-      'span.duration',
-      'trace',
-      'timestamp',
-    ];
-
     return EventView.fromNewQueryWithLocation(
       {
         id: undefined,
         version: 2,
         name: transactionName,
-        fields,
+        // TODO(mjq): `fields` is never actually read - the relevant query comes
+        // from `useSegmentSpansQuery` instead. Confusingly, other fields of
+        // this EventView _are_ used in various places. Untangling this is a job
+        // for after the non-EAP branches are removed.
+        fields: [],
         query: conditions.formatString(),
         projects: [],
         orderby,
