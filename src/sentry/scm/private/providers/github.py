@@ -1,4 +1,3 @@
-import base64
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -1136,17 +1135,3 @@ def map_paginated_action[T](
         "raw": raw,
         "meta": meta,
     }
-
-
-REFERRER_IDS: dict[str, int] = {"shared": 0, "emerge": 1}
-PROVIDER_IDS: dict[str, int] = {"github": 0}
-REFERRERS: dict[str, float] = {}
-
-
-def encode_ratelimit_key(organization_id: int, provider: str, referrer: str, window: int) -> str:
-    return base64.b64encode(
-        PROVIDER_IDS[provider].to_bytes(1, "big")
-        + organization_id.to_bytes(8, "big")
-        + window.to_bytes(8, "big")
-        + REFERRER_IDS[referrer].to_bytes(1, "big")
-    ).decode("utf-8")
