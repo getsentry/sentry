@@ -72,7 +72,6 @@ export function SpanSummaryLink(props: Props) {
     props.organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.DB
   ) {
-
     const target = isPlatformized
       ? platformizedQueryUrl
       : querySummaryRouteWithQuery({
