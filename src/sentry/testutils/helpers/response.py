@@ -17,7 +17,7 @@ def is_streaming_response(response: HttpResponseBase) -> TypeGuard[StreamingHttp
     return isinstance(response, StreamingHttpResponse)
 
 
-async def _async_streaming_response_content(response: StreamingHttpResponse):
+async def _async_streaming_response_content(response: StreamingHttpResponse) -> bytes:
     data = []
     async for chunk in response:
         data.append(chunk)
