@@ -24,13 +24,11 @@ export interface HotkeyProps {
    * ```
    */
   value: string | string[];
-  /** Force a specific platform for display. Auto-detected if omitted. */
-  forcePlatform?: 'macos' | 'generic';
 }
 
-export function Hotkey({value, forcePlatform}: HotkeyProps) {
+export function Hotkey({value}: HotkeyProps) {
   const theme = useTheme();
-  const isMac = forcePlatform ? forcePlatform === 'macos' : detectIsMac();
+  const isMac = detectIsMac();
 
   const keySets = toArray(value).map(v => v.trim().split('+'));
 
