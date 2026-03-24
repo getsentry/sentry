@@ -72,6 +72,7 @@ export function useScmRepoSearch(integrationId: string, selectedRepo?: Repositor
     reposByIdentifier,
     dropdownItems,
     isFetching: searchQuery.isFetching,
+    isError: searchQuery.isError,
     debouncedSearch,
     setSearch,
   };

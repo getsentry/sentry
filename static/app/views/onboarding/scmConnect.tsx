@@ -1,19 +1,19 @@
 import {useCallback, useEffect} from 'react';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {IconCheckmark} from 'sentry/icons';
+import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {ScmBenefitsCard} from './components/scmBenefitsCard';
 import {ScmProviderPills} from './components/scmProviderPills';
 import {ScmRepoSelector} from './components/scmRepoSelector';
 import {useScmPlatformDetection} from './components/useScmPlatformDetection';
@@ -56,6 +56,11 @@ export function ScmConnect({onComplete}: StepProps) {
     [setSelectedIntegration, setSelectedRepository, refetchIntegrations]
   );
 
+  const handleDisconnect = useCallback(() => {
+    setSelectedIntegration(undefined);
+    setSelectedRepository(undefined);
+  }, [setSelectedIntegration, setSelectedRepository]);
+
   if (isPending) {
     return (
       <Flex justify="center" align="center" flexGrow={1}>
@@ -76,6 +81,12 @@ export function ScmConnect({onComplete}: StepProps) {
   return (
     <Flex direction="column" align="center" gap="xl" flexGrow={1}>
       <Stack align="center" gap="md">
+        <Flex align="center" gap="lg">
+          <Text variant="muted" size="lg">
+            {t('Step 1 of 3')}
+          </Text>
+          <Tag variant="muted">{t('Optional')}</Tag>
+        </Flex>
         <Heading as="h2">{t('Connect a repository')}</Heading>
         <Text variant="muted">
           {t('Link your source control for enhanced debugging features')}
@@ -86,38 +97,41 @@ export function ScmConnect({onComplete}: StepProps) {
         {effectiveIntegration ? (
           <Stack gap="lg">
             <Flex align="center" justify="between">
-              <Flex align="center" gap="sm">
-                <IconCheckmark variant="success" size="sm" />
-                <Text bold variant="success">
-                  {t(
-                    'Connected to %s',
-                    effectiveIntegration.domainName || effectiveIntegration.provider.name
-                  )}
-                </Text>
-              </Flex>
-              <Link to={normalizeUrl(`/settings/${organization.slug}/integrations/`)}>
-                {t('Manage in Settings')}
-              </Link>
+              <Tag variant="success" icon={<IconCheckmark />}>
+                {t(
+                  'Connected to %s',
+                  effectiveIntegration.domainName || effectiveIntegration.provider.name
+                )}
+              </Tag>
+              <Button size="xs" icon={<IconClose size="xs" />} onClick={handleDisconnect}>
+                {t('Disconnect')}
+              </Button>
             </Flex>
             <ScmRepoSelector integration={effectiveIntegration} />
+            {selectedRepository && <ScmBenefitsCard />}
           </Stack>
         ) : (
-          <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
+          <Stack gap="lg">
+            <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
+            <ScmBenefitsCard showTitle />
+          </Stack>
         )}
       </Stack>
 
       <Flex gap="md" align="center">
-        <Button
-          analyticsEventKey="onboarding.scm_connect_skip_clicked"
-          analyticsEventName="Onboarding: SCM Connect Skip Clicked"
-          analyticsParams={{
-            has_integration: !!effectiveIntegration,
-            has_repo: !!selectedRepository,
-          }}
-          onClick={() => onComplete()}
-        >
-          {t('Skip for now')}
-        </Button>
+        {!selectedRepository && (
+          <Button
+            analyticsEventKey="onboarding.scm_connect_skip_clicked"
+            analyticsEventName="Onboarding: SCM Connect Skip Clicked"
+            analyticsParams={{
+              has_integration: !!effectiveIntegration,
+              has_repo: !!selectedRepository,
+            }}
+            onClick={() => onComplete()}
+          >
+            {t('Skip for now')}
+          </Button>
+        )}
         <Button
           priority="primary"
           analyticsEventKey="onboarding.scm_connect_continue_clicked"
