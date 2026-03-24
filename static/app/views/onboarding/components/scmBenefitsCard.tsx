@@ -39,7 +39,7 @@ export function ScmBenefitsCard({showTitle}: ScmBenefitsCardProps) {
     <Container border="secondary" padding="xl" radius="md">
       <Stack gap="2xl">
         {showTitle && (
-          <Text variant="muted" size="md" bold>
+          <Text variant="muted" size="md" bold density="comfortable">
             {t('Why connect your repository?')}
           </Text>
         )}
@@ -47,10 +47,10 @@ export function ScmBenefitsCard({showTitle}: ScmBenefitsCardProps) {
           <Flex key={title} gap="lg" align="start">
             <Icon legacySize="20px" variant="muted" />
             <Stack gap="2xs">
-              <Text bold size="md">
+              <Text bold size="md" density="comfortable">
                 {title}
               </Text>
-              <Text variant="muted" size="md">
+              <Text variant="muted" size="md" density="comfortable">
                 {description}
               </Text>
             </Stack>
