@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
@@ -85,7 +85,7 @@ export function Navigation() {
           <OrganizationDropdown />
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List ref={ref}>
-          <PrimaryNavigationItems />
+          <PrimaryNavigationItems listRef={ref} />
         </PrimaryNavigation.List>
 
         {!isMobilePageFrame && layout === 'mobile' ? null : (
@@ -130,14 +130,20 @@ export function Navigation() {
   );
 }
 
-export function PrimaryNavigationItems() {
+export function PrimaryNavigationItems({
+  listRef,
+}: {
+  listRef?: RefObject<HTMLUListElement>;
+}) {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
-  const ref = useRef<HTMLUListElement>(null);
+  const fallbackRef = useRef<HTMLUListElement>(null);
 
   const hasPageFrame = useHasPageFrameFeature();
 
-  const makeNavigationItemProps = useActivateNavigationGroupOnHover({ref});
+  const makeNavigationItemProps = useActivateNavigationGroupOnHover({
+    ref: listRef ?? fallbackRef,
+  });
 
   return (
     <Fragment>
