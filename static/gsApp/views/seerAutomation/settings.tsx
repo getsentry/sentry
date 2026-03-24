@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {SeerOverview} from 'sentry/views/settings/seer/overview/components';
 import {SCMOverviewSection} from 'sentry/views/settings/seer/overview/scmOverviewSection';
 
 import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
@@ -79,9 +80,9 @@ export function SeerAutomationSettings() {
       />
       <SeerSettingsPageContent>
         {showSeerOverview ? (
-          <Grid columns="minmax(max-content, 140px) 1fr max-content" gap="xl">
+          <SeerOverview>
             <SCMOverviewSection canWrite={canWrite} />
-          </Grid>
+          </SeerOverview>
         ) : null}
         <FieldGroup
           title={

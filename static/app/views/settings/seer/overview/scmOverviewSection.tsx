@@ -32,12 +32,21 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerOverview} from 'sentry/views/settings/seer/overview/components';
 
-interface Props {
-  canWrite: boolean;
+interface SCMOverviewSectionData {
+  connectedRepos: IntegrationRepository[];
+  isError: boolean;
+  isPending: boolean;
+  isReposPending: boolean;
+  refetchIntegrations: () => void;
+  seerRepos: IntegrationRepository[];
+  supportedScmIntegrations: OrganizationIntegration[];
+  unconnectedRepos: Array<{
+    integration: OrganizationIntegration;
+    repo: IntegrationRepository;
+  }>;
 }
 
-export function SCMOverviewSection({canWrite}: Props) {
-  const organization = useOrganization();
+function useSCMOverviewSection(): SCMOverviewSectionData {
   const {
     scmIntegrations,
     connectedIdentifiers,
@@ -57,27 +66,60 @@ export function SCMOverviewSection({canWrite}: Props) {
   );
 
   const isReposPending = Object.values(reposPendingByIntegrationId).some(Boolean);
+
   const seerRepos = useMemo(() => {
     return Object.entries(reposByIntegrationId ?? {})
-      .filter(([integrationId, _]) => {
-        return supportedScmIntegrations.some(i => i.id === integrationId);
-      })
+      .filter(([integrationId]) =>
+        supportedScmIntegrations.some(i => i.id === integrationId)
+      )
       .flatMap(([_, repos]) => repos);
   }, [reposByIntegrationId, supportedScmIntegrations]);
 
-  const connectedRepos = useMemo(() => {
-    return seerRepos.filter(repo => connectedIdentifiers.has(repo.identifier));
-  }, [connectedIdentifiers, seerRepos]);
+  const connectedRepos = useMemo(
+    () => seerRepos.filter(repo => connectedIdentifiers.has(repo.identifier)),
+    [connectedIdentifiers, seerRepos]
+  );
 
-  const unconnectedRepos = useMemo(() => {
-    return supportedScmIntegrations.flatMap(integration => {
-      const repos = reposByIntegrationId[integration.id] ?? [];
-      return repos
-        .filter(repo => !connectedIdentifiers.has(repo.identifier))
-        .map(repo => ({repo, integration}));
-    });
-  }, [supportedScmIntegrations, reposByIntegrationId, connectedIdentifiers]);
+  const unconnectedRepos = useMemo(
+    () =>
+      supportedScmIntegrations.flatMap(integration => {
+        const repos = reposByIntegrationId[integration.id] ?? [];
+        return repos
+          .filter(repo => !connectedIdentifiers.has(repo.identifier))
+          .map(repo => ({repo, integration}));
+      }),
+    [supportedScmIntegrations, reposByIntegrationId, connectedIdentifiers]
+  );
 
+  return {
+    isPending,
+    isError,
+    isReposPending,
+    supportedScmIntegrations,
+    seerRepos,
+    connectedRepos,
+    unconnectedRepos,
+    refetchIntegrations,
+  };
+}
+
+interface SCMOverviewSectionViewProps extends SCMOverviewSectionData {
+  canWrite: boolean;
+  organizationSlug: string;
+}
+
+export function SCMOverviewSectionView({
+  canWrite,
+  organizationSlug,
+  isPending,
+  isError,
+  isReposPending,
+  supportedScmIntegrations,
+  seerRepos,
+  connectedRepos,
+  unconnectedRepos,
+  refetchIntegrations,
+}: SCMOverviewSectionViewProps) {
   const stat = (
     <SeerOverview.Stat
       label={tn('Repository Connected', 'Repositories Connected', connectedRepos.length)}
@@ -94,7 +136,7 @@ export function SCMOverviewSection({canWrite}: Props) {
     <SeerOverview.Section>
       <SeerOverview.SectionHeader title={t('Source Code Management')}>
         {isPending ? null : (
-          <Link to={`/settings/${organization.slug}/seer/scm/`}>
+          <Link to={`/settings/${organizationSlug}/seer/scm/`}>
             <Flex align="center" gap="xs">
               {t('Configure')} <IconSettings size="xs" />
             </Flex>
@@ -136,16 +178,31 @@ export function SCMOverviewSection({canWrite}: Props) {
             <CreateReposButton seerIntegrations={supportedScmIntegrations} />
           ) : (
             <ConnectAllReposButton
+              organizationSlug={organizationSlug}
               disabled={!canWrite || connectedRepos.length === seerRepos.length}
               unconnectedRepos={unconnectedRepos}
-              onDone={() => {
-                refetchIntegrations();
-              }}
+              onDone={refetchIntegrations}
             />
           )}
         </Fragment>
       )}
     </SeerOverview.Section>
+  );
+}
+
+interface Props {
+  canWrite: boolean;
+}
+
+export function SCMOverviewSection({canWrite}: Props) {
+  const organization = useOrganization();
+  const data = useSCMOverviewSection();
+  return (
+    <SCMOverviewSectionView
+      canWrite={canWrite}
+      organizationSlug={organization.slug}
+      {...data}
+    />
   );
 }
 
@@ -177,7 +234,6 @@ function CreateReposButton({
 }: {
   seerIntegrations: OrganizationIntegration[];
 }) {
-  // no repos? link to github
   const externalLinks = seerIntegrations
     .map(integration => getProviderConfigUrl(integration))
     .filter(defined);
@@ -219,18 +275,19 @@ function CreateReposButton({
 }
 
 function ConnectAllReposButton({
+  organizationSlug,
   disabled,
   unconnectedRepos,
   onDone,
 }: {
   disabled: boolean;
   onDone: () => void;
+  organizationSlug: string;
   unconnectedRepos: Array<{
     integration: OrganizationIntegration;
     repo: IntegrationRepository;
   }>;
 }) {
-  const organization = useOrganization();
   const [isBusy, setIsBusy] = useState(false);
 
   const {mutateAsync} = useMutation({
@@ -244,7 +301,7 @@ function ConnectAllReposButton({
       fetchMutation({
         method: 'POST',
         url: getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
-          path: {organizationIdOrSlug: organization.slug},
+          path: {organizationIdOrSlug: organizationSlug},
         }),
         data: {
           installation: integration.id,
