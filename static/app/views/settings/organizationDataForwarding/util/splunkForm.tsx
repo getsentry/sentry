@@ -161,37 +161,35 @@ export function SplunkSetupForm({
   const projectOptions = buildProjectOptions(projects);
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <EnablementFields
-          form={form}
-          fields={{is_enabled: 'is_enabled'}}
-          disabled={disabled}
-          isSetup
-        />
-        <SplunkConfigFields
-          form={form}
-          fields={{
-            instance_url: 'instance_url',
-            token: 'token',
-            index: 'index',
-            source: 'source',
-          }}
-          disabled={disabled}
-        />
-        <ProjectConfigFields
-          form={form}
-          fields={{
-            enroll_new_projects: 'enroll_new_projects',
-            project_ids: 'project_ids',
-          }}
-          disabled={disabled}
-          projectOptions={projectOptions}
-        />
-        <Flex justify="end" padding="lg">
-          <form.SubmitButton disabled={disabled}>{t('Complete Setup')}</form.SubmitButton>
-        </Flex>
-      </form.FormWrapper>
+    <form.AppForm form={form}>
+      <EnablementFields
+        form={form}
+        fields={{is_enabled: 'is_enabled'}}
+        disabled={disabled}
+        isSetup
+      />
+      <SplunkConfigFields
+        form={form}
+        fields={{
+          instance_url: 'instance_url',
+          token: 'token',
+          index: 'index',
+          source: 'source',
+        }}
+        disabled={disabled}
+      />
+      <ProjectConfigFields
+        form={form}
+        fields={{
+          enroll_new_projects: 'enroll_new_projects',
+          project_ids: 'project_ids',
+        }}
+        disabled={disabled}
+        projectOptions={projectOptions}
+      />
+      <Flex justify="end" padding="lg">
+        <form.SubmitButton disabled={disabled}>{t('Complete Setup')}</form.SubmitButton>
+      </Flex>
     </form.AppForm>
   );
 }
@@ -230,44 +228,40 @@ export function SplunkEditForm({
   const projectOptions = buildProjectOptions(projects);
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <EnablementFields
-          form={form}
-          fields={{is_enabled: 'is_enabled'}}
-          disabled={disabled}
-          isSetup={false}
-        />
-        <SplunkConfigFields
-          form={form}
-          fields={{
-            instance_url: 'instance_url',
-            token: 'token',
-            index: 'index',
-            source: 'source',
-          }}
-          disabled={disabled}
-        />
-        <ProjectConfigFields
-          form={form}
-          fields={{
-            enroll_new_projects: 'enroll_new_projects',
-            project_ids: 'project_ids',
-          }}
-          disabled={disabled}
-          projectOptions={projectOptions}
-        />
-        <Flex justify="end" gap="md" padding="lg 0">
-          <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
-            <Button icon={<IconDelete variant="danger" />}>
-              {t('Delete Data Forwarder')}
-            </Button>
-          </DataForwarderDeleteConfirm>
-          <form.SubmitButton disabled={disabled}>
-            {t('Update Forwarder')}
-          </form.SubmitButton>
-        </Flex>
-      </form.FormWrapper>
+    <form.AppForm form={form}>
+      <EnablementFields
+        form={form}
+        fields={{is_enabled: 'is_enabled'}}
+        disabled={disabled}
+        isSetup={false}
+      />
+      <SplunkConfigFields
+        form={form}
+        fields={{
+          instance_url: 'instance_url',
+          token: 'token',
+          index: 'index',
+          source: 'source',
+        }}
+        disabled={disabled}
+      />
+      <ProjectConfigFields
+        form={form}
+        fields={{
+          enroll_new_projects: 'enroll_new_projects',
+          project_ids: 'project_ids',
+        }}
+        disabled={disabled}
+        projectOptions={projectOptions}
+      />
+      <Flex justify="end" gap="md" padding="lg 0">
+        <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
+          <Button icon={<IconDelete variant="danger" />}>
+            {t('Delete Data Forwarder')}
+          </Button>
+        </DataForwarderDeleteConfirm>
+        <form.SubmitButton disabled={disabled}>{t('Update Forwarder')}</form.SubmitButton>
+      </Flex>
     </form.AppForm>
   );
 }

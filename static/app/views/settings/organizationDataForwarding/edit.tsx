@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Feature} from 'sentry/components/acl/feature';
+import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
