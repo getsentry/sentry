@@ -41,7 +41,7 @@ class GitLabTaskEvent(IntegrationEventLifecycleMetric):
         return self.integration.provider
 
     def get_integration_domain(self) -> IntegrationDomain:
-        return IntegrationDomain.PROJECT_MANAGEMENT
+        return IntegrationDomain.SOURCE_CODE_MANAGEMENT
 
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
