@@ -82,7 +82,9 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   }, [dropdownItems, selectedRepository]);
 
   const handleChange = useCallback(
-    (option: {value: string} | null) => {
+    (option: {value: string} | null, actionMeta?: {action: string}) => {
+      // eslint-disable-next-line no-console
+      console.log('[ScmRepoSelector] onChange', {option, action: actionMeta?.action});
       if (option === null) {
         handleRemove();
       } else {
