@@ -107,17 +107,15 @@ export function ProjectOverrideForm({
 
   const { provider } = dataForwarder;
 
-  const statusTag = !disabled && (
-    <Fragment>
-      {projectConfig?.isEnabled ? (
-        <Tag variant={hasOverrides ? "warning" : "success"}>
-          {hasOverrides ? t("Forwarding with Overrides") : t("Forwarding")}
-        </Tag>
-      ) : (
-        <Tag variant="danger">{t("Disabled")}</Tag>
-      )}
-    </Fragment>
-  );
+  const statusTag =
+    !disabled &&
+    (projectConfig?.isEnabled ? (
+      <Tag variant={hasOverrides ? "warning" : "success"}>
+        {hasOverrides ? t("Forwarding with Overrides") : t("Forwarding")}
+      </Tag>
+    ) : (
+      <Tag variant="danger">{t("Disabled")}</Tag>
+    ));
 
   return (
     <Disclosure>
