@@ -156,7 +156,7 @@ export function SortableWidget(props: Props) {
       data-test-id="sortable-widget"
     >
       <DashboardsMEPProvider>
-        <LazyRender containerHeight={200} withoutContainer>
+        <LazyRender containerHeight={200} withoutContainer disabled={props.isPreview}>
           <WidgetCard {...widgetProps} />
           {props.isEditingDashboard && (
             <Toolbar
