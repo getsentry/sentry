@@ -50,16 +50,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
 
   const {busy, handleSelect, handleRemove} = useScmRepoSelection({
     integration,
-    onSelect: repo => {
-      setSelectedRepository(repo);
-      if (repo) {
-        trackAnalytics('onboarding.scm_connect_repo_selected', {
-          organization,
-          provider: integration.provider.key,
-          repo: repo.name,
-        });
-      }
-    },
+    onSelect: setSelectedRepository,
     reposByIdentifier,
   });
 
@@ -85,6 +76,14 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     if (option === null) {
       handleRemove();
     } else {
+      const repo = reposByIdentifier.get(option.value);
+      if (repo) {
+        trackAnalytics('onboarding.scm_connect_repo_selected', {
+          organization,
+          provider: integration.provider.key,
+          repo: repo.name,
+        });
+      }
       handleSelect(option);
     }
   }
