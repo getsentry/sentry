@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
@@ -5,8 +6,10 @@ import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
+import {StackIndicatorBar} from 'sentry/components/stream/stackIndicatorBar';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
+import {useSuperGroupForIssues} from 'sentry/utils/supergroup/useSuperGroupForIssues';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -132,6 +135,8 @@ function GroupList({
   onActionTaken,
 }: GroupListProps) {
   const theme = useTheme();
+  const organization = useOrganization();
+  const {getSuperGroupForIssue} = useSuperGroupForIssues();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -140,6 +145,9 @@ function GroupList({
   const selectDisabled = useMedia(
     `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
+
+  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
+  const seenSupergroups = new Set<number>();
 
   return (
     <PanelBody>
@@ -151,20 +159,30 @@ function GroupList({
           return null;
         }
 
+        const sg = hasTopIssuesUI ? getSuperGroupForIssue(id) : null;
+        const showStackBar = sg && sg.group_ids.length > 1 && !seenSupergroups.has(sg.id);
+        if (sg) {
+          seenSupergroups.add(sg.id);
+        }
+
         return (
-          <StreamGroup
-            key={id}
-            group={group}
-            statsPeriod={groupStatsPeriod}
-            query={query}
-            hasGuideAnchor={hasGuideAnchor}
-            memberList={group.project ? memberList[group.project.slug] : undefined}
-            displayReprocessingLayout={displayReprocessingLayout}
-            useFilteredStats
-            canSelect={!selectDisabled}
-            onPriorityChange={priority => onActionTaken([id], {priority})}
-            withColumns={COLUMNS}
-          />
+          <Fragment key={id}>
+            <StreamGroup
+              group={group}
+              statsPeriod={groupStatsPeriod}
+              query={query}
+              hasGuideAnchor={hasGuideAnchor}
+              memberList={group.project ? memberList[group.project.slug] : undefined}
+              displayReprocessingLayout={displayReprocessingLayout}
+              useFilteredStats
+              canSelect={!selectDisabled}
+              onPriorityChange={priority => onActionTaken([id], {priority})}
+              withColumns={COLUMNS}
+            />
+            {showStackBar && (
+              <StackIndicatorBar supergroup={sg} otherCount={sg.group_ids.length - 1} />
+            )}
+          </Fragment>
         );
       })}
     </PanelBody>
