@@ -56,7 +56,7 @@ export function MetricsFrozenContextProvider(props: MetricsFrozenForTracesProvid
     }
 
     return {frozen: false};
-  }, [props]);
+  }, [props.traceIds, props.tracePeriod]);
 
   return <MetricsFrozenContext value={value}>{props.children}</MetricsFrozenContext>;
 }
