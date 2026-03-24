@@ -94,7 +94,7 @@ export function WidgetBuilderTypeSelector({
   };
 
   const handleTextWidgetDisplayTypeChange = (newValue: DisplayType) => {
-    const defaultConfig = getDatasetConfig(undefined);
+    const defaultConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
     dispatch({
       type: BuilderStateAction.SET_STATE,
       payload: convertWidgetToBuilderState({

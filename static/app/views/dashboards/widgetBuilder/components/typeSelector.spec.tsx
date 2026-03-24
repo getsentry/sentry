@@ -167,7 +167,7 @@ describe('TypeSelector', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          field: ['count()'],
+          field: ['count_unique(user)'],
         }),
       }),
       expect.anything()
