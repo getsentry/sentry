@@ -586,6 +586,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/gettingStartedDocs/                                                  @getsentry/value-discovery
 /static/app/types/project.tsx                                                    @getsentry/value-discovery
 /static/app/views/onboarding/                                                    @getsentry/value-discovery
+/tests/js/fixtures/detectedPlatform.ts                                           @getsentry/value-discovery
 /static/app/views/projectInstall/                                                @getsentry/value-discovery
 /src/sentry/onboarding_tasks/                                                    @getsentry/value-discovery
 ## End of Value Discovery
@@ -678,6 +679,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/issues/test_search_issues_dataset.py          @getsentry/issue-workflow
 /tests/sentry/issues/test_status_change_consumer.py         @getsentry/issue-detection-backend
 /tests/sentry/issues/test_status_change.py                  @getsentry/issue-detection-backend
+/tests/sentry/processing_errors/                            @getsentry/issue-detection-backend
 /tests/sentry/search/                                       @getsentry/issue-workflow
 /tests/sentry/seer/similarity/                              @getsentry/issue-detection-backend
 /tests/sentry/seer/supergroups/                             @getsentry/issue-detection-backend

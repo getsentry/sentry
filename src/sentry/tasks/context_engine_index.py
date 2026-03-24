@@ -27,9 +27,11 @@ from sentry.seer.explorer.explorer_service_map_utils import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
+    ExplorerIndexSentryKnowledgeRequest,
     OrgProjectKnowledgeIndexRequest,
     OrgProjectKnowledgeProjectData,
     SeerViewerContext,
+    make_index_sentry_knowledge_request,
     make_org_project_knowledge_index_request,
 )
 from sentry.tasks.base import instrumented_task
@@ -216,28 +218,32 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     hour is checked for the seer-explorer-context-engine feature flag, keeping feature check
     volume at ~1/24th of total orgs.
     """
-    now = datetime.now(UTC)
-    TOTAL_HOURLY_SLOTS = 24
-
-    eligible_org_ids: list[int] = []
-
-    for org in RangeQuerySetWrapper(
-        Organization.objects.filter(status=ObjectStatus.ACTIVE),
-        result_value_getter=lambda o: o.id,
+    with sentry_sdk.start_span(
+        op="explorer.context_engine.get_allowed_org_ids_context_engine_indexing"
     ):
-        # Ordering of these if blocks is very crucial. We want to check the hour first as
-        # checking the feature flag is an expensive operation and we want to avoid it if possible.
-        if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == now.hour:
-            if features.has("organizations:seer-explorer-context-engine", org):
-                eligible_org_ids.append(org.id)
+        now = datetime.now(UTC)
+        TOTAL_HOURLY_SLOTS = 24
 
-    return eligible_org_ids
+        eligible_org_ids: list[int] = []
+
+        for org in RangeQuerySetWrapper(
+            Organization.objects.filter(status=ObjectStatus.ACTIVE),
+            result_value_getter=lambda o: o.id,
+        ):
+            # Ordering of these if blocks is very crucial. We want to check the hour first as
+            # checking the feature flag is an expensive operation and we want to avoid it if possible.
+            if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == now.hour:
+                with sentry_sdk.start_span(op="explorer.context_engine.has_feature"):
+                    if features.has("organizations:seer-explorer-context-engine", org):
+                        eligible_org_ids.append(org.id)
+
+        return eligible_org_ids
 
 
 @instrumented_task(
     name="sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
     namespace=seer_tasks,
-    processing_deadline_duration=15 * 60,
+    processing_deadline_duration=30 * 60,
 )
 def schedule_context_engine_indexing_tasks() -> None:
     """
@@ -266,5 +272,28 @@ def schedule_context_engine_indexing_tasks() -> None:
 
     logger.info(
         "Scheduled context engine indexing tasks",
-        extra={"total_org_count": len(allowed_org_ids), "dispatched": dispatched},
+        extra={
+            "orgs": allowed_org_ids[:10],
+            "total_org_count": len(allowed_org_ids),
+            "dispatched": dispatched,
+        },
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.context_engine_index.index_sentry_knowledge",
+    namespace=seer_tasks,
+    processing_deadline_duration=30,
+)
+def index_sentry_knowledge() -> None:
+    response = make_index_sentry_knowledge_request(
+        body=ExplorerIndexSentryKnowledgeRequest(replace_existing=True)
+    )
+
+    if response.status >= 400:
+        raise Exception(
+            f"Seer sentry-knowledge endpoint returned {response.status}: {response.data.decode()}"
+        )
+
+    logger.info("Successfully called Seer sentry-knowledge endpoint")
+    return None

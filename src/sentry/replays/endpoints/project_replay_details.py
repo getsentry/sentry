@@ -5,7 +5,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
@@ -31,7 +30,6 @@ class ReplayDetailsPermission(ProjectPermission):
 @cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PRIVATE,

@@ -51,8 +51,8 @@ class TestProcessingWorkflowCacheInvaliadation(TestCase):
 
         # warm the cache for the invalidation tests
         self.cache_value = {self.workflow}
-        _workflow_cache.set(self.cache_key, self.cache_value, 60)
-        _workflow_cache.set(self.cache_key_no_env, self.cache_value, 60)
+        _workflow_cache.set(self.cache_key, self.cache_value)
+        _workflow_cache.set(self.cache_key_no_env, self.cache_value)
 
         assert _workflow_cache.get(self.cache_key) == self.cache_value
         assert _workflow_cache.get(self.cache_key_no_env) == self.cache_value
@@ -80,7 +80,7 @@ class TestProcessingWorkflowCacheInvaliadation(TestCase):
         env, workflow = self._env_and_workflow()
 
         env_key = _WorkflowCacheKey(self.detector.id, env.id)
-        _workflow_cache.set(env_key, {workflow}, 60)
+        _workflow_cache.set(env_key, {workflow})
 
         invalidate_processing_workflows(self.detector.id)
 
@@ -147,17 +147,15 @@ class TestGetWorkflowsByDetectors(TestCase):
     def test_hot_cache_no_db_query(self) -> None:
         env_id = self.environment.id
         # Pre-populate both global and env caches
-        _workflow_cache.set(_WorkflowCacheKey(self.detector1.id, None), set(), 60)
-        _workflow_cache.set(_WorkflowCacheKey(self.detector2.id, None), set(), 60)
+        _workflow_cache.set(_WorkflowCacheKey(self.detector1.id, None), set())
+        _workflow_cache.set(_WorkflowCacheKey(self.detector2.id, None), set())
         _workflow_cache.set(
             _WorkflowCacheKey(self.detector1.id, env_id),
             {self.workflow1, self.shared_workflow},
-            60,
         )
         _workflow_cache.set(
             _WorkflowCacheKey(self.detector2.id, env_id),
             {self.workflow2, self.shared_workflow},
-            60,
         )
 
         # Call the function - should return cached values from both caches
@@ -170,11 +168,10 @@ class TestGetWorkflowsByDetectors(TestCase):
         env_key2 = _WorkflowCacheKey(self.detector2.id, env_id)
 
         # Pre-populate only detector1's caches (both global and env)
-        _workflow_cache.set(_WorkflowCacheKey(self.detector1.id, None), set(), 60)
+        _workflow_cache.set(_WorkflowCacheKey(self.detector1.id, None), set())
         _workflow_cache.set(
             _WorkflowCacheKey(self.detector1.id, env_id),
             {self.workflow1, self.shared_workflow},
-            60,
         )
         assert _workflow_cache.get(global_key2) is None
         assert _workflow_cache.get(env_key2) is None
@@ -273,8 +270,8 @@ class TestCheckCachesForDetectors(TestCase):
 
     def test_all_cache_hits(self) -> None:
         env_id = self.environment.id
-        _workflow_cache.set(_WorkflowCacheKey(self.detector1.id, env_id), {self.workflow1}, 60)
-        _workflow_cache.set(_WorkflowCacheKey(self.detector2.id, env_id), {self.workflow2}, 60)
+        _workflow_cache.set(_WorkflowCacheKey(self.detector1.id, env_id), {self.workflow1})
+        _workflow_cache.set(_WorkflowCacheKey(self.detector2.id, env_id), {self.workflow2})
 
         result = _check_caches_for_detectors([self.detector1, self.detector2], env_id)
 
@@ -284,7 +281,7 @@ class TestCheckCachesForDetectors(TestCase):
 
     def test_partial_cache_hit(self) -> None:
         env_id = self.environment.id
-        _workflow_cache.set(_WorkflowCacheKey(self.detector1.id, env_id), {self.workflow1}, 60)
+        _workflow_cache.set(_WorkflowCacheKey(self.detector1.id, env_id), {self.workflow1})
 
         result = _check_caches_for_detectors([self.detector1, self.detector2], env_id)
 

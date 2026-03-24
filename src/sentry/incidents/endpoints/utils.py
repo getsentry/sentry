@@ -41,14 +41,17 @@ def translate_threshold(alert_rule: AlertRule, threshold: float | None) -> float
 
 
 def translate_data_condition_type(
-    comparison_delta: int, condition_type: str, threshold: float | None
+    comparison_delta: int | None, condition_type: str, threshold: float | int | None
 ) -> float | None:
     """
     Translates our internal percent representation into a delta percentage.
     For ABOVE: A percentage like 170% would become 70% increase
     For BELOW: A percentage like 40% would become 60% decrease.
     """
-    if comparison_delta is None or threshold is None:
+    if threshold is None:
         return threshold
+
+    if comparison_delta is None:
+        return float(threshold)
 
     return data_condition_type_translators[condition_type](threshold)

@@ -13,6 +13,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import {OnboardingDrawerStore} from 'sentry/stores/onboardingDrawerStore';
@@ -576,9 +577,14 @@ describe('Onboarding', () => {
       });
     });
 
-    function renderOnboarding(step: string) {
+    function renderOnboarding(
+      step: string,
+      options?: {
+        initialContext?: Parameters<typeof OnboardingContextProvider>[0]['initialValue'];
+      }
+    ) {
       return render(
-        <OnboardingContextProvider>
+        <OnboardingContextProvider initialValue={options?.initialContext}>
           <OnboardingWithoutContext />
         </OnboardingContextProvider>,
         {
@@ -659,7 +665,19 @@ describe('Onboarding', () => {
     });
 
     it('renders scm-platform-features step and advances to scm-project-details', async () => {
-      const {router} = renderOnboarding('scm-platform-features');
+      const {router} = renderOnboarding('scm-platform-features', {
+        initialContext: {
+          selectedPlatform: {
+            key: 'javascript',
+            name: 'JavaScript',
+            language: 'javascript',
+            link: 'https://docs.sentry.io/platforms/javascript/',
+            type: 'language',
+            category: 'popular',
+          },
+          selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        },
+      });
 
       expect(screen.getByText('Platform & features')).toBeInTheDocument();
 

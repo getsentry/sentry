@@ -125,6 +125,37 @@ describe('OrganizationSettingsForm', () => {
     );
   });
 
+  it('hides Save/Cancel after successful slug change', async () => {
+    putMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+      body: {...organization, slug: 'new-slug'},
+    });
+
+    render(
+      <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />
+    );
+
+    const input = screen.getByRole('textbox', {name: 'Organization Slug'});
+    await userEvent.clear(input);
+    await userEvent.type(input, 'new-slug');
+
+    expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalled();
+    });
+
+    // After successful save, form.reset() syncs defaults so the form is pristine again
+    await waitFor(() => {
+      expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
+  });
+
   it('can enable codecov', async () => {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
@@ -187,8 +218,6 @@ describe('OrganizationSettingsForm', () => {
         })
       );
     });
-
-    expect(checkbox).toBeChecked();
   });
 
   it('can disable "Show Generative AI Features"', async () => {
@@ -220,8 +249,6 @@ describe('OrganizationSettingsForm', () => {
         expect.objectContaining({data: {hideAiFeatures: true}})
       );
     });
-
-    expect(checkbox).not.toBeChecked();
   });
 
   it('shows hideAiFeatures toggle for DE region', () => {

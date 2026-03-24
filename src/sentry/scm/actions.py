@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Self
+from typing import Iterable, Self
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -14,6 +14,7 @@ from sentry.scm.private.helpers import (
 )
 from sentry.scm.private.ipc import record_count_metric
 from sentry.scm.private.provider import (
+    ALL_PROTOCOLS,
     CompareCommitsProtocol,
     CreateBranchProtocol,
     CreateCheckRunProtocol,
@@ -155,6 +156,13 @@ class SourceCodeManager(Facade):
         )
 
         return cls(provider, referrer=referrer, record_count=record_count)
+
+
+def get_capabilities(scm: SourceCodeManager) -> Iterable[str]:
+    """Get the names of the protocols implemented by the given SourceCodeManager."""
+    for protocol in ALL_PROTOCOLS:
+        if isinstance(scm, protocol):
+            yield protocol.__name__
 
 
 def get_issue_comments(
