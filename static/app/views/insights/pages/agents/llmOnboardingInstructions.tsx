@@ -65,10 +65,8 @@ export function CopyLLMPromptButton() {
  * Contextual note prepended when the instructions follow onboarding setup
  * steps so the LLM knows to complete those first.
  */
-export const LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE = `> IMPORTANT: FOLLOW THE SETUP STEPS PROVIDED ABOVE THIS SECTION FIRST.
-> They contain the correct DSN and project-specific SDK configuration. DO NOT SKIP THEM.
-> Then use the guide below to add Sentry manual instrumentation for AI Agent Monitoring.
-> Complete the verification step LAST.`;
+export const LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE = `> The setup steps above contain the correct DSN and project-specific SDK configuration — complete them first.
+> Then use the guide below for additional instrumentation and agent naming.`;
 
 export const LLM_ONBOARDING_INSTRUCTIONS = `# Instrument Sentry AI Agent Monitoring
 
@@ -234,6 +232,7 @@ with sentry_sdk.start_span(op="gen_ai.request", name=f"chat {model}") as span:
     result = llm.generate(messages)
     span.set_data("gen_ai.usage.input_tokens", result.input_tokens)
     span.set_data("gen_ai.usage.output_tokens", result.output_tokens)
+    span.set_data("gen_ai.usage.input_tokens.cached", result.cached_tokens)
 \`\`\`
 
 ### Invoke Agent
@@ -254,15 +253,9 @@ with sentry_sdk.start_span(op="gen_ai.invoke_agent", name=f"invoke_agent {agent_
 \`\`\`python
 with sentry_sdk.start_span(op="gen_ai.execute_tool", name=f"execute_tool {tool_name}") as span:
     span.set_data("gen_ai.tool.name", tool_name)
+    span.set_data("gen_ai.tool.input", json.dumps(inputs))
     result = tool(**inputs)
-\`\`\`
-
-### Handoff (agent-to-agent)
-- **op:** \`"gen_ai.handoff"\`, **name:** \`"handoff from <A> to <B>"\`
-
-\`\`\`python
-with sentry_sdk.start_span(op="gen_ai.handoff", name=f"handoff from {a} to {b}"):
-    pass
+    span.set_data("gen_ai.tool.output", json.dumps(result))
 \`\`\`
 
 ## Key Rules
