@@ -165,7 +165,7 @@ export function ScmConnect({onComplete}: StepProps) {
             }
             onComplete();
           }}
-          disabled={!selectedRepository}
+          disabled={!selectedRepository?.id}
         >
           {t('Continue')}
         </Button>
