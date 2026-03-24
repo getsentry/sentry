@@ -10,7 +10,7 @@ import {useSliderState} from '@react-stately/slider';
 
 interface BaseProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
-  'defaultValue' | 'onChange'
+  'defaultValue' | 'onChange' | 'id'
 > {
   defaultValue?: number;
   disabled?: boolean;
@@ -18,6 +18,8 @@ interface BaseProps extends Omit<
   formatLabel?: (value: number | '') => React.ReactNode;
   /** Intl.NumberFormat options for automatic numeric formatting */
   formatOptions?: Intl.NumberFormatOptions;
+  /** ID applied to the hidden input element (enables label `htmlFor` linking) */
+  id?: string;
   max?: number;
   min?: number;
   /** Name for the hidden input element (for form submissions) */
@@ -54,6 +56,7 @@ export function Slider({
   formatLabel,
   formatOptions,
   name,
+  id,
   className,
   ref,
   ...props
@@ -168,7 +171,13 @@ export function Slider({
             <SliderThumbSurface />
           </SliderThumbChonk>
           <VisuallyHidden>
-            <input ref={inputRef} {...inputProps} name={name} />
+            <input
+              ref={inputRef}
+              {...inputProps}
+              name={name}
+              id={id ?? inputProps.id}
+              aria-invalid={props['aria-invalid'] ?? undefined}
+            />
           </VisuallyHidden>
         </SliderThumbHitbox>
 
