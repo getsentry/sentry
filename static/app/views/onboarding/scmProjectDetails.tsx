@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -40,10 +40,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     []
   );
 
-  const firstAdminTeam = useMemo(
-    () => teams.find((team: Team) => team.access.includes('team:admin')),
-    [teams]
-  );
+  const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
   const defaultName = slugify(selectedPlatform?.key ?? '');
 
   // State tracks user edits; derived values fall back to defaults from context/teams
