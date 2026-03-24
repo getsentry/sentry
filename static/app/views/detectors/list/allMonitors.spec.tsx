@@ -59,7 +59,7 @@ describe('DetectorsList', () => {
             logicType: DataConditionGroupLogicType.ALL,
             conditions: [
               {
-                comparison: 10,
+                comparison: 110,
                 conditionResult: DetectorPriorityLevel.HIGH,
                 type: DataConditionType.GREATER,
                 id: '1',
@@ -106,7 +106,9 @@ describe('DetectorsList', () => {
     expect(within(row).getByText('production')).toBeInTheDocument();
     expect(within(row).getByText('count()')).toBeInTheDocument();
     expect(within(row).getByText('event.type:error')).toBeInTheDocument();
-    expect(within(row).getByText('>10% high')).toBeInTheDocument();
+    expect(
+      within(row).getByText('10% higher than previous 10 seconds')
+    ).toBeInTheDocument();
 
     // Last issue
     expect(within(row).getByText('RequestError')).toBeInTheDocument();

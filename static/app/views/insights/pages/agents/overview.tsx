@@ -13,6 +13,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconClose} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -81,6 +82,7 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
 }
 
 function AgentsContent({datePageFilterProps}: AgentsOverviewPageProps) {
+  const organization = useOrganization();
   const showOnboarding = useShowAgentOnboarding();
   useDefaultToAllProjects();
 
@@ -111,13 +113,31 @@ function AgentsContent({datePageFilterProps}: AgentsOverviewPageProps) {
                 <PageFilterBar condensed>
                   <InsightsProjectSelector
                     resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    onChange={() => {
+                      trackAnalytics('agent-monitoring.page-filter-change', {
+                        organization,
+                        filter: 'project',
+                      });
+                    }}
                   />
                   <InsightsEnvironmentSelector
                     resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    onChange={() => {
+                      trackAnalytics('agent-monitoring.page-filter-change', {
+                        organization,
+                        filter: 'environment',
+                      });
+                    }}
                   />
                   <DatePageFilter
                     {...datePageFilterProps}
                     resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    onChange={() => {
+                      trackAnalytics('agent-monitoring.page-filter-change', {
+                        organization,
+                        filter: 'date',
+                      });
+                    }}
                   />
                 </PageFilterBar>
                 <AgentSelector

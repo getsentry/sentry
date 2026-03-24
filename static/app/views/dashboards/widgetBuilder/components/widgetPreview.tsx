@@ -1,7 +1,6 @@
 import {useState} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -113,11 +112,6 @@ export function WidgetPreview({
       isEditingDashboard={false}
       widgetLimitReached={false}
       showContextMenu={false}
-      renderErrorMessage={errorMessage =>
-        typeof errorMessage === 'string' && (
-          <PanelAlert variant="danger">{errorMessage}</PanelAlert>
-        )
-      }
       widgetInterval={
         organization.features.includes('dashboards-interval-selection')
           ? chartInterval

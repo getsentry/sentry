@@ -115,7 +115,7 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
   const runId = runState?.run_id;
 
   return (
-    <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
+    <ArtifactCard icon={<IconList />} title={t('Plan')}>
       {section.status === 'processing' ? (
         <LoadingDetails messages={section.messages} />
       ) : artifact?.data ? (
@@ -143,7 +143,7 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
         <ArtifactDetails>
           <Text>
             {t(
-              'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
+              'Seer failed to generate a plan. This one is on us. Try running it again.'
             )}
           </Text>
           <div>
