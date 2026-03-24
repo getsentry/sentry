@@ -75,7 +75,7 @@ class CountBasedTripStrategyConfig(CircuitBreakerConfig):
     """
     The number of errors within the given time period necessary to trip the breaker.
     """
-    recovery_error_limit: NotRequired[int] = None
+    recovery_error_limit: NotRequired[int]
     """
     The number of errors within the given time period necessary to trip the breaker while in RECOVERY.
     """
