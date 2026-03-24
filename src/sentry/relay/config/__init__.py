@@ -37,7 +37,7 @@ from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.quotas.base import RetentionsConfig
+from sentry.quotas.base import retentions_config_from_mapping
 from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
@@ -1105,7 +1105,7 @@ def _get_project_config(
             config["downsampledEventRetention"] = downsampled_event_retention
     with sentry_sdk.start_span(op="get_retentions"):
         retentions = quotas.backend.get_retentions(project.organization)
-        retentions_config = RetentionsConfig.from_mapping(retentions)
+        retentions_config = retentions_config_from_mapping(retentions)
         if retentions_config:
             config["retentions"] = retentions_config
 

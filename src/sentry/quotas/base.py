@@ -69,21 +69,6 @@ class RetentionsConfig(TypedDict, total=False):
     traceMetric: RetentionSettings
     traceAttachment: RetentionSettings
 
-    @staticmethod
-    def from_mapping(mapping: Mapping[DataCategory, RetentionSettings]) -> RetentionsConfig:
-        """
-        Creates a Relay-shaped RetentionsConfig from a
-        mapping of DataCategories to RetentionSettings.
-
-        Categories that Relay doesn't handle will be discarded.
-        """
-
-        return {
-            RETENTIONS_CONFIG_MAPPING[c]: v
-            for c, v in mapping.items()
-            if c in RETENTIONS_CONFIG_MAPPING
-        }
-
 
 RETENTIONS_CONFIG_MAPPING = {
     DataCategory.LOG_BYTE: "log",
@@ -91,6 +76,23 @@ RETENTIONS_CONFIG_MAPPING = {
     DataCategory.SPAN: "span",
     DataCategory.TRACE_METRIC: "traceMetric",
 }
+
+
+def retentions_config_from_mapping(
+    mapping: Mapping[DataCategory, RetentionSettings],
+) -> RetentionsConfig:
+    """
+    Creates a Relay-shaped RetentionsConfig from a
+    mapping of DataCategories to RetentionSettings.
+
+    Categories that Relay doesn't handle will be discarded.
+    """
+
+    return {
+        RETENTIONS_CONFIG_MAPPING[c]: v
+        for c, v in mapping.items()
+        if c in RETENTIONS_CONFIG_MAPPING
+    }
 
 
 class TrimmingConfig(TypedDict):

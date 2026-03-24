@@ -14,7 +14,7 @@ from sentry import quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.project import Project
 from sentry.models.relay import Relay
-from sentry.quotas.base import RetentionsConfig
+from sentry.quotas.base import retentions_config_from_mapping
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe
@@ -156,7 +156,7 @@ def test_internal_relays_should_receive_full_configs(
     ) == quotas.backend.get_downsampled_event_retention(default_project.organization)
 
     retentions = quotas.backend.get_retentions(default_project.organization)
-    retentions_config = RetentionsConfig.from_mapping(retentions)
+    retentions_config = retentions_config_from_mapping(retentions)
     if retentions_config:
         assert safe.get_path(cfg, "config", "retentions") == retentions_config
     else:
