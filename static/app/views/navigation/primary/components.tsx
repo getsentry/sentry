@@ -136,7 +136,7 @@ function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps)
       as="ul"
       position="relative"
       margin="0"
-      padding={hasPageFrame ? 'xs xs lg xs' : '0'}
+      padding={hasPageFrame ? 'xs' : '0'}
       width="100%"
       gap={hasPageFrame ? '0' : 'xs'}
       align={layout === 'mobile' ? 'stretch' : 'center'}
@@ -635,19 +635,23 @@ const DesktopNavigationLink = styled((props: LinkProps) => (
   }
 `;
 
-const DesktopPageFrameNavigationLink = styled((props: LinkProps) => (
-  <Flex
-    position="relative"
-    width="100%"
-    align="center"
-    direction="column"
-    justify="center"
-    gap="xs"
-    padding="xs"
-  >
-    {p => <Link {...mergeProps(p, props)} />}
-  </Flex>
-))`
+const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
+  const hasPageFrame = useHasPageFrameFeature();
+
+  return (
+    <Flex
+      position="relative"
+      width="100%"
+      align="center"
+      direction="column"
+      justify="center"
+      gap="xs"
+      padding={hasPageFrame ? 'xs xs md xs' : 'xs'}
+    >
+      {p => <Link {...mergeProps(p, props)} />}
+    </Flex>
+  );
+})`
   outline: none;
   box-shadow: none;
   transition: none;
