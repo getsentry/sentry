@@ -87,7 +87,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
             `p95(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
-          fieldAliases: [t('P50'), t('P75'), t('P95')],
+          fieldAliases: [],
           conditions: BASE_QUERY.formatString(),
           orderby: `-p50(${SpanFields.SPAN_DURATION})`,
         },
