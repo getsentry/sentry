@@ -14,6 +14,7 @@ import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClie
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {CreateFromSeerLoading} from 'sentry/views/dashboards/createFromSeerLoading';
+import {CreateFromSeerPrompt} from 'sentry/views/dashboards/createFromSeerPrompt';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
@@ -286,7 +287,7 @@ export default function CreateFromSeer() {
   }
 
   if (!seerRunId) {
-    return null;
+    return <CreateFromSeerPrompt />;
   }
 
   if (isLoading && !isUpdating) {

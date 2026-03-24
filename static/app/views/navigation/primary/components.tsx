@@ -88,6 +88,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         borderBottom={hasPageFrame ? 'primary' : undefined}
         width={hasPageFrame ? '100%' : undefined}
         height={hasPageFrame ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
+        minHeight={hasPageFrame ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
         {...props}
       >
         {props.children}

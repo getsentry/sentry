@@ -539,6 +539,9 @@ CSP_CONNECT_SRC = [
 CSP_FRAME_ANCESTORS = [
     "'none'",
 ]
+CSP_FRAME_SRC = [
+    "demo.arcade.software",
+]
 CSP_OBJECT_SRC = [
     "'none'",
 ]

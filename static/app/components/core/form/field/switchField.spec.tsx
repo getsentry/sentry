@@ -188,23 +188,24 @@ describe('SwitchField auto-save', () => {
     });
   });
 
-  it('does not trigger mutation when toggling back to initial value', async () => {
+  it('triggers mutation on every toggle because form resets after each save', async () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={false} />);
 
     const checkbox = screen.getByRole('checkbox');
-    // Toggle on then off - ends up at initial value
-    await userEvent.click(checkbox);
-    // First click triggers mutation
-    expect(mutationFn).toHaveBeenCalledTimes(1);
 
-    // Clear mock to check next behavior
+    // First click: OFF → ON, triggers mutation
+    await userEvent.click(checkbox);
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+    expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+
+    // After save succeeds, form.reset() resets to initialValue (false/OFF).
+    // Second click: OFF → ON again, triggers another mutation.
     mutationFn.mockClear();
     await userEvent.click(checkbox);
-
-    // Second click back to initial value should not trigger mutation
-    expect(mutationFn).not.toHaveBeenCalled();
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+    expect(mutationFn).toHaveBeenCalledWith({enabled: true});
   });
 
   it('does not hang when mutation fails', async () => {
