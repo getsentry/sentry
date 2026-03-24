@@ -17,10 +17,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  NAVIGATION_MOBILE_PANEL_INSET,
   NAVIGATION_MOBILE_TOPBAR_HEIGHT,
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
-  PRIMARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
 import {
   PrimaryNavigationFooterItems,
@@ -114,13 +112,15 @@ export function MobileNavigation() {
 
   return (
     <MobileNavigationHeader>
-      <Flex align="center" gap="md">
-        {/* If the view is not closed, it will render under the full screen mobile menu */}
-        <OrganizationDropdown onClick={() => setView('closed')} />
-        {showSuperuserWarning && (
-          <Hook name="component:superuser-warning" organization={organization} />
-        )}
-      </Flex>
+      <SizeProvider size="xs">
+        <Flex align="center" gap="md">
+          {/* If the view is not closed, it will render under the full screen mobile menu */}
+          <OrganizationDropdown onClick={() => setView('closed')} />
+          {showSuperuserWarning && (
+            <Hook name="component:superuser-warning" organization={organization} />
+          )}
+        </Flex>
+      </SizeProvider>
       <Button
         size="sm"
         ref={closeButtonRef}
@@ -183,6 +183,7 @@ function MobileNavigationHeader(props: FlexProps<'header'>) {
   const theme = useTheme();
   return (
     <Flex
+      top={0}
       as="header"
       direction="row"
       align="center"
@@ -194,14 +195,13 @@ function MobileNavigationHeader(props: FlexProps<'header'>) {
       justify="between"
       position="sticky"
       overscrollBehavior="none"
-      top={0}
       style={{zIndex: theme.zIndex.sidebar}}
       {...props}
     />
   );
 }
 
-export function MobilePrimaryNavigation() {
+function MobilePrimaryNavigation() {
   const {view} = useSecondaryNavigation();
 
   return (
@@ -215,10 +215,7 @@ export function MobilePrimaryNavigation() {
         </PrimaryNavigation.List>
       </PrimaryNavigation.Sidebar>
       {view === 'expanded' && (
-        <SecondaryNavigation.Sidebar
-          width={`calc(100vw - ${NAVIGATION_MOBILE_PANEL_INSET}px - ${PRIMARY_SIDEBAR_WIDTH}px)`}
-          disableResize
-        >
+        <SecondaryNavigation.Sidebar>
           <SecondaryNavigationContent />
         </SecondaryNavigation.Sidebar>
       )}
@@ -261,21 +258,21 @@ export function MobilePageFrameNavigation() {
     }
   }, [isOpen, view]);
 
-  const handleClickOutside = useCallback(
-    (e: MouseEvent | TouchEvent) => {
-      if (toggleButtonRef.current?.contains(e.target as Node)) return;
-      setIsOpen(false);
-    },
-    [] // setIsOpen and toggleButtonRef are stable
-  );
+  const handleClickOutside = useCallback((e: MouseEvent | TouchEvent) => {
+    if (toggleButtonRef.current?.contains(e.target as Node)) return;
+    setIsOpen(false);
+  }, []);
 
   useOnClickOutside(navPanelRef, handleClickOutside);
+
+  const hasPageFrame = useHasPageFrameFeature();
+  const {layout} = usePrimaryNavigation();
 
   return (
     <SizeProvider size="sm">
       <MobileNavigationHeader
-        height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`}
         padding="sm"
+        height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`}
       >
         <Flex align="center" gap="md" justify="between" width="100%">
           <Button
@@ -300,7 +297,8 @@ export function MobilePageFrameNavigation() {
             top={0}
             left={0}
             bottom={0}
-            width={`calc(100vw - ${NAVIGATION_MOBILE_PANEL_INSET}px)`}
+            width={hasPageFrame && layout === 'mobile' ? '100vw' : undefined}
+            maxWidth={hasPageFrame && layout === 'mobile' ? '368px' : undefined}
             style={{zIndex: theme.zIndex.modal}}
           >
             <MobilePrimaryNavigation />

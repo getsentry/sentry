@@ -60,12 +60,12 @@ export function UserDropdown() {
           }
         : {type: 'letter_avatar' as const, identifier, name};
 
-  const sizeContext = useSizeContext();
+  const size = useSizeContext();
 
   return (
     <DropdownMenu
       usePortal
-      size={sizeContext}
+      size={size}
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}

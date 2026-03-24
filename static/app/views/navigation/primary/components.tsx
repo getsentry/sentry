@@ -89,6 +89,13 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         justify="center"
         borderBottom={hasPageFrame ? 'primary' : undefined}
         width={hasPageFrame ? '100%' : undefined}
+        minHeight={
+          hasPageFrame
+            ? layout === 'mobile'
+              ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+              : `${PRIMARY_HEADER_HEIGHT}px`
+            : undefined
+        }
         height={
           hasPageFrame
             ? layout === 'mobile'

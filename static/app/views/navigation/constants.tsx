@@ -21,10 +21,6 @@ export const NAVIGATION_SIDEBAR_RESET_DELAY_MS = 300;
 export const NAVIGATION_MOBILE_TOPBAR_HEIGHT = 40;
 export const NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME = 48;
 
-// Width of the right-edge visible area when the mobile nav panel is open,
-// so the user can tap it to dismiss the panel.
-export const NAVIGATION_MOBILE_PANEL_INSET = 64;
-
 // To be passed as the `source` parameter in router navigation state
 // e.g. {pathname: '/issues/', state: {source: `sidebar`}}
 export const SIDEBAR_NAVIGATION_SOURCE = 'sidebar';

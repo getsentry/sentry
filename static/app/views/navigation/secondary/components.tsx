@@ -43,9 +43,9 @@ import {useHovercardContext} from 'sentry/components/hovercard';
 import {
   IconAllProjects,
   IconChevron,
+  IconClose,
   IconGrabbable,
   IconMyProjects,
-  IconPanel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -82,15 +82,14 @@ const MotionContainer = motion.create(Container);
 
 interface SecondarySidebarProps {
   children: ReactNode;
-  disableResize?: boolean;
-  width?: string;
 }
 
-function SecondarySidebar({children, width, disableResize}: SecondarySidebarProps) {
+function SecondarySidebar({children}: SecondarySidebarProps) {
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
+  const {layout} = usePrimaryNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -108,6 +107,7 @@ function SecondarySidebar({children, width, disableResize}: SecondarySidebarProp
   });
 
   const {activeGroup} = usePrimaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <SecondarySidebarWrapper
@@ -125,8 +125,12 @@ function SecondarySidebar({children, width, disableResize}: SecondarySidebarProp
           height="100%"
           right="0"
           {...props}
-          width={width ?? `${size}px`}
-          ref={mergeRefs(resizableContainerRef, ref)}
+          width={hasPageFrame && layout === 'mobile' ? '100%' : `${size}px`}
+          ref={
+            hasPageFrame && layout === 'mobile'
+              ? undefined
+              : mergeRefs(resizableContainerRef, ref)
+          }
           {...{
             [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
           }}
@@ -149,29 +153,28 @@ function SecondarySidebar({children, width, disableResize}: SecondarySidebarProp
               >
                 {children}
               </Grid>
-              {!disableResize && (
-                <Container
-                  top="0"
-                  right="0"
-                  bottom="0"
-                  width="8px"
-                  radius="lg"
-                  position="absolute"
-                >
-                  {p => (
-                    <ResizeHandle
-                      {...p}
-                      ref={resizeHandleRef}
-                      onMouseDown={handleStartResize}
-                      onDoubleClick={() => {
-                        setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
-                      }}
-                      atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-                      atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-                    />
-                  )}
-                </Container>
-              )}
+              <Container
+                top="0"
+                right="0"
+                bottom="0"
+                width="8px"
+                radius="lg"
+                position="absolute"
+                display={hasPageFrame && layout === 'mobile' ? 'none' : undefined}
+              >
+                {p => (
+                  <ResizeHandle
+                    {...p}
+                    ref={resizeHandleRef}
+                    onMouseDown={handleStartResize}
+                    onDoubleClick={() => {
+                      setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                    }}
+                    atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                    atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+                  />
+                )}
+              </Container>
             </MotionContainer>
           </AnimatePresence>
         </Container>
@@ -298,7 +301,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
               ? `${PRIMARY_HEADER_HEIGHT}px`
               : '44px'
       }
-      padding={layout === 'mobile' ? 'md xl' : '0 md 0 xl'}
+      padding={layout === 'mobile' ? (hasPageFrame ? 'md lg' : 'md xl') : '0 md 0 xl'}
     >
       <div>
         <Text size="md" bold>
@@ -309,10 +312,10 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
         {layout === 'mobile' && hasPageFrame ? (
           <Button
             size="xs"
-            icon={<IconPanel direction="left" />}
+            icon={<IconClose />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            priority="default"
+            priority="transparent"
           />
         ) : layout === 'mobile' ? null : (
           <Button
@@ -482,16 +485,6 @@ function SecondaryNavigationLink({
     },
   };
 
-  if (layout === 'mobile') {
-    return (
-      <MobileNavigationLink {...sharedLinkProps}>
-        {leadingItems}
-        <Text ellipsis>{children}</Text>
-        {trailingItems}
-      </MobileNavigationLink>
-    );
-  }
-
   if (hasPageFrame) {
     return (
       <PageFrameSidebarNavigationLink {...sharedLinkProps}>
@@ -501,6 +494,16 @@ function SecondaryNavigationLink({
         </Text>
         {trailingItems}
       </PageFrameSidebarNavigationLink>
+    );
+  }
+
+  if (layout === 'mobile') {
+    return (
+      <MobileNavigationLink {...sharedLinkProps}>
+        {leadingItems}
+        <Text ellipsis>{children}</Text>
+        {trailingItems}
+      </MobileNavigationLink>
     );
   }
 
@@ -963,17 +966,17 @@ function SecondaryNavigationReorderableLink({
     </Fragment>
   );
 
-  if (layout === 'mobile') {
+  if (hasPageFrame) {
     return (
-      <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
+      <StyledPageFrameReorderableFakeLink {...sharedProps} layout="sidebar">
+        {content}
+      </StyledPageFrameReorderableFakeLink>
     );
   }
 
-  if (hasPageFrame) {
+  if (layout === 'mobile') {
     return (
-      <StyledPageFrameReorderableFakeLink {...sharedProps}>
-        {content}
-      </StyledPageFrameReorderableFakeLink>
+      <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
     );
   }
 

@@ -33,6 +33,35 @@ interface SecondaryNavigationContextProviderProps {
   children: React.ReactNode;
 }
 
+interface MobileSecondaryNavigationContextProviderProps {
+  children: React.ReactNode;
+  initialView: 'expanded' | 'collapsed';
+}
+
+/**
+ * A lightweight provider for ephemeral navigation surfaces (e.g. the mobile
+ * page-frame panel). Uses plain useState instead of localStorage so state is
+ * never persisted. Peek is not supported — view is always 'expanded' or 'collapsed'.
+ */
+export function MobileSecondaryNavigationContextProvider({
+  children,
+  initialView,
+}: MobileSecondaryNavigationContextProviderProps) {
+  const [view, setViewState] = useState<SecondaryNavState>(initialView);
+
+  const setView = useCallback((nextView: SecondaryNavState) => {
+    setViewState(nextView);
+  }, []);
+
+  const value = useMemo(() => ({view, setView}), [view, setView]);
+
+  return (
+    <SecondaryNavigationContext.Provider value={value}>
+      {children}
+    </SecondaryNavigationContext.Provider>
+  );
+}
+
 export function SecondaryNavigationContextProvider(
   props: SecondaryNavigationContextProviderProps
 ) {

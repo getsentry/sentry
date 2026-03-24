@@ -81,18 +81,12 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
-  const hasPageFrame = useHasPageFrameFeature();
-
-  // On mobile+page frame the nav panel is portaled separately, so this
-  // container only holds the topbar and must not span the full viewport
-  // height (which would create an invisible overlay blocking page content).
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   return (
     <Flex
       top={0}
-      position={currentStepId ? undefined : isMobilePageFrame ? 'fixed' : 'sticky'}
-      left={isMobilePageFrame ? 0 : undefined}
+      left={0}
+      position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
       height={layout === 'mobile' ? undefined : '100dvh'}
       style={{
