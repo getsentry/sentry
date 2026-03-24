@@ -615,9 +615,7 @@ describe('Onboarding', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 
-    await waitFor(() => {
-      expect(deleteProjectMock).toHaveBeenCalled();
-    });
+    expect(deleteProjectMock).toHaveBeenCalled();
 
     // Legacy flow should clear all context
     const stored = sessionStorage.getItem('onboarding');
