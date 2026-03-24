@@ -1,4 +1,4 @@
-import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {isMac as detectIsMac} from '@react-aria/utils';
 
 import {toArray} from 'sentry/utils/array/toArray';
@@ -27,7 +27,6 @@ export interface HotkeyProps {
 }
 
 export function Hotkey({value}: HotkeyProps) {
-  const theme = useTheme();
   const isMac = detectIsMac();
 
   const keySets = toArray(value).map(v => v.trim().split('+'));
@@ -45,22 +44,22 @@ export function Hotkey({value}: HotkeyProps) {
   }
 
   return (
-    <kbd
-      css={css`
-        display: inline-flex;
-        align-items: center;
-        gap: ${theme.space.xs};
-        font-family: inherit;
-        font-size: inherit;
-        background: none;
-        border: none;
-        padding: 0;
-        margin: 0;
-      `}
-    >
+    <StyledKbd>
       {finalKeys.map((glyph, i) => (
         <Kbd key={i}>{glyph}</Kbd>
       ))}
-    </kbd>
+    </StyledKbd>
   );
 }
+
+const StyledKbd = styled('kbd')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  font-family: inherit;
+  font-size: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+`;
