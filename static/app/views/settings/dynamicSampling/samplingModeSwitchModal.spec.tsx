@@ -93,7 +93,7 @@ describe('SamplingModeSwitchModal', () => {
       });
 
       renderGlobalModal({organization});
-      openModal({samplingMode: 'organization', initialTargetRate: 0.5});
+      openModal({samplingMode: 'organization'});
 
       await screen.findByText('Deactivate Advanced Mode');
       const input = screen.getByRole('spinbutton', {name: 'Global Target Sample Rate'});
