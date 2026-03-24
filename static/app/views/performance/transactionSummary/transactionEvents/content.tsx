@@ -13,6 +13,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -29,8 +30,8 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {EAPSpansQueryBuilder} from 'sentry/views/performance/eap/eapSpansQueryBuilder';
 import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
@@ -48,6 +49,27 @@ import {
 import {EventsTable} from './eventsTable';
 import type {EventsDisplayFilterName} from './utils';
 import {getEventsFilterOptions} from './utils';
+
+function EAPSearchBar({
+  projects,
+  initialQuery,
+  onSearch,
+}: {
+  initialQuery: string;
+  onSearch: (query: string) => void;
+  projects: number[];
+}) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects,
+    initialQuery,
+    onSearch,
+    searchSource: 'transaction_events',
+  });
+
+  return (
+    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} disallowFreeText />
+  );
+}
 
 type Props = {
   eventView: EventView;
@@ -276,11 +298,10 @@ function Search(props: Props) {
       </PageFilterBar>
       <StyledSearchBarWrapper>
         {shouldUseEAP ? (
-          <EAPSpansQueryBuilder
+          <EAPSearchBar
             projects={projectIds ?? []}
             initialQuery={query}
             onSearch={handleSearch}
-            searchSource="transaction_events"
           />
         ) : (
           <TransactionSearchQueryBuilder
