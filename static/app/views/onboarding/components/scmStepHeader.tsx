@@ -22,7 +22,7 @@ export function ScmStepHeader({
   return (
     <Stack align="center" gap="md">
       <Flex align="center" gap="lg">
-        <Text variant="muted" size="lg" bold>
+        <Text variant="muted" size="lg" bold density="comfortable">
           {t('Step %s of %s', stepNumber, totalSteps)}
         </Text>
         {tag && <Tag variant="muted">{tag}</Tag>}
@@ -31,7 +31,7 @@ export function ScmStepHeader({
         <Heading as="h2" size="3xl">
           {heading}
         </Heading>
-        <Text variant="muted" size="lg" bold>
+        <Text variant="muted" size="lg" bold density="comfortable">
           {subtitle}
         </Text>
       </Stack>
