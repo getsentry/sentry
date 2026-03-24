@@ -1,0 +1,321 @@
+"""
+Claude Code Agent Integration Provider.
+
+Registers the Claude Code integration so it appears in get_coding_agent_providers()
+and can be used by the coding agent system.
+"""
+
+from __future__ import annotations
+
+import logging
+import uuid
+from collections.abc import Mapping, MutableMapping
+from typing import Any, Literal
+
+from django import forms
+from django.conf import settings as django_settings
+from django.utils.translation import gettext_lazy as _
+from pydantic import BaseModel
+
+from sentry.integrations.base import (
+    FeatureDescription,
+    IntegrationData,
+    IntegrationFeatures,
+    IntegrationMetadata,
+)
+from sentry.integrations.coding_agent.integration import (
+    CodingAgentIntegration,
+    CodingAgentIntegrationProvider,
+    CodingAgentPipelineView,
+)
+from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.seer.autofix.utils import CodingAgentState
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+from sentry.utils.imports import import_string
+
+logger = logging.getLogger(__name__)
+
+PROVIDER_KEY = "claude_code"
+PROVIDER_NAME = "Claude Agent"
+DESCRIPTION = "Connect your Sentry organization with Claude Agent."
+DEFAULT_ENVIRONMENT_NAME = "sentry-autofix-agents"
+
+
+def _get_client_class() -> type[Any]:
+    """Load the Claude Code client class from the CLAUDE_CODE_CLIENT_CLASS setting.
+
+    Returns the concrete client class (e.g. getsentry's ClaudeCodeClient).
+    Typed as Any because the concrete class lives outside this repo.
+    """
+
+    class_path = django_settings.CLAUDE_CODE_CLIENT_CLASS
+    if not class_path:
+        raise IntegrationConfigurationError(
+            "CLAUDE_CODE_CLIENT_CLASS is not configured. "
+            "The Claude Code client is not available in this environment."
+        )
+    return import_string(class_path)
+
+
+FEATURES = [
+    FeatureDescription(
+        "Launch Claude Agent sessions via Seer to fix issues.",
+        IntegrationFeatures.CODING_AGENT,
+    ),
+]
+
+
+class ClaudeCodeIntegrationMetadata(BaseModel):
+    """Metadata stored with the integration."""
+
+    api_key: str
+    domain_name: Literal["anthropic.com"] = "anthropic.com"
+    environment_id: str | None = None
+    workspace_name: str | None = "default"
+    agent_id: str | None = None
+    agent_version: str | None = None
+
+
+metadata = IntegrationMetadata(
+    description=DESCRIPTION.strip(),
+    features=FEATURES,
+    author="Sentry",
+    noun=_("Agent"),
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Claude%20Code%20Agent%20Integration%20Problem",
+    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/claude_code",
+    aspects={},
+)
+
+
+def _build_environment_choices(
+    environment_choices: list[tuple[str, str]] | None,
+) -> list[tuple[str, str]]:
+    """Build the environment dropdown choices, handling the default environment specially.
+
+    If an environment named ``sentry-autofix-agents`` exists, the default
+    option reads "Use Default Environment - 'sentry-autofix-agents'" and the
+    environment is removed from the individual choices. Otherwise the default
+    option reads "Create a Default Sentry Environment".
+    """
+    has_default = False
+    filtered: list[tuple[str, str]] = []
+    if environment_choices:
+        for env_id, env_name in environment_choices:
+            if env_name == DEFAULT_ENVIRONMENT_NAME:
+                has_default = True
+            else:
+                filtered.append((env_id, env_name))
+
+    if has_default:
+        default_label = str(_("Use Default Environment - '%s'") % DEFAULT_ENVIRONMENT_NAME)
+    else:
+        default_label = str(_("Create a Default Sentry Environment"))
+
+    return [("", default_label)] + filtered
+
+
+class ClaudeCodeApiKeyForm(forms.Form):
+    """Step 1: Collect the Anthropic API key."""
+
+    api_key = forms.CharField(
+        label=_("Anthropic API Key"),
+        help_text=_("Enter your Anthropic API key to use Claude Agent."),
+        widget=forms.PasswordInput(attrs={"placeholder": _("sk-ant-...")}),
+        max_length=255,
+    )
+
+
+class ClaudeCodeApiKeyPipelineView(CodingAgentPipelineView):
+    """Pipeline step 1: Collect API key."""
+
+    def get_form_class(self) -> type[forms.Form]:
+        return ClaudeCodeApiKeyForm
+
+    def get_template_name(self) -> str:
+        return "sentry/integrations/claude-code-config.html"
+
+    def get_state_key(self) -> str:
+        return "api_key"
+
+    def bind_state(self, pipeline: IntegrationPipeline, form: forms.Form) -> None:
+        pipeline.bind_state(self.get_state_key(), form.cleaned_data["api_key"])
+
+
+class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
+    """
+    Integration provider for Claude Code Agent.
+
+    This registers the integration so it appears in get_coding_agent_providers()
+    and can be used by the coding agent system (Seer autofix).
+    """
+
+    key = PROVIDER_KEY
+    name = PROVIDER_NAME
+    metadata = metadata
+
+    def get_pipeline_views(self):
+        return [ClaudeCodeApiKeyPipelineView()]
+
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
+        api_key = state.get("api_key")
+        if not api_key:
+            raise IntegrationConfigurationError("Missing API key")
+
+        # Validate the API key
+        try:
+            client_class = _get_client_class()
+            client = client_class(api_key=api_key)
+            is_valid = client.validate_api_key()
+            if not is_valid:
+                raise IntegrationConfigurationError(
+                    "Invalid Anthropic API key. Please check your credentials."
+                )
+        except Exception as e:
+            if isinstance(e, IntegrationConfigurationError):
+                raise
+            self.get_logger().exception(
+                "claude_code.build_integration.validation_failed",
+            )
+            raise IntegrationConfigurationError(
+                "Unable to validate Anthropic API key. Please check your credentials."
+            ) from e
+
+        environment_id = None
+        workspace_name = "default"
+
+        integration_metadata = ClaudeCodeIntegrationMetadata(
+            domain_name="anthropic.com",
+            api_key=api_key,
+            environment_id=environment_id,
+            workspace_name=workspace_name,
+        )
+
+        return {
+            "external_id": uuid.uuid4().hex,
+            "name": PROVIDER_NAME,
+            "metadata": integration_metadata.dict(),
+        }
+
+    def get_agent_name(self) -> str:
+        return PROVIDER_NAME
+
+    def get_agent_key(self) -> str:
+        return PROVIDER_KEY
+
+    @classmethod
+    def get_installation(
+        cls, model: RpcIntegration | Integration, organization_id: int, **kwargs: Any
+    ) -> ClaudeCodeAgentIntegration:
+        return ClaudeCodeAgentIntegration(model, organization_id)
+
+
+class ClaudeCodeAgentIntegration(CodingAgentIntegration):
+    """
+    Integration installation for Claude Code Agent.
+
+    Manages the API key and environment ID for interacting with Claude Code.
+    """
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        client = self.get_client()
+        environment_choices: list[tuple[str, str]] = []
+        try:
+            environments = client.list_environments()
+            environment_choices = [
+                (env["id"], env.get("name") or env["id"]) for env in environments if env.get("id")
+            ]
+        except Exception:
+            logger.exception("claude_code.get_organization_config.fetch_environments_failed")
+        choices = _build_environment_choices(environment_choices)
+
+        return [
+            {
+                "name": "environment_id",
+                "type": "select",
+                "label": _("Environment"),
+                "help": _(
+                    "Select an existing environment, or leave as default "
+                    "to use the sentry-autofix-agents environment."
+                ),
+                "required": False,
+                "choices": choices,
+            },
+            {
+                "name": "workspace_name",
+                "type": "text",
+                "label": _("Workspace Name"),
+                "help": _(
+                    "Your Anthropic workspace name (from platform.claude.com URL), used to link to session details. "
+                    "Defaults to 'default' — override this if your workspace has a different name."
+                ),
+                "required": False,
+                "placeholder": "default",
+                "formatMessageValue": False,
+            },
+        ]
+
+    def _get_metadata(self) -> ClaudeCodeIntegrationMetadata:
+        """Parse and return the integration metadata."""
+        return ClaudeCodeIntegrationMetadata.parse_obj(self.model.metadata or {})
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        metadata = self._get_metadata()
+
+        if "environment_id" in data:
+            metadata.environment_id = data["environment_id"] or None
+
+        if "workspace_name" in data:
+            metadata.workspace_name = data["workspace_name"] or None
+
+        self._persist_metadata(metadata)
+        super().update_organization_config({})
+
+    def get_config_data(self) -> Mapping[str, Any]:
+        metadata = self._get_metadata()
+        return {
+            "environment_id": metadata.environment_id or "",
+            "workspace_name": metadata.workspace_name or "",
+        }
+
+    def get_client(self) -> Any:
+        metadata = self._get_metadata()
+        client_class = _get_client_class()
+        return client_class(
+            api_key=metadata.api_key,
+            environment_id=metadata.environment_id,
+            workspace_name=metadata.workspace_name,
+            agent_id=metadata.agent_id,
+            agent_version=metadata.agent_version,
+        )
+
+    def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
+        """Launch coding agent and persist resolved environment/agent IDs."""
+        webhook_url = self.get_webhook_url()
+        client = self.get_client()
+
+        state = client.launch(webhook_url=webhook_url, request=request)
+        state.integration_id = self.model.id
+
+        metadata = self._get_metadata()
+        metadata_changed = False
+
+        if client.environment_id and client.environment_id != metadata.environment_id:
+            metadata.environment_id = client.environment_id
+            metadata_changed = True
+
+        if client.agent_id and client.agent_id != metadata.agent_id:
+            metadata.agent_id = client.agent_id
+            metadata.agent_version = client.agent_version
+            metadata_changed = True
+
+        if metadata_changed:
+            self._persist_metadata(metadata)
+
+        return state
+
+    @property
+    def api_key(self) -> str:
+        return self._get_metadata().api_key

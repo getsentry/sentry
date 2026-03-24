@@ -26,10 +26,7 @@ def get_gravatar_url(
 ) -> str:
     if email is None:
         email = ""
-    gravatar_url = "{}/avatar/{}".format(
-        settings.SENTRY_GRAVATAR_BASE_URL,
-        sha256_text(email.strip().lower()).hexdigest(),
-    )
+    gravatar_url = f"{settings.SENTRY_GRAVATAR_BASE_URL}/avatar/{sha256_text(email.strip().lower()).hexdigest()}"
 
     properties: MutableMapping[str, int | str] = {}
     if size:
@@ -155,6 +152,8 @@ def is_black_alpha_only(data: IO[bytes]) -> bool:
     result = False
     with Image.open(data) as image:
         if image.mode == "RGBA":
-            result = not any(p[:3] != (0, 0, 0) for p in list(image.getdata()))
+            # tobytes() returns raw RGBA bytes (4 bytes per pixel)
+            raw = image.tobytes()
+            result = not any(raw[i : i + 3] != b"\x00\x00\x00" for i in range(0, len(raw), 4))
     data.seek(0)
     return result

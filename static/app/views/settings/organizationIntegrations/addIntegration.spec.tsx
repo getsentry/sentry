@@ -5,9 +5,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import {AddIntegration} from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', () => {
   const provider = GitHubIntegrationProviderFixture();

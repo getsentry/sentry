@@ -11,10 +11,15 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
 import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
+import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {canUseMetricsSavedQueriesUI} from './metricsFlags';
@@ -29,6 +34,9 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
   const {saveQuery, updateQuery} = useSaveMetricsMultiQuery();
   const id = getIdFromLocation(location);
   const {data: savedQuery} = useGetSavedQuery(id);
+
+  const metricQueries = useMultiMetricsQueryParams();
+  const {addToDashboard} = useAddMetricToDashboard();
 
   const saveAsItems = useMemo(() => {
     if (!canUseMetricsSavedQueriesUI(organization)) {
@@ -62,8 +70,8 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
 
     items.push({
       key: 'save-query',
-      label: <span>{t('A New Query')}</span>,
-      textValue: t('A New Query'),
+      label: <span>{t('New Query')}</span>,
+      textValue: t('New Query'),
       onAction: () => {
         trackAnalytics('metrics.save_query_modal', {
           action: 'open',
@@ -85,9 +93,47 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
 
   // TODO: Implement alert functionality when organizations:tracemetrics-alerts flag is enabled
 
-  // TODO: Implement dashboard functionality when organizations:tracemetrics-dashboards flag is enabled
+  const addToDashboardItems = useMemo(() => {
+    return [
+      {
+        key: 'add-to-dashboard',
+        label: t('Dashboard widget'),
+        textValue: t('Dashboard widget'),
+        isSubmenu: true,
+        children: [
+          ...(metricQueries.length > 1
+            ? [
+                {
+                  key: 'add-to-dashboard-all',
+                  label: t('All Metrics'),
+                  textValue: t('All Metrics'),
+                  onAction: () => {
+                    addToDashboard(metricQueries);
+                  },
+                },
+              ]
+            : []),
+          ...metricQueries.map((metricQuery, index) => {
+            return {
+              key: `add-to-dashboard-${index}`,
+              label: `${getVisualizeLabel(index)}: ${
+                formatTraceMetricsFunction(
+                  metricQuery.queryParams.aggregateFields
+                    .filter(isVisualize)
+                    .map(v => v.yAxis)
+                ) as string
+              }`,
+              onAction: () => {
+                addToDashboard(metricQuery);
+              },
+            };
+          }),
+        ],
+      },
+    ];
+  }, [addToDashboard, metricQueries]);
 
   return useMemo(() => {
-    return saveAsItems;
-  }, [saveAsItems]);
+    return [...saveAsItems, ...addToDashboardItems];
+  }, [saveAsItems, addToDashboardItems]);
 }

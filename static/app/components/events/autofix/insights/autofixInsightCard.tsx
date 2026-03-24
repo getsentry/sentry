@@ -2,9 +2,10 @@ import React, {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TextArea} from 'sentry/components/core/textarea';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
@@ -13,11 +14,10 @@ import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 interface AutofixInsightCardProps {
   groupId: string;
@@ -147,7 +147,7 @@ export function AutofixInsightCard({
       {isEditing ? (
         <EditContainer>
           <form onSubmit={handleSubmit}>
-            <EditFormRow>
+            <Flex align="center" gap="md" width="100%">
               <EditInput
                 autosize
                 value={editText}
@@ -166,12 +166,12 @@ export function AutofixInsightCard({
                   }
                 }}
               />
-              <ButtonBar merged gap="0">
+              <ButtonBar>
                 <Button
                   type="button"
                   size="sm"
                   onClick={handleCancel}
-                  title={t('Cancel')}
+                  tooltipProps={{title: t('Cancel')}}
                   aria-label={t('Cancel')}
                 >
                   <IconClose size="sm" />
@@ -180,7 +180,7 @@ export function AutofixInsightCard({
                   type="submit"
                   priority="primary"
                   size="sm"
-                  title={t('Redo work from here')}
+                  tooltipProps={{title: t('Redo work from here')}}
                   aria-label={t('Redo work from here')}
                   analyticsEventName="Autofix: Insight Card Rethink Open"
                   analyticsEventKey="autofix.insight.rethink_open"
@@ -194,7 +194,7 @@ export function AutofixInsightCard({
                   {'\u23CE'}
                 </Button>
               </ButtonBar>
-            </EditFormRow>
+            </Flex>
           </form>
         </EditContainer>
       ) : (
@@ -215,12 +215,14 @@ export function AutofixInsightCard({
             />
           </AutofixHighlightWrapper>
 
-          <RightSection>
+          <Flex align="center" paddingRight="xs">
             {isExpandable && (
               <Button
                 size="zero"
-                borderless
-                title={isExpanded ? t('Hide evidence') : t('Show evidence')}
+                priority="transparent"
+                tooltipProps={{
+                  title: isExpanded ? t('Hide evidence') : t('Show evidence'),
+                }}
                 icon={
                   <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
                 }
@@ -229,11 +231,11 @@ export function AutofixInsightCard({
             )}
             <EditButton
               size="zero"
-              borderless
+              priority="transparent"
               onClick={handleEdit}
               icon={<FlippedReturnIcon />}
               aria-label={t('Edit insight')}
-              title={t('Rethink the answer from here')}
+              tooltipProps={{title: t('Rethink the answer from here')}}
               analyticsEventName="Autofix: Insight Card Rethink"
               analyticsEventKey="autofix.insight.rethink"
               analyticsParams={{
@@ -243,7 +245,7 @@ export function AutofixInsightCard({
                 run_id: runId,
               }}
             />
-          </RightSection>
+          </Flex>
         </InsightCardRow>
       )}
 
@@ -313,14 +315,20 @@ const InsightCardRow = styled('div')<{expanded?: boolean; isUserMessage?: boolea
   cursor: pointer;
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
 const ContextMarkedText = styled(MarkedText)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 `;
 
@@ -329,34 +337,36 @@ const InsightContainer = styled('div')<{expanded?: boolean}>`
   overflow: hidden;
   margin-bottom: 0;
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px dashed ${p => p.theme.border};
-  border-color: ${p => (p.expanded ? p.theme.border : 'transparent')};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-color: ${p => (p.expanded ? p.theme.tokens.border.primary : 'transparent')};
 
   box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
 `;
 
 const MiniHeader = styled('p')<{expanded?: boolean}>`
-  padding-top: ${space(0.25)};
-  padding-bottom: ${space(0.25)};
-  padding-left: ${space(1)};
-  padding-right: ${space(2)};
+  padding-top: ${p => p.theme.space['2xs']};
+  padding-bottom: ${p => p.theme.space['2xs']};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.xl};
   margin: 0;
   flex: 1;
   word-break: break-word;
-  color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.expanded ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 
   code {
-    color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
+    color: ${p =>
+      p.expanded ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   }
 `;
 
 const ContextBody = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background: ${p => p.theme.alert.info.backgroundLight};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
+  background: ${p => p.theme.colors.blue100};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   position: relative;
-  border-top: 1px dashed ${p => p.theme.innerBorder};
+  border-top: 1px dashed ${p => p.theme.tokens.border.secondary};
 
   code {
     white-space: pre-wrap;
@@ -366,24 +376,11 @@ const ContextBody = styled('div')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
-`;
-
-const RightSection = styled('div')`
-  display: flex;
-  align-items: center;
-  padding-right: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const EditContainer = styled('div')`
-  padding: ${space(1)};
-  width: 100%;
-`;
-
-const EditFormRow = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
+  padding: ${p => p.theme.space.md};
   width: 100%;
 `;
 
@@ -393,16 +390,16 @@ const EditInput = styled(TextArea)`
 `;
 
 const EditButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DiffContainer = styled('div')`
-  margin-left: -${space(2)};
-  margin-right: -${space(2)};
-  margin-top: -${space(2)};
+  margin-left: -${p => p.theme.space.xl};
+  margin-right: -${p => p.theme.space.xl};
+  margin-top: -${p => p.theme.space.xl};
 `;
 
 const CheckpointIcon = styled('span')`
   transform: scaleY(-1);
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;

@@ -1,32 +1,30 @@
 import {useCallback, useState} from 'react';
 
-import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
   EMPTY_METRIC_SELECTION,
   TraceMetricsConfig,
 } from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 
 import type {
-  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesResult,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
-import GenericWidgetQueries from './genericWidgetQueries';
+import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 type SeriesResult = EventsTimeSeriesResponse;
-type TableResult = never;
+type TableResult = EventsTableData;
 
 type TraceMetricsWidgetQueriesProps = {
-  api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
-  selection: PageFilters;
+  children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
@@ -34,26 +32,36 @@ type TraceMetricsWidgetQueriesProps = {
   onBestEffortDataFetched?: () => void;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
-  queue?: WidgetQueryQueue;
+  // Optional selection override for widget viewer modal zoom functionality
+  selection?: PageFilters;
+  widgetInterval?: string;
 };
 
 type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
   getConfidenceInformation: (result: SeriesResult) => {
     seriesConfidence: Confidence | null;
+    seriesDataScanned: 'full' | 'partial' | undefined;
     seriesIsSampled: boolean | null;
     seriesSampleCount: number | undefined;
   };
 };
 
-function TraceMetricsWidgetQueries(props: TraceMetricsWidgetQueriesProps) {
-  const getConfidenceInformation = useCallback(() => {
-    // TODO(nar): Implement confidence information parsing
-    return {
-      seriesConfidence: null,
-      seriesSampleCount: undefined,
-      seriesIsSampled: null,
-    };
-  }, []);
+export function TraceMetricsWidgetQueries(props: TraceMetricsWidgetQueriesProps) {
+  const getConfidenceInformation = useCallback(
+    (result: SeriesResult) => {
+      const series = result.timeSeries ?? [];
+      const isTopN = (props.widget.queries[0]?.columns.length ?? 0) > 0;
+      const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopN);
+
+      return {
+        seriesDataScanned: samplingMeta.dataScanned,
+        seriesConfidence: combineConfidenceForSeries(series),
+        seriesSampleCount: samplingMeta.sampleCount,
+        seriesIsSampled: samplingMeta.isSampled,
+      };
+    },
+    [props.widget.queries]
+  );
 
   return (
     <TraceMetricsWidgetQueriesSingleRequestImpl
@@ -65,9 +73,6 @@ function TraceMetricsWidgetQueries(props: TraceMetricsWidgetQueriesProps) {
 
 function TraceMetricsWidgetQueriesSingleRequestImpl({
   children,
-  api,
-  queue,
-  selection,
   widget,
   cursor,
   limit,
@@ -75,21 +80,27 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
   onDataFetched,
   onDataFetchStart,
   getConfidenceInformation,
+  selection,
+  widgetInterval,
 }: TraceMetricsWidgetQueriesImplProps) {
   const config = TraceMetricsConfig;
-  const organization = useOrganization();
   const [confidence, setConfidence] = useState<Confidence | null>(null);
+  const [dataScanned, setDataScanned] = useState<'full' | 'partial' | undefined>(
+    undefined
+  );
   const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
   const [isSampled, setIsSampled] = useState<boolean | null>(null);
 
   const afterFetchSeriesData = (result: SeriesResult) => {
-    const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
+    const {seriesDataScanned, seriesConfidence, seriesSampleCount, seriesIsSampled} =
       getConfidenceInformation(result);
 
+    setDataScanned(seriesDataScanned);
     setConfidence(seriesConfidence);
     setSampleCount(seriesSampleCount);
     setIsSampled(seriesIsSampled);
     onDataFetched?.({
+      dataScanned: seriesDataScanned,
       confidence: seriesConfidence,
       sampleCount: seriesSampleCount,
       isSampled: seriesIsSampled,
@@ -103,37 +114,30 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     q.aggregates.includes(EMPTY_METRIC_SELECTION)
   );
 
+  const props = useGenericWidgetQueries<SeriesResult, TableResult>({
+    config,
+    widget,
+    cursor,
+    limit,
+    dashboardFilters,
+    onDataFetched,
+    onDataFetchStart,
+    afterFetchSeriesData,
+    samplingMode: SAMPLING_MODE.NORMAL,
+    disabled,
+    loading: disabled,
+    selection,
+    widgetInterval,
+  });
+
   return getDynamicText({
-    value: (
-      <GenericWidgetQueries<SeriesResult, TableResult>
-        config={config}
-        api={api}
-        queue={queue}
-        organization={organization}
-        selection={selection}
-        widget={widget}
-        cursor={cursor}
-        limit={limit}
-        dashboardFilters={dashboardFilters}
-        onDataFetched={onDataFetched}
-        onDataFetchStart={onDataFetchStart}
-        afterFetchSeriesData={afterFetchSeriesData}
-        samplingMode={SAMPLING_MODE.NORMAL}
-        disabled={disabled}
-        loading={disabled}
-      >
-        {props =>
-          children({
-            ...props,
-            confidence,
-            sampleCount,
-            isSampled,
-          })
-        }
-      </GenericWidgetQueries>
-    ),
+    value: children({
+      ...props,
+      dataScanned,
+      confidence,
+      sampleCount,
+      isSampled,
+    }),
     fixed: <div />,
   });
 }
-
-export default TraceMetricsWidgetQueries;

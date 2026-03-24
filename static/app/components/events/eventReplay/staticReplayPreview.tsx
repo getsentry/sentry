@@ -1,20 +1,20 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
+
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
+import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
+import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 type StaticReplayPreviewProps = {
@@ -93,12 +93,12 @@ export function StaticReplayPreview({
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
 `;
 
 const StaticPanel = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 

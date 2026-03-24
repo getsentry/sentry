@@ -1,11 +1,13 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReplayListFixture} from 'sentry-fixture/replayList';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -21,12 +23,13 @@ type InitializeOrgProps = {
   };
   organizationProps?: {
     features?: string[];
+    hasGranularReplayPermissions?: boolean;
+    replayAccessMembers?: number[];
   };
 };
 
 jest.mock('sentry/utils/useMedia', () => ({
-  __esModule: true,
-  default: jest.fn(() => true),
+  useMedia: jest.fn(() => true),
 }));
 
 const mockEventsUrl = '/organizations/org-slug/events/';
@@ -45,6 +48,8 @@ const renderComponent = ({
 
   ProjectsStore.init();
   ProjectsStore.loadInitialData(projects);
+  const user = UserFixture({id: '1'});
+  ConfigStore.set('user', user);
 
   return render(<TransactionSummaryLayout />, {
     organization,
@@ -263,5 +268,24 @@ describe('TransactionReplays', () => {
         screen.getByText("You don't have access to this feature")
       ).toBeInTheDocument();
     });
+  });
+
+  it('should hide replay content when user does not have granular replay permissions', async () => {
+    renderComponent({
+      organizationProps: {
+        features: ['performance-view', 'session-replay'],
+        hasGranularReplayPermissions: true,
+        replayAccessMembers: [999], // User ID 1 is not in this list
+      },
+    });
+
+    // hack: Wait for any pending updates to complete
+    // without await the test fails with "An update to _GenericDiscoverQuery inside a test was not wrapped in act(...)"
+    await waitFor(() => {
+      expect(screen.queryByTestId('replay-table')).not.toBeInTheDocument();
+    });
+
+    // Content should be hidden, not showing a message or table
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 });

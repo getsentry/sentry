@@ -59,7 +59,7 @@ def impl_by_outbox() -> LogService:
 # delivery of log entries for future processing.
 log_service: LogService = silo_mode_delegation(
     {
-        SiloMode.REGION: impl_by_outbox,
+        SiloMode.CELL: impl_by_outbox,
         SiloMode.CONTROL: impl_by_db,
         SiloMode.MONOLITH: impl_by_db,
     }

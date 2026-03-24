@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
@@ -60,10 +60,10 @@ export const getComparisonMarkLines = (
           lineStyle: {
             color:
               status === AlertRuleTriggerType.CRITICAL
-                ? theme.red300
+                ? theme.colors.red400
                 : status === AlertRuleTriggerType.WARNING
-                  ? theme.yellow300
-                  : theme.green300,
+                  ? theme.colors.yellow400
+                  : theme.colors.green400,
             type: 'solid',
             width: 4,
           },

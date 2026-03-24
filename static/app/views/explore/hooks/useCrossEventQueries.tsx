@@ -20,7 +20,6 @@ export function useCrossEventQueries() {
       .slice(0, MAX_CROSS_EVENT_QUERIES);
 
     const logQuery: string[] = [];
-    const metricQuery: string[] = [];
     const spanQuery: string[] = [];
 
     for (const crossEvent of slicedCrossEvents) {
@@ -31,14 +30,11 @@ export function useCrossEventQueries() {
         case 'logs':
           logQuery.push(crossEvent.query);
           break;
-        case 'metrics':
-          metricQuery.push(crossEvent.query);
-          break;
         default:
           break;
       }
     }
 
-    return {spanQuery, logQuery, metricQuery};
+    return {spanQuery, logQuery};
   }, [crossEvents]);
 }

@@ -4,16 +4,16 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
@@ -22,7 +22,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useRouter');
 jest.mock('sentry/actionCreators/modal');
 
@@ -81,7 +81,6 @@ describe('useSaveAsItems', () => {
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUsePageFilters.mockReturnValue({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       shouldPersist: true,
       selection: PageFiltersFixture({
@@ -104,7 +103,7 @@ describe('useSaveAsItems', () => {
   });
 
   it('should open save query modal when save as new query is clicked', () => {
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useSaveAsItems({
           visualizes: [new VisualizeFunction('count()')],
@@ -114,7 +113,7 @@ describe('useSaveAsItems', () => {
           search: new MutableSearch('message:"test error"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
         }),
-      {wrapper: createWrapper()}
+      {additionalWrapper: createWrapper()}
     );
 
     const saveAsItems = result.current;
@@ -162,7 +161,7 @@ describe('useSaveAsItems', () => {
       })
     );
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useSaveAsItems({
           visualizes: [new VisualizeFunction('count()')],
@@ -172,7 +171,7 @@ describe('useSaveAsItems', () => {
           search: new MutableSearch('message:"test"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
         }),
-      {wrapper: createWrapper()}
+      {additionalWrapper: createWrapper()}
     );
 
     await waitFor(() => {
@@ -194,7 +193,7 @@ describe('useSaveAsItems', () => {
       })
     );
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useSaveAsItems({
           visualizes: [new VisualizeFunction('count()')],
@@ -204,7 +203,7 @@ describe('useSaveAsItems', () => {
           search: new MutableSearch('message:"test"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
         }),
-      {wrapper: createWrapper()}
+      {additionalWrapper: createWrapper()}
     );
 
     const saveAsItems = result.current;
@@ -214,7 +213,7 @@ describe('useSaveAsItems', () => {
   });
 
   it('should call saveQuery with correct parameters when modal saves', async () => {
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useSaveAsItems({
           visualizes: [new VisualizeFunction('count()')],
@@ -226,7 +225,7 @@ describe('useSaveAsItems', () => {
           search: new MutableSearch('message:"test error"'),
           sortBys: [{field: 'timestamp', kind: 'desc'}],
         }),
-      {wrapper: createWrapper()}
+      {additionalWrapper: createWrapper()}
     );
 
     const saveAsItems = result.current;

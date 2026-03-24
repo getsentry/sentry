@@ -3,23 +3,23 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import {Button} from '@sentry/scraps/button';
+
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import type {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Placeholder from 'sentry/components/placeholder';
-import TimeSince from 'sentry/components/timeSince';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
@@ -29,8 +29,8 @@ import {
 } from 'sentry/views/dashboards/manage/settings';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
-import DashboardCard from './dashboardCard';
-import GridPreview from './gridPreview';
+import {DashboardCard} from './dashboardCard';
+import {GridPreview} from './gridPreview';
 
 type Props = {
   api: Client;
@@ -95,6 +95,11 @@ function DashboardGrid({
       isLoading: isLoadingDashboardsLimit,
       limitMessage,
     } = dashboardLimitData;
+
+    const disableDuplicate = hasReachedDashboardLimit || isLoadingDashboardsLimit;
+
+    const disableDelete = defined(dashboard.prebuiltId);
+
     const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
@@ -106,16 +111,8 @@ function DashboardGrid({
             onConfirm: () => handleDuplicateDashboard(dashboard, 'grid'),
           });
         },
-        disabled:
-          hasReachedDashboardLimit ||
-          isLoadingDashboardsLimit ||
-          (defined(dashboard.prebuiltId) &&
-            !organization.features.includes('dashboards-prebuilt-controls')),
-        tooltip:
-          defined(dashboard.prebuiltId) &&
-          !organization.features.includes('dashboards-prebuilt-controls')
-            ? t('Prebuilt dashboards cannot be duplicated')
-            : limitMessage,
+        disabled: disableDuplicate,
+        tooltip: limitMessage,
         tooltipOptions: {
           isHoverable: true,
         },
@@ -131,12 +128,16 @@ function DashboardGrid({
             onConfirm: () => handleDeleteDashboard(dashboard, 'grid'),
           });
         },
-        disabled: defined(dashboard.prebuiltId),
-        tooltip: defined(dashboard.prebuiltId)
-          ? t('Prebuilt dashboards cannot be deleted')
-          : undefined,
+        disabled: disableDelete,
       },
     ];
+
+    const disabledKeys = [];
+    if ((dashboards && dashboards.length <= 1) || disableDelete)
+      disabledKeys.push('dashboard-delete');
+    if (disableDuplicate) {
+      disabledKeys.push('dashboard-duplicate');
+    }
 
     return (
       <DropdownMenu
@@ -146,7 +147,7 @@ function DashboardGrid({
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
-            borderless
+            priority="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();
@@ -157,7 +158,7 @@ function DashboardGrid({
           />
         )}
         position="bottom-end"
-        disabledKeys={dashboards && dashboards.length <= 1 ? ['dashboard-delete'] : []}
+        disabledKeys={disabledKeys}
         offset={4}
       />
     );
@@ -168,10 +169,9 @@ function DashboardGrid({
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
+  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
   const queryLocation = {
-    ...(location.query && Object.keys(location.query).length > 0
-      ? {query: location.query}
-      : {}),
+    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
   };
 
   function renderMiniDashboards() {
@@ -257,7 +257,7 @@ const DashboardGridContainer = styled('div')<{columns: number; rows: number}>`
 `;
 
 const DropdownTrigger = styled(Button)`
-  transform: translateX(${space(1)});
+  transform: translateX(${p => p.theme.space.md});
 `;
 
 export default withApi(DashboardGrid);

@@ -3,24 +3,24 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
-import GenericFooter from './genericFooter';
+import {GenericFooter} from './genericFooter';
 
 interface FirstEventFooterProps {
   isLast: boolean;
@@ -29,7 +29,7 @@ interface FirstEventFooterProps {
   project: Project;
 }
 
-export default function FirstEventFooter({
+export function FirstEventFooter({
   organization,
   project,
   onClickSetupLater,
@@ -38,7 +38,11 @@ export default function FirstEventFooter({
   const {activateSidebar} = useOnboardingSidebar();
 
   const {data: issues} = useApiQuery<Group[]>(
-    [`/projects/${organization.slug}/${project.slug}/issues/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
     {
       staleTime: Infinity,
       enabled: !!project.firstEvent,
@@ -127,7 +131,7 @@ export default function FirstEventFooter({
         }}
       >
         {project?.firstEvent ? (
-          <IconCheckmark color="green400" />
+          <IconCheckmark variant="success" />
         ) : (
           <WaitingIndicator
             variants={indicatorAnimation}
@@ -142,7 +146,7 @@ export default function FirstEventFooter({
           {project?.firstEvent ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>
-      <OnboardingButtonBar gap="xl">
+      <OnboardingButtonBar>
         {getSecondaryCta()}
         {getPrimaryCta()}
       </OnboardingButtonBar>
@@ -150,8 +154,10 @@ export default function FirstEventFooter({
   );
 }
 
-const OnboardingButtonBar = styled(ButtonBar)`
-  margin: ${space(2)} ${space(4)};
+const OnboardingButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="xl" {...props} />
+))`
+  margin: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
   justify-self: end;
   margin-left: auto;
 `;
@@ -159,8 +165,9 @@ const OnboardingButtonBar = styled(ButtonBar)`
 const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
-  margin-left: ${space(1)};
-  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink400)};
+  margin-left: ${p => p.theme.space.md};
+  color: ${p =>
+    p.errorReceived ? p.theme.tokens.content.success : p.theme.colors.pink500};
 `;
 
 const indicatorAnimation: Variants = {
@@ -171,13 +178,13 @@ const indicatorAnimation: Variants = {
 
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.pink300};
+  background-color: ${p => p.theme.colors.pink400};
 `;
 
 const StatusWrapper = styled(motion.div)`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   justify-content: center;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -186,7 +193,7 @@ const StatusWrapper = styled(motion.div)`
 `;
 
 const SkipOnboardingLink = styled(Link)`
-  margin: auto ${space(4)};
+  margin: auto ${p => p.theme.space['3xl']};
   white-space: nowrap;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;

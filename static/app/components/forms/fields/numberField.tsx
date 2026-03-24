@@ -2,14 +2,13 @@ import type React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Input} from 'sentry/components/core/input';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import type FormModel from 'sentry/components/forms/model';
-import {space} from 'sentry/styles/space';
+import {Input, InputGroup} from '@sentry/scraps/input';
+
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
+import type {FormModel} from 'sentry/components/forms/model';
 
 import type {InputFieldProps, OnEvent} from './inputField';
-import InputField from './inputField';
+import {InputField} from './inputField';
 
 export interface NumberFieldProps extends Omit<InputFieldProps, 'type'> {
   /**
@@ -18,7 +17,7 @@ export interface NumberFieldProps extends Omit<InputFieldProps, 'type'> {
   suffix?: React.ReactNode;
 }
 
-function NumberField({suffix, ...props}: NumberFieldProps) {
+export function NumberField({suffix, ...props}: NumberFieldProps) {
   return (
     <InputField
       field={suffix ? createFieldWithSuffix({suffix}) : undefined}
@@ -27,8 +26,6 @@ function NumberField({suffix, ...props}: NumberFieldProps) {
     />
   );
 }
-
-export default NumberField;
 
 /**
  * Custom field factory which can render an inline suffix
@@ -104,8 +101,8 @@ const HiddenValue = styled('span')`
   visibility: hidden;
 `;
 const Suffix = styled('span')`
-  color: ${p => p.theme.subText};
-  margin-left: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-left: ${p => p.theme.space.xs};
   position: absolute;
   top: 50%;
   transform: translateY(-50%);

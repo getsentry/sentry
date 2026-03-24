@@ -1,14 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 
-import {isEAPError} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 interface ErrorIconsProps {
-  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
+  errors: BaseNode['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
 }
@@ -25,7 +24,8 @@ export function TraceErrorIcons(props: ErrorIconsProps) {
   return (
     <Fragment>
       {errors.map((error, i) => {
-        const timestamp = isEAPError(error) ? error.start_timestamp : error.timestamp;
+        const timestamp =
+          'start_timestamp' in error ? error.start_timestamp : error.timestamp;
         // Clamp the error timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
           clamp(
@@ -39,7 +39,7 @@ export function TraceErrorIcons(props: ErrorIconsProps) {
         return (
           <div
             key={i}
-            className={`TraceIcon ${error.level}`}
+            className={`TraceIcon ${getTraceIssueSeverityClassName(error)}`}
             style={{left: left * 100 + '%'}}
           >
             <TraceIcons.Icon event={error} />
@@ -53,11 +53,11 @@ export function TraceErrorIcons(props: ErrorIconsProps) {
 interface TraceOccurenceIconsProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
+  occurrences: BaseNode['occurrences'];
 }
 
 export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
-  const occurences = useMemo(() => {
+  const occurrences = useMemo(() => {
     return [...props.occurrences];
   }, [props.occurrences]);
 
@@ -67,16 +67,16 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
 
   return (
     <Fragment>
-      {occurences.map((occurence, i) => {
-        const occurence_start_timestamp =
-          'start_timestamp' in occurence ? occurence.start_timestamp : occurence.start;
+      {occurrences.map((occurrence, i) => {
+        const occurrence_start_timestamp =
+          'start_timestamp' in occurrence ? occurrence.start_timestamp : occurrence.start;
         const icon_timestamp =
-          'timestamp' in occurence && occurence.timestamp
-            ? occurence.timestamp * 1e3
-            : occurence_start_timestamp
-              ? occurence_start_timestamp * 1e3
+          'timestamp' in occurrence && occurrence.timestamp
+            ? occurrence.timestamp * 1e3
+            : occurrence_start_timestamp
+              ? occurrence_start_timestamp * 1e3
               : props.node_space![0];
-        // Clamp the occurence's timestamp to the span's timestamp
+        // Clamp the occurrence's timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
           clamp(
             icon_timestamp,
@@ -87,8 +87,12 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
         );
 
         return (
-          <div key={i} className="TraceIcon occurence" style={{left: left * 100 + '%'}}>
-            <TraceIcons.Icon event={occurence} />
+          <div
+            key={i}
+            className={`TraceIcon ${getTraceIssueSeverityClassName(occurrence)}`}
+            style={{left: left * 100 + '%'}}
+          >
+            <TraceIcons.Icon event={occurrence} />
           </div>
         );
       })}

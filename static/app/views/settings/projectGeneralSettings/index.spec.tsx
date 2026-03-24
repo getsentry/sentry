@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   fireEvent,
   render,
   renderGlobalModal,
@@ -10,16 +11,16 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ProjectContextProvider from 'sentry/views/projects/projectContext';
 import {ProjectGeneralSettings} from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/components/organizations/pageFilters/persistence');
+jest.mock('sentry/components/pageFilters/persistence');
 
 function getField(role: string, name: string) {
   return screen.getByRole(role, {name});
@@ -103,6 +104,64 @@ describe('projectGeneralSettings', () => {
     expect(getField('textbox', 'Security Token')).toHaveValue('security-token');
     expect(getField('textbox', 'Security Token Header')).toHaveValue('x-security-header');
     expect(getField('checkbox', 'Verify TLS/SSL')).toBeChecked();
+  });
+
+  it('allows undoing an Allowed Domains change from the toast', async () => {
+    putMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: project,
+    });
+
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    const allowedDomainsInput = await screen.findByRole('textbox', {
+      name: 'Allowed Domains',
+    });
+
+    await userEvent.clear(allowedDomainsInput);
+    await userEvent.type(allowedDomainsInput, 'changed.com');
+    await userEvent.tab();
+
+    await waitFor(() => expect(putMock).toHaveBeenCalledTimes(1));
+
+    expect(putMock).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/`,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {allowedDomains: ['changed.com']},
+      })
+    );
+
+    const addSuccessMessageMock = addSuccessMessage as jest.MockedFunction<
+      typeof addSuccessMessage
+    >;
+    const undo = addSuccessMessageMock.mock.calls[0]?.[1]?.undo;
+
+    expect(undo).toBeInstanceOf(Function);
+
+    act(() => {
+      undo?.();
+    });
+
+    await waitFor(() => expect(putMock).toHaveBeenCalledTimes(2));
+
+    expect(putMock).toHaveBeenLastCalledWith(
+      `/projects/${organization.slug}/${project.slug}/`,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {allowedDomains: ['example.com', 'https://example.com']},
+      })
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'Allowed Domains'})).toHaveValue(
+        'example.com,https://example.com'
+      )
+    );
   });
 
   it('disables scrapeJavaScript when equivalent org setting is false', async () => {

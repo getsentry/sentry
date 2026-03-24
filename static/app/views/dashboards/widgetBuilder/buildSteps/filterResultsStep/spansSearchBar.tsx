@@ -1,14 +1,14 @@
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WidgetBuilderSearchBarProps} from 'sentry/views/dashboards/datasetConfig/base';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 
 /**
  * A search bar for exploring tags and values for spans in Dashboards.
  * This assumes that the dataset used is the EAP spans dataset.
  */
-function SpansSearchBar({
+export function SpansSearchBar({
   widgetQuery,
   onSearch,
   portalTarget,
@@ -20,27 +20,18 @@ function SpansSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemTags('number');
-  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemTags('string');
-  return (
-    <EAPSpanSearchQueryBuilder
-      initialQuery={widgetQuery.conditions}
-      onSearch={onSearch}
-      numberTags={numberTags}
-      stringTags={stringTags}
-      numberSecondaryAliases={numberSecondaryAliases}
-      stringSecondaryAliases={stringSecondaryAliases}
-      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-      searchSource="dashboards"
-      projects={projects}
-      portalTarget={portalTarget}
-      onChange={(query, state) => {
-        onClose?.(query, {validSearch: state.queryIsValid});
-      }}
-    />
-  );
-}
 
-export default SpansSearchBar;
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    initialQuery: widgetQuery.conditions,
+    supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+    searchSource: 'dashboards',
+    projects,
+    portalTarget,
+    onSearch,
+    onChange: (query, state) => {
+      onClose?.(query, {validSearch: state.queryIsValid});
+    },
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}

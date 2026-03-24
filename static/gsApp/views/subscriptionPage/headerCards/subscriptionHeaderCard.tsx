@@ -1,7 +1,7 @@
 import React, {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 interface SubscriptionHeaderCardProps {
   sections: React.ReactNode[];
@@ -11,7 +11,7 @@ interface SubscriptionHeaderCardProps {
   title?: React.ReactNode;
 }
 
-function SubscriptionHeaderCard({
+export function SubscriptionHeaderCard({
   title,
   sections,
   isMainCard = false,
@@ -44,5 +44,3 @@ function SubscriptionHeaderCard({
     </Flex>
   );
 }
-
-export default SubscriptionHeaderCard;

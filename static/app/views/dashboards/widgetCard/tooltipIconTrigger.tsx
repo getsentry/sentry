@@ -21,7 +21,7 @@ export const TooltipIconTrigger = styled('button')`
   &:focus-visible {
     border-style: solid;
     border-width: 1px;
-    border-color: ${p => p.theme.button.default.focusBorder};
-    box-shadow: ${p => p.theme.button.default.focusBorder} 0 0 0 1px;
+    border-color: ${p => p.theme.tokens.focus.default};
+    box-shadow: ${p => p.theme.tokens.focus.default} 0 0 0 1px;
   }
 `;

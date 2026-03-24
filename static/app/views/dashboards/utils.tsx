@@ -1,9 +1,8 @@
 import {connect} from 'echarts';
-import type {Location, Query} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
@@ -15,7 +14,7 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -26,23 +25,20 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
+  ABYTE_UNITS,
   getAggregateAlias,
   getAggregateArg,
-  getColumnsAndAggregates,
   isEquation,
   isMeasurement,
   RATE_UNIT_MULTIPLIERS,
   RateUnit,
+  SIZE_UNIT_MULTIPLIERS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {
-  DiscoverDatasets,
-  DisplayModes,
-  type SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
+import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -116,6 +112,13 @@ export function getThresholdUnitSelectOptions(
     }));
   }
 
+  if (dataType === 'size') {
+    return Object.values(ABYTE_UNITS).map(unit => ({
+      label: unit,
+      value: unit,
+    }));
+  }
+
   return [];
 }
 
@@ -127,53 +130,11 @@ export function normalizeUnit(value: number, unit: string, dataType: string): nu
       : dataType === 'duration'
         ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           DURATION_UNITS[unit]
-        : 1;
+        : dataType === 'size'
+          ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            SIZE_UNIT_MULTIPLIERS[unit]
+          : 1;
   return value * multiplier;
-}
-
-function coerceStringToArray(value?: string | string[] | null) {
-  return typeof value === 'string' ? [value] : value;
-}
-
-export function constructWidgetFromQuery(query?: Query): Widget | undefined {
-  if (query) {
-    const queryNames = coerceStringToArray(query.queryNames);
-    const queryConditions = coerceStringToArray(query.queryConditions);
-    const queryFields = coerceStringToArray(query.queryFields);
-    const widgetType = decodeScalar(query.widgetType);
-    const queries: WidgetQuery[] = [];
-    if (
-      queryConditions &&
-      queryNames &&
-      queryFields &&
-      typeof query.queryOrderby === 'string'
-    ) {
-      const {columns, aggregates} = getColumnsAndAggregates(queryFields);
-      queryConditions.forEach((condition, index) => {
-        queries.push({
-          name: queryNames[index]!,
-          conditions: condition,
-          fields: queryFields,
-          columns,
-          aggregates,
-          orderby: query.queryOrderby as string,
-        });
-      });
-    }
-    if (query.title && query.displayType && query.interval && queries.length > 0) {
-      const newWidget: Widget = {
-        ...(pick(query, ['title', 'displayType', 'interval']) as {
-          displayType: DisplayType;
-          interval: string;
-          title: string;
-        }),
-        widgetType: widgetType ? (widgetType as WidgetType) : WidgetType.DISCOVER,
-        queries,
-      };
-      return newWidget;
-    }
-  }
-  return undefined;
 }
 
 export function getWidgetInterval(
@@ -186,7 +147,9 @@ export function getWidgetInterval(
   const MAX_BIN_COUNT = 66;
 
   let interval =
-    widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+    widget.widgetType === WidgetType.SPANS ||
+    widget.widgetType === WidgetType.LOGS ||
+    widget.widgetType === WidgetType.TRACEMETRICS
       ? // For span based widgets, we want to permit non 1d bar charts.
         undefined
       : // Bars charts are daily totals to aligned with discover. It also makes them
@@ -216,7 +179,9 @@ export function getWidgetInterval(
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
     const highInterval = getInterval(
       datetimeObj,
-      widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+      widget.widgetType === WidgetType.SPANS ||
+        widget.widgetType === WidgetType.LOGS ||
+        widget.widgetType === WidgetType.TRACEMETRICS
         ? 'spans'
         : widget.widgetType === WidgetType.ISSUE
           ? 'issues'
@@ -232,7 +197,7 @@ export function getWidgetInterval(
 
 export function getFieldsFromEquations(fields: string[]): string[] {
   // Gather all fields and functions used in equations and prepend them to the provided fields
-  const termsSet: Set<string> = new Set();
+  const termsSet = new Set<string>();
   fields.filter(isEquation).forEach(field => {
     const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
     parsed.fields.forEach(({term}) => termsSet.add(term as string));
@@ -313,9 +278,14 @@ export function getWidgetDiscoverUrl(
     discoverLocation.query.fromMetric = 'true';
   }
 
+  // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+  const projectParam =
+    selection.projects.length === 0 ? '' : discoverLocation.query.project;
+
   // Construct and return the discover url
   const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
     ...discoverLocation.query,
+    project: projectParam,
   })}`;
   return discoverPath;
 }
@@ -335,7 +305,8 @@ export function getWidgetIssueUrl(
     query: applyDashboardFilters(widget.queries?.[0]?.conditions, dashboardFilters),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
-    project: selection.projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
   })}`;
   return issuesLocation;
@@ -355,7 +326,8 @@ export function getWidgetReleasesUrl(
   const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
     ...datetime,
     query: applyDashboardFilters('', dashboardFilters),
-    project: selection.projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
   })}`;
   return releasesLocation;
@@ -387,14 +359,6 @@ export function flattenErrors(
     });
   }
   return update;
-}
-
-export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
-  return isMEPEnabled
-    ? {
-        dataset: DiscoverDatasets.METRICS_ENHANCED,
-      }
-    : {};
 }
 
 export function getNumEquations(possibleEquations: string[]) {
@@ -669,14 +633,54 @@ export function applyDashboardFilters(
   return baseQuery;
 }
 
-export const isChartDisplayType = (displayType?: DisplayType) => {
+/**
+ * Returns true if the display type uses time-series data (events-stats endpoint)
+ * and stores aggregates in yAxis state. Returns false for display types that
+ * use table-style data (events endpoint) and store everything in fields state.
+ */
+export const usesTimeSeriesData = (displayType?: DisplayType) => {
   if (!displayType) {
     return true;
   }
   return ![
     DisplayType.BIG_NUMBER,
-    DisplayType.TABLE,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.DETAILS,
+    DisplayType.SERVER_TREE,
+    DisplayType.TABLE,
     DisplayType.WHEEL,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.AGENTS_TRACES_TABLE,
+    DisplayType.TEXT,
   ].includes(displayType);
+};
+
+export function doesDisplayTypeSupportThresholds(displayType?: DisplayType): boolean {
+  if (!displayType) {
+    return false;
+  }
+  return displayType === DisplayType.BIG_NUMBER || usesTimeSeriesData(displayType);
+}
+
+// Custom widgets that fetch their own data (and don't use genericWidgetQueries)
+// handle error state and loading state on their own
+export const widgetFetchesOwnData = (widgetType: DisplayType) => {
+  const widgetTypesThatFetchOwnData = [
+    DisplayType.SERVER_TREE,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.AGENTS_TRACES_TABLE,
+    DisplayType.TEXT,
+  ];
+  return widgetTypesThatFetchOwnData.includes(widgetType);
+};
+
+// Custom widgets from the widget library that are not editable but still have menu options
+export const isWidgetEditable = (widgetType: DisplayType) => {
+  const nonEditableWidgetTypes = [
+    DisplayType.SERVER_TREE,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.WHEEL,
+    DisplayType.AGENTS_TRACES_TABLE,
+  ];
+  return !nonEditableWidgetTypes.includes(widgetType);
 };

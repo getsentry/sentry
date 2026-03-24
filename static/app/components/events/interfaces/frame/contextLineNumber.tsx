@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Coverage} from 'sentry/types/integrations';
 
 interface Props {
@@ -26,7 +26,7 @@ const coverageClass: Record<Coverage, string | undefined> = {
   [Coverage.NOT_APPLICABLE]: undefined,
 };
 
-function ContextLineNumber({
+export function ContextLineNumber({
   lineNumber,
   isActive,
   coverage = Coverage.NOT_APPLICABLE,
@@ -40,16 +40,14 @@ function ContextLineNumber({
   );
 }
 
-export default ContextLineNumber;
-
 const Wrapper = styled('div')`
   background: inherit;
   height: 24px;
   width: 58px;
   display: inline-block;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  margin-right: ${space(1)};
+  font-size: ${p => p.theme.font.size.sm};
+  margin-right: ${p => p.theme.space.md};
 
   .line-number {
     display: flex;
@@ -59,8 +57,8 @@ const Wrapper = styled('div')`
     justify-content: end;
     height: 100%;
     text-align: right;
-    padding-right: ${space(2)};
-    margin-right: ${space(1.5)};
+    padding-right: ${p => p.theme.space.xl};
+    margin-right: ${p => p.theme.space.lg};
     background: transparent;
     min-width: 58px;
     border-right: 3px solid transparent;
@@ -68,18 +66,18 @@ const Wrapper = styled('div')`
   }
 
   &.covered .line-number {
-    background: ${p => p.theme.green100};
-    border-right: 3px solid ${p => p.theme.tokens.border.success};
+    background: ${p => p.theme.colors.green100};
+    border-right: 3px solid ${p => p.theme.tokens.border.success.vibrant};
   }
 
   &.uncovered .line-number {
-    background: ${p => p.theme.red100};
-    border-right: 3px solid ${p => p.theme.tokens.border.danger};
+    background: ${p => p.theme.colors.red100};
+    border-right: 3px solid ${p => p.theme.tokens.border.danger.vibrant};
   }
 
   &.partial .line-number {
-    background: ${p => p.theme.yellow100};
-    border-right: 3px dashed ${p => p.theme.tokens.border.warning};
+    background: ${p => p.theme.colors.yellow100};
+    border-right: 3px dashed ${p => p.theme.tokens.border.warning.vibrant};
   }
 
   &.active {
@@ -88,17 +86,17 @@ const Wrapper = styled('div')`
 
   &.active.partial .line-number {
     mix-blend-mode: screen;
-    background: ${p => p.theme.yellow200};
+    background: ${p => p.theme.colors.yellow200};
   }
 
   &.active.covered .line-number {
     mix-blend-mode: screen;
-    background: ${p => p.theme.green200};
+    background: ${p => p.theme.colors.green200};
   }
 
   &.active.uncovered .line-number {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
     mix-blend-mode: screen;
-    background: ${p => p.theme.red300};
+    background: ${p => p.theme.colors.red400};
   }
 `;

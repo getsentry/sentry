@@ -1,10 +1,11 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 // import {
@@ -12,7 +13,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 //   NotificationActionFormContainer,
 // } from 'sentry/components/notificationActions/notificationActionItem';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AvailableNotificationAction,
   NotificationAction,
@@ -32,7 +32,7 @@ type SlackFormProps = {
   onSave: () => void;
 };
 
-function SlackForm({
+export function SlackForm({
   action,
   availableActions,
   onChange,
@@ -40,7 +40,7 @@ function SlackForm({
   onCancel,
 }: SlackFormProps) {
   // Maps integrationId to integrationName
-  const availableWorkspaces: Record<number, string> = useMemo(() => {
+  const availableWorkspaces = useMemo(() => {
     const workspacesMap: Record<number, string> = {};
     availableActions.forEach(service => {
       if (service.action.integrationId && service.action.integrationName) {
@@ -54,7 +54,7 @@ function SlackForm({
     action.integrationId ? availableWorkspaces[action.integrationId] : ''
   );
 
-  const workspaceOptions: MenuItemProps[] = useMemo(() => {
+  const workspaceOptions = useMemo(() => {
     return availableActions
       .map<MenuItemProps>(service => ({
         key: service.action.integrationName ?? '',
@@ -68,8 +68,8 @@ function SlackForm({
   }, [availableActions, onChange]);
 
   return (
-    <NotificationActionFormContainer>
-      <NotificationActionCell>
+    <Flex justify="between" width="100%">
+      <Flex align="center" wrap="wrap" gap="xs">
         <div>{t('Send a notification to the')}</div>
         <DropdownMenu
           items={workspaceOptions}
@@ -107,35 +107,20 @@ function SlackForm({
           onChange={e => onChange('targetIdentifier', e.target.value)}
           data-test-id="target-identifier-input"
         />
-      </NotificationActionCell>
+      </Flex>
 
-      <ButtonBar gap="xs">
+      <Grid flow="column" align="center" gap="xs">
         <Button onClick={onCancel} size="xs">
           {t('Cancel')}
         </Button>
         <Button priority="primary" size="xs" onClick={onSave}>
           {t('Save')}
         </Button>
-      </ButtonBar>
-    </NotificationActionFormContainer>
+      </Grid>
+    </Flex>
   );
 }
 
 const StyledInput = styled(Input)`
   width: 100px;
 `;
-
-const NotificationActionCell = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-`;
-
-const NotificationActionFormContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-`;
-
-export default SlackForm;

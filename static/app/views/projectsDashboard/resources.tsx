@@ -5,16 +5,15 @@ import docsImg from 'sentry-images/spot/code-arguments-tags-mirrored.svg';
 import releasesImg from 'sentry-images/spot/releases.svg';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import ResourceCard from 'sentry/components/resourceCard';
+import {ResourceCard} from 'sentry/components/resourceCard';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   organization: Organization;
 };
 
-function Resources(_props: Props) {
+export function Resources(_props: Props) {
   return (
     <ResourcesWrapper data-test-id="resources">
       <Layout.Title withMargins>{t('Resources')}</Layout.Title>
@@ -35,17 +34,15 @@ function Resources(_props: Props) {
   );
 }
 
-export default Resources;
-
 const ResourcesWrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(2)} ${space(4)};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
 
 const ResourceCards = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));

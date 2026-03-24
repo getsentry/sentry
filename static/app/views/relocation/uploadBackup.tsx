@@ -2,17 +2,17 @@ import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import {IconDelete, IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
-import StepHeading from 'sentry/views/relocation/components/stepHeading';
+import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
 
 import type {StepProps} from './types';
 
@@ -132,7 +132,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
               <Button
                 aria-label={t('Remove file')}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
                 size="xs"
                 onClick={() => setFile(undefined)}
               />
@@ -177,8 +177,8 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
 }
 
 const StyledUploadIcon = styled(IconUpload)`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Wrapper = styled('div')`
@@ -186,43 +186,44 @@ const Wrapper = styled('div')`
   max-height: 525px;
   margin-left: auto;
   margin-right: auto;
-  padding: ${space(4)};
-  background-color: ${p => p.theme.surface400};
+  padding: ${p => p.theme.space['3xl']};
+  background-color: ${p => p.theme.tokens.background.primary};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   border-radius: 10px;
   width: 100%;
   font-size: 16px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   mark {
     border-radius: 8px;
-    padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
-    background: ${p => p.theme.gray100};
-    margin-right: ${space(1)};
+    padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs}
+      ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
+    background: ${p => p.theme.colors.gray100};
+    margin-right: ${p => p.theme.space.md};
   }
   h2 {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
   p {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
   .encrypt-help {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 
 const FinishedWell = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 
   justify-content: center;
-  margin: ${space(2)} 0;
-  padding: ${space(2)} ${space(3)};
+  margin: ${p => p.theme.space.xl} 0;
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   border-radius: 3px;
-  border: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const UploadWell = styled('div')<{draggedOver: boolean}>`
@@ -230,16 +231,19 @@ const UploadWell = styled('div')<{draggedOver: boolean}>`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: ${space(2)} 0;
-  padding: ${space(2)} ${space(3)};
+  margin: ${p => p.theme.space.xl} 0;
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   height: 140px;
   border-radius: 3px;
-  border: 1px ${props => (props.draggedOver ? 'solid' : 'dashed')} ${p => p.theme.border};
+  border: 1px ${props => (props.draggedOver ? 'solid' : 'dashed')}
+    ${p => p.theme.tokens.border.primary};
   background: ${props =>
-    props.draggedOver ? p => p.theme.purple100 : p => p.theme.surface400};
+    props.draggedOver
+      ? p => p.theme.tokens.background.transparent.accent.muted
+      : p => p.theme.tokens.background.primary};
 
   .upload-icon {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 
@@ -251,7 +255,7 @@ const UploadWrapper = styled('div')`
   display: flex;
   justify-content: center;
   a {
-    padding-left: ${space(0.5)};
+    padding-left: ${p => p.theme.space.xs};
   }
   input[type='file'] {
     display: none;

@@ -36,7 +36,6 @@ import type {DATA_CATEGORY_INFO} from 'sentry/constants';
  *   reservedLogBytes: number | undefined;
  *   reservedSeerAutofix: number | undefined;
  *   reservedSeerScanner: number | undefined;
- *   reservedPreventUsers: number | undefined;
  * }
  *
  * @see DATA_CATEGORY_INFO in static/app/constants/index.tsx

@@ -1,28 +1,33 @@
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import Collapsible from 'sentry/components/collapsible';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import IdBadge from 'sentry/components/idBadge';
-import Placeholder from 'sentry/components/placeholder';
+import {Collapsible} from 'sentry/components/collapsible';
+import {IdBadge} from 'sentry/components/idBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 
-import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
+import {SectionHeadingWrapper, SidebarSection} from './styles';
 
 type Props = {
   organization: Organization;
   project?: Project;
 };
 
-function ProjectTeamAccess({organization, project}: Props) {
+export function ProjectTeamAccess({organization, project}: Props) {
+  const location = useLocation();
   const hasEditPermissions = organization.access.includes('project:write');
-  const settingsLink = `/settings/${organization.slug}/projects/${project?.slug}/teams/`;
+  const settingsLink = {
+    pathname: `/settings/${organization.slug}/projects/${project?.slug}/teams/`,
+    query: extractSelectionParameters(location.query),
+  };
 
   function renderInnerBody() {
     if (!project) {
@@ -34,9 +39,11 @@ function ProjectTeamAccess({organization, project}: Props) {
         <LinkButton
           to={settingsLink}
           disabled={!hasEditPermissions}
-          title={
-            hasEditPermissions ? undefined : t('You do not have permission to do this')
-          }
+          tooltipProps={{
+            title: hasEditPermissions
+              ? undefined
+              : t('You do not have permission to do this'),
+          }}
           priority="primary"
           size="sm"
         >
@@ -71,9 +78,9 @@ function ProjectTeamAccess({organization, project}: Props) {
     <StyledSidebarSection>
       <SectionHeadingWrapper>
         <SectionHeading>{t('Team Access')}</SectionHeading>
-        <SectionHeadingLink to={settingsLink}>
+        <StyledIconLink to={settingsLink}>
           <IconOpen />
-        </SectionHeadingLink>
+        </StyledIconLink>
       </SectionHeadingWrapper>
 
       <div>{renderInnerBody()}</div>
@@ -81,13 +88,15 @@ function ProjectTeamAccess({organization, project}: Props) {
   );
 }
 
+const StyledIconLink = styled(Link)`
+  display: flex;
+`;
+
 const StyledSidebarSection = styled(SidebarSection)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledLink = styled(Link)`
   display: block;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
-
-export default ProjectTeamAccess;

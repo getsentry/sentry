@@ -6,15 +6,16 @@ import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {Badge} from 'sentry/components/core/badge';
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Badge} from '@sentry/scraps/badge';
+import {ListBox} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
+
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import {fzf} from 'sentry/utils/search/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -57,8 +58,10 @@ interface SearchItem {
   source: string;
 }
 
-interface SearchComboBoxProps<T extends SearchItem>
-  extends Omit<AriaComboBoxProps<T>, 'children'> {
+interface SearchComboBoxProps<T extends SearchItem> extends Omit<
+  AriaComboBoxProps<T>,
+  'children'
+> {
   children: CollectionChildren<T>;
   defaultItems: T[];
   inputRef: React.RefObject<HTMLInputElement | null>;
@@ -115,7 +118,7 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
         </InputGroup.LeadingItems>
         <InputGroup.Input ref={inputRef} nativeSize={nativeSize} {...nativeProps} />
         <InputGroup.TrailingItems>
-          <Badge type="internal">/</Badge>
+          <Badge variant="internal">/</Badge>
         </InputGroup.TrailingItems>
       </InputGroup>
       {state.isOpen && (

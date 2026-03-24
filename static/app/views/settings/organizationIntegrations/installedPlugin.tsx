@@ -1,26 +1,26 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Switch} from 'sentry/components/core/switch';
+import {Confirm} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PluginNoProject, PluginProjectItem} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
@@ -42,7 +42,7 @@ class InstalledPlugin extends Component<Props> {
     return (
       <Fragment>
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {t(
               'Deleting this installation will disable the integration for this project and remove any configurations.'
             )}
@@ -124,13 +124,13 @@ class InstalledPlugin extends Component<Props> {
     const {className, plugin, organization, hasAccess, projectItem} = this.props;
     return (
       <Container data-test-id="installed-plugin">
-        <IntegrationFlex className={className}>
+        <Flex align="center" className={className}>
           <IntegrationItemBox>
             <ProjectBadge project={this.projectForBadge} />
           </IntegrationItemBox>
           <div>
             <StyledLinkButton
-              borderless
+              priority="transparent"
               icon={<IconSettings />}
               to={`/settings/${organization.slug}/projects/${projectItem.projectSlug}/plugins/${plugin.id}/`}
               data-test-id="integration-configure-button"
@@ -151,7 +151,7 @@ class InstalledPlugin extends Component<Props> {
             >
               <StyledButton
                 disabled={!hasAccess}
-                borderless
+                priority="transparent"
                 icon={<IconDelete />}
                 data-test-id="integration-remove-button"
               >
@@ -166,7 +166,7 @@ class InstalledPlugin extends Component<Props> {
             }
             disabled={!hasAccess}
           />
-        </IntegrationFlex>
+        </Flex>
       </Container>
     );
   }
@@ -175,27 +175,22 @@ class InstalledPlugin extends Component<Props> {
 export default withApi(InstalledPlugin);
 
 const Container = styled('div')`
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.xl};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: none;
   background-color: ${p => p.theme.tokens.background.primary};
 
   &:last-child {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
-`;
-
-const IntegrationFlex = styled('div')`
-  display: flex;
-  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const IntegrationItemBox = styled('div')`

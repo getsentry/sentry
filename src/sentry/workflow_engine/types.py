@@ -5,8 +5,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeAlias, TypedDict, TypeVar
 
+from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
 
 from sentry import features, options
@@ -22,7 +23,8 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.organization import Organization
     from sentry.services.eventstore.models import GroupEvent
-    from sentry.snuba.models import SnubaQueryEventType
+    from sentry.snuba.dataset import Dataset
+    from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
     from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowItem
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
@@ -30,6 +32,7 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models.action import ActionSnapshot
     from sentry.workflow_engine.models.data_condition import Condition
     from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
+    from sentry.workflow_engine.models.data_source import DataSource
     from sentry.workflow_engine.models.detector import DetectorSnapshot
     from sentry.workflow_engine.models.workflow import WorkflowSnapshot
 
@@ -37,6 +40,10 @@ T = TypeVar("T")
 
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
+
+GroupId: TypeAlias = int
+DataConditionGroupId: TypeAlias = int
+WorkflowId: TypeAlias = int
 
 
 class DetectorException(Exception):
@@ -91,9 +98,22 @@ class WorkflowEventData:
     event: GroupEvent | Activity
     group: Group
     group_state: GroupState | None = None
-    has_reappeared: bool | None = None
+    # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+
+
+@dataclass(frozen=True)
+class ActionInvocation:
+    """
+    Represents a single invocation of a workflow action, containing all the information
+    needed to route and execute the action through the appropriate handler.
+    """
+
+    event_data: WorkflowEventData
+    action: Action
+    detector: Detector
+    notification_uuid: str
 
 
 class WorkflowEvaluationSnapshot(TypedDict):
@@ -278,7 +298,7 @@ class ActionHandler:
         return None
 
     @staticmethod
-    def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def execute(invocation: ActionInvocation) -> None:
         # TODO - do we need to pass all of this data to an action?
         raise NotImplementedError
 
@@ -286,7 +306,7 @@ class ActionHandler:
 class DataSourceTypeHandler(ABC, Generic[T]):
     @staticmethod
     @abstractmethod
-    def bulk_get_query_object(data_sources) -> dict[int, T | None]:
+    def bulk_get_query_object(data_sources: list[DataSource]) -> dict[int, T | None]:
         """
         Bulk fetch related data-source models returning a dict of the
         `DataSource.id -> T`.
@@ -295,7 +315,7 @@ class DataSourceTypeHandler(ABC, Generic[T]):
 
     @staticmethod
     @abstractmethod
-    def related_model(instance) -> list[ModelRelation]:
+    def related_model(instance: DataSource) -> list[ModelRelation]:
         """
         A list of deletion ModelRelations. The model relation query should map
         the source_id field within the related model to the
@@ -347,6 +367,7 @@ class DataConditionHandler(Generic[T]):
     subgroup: ClassVar[Subgroup]
     comparison_json_schema: ClassVar[dict[str, Any]] = {}
     condition_result_schema: ClassVar[dict[str, Any]] = {}
+    label_template = ""
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
@@ -356,6 +377,10 @@ class DataConditionHandler(Generic[T]):
         raise a DataConditionEvaluationException.
         """
         raise NotImplementedError
+
+    @classmethod
+    def render_label(cls, condition_data: dict[str, Any]) -> str:
+        return cls.label_template.format(**condition_data)
 
 
 class DataConditionType(TypedDict):
@@ -368,18 +393,20 @@ class DataConditionType(TypedDict):
 
 # TODO - Move this to snuba module
 class SnubaQueryDataSourceType(TypedDict):
-    query_type: int
-    dataset: str
+    query_type: SnubaQuery.Type
+    dataset: Dataset
     query: str
     aggregate: str
     time_window: float
     resolution: float
-    environment: str
-    event_types: list[SnubaQueryEventType]
+    extrapolation_mode: ExtrapolationMode | None
+    environment: Environment | None
+    event_types: list[SnubaQueryEventType.EventType]
 
 
 @dataclass(frozen=True)
 class DetectorSettings:
-    handler: type[DetectorHandler] | None = None
+    handler: type[DetectorHandler[Any]] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
+    filter: Q | None = None

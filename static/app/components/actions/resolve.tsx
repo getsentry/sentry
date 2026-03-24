@@ -2,29 +2,26 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
-import CustomResolutionModal from 'sentry/components/customResolutionModal';
+import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
+import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {chonkStyled} from 'sentry/utils/theme/theme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
-import useProjectLatestSemverRelease from 'sentry/views/issueDetails/useProjectLatestSemverRelease';
+import {useProjectLatestSemverRelease} from 'sentry/views/issueDetails/useProjectLatestSemverRelease';
 
 function SetupReleasesPrompt() {
   return (
@@ -72,7 +69,7 @@ interface ResolveActionsProps {
   size?: 'xs' | 'sm';
 }
 
-function ResolveActions({
+export function ResolveActions({
   size = 'xs',
   isResolved = false,
   isAutoResolved = false,
@@ -226,7 +223,7 @@ function ResolveActions({
               key: 'semver-release',
               label: t('The current semver release'),
               details: (
-                <CurrentReleaseWrapper>
+                <Flex align="center" gap="2xs">
                   {actionTitle ? (
                     actionTitle
                   ) : (
@@ -238,7 +235,7 @@ function ResolveActions({
                       </div>{' '}
                     </Fragment>
                   )}
-                </CurrentReleaseWrapper>
+                </Flex>
               ),
               onAction: () =>
                 onActionOrConfirm(() =>
@@ -251,7 +248,7 @@ function ResolveActions({
               key: 'current-release',
               label: t('The current release'),
               details: (
-                <CurrentReleaseWrapper>
+                <Flex align="center" gap="2xs">
                   {actionTitle ? (
                     actionTitle
                   ) : latestRelease ? (
@@ -264,7 +261,7 @@ function ResolveActions({
                       ({isSemver ? t('semver') : t('non-semver')})
                     </Fragment>
                   ) : null}
-                </CurrentReleaseWrapper>
+                </Flex>
               ),
               onAction: () =>
                 onActionOrConfirm(() =>
@@ -291,7 +288,7 @@ function ResolveActions({
         itemsHidden={shouldDisplayCta}
         items={items}
         trigger={(triggerProps, isOpen) => (
-          <DropdownTrigger
+          <Button
             {...triggerProps}
             size={size}
             priority={priority}
@@ -328,7 +325,7 @@ function ResolveActions({
           handleCommitResolution(statusDetails)
         }
         orgSlug={organization.slug}
-        projectSlug={projectSlug}
+        projectSlug={projectSlug!}
       />
     ));
   }
@@ -351,12 +348,15 @@ function ResolveActions({
 
   return (
     <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-      <ButtonBar merged gap="0">
-        <ResolveButton
+      <ButtonBar>
+        <Button
           priority={priority}
           size={size}
-          title={t("We'll nag you with a notification if another event is seen.")}
-          tooltipProps={{delay: 1000, disabled}}
+          tooltipProps={{
+            delay: 1000,
+            disabled,
+            title: t("We'll nag you with a notification if another event is seen."),
+          }}
           onClick={() =>
             openConfirmModal({
               bypass: !shouldConfirm,
@@ -373,42 +373,12 @@ function ResolveActions({
           disabled={disabled}
         >
           {t('Resolve')}
-        </ResolveButton>
+        </Button>
         {!disableResolveInRelease && renderDropdownMenu()}
       </ButtonBar>
     </Tooltip>
   );
 }
-
-export default ResolveActions;
-
-const ResolveButton = withChonk(
-  styled(Button)<{priority?: 'primary'}>`
-    box-shadow: none;
-    ${p =>
-      p.priority === 'primary' &&
-      css`
-        &::after {
-          content: '';
-          position: absolute;
-          top: -1px;
-          bottom: -1px;
-          right: -1px;
-          border-right: solid 1px currentColor;
-          opacity: 0.25;
-        }
-      `}
-  `,
-  chonkStyled(Button)`
-    box-shadow: none;
-`
-);
-
-const DropdownTrigger = styled(Button)`
-  box-shadow: none;
-  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
-  border-left: none;
-`;
 
 /**
  * Used to hide the list items when prompting to set up releases
@@ -426,28 +396,26 @@ const StyledDropdownMenu = styled(DropdownMenu)<{itemsHidden: boolean}>`
 const SetupReleases = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
-  padding: ${space(2)} 0;
+  padding: ${p => p.theme.space.xl} 0;
   text-align: center;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   width: 250px;
   white-space: normal;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const SetupReleasesHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.md};
-  margin-bottom: ${space(1)};
-`;
-
-const CurrentReleaseWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
+  font-size: ${p => p.theme.font.size.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const MaxReleaseWidthWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 250px;
 `;

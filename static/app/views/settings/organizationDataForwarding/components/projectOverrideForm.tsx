@@ -5,17 +5,17 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import FormModel from 'sentry/components/forms/model';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {FormModel} from 'sentry/components/forms/model';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconRefresh} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {useMutateDataForwarderProject} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import type {DataForwarder} from 'sentry/views/settings/organizationDataForwarding/util/types';
@@ -23,8 +23,10 @@ import type {DataForwarder} from 'sentry/views/settings/organizationDataForwardi
 export function ProjectOverrideForm({
   project,
   dataForwarder,
+  disabled,
 }: {
   dataForwarder: DataForwarder;
+  disabled: boolean;
   project: AvatarProject;
 }) {
   const organization = useOrganization();
@@ -65,11 +67,12 @@ export function ProjectOverrideForm({
       hideFooter
     >
       <OverrideForm
-        forms={[getProjectOverrideForm({dataForwarder, project})]}
+        disabled={disabled}
+        forms={[getProjectOverrideForm({dataForwarder, project, omitTag: disabled})]}
         collapsible
         renderHeader={() => (
           <Flex padding="sm lg" borderBottom="primary" gap="md" align="center">
-            <IconInfo size="sm" color="subText" />
+            <IconInfo size="sm" variant="muted" />
             <Text variant="muted" size="sm" bold>
               {t('Overrides set here will only affect this project')}
             </Text>
@@ -79,7 +82,8 @@ export function ProjectOverrideForm({
           <Flex justify="between" padding="lg xl">
             <Button
               size="sm"
-              icon={<IconRefresh color="danger" transform="scale(-1, 1)" />}
+              icon={<IconRefresh variant="danger" transform="scale(-1, 1)" />}
+              disabled={disabled}
               onClick={() => {
                 updateDataForwarder({
                   project_id: `${project.id}`,
@@ -90,7 +94,7 @@ export function ProjectOverrideForm({
             >
               {t('Clear Override')}
             </Button>
-            <Button priority="primary" size="sm" type="submit">
+            <Button priority="primary" size="sm" type="submit" disabled={disabled}>
               {t('Save Override')}
             </Button>
           </Flex>
@@ -106,7 +110,7 @@ const OverrideForm = styled(JsonForm)`
   }
   ${PanelHeader} {
     text-transform: none;
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   }
   margin: 0;

@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
@@ -9,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
@@ -18,6 +19,7 @@ from sentry.api.helpers.error_upsampling import (
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -36,6 +38,8 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
+from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
@@ -51,8 +55,10 @@ SENTRY_BACKEND_REFERRERS = [
     Referrer.DISCOVER_SLACK_UNFURL.value,
 ]
 
+logger = logging.getLogger(__name__)
 
-@region_silo_endpoint
+
+@cell_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -63,9 +69,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     ) -> Mapping[str, bool | None]:
         feature_names = [
             "organizations:performance-use-metrics",
-            "organizations:dashboards-mep",
-            "organizations:mep-rollout-flag",
-            "organizations:use-metrics-layer",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
@@ -110,6 +113,15 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
+        logger.info(
+            "An events-stats request was made",
+            extra={
+                "referrer": request.GET.get("referrer"),
+                "organization.id": organization.id,
+                "dataset_label": request.GET.get("dataset"),
+                "external_call": bool(request.auth),
+            },
+        )
 
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
@@ -152,23 +164,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 referrer = Referrer.API_ORGANIZATION_EVENTS.value
             elif not is_valid_referrer(referrer):
                 referrer = Referrer.API_ORGANIZATION_EVENTS.value
-
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
 
             batch_features = self.get_features(organization, request)
-            use_metrics = (
-                batch_features.get("organizations:performance-use-metrics", False)
-                or batch_features.get("organizations:dashboards-mep", False)
-                or (
-                    batch_features.get("organizations:mep-rollout-flag", False)
-                    and features.has(
-                        "organizations:dynamic-sampling",
-                        organization=organization,
-                        actor=request.user,
-                    )
-                )
-            )
 
             dataset = self.get_dataset(request)
             # Add more here until top events is supported on all the datasets
@@ -186,6 +185,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         Spans,
                         OurLogs,
                         ProfileFunctions,
+                        PreprodSize,
+                        ProcessingErrors,
                         TraceMetrics,
                         errors,
                         transactions,
@@ -205,7 +206,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             metric_types = ",".join(metric_type_values)
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
-        force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
         use_rpc = dataset in RPC_DATASETS
         transform_alias_to_input_format = (
             request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
@@ -239,6 +239,17 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
                     return TraceMetricsSearchResolverConfig(
                         metric=metric,
+                        auto_fields=False,
+                        use_aggregate_conditions=True,
+                        disable_aggregate_extrapolation=request.GET.get(
+                            "disableAggregateExtrapolation", "0"
+                        )
+                        == "1",
+                        extrapolation_mode=extrapolation_mode,
+                    )
+
+                if scoped_dataset == PreprodSize:
+                    return PreprodSizeSearchResolverConfig(
                         auto_fields=False,
                         use_aggregate_conditions=True,
                         disable_aggregate_extrapolation=request.GET.get(
@@ -317,12 +328,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 zerofill_results=zerofill_results,
                 comparison_delta=comparison_delta,
                 allow_metric_aggregates=allow_metric_aggregates,
-                has_metrics=use_metrics,
-                # We want to allow people to force use the new metrics layer in the query builder. We decided to go for
-                # this approach so that we can have only a subset of parts of sentry that use the new metrics layer for
-                # their queries since right now the metrics layer has not full feature parity with the query builder.
-                use_metrics_layer=force_metrics_layer
-                or batch_features.get("organizations:use-metrics-layer", False),
+                has_metrics=True,
                 on_demand_metrics_enabled=use_on_demand_metrics
                 and (
                     batch_features.get("organizations:on-demand-metrics-extraction", False)
@@ -353,7 +359,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 zerofill_results: bool,
                 comparison_delta: timedelta | None,
             ) -> SnubaTSResult | dict[str, SnubaTSResult]:
-
                 if not (metrics_enhanced and dashboard_widget_id):
                     return _get_event_stats(
                         scoped_dataset,
@@ -366,7 +371,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     )
 
                 try:
-                    widget = DashboardWidget.objects.get(id=dashboard_widget_id)
+                    widget = DashboardWidget.objects.get(
+                        id=dashboard_widget_id, dashboard__organization_id=organization.id
+                    )
                     does_widget_have_split = widget.discover_widget_split is not None
 
                     if does_widget_have_split:

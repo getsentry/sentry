@@ -1,5 +1,6 @@
-import {Input} from 'sentry/components/core/input';
-import {Select} from 'sentry/components/core/select';
+import {Input} from '@sentry/scraps/input';
+import {Select} from '@sentry/scraps/select';
+
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import type {SelectValue} from 'sentry/types/core';
@@ -36,7 +37,7 @@ type Props = {
   project?: Project;
 };
 
-export default function ActionTargetSelector(props: Props) {
+export function ActionTargetSelector(props: Props) {
   const {action, availableAction, disabled, loading, onChange, organization, project} =
     props;
 

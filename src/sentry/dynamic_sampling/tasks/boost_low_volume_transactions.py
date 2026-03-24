@@ -19,6 +19,7 @@ from snuba_sdk import (
     Query,
     Request,
 )
+from taskbroker_client.retry import Retry
 
 from sentry import options, quotas
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
@@ -26,7 +27,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgs
+from sentry.dynamic_sampling.tasks.common import MEASURE_CONFIGS, GetActiveOrgs
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
     CHUNK_SIZE,
@@ -39,21 +40,19 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     set_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.namespaces import telemetry_experience_tasks
-from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -85,9 +84,9 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     namespace=telemetry_experience_tasks,
-    processing_deadline_duration=6 * 60 + 5,
+    processing_deadline_duration=10 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions() -> None:
@@ -98,28 +97,54 @@ def boost_low_volume_transactions() -> None:
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
     )
 
-    orgs_iterator = GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60))
-    for orgs in orgs_iterator:
-        # get the low and high transactions
-        totals_it = FetchProjectTransactionTotals(orgs)
-        small_transactions_it = FetchProjectTransactionVolumes(
-            orgs,
-            large_transactions=False,
-            max_transactions=num_small_trans,
+    for orgs in GetActiveOrgs(
+        max_projects=MAX_PROJECTS_PER_QUERY,
+        granularity=Granularity(60),
+        measure=SamplingMeasure.SEGMENTS,
+    ):
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
+            tags={"metric_type": "segment"},
+            amount=len(orgs),
         )
-        big_transactions_it = FetchProjectTransactionVolumes(
-            orgs,
-            large_transactions=True,
-            max_transactions=num_big_trans,
+        _process_orgs_for_boost_low_volume_transactions(
+            orgs, num_big_trans, num_small_trans, measure=SamplingMeasure.SEGMENTS
         )
 
-        for project_transactions in transactions_zip(
-            totals_it, big_transactions_it, small_transactions_it
-        ):
-            boost_low_volume_transactions_of_project.apply_async(
-                kwargs={"project_transactions": project_transactions},
-                headers={"sentry-propagate-traces": False},
-            )
+
+def _process_orgs_for_boost_low_volume_transactions(
+    orgs: list[int],
+    num_big_trans: int,
+    num_small_trans: int,
+    measure: SamplingMeasure,
+) -> None:
+    """
+    Process a batch of organizations for boost low volume transactions.
+    """
+    if not orgs:
+        return
+
+    totals_it = FetchProjectTransactionTotals(orgs, measure=measure)
+    small_transactions_it = FetchProjectTransactionVolumes(
+        orgs,
+        large_transactions=False,
+        max_transactions=num_small_trans,
+        measure=measure,
+    )
+    big_transactions_it = FetchProjectTransactionVolumes(
+        orgs,
+        large_transactions=True,
+        max_transactions=num_big_trans,
+        measure=measure,
+    )
+
+    for project_transactions in transactions_zip(
+        totals_it, big_transactions_it, small_transactions_it
+    ):
+        boost_low_volume_transactions_of_project.apply_async(
+            kwargs={"project_transactions": project_transactions},
+            headers={"sentry-propagate-traces": False},
+        )
 
 
 @instrumented_task(
@@ -127,7 +152,7 @@ def boost_low_volume_transactions() -> None:
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=4 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:
@@ -151,7 +176,6 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
 
     if is_project_mode_sampling(organization):
         sample_rate = ProjectOption.objects.get_value(project_id, "sentry:target_sample_rate")
-        source = "project_setting"
     else:
         # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
         # resort to the blended sample rate of the org.
@@ -162,18 +186,6 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
                 organization_id=org_id
             ),
         )
-        source = "boost_low_volume_projects" if success else "blended_sample_rate"
-
-    sample_function(
-        function=log_sample_rate_source,
-        _sample_rate=0.1,
-        org_id=org_id,
-        project_id=project_id,
-        used_for="boost_low_volume_transactions",
-        source=source,
-        sample_rate=sample_rate,
-    )
-
     if sample_rate is None:
         sentry_sdk.capture_message(
             "Sample rate of project not found when trying to adjust the sample rates of "
@@ -239,12 +251,15 @@ class FetchProjectTransactionTotals:
     project in the given organizations
     """
 
-    def __init__(self, orgs: Sequence[int]):
+    def __init__(self, orgs: Sequence[int], measure: SamplingMeasure = SamplingMeasure.SEGMENTS):
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
-        self.metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
+
+        config = MEASURE_CONFIGS[measure]
+        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
+        self.use_case_id = config["use_case_id"]
+        self.tag_filters = config["tags"]
+        self.measure = measure
 
         self.org_ids = list(orgs)
         self.offset = 0
@@ -262,6 +277,22 @@ class FetchProjectTransactionTotals:
         granularity = Granularity(60)
 
         if self.has_more_results:
+            where_conditions = [
+                Condition(
+                    Column("timestamp"),
+                    Op.GTE,
+                    datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                ),
+                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                Condition(Column("metric_id"), Op.EQ, self.metric_id),
+                Condition(Column("org_id"), Op.IN, self.org_ids),
+            ]
+            # Add tag filters from config
+            for tag_name, tag_value in self.tag_filters.items():
+                tag_string_id = indexer.resolve_shared_org(tag_name)
+                tag_column = f"tags_raw[{tag_string_id}]"
+                where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
+
             query = (
                 Query(
                     match=Entity(EntityKey.GenericOrgMetricsCounters.value),
@@ -275,16 +306,7 @@ class FetchProjectTransactionTotals:
                         Column("org_id"),
                         Column("project_id"),
                     ],
-                    where=[
-                        Condition(
-                            Column("timestamp"),
-                            Op.GTE,
-                            datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
-                        ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                        Condition(Column("metric_id"), Op.EQ, self.metric_id),
-                        Condition(Column("org_id"), Op.IN, self.org_ids),
-                    ],
+                    where=where_conditions,
                     granularity=granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
@@ -298,12 +320,20 @@ class FetchProjectTransactionTotals:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+                tenant_ids={"use_case_id": self.use_case_id.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,
             )["data"]
+
+            metric_type = self.measure.value
+            metrics.incr(
+                "dynamic_sampling.boost_low_volume_transactions.query",
+                tags={"query_type": "totals", "metric_type": metric_type},
+                sample_rate=1,
+            )
+
             count = len(data)
             self.has_more_results = count > CHUNK_SIZE
             self.offset += CHUNK_SIZE
@@ -315,7 +345,6 @@ class FetchProjectTransactionTotals:
         return self._get_from_cache()
 
     def _get_from_cache(self) -> ProjectTransactionsTotals:
-
         if self._cache_empty():
             raise StopIteration()
 
@@ -341,7 +370,7 @@ class FetchProjectTransactionTotals:
 
 class FetchProjectTransactionVolumes:
     """
-    Fetch transactions for all orgs and all projects  with pagination orgs and projects with count per root project
+    Fetch transactions for all orgs and all projects with pagination orgs and projects with count per root project
 
     org_ids: the orgs for which the projects & transactions should be returned
 
@@ -349,6 +378,8 @@ class FetchProjectTransactionVolumes:
                         if False it returns transactions with the smallest count
 
     max_transactions: maximum number of transactions to return
+
+    measure: which SamplingMeasure to use for querying metrics
     """
 
     def __init__(
@@ -356,6 +387,7 @@ class FetchProjectTransactionVolumes:
         orgs: list[int],
         large_transactions: bool,
         max_transactions: int,
+        measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
     ):
         self.large_transactions = large_transactions
         self.max_transactions = max_transactions
@@ -363,9 +395,13 @@ class FetchProjectTransactionVolumes:
         self.offset = 0
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
-        self.metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
+
+        config = MEASURE_CONFIGS[measure]
+        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
+        self.use_case_id = config["use_case_id"]
+        self.tag_filters = config["tags"]
+        self.measure = measure
+
         self.has_more_results = True
         self.cache: list[ProjectTransactions] = []
 
@@ -390,6 +426,22 @@ class FetchProjectTransactionVolumes:
 
         if self.has_more_results:
             # still data in the db, load cache
+            where_conditions = [
+                Condition(
+                    Column("timestamp"),
+                    Op.GTE,
+                    datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                ),
+                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                Condition(Column("metric_id"), Op.EQ, self.metric_id),
+                Condition(Column("org_id"), Op.IN, self.org_ids),
+            ]
+            # Add tag filters from config
+            for tag_name, tag_value in self.tag_filters.items():
+                tag_string_id = indexer.resolve_shared_org(tag_name)
+                tag_column = f"tags_raw[{tag_string_id}]"
+                where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
+
             query = (
                 Query(
                     match=Entity(EntityKey.GenericOrgMetricsCounters.value),
@@ -404,16 +456,7 @@ class FetchProjectTransactionVolumes:
                         Column("project_id"),
                         AliasedExpression(Column(self.transaction_tag), "transaction_name"),
                     ],
-                    where=[
-                        Condition(
-                            Column("timestamp"),
-                            Op.GTE,
-                            datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
-                        ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                        Condition(Column("metric_id"), Op.EQ, self.metric_id),
-                        Condition(Column("org_id"), Op.IN, self.org_ids),
-                    ],
+                    where=where_conditions,
                     granularity=granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
@@ -434,12 +477,24 @@ class FetchProjectTransactionVolumes:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+                tenant_ids={"use_case_id": self.use_case_id.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
             )["data"]
+
+            metric_type = self.measure.value
+            volume_type = "large" if self.large_transactions else "small"
+            metrics.incr(
+                "dynamic_sampling.boost_low_volume_transactions.query",
+                tags={
+                    "query_type": "volumes",
+                    "metric_type": metric_type,
+                    "volume_type": volume_type,
+                },
+                sample_rate=1,
+            )
 
             count = len(data)
             self.has_more_results = count > CHUNK_SIZE

@@ -323,7 +323,7 @@ export function getThresholdUnits(
   }
 
   const parsed = parseFunction(aggregate);
-  if (parsed && parsed.name === 'count') {
+  if (parsed?.name === 'count') {
     return '';
   }
 

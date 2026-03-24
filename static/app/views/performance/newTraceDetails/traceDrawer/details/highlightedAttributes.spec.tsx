@@ -14,9 +14,15 @@ describe('getHighlightedSpanAttributes', () => {
 
   it('should emit Sentry error when gen_ai span has model but no cost', () => {
     const attributes = {
+      'gen_ai.system': 'openai',
       'gen_ai.request.model': 'gpt-4',
-      'gen_ai.usage.total_cost': '0',
+      'gen_ai.cost.total_tokens': '0',
+      'gen_ai.usage.input_tokens': '100',
       'gen_ai.operation.type': 'ai_client',
+      'sdk.name': 'sentry.python',
+      'sdk.version': '2.0.0',
+      platform: 'python',
+      'org.id': '42',
     };
 
     getHighlightedSpanAttributes({
@@ -24,29 +30,36 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
+    const expectedContext = {
+      level: 'warning',
+      tags: {
+        ai_cost_warning: 'true',
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        has_model: 'true',
+        has_cost: 'false',
+        model: 'gpt-4',
+        integration: 'openai',
+        platform: 'python',
+        version: '2.0.0',
+        org_id: '42',
+      },
+      extra: {
+        total_costs: '0',
+        attributes,
+      },
+    };
+
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'Gen AI span missing cost calculation',
-      {
-        level: 'warning',
-        tags: {
-          feature: 'agent-monitoring',
-          span_type: 'gen_ai',
-          has_model: 'true',
-          has_cost: 'false',
-          model: 'gpt-4',
-        },
-        extra: {
-          total_costs: '0',
-          attributes,
-        },
-      }
+      'Gen AI cost data missing for model: gpt-4',
+      expectedContext
     );
   });
 
   it('should not emit Sentry error when gen_ai span has model and cost', () => {
     const attributes = {
       'gen_ai.request.model': 'gpt-4',
-      'gen_ai.usage.total_cost': '0.05',
+      'gen_ai.cost.total_tokens': '0.05',
       'gen_ai.operation.type': 'ai_client',
     };
 
@@ -60,7 +73,7 @@ describe('getHighlightedSpanAttributes', () => {
 
   it('should not emit Sentry error when gen_ai span has no model', () => {
     const attributes = {
-      'gen_ai.usage.total_cost': '0',
+      'gen_ai.cost.total_tokens': '0',
       'gen_ai.operation.type': 'ai_client',
     };
 
@@ -72,10 +85,51 @@ describe('getHighlightedSpanAttributes', () => {
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
 
+  it('should emit Sentry error when gen_ai span has negative cost', () => {
+    const attributes = {
+      'gen_ai.system': 'openai',
+      'gen_ai.request.model': 'gpt-4',
+      'gen_ai.cost.total_tokens': '-1',
+      'gen_ai.operation.type': 'ai_client',
+      'sdk.name': 'sentry.python',
+      'sdk.version': '2.0.0',
+      platform: 'python',
+      'org.id': '42',
+    };
+
+    getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'Gen AI span with negative cost: gpt-4',
+      {
+        level: 'warning',
+        tags: {
+          feature: 'agent-monitoring',
+          span_type: 'gen_ai',
+          has_model: 'true',
+          has_cost: 'true',
+          model: 'gpt-4',
+          integration: 'openai',
+          platform: 'python',
+          version: '2.0.0',
+          org_id: '42',
+          ai_cost_warning: 'true',
+        },
+        extra: {
+          total_costs: '-1',
+          attributes,
+        },
+      }
+    );
+  });
+
   it('should not emit Sentry error for non-gen_ai spans', () => {
     const attributes = {
       'gen_ai.request.model': 'gpt-4',
-      'gen_ai.usage.total_cost': '0',
+      'gen_ai.cost.total_tokens': '0',
     };
 
     getHighlightedSpanAttributes({
@@ -90,7 +144,7 @@ describe('getHighlightedSpanAttributes', () => {
     const attributes = {
       'gen_ai.origin': 'auto.ai.openai',
       'gen_ai.request.model': 'gpt-4',
-      'gen_ai.usage.total_cost': '0.05',
+      'gen_ai.cost.total_tokens': '0.05',
       'sdk.name': 'sentry.python',
       'sdk.version': '2.0.0',
       'gen_ai.operation.type': 'ai_client',
@@ -123,7 +177,7 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.origin': 'auto.ai.openai',
       'gen_ai.system': 'openai',
       'gen_ai.request.model': 'gpt-4',
-      'gen_ai.usage.total_cost': '0.05',
+      'gen_ai.cost.total_tokens': '0.05',
       'gen_ai.operation.name': 'chat',
       'gen_ai.agent.name': 'my-agent',
       'gen_ai.operation.type': 'ai_client',

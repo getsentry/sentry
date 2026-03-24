@@ -2,11 +2,10 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any
 
-from sentry import features, ratelimits, tsdb
+from sentry import ratelimits
 from sentry.api.serializers import serialize
 from sentry.plugins.base import Plugin
 from sentry.services.eventstore.models import Event
-from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger(__name__)
 
@@ -56,15 +55,5 @@ class DataForwardingPlugin(Plugin):
         return False
 
     def post_process(self, *, event, **kwargs) -> None:
-        if features.has("organizations:data-forwarding-revamp-access", event.project.organization):
-            return
-
-        if self.is_ratelimited(event):
-            return
-
-        payload = self.get_event_payload(event)
-        success = self.forward_event(event, payload)
-        if success is False:
-            # TODO(dcramer): record failure
-            pass
-        tsdb.backend.incr(TSDBModel.project_total_forwarded, event.project.id, count=1)
+        # Plugin data forwarding has been superseded by org-level DataForwarders
+        return

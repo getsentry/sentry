@@ -23,6 +23,8 @@ from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.retry import Retry
 
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
@@ -36,7 +38,7 @@ from sentry.lang.native.symbolicator import (
     SymbolicatorTaskKind,
 )
 from sentry.lang.native.utils import native_images_from_data
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -62,11 +64,10 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -137,7 +138,7 @@ def encode_payload(message: dict[str, Any]) -> str:
     processing_deadline_duration=60,
     retry=Retry(times=2, delay=5),
     compression_type=CompressionType.ZSTD,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_profile_task(
     profile: Profile | None = None,
@@ -287,9 +288,6 @@ def process_profile_task(
 
 
 def _is_deprecated(profile: Profile, project: Project, organization: Organization) -> bool:
-    if not features.has("organizations:profiling-sdks", organization):
-        return False
-
     try:
         event_type = determine_profile_type(profile)
     except UnknownProfileTypeException:
@@ -343,9 +341,7 @@ def _is_deprecated(profile: Profile, project: Project, organization: Organizatio
         )
         return True
 
-    if features.has("organizations:profiling-deprecate-sdks", organization) and is_sdk_deprecated(
-        event_type, sdk_name, sdk_version
-    ):
+    if is_sdk_deprecated(event_type, sdk_name, sdk_version):
         _track_outcome(
             profile=profile,
             project=project,
@@ -684,7 +680,7 @@ def run_symbolicate(
 
             if not response:
                 profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                    "type": EventErrorType.NATIVE_INTERNAL_FAILURE,
                 }
                 return modules, stacktraces, False
             elif response["status"] == "completed":
@@ -695,7 +691,7 @@ def run_symbolicate(
                 )
             elif response["status"] == "failed":
                 profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                    "type": EventErrorType.NATIVE_SYMBOLICATOR_FAILED,
                     "status": response.get("status"),
                     "message": response.get("message"),
                 }
@@ -703,7 +699,7 @@ def run_symbolicate(
             else:
                 profile["symbolicator_error"] = {
                     "status": response.get("status"),
-                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                    "type": EventErrorType.NATIVE_INTERNAL_FAILURE,
                 }
                 return modules, stacktraces, False
     except SymbolicationTimeout:
@@ -1725,7 +1721,7 @@ def build_chunk_functions_eap_trace_items(
                 organization_id=chunk.get_organization_id(),
                 project_id=chunk.get_project_id(),
                 trace_id=chunk.get_profiler_id(),  # until we actually get a trace_id from the SDKs
-                item_id=int(chunk.get_profiler_id(), 16).to_bytes(16, "little"),
+                item_id=hex_to_item_id(chunk.get_profiler_id()),
                 item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
                 timestamp=_timestamp(chunk.start_timestamp()),
                 attributes=attributes,
@@ -1801,7 +1797,7 @@ def build_profile_functions_eap_trace_items(
                 organization_id=profile.get_organization_id(),
                 project_id=profile.get_project_id(),
                 trace_id=profile.get_profile_id(),  # until we actually get a trace_id from the SDKs
-                item_id=int(profile.get_profile_id(), 16).to_bytes(16, "little"),
+                item_id=hex_to_item_id(profile.get_profile_id()),
                 item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
                 timestamp=_timestamp(profile.get_timestamp()),
                 attributes=attributes,

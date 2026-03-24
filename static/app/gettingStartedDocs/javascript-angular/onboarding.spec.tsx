@@ -5,7 +5,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import {AngularConfigType} from './utils';
-import docs from '.';
+import {docs} from '.';
 
 describe('javascript-angular onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
@@ -102,7 +102,7 @@ describe('javascript-angular onboarding docs', () => {
       screen.getByText(textWithMarkupMatcher(/Sentry.browserProfilingIntegration\(\)/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
 

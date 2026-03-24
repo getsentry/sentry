@@ -1,6 +1,10 @@
 from unittest import mock
 
-from sentry.constants import DataCategory
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
+
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.uptime.endpoints.validators import (
@@ -11,11 +15,14 @@ from sentry.uptime.endpoints.validators import (
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
     DEFAULT_DOWNTIME_THRESHOLD,
     DEFAULT_RECOVERY_THRESHOLD,
     UptimeMonitorMode,
 )
 from sentry.utils.outcomes import Outcome
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class ComputeHttpRequestSizeTest(UptimeTestCase):
@@ -88,15 +95,15 @@ class UptimeMonitorDataSourceValidatorTest(TestCase):
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
         assert not validator.is_valid()
 
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.MAX_MONITORS_PER_DOMAIN", 1)
     def test_too_many_urls(self):
-        for _ in range(0, 100):
-            self.create_uptime_subscription(
-                url="https://www.google.com",
-                interval_seconds=3600,
-                timeout_ms=30000,
-                url_domain="google",
-                url_domain_suffix="com",
-            )
+        self.create_uptime_subscription(
+            url="https://www.google.com",
+            interval_seconds=3600,
+            timeout_ms=30000,
+            url_domain="google",
+            url_domain_suffix="com",
+        )
 
         data = self.get_valid_data(url="https://www.google.com")
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
@@ -146,6 +153,24 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
             ),
         }
 
+    def assert_valid_uptime_conditions(self, detector):
+        """Verify detector has correct uptime DataConditionGroup and DataConditions."""
+        condition_group = detector.workflow_condition_group
+        assert condition_group is not None
+        assert condition_group.logic_type == "any"
+        assert condition_group.organization_id == detector.project.organization_id
+
+        conditions = sorted(condition_group.conditions.all(), key=lambda c: c.comparison)
+        assert len(conditions) == 2
+
+        assert conditions[0].comparison == CHECKSTATUS_FAILURE
+        assert conditions[0].condition_result == DetectorPriorityLevel.HIGH
+        assert conditions[0].type == Condition.EQUAL
+
+        assert conditions[1].comparison == CHECKSTATUS_SUCCESS
+        assert conditions[1].condition_result == DetectorPriorityLevel.OK
+        assert conditions[1].type == Condition.EQUAL
+
     def test_rejects_multiple_data_sources(self):
         """Test that multiple data sources are rejected for uptime monitors."""
         data = self.get_valid_data(
@@ -183,7 +208,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is True
 
         # Verify seat was assigned
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
@@ -202,7 +227,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is False
 
         # Verify seat assignment was attempted
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
         uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
@@ -226,7 +251,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is True
 
         # Verify seat was assigned
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
         uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.status == UptimeSubscription.Status.ACTIVE.value
@@ -254,7 +279,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is False
 
         # Verify seat availability check was performed
-        mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_check_assign_seat.assert_called_with(seat_object=detector)
 
     @mock.patch("sentry.quotas.backend.disable_seat")
     def test_update_disable_removes_seat(self, mock_disable_seat: mock.MagicMock) -> None:
@@ -272,7 +297,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is False
 
         # Verify disable_seat was called
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_disable_seat.assert_called_with(seat_object=detector)
 
         uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
@@ -289,7 +314,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         validator.delete()
 
         # Verify remove_seat was called immediately
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_remove_seat.assert_called_with(seat_object=detector)
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
@@ -329,7 +354,8 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
 
         validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
         assert not validator.is_valid()
-        assert validator.errors["config"] == ["Only superusers can modify `mode`"]
+        assert "mode" in validator.errors["config"]
+        assert "Only superusers can modify `mode`" in str(validator.errors["config"]["mode"])
 
     def test_non_superuser_cannot_change_mode(self) -> None:
         """Test that non-superuser cannot change mode via update."""
@@ -349,7 +375,8 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
             instance=detector, data=data, context=self.context, partial=True
         )
         assert not validator.is_valid()
-        assert validator.errors["config"] == ["Only superusers can modify `mode`"]
+        assert "mode" in validator.errors["config"]
+        assert "Only superusers can modify `mode`" in str(validator.errors["config"]["mode"])
 
         # Verify mode was not changed
         detector.refresh_from_db()
@@ -375,6 +402,32 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         # Should be valid since mode hasn't changed
         assert validator.is_valid(), validator.errors
 
+    def test_non_superuser_auto_switches_mode_to_manual(self) -> None:
+        """Test that non-superuser automatically switches AUTO_DETECTED mode to MANUAL when updating other fields."""
+        # Create a detector with AUTO_DETECTED_ACTIVE mode (e.g., from autodetection)
+        detector = self.create_uptime_detector(mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE)
+
+        # Non-superuser updates thresholds but doesn't explicitly pass mode
+        data = {
+            "config": {
+                "environment": None,
+                "recovery_threshold": 5,
+                "downtime_threshold": 10,
+            }
+        }
+
+        validator = UptimeDomainCheckFailureValidator(
+            instance=detector, data=data, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        validator.save()
+
+        detector.refresh_from_db()
+        # Mode should have been automatically switched to MANUAL
+        assert detector.config["mode"] == UptimeMonitorMode.MANUAL.value
+        assert detector.config["recovery_threshold"] == 5
+        assert detector.config["downtime_threshold"] == 10
+
     def test_superuser_can_create_with_auto_detected_mode(self) -> None:
         """Test that superuser can create detector with AUTO_DETECTED mode."""
         superuser = self.create_user(is_superuser=True)
@@ -395,3 +448,210 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
 
         detector.refresh_from_db()
         assert detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value
+
+    def test_threshold_strings_coerced_to_integers(self) -> None:
+        """Test that threshold values sent as strings are coerced to integers."""
+        data = self.get_valid_data(
+            config={
+                "mode": UptimeMonitorMode.MANUAL.value,
+                "environment": None,
+                "recovery_threshold": "3",  # String instead of int
+                "downtime_threshold": "5",  # String instead of int
+            }
+        )
+
+        validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        detector.refresh_from_db()
+        assert detector.config["recovery_threshold"] == 3
+        assert detector.config["downtime_threshold"] == 5
+
+    def test_threshold_invalid_string_rejected(self) -> None:
+        """Test that invalid string threshold values are rejected with a validation error."""
+        # Test non-numeric string
+        data = self.get_valid_data(
+            config={
+                "mode": UptimeMonitorMode.MANUAL.value,
+                "environment": None,
+                "recovery_threshold": "abc",  # Invalid string
+                "downtime_threshold": DEFAULT_DOWNTIME_THRESHOLD,
+            }
+        )
+
+        validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert "recoveryThreshold" in validator.errors["config"]
+        assert "A valid integer is required" in str(validator.errors["config"]["recoveryThreshold"])
+
+        # Test decimal string
+        data = self.get_valid_data(
+            config={
+                "mode": UptimeMonitorMode.MANUAL.value,
+                "environment": None,
+                "recovery_threshold": DEFAULT_RECOVERY_THRESHOLD,
+                "downtime_threshold": "3.5",  # Decimal string
+            }
+        )
+
+        validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert "downtimeThreshold" in validator.errors["config"]
+        assert "A valid integer is required" in str(validator.errors["config"]["downtimeThreshold"])
+
+    def test_superuser_partial_update_preserves_auto_detected_mode(self) -> None:
+        """Test that superuser can update AUTO_DETECTED detector without mode being silently changed."""
+        superuser = self.create_user(is_superuser=True)
+        self.context["request"] = self.make_request(user=superuser, is_superuser=True)
+
+        # Create a detector with AUTO_DETECTED_ACTIVE mode
+        detector = self.create_uptime_detector(mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE)
+
+        # Superuser updates threshold without providing mode in the request (PATCH)
+        # The mode should be preserved as AUTO_DETECTED_ACTIVE, not changed to MANUAL
+        data = {
+            "config": {
+                "downtime_threshold": 10,
+            }
+        }
+
+        validator = UptimeDomainCheckFailureValidator(
+            instance=detector, data=data, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        validator.save()
+
+        # Mode should be preserved as AUTO_DETECTED_ACTIVE
+        detector.refresh_from_db()
+        assert detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value
+        assert detector.config["downtime_threshold"] == 10
+
+    def test_superuser_full_update_preserves_auto_detected_mode(self) -> None:
+        """Test that superuser can do a non-partiaul update on an AUTO_DETECTED detector without mode being silently changed."""
+        superuser = self.create_user(is_superuser=True)
+        self.context["request"] = self.make_request(user=superuser, is_superuser=True)
+
+        # Create a detector with AUTO_DETECTED_ACTIVE mode
+        detector = self.create_uptime_detector(mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE)
+
+        # Superuser does full update without providing mode in the request
+        # (partial=False) The mode should be preserved as AUTO_DETECTED_ACTIVE,
+        # not changed to MANUAL
+        data = self.get_valid_data(
+            name=detector.name,
+            config={
+                "environment": None,
+                "recovery_threshold": 3,
+                "downtime_threshold": 10,
+                # Note: mode is NOT provided - but default=MANUAL on the field
+            },
+        )
+
+        validator = UptimeDomainCheckFailureValidator(
+            instance=detector, data=data, context=self.context
+        )
+        assert validator.is_valid(), validator.errors
+        validator.save()
+
+        # Mode should be preserved as AUTO_DETECTED_ACTIVE, not silently changed to MANUAL
+        detector.refresh_from_db()
+        assert detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value
+        assert detector.config["downtime_threshold"] == 10
+
+    @mock.patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_creates_detector_with_correct_structure(
+        self, mock_assign_seat: mock.MagicMock
+    ) -> None:
+        """Test that create() creates a detector with all required components."""
+        validator = UptimeDomainCheckFailureValidator(
+            data=self.get_valid_data(), context=self.context
+        )
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        assert detector.type == UptimeDomainCheckFailure.slug
+        self.assert_valid_uptime_conditions(detector)
+
+        assert detector.data_sources.count() == 1
+        data_source = detector.data_sources.first()
+        assert data_source.type == DATA_SOURCE_UPTIME_SUBSCRIPTION
+
+        subscription = get_uptime_subscription(detector)
+        assert subscription is not None
+        assert subscription.url == "https://sentry.io"
+
+    @mock.patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_ignores_custom_condition_group(self, mock_assign_seat: mock.MagicMock) -> None:
+        """Test that custom condition_group in request is ignored."""
+        data = self.get_valid_data()
+        data["conditionGroup"] = {
+            "logicType": "any",
+            "conditions": [
+                {
+                    "comparison": "custom_value",
+                    "type": Condition.EQUAL.value,
+                    "conditionResult": DetectorPriorityLevel.LOW,
+                }
+            ],
+        }
+
+        validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        self.assert_valid_uptime_conditions(detector)
+
+    def test_update_ignores_condition_group_changes(self) -> None:
+        """Test that condition_group cannot be modified on update."""
+        detector = self.create_uptime_detector()
+
+        data = {
+            "conditionGroup": {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "comparison": "modified_value",
+                        "type": Condition.EQUAL.value,
+                        "conditionResult": DetectorPriorityLevel.LOW,
+                    }
+                ],
+            }
+        }
+
+        validator = UptimeDomainCheckFailureValidator(
+            instance=detector, data=data, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        validator.save()
+
+        detector.refresh_from_db()
+        self.assert_valid_uptime_conditions(detector)
+
+    @mock.patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_creates_uptime_subscription(self, mock_assign_seat: mock.MagicMock) -> None:
+        """Test that create() properly creates the UptimeSubscription."""
+        data = self.get_valid_data(
+            data_sources=[
+                {
+                    "url": "https://example.com/health",
+                    "intervalSeconds": 300,
+                    "timeoutMs": 5000,
+                    "method": "POST",
+                    "headers": [["Authorization", "Bearer token"]],
+                    "body": '{"check": true}',
+                }
+            ]
+        )
+
+        validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        subscription = get_uptime_subscription(detector)
+        assert subscription.url == "https://example.com/health"
+        assert subscription.interval_seconds == 300
+        assert subscription.timeout_ms == 5000
+        assert subscription.method == "POST"
+        assert subscription.headers == [["Authorization", "Bearer token"]]
+        assert subscription.body == '{"check": true}'

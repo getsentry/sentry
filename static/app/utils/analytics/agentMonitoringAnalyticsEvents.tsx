@@ -4,9 +4,13 @@ export type AgentMonitoringEventParameters = {
     direction: 'asc' | 'desc';
     table: string;
   };
+  'agent-monitoring.copy-llm-prompt-click': Record<string, unknown>;
   'agent-monitoring.drawer.open': Record<string, unknown>;
   'agent-monitoring.drawer.span-select': Record<string, unknown>;
   'agent-monitoring.drawer.view-full-trace-click': Record<string, unknown>;
+  'agent-monitoring.page-filter-change': {
+    filter: 'project' | 'environment' | 'date' | 'agent' | 'search';
+  };
   'agent-monitoring.page-view': {
     isOnboarding: boolean;
   };
@@ -25,6 +29,8 @@ export const agentMonitoringEventMap: Record<
   keyof AgentMonitoringEventParameters,
   string
 > = {
+  'agent-monitoring.copy-llm-prompt-click': 'Agent Monitoring: Copy LLM Prompt Click',
+  'agent-monitoring.page-filter-change': 'Agent Monitoring: Page Filter Change',
   'agent-monitoring.page-view': 'Agent Monitoring: Page View',
   'agent-monitoring.table-switch': 'Agent Monitoring: Table Switch',
   'agent-monitoring.column-sort': 'Agent Monitoring: Column Sort',

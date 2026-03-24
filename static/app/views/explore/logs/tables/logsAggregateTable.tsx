@@ -2,11 +2,13 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Pagination from 'sentry/components/pagination';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Pagination} from 'sentry/components/pagination';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -14,9 +16,9 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
@@ -81,7 +83,7 @@ export function LogsAggregateTable({
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   return (
-    <TableContainer>
+    <Stack>
       <GridEditable
         aria-label={t('Aggregates')}
         isLoading={isLoading}
@@ -109,7 +111,7 @@ export function LogsAggregateTable({
               title = prettifyTagKey(field);
             }
 
-            const direction: 'asc' | 'desc' | undefined =
+            const direction =
               aggregateSortBys?.[0]?.field === column.key
                 ? aggregateSortBys?.[0]?.kind
                 : undefined;
@@ -224,14 +226,9 @@ export function LogsAggregateTable({
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={cursor => setAggregateCursor(cursor)} />
-    </TableContainer>
+    </Stack>
   );
 }
-
-const TableContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const TopResultsIndicator = styled('div')<{color: string}>`
   position: absolute;

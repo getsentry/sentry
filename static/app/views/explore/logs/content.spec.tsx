@@ -12,8 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
@@ -70,7 +70,7 @@ describe('LogsPage', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -214,7 +214,7 @@ describe('LogsPage', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: 0,
+            caseInsensitive: undefined,
             dataset: 'ourlogs',
             disableAggregateExtrapolation: '0',
             environment: [],
@@ -222,8 +222,8 @@ describe('LogsPage', () => {
             groupBy: ['severity'],
             interval: '5m',
             partial: 1,
-            project: [],
-            query: 'timestamp_precise:<=1508208040000000000',
+            project: [parseInt(project.id, 10)],
+            query: '',
             referrer: 'api.explore.ourlogs-timeseries',
             sampling: 'NORMAL',
             sort: '-count_message',

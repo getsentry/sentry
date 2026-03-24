@@ -53,7 +53,6 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
             try:
                 response = installation.search_issues(query=full_query, repo=repo)
             except ApiError as e:
-
                 if "no issue tracker" in str(e):
                     lifecycle.record_halt(str(SourceCodeSearchEndpointHaltReason.NO_ISSUE_TRACKER))
                     return Response(

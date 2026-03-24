@@ -1,8 +1,5 @@
-import styled from '@emotion/styled';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-export const OverflowHidden = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  display: grid;
-`;
+export function OverflowHidden(props: GridProps<'div'>) {
+  return <Grid height="100%" overflow="hidden" position="relative" {...props} />;
+}

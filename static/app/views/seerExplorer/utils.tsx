@@ -1,11 +1,25 @@
+import {useCallback, useEffect, useRef, useState} from 'react';
 import type {LocationDescriptor} from 'history';
+import queryString from 'query-string';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import type {Block, ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  ToolCall,
+  ToolLink,
+  ToolResult,
+} from 'sentry/views/seerExplorer/types';
 
 /**
  * Tool formatter function type.
@@ -17,6 +31,21 @@ type ToolFormatter = (
   isLoading: boolean,
   toolLinkParams?: Record<string, any> | null
 ) => string;
+
+export const makeSeerExplorerQueryKey = (
+  orgSlug: string,
+  runId: number | null
+): ApiQueryKey => [
+  runId
+    ? getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
+        path: {organizationIdOrSlug: orgSlug, runId},
+      })
+    : getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+
+  {},
+];
 
 /**
  * Registry of custom tool formatters.
@@ -38,7 +67,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
   },
 
-  telemetry_live_search: (args, isLoading) => {
+  telemetry_live_search: (args, isLoading, resultMetadata) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
     const projectSlugs = args.project_slugs;
@@ -64,10 +93,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Queried logs${projectInfo}: '${question}'`;
     }
 
-    // Default to spans
+    // Default to spans dataset
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
-      : `Queried spans${projectInfo}: '${question}'`;
+      : resultMetadata?.mode === 'traces'
+        ? `Queried traces${projectInfo}: '${question}'...`
+        : `Queried spans${projectInfo}: '${question}'`;
   },
 
   get_trace_waterfall: (args, isLoading) => {
@@ -83,15 +114,55 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
 
-  get_issue_details: (args, isLoading) => {
-    const issueId = args.issue_id || '';
-    const selectedEvent = args.selected_event;
-    if (selectedEvent) {
+  get_issue_details: (args, isLoading, resultMetadata) => {
+    const {issue_id, start, end, event_id} = args;
+
+    if (event_id) {
+      // For backwards compatibility. event_id arg only present in an older version (issue_and_event_details)
       return isLoading
-        ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
-        : `Inspected issue ${issueId} (${selectedEvent} event)`;
+        ? `Analyzing event ${event_id.slice(0, 8)}...`
+        : `Analyzed event ${event_id.slice(0, 8)}`;
     }
-    return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
+
+    if (issue_id) {
+      if (start && end) {
+        return isLoading
+          ? `Inspecting issue ${issue_id} between ${start} to ${end}...`
+          : `Inspected issue ${resultMetadata?.short_id || issue_id} between ${start} to ${end}`;
+      }
+      return isLoading
+        ? `Inspecting issue ${issue_id}...`
+        : `Inspected issue ${resultMetadata?.short_id || issue_id}`;
+    }
+
+    // shouldn't happen (issue_id required)
+    return isLoading ? `Inspecting issue...` : `Inspected issue`;
+  },
+
+  get_event_details: (args, isLoading, resultMetadata) => {
+    const {event_id, issue_id, start, end} = args;
+
+    // event ID mode
+    if (event_id) {
+      return isLoading
+        ? `Analyzing event ${event_id.slice(0, 8)}...`
+        : `Analyzed event ${event_id.slice(0, 8)}`;
+    }
+
+    // recommended event mode
+    if (issue_id) {
+      if (start && end) {
+        return isLoading
+          ? `Analyzing recommended event for issue ${issue_id}, sampled from ${start} to ${end}...`
+          : `Analyzed recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}, sampled from ${start} to ${end}`;
+      }
+      return isLoading
+        ? `Analyzing recommended event for issue ${issue_id}...`
+        : `Analyzed recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}`;
+    }
+
+    // shouldn't happen (either event_id or issue_id required)
+    return isLoading ? `Analyzing event...` : `Analyzed event`;
   },
 
   code_search: (args, isLoading) => {
@@ -310,6 +381,16 @@ export function getToolsStringFromBlock(block: Block): string[] {
       // Use custom formatter with tool link params for metadata like rejection status
       const args = parseToolArgs(tool.args);
       tools.push(formatter(args, isLoading, toolLink?.params));
+    } else if (tool.function.startsWith('artifact_write_')) {
+      // Handle artifact_write_<artifact_name> tools
+      const artifactName = tool.function
+        .replace('artifact_write_', '')
+        .replace(/_/g, ' ');
+      tools.push(
+        isLoading
+          ? `Submitting ${artifactName} artifact...`
+          : `Submitted ${artifactName} artifact`
+      );
     } else {
       // Fall back to generic message
       const verb = isLoading ? 'Using' : 'Used';
@@ -329,7 +410,7 @@ function linkifyIssueShortIds(text: string): string {
   // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
   // Requires at least 2 chars before hyphen and 1+ chars after
   // First segment must contain at least one uppercase letter (all letters must be uppercase)
-  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]{1,}|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
+  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
 
   // Track positions that should be excluded (inside code blocks, links, or URLs)
   const excludedRanges: Array<{end: number; start: number}> = [];
@@ -351,7 +432,7 @@ function linkifyIssueShortIds(text: string): string {
     });
   }
   // Find all URLs (http://, https://, or starting with /)
-  const urlPattern = /(https?:\/\/[^\s]+|\/[^\s)]+)/g;
+  const urlPattern = /(https?:\/\/\S+|\/[^\s)]+)/g;
   for (const urlMatch of text.matchAll(urlPattern)) {
     excludedRanges.push({
       end: urlMatch.index + urlMatch[0].length,
@@ -412,6 +493,18 @@ export function toggleSeerExplorerPanel(): void {
     bubbles: true,
   } as KeyboardEventInit);
   document.dispatchEvent(keyboardEvent);
+}
+
+/**
+ * Validate an ISO string and return it with 'Z' suffix stripped.
+ * Returns undefined if invalid.
+ */
+function validateIso(val: unknown): string | undefined {
+  if (!val || typeof val !== 'string') {
+    return undefined;
+  }
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? undefined : d.toISOString().replace(/Z$/, '');
 }
 
 /**
@@ -544,6 +637,9 @@ export function buildToolLinkUrl(
       if (mode) {
         queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
       }
+      if (mode === 'traces') {
+        queryParams.table = 'trace';
+      }
 
       if (aggregateFields.length > 0) {
         queryParams.aggregateField = aggregateFields;
@@ -577,9 +673,34 @@ export function buildToolLinkUrl(
       };
     }
     case 'get_issue_details': {
-      const {event_id, issue_id} = toolLink.params;
+      const {issue_id, start, end, event_id} = toolLink.params;
+      const query = {
+        start: validateIso(start),
+        end: validateIso(end),
+      };
 
-      return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+      if (issue_id) {
+        if (event_id) {
+          // Should only be present in older version (get_issue_and_event_details)
+          return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
+        }
+        return {pathname: `/issues/${issue_id}/`, query};
+      }
+
+      return null;
+    }
+    case 'get_event_details': {
+      const {event_id, issue_id, start, end} = toolLink.params;
+
+      if (event_id && issue_id) {
+        const query = {
+          start: validateIso(start),
+          end: validateIso(end),
+        };
+        return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
+      }
+
+      return null;
     }
     case 'get_replay_details': {
       const {replay_id} = toolLink.params;
@@ -658,4 +779,223 @@ export function buildToolLinkUrl(
     default:
       return null;
   }
+}
+
+export function getValidToolLinks(
+  tool_links: Array<ToolLink | null>,
+  tool_results: Array<ToolResult | null>,
+  tool_calls: ToolCall[],
+  orgSlug: string,
+  projects?: Array<{id: string; slug: string}>
+) {
+  // Get valid tool links sorted by their corresponding tool call indices
+  // Also create a mapping from tool call index to sorted link index
+  const mappedLinks = tool_links
+    .map((link, idx) => {
+      if (!link) {
+        return null;
+      }
+
+      // Don't show links for tools that returned errors, but do show for empty results
+      if (link.params?.is_error === true) {
+        return null;
+      }
+
+      // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
+      const toolCallId = tool_results[idx]?.tool_call_id;
+      const toolCallIndex = tool_calls.findIndex(call => call.id === toolCallId);
+      const canBuildUrl = buildToolLinkUrl(link, orgSlug, projects) !== null;
+
+      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
+        return {link, toolCallIndex};
+      }
+      return null;
+    })
+    .filter(item => item !== null)
+    .sort((a, b) => a.toolCallIndex - b.toolCallIndex);
+
+  // Create mapping from tool call index to sorted link index
+  const toolCallToLinkMap = new Map<number, number>();
+  mappedLinks.forEach((item, sortedIndex) => {
+    toolCallToLinkMap.set(item.toolCallIndex, sortedIndex);
+  });
+
+  return {
+    sortedToolLinks: mappedLinks.map(item => item.link),
+    toolCallToLinkIndexMap: toolCallToLinkMap,
+  };
+}
+
+/**
+ * Returns a callback to get the route string (normalized path) of the current page for analytics, e.g. /issues/:groupId/.
+ * This callback is stable to avoid triggering analytics and re-renders when the location changes.
+ */
+export function usePageReferrer(): {getPageReferrer: () => string} {
+  // Track the normalized path of the current page (e.g. /issues/:groupId/) for analytics.
+  const routes = useRoutes();
+  const routeString = getRouteStringFromRoutes(routes);
+  const routeStringRef = useRef(routeString);
+
+  useEffect(() => {
+    routeStringRef.current = routeString;
+  }, [routeString]);
+
+  // Must remain stable.
+  const getPageReferrer = useCallback(() => routeStringRef.current, []);
+
+  return {getPageReferrer};
+}
+
+export function useCopySessionDataToClipboard({
+  blocks,
+  status,
+  organization,
+  projects,
+  enabled,
+}: {
+  blocks: Block[] | undefined;
+  enabled: boolean;
+  organization: Organization | null;
+  status: string | undefined;
+  projects?: Array<{id: string; slug: string}>;
+}) {
+  const [isError, setIsError] = useState(false);
+
+  const copySessionToClipboard = useCallback(async () => {
+    if (!enabled || !organization) {
+      return;
+    }
+    setIsError(false);
+    try {
+      const text = blocks
+        ? formatSessionData(blocks, organization.slug, projects)
+        : `No data available. Status: ${status ?? 'unknown'}`;
+      await navigator.clipboard.writeText(text);
+      addSuccessMessage('Copied conversation to clipboard');
+    } catch (err) {
+      setIsError(true);
+      addErrorMessage('Failed to copy conversation to clipboard');
+    }
+
+    trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});
+  }, [enabled, blocks, status, organization, projects]);
+
+  return {copySessionToClipboard, isError};
+}
+
+function formatSessionData(
+  blocks: Block[],
+  orgSlug: string,
+  projects?: Array<{id: string; slug: string}>
+): string {
+  const formatBlock = (block: Block): string => {
+    const {message, timestamp, tool_links, tool_results} = block;
+
+    const {content: messageContent, role, tool_calls, thinking_content} = message;
+
+    const {sortedToolLinks, toolCallToLinkIndexMap} = getValidToolLinks(
+      tool_links || [],
+      tool_results || [],
+      tool_calls || [],
+      orgSlug,
+      projects
+    );
+
+    const toolCallsWithLinks: Array<{
+      metadata: Record<string, any> | null;
+      tool_call: ToolCall;
+      url: string | null;
+    }> = (tool_calls || []).map((tool_call, idx) => {
+      // Build URL if a valid tool link exists for this call.
+      const validLinkIdx = toolCallToLinkIndexMap.get(idx);
+      const validLink =
+        validLinkIdx === undefined ? null : (sortedToolLinks[validLinkIdx] ?? null);
+      const location = validLink ? buildToolLinkUrl(validLink, orgSlug, projects) : null;
+      const url = location ? locationToUrl(location) : null;
+
+      // Get metadata from raw tool_links array.
+      const metadata = tool_links?.[idx]?.params || null;
+
+      return {metadata, tool_call, url};
+    });
+
+    const lines: string[] = [];
+    lines.push(`# ${role.toUpperCase()} ${timestamp}`);
+    if (messageContent) {
+      lines.push(messageContent);
+    }
+    if (thinking_content) {
+      lines.push('');
+      lines.push('## THINKING CONTENT');
+      lines.push(thinking_content);
+    }
+
+    if (toolCallsWithLinks.length > 0) {
+      lines.push('');
+      lines.push('## TOOL CALLS');
+      toolCallsWithLinks.forEach((item, idx) => {
+        const isError = !!item.metadata?.is_error;
+        const emptyResults = !!item.metadata?.empty_results;
+        const status = isError ? 'ERRORED' : emptyResults ? 'EMPTY RESULTS' : 'SUCCESS';
+
+        lines.push(`${item.tool_call.function} (${status}) (${item.tool_call.id}):`);
+        lines.push(`args: ${item.tool_call.args}`);
+        if (item.url) {
+          lines.push(`URL: ${item.url}`);
+        }
+
+        if (idx < toolCallsWithLinks.length - 1) {
+          lines.push('');
+        }
+      });
+    }
+    lines.push('');
+    return lines.join('\n');
+  };
+
+  return blocks
+    .map(block => formatBlock(block))
+    .join('\n--------------------------------------------------\n\n');
+}
+
+function locationToUrl(location: LocationDescriptor): string | null {
+  if (typeof location === 'string') {
+    const hasOrigin = /^https?:\/\//.test(location);
+    return hasOrigin ? location : `${window.location.origin}${location}`;
+  }
+
+  const {pathname = '', hash, query} = location;
+  const base = `${window.location.origin}${pathname}`;
+
+  const queryPart = query ? `?${queryString.stringify(query)}` : '';
+
+  const hashPart = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
+
+  return `${base}${queryPart}${hashPart}`;
+}
+
+export const RUN_ID_QUERY_PARAM = 'explorerRunId';
+
+/**
+ * Returns the URL of the current window with the run ID query param set.
+ */
+export function getExplorerUrl(runId: number | string): string {
+  const url = new URL(window.location.href);
+  url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
+  return url.toString();
+}
+
+export function getLangfuseUrl(runId: number | string): string {
+  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
+}
+
+/**
+ * Checks if Seer Explorer is enabled for the organization.
+ * Requires all of the following conditions:
+ * - 'seer-explorer' feature flag
+ * - Organization has open membership
+ * Does not check general AI features access or org consent.
+ */
+export function isSeerExplorerEnabled(organization: Organization): boolean {
+  return organization.openMembership && organization.features.includes('seer-explorer');
 }

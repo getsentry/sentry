@@ -7,12 +7,13 @@ from rest_framework.response import Response
 from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.preprod.analytics import PreprodApiPrPageSizeAnalysisDownloadEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactResourceDoesNotExist
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.quotas import get_size_retention_cutoff
 from sentry.preprod.size_analysis.download import (
     SizeAnalysisError,
     get_size_analysis_error_response,
@@ -20,7 +21,7 @@ from sentry.preprod.size_analysis.download import (
 )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationPullRequestSizeAnalysisDownloadEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -52,7 +53,7 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpoint(OrganizationEndpoint):
         )
 
         if not features.has("organizations:pr-page", organization, actor=request.user):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
             artifact = PreprodArtifact.objects.get(
@@ -61,6 +62,10 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpoint(OrganizationEndpoint):
             )
         except (PreprodArtifact.DoesNotExist, ValueError):
             raise PreprodArtifactResourceDoesNotExist
+
+        cutoff = get_size_retention_cutoff(organization)
+        if artifact.date_added < cutoff:
+            return Response({"detail": "This build's size data has expired."}, status=404)
 
         all_size_metrics = list(artifact.get_size_metrics())
 

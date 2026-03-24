@@ -1,7 +1,5 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -12,15 +10,18 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
+import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {
+  useSpanItemAttributes,
+  useTraceItemDatasetAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/spanTagsContext');
+jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/useParams');
 
@@ -32,8 +33,11 @@ describe('WidgetBuilderSlideout', () => {
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
     jest
-      .mocked(useTraceItemTags)
-      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
+      .mocked(useTraceItemDatasetAttributes)
+      .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
+    jest
+      .mocked(useSpanItemAttributes)
+      .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
 
     jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
@@ -75,19 +79,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: ['project'],
               yAxis: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -114,19 +116,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: [],
               yAxis: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -150,19 +150,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: [],
               yAxis: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -187,7 +185,6 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
     renderGlobalModal();
@@ -218,7 +215,6 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -258,20 +254,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: [],
               yAxis: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
-              title: undefined,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -301,24 +294,23 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: ['count()'],
               yAxis: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
     await userEvent.type(await screen.findByPlaceholderText('Add Alias'), 'test alias');
-    await userEvent.click(screen.getByText('Errors'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Transactions'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Errors'}));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
   }, 10_000);
@@ -340,19 +332,17 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               field: ['count()'],
               yAxis: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -386,17 +376,15 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -423,7 +411,6 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -454,7 +441,6 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -560,15 +546,15 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization: organizationWithFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
     renderGlobalModal();
@@ -600,15 +586,15 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
     renderGlobalModal();
@@ -625,7 +611,7 @@ describe('WidgetBuilderSlideout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should not show the query filter builder if the widget is an issue and a chart display type', () => {
+  it('should not show the query filter builder if the widget is an issue and a chart display type', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -642,22 +628,27 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               dataset: WidgetType.ISSUE,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
     expect(screen.queryByLabelText('Add a search term')).not.toBeInTheDocument();
+
+    // Wait for any pending popper updates to complete
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Issues'})).toBeInTheDocument();
+    });
   });
 
-  it('should not show the group by selector if the widget is an issue and a chart display type', () => {
+  it('should show the markdown content field for text widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -674,18 +665,124 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
+            query: {
+              displayType: DisplayType.TEXT,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Write your markdown here...')
+    ).toBeInTheDocument();
+  });
+
+  it('should not show the dataset selector for text widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
+            query: {
+              displayType: DisplayType.TEXT,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Write your markdown here...')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Errors'})).not.toBeInTheDocument();
+  });
+
+  it('should not show the sort by step for text widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
+            query: {
+              displayType: DisplayType.TEXT,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Write your markdown here...')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Sort by')).not.toBeInTheDocument();
+  });
+
+  it('should not show the group by selector if the widget is an issue and a chart display type', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
             query: {
               dataset: WidgetType.ISSUE,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
     expect(screen.queryByText('Group by')).not.toBeInTheDocument();
+
+    // Wait for any pending popper updates to complete
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Issues'})).toBeInTheDocument();
+    });
   });
 });

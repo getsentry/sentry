@@ -81,9 +81,12 @@ class DigestNotification(ProjectNotification):
             # This shouldn't be possible but adding a message just in case.
             return "Digest Report"
 
-        # Use timezone from context if available (added by get_recipient_context)
+        # Use timezone and clock format from context (added by get_recipient_context)
         timezone = context.get("timezone")
-        return get_digest_subject(context["group"], context["counts"], context["start"], timezone)
+        clock_24_hours = context.get("clock_24_hours", False)
+        return get_digest_subject(
+            context["group"], context["counts"], context["start"], timezone, clock_24_hours
+        )
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
@@ -118,11 +121,15 @@ class DigestNotification(ProjectNotification):
         self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         tz: tzinfo = UTC
+        clock_24_hours = False
         if recipient.is_user:
             user_options = user_option_service.get_many(
-                filter={"user_ids": [recipient.id], "keys": ["timezone"]}
+                filter={"user_ids": [recipient.id], "keys": ["timezone", "clock_24_hours"]}
             )
             user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
+            clock_24_hours = bool(
+                get_option_from_list(user_options, key="clock_24_hours", default=False)
+            )
             try:
                 tz = zoneinfo.ZoneInfo(user_tz)
             except (ValueError, zoneinfo.ZoneInfoNotFoundError):
@@ -130,6 +137,7 @@ class DigestNotification(ProjectNotification):
         return {
             **super().get_recipient_context(recipient, extra_context),
             "timezone": tz,
+            "clock_24_hours": clock_24_hours,
         }
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -148,7 +156,7 @@ class DigestNotification(ProjectNotification):
 
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
 
-        if not features.has("organizations:workflow-engine-ui-links", self.project.organization):
+        if not features.has("organizations:workflow-engine-ui", self.project.organization):
             # TODO(iamrajjoshi): This actually mutes a rule for a user, something we have not ported over in the new system
             # By not including this context, the template will not show the mute button
             snooze_alert = len(rule_details) > 0
@@ -175,7 +183,6 @@ class DigestNotification(ProjectNotification):
         notification_uuid: str | None = None,
     ) -> MutableMapping[str, Any]:
         has_session_replay = features.has("organizations:session-replay", organization)
-        show_replay_link = features.has("organizations:session-replay-issue-emails", organization)
         return {
             **get_digest_as_context(digest.digest),
             "event_counts": digest.event_counts,
@@ -191,7 +198,7 @@ class DigestNotification(ProjectNotification):
                 alert_timestamp,
                 notification_uuid=notification_uuid,
             ),
-            "show_replay_links": has_session_replay and show_replay_link,
+            "show_replay_links": has_session_replay,
         }
 
     def get_extra_context(

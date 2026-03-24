@@ -1,10 +1,11 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {
   associateTagsWithMeta,
@@ -14,7 +15,6 @@ import {
   TAGS_DOCS_LINK,
 } from 'sentry/components/events/eventTags/util';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -68,7 +68,7 @@ export function EventTagsDataSection({
   }, [event.tags]);
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {additionalActions}
       <SegmentedControl
         size="xs"
@@ -77,10 +77,10 @@ export function EventTagsDataSection({
         onChange={handleTagFilterChange}
       >
         {[TagFilter.ALL, TagFilter.CUSTOM, ...availableFilters].map(v => (
-          <SegmentedControl.Item key={v}>{`${v}`}</SegmentedControl.Item>
+          <SegmentedControl.Item key={v}>{v}</SegmentedControl.Item>
         ))}
       </SegmentedControl>
-    </ButtonBar>
+    </Grid>
   );
 
   return (
@@ -111,9 +111,10 @@ export function EventTagsDataSection({
 }
 
 const StyledEventDataSection = styled(InterimSection)`
-  padding: ${space(0.5)} ${space(2)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl} ${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(1)} ${space(4)} ${space(1.5)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']}
+      ${p => p.theme.space.lg};
   }
 `;

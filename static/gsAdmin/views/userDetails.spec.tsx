@@ -2,7 +2,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import UserDetails from 'admin/views/userDetails';
+import {UserDetails} from 'admin/views/userDetails';
 
 describe('User Details', () => {
   const mockUser = UserFixture({
@@ -19,7 +19,7 @@ describe('User Details', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/users/${mockUser.id}/customers/`,
+      url: `/_admin/cells/us/users/${mockUser.id}/customers/`,
       body: [{}],
     });
 

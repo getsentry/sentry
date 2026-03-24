@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {space} from 'sentry/styles/space';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {defined} from 'sentry/utils';
 
 import type {ViewHierarchyWindow} from '.';
@@ -30,11 +29,11 @@ function DetailsPanel({data, getTitle}: DetailsPanelProps) {
 export {DetailsPanel};
 
 const Title = styled('header')`
-  margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-bottom: ${p => p.theme.space.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Container = styled('div')`
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   padding-bottom: 0;
 `;

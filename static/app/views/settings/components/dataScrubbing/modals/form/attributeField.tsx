@@ -1,16 +1,15 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Input} from 'sentry/components/core/input';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Input} from '@sentry/scraps/input';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   elideTagBasedAttributes,
   useTraceItemAttributeKeys,
@@ -22,20 +21,29 @@ import {
 } from 'sentry/views/settings/components/dataScrubbing/types';
 import {TraceItemFieldSelector} from 'sentry/views/settings/components/dataScrubbing/utils';
 
+type FieldProps = {
+  'aria-describedby': string;
+  'aria-invalid': boolean;
+  disabled: boolean;
+  id: string;
+  name: string;
+  onBlur: () => void;
+};
+
 type Props = {
   dataset: AllowedDataScrubbingDatasets;
+  fieldProps: FieldProps;
   onChange: (value: string) => void;
   value: string;
-  error?: string;
   onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
   projectId?: Project['id'];
 };
 
-export default function AttributeField({
+export function AttributeField({
   dataset,
+  fieldProps,
   onChange,
   value,
-  error,
   onBlur,
   projectId,
 }: Props) {
@@ -78,7 +86,7 @@ export default function AttributeField({
     setSuggestedAttributeValues,
   ]);
 
-  const suggestions: AttributeSuggestion[] = useMemo(() => {
+  const suggestions = useMemo(() => {
     if (!suggestedAttributeValues) {
       return [];
     }
@@ -133,8 +141,9 @@ export default function AttributeField({
         setShowSuggestions(false);
       }, 150);
       onBlur?.(event.target.value, event);
+      fieldProps.onBlur();
     },
-    [onBlur]
+    [onBlur, fieldProps]
   );
 
   const handleClickSuggestion = useCallback(
@@ -180,48 +189,39 @@ export default function AttributeField({
   );
 
   return (
-    <FieldGroup
-      label={t('Attribute')}
-      help={t('The attribute to scrub')}
-      inline={false}
-      flexibleControlStateSize
-      stacked
-      required
-      showHelpInTooltip
-    >
-      <Wrapper>
-        {traceItemAttributeStringsResult.isLoading &&
-        !Object.keys(suggestedAttributeValues).length ? (
-          <LoadingIndicator style={{margin: '0 auto'}} size={20} />
-        ) : (
-          <Fragment>
-            <StyledInput
-              type="text"
-              placeholder={t('Select or type attribute')}
-              value={_field}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-              error={!!error}
-            />
-            {showSuggestions && filteredSuggestions.length > 0 && (
-              <Suggestions>
-                {filteredSuggestions.slice(0, 50).map((suggestion, index) => (
-                  <Suggestion
-                    key={suggestion.value}
-                    active={index === activeSuggestion}
-                    onClick={() => handleClickSuggestion(suggestion)}
-                  >
-                    <TextOverflow>{suggestion.value}</TextOverflow>
-                  </Suggestion>
-                ))}
-              </Suggestions>
-            )}
-          </Fragment>
-        )}
-      </Wrapper>
-    </FieldGroup>
+    <Wrapper>
+      {traceItemAttributeStringsResult.isLoading &&
+      !Object.keys(suggestedAttributeValues).length ? (
+        <LoadingIndicator style={{margin: '0 auto'}} size={20} />
+      ) : (
+        <Fragment>
+          <StyledInput
+            {...fieldProps}
+            type="text"
+            aria-label={t('Attribute')}
+            placeholder={t('Select or type attribute')}
+            value={_field}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+          />
+          {showSuggestions && filteredSuggestions.length > 0 && (
+            <Suggestions>
+              {filteredSuggestions.slice(0, 50).map((suggestion, index) => (
+                <Suggestion
+                  key={suggestion.value}
+                  active={index === activeSuggestion}
+                  onClick={() => handleClickSuggestion(suggestion)}
+                >
+                  <TextOverflow>{suggestion.value}</TextOverflow>
+                </Suggestion>
+              ))}
+            </Suggestions>
+          )}
+        </Fragment>
+      )}
+    </Wrapper>
   );
 }
 
@@ -230,7 +230,7 @@ const Wrapper = styled('div')`
   width: 100%;
 `;
 
-const StyledInput = styled(Input)<{error: boolean}>`
+const StyledInput = styled(Input)`
   width: 100%;
 `;
 
@@ -241,10 +241,10 @@ const Suggestions = styled('ul')`
   list-style: none;
   margin-bottom: 0;
   box-shadow: 0 2px 0 rgba(37, 11, 54, 0.04);
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 ${space(0.5)} ${space(0.5)};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.space.xs};
   background: ${p => p.theme.tokens.background.primary};
-  top: 100%;
+  top: calc(100% + ${p => p.theme.space.xs});
   left: 0;
   z-index: 1002;
   overflow: hidden;
@@ -255,14 +255,17 @@ const Suggestions = styled('ul')`
 const Suggestion = styled('li')<{active: boolean}>`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
+  gap: ${p => p.theme.space.md};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  font-size: ${p => p.theme.font.size.md};
   cursor: pointer;
   background: ${p =>
-    p.active ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
+    p.active ? p.theme.tokens.background.secondary : p.theme.tokens.background.primary};
   :hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+  :active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;

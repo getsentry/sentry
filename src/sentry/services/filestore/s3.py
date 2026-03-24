@@ -99,7 +99,7 @@ def safe_join(base, *paths):
     if not final_path.startswith(base_path) or final_path[
         base_path_len : base_path_len + 1
     ] not in ("", "/"):
-        raise ValueError("the joined path is located outside of the base path" " component")
+        raise ValueError("the joined path is located outside of the base path component")
 
     return final_path.lstrip("/")
 
@@ -333,7 +333,6 @@ class S3Boto3Storage(Storage):
         # urllib/requests libraries read. See https://github.com/boto/boto3/issues/338
         # and http://docs.python-requests.org/en/latest/user/advanced/#proxies
         if self._connection is None:
-
             # If this is running on an ec2 instance, allow boto to connect using an IAM role
             # instead of explicitly provided an access key and secret
             # http://boto3.readthedocs.io/en/latest/guide/configuration.html#iam-role

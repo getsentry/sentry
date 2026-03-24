@@ -6,7 +6,10 @@ from packaging.version import InvalidVersion, Version
 from sentry.db.models import NodeData
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
+    FunctionAndModulePattern,
+    SDKCrashDetectionConfig,
+)
 
 
 class SDKCrashDetector:
@@ -87,25 +90,80 @@ class SDKCrashDetector:
         # Cocoa SDK frames can be marked as in_app. Therefore, the algorithm only checks if frames
         # are SDK frames or from system libraries.
         iter_frames = [f for f in reversed(frames) if f is not None]
+
+        # For efficiency, we first check if an SDK frame appears before any non-system frame
+        # (Loop 1). Most crashes are not SDK crashes, so we avoid the overhead of the ignore
+        # checks in the common case. Only if we detect a potential SDK crash do we run the
+        # additional validation loops (Loop 2 and Loop 3).
+
+        # Loop 1: Check if the first non-system frame (closest to crash origin) is an SDK frame.
+        potential_sdk_crash = False
         for frame in iter_frames:
-            function = frame.get("function")
-            module = frame.get("module")
-
-            if function:
-                for matcher in self.config.sdk_crash_ignore_matchers:
-                    function_matches = glob_match(
-                        function, matcher.function_pattern, ignorecase=True
-                    )
-                    module_matches = glob_match(module, matcher.module_pattern, ignorecase=True)
-
-                    if function_matches and module_matches:
-                        return False
-
             if self.is_sdk_frame(frame):
-                return True
+                potential_sdk_crash = True
+                break
 
             if not self.is_system_library_frame(frame):
+                # A non-SDK, non-system frame (e.g., app code) appeared first.
                 return False
+
+        if not potential_sdk_crash:
+            return False
+
+        # Loop 2: Check if any frame (up to the first SDK frame) matches sdk_crash_ignore_matchers.
+        # These are SDK methods used for testing (e.g., +[SentrySDK crash]) that intentionally
+        # trigger crashes and should not be reported as SDK crashes. We only check frames up to
+        # the first SDK frame to match the original single-loop algorithm behavior.
+        for frame in iter_frames:
+            if self._matches_sdk_crash_ignore(frame):
+                return False
+            if self.is_sdk_frame(frame):
+                # Stop at the first SDK frame; don't check older frames in the call stack.
+                break
+
+        # Loop 3: Check if the only SDK frame is a "conditional" one (e.g., SentrySwizzleWrapper).
+        # These are SDK instrumentation frames that intercept calls but are unlikely to cause
+        # crashes themselves. A single conditional frame is not reported, but multiple SDK frames
+        # (even if all conditional) are reported to prefer over-reporting over under-reporting.
+        conditional_sdk_frame_count = 0
+        has_non_conditional_sdk_frame = False
+        for frame in iter_frames:
+            if self.is_sdk_frame(frame):
+                if self._matches_sdk_crash_ignore(frame):
+                    continue
+                if self._matches_ignore_when_only_sdk_frame(frame):
+                    conditional_sdk_frame_count += 1
+                else:
+                    has_non_conditional_sdk_frame = True
+                    break
+
+        if conditional_sdk_frame_count == 1 and not has_non_conditional_sdk_frame:
+            return False
+
+        # Passed all ignore checks: this is an SDK crash.
+        return True
+
+    def _matches_ignore_when_only_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
+        return self._matches_frame_pattern(
+            frame, self.config.sdk_crash_ignore_when_only_sdk_frame_matchers
+        )
+
+    def _matches_sdk_crash_ignore(self, frame: Mapping[str, Any]) -> bool:
+        return self._matches_frame_pattern(frame, self.config.sdk_crash_ignore_matchers)
+
+    def _matches_frame_pattern(
+        self, frame: Mapping[str, Any], matchers: set[FunctionAndModulePattern]
+    ) -> bool:
+        function = frame.get("function")
+        if not function:
+            return False
+
+        module = frame.get("module")
+        for matcher in matchers:
+            function_matches = glob_match(function, matcher.function_pattern, ignorecase=True)
+            module_matches = glob_match(module, matcher.module_pattern, ignorecase=True)
+            if function_matches and module_matches:
+                return True
 
         return False
 

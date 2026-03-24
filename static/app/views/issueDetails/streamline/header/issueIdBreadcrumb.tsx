@@ -1,23 +1,23 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ShortId from 'sentry/components/shortId';
+import {ShortId} from 'sentry/components/shortId';
 import {IconCopy, IconGlobe} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
-import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {getShareUrl, ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
 
 interface ShortIdBreadcrumbProps {
   group: Group;
@@ -68,12 +68,12 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           </Tooltip>
           {isHovered && (
             <Button
-              title={t('Copy Issue Short-ID')}
+              tooltipProps={{title: t('Copy Issue Short-ID')}}
               aria-label={t('Copy Issue Short-ID')}
               onClick={handleCopyShortId}
               size="zero"
-              borderless
-              icon={<IconCopy size="xs" color="subText" />}
+              priority="transparent"
+              icon={<IconCopy size="xs" variant="muted" />}
             />
           )}
         </ShortIdCopyable>
@@ -81,13 +81,15 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
       {!isHovered && group.isPublic && shareUrl && (
         <Button
           size="zero"
-          borderless
+          priority="transparent"
           aria-label={t('View issue share settings')}
-          icon={<IconGlobe size="xs" color="subText" />}
-          title={tct('This issue has been shared [link:with a public link].', {
-            link: <ExternalLink href={shareUrl} />,
-          })}
-          tooltipProps={{isHoverable: true}}
+          icon={<IconGlobe size="xs" variant="muted" />}
+          tooltipProps={{
+            isHoverable: true,
+            title: tct('This issue has been shared [link:with a public link].', {
+              link: <ExternalLink href={shareUrl} />,
+            }),
+          }}
           onClick={() =>
             openModal(modalProps => (
               <ShareIssueModal
@@ -112,14 +114,14 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
 }
 
 const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 
 const ShortIdCopyable = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   /* hardcoded height avoids layout shift on button hover */
   height: 36px;

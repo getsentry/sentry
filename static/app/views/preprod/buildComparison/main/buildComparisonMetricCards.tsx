@@ -12,7 +12,11 @@ import type {
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
-import {getLabels, getTrend} from 'sentry/views/preprod/utils/labelUtils';
+import {
+  formattedSizeDiff,
+  getLabels,
+  getTrend,
+} from 'sentry/views/preprod/utils/labelUtils';
 
 interface BuildComparisonMetricCardsProps {
   comparisonResponse: SizeComparisonApiResponse | undefined;
@@ -113,8 +117,7 @@ export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProp
                       gap: '0.25em',
                     }}
                   >
-                    {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
-                    {formatBytesBase10(Math.abs(metric.diff))}
+                    {formattedSizeDiff(metric.diff)}
                     {metric.percentageChange !== 0 && (
                       <Text
                         as="span"

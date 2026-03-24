@@ -2,15 +2,16 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import IdBadge from 'sentry/components/idBadge';
-import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
-import BookmarkStar from 'sentry/components/projects/bookmarkStar';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IdBadge} from 'sentry/components/idBadge';
+import {Panel} from 'sentry/components/panels/panel';
+import {Placeholder} from 'sentry/components/placeholder';
+import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   Score,
   ScoreCard,
@@ -21,20 +22,19 @@ import {
 } from 'sentry/components/scoreCard';
 import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getPerformanceBaseUrl,
   platformToDomainView,
 } from 'sentry/views/performance/utils';
-import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
   displayCrashFreePercent,
@@ -48,7 +48,10 @@ interface ProjectCardProps {
   project: Project;
 }
 
-function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProps) {
+export function ProjectCard({
+  project: simpleProject,
+  hasProjectAccess,
+}: ProjectCardProps) {
   const api = useApi();
   const organization = useOrganization();
 
@@ -124,17 +127,17 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
             hideOverflow
             disableLink={!hasProjectAccess}
           />
-          <ButtonBar gap="xs">
+          <Grid flow="column" align="center" gap="xs">
             <SettingsButton
-              borderless
+              priority="transparent"
               size="zero"
-              icon={<IconSettings color="subText" />}
-              title={t('Settings')}
+              icon={<IconSettings variant="muted" />}
+              tooltipProps={{title: t('Settings')}}
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
             />
             <BookmarkStar organization={organization} project={project} />
-          </ButtonBar>
+          </Grid>
         </HeaderRow>
         <SummaryLinks data-test-id="summary-links">
           {stats ? (
@@ -216,9 +219,9 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
 const CardPanel = styled(Panel)`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   height: 100%;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   margin: 0;
 `;
 
@@ -229,24 +232,24 @@ const CardHeader = styled('div')`
 const CardFooter = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ChartContainer = styled('div')`
   position: relative;
-  margin: 0 -${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
+  margin: 0 -${p => p.theme.space.xl};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: 0 ${space(0.5)};
+  gap: 0 ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
 `;
 
@@ -267,39 +270,39 @@ const AlignedIdBadge = styled(IdBadge)`
 
 const SummaryLinks = styled('div')`
   display: inline-flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   position: relative;
-  top: -${space(2)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  top: -${p => p.theme.space.xl};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 
   /* Need to offset for the project icon and margin */
   margin-left: 40px;
 
   a:not(:hover) {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 
   & > *:not(:last-child)::after {
     content: '|';
     position: relative;
-    left: ${space(0.5)};
-    color: ${p => p.theme.subText};
+    left: ${p => p.theme.space.xs};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const SummaryLinkPlaceholder = styled(Placeholder)`
   height: 15px;
   width: 180px;
-  margin-top: ${space(0.25)};
-  margin-bottom: ${space(0.5)};
+  margin-top: ${p => p.theme.space['2xs']};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const TransactionsLink = styled(Link)`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
 `;
 
@@ -315,9 +318,9 @@ const ScoreCardWrapper = styled('div')`
     margin: 0;
   }
   ${Title} {
-    font-size: ${p => p.theme.fontSize.md};
-    color: ${p => p.theme.subText};
-    margin-bottom: ${space(0.5)};
+    font-size: ${p => p.theme.font.size.md};
+    color: ${p => p.theme.tokens.content.secondary};
+    margin-bottom: ${p => p.theme.space.xs};
   }
   ${ScoreWrapper} {
     flex-direction: column;
@@ -328,20 +331,18 @@ const ScoreCardWrapper = styled('div')`
   }
   ${Trend} {
     margin-left: 0;
-    margin-top: ${space(0.5)};
+    margin-top: ${p => p.theme.space.xs};
   }
 `;
 
 const SubHeading = styled('div')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const FooterPlaceholder = styled(Placeholder)`
   height: 40px;
   width: auto;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
-
-export default ProjectCard;

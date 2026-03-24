@@ -1,7 +1,7 @@
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -13,7 +13,7 @@ export function generateIssueWidgetFieldOptions(
   organization: Organization,
   displayType: DisplayType = DisplayType.TABLE
 ): Record<string, SelectValue<FieldValue>> {
-  const issueFields: Record<string, ColumnType> = isChartDisplayType(displayType)
+  const issueFields: Record<string, ColumnType> = usesTimeSeriesData(displayType)
     ? ISSUE_SERIES_FIELDS
     : ISSUE_TABLE_FIELDS;
   const fieldKeys = Object.keys(issueFields).sort();

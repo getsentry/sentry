@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import AwsLambdaFunctionSelect from 'sentry/views/integrationPipeline/awsLambdaFunctionSelect';
+import {AwsLambdaFunctionSelect} from 'sentry/views/integrationPipeline/awsLambdaFunctionSelect';
 
 describe('AwsLambdaFunctionSelect', () => {
   it('choose lambdas', async () => {

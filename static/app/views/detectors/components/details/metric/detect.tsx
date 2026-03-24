@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   FilterWrapper,
   ProvidedFormattedQuery,
@@ -31,6 +30,7 @@ import {
   isAnomalyDetectionComparison,
 } from 'sentry/views/detectors/utils/anomalyDetectionLabels';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 
 function getDetectorTypeLabel(detector: MetricDetector) {
   if (detector.config.detectionType === 'dynamic') {
@@ -85,8 +85,6 @@ export function getConditionDescription({
   condition: MetricCondition;
   config: MetricDetector['config'];
 }) {
-  const comparisonValue =
-    typeof condition.comparison === 'number' ? String(condition.comparison) : '';
   const unit = getMetricDetectorSuffix(config.detectionType, aggregate);
 
   if (config.detectionType === 'dynamic') {
@@ -105,17 +103,21 @@ export function getConditionDescription({
     return t('Dynamic threshold');
   }
 
+  // This should never happen, but we need to narrow the type
+  if (typeof condition.comparison !== 'number') {
+    return t('Invalid comparison value');
+  }
+
   if (config.detectionType === 'percent') {
-    const direction =
-      condition.type === DataConditionType.GREATER ? t('higher') : t('lower');
-    const delta = config.comparisonDelta;
-    const timeRange = getExactDuration(delta);
+    const direction = condition.comparison >= 100 ? t('higher') : t('lower');
+    const deltaComparison = percentThresholdAbsoluteToDelta(condition.comparison);
+    const timeRange = getExactDuration(config.comparisonDelta);
 
     if (condition.conditionResult === DetectorPriorityLevel.OK) {
       return t(
-        `Less than %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+        `Below or equal to %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
         {
-          comparisonValue,
+          comparisonValue: deltaComparison,
           unit,
           direction,
           timeRange,
@@ -126,7 +128,7 @@ export function getConditionDescription({
     return t(
       `%(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
       {
-        comparisonValue,
+        comparisonValue: deltaComparison,
         unit,
         direction,
         timeRange,
@@ -134,7 +136,7 @@ export function getConditionDescription({
     );
   }
 
-  return `${makeDirectionText(condition)} ${comparisonValue}${unit}`;
+  return `${makeDirectionText(condition)} ${condition.comparison}${unit}`;
 }
 
 function DetectorPriorities({detector}: {detector: MetricDetector}) {
@@ -243,10 +245,10 @@ const Query = styled('dl')`
 `;
 
 const Label = styled('dt')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   justify-self: flex-end;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const Value = styled('dl')`

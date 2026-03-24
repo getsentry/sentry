@@ -1,8 +1,9 @@
 import startCase from 'lodash/startCase';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
   error?: RequestError | null;
@@ -24,7 +25,7 @@ export function ProjectCreationErrorAlert({error}: Props) {
 
   return (
     <Alert.Container>
-      <Alert type="error" showIcon={false}>
+      <Alert variant="danger" showIcon={false}>
         {Object.keys(response).map(key => (
           <div key={key}>
             <strong>{keyToErrorText?.[key] ?? startCase(key)}</strong>:{' '}

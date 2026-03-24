@@ -1,21 +1,21 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
-import EventMessage from 'sentry/components/events/eventMessage';
+import {EventMessage} from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ShortId from 'sentry/components/shortId';
+import {ShortId} from 'sentry/components/shortId';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 type Props = {
   group: Group;
 };
 
-function SharedGroupHeader({group}: Props) {
+export function SharedGroupHeader({group}: Props) {
   const date = new Date(
     (group.latestEvent?.dateCreated ?? group.latestEvent?.dateReceived) as string
   );
@@ -53,18 +53,16 @@ function SharedGroupHeader({group}: Props) {
           message={group.culprit}
           level={group.level}
           type={group.type}
-          data={group}
         />
       </Details>
     </Wrapper>
   );
 }
 
-export default SharedGroupHeader;
-
 const Wrapper = styled('div')`
-  padding: ${space(3)} ${space(4)} ${space(3)} ${space(4)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']}
+    ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
 `;
 
@@ -77,26 +75,30 @@ const TitleWrap = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Title = styled('h3')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.xl};
-  line-height: ${p => p.theme.text.lineHeightHeading};
-  margin-right: ${space(2)};
+  font-size: ${p => p.theme.font.size.xl};
+  line-height: ${p => p.theme.font.lineHeight.default};
+  margin-right: ${p => p.theme.space.xl};
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TimeStamp = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: ${p => p.theme.text.lineHeightHeading};
-  margin-top: ${space(0.25)};
+  font-size: ${p => p.theme.font.size.md};
+  line-height: ${p => p.theme.font.lineHeight.default};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const EventTimeLabel = styled('span')`
-  color: ${p => p.theme.subText};
-  margin-left: ${space(0.25)};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-left: ${p => p.theme.space['2xs']};
 `;

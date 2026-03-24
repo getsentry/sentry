@@ -2,19 +2,18 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventTagsTreeRow, {
+import {
+  EventTagsTreeRow,
   type EventTagsTreeRowProps,
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -204,8 +203,7 @@ function TagTreeColumns({
   return <Fragment>{assembledColumns}</Fragment>;
 }
 
-function EventTagsTree(props: EventTagsTreeProps) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
+export function EventTagsTree(props: EventTagsTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
@@ -214,7 +212,6 @@ function EventTagsTree(props: EventTagsTreeProps) {
         columnCount={columnCount}
         ref={containerRef}
         data-test-id="event-tags-tree"
-        style={hasStreamlinedUI ? {marginTop: 0} : undefined}
       >
         <TagTreeColumns columnCount={columnCount} {...props} />
       </TreeContainer>
@@ -223,7 +220,6 @@ function EventTagsTree(props: EventTagsTreeProps) {
 }
 
 export const TreeContainer = styled('div')<{columnCount: number}>`
-  margin-top: ${space(1.5)};
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
@@ -232,23 +228,21 @@ export const TreeContainer = styled('div')<{columnCount: number}>`
 export const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 175px) 1fr;
-  grid-column-gap: ${space(3)};
+  grid-column-gap: ${p => p.theme.space['2xl']};
   &:first-child {
-    margin-left: -${space(1)};
+    margin-left: -${p => p.theme.space.md};
   }
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    padding-left: ${space(2)};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    padding-left: ${p => p.theme.space.xl};
     margin-left: -1px;
   }
   &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    padding-right: ${space(2)};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
+    padding-right: ${p => p.theme.space.xl};
   }
 `;
 
 const TreeLoadingIndicator = styled(LoadingIndicator)`
   grid-column: 1 /-1;
 `;
-
-export default EventTagsTree;

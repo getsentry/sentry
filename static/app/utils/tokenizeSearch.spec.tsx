@@ -230,10 +230,39 @@ describe('utils/tokenizeSearch', () => {
           ],
         },
       },
+      {
+        name: 'should handle trailing paren when quoted value contains parens',
+        string: '(key:"value with (parens)")',
+        object: {
+          tokens: [
+            {type: TokenType.OPERATOR, value: '('},
+            {type: TokenType.FILTER, key: 'key', value: 'value with (parens)'},
+            {type: TokenType.OPERATOR, value: ')'},
+          ],
+        },
+      },
+      {
+        name: 'should handle complex SQL-like query in quoted value with grouping parens',
+        string: '(span.category:db description:"SELECT * FROM users WHERE id = func(1)")',
+        object: {
+          tokens: [
+            {type: TokenType.OPERATOR, value: '('},
+            {type: TokenType.FILTER, key: 'span.category', value: 'db'},
+            {
+              type: TokenType.FILTER,
+              key: 'description',
+              value: 'SELECT * FROM users WHERE id = func(1)',
+            },
+            {type: TokenType.OPERATOR, value: ')'},
+          ],
+        },
+      },
     ];
 
     for (const {name, string, object} of cases) {
-      it(`${name}`, () => expect(new MutableSearch(string)).toEqual(object));
+      // https://github.com/jest-community/eslint-plugin-jest/issues/1940
+      // eslint-disable-next-line jest/valid-title
+      it(name, () => expect(new MutableSearch(string)).toEqual(object));
     }
   });
 
@@ -651,10 +680,58 @@ describe('utils/tokenizeSearch', () => {
         object: new MutableSearch(['message:\uf00dEndsWith\uf00d"test value"']),
         string: 'message:\uf00dEndsWith\uf00d"test value"',
       },
+      {
+        name: 'should preserve grouping parens when quoted value contains parens',
+        object: new MutableSearch(['(key:"value with (parens)")']),
+        string: '( key:"value with (parens)" )',
+      },
+      {
+        name: 'should preserve complex query with SQL-like quoted value and grouping parens',
+        object: new MutableSearch([
+          '(span.category:db',
+          'description:"SELECT * FROM users WHERE id = func(1)")',
+        ]),
+        string:
+          '( span.category:db description:"SELECT * FROM users WHERE id = func(1)" )',
+      },
     ];
 
     for (const {name, string, object} of cases) {
-      it(`${name}`, () => expect(object.formatString()).toEqual(string));
+      // https://github.com/jest-community/eslint-plugin-jest/issues/1940
+      // eslint-disable-next-line jest/valid-title
+      it(name, () => expect(object.formatString()).toEqual(string));
     }
+  });
+
+  describe('renameFilter', () => {
+    it('renames a simple filter key', () => {
+      const search = new MutableSearch('request.method:GET');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('http.method:GET');
+    });
+
+    it('renames negated filter keys', () => {
+      const search = new MutableSearch('!request.method:GET');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('!http.method:GET');
+    });
+
+    it('preserves OR grouping', () => {
+      const search = new MutableSearch('(request.method:GET OR request.method:POST)');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('( http.method:GET OR http.method:POST )');
+    });
+
+    it('does not rename unrelated keys', () => {
+      const search = new MutableSearch('request.method:GET browser:Chrome');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('http.method:GET browser:Chrome');
+    });
+
+    it('is a no-op when key is not present', () => {
+      const search = new MutableSearch('browser:Chrome');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('browser:Chrome');
+    });
   });
 });

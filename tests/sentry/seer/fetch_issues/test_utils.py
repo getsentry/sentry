@@ -29,6 +29,8 @@ class TestGetRepoAndProjects(TestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="123",
+            owner="getsentry",
+            name="sentry",
         )
 
         assert isinstance(result, RepoProjects)
@@ -56,6 +58,8 @@ class TestGetRepoAndProjects(TestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="123",
+            owner="getsentry",
+            name="sentry",
         )
 
         assert len(result.repo_configs) == 2
@@ -76,6 +80,48 @@ class TestGetRepoAndProjects(TestCase):
                 organization_id=self.organization.id,
                 provider="integrations:github",
                 external_id="123",
+                owner="getsentry",
+                name="sentry",
+            )
+
+    def test_get_repo_and_projects_unprefixed_provider(self):
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        result = get_repo_and_projects(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result.repo == repo
+        assert len(result.projects) == 1
+
+    def test_get_repo_and_projects_with_wrong_owner_not_found(self):
+        from sentry.models.repository import Repository
+
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        with pytest.raises(Repository.DoesNotExist):
+            get_repo_and_projects(
+                organization_id=self.organization.id,
+                provider="github",
+                external_id="123",
+                owner="wrong-owner",
+                name="sentry",
             )
 
     def test_get_repo_and_projects_repo_not_found(self):
@@ -86,6 +132,8 @@ class TestGetRepoAndProjects(TestCase):
                 organization_id=self.organization.id,
                 provider="integrations:github",
                 external_id="nonexistent",
+                owner="getsentry",
+                name="sentry",
             )
 
 
@@ -240,6 +288,18 @@ class TestGetLatestIssueEvent(TestCase):
         assert group is not None
         results = get_latest_issue_event(group.id, self.organization.id + 1)
         assert results == {}
+
+    def test_get_latest_issue_event_numeric_id_cross_org(self):
+        """Numeric group ID from another org must not be returned."""
+        other_org = self.create_organization(owner=self.create_user())
+        other_project = self.create_project(organization=other_org)
+        data = load_data("python", timestamp=before_now(minutes=1))
+        other_event = self.store_event(data=data, project_id=other_project.id)
+        other_group = other_event.group
+        assert other_group is not None
+
+        result = get_latest_issue_event(other_group.id, self.organization.id)
+        assert result == {}
 
 
 class TestHandleFetchIssuesExceptions(TestCase):

@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -13,8 +14,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {keepPreviousData as keepPreviousDataFn} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   RPCQueryExtras,
   SamplingMode,
@@ -306,8 +306,8 @@ function useWrappedDiscoverQueryBase<T>({
     }
   }
 
-  if (typeof caseInsensitive === 'number') {
-    queryExtras.caseInsensitive = caseInsensitive.toString();
+  if (typeof caseInsensitive === 'boolean' && caseInsensitive) {
+    queryExtras.caseInsensitive = '1';
   }
 
   if (Array.isArray(logQuery) && logQuery.length > 0) {

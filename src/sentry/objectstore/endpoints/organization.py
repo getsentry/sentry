@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 from collections.abc import Callable, Generator
 from typing import Any
 from urllib.parse import urlparse
 from wsgiref.util import is_hop_by_hop
 
 import requests
-from django.http import StreamingHttpResponse
+from django.http import HttpRequest, StreamingHttpResponse
 from requests import Response as ExternalResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
+
+from sentry.utils.http import BodyWithLength
 
 # TODO(granian): Remove this and related code paths when we fully switch from uwsgi to granian
 uwsgi: Any = None
@@ -19,12 +23,14 @@ except ImportError:
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationReleasePermission
 from sentry.models.organization import Organization
+from sentry.objectstore import parse_accept_encoding
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -33,6 +39,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FOUNDATIONAL_STORAGE
+    permission_classes = (OrganizationReleasePermission,)
     parser_classes = ()  # don't attempt to parse request data, so we can access the raw body in wsgi.input
 
     def _check_flag(self, request: Request, organization: Organization) -> Response | None:
@@ -82,48 +89,65 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
-
         headers.pop("Host", None)
         headers.pop("Content-Length", None)
-        transfer_encoding = headers.pop("Transfer-Encoding", "")
-
-        stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
-        wsgi_input = request.META.get("wsgi.input")
-
-        if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
-            stream = wsgi_input
-        # uwsgi and wsgiref will respectively raise an exception and hang when attempting to read wsgi.input while there's no body.
-        # For now, support bodies only on PUT and POST requests.
-        elif request.method in ("PUT", "POST"):
-            if uwsgi:
-                if transfer_encoding.lower() == "chunked":
-
-                    def stream_generator():
-                        while True:
-                            chunk = uwsgi.chunked_read()
-                            if not chunk:
-                                break
-                            yield chunk
-
-                    stream = stream_generator()
-                else:
-                    stream = wsgi_input
-
-            else:
-                # This code path assumes wsgiref, used in dev/test mode.
-                # Note that we don't handle non-chunked transfer encoding here as our client (which we use for tests) always uses chunked encoding.
-                stream = ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
+        headers.pop("Transfer-Encoding", None)
 
         response = requests.request(
             request.method,
             url=target_url,
             headers=headers,
-            data=stream,
+            data=get_raw_body(request._request),
             params=dict(request.GET) if request.GET else None,
             stream=True,
             allow_redirects=False,
         )
-        return stream_response(response)
+
+        content_encoding = response.headers.get("Content-Encoding", "").strip().lower()
+        accepted_encodings = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
+        decode_content = bool(content_encoding) and content_encoding not in accepted_encodings
+
+        return stream_response(response, decode_content=decode_content)
+
+
+def get_raw_body(
+    request: HttpRequest,
+) -> bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None:
+    if request.body:
+        return request.body
+
+    wsgi_input = request.META.get("wsgi.input")
+    if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
+        return wsgi_input
+
+    # uwsgi and wsgiref will respectively raise an exception and hang when attempting to read wsgi.input while there's no body.
+    # For now, support bodies only on PUT and POST requests when not using Granian.
+    if request.method not in ("PUT", "POST"):
+        return None
+
+    if uwsgi:
+        if request.headers.get("Transfer-Encoding", "").lower() == "chunked":
+
+            def stream_generator():
+                while True:
+                    chunk = uwsgi.chunked_read()
+                    if not chunk:
+                        break
+                    yield chunk
+
+            return stream_generator()
+
+        return wsgi_input
+
+    # wsgiref (dev/test server)
+    if (
+        hasattr(wsgi_input, "_read")
+        and request.headers.get("Transfer-Encoding", "").lower() == "chunked"
+    ):
+        return ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
+
+    # wsgiref and the request has been already proxied through control silo
+    return BodyWithLength(request)
 
 
 def get_target_url(path: str) -> str:
@@ -137,11 +161,13 @@ def get_target_url(path: str) -> str:
     return target
 
 
-def stream_response(external_response: ExternalResponse) -> StreamingHttpResponse:
+def stream_response(
+    external_response: ExternalResponse, decode_content: bool = False
+) -> StreamingHttpResponse:
     CHUNK_SIZE = 512 * 1024
 
     def stream_generator() -> Generator[bytes]:
-        external_response.raw.decode_content = False
+        external_response.raw.decode_content = decode_content
         while True:
             chunk = external_response.raw.read(CHUNK_SIZE)
             if not chunk:
@@ -156,6 +182,8 @@ def stream_response(external_response: ExternalResponse) -> StreamingHttpRespons
     for header, value in external_response.headers.items():
         if header.lower() == "server":
             continue
+        if decode_content and header.lower() in ("content-encoding", "content-length"):
+            continue  # Body was decompressed; length and encoding no longer match
         if not is_hop_by_hop(header):
             response[header] = value
 

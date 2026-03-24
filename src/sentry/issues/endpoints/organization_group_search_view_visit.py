@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
@@ -18,7 +18,7 @@ class MemberPermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
@@ -36,11 +36,11 @@ class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         # Create or update the last_visited timestamp
-        GroupSearchViewLastVisited.objects.create_or_update(
+        GroupSearchViewLastVisited.objects.update_or_create(
             organization=organization,
             user_id=request.user.id,
             group_search_view=view,
-            values={"last_visited": timezone.now()},
+            defaults={"last_visited": timezone.now()},
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)

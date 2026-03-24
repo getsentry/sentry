@@ -16,7 +16,7 @@ export function JiraIntegrationFixture(
       aspects: {
         alerts: [
           {
-            type: 'warning',
+            variant: 'warning',
             text: 'This is a an alert example',
           },
         ],

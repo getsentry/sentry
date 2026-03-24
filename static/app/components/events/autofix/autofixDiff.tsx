@@ -3,10 +3,12 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {diffWords, type Change} from 'diff';
 
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
   DiffLineType,
@@ -17,11 +19,10 @@ import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getPrismLanguage} from 'sentry/utils/prism';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 type AutofixDiffProps = {
@@ -91,7 +92,7 @@ function detectLanguageFromPath(filePath: string): string {
 }
 
 const SyntaxHighlightedCode = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   white-space: pre;
 
   && pre,
@@ -477,7 +478,7 @@ function DiffHunkContent({
                   size="xs"
                   icon={<IconEdit size="xs" />}
                   aria-label={t('Edit changes')}
-                  title={t('Edit')}
+                  tooltipProps={{title: t('Edit')}}
                   onClick={() => handleEditClick(index)}
                   isHovered={hoveredGroup === index}
                 />
@@ -485,7 +486,7 @@ function DiffHunkContent({
                   size="xs"
                   icon={<IconClose size="xs" />}
                   aria-label={t('Reject changes')}
-                  title={t('Reject')}
+                  tooltipProps={{title: t('Reject')}}
                   onClick={() => rejectChanges(index)}
                   isHovered={hoveredGroup === index}
                 />
@@ -546,7 +547,7 @@ function DiffHunkContent({
                   onClick={handleClearChanges}
                   aria-label={t('Clear changes')}
                   icon={<IconDelete size="xs" />}
-                  title={t('Clear all new lines')}
+                  tooltipProps={{title: t('Clear all new lines')}}
                 />
               </TextAreaWrapper>
             </OverlayContent>
@@ -589,26 +590,26 @@ function FileDiff({
       {!integratedStyle && (
         <FileHeader onClick={() => setIsExpanded(value => !value)}>
           <InteractionStateLayer />
-          <FileAddedRemoved>
+          <Flex align="center" gap="md">
             <FileAdded>+{file.added}</FileAdded>
             <FileRemoved>-{file.removed}</FileRemoved>
-          </FileAddedRemoved>
+          </Flex>
           <FileName title={file.path}>{file.path}</FileName>
           <Button
             icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
             aria-label={t('Toggle file diff')}
             aria-expanded={isExpanded}
             size="zero"
-            borderless
+            priority="transparent"
           />
         </FileHeader>
       )}
       {integratedStyle && (
         <FileHeader>
-          <FileAddedRemoved>
+          <Flex align="center" gap="md">
             <FileAdded>+{file.added}</FileAdded>
             <FileRemoved>-{file.removed}</FileRemoved>
-          </FileAddedRemoved>
+          </Flex>
           <FileName title={file.path}>{file.path}</FileName>
         </FileHeader>
       )}
@@ -650,7 +651,7 @@ export function AutofixDiff({
   }
 
   return (
-    <DiffsColumn>
+    <Stack gap="md">
       {diff.map(file => (
         <AutofixHighlightWrapper
           key={file.path}
@@ -674,26 +675,21 @@ export function AutofixDiff({
           />
         </AutofixHighlightWrapper>
       ))}
-    </DiffsColumn>
+    </Stack>
   );
 }
 
-const DiffsColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
 const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   & code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
   line-height: 20px;
   vertical-align: middle;
-  border: 1px solid ${p => p.theme.border};
-  border-color: ${p => (p.integratedStyle ? 'transparent' : p.theme.border)};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-color: ${p =>
+    p.integratedStyle ? 'transparent' : p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   background-color: ${p => p.theme.tokens.background.primary};
@@ -704,24 +700,18 @@ const FileHeader = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: minmax(60px, auto) 1fr auto;
-  gap: ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
-  padding: ${space(1)} ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   cursor: pointer;
 `;
 
-const FileAddedRemoved = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const FileAdded = styled('div')`
-  color: ${p => p.theme.successText};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const FileRemoved = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const FileName = styled('div')`
@@ -733,7 +723,8 @@ const FileName = styled('div')`
 `;
 
 const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
-  border-top: ${p => (p.integratedStyle ? 'none' : '1px solid ' + p.theme.innerBorder)};
+  border-top: ${p =>
+    p.integratedStyle ? 'none' : '1px solid ' + p.theme.tokens.border.secondary};
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;
@@ -741,24 +732,25 @@ const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
 
 const HunkHeaderEmptySpace = styled('div')`
   grid-column: 1 / 3;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm}
+    ${p => p.theme.space['3xl']};
   white-space: pre-wrap;
 `;
 
 const LineNumber = styled('div')<{lineType: DiffLineType}>`
   display: flex;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   user-select: none;
 
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
@@ -774,8 +766,8 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 
 const DiffContent = styled('div')<{lineType: DiffLineType}>`
   position: relative;
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
+  padding-right: ${p => p.theme.space['3xl']};
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
@@ -797,7 +789,7 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
           : "''"};
     position: absolute;
     top: 1px;
-    left: ${space(1)};
+    left: ${p => p.theme.space.md};
   }
 `;
 
@@ -810,33 +802,32 @@ const CodeDiff = styled('span')<{added?: boolean; removed?: boolean}>`
 const ButtonGroup = styled('div')`
   position: absolute;
   top: 0;
-  right: ${space(0.5)};
+  right: ${p => p.theme.space.xs};
   display: flex;
 `;
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`
-  margin-left: ${space(0.5)};
-  font-family: ${p => p.theme.text.family};
-  background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.tokens.background.primary};
-  color: ${p => (p.isHovered ? p.theme.pink400 : p.theme.tokens.content.primary)};
+  margin-left: ${p => p.theme.space.xs};
+  font-family: ${p => p.theme.font.family.sans};
+  background-color: ${p => p.theme.tokens.background.primary};
+  color: ${p => (p.isHovered ? p.theme.colors.pink500 : p.theme.tokens.content.primary)};
   transition:
     background-color 0.2s ease-in-out,
     color 0.2s ease-in-out;
 
   &:hover {
-    background-color: ${p => p.theme.pink400}10;
-    color: ${p => p.theme.pink400};
+    background-color: ${p => p.theme.colors.pink500}10;
+    color: ${p => p.theme.colors.pink500};
   }
 `;
 
 const EditOverlay = styled('div')`
   position: fixed;
-  bottom: ${space(2)};
+  bottom: ${p => p.theme.space.xl};
   left: 50%;
-  right: ${space(2)};
-  background: ${p => p.theme.backgroundElevated};
-  border: 1px solid ${p => p.theme.border};
+  right: ${p => p.theme.space.xl};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   z-index: ${p => p.theme.zIndex.tooltip};
@@ -845,35 +836,35 @@ const EditOverlay = styled('div')`
   max-height: calc(100vh - 18rem);
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    left: ${space(2)};
+    left: ${p => p.theme.space.xl};
   }
 `;
 
 const OverlayHeader = styled('div')`
-  padding: ${space(2)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayContent = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   overflow-y: auto;
 `;
 
 const OverlayFooter = styled('div')`
-  padding: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.md};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayButtonGroup = styled('div')`
   display: flex;
   justify-content: flex-end;
-  gap: ${space(1)};
-  font-family: ${p => p.theme.text.family};
+  gap: ${p => p.theme.space.md};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const RemovedLines = styled('div')`
-  margin-bottom: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
+  margin-bottom: ${p => p.theme.space.md};
+  font-family: ${p => p.theme.font.family.mono};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
@@ -881,27 +872,27 @@ const RemovedLines = styled('div')`
 const RemovedLine = styled('div')`
   background-color: ${DIFF_COLORS.removedRow};
   color: ${p => p.theme.tokens.content.primary};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   white-space: pre-wrap;
 `;
 
 const StyledTextArea = styled(TextArea)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   background-color: ${DIFF_COLORS.addedRow};
-  border-color: ${p => p.theme.border};
+  border-color: ${p => p.theme.tokens.border.primary};
   position: relative;
   min-height: 250px;
 
   &:focus {
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.tokens.focus.default};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 
 const ClearButton = styled(Button)`
   position: absolute;
-  top: -${space(1)};
-  right: -${space(1)};
+  top: -${p => p.theme.space.md};
+  right: -${p => p.theme.space.md};
   z-index: 1;
 `;
 
@@ -910,23 +901,23 @@ const TextAreaWrapper = styled('div')`
 `;
 
 const SectionTitle = styled('p')`
-  margin: ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.md};
+  margin: ${p => p.theme.space.md} 0;
+  font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const NoChangesMessage = styled('p')`
-  margin: ${space(1)} 0;
-  color: ${p => p.theme.subText};
-  font-family: ${p => p.theme.text.family};
+  margin: ${p => p.theme.space.md} 0;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const OverlayTitle = styled('h3')`
-  margin: 0 0 ${space(2)} 0;
-  font-size: ${p => p.theme.fontSize.md};
+  margin: 0 0 ${p => p.theme.space.xl} 0;
+  font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;

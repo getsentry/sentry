@@ -5,10 +5,9 @@ import omit from 'lodash/omit';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -22,15 +21,16 @@ import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeatu
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
-import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {ReleaseSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
 import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
-import VitalCard from 'sentry/views/insights/mobile/screens/components/vitalCard';
+import {VitalCard} from 'sentry/views/insights/mobile/screens/components/vitalCard';
 import {VitalDetailPanel} from 'sentry/views/insights/mobile/screens/components/vitalDetailPanel';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {
@@ -42,6 +42,7 @@ import {
   type VitalItem,
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
+import {PlatformizedMobileVitalsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
 function ScreensLandingPage() {
@@ -61,7 +62,7 @@ function ScreensLandingPage() {
       {
         ...location,
         query: {
-          ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+          ...omit(location.query, ['primaryRelease']),
         },
       },
       {replace: true}
@@ -276,7 +277,7 @@ function ScreensLandingPage() {
                       <DatePageFilter {...datePageFilterProps} />
                     </PageFilterBar>
                     <PageFilterBar condensed>
-                      <ReleaseComparisonSelector primaryOnly moduleName={moduleName} />
+                      <ReleaseSelector moduleName={moduleName} />
                     </PageFilterBar>
                   </ToolRibbon>
                 </Container>
@@ -328,7 +329,7 @@ function ScreensLandingPage() {
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Flex = styled('div')<{gap?: number}>`
@@ -336,10 +337,18 @@ const Flex = styled('div')<{gap?: number}>`
   flex-direction: row;
   justify-content: center;
   width: 100%;
-  gap: ${p => (p.gap ? `${p.gap}px` : space(1))};
+  gap: ${p => (p.gap ? `${p.gap}px` : p.theme.space.md)};
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
-export default ScreensLandingPage;
+function ScreensLandingPageWithPlatformization() {
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  if (hasPlatformizedInsights) {
+    return <PlatformizedMobileVitalsOverview />;
+  }
+  return <ScreensLandingPage />;
+}
+
+export default ScreensLandingPageWithPlatformization;

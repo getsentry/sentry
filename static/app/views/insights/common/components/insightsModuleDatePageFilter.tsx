@@ -1,17 +1,19 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {Flex} from '@sentry/scraps/layout';
+
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {
   DatePageFilter,
   type DatePageFilterProps,
-} from 'sentry/components/organizations/datePageFilter';
+} from 'sentry/components/pageFilters/date/datePageFilter';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/settings';
 
 const DISABLED_OPTIONS = ['90d'];
@@ -19,7 +21,11 @@ const DISABLED_OPTIONS = ['90d'];
 export function InsightsModuleDatePageFilter() {
   const organization = useOrganization();
 
-  const legacyDateFilterProps: DatePageFilterProps = useMemo(() => {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
+  const legacyDateFilterProps = useMemo(() => {
     const dateFilterProps: DatePageFilterProps = {};
 
     const hasDateRangeQueryLimit = organization.features.includes(
@@ -47,14 +53,13 @@ export function InsightsModuleDatePageFilter() {
         return true;
       };
       dateFilterProps.menuFooter = <UpsellFooterHook />;
+    } else {
+      dateFilterProps.maxPickableDays = maxPickableDays.maxPickableDays;
     }
 
     return dateFilterProps;
-  }, [organization]);
+  }, [organization, maxPickableDays.maxPickableDays]);
 
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const props = organization.features.includes('downsampled-page-filter')
@@ -66,17 +71,12 @@ export function InsightsModuleDatePageFilter() {
 
 function DisabledDateOption({value}: {value: string}) {
   return (
-    <DisabledDateOptionContainer>
+    <Flex align="center">
       {value}
       <StyledIconBuisness />
-    </DisabledDateOptionContainer>
+    </Flex>
   );
 }
-
-const DisabledDateOptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;

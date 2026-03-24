@@ -3,18 +3,21 @@ import {useParams} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
@@ -25,7 +28,7 @@ interface WidgetTemplatesListProps {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 }
 
-function WidgetTemplatesList({
+export function WidgetTemplatesList({
   onSave,
   setOpenWidgetTemplates,
   setIsPreviewDraggable,
@@ -33,11 +36,36 @@ function WidgetTemplatesList({
 }: WidgetTemplatesListProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const [selectedWidget, setSelectedWidget] = useState<number | null>(0);
+  const location = useLocation();
+  const widgets = getTopNConvertedDefaultWidgets(organization);
+
+  const widgetTemplateId = decodeScalar(location.query?.widgetTemplateId);
+  const initialSelectedIndex = widgetTemplateId
+    ? Math.max(
+        0,
+        widgets.findIndex(w => w.id === widgetTemplateId)
+      )
+    : null;
+  const [selectedWidget, setSelectedWidget] = useState<number | null>(
+    initialSelectedIndex
+  );
 
   const {dispatch} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const api = useApi();
+
+  useEffect(() => {
+    if (initialSelectedIndex !== null) {
+      const initialWidget = widgets[initialSelectedIndex];
+      if (initialWidget) {
+        dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: convertWidgetToBuilderState(initialWidget),
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     trackAnalytics('dashboards_views.widget_builder.templates.open', {
@@ -46,8 +74,6 @@ function WidgetTemplatesList({
     // We only want to track this once when the component is mounted
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const widgets = getTopNConvertedDefaultWidgets(organization);
 
   const handleSave = useCallback(
     async (widget: Widget) => {
@@ -77,7 +103,7 @@ function WidgetTemplatesList({
                 setSelectedWidget(index);
                 dispatch({
                   type: BuilderStateAction.SET_STATE,
-                  payload: convertWidgetToBuilderStateParams(widget),
+                  payload: convertWidgetToBuilderState(widget),
                 });
                 trackAnalytics('dashboards_views.widget_builder.templates.selected', {
                   title: widget.title,
@@ -86,34 +112,34 @@ function WidgetTemplatesList({
                 });
               }}
             >
-              <IconWrapper backgroundColor={iconColor}>
-                <Icon color="white" />
-              </IconWrapper>
+              <IconWrapper backgroundColor={iconColor}>{Icon}</IconWrapper>
               <div>
                 <WidgetTitle>{widget.title}</WidgetTitle>
                 <WidgetDescription>{widget.description}</WidgetDescription>
                 {selectedWidget === index && (
-                  <ButtonsWrapper>
-                    <Button
-                      size="sm"
-                      onClick={e => {
-                        e.stopPropagation();
-                        setOpenWidgetTemplates(false);
-                        setCustomizeFromLibrary(true);
-                        // reset preview when customizing templates
-                        setIsPreviewDraggable(false);
-                        trackAnalytics(
-                          'dashboards_views.widget_builder.templates.customize',
-                          {
-                            title: widget.title,
-                            widget_type: widget.widgetType ?? '',
-                            organization,
-                          }
-                        );
-                      }}
-                    >
-                      {t('Customize')}
-                    </Button>
+                  <Flex marginTop="xl" gap="2xl">
+                    {widget.isCustomizable && (
+                      <Button
+                        size="sm"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setOpenWidgetTemplates(false);
+                          setCustomizeFromLibrary(true);
+                          // reset preview when customizing templates
+                          setIsPreviewDraggable(false);
+                          trackAnalytics(
+                            'dashboards_views.widget_builder.templates.customize',
+                            {
+                              title: widget.title,
+                              widget_type: widget.widgetType ?? '',
+                              organization,
+                            }
+                          );
+                        }}
+                      >
+                        {t('Customize')}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       onClick={e => {
@@ -131,7 +157,7 @@ function WidgetTemplatesList({
                     >
                       {t('Add to dashboard')}
                     </Button>
-                  </ButtonsWrapper>
+                  </Flex>
                 )}
               </div>
             </TemplateCard>
@@ -142,45 +168,46 @@ function WidgetTemplatesList({
   );
 }
 
-export default WidgetTemplatesList;
-
 const TemplateContainer = styled('div')<{lastWidget: boolean}>`
-  border-bottom: ${p => (p.lastWidget ? 'none' : `1px solid ${p.theme.border}`)};
+  border-bottom: ${p =>
+    p.lastWidget ? 'none' : `1px solid ${p.theme.tokens.border.primary}`};
 `;
 
 const TemplateCard = styled('div')<{selected: boolean}>`
   display: flex;
   flex-direction: row;
-  gap: ${space(1.5)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.xl};
   border: none;
   background-color: ${p =>
-    p.selected ? p.theme.purple100 : p.theme.tokens.background.primary};
+    p.selected
+      ? p.theme.tokens.background.transparent.accent.muted
+      : p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  margin: ${p => (p.selected ? space(2) : space(0.5))} 0px;
+  margin: ${p => (p.selected ? p.theme.space.xl : p.theme.space.xs)} 0px;
 
   cursor: pointer;
 
   &:focus,
   &:hover {
-    background-color: ${p => p.theme.purple100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     outline: none;
   }
 
   &:active {
-    background-color: ${p => p.theme.purple100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   }
 `;
 
 const WidgetTitle = styled('h3')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  margin-bottom: ${space(0.25)};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;
 
 const WidgetDescription = styled('p')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
 `;
 
@@ -188,16 +215,9 @@ const IconWrapper = styled('div')<{backgroundColor: string}>`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   min-width: 40px;
   height: 40px;
   border-radius: ${p => p.theme.radius.md};
   background: ${p => p.backgroundColor};
-`;
-
-const ButtonsWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(3)};
-  margin-top: ${space(2)};
 `;

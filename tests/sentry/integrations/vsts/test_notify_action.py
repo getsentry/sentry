@@ -8,7 +8,6 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models.grouplink import GroupLink
-from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -118,7 +117,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                 "integration": self.integration.model.id,
             }
         )
-        azuredevops_rule.rule = Rule.objects.create(project=self.project, label="test rule")
+        azuredevops_rule.rule = self.create_project_rule(name="test rule")
 
         results = list(azuredevops_rule.after(event=event))
         assert len(results) == 1

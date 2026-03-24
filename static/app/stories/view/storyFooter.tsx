@@ -1,20 +1,21 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {IconArrow} from 'sentry/icons';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {useStoryBookFilesByCategory} from './storySidebar';
+import {IconArrow} from 'sentry/icons';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import type {StoryTreeNode} from './storyTree';
+import {useFlatStoryList} from './storyTree';
 import {type StoryDescriptor} from './useStoriesLoader';
 import {useStory} from './useStory';
 
 export function StoryFooter() {
   const {story} = useStory();
-  const stories = useStoryBookFilesByCategory();
+  const stories = useFlatStoryList();
   const pagination = findPreviousAndNextStory(story, stories);
   const organization = useOrganization();
 
@@ -61,40 +62,21 @@ export function StoryFooter() {
 
 function findPreviousAndNextStory(
   story: StoryDescriptor,
-  categories: ReturnType<typeof useStoryBookFilesByCategory>
+  stories: StoryTreeNode[]
 ): {
   next?: StoryTreeNode;
   prev?: StoryTreeNode;
 } | null {
-  const stories = Object.values(categories).flat();
-  const queue: StoryTreeNode[] = [];
+  const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
 
-  function processNode(node: StoryTreeNode) {
-    for (const key in node.children) {
-      processNode(node.children[key]!);
-    }
-    if (!Object.keys(node.children).length) {
-      queue.push(node);
-    }
+  if (currentIndex === -1) {
+    return null;
   }
 
-  for (const node of stories) {
-    processNode(node);
-  }
-
-  for (let i = 0; i < queue.length; i++) {
-    const node = queue[i];
-    if (!node) break;
-
-    if (node.filesystemPath === story.filename) {
-      return {
-        prev: queue[i - 1],
-        next: queue[i + 1],
-      };
-    }
-  }
-
-  return null;
+  return {
+    prev: stories[currentIndex - 1] ?? undefined,
+    next: stories[currentIndex + 1] ?? undefined,
+  };
 }
 
 const Card = styled(LinkButton)`

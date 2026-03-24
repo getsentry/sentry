@@ -2,35 +2,32 @@ import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import sentry_sdk
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.event_search import translate_escape_sequences
-from sentry.api.serializers import serialize
+from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import (
-    SPAN_ATTRIBUTE_DEFINITIONS,
-    SPANS_STATS_EXCLUDED_ATTRIBUTES,
+    SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils import snuba_rpc
 from sentry.utils.cursors import Cursor, CursorResult
 
 logger = logging.getLogger(__name__)
@@ -56,8 +53,8 @@ class TraceItemStatsPaginator:
 
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
-        data = self.data_fn(offset=offset, limit=limit + 1)
-        has_more = data[1] >= limit + 1
+        data = self.data_fn(offset=offset, limit=limit)
+        has_more = data[1] >= offset + limit + 1
 
         return CursorResult(
             data,
@@ -78,9 +75,10 @@ class OrganizationTraceItemsStatsSerializer(serializers.Serializer):
     limit = serializers.IntegerField(
         required=False,
     )
+    spansLimit = serializers.IntegerField(required=False, default=1000, max_value=1000)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -103,9 +101,6 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             params=snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
         )
 
-        query_string = serialized.get("query")
-        query_filter, _, _ = resolver.resolve_query(query_string)
-
         substring_match = serialized.get("substringMatch", "")
         value_substring_match = translate_escape_sequences(substring_match)
 
@@ -124,16 +119,34 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
         )
         attrs_meta.trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
 
-        attr_type = AttributeKey.Type.TYPE_STRING
         max_attributes = options.get("explore.trace-items.keys.max")
 
-        additional_substring_matches = set()
-        if value_substring_match:
-            additional_substring_matches = {
-                v.internal_name
-                for k, v in SPAN_ATTRIBUTE_DEFINITIONS.items()
-                if value_substring_match in k
-            }
+        def get_table_results():
+            with handle_query_errors():
+                return Spans.run_table_query(
+                    params=snuba_params,
+                    config=SearchResolverConfig(),
+                    offset=0,
+                    limit=serialized.get("spansLimit", 1000),
+                    sampling_mode=snuba_params.sampling_mode,
+                    query_string=serialized.get("query", ""),
+                    orderby=["-timestamp"],
+                    referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value,
+                    selected_columns=["span_id", "timestamp"],
+                )
+
+        def run_stats_query_with_span_ids(span_id_filter):
+            with handle_query_errors():
+                return Spans.run_stats_query(
+                    params=snuba_params,
+                    stats_types=serialized.get("statsType"),
+                    query_string=span_id_filter,
+                    referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value,
+                    config=resolver_config,
+                    search_resolver=resolver,
+                    max_buckets=1,
+                    skip_translate_internal_to_public_alias=True,
+                )
 
         def run_stats_query_with_error_handling(attributes):
             with handle_query_errors():
@@ -148,77 +161,59 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
         def data_fn(offset: int, limit: int):
-            # Intersecting attributes filter is a best effort operation, and if is not
-            # possible in under 1 second, returns all attributes. This might result in a
-            # negative user experience if the results in the query filter do not actually
-            # contain these attributes. One suggestion would be to request more in the limit
-            # than actually what's visualized in the page.
-            with handle_query_errors():
-                attrs_request = TraceItemAttributeNamesRequest(
-                    meta=attrs_meta,
-                    limit=limit,
-                    page_token=PageToken(offset=offset),
-                    type=attr_type,
-                    intersecting_attributes_filter=query_filter,
-                    value_substring_match=value_substring_match,
+            table_results = get_table_results()
+            if not table_results["data"]:
+                return {"data": []}, 0
+
+            span_ids = [row["span_id"] for row in table_results["data"]]
+            span_id_list = ",".join(span_ids)
+
+            preflight_stats = run_stats_query_with_span_ids(f"id:[{span_id_list}]")
+            try:
+                internal_alias_attr_keys = list(
+                    preflight_stats[0]["attribute_distributions"]["data"].keys()
+                )
+            except (IndexError, KeyError):
+                return {"data": []}, 0
+
+            sanitized_keys = []
+            for internal_name in internal_alias_attr_keys:
+                public_alias = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string", {}).get(
+                    internal_name, internal_name
                 )
 
-                attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
-                sentry_sdk.set_tag(
-                    "num_attrs_with_intersecting_filter", len(attrs_response.attributes)
-                )
-
-                # debug code: want to check if the intersecting filter is returning the correct attrs
-                if query_filter:
-                    attrs_request_without_intersecting_filter = TraceItemAttributeNamesRequest(
-                        meta=attrs_meta,
-                        limit=limit,
-                        page_token=PageToken(offset=offset),
-                        type=attr_type,
-                        value_substring_match=value_substring_match,
-                    )
-
-                    attrs_without_intersecting_filter = snuba_rpc.attribute_names_rpc(
-                        attrs_request_without_intersecting_filter
-                    )
-
-                    sentry_sdk.set_tag(
-                        "num_attrs_without_intersecting_filter",
-                        len(attrs_without_intersecting_filter.attributes),
-                    )
-
-            # Chunk attributes and run stats query in parallel
-            chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
-            for i, attr in enumerate(attrs_response.attributes):
-                if attr.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
+                if public_alias in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
                     continue
 
-                if attr.name in additional_substring_matches:
-                    # dedupe additional known attrs on the first offset
-                    if offset == 0:
-                        additional_substring_matches.remove(attr.name)
-                    # we've already shown this attr in the first offset, so
-                    # don't show it again
-                    else:
-                        continue
+                if value_substring_match:
+                    if value_substring_match in public_alias:
+                        sanitized_keys.append(internal_name)
+                    continue
 
+                sanitized_keys.append(internal_name)
+
+            sanitized_keys = sanitized_keys[offset : offset + limit]
+
+            if not sanitized_keys:
+                return {"data": []}, 0
+
+            request_attrs_list = []
+            for requested_key in sanitized_keys:
+                request_attrs_list.append(
+                    AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
+                )
+
+            chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
+            for i, attr in enumerate(request_attrs_list):
                 chunked_attributes[i % MAX_THREADS].append(
                     AttributeKey(name=attr.name, type=AttributeKey.TYPE_STRING)
                 )
-            if offset == 0:
-                for i, additional_attr in enumerate(additional_substring_matches):
-                    if additional_attr in SPANS_STATS_EXCLUDED_ATTRIBUTES:
-                        continue
-                    chunked_attributes[i % MAX_THREADS].append(
-                        AttributeKey(name=additional_attr, type=AttributeKey.TYPE_STRING)
-                    )
 
             stats_results: dict[str, dict[str, dict]] = defaultdict(lambda: {"data": {}})
             with ThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=MAX_THREADS,
             ) as query_thread_pool:
-
                 futures = [
                     query_thread_pool.submit(run_stats_query_with_error_handling, attributes)
                     for attributes in chunked_attributes.values()
@@ -230,9 +225,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                         for stats_type, data in stats.items():
                             stats_results[stats_type]["data"].update(data["data"])
 
-            return {"data": [{k: v} for k, v in stats_results.items()]}, len(
-                attrs_response.attributes
-            )
+            return {"data": [{k: v} for k, v in stats_results.items()]}, len(request_attrs_list)
 
         return self.paginate(
             request=request,

@@ -2,14 +2,15 @@ import {Fragment, useMemo, useState} from 'react';
 import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import * as Storybook from 'sentry/stories';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import {Section} from 'sentry/stories/layout';
+import {fzf} from 'sentry/utils/search/fzf';
 
 interface APIReferenceProps {
   componentProps: TypeLoader.ComponentDocWithFilename | undefined;
@@ -20,9 +21,9 @@ export function APIReference(props: APIReferenceProps) {
   const nodes = usePropTree(props.componentProps?.props ?? {}, query);
 
   return (
-    <Storybook.Section>
+    <Section>
       {props.componentProps?.description && <p>{props.componentProps.description}</p>}
-      <StoryTypesSearchContainer>
+      <Container marginBottom="md">
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch />
@@ -34,7 +35,7 @@ export function APIReference(props: APIReferenceProps) {
           />
           {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
         </InputGroup>
-      </StoryTypesSearchContainer>
+      </Container>
       <StoryTableContainer>
         <StoryTypesTable>
           <StoryTypesTableHeader>
@@ -86,7 +87,7 @@ export function APIReference(props: APIReferenceProps) {
           </tbody>
         </StoryTypesTable>
       </StoryTableContainer>
-    </Storybook.Section>
+    </Section>
   );
 }
 
@@ -111,7 +112,7 @@ function StoryDefinitionFilePath(props: {node: PropTreeNode}) {
         <StoryTypesTableDefinitionCell colSpan={2}>
           <Flex align="center">
             <Button
-              borderless
+              priority="transparent"
               icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
               onClick={() => {
                 props.node.expanded = !expanded;
@@ -344,12 +345,8 @@ function stripNodeModulesPrefix(str: string): string {
 
 const StoryTableContainer = styled('div')`
   overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const StoryTypesSearchContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StoryTypesTable = styled('table')`
@@ -361,11 +358,11 @@ const StoryTypesTable = styled('table')`
   table-layout: fixed;
 
   th {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.tokens.background.tertiary};
   }
 
   tr:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   td:first-child {
@@ -374,19 +371,19 @@ const StoryTypesTable = styled('table')`
 
   td:not(:last-child),
   th:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StoryTypesTableHeader = styled('thead')`
   tr {
-    background-color: ${p => p.theme.surface200};
-    border-bottom: 1px solid ${p => p.theme.border};
+    background-color: ${p => p.theme.tokens.background.tertiary};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StoryTypesTableHeaderCell = styled('th')`
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   padding: ${p => p.theme.space.md};
 `;
 
@@ -398,7 +395,7 @@ const StoryTypesTableCell = styled('td')`
 const StoryTypesTableDefinitionCell = styled('td')`
   padding: ${p => p.theme.space.md};
   padding-left: 0;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.tokens.background.tertiary};
 
   button {
     margin-left: ${p => p.theme.space['2xs']};
@@ -406,21 +403,21 @@ const StoryTypesTableDefinitionCell = styled('td')`
   }
 
   > span {
-    font-size: ${p => p.theme.fontSize.sm};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-size: ${p => p.theme.font.size.sm};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     margin-right: ${p => p.theme.space.xs};
   }
 `;
 
 const StoryType = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const StoryPropDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const RequiredAsterisk = styled('span')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;

@@ -11,7 +11,7 @@ type RouteWithPath = Omit<PlainRoute, 'path'> & Required<Pick<PlainRoute, 'path'
  * @param {Array<{}>} routes An array of route objects from react-router
  * @return String Returns a route path
  */
-export default function getRouteStringFromRoutes(routes?: PlainRoute[]): string {
+export function getRouteStringFromRoutes(routes?: PlainRoute[]): string {
   if (!Array.isArray(routes)) {
     return '';
   }

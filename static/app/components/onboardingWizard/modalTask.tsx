@@ -1,16 +1,15 @@
 import styled from '@emotion/styled';
 
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {space} from 'sentry/styles/space';
 
 type Props = {title?: string};
 
-export default function ModalTask({title}: Props) {
+export function ModalTask({title}: Props) {
   return (
     <TaskCard>
       <Title>
-        <IconCheckmark color="successText" />
+        <IconCheckmark variant="success" />
         {title}
       </Title>
     </TaskCard>
@@ -20,12 +19,12 @@ export default function ModalTask({title}: Props) {
 const Title = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TaskCard = styled(Card)`
   position: relative;
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
 `;

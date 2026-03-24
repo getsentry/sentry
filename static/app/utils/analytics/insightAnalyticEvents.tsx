@@ -57,7 +57,6 @@ export type InsightEventParameters = {
   'insights.release.select_release': {
     filtered: boolean;
     moduleName: ModuleName;
-    type: 'primary' | 'secondary';
   };
   'insights.session_health_tour.dismissed': Record<string, unknown>;
 };

@@ -1,38 +1,37 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Pagination from 'sentry/components/pagination';
-import SearchBar from 'sentry/components/searchBar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Pagination} from 'sentry/components/pagination';
+import {SearchBar} from 'sentry/components/searchBar';
 import type {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
 import {SORTABLE_FIELDS} from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
@@ -143,6 +142,7 @@ export function PagePerformanceTable() {
         <AlignCenter>
           <StyledTooltip
             isHoverable
+            showUnderline
             title={
               <span>
                 {t('The overall performance rating of this page.')}
@@ -154,7 +154,7 @@ export function PagePerformanceTable() {
             }
           >
             <SortLink
-              title={<TooltipHeader>{t('Perf Score')}</TooltipHeader>}
+              title={t('Perf Score')}
               direction={sort?.field === col.key ? sort.kind : undefined}
               canSort={canSort}
               generateSortLink={generateSortLink}
@@ -169,6 +169,7 @@ export function PagePerformanceTable() {
         <AlignRight>
           <StyledTooltip
             isHoverable
+            showUnderline
             title={
               <span>
                 {t(
@@ -183,7 +184,7 @@ export function PagePerformanceTable() {
           >
             <SortLink
               align="right"
-              title={<TooltipHeader>{col.name}</TooltipHeader>}
+              title={col.name}
               direction={sort?.field === col.key ? sort.kind : undefined}
               canSort={canSort}
               generateSortLink={generateSortLink}
@@ -328,7 +329,7 @@ export function PagePerformanceTable() {
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
         {!pageLinks && (
           <Wrapper>
-            <ButtonBar merged gap="0">
+            <ButtonBar>
               <Button
                 icon={<IconChevron direction="left" />}
                 disabled
@@ -367,15 +368,11 @@ const AlignCenter = styled('span')`
 `;
 
 const SearchBarContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const GridContainer = styled('div')`
-  margin-bottom: ${space(1)};
-`;
-
-const TooltipHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
@@ -395,5 +392,5 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

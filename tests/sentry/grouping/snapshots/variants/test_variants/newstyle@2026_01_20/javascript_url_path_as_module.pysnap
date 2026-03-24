@@ -1,0 +1,38 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system stacktrace takes precedence
+  root_component:
+    app (ignored because system stacktrace takes precedence)
+      stacktrace (ignored because it contains no in-app frames)
+        frame (non app frame)
+          module*
+            "dogs.are.great"
+          filename (ignored because frame points to a URL)
+            "great.js"
+        frame (non app frame)
+          module (ignored bad javascript module)
+            "adopt/dont/shop.js"
+          filename (ignored because frame points to a URL)
+            "shop.js"
+--------------------------------------------------------------------------
+system:
+  hash: "1001e7b7dd0155a6d4021cd6d6b9f50d"
+  contributing component: stacktrace
+  hint: None
+  root_component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "dogs.are.great"
+          filename (ignored because frame points to a URL)
+            "great.js"
+        frame
+          module (ignored bad javascript module)
+            "adopt/dont/shop.js"
+          filename (ignored because frame points to a URL)
+            "shop.js"

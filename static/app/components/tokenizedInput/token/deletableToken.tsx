@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 interface DeletableTokenProps<T> {
   children: React.ReactNode;
@@ -98,9 +98,10 @@ const FloatingCloseButton = styled('button')`
   user-select: none;
   padding: 0;
   border: none;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-radius: 2px 2px 0 0;
-  box-shadow: 0 0 0 1px ${p => p.theme.innerBorder};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -113,14 +114,11 @@ const FloatingCloseButton = styled('button')`
   &:hover {
     outline: none;
     border: none;
-    background: ${p =>
-      isChonkTheme(p.theme)
-        ? p.theme.button.default.background
-        : p.theme.button.default.backgroundActive};
+    background: ${p => p.theme.tokens.background.primary};
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 1px ${p => p.theme.innerBorder};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 
@@ -138,19 +136,19 @@ const Wrapper = styled('div')`
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.colors.gray100};
   }
 
   &[aria-invalid='true'] {
-    color: ${p => p.theme.red400};
+    color: ${p => p.theme.colors.red500};
   }
 
   /* Need to hide visually but keep focusable */
   &:not(:hover):not(:focus-within) {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
 
     &[aria-invalid='true'] {
-      color: ${p => p.theme.red400};
+      color: ${p => p.theme.colors.red500};
     }
 
     ${FloatingCloseButton} {
@@ -171,6 +169,6 @@ const HoverFocusBorder = styled('div')`
 
   &:focus-within,
   &:hover {
-    box-shadow: 0 0 0 1px ${p => p.theme.innerBorder};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;

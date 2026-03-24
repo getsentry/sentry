@@ -1,4 +1,6 @@
-import {t} from 'sentry/locale';
+import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+
+import {t, td} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -18,6 +20,7 @@ export enum FieldKind {
   EQUATION = 'equation',
   METRICS = 'metric',
   NUMERIC_METRICS = 'numeric_metric',
+  BOOLEAN = 'boolean',
 }
 
 export enum FieldKey {
@@ -95,6 +98,7 @@ export enum FieldKey {
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
+  RELEASE_CREATED = 'release.created',
   RELEASE_PACKAGE = 'release.package',
   RELEASE_STAGE = 'release.stage',
   RELEASE_VERSION = 'release.version',
@@ -249,6 +253,7 @@ type OsFieldKey =
 type ReleaseFieldKey =
   | FieldKey.RELEASE
   | FieldKey.RELEASE_BUILD
+  | FieldKey.RELEASE_CREATED
   | FieldKey.RELEASE_PACKAGE
   | FieldKey.RELEASE_STAGE
   | FieldKey.RELEASE_VERSION;
@@ -421,8 +426,8 @@ const IsFieldDescriptions: Record<IsFieldValues, string> = {
   [IsFieldValues.ASSIGNED]: t('Issues assigned to a team member'),
   [IsFieldValues.UNASSIGNED]: t('Issues not assigned to anyone'),
   [IsFieldValues.FOR_REVIEW]: t('Issues pending review'),
-  [IsFieldValues.LINKED]: t('Issues linked to other issues'),
-  [IsFieldValues.UNLINKED]: t('Issues not linked to other issues'),
+  [IsFieldValues.LINKED]: t('Issues linked via an integration'),
+  [IsFieldValues.UNLINKED]: t('Issues not linked via an integration'),
 };
 
 export function getIsFieldDescriptionFromValue(
@@ -1013,7 +1018,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.PERFORMANCE_SCORE]: {
     desc: t('Returns the performance score for a given web vital'),
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
+    valueType: FieldValueType.SCORE,
     parameters: [
       {
         name: 'value',
@@ -1831,7 +1836,11 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
-  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
+  [FieldKey.PROJECT]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   [FieldKey.HAS]: {
     desc: t('Determines if a tag or field exists in an event'),
     kind: FieldKind.FIELD,
@@ -2109,7 +2118,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
 
 const BROWSER_FIELD_DEFINITION: Record<BrowserFieldKey, FieldDefinition> = {
   [FieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[FieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2278,6 +2287,11 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
     allowWildcard: false,
+  },
+  [FieldKey.RELEASE_CREATED]: {
+    desc: t('The date the release was created'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
   },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
@@ -2493,6 +2507,69 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   },
 };
 
+const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  app_id: {
+    desc: t('The bundle identifier of the application'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  app_name: {
+    desc: t('The display name of the application'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  build_configuration_name: {
+    desc: t('The name of the build configuration (e.g., Debug, Release)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  platform_name: {
+    desc: t('The platform the build targets (e.g., apple, android)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  build_number: {
+    desc: t('The build number assigned to this build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  build_version: {
+    desc: t('The version string of the build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_head_ref: {
+    desc: t('The Git branch of the HEAD commit associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_base_ref: {
+    desc: t('The Git branch of the base commit for comparison associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_head_sha: {
+    desc: t('The Git SHA of the HEAD commit associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_base_sha: {
+    desc: t('The Git SHA of the base commit for comparison associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_head_repo_name: {
+    desc: t('The repository name for the HEAD commit associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_pr_number: {
+    desc: t('The pull request number associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+};
+
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...LOG_AGGREGATION_FIELDS,
   ...EVENT_FIELD_DEFINITIONS,
@@ -2574,7 +2651,11 @@ const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
 };
 
 const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  // TODO: Add field definitions for tracemetric fields
+  [FieldKey.TIMESTAMP]: {
+    desc: t('The time the metric was recorded'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
 };
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
@@ -2676,7 +2757,7 @@ export const ISSUE_FIELDS: FieldKey[] = [
  * Search locations are defined in sentry/snuba/events.py, anything that
  * references a tag should not be defined here.
  */
-export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new Set([
+export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>([
   FieldKey.APP_IN_FOREGROUND,
   FieldKey.DEVICE_ARCH,
   FieldKey.DEVICE_BRAND,
@@ -2979,12 +3060,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the browser'),
+    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3293,7 +3374,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     allowWildcard: true,
   },
   [FeedbackFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the browser'),
+    desc: td(ATTRIBUTE_METADATA[FeedbackFieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3332,49 +3413,76 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
   },
 };
 
-export const getFieldDefinition = (
-  key: string,
+function _getFieldFromMappings(
   type:
     | 'event'
     | 'replay'
     | 'replay_click'
     | 'feedback'
+    | 'preprod'
     | 'span'
     | 'log'
     | 'uptime'
     | 'tracemetric' = 'event',
+  key: string,
   kind?: FieldKind
-): FieldDefinition | null => {
+): FieldDefinition | undefined | null {
   switch (type) {
     case 'replay':
-      if (REPLAY_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(REPLAY_FIELD_DEFINITIONS, key)) {
         return REPLAY_FIELD_DEFINITIONS[key as keyof typeof REPLAY_FIELD_DEFINITIONS];
       }
-      if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(REPLAY_CLICK_FIELD_DEFINITIONS, key)) {
         return REPLAY_CLICK_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
         ];
       }
-      if (REPLAY_TAP_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(REPLAY_TAP_FIELD_DEFINITIONS, key)) {
         return REPLAY_TAP_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_TAP_FIELD_DEFINITIONS
         ];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
-        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
+          return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        }
       }
       return null;
     case 'feedback':
-      if (FEEDBACK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(FEEDBACK_FIELD_DEFINITIONS, key)) {
         return FEEDBACK_FIELD_DEFINITIONS[key as keyof typeof FEEDBACK_FIELD_DEFINITIONS];
       }
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
-        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
+          return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        }
       }
       return null;
-    case 'span':
-      if (SPAN_FIELD_DEFINITIONS[key]) {
+    case 'preprod':
+      if (Object.hasOwn(PREPROD_FIELD_DEFINITIONS, key)) {
+        return PREPROD_FIELD_DEFINITIONS[key];
+      }
+      if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
         return SPAN_FIELD_DEFINITIONS[key];
+      }
+
+      if (kind === FieldKind.MEASUREMENT) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
+      }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      return null;
+
+    case 'span':
+      if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
+        return SPAN_FIELD_DEFINITIONS[key] ?? null;
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -3388,11 +3496,14 @@ export const getFieldDefinition = (
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
 
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'log':
-      if (LOG_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      if (Object.hasOwn(LOG_FIELD_DEFINITIONS, key)) {
         return LOG_FIELD_DEFINITIONS[key];
       }
 
@@ -3406,11 +3517,15 @@ export const getFieldDefinition = (
       if (kind === FieldKind.TAG) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'tracemetric':
-      if (TRACEMETRIC_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      if (Object.hasOwn(TRACEMETRIC_FIELD_DEFINITIONS, key)) {
         return TRACEMETRIC_FIELD_DEFINITIONS[key];
       }
 
@@ -3424,16 +3539,38 @@ export const getFieldDefinition = (
       if (kind === FieldKind.TAG) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'event':
     default:
-      if (EVENT_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
   }
+}
+
+export const getFieldDefinition = (
+  key: string,
+  type:
+    | 'event'
+    | 'replay'
+    | 'replay_click'
+    | 'feedback'
+    | 'preprod'
+    | 'span'
+    | 'log'
+    | 'uptime'
+    | 'tracemetric' = 'event',
+  kind?: FieldKind
+): FieldDefinition | null => {
+  return _getFieldFromMappings(type, key, kind) ?? null;
 };
 
 export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
@@ -3451,11 +3588,20 @@ export function isDeviceClass(key: any): boolean {
 
 export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];
 
-const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
+const TYPED_TAG_KEY_RE = /tags\[(\S*),(\S*)\]/;
 
 export function classifyTagKey(key: string): FieldKind {
   const result = key.match(TYPED_TAG_KEY_RE);
-  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+
+  if (result?.[2] === 'number') {
+    return FieldKind.MEASUREMENT;
+  }
+
+  if (result?.[2] === 'boolean') {
+    return FieldKind.BOOLEAN;
+  }
+
+  return FieldKind.TAG;
 }
 
 export function prettifyTagKey(key: string): string {

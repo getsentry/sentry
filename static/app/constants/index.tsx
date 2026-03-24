@@ -21,6 +21,10 @@ export const CUSTOMER_DOMAIN =
     ? undefined
     : window?.__initialData?.customerDomain?.subdomain;
 
+// Constant used for tracking referrer in session storage rather than
+// ?referrer=foo get parameter:
+export const CUSTOM_REFERRER_KEY = 'customReferrer';
+
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
 //
@@ -135,6 +139,15 @@ export type PermissionObj = {
 
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
 
+export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
+  resource: 'Distribution',
+  help: 'Pre-release app distribution for trusted testers.',
+  choices: {
+    'no-access': {label: 'No Access', scopes: []},
+    read: {label: 'Read', scopes: ['project:distribution']},
+  },
+};
+
 // We expose permissions for Sentry Apps in a more resource-centric way.
 // All of the API_ACCESS_SCOPES from above should be represented in a more
 // User-friendly way here.
@@ -167,14 +180,7 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       admin: {label: 'Admin', scopes: ['project:releases']},
     },
   },
-  {
-    resource: 'Distribution',
-    help: 'Pre-release app distribution for trusted testers.',
-    choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      read: {label: 'Read', scopes: ['project:distribution']},
-    },
-  },
+  DISTRIBUTION_SENTRY_APP_PERMISSION,
   {
     resource: 'Event',
     label: 'Issue & Event',
@@ -261,7 +267,7 @@ const DEFAULT_COUNT_FORMATTING = {
   unitType: 'count' as const,
   reservedMultiplier: 1,
   bigNumUnit: 0 as const,
-  priceFormatting: {minIntegerDigits: 5, maxIntegerDigits: 7},
+  priceFormatting: {minFractionDigits: 5, maxFractionDigits: 7},
   projectedAbbreviated: true,
 };
 
@@ -273,7 +279,7 @@ const BYTES_FORMATTING = {
   unitType: 'bytes' as const,
   reservedMultiplier: GIGABYTE,
   bigNumUnit: 1 as const,
-  priceFormatting: {minIntegerDigits: 2, maxIntegerDigits: 2},
+  priceFormatting: {minFractionDigits: 2, maxFractionDigits: 2},
   projectedAbbreviated: true,
 };
 
@@ -285,7 +291,7 @@ const DURATION_HOURS_FORMATTING = {
   unitType: 'durationHours' as const,
   reservedMultiplier: MILLISECONDS_IN_HOUR,
   bigNumUnit: 0 as const,
-  priceFormatting: {minIntegerDigits: 5, maxIntegerDigits: 7},
+  priceFormatting: {minFractionDigits: 5, maxFractionDigits: 7},
   projectedAbbreviated: true,
 };
 
@@ -624,36 +630,6 @@ export const DATA_CATEGORY_INFO = {
     },
     formatting: DEFAULT_COUNT_FORMATTING,
   },
-  [DataCategoryExact.PREVENT_USER]: {
-    name: DataCategoryExact.PREVENT_USER,
-    plural: DataCategory.PREVENT_USER,
-    singular: 'preventUser',
-    displayName: 'Prevent user',
-    titleName: t('Prevent Users'),
-    productName: t('Prevent Users'),
-    uid: 29,
-    isBilledCategory: true,
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: false, // TODO(prevent): add external stats when ready
-    },
-    formatting: DEFAULT_COUNT_FORMATTING,
-  },
-  [DataCategoryExact.PREVENT_REVIEW]: {
-    name: DataCategoryExact.PREVENT_REVIEW,
-    plural: DataCategory.PREVENT_REVIEW,
-    singular: 'preventReview',
-    displayName: 'Prevent review',
-    titleName: t('Prevent Reviews'),
-    productName: t('Prevent Reviews'),
-    uid: 30,
-    isBilledCategory: false,
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: false, // TODO(prevent): add external stats when ready
-    },
-    formatting: DEFAULT_COUNT_FORMATTING,
-  },
   [DataCategoryExact.TRACE_METRIC]: {
     name: DataCategoryExact.TRACE_METRIC,
     plural: DataCategory.TRACE_METRICS,
@@ -684,6 +660,30 @@ export const DATA_CATEGORY_INFO = {
     },
     getProductLink: (organization: Organization) =>
       `/settings/${organization.slug}/seer/`,
+    formatting: DEFAULT_COUNT_FORMATTING,
+  },
+  [DataCategoryExact.SIZE_ANALYSIS]: {
+    name: DataCategoryExact.SIZE_ANALYSIS,
+    plural: DataCategory.SIZE_ANALYSIS,
+    singular: 'sizeAnalysis',
+    displayName: 'size analysis build',
+    titleName: t('Size Analysis Builds'),
+    productName: t('Size Analysis Build'),
+    uid: 35,
+    isBilledCategory: true,
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
+    formatting: DEFAULT_COUNT_FORMATTING,
+  },
+  [DataCategoryExact.INSTALLABLE_BUILD]: {
+    name: DataCategoryExact.INSTALLABLE_BUILD,
+    plural: DataCategory.INSTALLABLE_BUILD,
+    singular: 'installableBuild',
+    displayName: 'build distribution',
+    titleName: t('Build Distributions'),
+    productName: t('Build Distribution'),
+    uid: 36,
+    isBilledCategory: false,
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
@@ -731,7 +731,7 @@ export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
-export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
+export const USE_TANSTACK_DEVTOOL = process.env.USE_TANSTACK_DEVTOOL;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
@@ -17,7 +17,7 @@ from sentry.models.project import Project
 from sentry.utils import metrics
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectStacktraceCoverageEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -64,6 +64,14 @@ class ProjectStacktraceCoverageEndpoint(ProjectEndpoint):
             provider = serialized_config["provider"]["key"]
             # Use the provider key to split up stacktrace-link metrics by integration type
             scope.set_tag("integration_provider", provider)  # e.g. github
+
+            # Codecov requires repository names in owner/repo format
+            repo_name = result["current_config"]["repository"].name
+            if "/" not in repo_name:
+                return Response(
+                    {"detail": "Repository name must be in owner/repo format for Codecov"},
+                    status=400,
+                )
 
             with sentry_sdk.start_span(op="fetch_codecov_data"):
                 with metrics.timer("issues.stacktrace.fetch_codecov_data"):

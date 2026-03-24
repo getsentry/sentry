@@ -1,16 +1,14 @@
 import {useEffect, useState} from 'react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
-import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -24,6 +22,7 @@ import {
   type DiffTableSort,
 } from 'sentry/views/preprod/buildComparison/main/diffTable';
 import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
+import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 const tableHeaders = [
   {
@@ -175,10 +174,10 @@ export function SizeCompareItemDiffTable({
         {currentDiffItems.map((diffItem, index) => {
           let changeTypeLabel: string;
           let changeTypeIcon: React.ReactNode;
-          let changeTypeTagType: 'success' | 'error' | 'warning';
+          let changeTypeTagType: 'success' | 'danger' | 'warning';
           switch (diffItem.type) {
             case 'added':
-              changeTypeTagType = 'error';
+              changeTypeTagType = 'danger';
               changeTypeLabel = t('Added');
               changeTypeIcon = <IconAdd />;
               break;
@@ -197,7 +196,7 @@ export function SizeCompareItemDiffTable({
           return (
             <SimpleTable.Row key={startIndex + index}>
               <SimpleTable.RowCell>
-                <Tag icon={changeTypeIcon} type={changeTypeTagType}>
+                <Tag icon={changeTypeIcon} variant={changeTypeTagType}>
                   {changeTypeLabel}
                 </Tag>
               </SimpleTable.RowCell>
@@ -205,10 +204,12 @@ export function SizeCompareItemDiffTable({
                 <Tooltip
                   title={
                     diffItem.path ? (
-                      <Flex align="start" gap="xs">
-                        <Text monospace>{diffItem.path}</Text>
+                      <Flex align="center" gap="xs">
+                        <Text wordBreak="break-all" monospace>
+                          {diffItem.path}
+                        </Text>
                         <CopyToClipboardButton
-                          borderless
+                          priority="transparent"
                           size="zero"
                           text={diffItem.path}
                           style={{flexShrink: 0}}
@@ -233,13 +234,14 @@ export function SizeCompareItemDiffTable({
                 {capitalize(diffItem.item_type ?? '')}
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>
-                {diffItem.head_size
+                {typeof diffItem.head_size === 'number'
                   ? formatBytesBase10(diffItem.head_size)
-                  : formatBytesBase10(diffItem.base_size!)}
+                  : typeof diffItem.base_size === 'number'
+                    ? formatBytesBase10(diffItem.base_size)
+                    : '-'}
               </SimpleTable.RowCell>
               <DiffTableChangeAmountCell changeType={diffItem.type}>
-                {diffItem.size_diff > 0 ? '+' : '-'}
-                {formatBytesBase10(Math.abs(diffItem.size_diff))}
+                {formattedSizeDiff(diffItem.size_diff)}
               </DiffTableChangeAmountCell>
             </SimpleTable.Row>
           );
@@ -250,7 +252,7 @@ export function SizeCompareItemDiffTable({
           <Text size="sm" variant="muted">
             {t('Page %s of %s', safeCurrentPage + 1, totalPages)}
           </Text>
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               size="xs"
               icon={<IconChevron direction="left" />}

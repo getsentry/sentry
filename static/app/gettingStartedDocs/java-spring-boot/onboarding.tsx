@@ -1,6 +1,12 @@
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getProfilingSpringPropertiesSnippet,
+  getProfilingSpringYamlSnippet,
+} from 'sentry/gettingStartedDocs/java-spring-boot/profiling';
+import {metricsVerify} from 'sentry/gettingStartedDocs/java/metrics';
 import {
   getGradleInstallSnippet,
   getMavenInstallSnippet,
@@ -35,7 +41,7 @@ sentry.logs.enabled=true`
 # We recommend adjusting this value in production.
 sentry.traces-sample-rate=1.0`
     : ''
-}`;
+}${params.isProfilingSelected ? getProfilingSpringPropertiesSnippet() : ''}`;
 
 const getConfigurationYamlSnippet = (params: Params) => `
 sentry:
@@ -56,7 +62,7 @@ sentry:
   # We recommend adjusting this value in production.
   traces-sample-rate: 1.0`
       : ''
-  }`;
+  }${params.isProfilingSelected ? getProfilingSpringYamlSnippet() : ''}`;
 
 export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
@@ -78,7 +84,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
           text: tct(
             'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
-              link: <Link to="/settings/auth-tokens/" />,
+              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
             }
           ),
         },
@@ -204,7 +210,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       content: [
@@ -229,6 +235,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
+        metricsVerify(params),
         {
           type: 'text',
           text: t(

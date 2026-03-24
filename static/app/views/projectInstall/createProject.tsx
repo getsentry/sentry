@@ -5,25 +5,25 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
-import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Access} from 'sentry/components/acl/access';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import * as Layout from 'sentry/components/layouts/thirds';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import PlatformPicker, {type Platform} from 'sentry/components/platformPicker';
+import {PlatformPicker, type Platform} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
@@ -31,14 +31,14 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import slugify from 'sentry/utils/slugify';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {slugify} from 'sentry/utils/slugify';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {
   MultipleCheckboxOptions,
@@ -49,8 +49,9 @@ import type {
   AlertRuleOptions,
   RequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
-import IssueAlertOptions, {
+import {
   getRequestDataFragment,
+  IssueAlertOptions,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -67,6 +68,7 @@ type CreatedProject = Pick<Project, 'name' | 'id'> & {
   alertRule?: Partial<AlertRuleOptions>;
   notificationRule?: IssueAlertRule;
   team?: string;
+  wasNameManuallyModified?: boolean;
 };
 
 function getMissingValues({
@@ -191,6 +193,23 @@ export function CreateProject() {
 
   const [formData, setFormData] = useState<FormData>(initialData);
   const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
+  const hasUserModifiedProjectName = useRef(false);
+
+  // Sync the ref when autoFill data becomes available.
+  // useRef only initializes once, but the component may first mount without
+  // query params (e.g. browser back fires a POP before router.replace adds them),
+  // so autoFill can transition from false → true after the initial render.
+  // When that happens we also need to populate the projectName since useState
+  // would have initialized with the non-autoFill (empty) value.
+  useEffect(() => {
+    if (autoFill && createdProject?.name) {
+      hasUserModifiedProjectName.current = createdProject.wasNameManuallyModified ?? true;
+      setFormData(prev => ({
+        ...prev,
+        projectName: createdProject.name ?? prev.projectName,
+      }));
+    }
+  }, [autoFill, createdProject?.name, createdProject?.wasNameManuallyModified]);
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
@@ -244,6 +263,9 @@ export function CreateProject() {
 
   useEffect(() => {
     (Object.keys(initialData) as Array<keyof typeof initialData>).forEach(key => {
+      if (key === 'projectName' && hasUserModifiedProjectName.current) {
+        return;
+      }
       updateFormData(key, initialData[key]);
     });
   }, [initialData, updateFormData]);
@@ -290,12 +312,8 @@ export function CreateProject() {
 
         addSuccessMessage(
           team
-            ? t('Created project %s', `${project.slug}`)
-            : t(
-                'Created %s under new team %s',
-                `${project.slug}`,
-                `#${project.team.slug}`
-              )
+            ? t('Created project %s', project.slug)
+            : t('Created %s under new team %s', project.slug, `#${project.team.slug}`)
         );
 
         setCreatedProject({
@@ -305,6 +323,7 @@ export function CreateProject() {
           platform: selectedPlatform,
           alertRule,
           notificationRule,
+          wasNameManuallyModified: hasUserModifiedProjectName.current,
         });
 
         navigate(
@@ -316,7 +335,7 @@ export function CreateProject() {
           )
         );
       } catch (error: any) {
-        addErrorMessage(t('Failed to create project %s', `${projectName}`));
+        addErrorMessage(t('Failed to create project %s', projectName));
 
         if (error.status === 403) {
           Sentry.withScope(scope => {
@@ -371,9 +390,8 @@ export function CreateProject() {
         return;
       }
 
-      const {FrameworkSuggestionModal, modalCss} = await import(
-        'sentry/components/onboarding/frameworkSuggestionModal'
-      );
+      const {FrameworkSuggestionModal, modalCss} =
+        await import('sentry/components/onboarding/frameworkSuggestionModal');
 
       openModal(
         deps => (
@@ -437,18 +455,13 @@ export function CreateProject() {
         return;
       }
 
-      updateFormData('platform', {
-        ...omit(value, 'id'),
-        key: value.id,
-      });
-
-      const userModifiedName =
-        !!formData.projectName && formData.projectName !== formData.platform?.key;
-      const newName = userModifiedName ? formData.projectName : value.id;
-
-      updateFormData('projectName', newName);
+      setFormData(prev => ({
+        ...prev,
+        platform: {...omit(value, 'id'), key: value.id},
+        projectName: hasUserModifiedProjectName.current ? prev.projectName : value.id,
+      }));
     },
-    [updateFormData, formData.projectName, formData.platform?.key, organization]
+    [updateFormData, organization]
   );
 
   const platform = formData.platform?.key;
@@ -520,7 +533,13 @@ export function CreateProject() {
                   placeholder={t('project-slug')}
                   autoComplete="off"
                   value={formData.projectName}
-                  onChange={e => updateFormData('projectName', slugify(e.target.value))}
+                  onChange={e => {
+                    const slugified = slugify(e.target.value);
+                    // Track whether the user has intentionally set a custom name.
+                    // Reset if they clear the field so platform selection can fill it in again.
+                    hasUserModifiedProjectName.current = slugified !== '';
+                    updateFormData('projectName', slugified);
+                  }}
                 />
               </ProjectNameInputWrap>
             </div>
@@ -584,22 +603,22 @@ export function CreateProject() {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const FormFieldGroup = styled('div')`
   display: grid;
   grid-template-columns: 300px minmax(250px, max-content) max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: end;
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
   background: ${p => p.theme.tokens.background.primary};
 `;
 
 const FormLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.font.size.xl};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ProjectNameInputWrap = styled('div')`
@@ -619,12 +638,12 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 
 const TeamSelectInput = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: 1fr min-content;
   align-items: center;
 `;
 
 const HelpText = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   max-width: 760px;
 `;

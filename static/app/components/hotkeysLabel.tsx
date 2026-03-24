@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getKeyCode} from 'sentry/utils/getKeyCode';
 
 const macModifiers = {
@@ -58,7 +57,7 @@ type Props = {
   forcePlatform?: 'macos' | 'generic';
 };
 
-function HotkeysLabel({value, forcePlatform}: Props) {
+export function HotkeysLabel({value, forcePlatform}: Props) {
   // Split by commas and then split by +, but allow escaped /+
   const hotkeySets = toArray(value).map(o => o.trim().split('+'));
 
@@ -80,19 +79,17 @@ function HotkeysLabel({value, forcePlatform}: Props) {
   return <HotkeysContainer>{finalKeySet.map(key => key.label)}</HotkeysContainer>;
 }
 
-export default HotkeysLabel;
-
 const Key = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const HotkeysContainer = styled('div')`
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
   display: flex;
   flex-direction: row;
   align-items: center;
 
   > * {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;

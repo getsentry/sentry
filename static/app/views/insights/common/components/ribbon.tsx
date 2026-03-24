@@ -1,17 +1,14 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 export const ReadoutRibbon = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  column-gap: ${space(4)};
-  row-gap: ${space(2)};
+  column-gap: ${p => p.theme.space['3xl']};
+  row-gap: ${p => p.theme.space.xl};
 `;
 
-export const ToolRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-  position: relative;
-`;
+export function ToolRibbon(props: FlexProps<'div'>) {
+  return <Flex wrap="wrap" gap="xl" position="relative" {...props} />;
+}

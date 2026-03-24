@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
+
 import {AskSeerLabel} from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {IconSeer, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function AskSeerFeedback() {
   const organization = useOrganization();

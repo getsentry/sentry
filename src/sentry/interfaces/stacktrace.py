@@ -141,7 +141,7 @@ class Frame(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         for key in (
             "abs_path",
             "colno",
@@ -158,6 +158,8 @@ class Frame(Interface):
             "lineno",
             "module",
             "package",
+            "parent_index",
+            "sample_count",
             "platform",
             "post_context",
             "pre_context",
@@ -170,7 +172,7 @@ class Frame(Interface):
         ):
             data.setdefault(key, None)
 
-        return super().to_python(data, **kwargs)
+        return super().to_python(data)
 
     def to_json(self):
         return prune_empty_keys(
@@ -197,6 +199,8 @@ class Frame(Interface):
                 "errors": self.errors or None,
                 "lineno": self.lineno,
                 "colno": self.colno,
+                "parent_index": self.parent_index,
+                "sample_count": self.sample_count,
                 "lock": self.lock,
                 "source_link": self.source_link or None,
             }
@@ -229,6 +233,8 @@ class Frame(Interface):
             ),
             "lineNo": self.lineno,
             "colNo": self.colno,
+            "parentIndex": self.parent_index,
+            "sampleCount": self.sample_count,
             "inApp": self.in_app,
             "trust": self.trust,
             "errors": self.errors,
@@ -287,6 +293,8 @@ class Frame(Interface):
             ),
             "lineNo": meta.get("lineno"),
             "colNo": meta.get("colno"),
+            "parentIndex": meta.get("parent_index"),
+            "sampleCount": meta.get("sample_count"),
             "inApp": meta.get("in_app"),
             "trust": meta.get("trust"),
             "errors": meta.get("errors"),
@@ -458,7 +466,7 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         data = dict(data)
         frame_list = []
         for i, f in enumerate(data.get("frames") or []):
@@ -469,7 +477,7 @@ class Stacktrace(Interface):
         data.setdefault("registers", None)
         data.setdefault("frames_omitted", None)
 
-        return super().to_python(data, **kwargs)
+        return super().to_python(data)
 
     def get_has_system_frames(self):
         # This is a simplified logic from how the normalizer works.

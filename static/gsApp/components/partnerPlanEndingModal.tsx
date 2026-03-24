@@ -4,22 +4,22 @@ import styled from '@emotion/styled';
 import partnerMigrationHero from 'getsentry-images/partnership/plan-ending.svg';
 import moment from 'moment-timezone';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconBusiness} from 'sentry/icons';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getContractDaysLeft, isTeamPlanFamily} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = Pick<ModalRenderProps, 'closeModal'> & {
   organization: Organization;
@@ -86,7 +86,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
     ? [
         t('Unlimited users'),
         t('Event volume controls'),
-        t('SSO via Google and Github'),
+        t('SSO via Google and GitHub'),
         t('Third party integrations'),
         t('Extended data retention'),
         t('Custom alerts'),
@@ -108,7 +108,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
       <ImageHeader />
       <div>
         <PartnerPlanHeading>
-          <Tag icon={<IconClock />} type="promotion">
+          <Tag icon={<IconClock />} variant="promotion">
             {tn('%s day left', '%s days left', daysLeft)}
           </Tag>
           <h2 data-test-id="partner-plan-ending-header">
@@ -132,7 +132,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             )}
           </p>
         </PartnerPlanHeading>
-        <PathWrapper>
+        <Flex justify="between">
           <PathContainer>
             <SubHeading>{tct(`New Plan on [endDate]`, {endDate})}</SubHeading>
             <PathHeading>{t('Developer')}</PathHeading>
@@ -148,7 +148,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               {rightColumnItems.map(UpgradeItem)}
             </Bullets>
           </PathContainer>
-        </PathWrapper>
+        </Flex>
         <div style={{display: 'block'}}>
           <StyledButtonBar>
             <Button data-test-id="maybe-later" priority="default" onClick={closeModal}>
@@ -157,7 +157,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             {hasBillingAccess ? (
               <LinkButton
                 size="md"
-                to={`/settings/${organization.slug}/billing/checkout/?referrer=partner_plan_ending_modal`}
+                to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_modal`}
                 aria-label="Upgrade Now"
                 priority="primary"
                 onClick={() =>
@@ -189,10 +189,10 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
 }
 
 const PartnerPlanHeading = styled('div')`
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
 
   p {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
     margin: 0;
   }
 
@@ -201,27 +201,22 @@ const PartnerPlanHeading = styled('div')`
   }
 `;
 
-const PathWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
 const PathContainer = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   grid-auto-rows: max-content;
-  border: 1px solid ${p => p.theme.gray300};
+  border: 1px solid ${p => p.theme.colors.gray400};
   margin-left: auto;
   margin-right: auto;
   border-radius: 5px;
   width: 250px;
 
   &:first-of-type {
-    border: 1px solid ${p => p.theme.gray100};
+    border: 1px solid ${p => p.theme.colors.gray100};
   }
 `;
 
 const StyledButtonBar = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   display: flex;
   flex-direction: row;
   column-gap: 20px;
@@ -230,7 +225,8 @@ const StyledButtonBar = styled('div')`
 `;
 
 const ImageHeader = styled('div')`
-  margin: -${space(4)} -${space(4)} 0 -${space(4)};
+  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
+    0 -${p => p.theme.space['3xl']};
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background-image: url(${partnerMigrationHero});
   background-size: cover;
@@ -239,7 +235,8 @@ const ImageHeader = styled('div')`
   height: 200px;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${space(4)} -${space(4)} 0 -${space(4)};
+    margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
+      0 -${p => p.theme.space['3xl']};
   }
 `;
 
@@ -247,10 +244,10 @@ const Bullets = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-auto-rows: max-content;
-  gap: ${space(1)} ${space(1.5)};
+  gap: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
-  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.font.size.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const PathHeading = styled('h5')`
@@ -260,8 +257,8 @@ const PathHeading = styled('h5')`
 
 const SubHeading = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
 `;
 

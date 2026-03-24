@@ -4,86 +4,108 @@ import type {Actor} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
 
-import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+import {
+  Avatar,
+  type AvatarProps,
+  type GravatarBaseAvatarProps,
+  type LetterBaseAvatarProps,
+  type UploadBaseAvatarProps,
+} from './avatar';
 
-export interface UserAvatarProps extends BaseAvatarProps {
-  user: Actor | AvatarUser | undefined;
-  gravatar?: boolean;
-  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
+export interface UserAvatarProps extends AvatarProps {
+  user: Actor | AvatarUser;
   renderTooltip?: (user: AvatarUser | Actor) => React.ReactNode;
 }
 
-export function UserAvatar({
-  ref,
-
-  // Default gravatar to false in order to support transparent avatars
-  // Avatar falls through to letter avatars if a remote image fails to load,
-  // however gravatar sends back a transparent image when it does not find a gravatar,
-  // so there's little we have to control whether we need to fallback to letter avatar
-  gravatar = false,
-
-  renderTooltip,
-  user,
-  ...props
-}: UserAvatarProps) {
-  if (!user) {
-    // @TODO(jonasbadalic): Do we need a placeholder here?
-    return null;
-  }
-
-  const type = inferAvatarType(user, gravatar);
-  let tooltip: React.ReactNode = null;
-
-  if (renderTooltip) {
-    tooltip = renderTooltip(user);
-  } else if (props.tooltip) {
-    tooltip = props.tooltip;
-  } else {
-    tooltip = userDisplayName(user);
-  }
-
+export function UserAvatar({renderTooltip, user, ...props}: UserAvatarProps) {
   return (
-    <BaseAvatar
-      round
-      ref={ref}
-      type={type}
-      tooltip={tooltip}
+    <Avatar
       {...props}
-      {...getAvatarProps(user)}
+      {...getUserAvatarProps(user)}
+      round
+      tooltip={
+        renderTooltip
+          ? renderTooltip(user)
+          : props.tooltip
+            ? props.tooltip
+            : userDisplayName(user)
+      }
     />
   );
 }
 
-function getAvatarProps(user: AvatarUser | Actor) {
-  return isActor(user)
-    ? {
-        gravatarId: '',
-        letterId: user.name,
-        title: user.name,
-        uploadUrl: '',
-      }
-    : {
-        uploadUrl: user.avatar?.avatarUrl ?? '',
-        gravatarId: user.email?.toLowerCase(),
-        letterId: user.email || user.username || user.id || user.ip_address,
-        title: user.name || user.email || user.username || '',
+function getUserAvatarProps(
+  user: Actor | AvatarUser
+): GravatarBaseAvatarProps | LetterBaseAvatarProps | UploadBaseAvatarProps {
+  if (isActor(user)) {
+    return {
+      type: 'letter_avatar',
+      identifier: user.name,
+      name: user.name,
+      title: user.name,
+    };
+  }
+
+  const identifier = user.email || user.username || user.id || user.ip_address;
+  const name = user.name || user.email || user.username || '';
+
+  if (!user.avatar?.avatarType) {
+    return {
+      type: 'letter_avatar',
+      identifier,
+      name,
+      title: name,
+    };
+  }
+
+  switch (user.avatar.avatarType) {
+    case 'letter_avatar':
+      return {
+        type: 'letter_avatar',
+        identifier,
+        name,
+        title: name,
       };
+    case 'upload':
+      if (!user.avatar.avatarUrl) {
+        return {
+          type: 'letter_avatar',
+          identifier,
+          name,
+          title: name,
+        };
+      }
+      return {
+        type: 'upload',
+        uploadUrl: user.avatar.avatarUrl,
+        identifier,
+        name,
+      };
+    case 'gravatar':
+      if (!user.email) {
+        return {
+          type: 'letter_avatar',
+          identifier,
+          name,
+          title: name,
+        };
+      }
+      return {
+        type: 'gravatar',
+        gravatarId: user.email.toLowerCase(),
+        identifier,
+        name,
+      };
+    default:
+      return {
+        type: 'letter_avatar',
+        identifier,
+        name,
+        title: name,
+      };
+  }
 }
 
 function isActor(maybe: AvatarUser | Actor): maybe is Actor {
   return typeof (maybe as AvatarUser).email === 'undefined';
-}
-
-function inferAvatarType(user: AvatarUser | Actor, gravatar: boolean | undefined) {
-  if (isActor(user)) {
-    return 'letter_avatar';
-  }
-  if (user.avatar) {
-    return user.avatar.avatarType;
-  }
-  if (user.options?.avatarType) {
-    return user.options.avatarType;
-  }
-
-  return user.email && gravatar ? 'gravatar' : 'letter_avatar';
 }

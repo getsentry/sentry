@@ -2,7 +2,6 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {nullableValue} from './fieldRenderers';
 
@@ -10,7 +9,7 @@ type Props = {
   value: Array<string | null>;
 };
 
-function ArrayValue(props: Props) {
+export function ArrayValue(props: Props) {
   const [expanded, setExpanded] = useState<boolean>(false);
   const {value} = props;
 
@@ -48,8 +47,8 @@ const ArrayContainer = styled('div')<{expanded: boolean}>`
     outline: none;
     padding: 0;
     cursor: pointer;
-    color: ${p => p.theme.linkColor};
-    margin-left: ${space(0.5)};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    margin-left: ${p => p.theme.space.xs};
   }
 `;
 
@@ -57,12 +56,12 @@ const ArrayItem = styled('span')`
   flex-shrink: 1;
   display: block;
 
-  ${p => p.theme.overflowEllipsis};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: unset;
 `;
 
 const ButtonContainer = styled('div')`
   white-space: nowrap;
 `;
-
-export default ArrayValue;

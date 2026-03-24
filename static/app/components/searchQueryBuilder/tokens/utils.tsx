@@ -6,7 +6,8 @@ import type {Key, Node} from '@react-types/shared';
 import type {
   SelectOptionOrSectionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
+} from '@sentry/scraps/compactSelect';
+
 import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
   WildcardOperators,
@@ -53,6 +54,7 @@ export function getDefaultValueForValueType(valueType: FieldValueType | null): s
       return 'true';
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
+    case FieldValueType.CURRENCY:
       return '100';
     case FieldValueType.DATE:
       return '-24h';
@@ -127,6 +129,7 @@ export function getInitialFilterText(
   switch (valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
+    case FieldValueType.CURRENCY:
     case FieldValueType.DURATION:
     case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:

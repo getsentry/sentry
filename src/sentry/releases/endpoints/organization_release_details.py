@@ -9,7 +9,7 @@ from rest_framework.serializers import ListField
 from sentry import options, release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
+from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
     _release_suffix,
@@ -292,7 +292,7 @@ class OrganizationReleaseDetailsPaginationMixin:
 
 
 @extend_schema(tags=["Releases"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleaseDetailsEndpoint(
     OrganizationReleasesBaseEndpoint,
     ReleaseAnalyticsMixin,
@@ -450,6 +450,10 @@ class OrganizationReleaseDetailsEndpoint(
             scope.set_tag("failure_reason", "no_release_permission")
             raise ResourceDoesNotExist
 
+        if not request.access.has_projects_access(list(projects)):
+            scope.set_tag("failure_reason", "no_access_to_all_projects")
+            raise ResourceDoesNotExist
+
         serializer = OrganizationReleaseSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -559,6 +563,9 @@ class OrganizationReleaseDetailsEndpoint(
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
+            raise ResourceDoesNotExist
+
+        if not request.access.has_projects_access(list(release.projects.all())):
             raise ResourceDoesNotExist
 
         try:

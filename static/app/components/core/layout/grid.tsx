@@ -1,8 +1,15 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, type ContainerElement, type ContainerProps} from './container';
-import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
+import type {SpaceSize} from 'sentry/utils/theme';
+
+import {
+  Container,
+  type ContainerElement,
+  type ContainerProps,
+  type ContainerPropsWithRenderFunction,
+} from './container';
+import {getSpacing, rc, type Responsive} from './styles';
 
 const omitGridProps = new Set<keyof GridLayoutProps | 'as'>([
   'align',
@@ -62,7 +69,7 @@ interface GridLayoutProps {
    * Uses CSS grid-auto-flow property.
    */
   flow?: Responsive<'row' | 'column' | 'row dense' | 'column dense'>;
-  gap?: Responsive<SpacingSize | `${SpacingSize} ${SpacingSize}`>;
+  gap?: Responsive<SpaceSize | `${SpaceSize} ${SpaceSize}`>;
   /**
    * Aligns the grid container's content along the row axis when the grid is smaller than its container.
    * Uses CSS justify-content property.
@@ -82,13 +89,17 @@ interface GridLayoutProps {
   rows?: Responsive<CSSProperties['gridTemplateRows']>;
 }
 
-type GridProps<T extends ContainerElement = 'div'> = ContainerProps<T> & GridLayoutProps;
+export type GridProps<T extends ContainerElement = 'div'> = ContainerProps<T> &
+  GridLayoutProps;
+
+export type GridPropsWithRenderFunction<T extends ContainerElement = 'div'> =
+  ContainerPropsWithRenderFunction<T> & GridLayoutProps;
 
 export const Grid = styled(Container, {
   shouldForwardProp: prop => {
     return !omitGridProps.has(prop as any);
   },
-})<GridProps<any>>`
+})<GridProps<any> | GridPropsWithRenderFunction<any>>`
   ${p => rc('display', p.display ?? 'grid', p.theme, v => v ?? 'grid')}
 
   ${p => rc('gap', p.gap, p.theme, getSpacing)};
@@ -152,5 +163,5 @@ export const Grid = styled(Container, {
    * https://github.com/styled-components/styled-components/issues/1803
    */
 ` as unknown as <T extends ContainerElement = 'div'>(
-  props: GridProps<T>
+  props: GridProps<T> | GridPropsWithRenderFunction<T>
 ) => React.ReactElement;

@@ -76,7 +76,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
             )
 
         if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
-            logger.error(".link-user.bad_request.error", extra={"slack_request": slack_request})
+            logger.warning(".link-user.bad_request.error", extra={"slack_request": slack_request})
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         associate_url = build_linking_url(
@@ -209,7 +209,6 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[Response]]]:
-
         yield commands.HELP, self.help_handler
         yield commands.LINK_IDENTITY, self.link_user_handler
         yield commands.UNLINK_IDENTITY, self.unlink_user_handler

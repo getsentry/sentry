@@ -2,25 +2,25 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import ShortId from 'sentry/components/shortId';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {ShortId} from 'sentry/components/shortId';
 import {
   StatusIndicator,
   type StatusIndicatorProps,
 } from 'sentry/components/statusIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {CheckIn, CheckInCellKey} from 'sentry/views/insights/crons/types';
@@ -47,10 +47,10 @@ const checkStatusToIndicatorStatus: Record<
   StatusIndicatorProps['status']
 > = {
   [CheckInStatus.OK]: 'success',
-  [CheckInStatus.ERROR]: 'error',
+  [CheckInStatus.ERROR]: 'danger',
   [CheckInStatus.IN_PROGRESS]: 'muted',
   [CheckInStatus.MISSED]: 'warning',
-  [CheckInStatus.TIMEOUT]: 'error',
+  [CheckInStatus.TIMEOUT]: 'danger',
   [CheckInStatus.UNKNOWN]: 'muted',
 };
 
@@ -120,13 +120,13 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const statusText = statusToText[status];
 
   const statusColumn = (
-    <Status>
+    <Flex align="center">
       <StatusIndicator
         status={checkStatusToIndicatorStatus[status]}
         tooltipTitle={tct('Check-in Status: [statusText]', {statusText})}
       />
       {statusText}
-    </Status>
+    </Flex>
   );
 
   const environmentColumn = <div>{environment}</div>;
@@ -146,9 +146,9 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
       <ShortId shortId={getShortEventId(id)} />
       <CopyToClipboardButton
         size="zero"
-        borderless
+        priority="transparent"
         text={id.replaceAll('-', '')}
-        title={t('Copy full check-in identifier')}
+        tooltipProps={{title: t('Copy full check-in identifier')}}
         aria-label={t('Copy Check-In ID')}
       />
     </Flex>
@@ -195,7 +195,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
       ) : completionStatus === CompletionStatus.INCOMPLETE_TIMEOUT ? (
         <IncompleteTimeoutIndicator />
       ) : completionStatus === CompletionStatus.INCOMPLETE ? (
-        <Tag type="default">{t('In Progress')}</Tag>
+        <Tag variant="muted">{t('In Progress')}</Tag>
       ) : (
         emptyCell
       )}
@@ -203,18 +203,18 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   );
 
   const durationColumn = defined(duration) ? (
-    <DurationContainer>
+    <Flex align="center">
       <Tooltip skipWrapper title={<Duration exact seconds={duration / 1000} />}>
         <Duration seconds={duration / 1000} />
       </Tooltip>
-    </DurationContainer>
+    </Flex>
   ) : (
     emptyCell
   );
 
   const groupsColumn =
     groups && groups.length > 0 ? (
-      <IssuesContainer>
+      <Stack>
         {groups.map(({id: groupId, shortId}) => (
           <QuickContextHovercard
             dataRow={{
@@ -232,7 +232,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
             />
           </QuickContextHovercard>
         ))}
-      </IssuesContainer>
+      </Stack>
     ) : (
       emptyCell
     );
@@ -320,7 +320,7 @@ function OffScheduleIndicator({checkIn}: OffScheduleIndicatorProps) {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="error">{t('Early')}</Tag>
+      <Tag variant="danger">{t('Early')}</Tag>
     </Tooltip>
   );
 }
@@ -405,7 +405,7 @@ function CompletedLateIndicator({checkIn}: TimeoutLateByProps) {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="error">
+      <Tag variant="danger">
         {t('%s late', <Duration abbreviation seconds={lateBySeconds} />)}
       </Tag>
     </Tooltip>
@@ -423,7 +423,7 @@ function IncompleteTimeoutIndicator() {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="error">{t('Incomplete')}</Tag>
+      <Tag variant="danger">{t('Incomplete')}</Tag>
     </Tooltip>
   );
 }
@@ -438,7 +438,7 @@ function NotSentIndicator() {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="warning">{t('Not Sent')}</Tag>
+      <Tag variant="warning">{t('Not Sent')}</Tag>
     </Tooltip>
   );
 }
@@ -487,30 +487,15 @@ function ProcessingLatencyIndicator({checkIn}: ProcessingLatencyProps) {
   return <QuestionTooltip icon="info" size="sm" title={tooltipMessage} />;
 }
 
-const Status = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const TimestampContainer = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   font-variant-numeric: tabular-nums;
 `;
 
-const DurationContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const IssuesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const ExpectedDateTime = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledShortId = styled(ShortId)`

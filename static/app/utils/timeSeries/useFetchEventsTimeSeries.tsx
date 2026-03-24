@@ -1,14 +1,15 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatSearchStringForQueryParam} from 'sentry/utils/url/formatSearchStringForQueryParam';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';
@@ -147,7 +148,9 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
 
   return useApiQuery<EventsTimeSeriesResponse>(
     [
-      `/organizations/${organization.slug}/events-timeseries/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events-timeseries/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           partial: 1,
@@ -169,7 +172,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
               ? '0'
               : '1'
             : undefined,
-          caseInsensitive: caseInsensitive ? 1 : 0,
+          caseInsensitive: caseInsensitive ? 1 : undefined,
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,

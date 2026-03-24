@@ -3,17 +3,17 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import Count from 'sentry/components/count';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {Count} from 'sentry/components/count';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
@@ -26,16 +26,28 @@ type Props = {
 
 type ReleaseStatsType = {usersBreakdown: CrashFreeTimeBreakdown} | null;
 
-function TotalCrashFreeUsers({location, organization, projectSlug, version}: Props) {
+export function TotalCrashFreeUsers({
+  location,
+  organization,
+  projectSlug,
+  version,
+}: Props) {
   const {
     data: releaseStats,
     isPending,
     isError,
   } = useApiQuery<ReleaseStatsType>(
     [
-      `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
-        version
-      )}/stats/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/stats/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            version,
+          },
+        }
+      ),
       {
         query: {
           ...normalizeDateTimeParams(
@@ -114,16 +126,16 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
 }
 
 const Timeline = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
 
 const DOT_SIZE = 10;
 const Row = styled('div')`
-  border-left: 1px solid ${p => p.theme.border};
-  padding-left: ${space(2)};
-  padding-bottom: ${space(1)};
-  margin-left: ${space(1)};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
+  padding-left: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.md};
+  margin-left: ${p => p.theme.space.md};
   position: relative;
 
   &:before {
@@ -131,7 +143,7 @@ const Row = styled('div')`
     width: ${DOT_SIZE}px;
     height: ${DOT_SIZE}px;
     border-radius: 100%;
-    background-color: ${p => p.theme.purple300};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     position: absolute;
     top: 0;
     left: -${Math.floor(DOT_SIZE / 2)}px;
@@ -143,22 +155,25 @@ const Row = styled('div')`
 `;
 const InnerRow = styled('div')`
   display: grid;
-  grid-column-gap: ${space(2)};
+  grid-column-gap: ${p => p.theme.space.xl};
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
 
-  padding-bottom: ${space(0.5)};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   text-align: ${p => (p.right ? 'right' : 'left')};
-  color: ${p => (p.bold ? p.theme.tokens.content.primary : p.theme.subText)};
-  padding-bottom: ${space(0.25)};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p =>
+    p.bold ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
+  padding-bottom: ${p => p.theme.space['2xs']};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Percent = styled(Text)`
   font-variant-numeric: tabular-nums;
 `;
-
-export default TotalCrashFreeUsers;

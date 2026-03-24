@@ -7,8 +7,8 @@ import Indicators from 'sentry/components/indicators';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Config} from 'sentry/types/system';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
@@ -18,21 +18,21 @@ import {
   QueryClientProvider,
 } from 'sentry/utils/queryClient';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {GithubInstallationSelect} from 'sentry/views/integrationPipeline/githubInstallationSelect';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 
-import AwsLambdaCloudformation from './awsLambdaCloudformation';
-import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
-import AwsLambdaFunctionSelect from './awsLambdaFunctionSelect';
-import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
+import {AwsLambdaCloudformation} from './awsLambdaCloudformation';
+import {AwsLambdaFailureDetails} from './awsLambdaFailureDetails';
+import {AwsLambdaFunctionSelect} from './awsLambdaFunctionSelect';
+import {AwsLambdaProjectSelect} from './awsLambdaProjectSelect';
 
 const pipelineMapper: Record<string, [React.ComponentType<any>, string]> = {
   awsLambdaProjectSelect: [AwsLambdaProjectSelect, 'AWS Lambda Select Project'],
   awsLambdaFunctionSelect: [AwsLambdaFunctionSelect, 'AWS Lambda Select Lambdas'],
   awsLambdaCloudformation: [AwsLambdaCloudformation, 'AWS Lambda Create Cloudformation'],
   awsLambdaFailureDetails: [AwsLambdaFailureDetails, 'AWS Lambda View Failures'],
-  githubInstallationSelect: [GithubInstallationSelect, 'Github Select Installation'],
+  githubInstallationSelect: [GithubInstallationSelect, 'GitHub Select Installation'],
 };
 
 type Props = {
@@ -61,7 +61,7 @@ const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 /**
  * This component is a wrapper for specific pipeline views for integrations
  */
-function PipelineView({pipelineName, ...props}: Props) {
+export function PipelineView({pipelineName, ...props}: Props) {
   const mapping = pipelineMapper[pipelineName];
 
   if (!mapping) {
@@ -99,8 +99,9 @@ function PipelineView({pipelineName, ...props}: Props) {
     window.superUserCookieName = data.superUserCookieName;
     window.superUserCookieDomain = data.superUserCookieDomain ?? undefined;
 
+    // eslint-disable-next-line boundaries/element-types -- getsentry entrypoint
     const registerHooksImport = import('getsentry/registerHooks');
-    const {default: registerHooks} = await registerHooksImport;
+    const {registerHooks} = await registerHooksImport;
     registerHooks();
   }, []);
 
@@ -136,5 +137,3 @@ function PipelineView({pipelineName, ...props}: Props) {
     </QueryClientProvider>
   );
 }
-
-export default PipelineView;

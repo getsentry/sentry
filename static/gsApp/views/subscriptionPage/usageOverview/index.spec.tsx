@@ -7,9 +7,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 import * as useMedia from 'sentry/utils/useMedia';
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
 describe('UsageOverview', () => {
   const organization = OrganizationFixture();
@@ -23,7 +24,7 @@ describe('UsageOverview', () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
-    organization.features = ['subscriptions-v3', 'seer-billing'];
+    organization.features = ['seer-billing'];
     organization.access = ['org:billing'];
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
@@ -39,7 +40,8 @@ describe('UsageOverview', () => {
         subscription={subscription}
         organization={organization}
         usageData={usageData}
-      />
+      />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
 
     await screen.findByRole('heading', {name: 'Usage: May 2 - Jun 1, 2021'});
@@ -54,7 +56,8 @@ describe('UsageOverview', () => {
         subscription={subscription}
         organization={organization}
         usageData={usageData}
-      />
+      />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
 
     await screen.findByRole('heading', {name: 'Usage: May 2 - Jun 1, 2021'});
@@ -68,14 +71,15 @@ describe('UsageOverview', () => {
 
   it('opens panel based with no query params', async () => {
     jest
-      .spyOn(useMedia, 'default')
+      .spyOn(useMedia, 'useMedia')
       .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
         subscription={subscription}
         organization={organization}
         usageData={usageData}
-      />
+      />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
 
     await screen.findByRole('heading', {name: 'Errors'});
@@ -83,7 +87,7 @@ describe('UsageOverview', () => {
 
   it('opens panel based on query params', async () => {
     jest
-      .spyOn(useMedia, 'default')
+      .spyOn(useMedia, 'useMedia')
       .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
@@ -92,6 +96,7 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />,
       {
+        additionalWrapper: SecondaryNavigationContextProvider,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/subscription/usage-overview',
@@ -107,7 +112,7 @@ describe('UsageOverview', () => {
 
   it('defaults to last selected when query param is invalid', async () => {
     jest
-      .spyOn(useMedia, 'default')
+      .spyOn(useMedia, 'useMedia')
       .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
@@ -116,6 +121,7 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />,
       {
+        additionalWrapper: SecondaryNavigationContextProvider,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/subscription/usage-overview',
@@ -131,14 +137,15 @@ describe('UsageOverview', () => {
 
   it('can switch panel by clicking table rows', async () => {
     jest
-      .spyOn(useMedia, 'default')
+      .spyOn(useMedia, 'useMedia')
       .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
         subscription={subscription}
         organization={organization}
         usageData={usageData}
-      />
+      />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
 
     await screen.findByRole('heading', {name: 'Errors'});

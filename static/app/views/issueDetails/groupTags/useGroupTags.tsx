@@ -1,10 +1,11 @@
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface GroupTag {
   key: string;
@@ -53,7 +54,9 @@ const makeGroupTagsQueryKey = ({
   readable,
   limit,
 }: FetchIssueTagsParameters): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/tags/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/', {
+    path: {organizationIdOrSlug: orgSlug, issueId: groupId!},
+  }),
   {query: {environment, readable, limit}},
 ];
 

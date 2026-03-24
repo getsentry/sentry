@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 
-const FeedbackEmptyDetails = styled((props: any) => (
+export const FeedbackEmptyDetails = styled((props: any) => (
   <FluidHeight {...props}>
     <StyledEmptyMessage icon={<IconMail />}>
       {t('No feedback selected')}
@@ -17,7 +17,5 @@ const FeedbackEmptyDetails = styled((props: any) => (
 `;
 
 const StyledEmptyMessage = styled(EmptyMessage)`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
-
-export default FeedbackEmptyDetails;

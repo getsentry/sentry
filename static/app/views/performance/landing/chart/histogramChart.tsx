@@ -5,16 +5,15 @@ import type {Location} from 'history';
 
 import type {BarChartProps} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
-import BarChartZoom from 'sentry/components/charts/barChartZoom';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import Placeholder from 'sentry/components/placeholder';
+import {BarChartZoom} from 'sentry/components/charts/barChartZoom';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
@@ -95,7 +94,7 @@ export function Chart(props: ChartProps) {
   const yAxis = {
     type: 'value' as const,
     axisLabel: {
-      color: theme.chartLabel,
+      color: theme.tokens.content.secondary,
       formatter: (value: number | string) => formatAbbreviatedNumber(value),
     },
   };
@@ -126,10 +125,10 @@ export function Chart(props: ChartProps) {
                       colors={colors}
                       grid={
                         grid ?? {
-                          left: space(3),
-                          right: space(3),
-                          top: space(3),
-                          bottom: isLoading ? space(4) : space(1.5),
+                          left: theme.space['2xl'],
+                          right: theme.space['2xl'],
+                          top: theme.space['2xl'],
+                          bottom: isLoading ? theme.space['3xl'] : theme.space.lg,
                         }
                       }
                       stacked
@@ -148,7 +147,7 @@ export function Chart(props: ChartProps) {
 }
 
 const BarChartContainer = styled('div')<{hasPadding?: boolean}>`
-  padding-top: ${p => (p.hasPadding ? space(1) : 0)};
+  padding-top: ${p => (p.hasPadding ? p.theme.space.md : 0)};
   position: relative;
 `;
 

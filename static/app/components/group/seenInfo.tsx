@@ -2,13 +2,14 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
@@ -26,7 +27,7 @@ type Props = {
   release?: Release;
 };
 
-function SeenInfo({
+export function SeenInfo({
   date,
   dateGlobal,
   environment,
@@ -36,24 +37,24 @@ function SeenInfo({
   projectId,
 }: Props) {
   return (
-    <HovercardWrapper>
+    <Flex align="baseline">
       <StyledHovercard
         showUnderline
         header={
           <div>
-            <TimeSinceWrapper>
+            <Flex justify="between" marginBottom="xs">
               {t('Any Environment')}
               <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
-            </TimeSinceWrapper>
+            </Flex>
             {environment && (
-              <TimeSinceWrapper>
+              <Flex justify="between" marginBottom="xs">
                 {toTitleCase(environment)}
                 {date ? (
                   <TimeSince date={date} disabledAbsoluteTooltip />
                 ) : (
                   <span>{t('N/A')}</span>
                 )}
-              </TimeSinceWrapper>
+              </Flex>
             )}
           </div>
         }
@@ -97,25 +98,24 @@ function SeenInfo({
           </Fragment>
         )}
       </DateWrapper>
-    </HovercardWrapper>
+    </Flex>
   );
 }
 
 const dateTimeCss = (p: any) => css`
-  color: ${p.theme.subText};
-  font-size: ${p.theme.fontSize.md};
+  color: ${p.theme.tokens.content.secondary};
+  font-size: ${p.theme.font.size.md};
   display: flex;
   justify-content: center;
 `;
 
-const HovercardWrapper = styled('div')`
-  display: flex;
-  align-items: baseline;
-`;
-
 const DateWrapper = styled('div')`
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledDateTime = styled(DateTime)`
@@ -127,38 +127,30 @@ const NoEnvironment = styled('div')`
 `;
 
 const NoDateTime = styled('span')`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const TooltipWrapper = styled('span')`
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
   svg {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
     position: relative;
     top: 1px;
   }
 `;
 
-const TimeSinceWrapper = styled('div')`
-  margin-bottom: ${space(0.5)};
-  display: flex;
-  justify-content: space-between;
-`;
-
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
 
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
   ${Header} {
-    font-weight: ${p => p.theme.fontWeight.normal};
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
   ${Body} {
-    padding: ${space(1.5)};
+    padding: ${p => p.theme.space.lg};
   }
 `;
-
-export default SeenInfo;

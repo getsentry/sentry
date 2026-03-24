@@ -1,15 +1,16 @@
 import {useCallback} from 'react';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {ButtonProps} from '@sentry/scraps/button';
+
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
-import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
+import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {convertToReloadPath, getEventPath} from 'getsentry/utils/routeAnalytics';
 
 type Props = ButtonProps;
 
-export default function useButtonTracking({
+export function useButtonTracking({
   analyticsEventName,
   analyticsEventKey,
   analyticsParams,
@@ -19,7 +20,7 @@ export default function useButtonTracking({
   const routes = useRoutes();
 
   const trackButton = useCallback(() => {
-    const considerSendingAnalytics = organization && routes;
+    const considerSendingAnalytics = organization && Boolean(routes);
 
     if (considerSendingAnalytics) {
       const routeString = getEventPath(routes);

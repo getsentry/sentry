@@ -3,17 +3,24 @@ import partition from 'lodash/partition';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
+
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {
+  CopyMarkdownButton,
+  CopySetupInstructionsGate,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
+import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useCronDetectorFormField} from 'sentry/views/detectors/components/forms/cron/fields';
 import {
   platformGuides,
@@ -44,6 +51,7 @@ export function InstrumentationGuide() {
   const {platform, platformKey, guideKey, guide, setPlatformGuide} =
     useCronsUpsertGuideState();
 
+  const guideContainerRef = useRef<HTMLDivElement>(null);
   const startingPlatformRef = useRef(platformKey);
   const isFirstRender = useRef(true);
 
@@ -134,9 +142,22 @@ export function InstrumentationGuide() {
 
   const showAutoInstrumentationGuide = platform && guide && guideKey !== 'manual';
 
+  // TODO: Migrate crons guides to the content block system so we can use
+  // structured stepsToMarkdown() instead of innerHTML scraping.
+  const getGuideMarkdown = () => {
+    if (!guideContainerRef.current) {
+      return '';
+    }
+    try {
+      return simpleHtmlToMarkdown(guideContainerRef.current.innerHTML);
+    } catch {
+      return '';
+    }
+  };
+
   return (
     <Fragment>
-      <Container>
+      <WorkflowEngineContainer>
         <Section title={t('Select Instrumentation Method')}>
           <Text variant="muted">
             {t(
@@ -166,34 +187,49 @@ export function InstrumentationGuide() {
             )}
           </Flex>
         </Section>
-      </Container>
+      </WorkflowEngineContainer>
 
       {showAutoInstrumentationGuide && (
-        <Container>
+        <WorkflowEngineContainer>
           <Section
             title={t('Auto-Instrument with %s', platform.label)}
             trailingItems={
-              platform.guides.length > 1 ? (
-                <CompactSelect<GuideKey>
-                  size="xs"
-                  triggerProps={{borderless: true, size: 'zero'}}
-                  value={guideKey ?? 'upsert'}
-                  onChange={option => {
-                    setPlatformGuide(platformKey, option.value);
-                  }}
-                  options={platform.guides.map(g => ({
-                    value: g.key as GuideKey,
-                    label: g.title,
-                  }))}
-                />
-              ) : undefined
+              <Flex align="center" gap="sm">
+                {platform.guides.length > 1 && (
+                  <CompactSelect
+                    size="xs"
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button
+                        {...triggerProps}
+                        priority="transparent"
+                        size="zero"
+                      />
+                    )}
+                    value={guideKey ?? 'upsert'}
+                    onChange={option => {
+                      setPlatformGuide(platformKey, option.value);
+                    }}
+                    options={platform.guides.map(g => ({
+                      value: g.key as GuideKey,
+                      label: g.title,
+                    }))}
+                  />
+                )}
+                <CopySetupInstructionsGate>
+                  <CopyMarkdownButton
+                    borderless
+                    getMarkdown={getGuideMarkdown}
+                    source="crons_detector_guide"
+                  />
+                </CopySetupInstructionsGate>
+              </Flex>
             }
           >
-            <Flex direction="column" gap="lg">
+            <div ref={guideContainerRef}>
               <guide.Guide />
-            </Flex>
+            </div>
           </Section>
-        </Container>
+        </WorkflowEngineContainer>
       )}
     </Fragment>
   );

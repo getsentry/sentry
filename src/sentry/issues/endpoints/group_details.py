@@ -11,7 +11,8 @@ from rest_framework.response import Response
 from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
     delete_group_list,
@@ -22,6 +23,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
@@ -55,7 +57,7 @@ def get_group_global_count(group: Group) -> str:
     return str(group.times_seen_with_pending)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
@@ -132,6 +134,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         return hourly_stats, daily_stats
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
     def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve an Issue
@@ -195,8 +198,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     group_id=group.id, environment_id__in=environment_ids
                 )
             )
-
-            hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
 
             if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
@@ -274,10 +275,13 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     "pluginIssues": get_available_issue_plugins(group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
-                    "stats": {"24h": hourly_stats, "30d": daily_stats},
                     "count": get_group_global_count(group),
                 }
             )
+
+            if "stats" not in collapse:
+                hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
+                data["stats"] = {"24h": hourly_stats, "30d": daily_stats}
 
             participants = user_service.serialize_many(
                 filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
@@ -310,6 +314,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
             raise
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
     def put(self, request: Request, group: Group) -> Response:
         """
         Update an Issue
@@ -390,6 +395,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
             return Response(e.body, status=e.status_code)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
     def delete(self, request: Request, group: Group) -> Response:
         """
         Remove an Issue

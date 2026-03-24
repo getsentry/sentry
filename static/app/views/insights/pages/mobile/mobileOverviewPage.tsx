@@ -1,13 +1,18 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
+
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {
   DatePageFilter,
   type DatePageFilterProps,
-} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -19,14 +24,15 @@ import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/perf
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -36,6 +42,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {Am1MobileOverviewPage} from 'sentry/views/insights/pages/mobile/am1OverviewPage';
@@ -66,6 +73,34 @@ import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
+function MobileVitalsBanner() {
+  const organization = useOrganization();
+  const {dashboard, isLoading} = useGetPrebuiltDashboard(
+    PrebuiltDashboardId.MOBILE_VITALS
+  );
+
+  if (isLoading || !dashboard?.id) {
+    return null;
+  }
+
+  return (
+    <ModuleLayout.Full>
+      <Alert variant="info" showIcon>
+        {tct(
+          'This page is no longer being updated. For more detailed mobile performance metrics, visit the [link:Mobile Vitals Dashboard].',
+          {
+            link: (
+              <Link
+                to={`/organizations/${organization.slug}/dashboards/${dashboard.id}/`}
+              />
+            ),
+          }
+        )}
+      </Alert>
+    </ModuleLayout.Full>
+  );
+}
+
 interface EAPMobileOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
 }
@@ -73,6 +108,7 @@ interface EAPMobileOverviewPageProps {
 function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps) {
   useOverviewPageTrackPageload();
 
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -247,6 +283,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
+            {hasPlatformizedInsights && <MobileVitalsBanner />}
             <ModuleLayout.Full>
               {showOnboarding ? (
                 <LegacyOnboarding

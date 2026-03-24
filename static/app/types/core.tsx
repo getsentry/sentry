@@ -4,8 +4,9 @@
  * Before a type is put here it should be required in multiple other types.
  * or used in multiple views.
  */
+import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+
 import type {getInterval} from 'sentry/components/charts/utils';
-import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
 import type {ALLOWED_SCOPES} from 'sentry/constants';
 import type {Organization} from 'sentry/types/organization';
 
@@ -60,12 +61,12 @@ export interface SelectValue<T> extends MenuListItemProps {
 /**
  * The 'other' option format used by checkboxes, radios and more.
  */
-export type Choice = [
+export type Choice = readonly [
   value: string | number,
   label: string | number | React.ReactElement,
 ];
 
-export type Choices = Choice[];
+export type Choices = readonly Choice[];
 
 /**
  * These are used in billing, stats, and other places to consistently refer to categories.
@@ -95,10 +96,10 @@ export enum DataCategory {
   SEER_AUTOFIX = 'seerAutofix',
   SEER_SCANNER = 'seerScanner',
   SEER_USER = 'seerUsers',
-  PREVENT_USER = 'preventUsers',
-  PREVENT_REVIEW = 'preventReviews',
   USER_REPORT_V2 = 'feedback',
   TRACE_METRICS = 'traceMetrics',
+  SIZE_ANALYSIS = 'sizeAnalyses',
+  INSTALLABLE_BUILD = 'installableBuilds',
 }
 
 /**
@@ -129,10 +130,10 @@ export enum DataCategoryExact {
   SEER_AUTOFIX = 'seer_autofix',
   SEER_SCANNER = 'seer_scanner',
   SEER_USER = 'seer_user',
-  PREVENT_USER = 'prevent_user',
-  PREVENT_REVIEW = 'prevent_review',
   USER_REPORT_V2 = 'feedback',
   TRACE_METRIC = 'trace_metric',
+  SIZE_ANALYSIS = 'size_analysis',
+  INSTALLABLE_BUILD = 'installable_build',
 }
 
 /**
@@ -156,13 +157,13 @@ interface DataCategoryFormattingInfo {
    */
   bigNumUnit: 0 | 1;
   /**
-   * Formatting options for price display.
-   * minIntegerDigits: minimum integer digits (bytes use 2, counts use 5)
-   * maxIntegerDigits: maximum integer digits (bytes use 2, counts use 7)
+   * Formatting options for price display (decimal places).
+   * minFractionDigits: minimum fraction digits (bytes use 2, counts use 5)
+   * maxFractionDigits: maximum fraction digits (bytes use 2, counts use 7)
    */
   priceFormatting: {
-    maxIntegerDigits: number;
-    minIntegerDigits: number;
+    maxFractionDigits: number;
+    minFractionDigits: number;
   };
   /**
    * Whether to use abbreviated formatting for projected values.

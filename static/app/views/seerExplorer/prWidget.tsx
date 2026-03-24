@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconOpen, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {MenuItemProps} from 'sentry/views/seerExplorer/explorerMenu';
@@ -45,48 +45,56 @@ export function usePRWidgetData({
   onCreatePR: (repoName?: string) => void;
   repoPRStates: Record<string, RepoPRState>;
 }) {
-  // Compute aggregated stats from all blocks
+  // Compute aggregated stats from merged patches (latest patch per file)
   const {totalAdded, totalRemoved, repoStats, repoFileStats} = useMemo(() => {
+    // Collect latest merged patch per file (later blocks override earlier)
+    const mergedByFile = new Map<
+      string,
+      {added: number; path: string; removed: number; repoName: string}
+    >();
+
+    for (const block of blocks) {
+      if (!block.merged_file_patches) {
+        continue;
+      }
+      for (const filePatch of block.merged_file_patches) {
+        const key = `${filePatch.repo_name}:${filePatch.patch.path}`;
+        mergedByFile.set(key, {
+          repoName: filePatch.repo_name,
+          path: filePatch.patch.path,
+          added: filePatch.patch.added,
+          removed: filePatch.patch.removed,
+        });
+      }
+    }
+
+    // Aggregate stats from merged patches
     const stats: Record<string, RepoStats> = {};
     const fileStats: Record<string, FileStats[]> = {};
     let added = 0;
     let removed = 0;
 
-    for (const block of blocks) {
-      if (!block.file_patches) {
-        continue;
-      }
-      for (const filePatch of block.file_patches) {
-        added += filePatch.patch.added;
-        removed += filePatch.patch.removed;
-        if (!stats[filePatch.repo_name]) {
-          stats[filePatch.repo_name] = {added: 0, removed: 0};
-        }
-        const repoStat = stats[filePatch.repo_name];
-        if (repoStat) {
-          repoStat.added += filePatch.patch.added;
-          repoStat.removed += filePatch.patch.removed;
-        }
+    for (const patch of mergedByFile.values()) {
+      added += patch.added;
+      removed += patch.removed;
 
-        // Track file-level stats
-        if (!fileStats[filePatch.repo_name]) {
-          fileStats[filePatch.repo_name] = [];
-        }
-        const repoFiles = fileStats[filePatch.repo_name];
-        if (repoFiles) {
-          const existingFile = repoFiles.find(f => f.path === filePatch.patch.path);
-          if (existingFile) {
-            existingFile.added += filePatch.patch.added;
-            existingFile.removed += filePatch.patch.removed;
-          } else {
-            repoFiles.push({
-              added: filePatch.patch.added,
-              path: filePatch.patch.path,
-              removed: filePatch.patch.removed,
-            });
-          }
-        }
+      if (!stats[patch.repoName]) {
+        stats[patch.repoName] = {added: 0, removed: 0};
       }
+      const repoStat = stats[patch.repoName];
+      if (repoStat) {
+        repoStat.added += patch.added;
+        repoStat.removed += patch.removed;
+      }
+
+      if (!fileStats[patch.repoName]) {
+        fileStats[patch.repoName] = [];
+      }
+      fileStats[patch.repoName]?.push({
+        added: patch.added,
+        path: patch.path,
+        removed: patch.removed,
+      });
     }
 
     return {
@@ -107,10 +115,10 @@ export function usePRWidgetData({
       let isOutOfSync = !hasPR; // No PR means out of sync
 
       if (hasPR && prState?.commit_sha) {
-        // Find last block with patches for this repo
+        // Find last block with merged patches for this repo
         for (let i = blocks.length - 1; i >= 0; i--) {
           const block = blocks[i];
-          if (block?.file_patches?.some(p => p.repo_name === repoName)) {
+          if (block?.merged_file_patches?.some(p => p.repo_name === repoName)) {
             const blockSha = block.pr_commit_shas?.[repoName];
             isOutOfSync = blockSha !== prState.commit_sha;
             break;
@@ -127,9 +135,10 @@ export function usePRWidgetData({
   const repoNames = Object.keys(repoStats);
 
   // Compute overall sync status
-  const {allInSync, anyCreating} = useMemo(() => {
+  const {allInSync, anyCreating, hasPRs} = useMemo(() => {
     let inSync = true;
     let creating = false;
+    let prs = false;
 
     for (const repoName of repoNames) {
       const prState = repoPRStates[repoName];
@@ -141,11 +150,15 @@ export function usePRWidgetData({
       if (syncStatus?.isOutOfSync) {
         inSync = false;
       }
+      if (syncStatus?.hasPR) {
+        prs = true;
+      }
     }
 
     return {
       allInSync: inSync && !creating,
       anyCreating: creating,
+      hasPRs: prs,
     };
   }, [repoNames, repoPRStates, repoSyncStatus]);
 
@@ -190,7 +203,7 @@ export function usePRWidgetData({
             <Flex align="center" gap="md">
               {isCreating ? (
                 <Text size="xs" variant="muted">
-                  {t('Pushing...')}
+                  {hasPRs ? t('Updating PR...') : t('Creating PR...')}
                 </Text>
               ) : syncStatus?.hasPR ? (
                 <Flex align="center" gap="md" justify="between" width="100%">
@@ -204,7 +217,7 @@ export function usePRWidgetData({
                     </Text>
                   )}
                   <PRLink
-                    href={prState?.pr_url}
+                    href={prState?.pr_url ?? undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
@@ -228,7 +241,7 @@ export function usePRWidgetData({
         },
       };
     });
-  }, [repoNames, repoFileStats, repoPRStates, repoSyncStatus]);
+  }, [repoNames, repoFileStats, repoPRStates, repoSyncStatus, hasPRs]);
 
   // Build footer for explorer menu
   const menuFooter = useMemo(() => {
@@ -252,7 +265,7 @@ export function usePRWidgetData({
           </Button>
         ) : allInSync ? (
           <Flex gap="sm">
-            <IconCheckmark size="sm" color="success" />
+            <IconCheckmark size="sm" variant="success" />
             <Text variant="success" size="sm">
               {t('All changes pushed')}
             </Text>
@@ -264,12 +277,12 @@ export function usePRWidgetData({
             onClick={handleCreateAllPRs}
             icon={<IconUpload />}
           >
-            {t('Push All Changes')}
+            {hasPRs ? t('Push All Changes') : t('Create PR(s)')}
           </Button>
         )}
       </Flex>
     );
-  }, [anyCreating, allInSync, repoNames, repoSyncStatus, onCreatePR]);
+  }, [anyCreating, allInSync, repoNames, repoSyncStatus, onCreatePR, hasPRs]);
 
   return {
     hasCodeChanges,
@@ -277,13 +290,20 @@ export function usePRWidgetData({
     totalRemoved,
     allInSync,
     anyCreating,
+    hasPRs,
     menuItems,
     menuFooter,
   };
 }
 
-function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidgetProps) {
-  const {hasCodeChanges, totalAdded, totalRemoved, allInSync, anyCreating} =
+export function PRWidget({
+  blocks,
+  repoPRStates,
+  onCreatePR,
+  onToggleMenu,
+  ref,
+}: PRWidgetProps) {
+  const {hasCodeChanges, totalAdded, totalRemoved, allInSync, anyCreating, hasPRs} =
     usePRWidgetData({
       blocks,
       repoPRStates,
@@ -295,8 +315,8 @@ function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidge
   }
 
   return (
-    <Button ref={ref as any} size="xs" onClick={onToggleMenu}>
-      <Flex align="center" gap="sm">
+    <Button ref={ref as any} onClick={onToggleMenu}>
+      <Flex align="center" gap="md">
         <Flex>
           <Text variant="success" monospace>
             +{totalAdded}
@@ -308,11 +328,11 @@ function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidge
         {anyCreating ? (
           <LoadingIndicator size={12} />
         ) : allInSync ? (
-          <IconCheckmark size="xs" color="success" />
+          <IconCheckmark variant="success" />
         ) : (
-          <Flex gap="xs">
-            <Text size="xs">{t('Push')}</Text>
-            <IconUpload size="xs" />
+          <Flex gap="sm">
+            <Text>{hasPRs ? t('Update PR(s)') : t('Create PR')}</Text>
+            <IconUpload />
           </Flex>
         )}
       </Flex>
@@ -320,14 +340,12 @@ function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidge
   );
 }
 
-export default PRWidget;
-
 const PRLink = styled('a')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.linkColor};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-size: ${p => p.theme.font.size.sm};
   text-decoration: none;
 
   &:hover {

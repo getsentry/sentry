@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import type {LinkProps} from 'sentry/components/core/link';
-import {Link} from 'sentry/components/core/link';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconSlashForward} from 'sentry/icons';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 
 export interface Crumb {
   /**
@@ -17,7 +18,7 @@ export interface Crumb {
 
   /**
    * It will keep the page filter values (projects, environments, time) in the
-   * querystring when navigating (GlobalSelectionLink)
+   * querystring when navigating using extractSelectionParameters
    */
   preservePageFilters?: boolean;
 
@@ -57,7 +58,7 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
             />
             {index < crumbs.length - 1 ? (
               <Flex align="center" justify="center" flexShrink={0}>
-                <IconSlashForward size="xs" color="subText" />
+                <IconSlashForward size="xs" variant="muted" />
               </Flex>
             ) : null}
           </Fragment>
@@ -115,10 +116,18 @@ interface BreadcrumbLinkProps extends LinkProps {
 }
 
 function BreadcrumbLink(props: BreadcrumbLinkProps) {
-  const {preservePageFilters, ...rest} = props;
-  if (preservePageFilters) {
-    return <GlobalSelectionLink {...rest} />;
+  const {preservePageFilters, to, ...rest} = props;
+  const location = useLocation();
+
+  if (!to) {
+    return <Link to={to} {...rest} />;
   }
 
-  return <Link {...rest} />;
+  const toWithQuery = preservePageFilters
+    ? typeof to === 'string'
+      ? {pathname: to, query: extractSelectionParameters(location.query)}
+      : {...to, query: {...extractSelectionParameters(location.query), ...to.query}}
+    : to;
+
+  return <Link to={toWithQuery} {...rest} />;
 }

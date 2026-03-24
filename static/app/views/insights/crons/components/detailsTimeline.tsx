@@ -1,6 +1,8 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Text} from '@sentry/scraps/text';
+
 import {
   deleteMonitorEnvironment,
   setEnvironmentIsMuted,
@@ -10,16 +12,14 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {Text} from 'sentry/components/core/text';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
@@ -154,11 +154,12 @@ const Header = styled('div')`
   grid-column: 1/-1;
   display: grid;
   grid-template-columns: subgrid;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: 1;
 
   > :last-child {
-    box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
@@ -174,7 +175,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const TimelineTitle = styled(Text)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   grid-column: 1;
   line-height: 1.2;
   font-weight: bold;

@@ -1,5 +1,6 @@
 import type {EventsStats} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {
@@ -8,7 +9,7 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   getPeriodInterval,
@@ -96,7 +97,7 @@ export function useMetricEventStats(
     timePeriod,
   });
 
-  const queryExtras: Record<string, string> = getMetricDatasetQueryExtras({
+  const queryExtras = getMetricDatasetQueryExtras({
     organization,
     location,
     dataset,
@@ -124,7 +125,9 @@ export function useMetricEventStats(
   );
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/events-stats/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {query: queryObject},
   ];
 

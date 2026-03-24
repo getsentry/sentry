@@ -15,7 +15,6 @@ from sentry.models.project import Project
 
 
 class BoostLatestReleasesBias(Bias):
-
     datetime_format = "%Y-%m-%dT%H:%M:%SZ"
 
     def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:

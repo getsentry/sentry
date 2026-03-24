@@ -1,8 +1,8 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 describe('normalizeUrl', () => {
   let configState: Config;
@@ -74,6 +74,11 @@ describe('normalizeUrl', () => {
       ['/settings/stats/issues/', '/settings/stats/issues/'],
       ['/settings/stats/health/', '/settings/stats/health/'],
 
+      // Seer org settings: strip org slug but keep /settings/seer/... paths
+      ['/settings/acme/seer/', '/settings/seer/'],
+      ['/settings/acme/seer/repos/', '/settings/seer/repos/'],
+      ['/settings/seer/repos/', '/settings/seer/repos/'],
+
       ['/join-request/acme', '/join-request/'],
       ['/join-request/acme/', '/join-request/'],
       ['/onboarding/acme/', '/onboarding/'],
@@ -108,14 +113,6 @@ describe('normalizeUrl', () => {
       ],
       // Team settings links in breadcrumbs can be pre-normalized from breadcrumbs
       ['/settings/teams/peeps/', '/settings/teams/peeps/'],
-      [
-        '/settings/billing/checkout/?_q=all#hash',
-        '/settings/billing/checkout/?_q=all#hash',
-      ],
-      [
-        '/settings/billing/bundle-checkout/?_q=all#hash',
-        '/settings/billing/bundle-checkout/?_q=all#hash',
-      ],
     ];
     for (const [input, expected] of cases) {
       result = normalizeUrl(input!);
@@ -163,6 +160,9 @@ describe('normalizeUrl', () => {
 
     result = normalizeUrl({pathname: '/settings/sentry/members'}, location);
     expect(result.pathname).toBe('/settings/members');
+
+    result = normalizeUrl({pathname: '/settings/acme/seer/repos/'}, location);
+    expect(result.pathname).toBe('/settings/seer/repos/');
 
     result = normalizeUrl({pathname: '/organizations/albertos-apples/issues'}, location);
     expect(result.pathname).toBe('/issues');

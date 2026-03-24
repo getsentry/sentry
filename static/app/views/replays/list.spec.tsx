@@ -1,15 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import ListPage from 'sentry/views/replays/list';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
@@ -52,7 +55,10 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
 
 describe('ReplayList', () => {
   let mockFetchReplayListRequest: jest.Mock;
+  const user = UserFixture({id: '1'});
+
   beforeEach(() => {
+    ConfigStore.set('user', user);
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState({
       projects: [],
@@ -91,10 +97,12 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: false,
+      data: [],
     });
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     await screen.findByText('Get to the root cause faster');
@@ -111,10 +119,12 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: false,
+      data: [],
     });
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     await screen.findByText('Get to the root cause faster');
@@ -131,10 +141,12 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: false,
+      data: [],
     });
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     await screen.findByText('Get to the root cause faster');
@@ -151,10 +163,12 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: true,
+      data: [],
     });
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     await screen.findByTestId('replay-table');
@@ -173,14 +187,44 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: false,
+      data: [],
     });
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(1));
 
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
+  });
+
+  it('should show access denied when user does not have granular replay permissions', async () => {
+    const mockOrg = OrganizationFixture({
+      features: [...AM2_FEATURES],
+      hasGranularReplayPermissions: true,
+      replayAccessMembers: [999], // User ID 1 is not in this list
+    });
+    mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
+      fetching: false,
+      hasSentOneReplay: true,
+    });
+    mockUseProjectSdkNeedsUpdate.mockReturnValue({
+      isError: false,
+      isFetching: false,
+      needsUpdate: false,
+      data: [],
+    });
+
+    render(<ListPage />, {
+      organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
+    });
+
+    expect(
+      await screen.findByText("You don't have access to this feature")
+    ).toBeInTheDocument();
+    expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 });

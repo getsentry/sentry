@@ -550,8 +550,8 @@ table.table.key-value {
   justify-content: center;
 
   .loading-indicator {
-    height: 256px;
-    width: 256px;
+    height: 192px;
+    width: 192px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -560,11 +560,23 @@ table.table.key-value {
     border: 0;
     overflow: hidden;
     border-radius: 0;
+
+    margin-bottom: 16px;
   }
 
   .loading-message {
     font-family: @font-family-code;
     text-align: center;
+    font-weight: bold;
+
+    p:first-child {
+      margin-bottom: 8px;
+    }
+  }
+
+  small {
+    font-size: 12px;
+    opacity: 0.7;
   }
 }
 .splash-loader code {
@@ -577,17 +589,17 @@ table.table.key-value {
   text-box-edge: text text;
   text-box-trim: trim-both;
 
-  color: #C8007E;
+  color: #c8007e;
   background: color-mix(in oklab, currentColor, transparent 92%);
 }
 .theme-dark .splash-loader code {
-  color: #EA95B9;
+  color: #ea95b9;
 }
 .splash-loader small {
-  color: #6A6772;
+  color: #6a6772;
 }
 .theme-dark .splash-loader small {
-  color: #B5B0BD;
+  color: #b5b0bd;
 }
 
 .theme-dark .loading.triangle .loading-indicator {
@@ -600,6 +612,61 @@ body.theme-system {
       filter: invert(100%);
       opacity: 0.8;
     }
+  }
+}
+scraps-bleep {
+  position: relative;
+  display: inline-block;
+  color: transparent;
+}
+scraps-bleep::before {
+  content: '$#!%';
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  animation: bleep 1.3s steps(1) infinite;
+  color: #3e3b46;
+}
+@media (prefers-reduced-motion: reduce) {
+  scraps-bleep::before {
+    animation: none;
+  }
+}
+body.theme-dark scraps-bleep::before {
+  // theme.tokens.content.primary
+  color: #e9e5eb;
+}
+body.theme-system scraps-bleep::before {
+  @media (prefers-color-scheme: dark) {
+    // theme.content.primary
+    color: #e9e5eb;
+  }
+}
+@keyframes bleep {
+  0% {
+    content: '$#!%';
+  }
+  12% {
+    content: '&*#%';
+  }
+  25% {
+    content: '$◆*+';
+  }
+  37% {
+    content: '!@#&';
+  }
+  50% {
+    content: '%*$◆';
+  }
+  62% {
+    content: '@+!#';
+  }
+  75% {
+    content: '*&#$';
+  }
+  87% {
+    content: '+%@*';
   }
 }
 

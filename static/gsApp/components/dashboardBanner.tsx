@@ -2,18 +2,19 @@ import styled from '@emotion/styled';
 import DashLeft from 'getsentry-images/dashboards-banner-left.svg';
 import DashRight from 'getsentry-images/dashboards-banner-right.svg';
 
-import Banner from 'sentry/components/banner';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
+import {Banner} from 'sentry/components/banner';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import UpsellButton from 'getsentry/components/upsellButton';
+import {UpsellButton} from 'getsentry/components/upsellButton';
 
 type Props = {
   organization: Organization;
 };
 
-function DashboardBanner({organization}: Props) {
+export function DashboardBanner({organization}: Props) {
   // No upsell if the user can edit dashboards
   if (organization.features.includes('organizations:dashboards-edit')) {
     return null;
@@ -35,7 +36,7 @@ function DashboardBanner({organization}: Props) {
 }
 
 const StyledBanner = styled(Banner)`
-  background-color: ${p => p.theme.purple100};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
@@ -53,5 +54,3 @@ const DashboardBackground = styled('div')`
     width: 95%;
   }
 `;
-
-export default DashboardBanner;

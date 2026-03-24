@@ -1,18 +1,21 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Count from 'sentry/components/count';
-import Pagination from 'sentry/components/pagination';
-import GridEditable, {
+import {Flex} from '@sentry/scraps/layout';
+
+import {Count} from 'sentry/components/count';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Pagination} from 'sentry/components/pagination';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -58,7 +61,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'count_if(span.status,equals,internal_error)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
-  {key: 'sum(gen_ai.usage.total_cost)', name: t('Cost'), width: 100},
+  {key: 'sum(gen_ai.cost.total_tokens)', name: t('Cost'), width: 100},
   {
     key: 'sum(gen_ai.usage.input_tokens)',
     name: t('Input tokens (Cached)'),
@@ -77,7 +80,7 @@ const rightAlignColumns = new Set([
   'sum(gen_ai.usage.output_tokens)',
   'sum(gen_ai.usage.output_tokens.reasoning)',
   'sum(gen_ai.usage.input_tokens.cached)',
-  'sum(gen_ai.usage.total_cost)',
+  'sum(gen_ai.cost.total_tokens)',
   'count_if(span.status,equals,internal_error)',
   'avg(span.duration)',
   'p95(span.duration)',
@@ -103,7 +106,7 @@ export function ModelsTable() {
         'sum(gen_ai.usage.output_tokens)',
         'sum(gen_ai.usage.output_tokens.reasoning)',
         'sum(gen_ai.usage.input_tokens.cached)',
-        'sum(gen_ai.usage.total_cost)',
+        'sum(gen_ai.cost.total_tokens)',
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
@@ -124,11 +127,11 @@ export function ModelsTable() {
     }
 
     return modelsRequest.data.map(span => ({
-      model: `${span['gen_ai.request.model']}`,
+      model: span['gen_ai.request.model'],
       requests: span['count()'] ?? 0,
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
-      cost: span['sum(gen_ai.usage.total_cost)'],
+      cost: span['sum(gen_ai.cost.total_tokens)'],
       errors: span['count_if(span.status,equals,internal_error)'] ?? 0,
       inputTokens: Number(span['sum(gen_ai.usage.input_tokens)']),
       inputCachedTokens: Number(span['sum(gen_ai.usage.input_tokens.cached)']),
@@ -259,7 +262,7 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    case 'sum(gen_ai.usage.total_cost)':
+    case 'sum(gen_ai.cost.total_tokens)':
       return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
     case 'count_if(span.status,equals,internal_error)':
       return (
@@ -280,20 +283,14 @@ const BodyCell = memo(function BodyCell({
 
 function TokenTypeCell({value, secondaryValue}: {secondaryValue: number; value: number}) {
   return (
-    <TokenTypeCountWrapper>
+    <Flex as="span" justify="end" gap="xs">
       <Count value={value} />
       <span>
         (<Count value={secondaryValue} />)
       </span>
-    </TokenTypeCountWrapper>
+    </Flex>
   );
 }
-
-const TokenTypeCountWrapper = styled('span')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  justify-content: flex-end;
-`;
 
 const ModelCell = styled(CellLink)`
   line-height: 1.1;

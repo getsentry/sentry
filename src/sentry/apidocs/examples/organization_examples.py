@@ -297,7 +297,6 @@ class OrganizationExamples:
                 "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,
                 "autoEnableCodeReview": True,
                 "defaultCodeReviewTriggers": [
-                    "on_command_phrase",
                     "on_ready_for_review",
                     "on_new_commit",
                 ],
@@ -305,8 +304,8 @@ class OrganizationExamples:
                 "enableSeerCoding": True,
                 "enableSeerEnhancedAlerts": True,
                 "autoOpenPrs": False,
-                "allowBackgroundAgentDelegation": True,
-                "enablePrReviewTestGeneration": True,
+                "defaultCodingAgent": None,
+                "defaultCodingAgentIntegrationId": None,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],

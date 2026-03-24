@@ -1,13 +1,15 @@
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import Placeholder from 'sentry/components/placeholder';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {PreviewData, Subscription} from 'getsentry/types';
@@ -18,9 +20,9 @@ import {
   getFees,
 } from 'getsentry/utils/billing';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
-import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
-function NextBillCard({
+export function NextBillCard({
   subscription,
   organization,
 }: {
@@ -32,7 +34,11 @@ function NextBillCard({
     isLoading,
     isError,
   } = useApiQuery<PreviewData>(
-    [`/customers/${organization.slug}/subscription/next-bill/`],
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/subscription/next-bill/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: 0,
       enabled: !!subscription.plan,
@@ -56,9 +62,6 @@ function NextBillCard({
   const seerItem = invoiceItems.find(item => item.type === 'activated_seer_users');
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems}); // these should all be negative already
-
-  // TODO(isabella): Update the getCreditApplied function to return a negative value
-  // and correct places where it's used
   const creditApplied =
     -1 *
     getCreditApplied({
@@ -90,7 +93,7 @@ function NextBillCard({
           {isLoading ? (
             <Placeholder height="20px" width="150px" />
           ) : (
-            <Tag type="info">
+            <Tag variant="info">
               {tct('[billDate]・in [daysLeft] days', {
                 billDate: nextBillDate.format('MMM D, YYYY'),
                 daysLeft,
@@ -101,7 +104,7 @@ function NextBillCard({
         isLoading ? (
           <Placeholder style={{flexGrow: 1}} />
         ) : isError ? (
-          <Alert type="error">
+          <Alert variant="danger">
             {t('Could not compute next bill. Please try again later.')}
           </Alert>
         ) : (
@@ -169,5 +172,3 @@ function NextBillCard({
     />
   );
 }
-
-export default NextBillCard;

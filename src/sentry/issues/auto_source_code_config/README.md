@@ -10,7 +10,7 @@ If no previous code mappings were established for that project, the creation of 
 - Suspect commits will be created
 - Sentry comments on pull requests will be created [1]
 
-When a code mapping is created and the stack trace is not an in-app frame we can create a Sentry stack trace rule to mark them as in-app from then on [2]. Having at least one in-app frame is required to enable the features listed above.
+When a code mapping is created and the stacktrace is not an in-app frame we can create a Sentry stacktrace rule to mark them as in-app from then on [2]. Having at least one in-app frame is required to enable the features listed above.
 
 During the creation of the first code mapping we can also import a CODEOWNERS file [2], thus, the following features will be enabled:
 
@@ -30,7 +30,7 @@ Will you access or store my source code?
 
 Configurations:
 
-- Creating in-app stack trace rules
+- Creating in-app stacktrace rules
 - Importing CODEOWNERS
 - Keeping SCM Teams in sync with Sentry Teams
 

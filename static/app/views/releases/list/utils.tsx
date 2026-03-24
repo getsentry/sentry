@@ -1,4 +1,4 @@
-import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
+import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
 
 // the keys should match STATS_PERIODS in src/sentry/snuba/sessions.py
 const STATS_PERIODS: Record<string, number> = {

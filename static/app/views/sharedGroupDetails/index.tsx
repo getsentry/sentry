@@ -1,24 +1,25 @@
 import {useLayoutEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import NotFound from 'sentry/components/errors/notFound';
+import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
+import {NotFound} from 'sentry/components/errors/notFound';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
-import Footer from 'sentry/components/footer';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Footer} from 'sentry/components/footer';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import SharedGroupHeader from './sharedGroupHeader';
+import {SharedGroupHeader} from './sharedGroupHeader';
 
 function SharedGroupDetails() {
-  const {shareId, orgId} = useParams();
+  const {shareId, orgId} = useParams<{orgId: string | undefined; shareId: string}>();
   useLayoutEffect(() => {
     document.body.classList.add('shared-group');
     return () => {
@@ -42,10 +43,17 @@ function SharedGroupDetails() {
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<Group>([`/organizations/${orgSlug}/shared/issues/${shareId}/`], {
-    staleTime: 0,
-    enabled: !!orgSlug,
-  });
+  } = useApiQuery<Group>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/shared/issues/$shareId/`, {
+        path: {organizationIdOrSlug: orgSlug!, shareId},
+      }),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!orgSlug,
+    }
+  );
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -82,7 +90,10 @@ function SharedGroupDetails() {
               </div>
               <div className="box-content">
                 <SharedGroupHeader group={group} />
-                <Container className="group-overview event-details-container">
+                <Container
+                  padding="3xl"
+                  className="group-overview event-details-container"
+                >
                   <BorderlessEventEntries
                     organization={org}
                     group={group}
@@ -100,9 +111,5 @@ function SharedGroupDetails() {
     </SentryDocumentTitle>
   );
 }
-
-const Container = styled('div')`
-  padding: ${space(4)};
-`;
 
 export default SharedGroupDetails;

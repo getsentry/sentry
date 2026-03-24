@@ -4,31 +4,32 @@ import omit from 'lodash/omit';
 import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
-import AvatarChooser from 'sentry/components/avatarChooser';
-import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
+import {AvatarChooser} from 'sentry/components/avatarChooser';
+import {Confirm} from 'sentry/components/confirm';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Form} from 'sentry/components/forms/form';
+import {FormField} from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
-import FormModel from 'sentry/components/forms/model';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {FormModel} from 'sentry/components/forms/model';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {
   internalIntegrationForms,
@@ -36,26 +37,26 @@ import {
 } from 'sentry/data/forms/sentryApplication';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
+import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
 
@@ -152,12 +153,20 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-const makeSentryAppQueryKey = (appSlug?: string): ApiQueryKey => {
-  return [`/sentry-apps/${appSlug}/`];
+const makeSentryAppQueryKey = (appSlug: string): ApiQueryKey => {
+  return [
+    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+      path: {sentryAppIdOrSlug: appSlug},
+    }),
+  ];
 };
 
-const makeSentryAppApiTokensQueryKey = (appSlug?: string): ApiQueryKey => {
-  return [`/sentry-apps/${appSlug}/api-tokens/`];
+const makeSentryAppApiTokensQueryKey = (appSlug: string): ApiQueryKey => {
+  return [
+    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/api-tokens/`, {
+      path: {sentryAppIdOrSlug: appSlug},
+    }),
+  ];
 };
 
 export default function SentryApplicationDetails() {
@@ -214,7 +223,7 @@ export default function SentryApplicationDetails() {
     return location.pathname.endsWith('new-internal/');
   };
 
-  const showAuthInfo = () => !(app?.clientSecret && app.clientSecret[0] === '*');
+  const showAuthInfo = () => !(app?.clientSecret?.[0] === '*');
 
   const headerTitle = () => {
     const action = app ? 'Edit' : 'Create';
@@ -316,7 +325,7 @@ export default function SentryApplicationDetails() {
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
             <Alert.Container>
-              <Alert type="info">
+              <Alert variant="info">
                 {t('This will be the only time your client secret is visible!')}
               </Alert>
             </Alert.Container>
@@ -432,7 +441,7 @@ export default function SentryApplicationDetails() {
             }}
           </Observer>
 
-          {app && app.status === 'internal' && (
+          {app?.status === 'internal' && (
             <PanelTable
               headers={[
                 t('Token'),
@@ -523,7 +532,7 @@ const ClientSecret = styled('div')`
 `;
 
 const AddTokenHeader = styled('div')`
-  margin: -${space(1)} 0;
+  margin: -${p => p.theme.space.md} 0;
   display: flex;
   justify-content: flex-end;
 `;

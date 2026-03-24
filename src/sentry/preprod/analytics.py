@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from sentry import analytics
 
 
@@ -22,14 +24,6 @@ class PreprodArtifactApiAssembleGenericEvent(analytics.Event):
     project_id: int
 
 
-@analytics.eventclass("preprod_artifact.api.size_analysis_download")
-class PreprodArtifactApiSizeAnalysisDownloadEvent(analytics.Event):
-    organization_id: int
-    project_id: int
-    user_id: int | None = None
-    artifact_id: str
-
-
 @analytics.eventclass("preprod_artifact.api.get_build_details")
 class PreprodArtifactApiGetBuildDetailsEvent(analytics.Event):
     organization_id: int
@@ -38,11 +32,20 @@ class PreprodArtifactApiGetBuildDetailsEvent(analytics.Event):
     artifact_id: str
 
 
-@analytics.eventclass("preprod_artifact.api.list_builds")
-class PreprodArtifactApiListBuildsEvent(analytics.Event):
+@analytics.eventclass("preprod_artifact.api.get_snapshot_details")
+class PreprodArtifactApiGetSnapshotDetailsEvent(analytics.Event):
     organization_id: int
     project_id: int
     user_id: int | None = None
+    artifact_id: str
+
+
+@analytics.eventclass("preprod_artifact.api.install_details")
+class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
 
 
 @analytics.eventclass("preprod_artifact.api.admin_rerun_analysis")
@@ -51,6 +54,15 @@ class PreprodArtifactApiRerunAnalysisEvent(analytics.Event):
     project_id: int
     user_id: int | None = None
     artifact_id: str
+
+
+@analytics.eventclass("preprod_artifact.api.rerun_status_checks")
+class PreprodArtifactApiRerunStatusChecksEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+    check_types: list[str]
 
 
 @analytics.eventclass("preprod_artifact.api.admin_get_info")
@@ -77,6 +89,15 @@ class PreprodArtifactApiDeleteEvent(analytics.Event):
     artifact_id: str
 
 
+# Size analysis
+@analytics.eventclass("preprod_artifact.api.size_analysis_download")
+class PreprodArtifactApiSizeAnalysisDownloadEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+
+
 @analytics.eventclass("preprod_artifact.api.size_analysis_compare.get")
 class PreprodArtifactApiSizeAnalysisCompareGetEvent(analytics.Event):
     organization_id: int
@@ -93,14 +114,6 @@ class PreprodArtifactApiSizeAnalysisComparePostEvent(analytics.Event):
     user_id: int | None = None
     head_artifact_id: str
     base_artifact_id: str
-
-
-@analytics.eventclass("preprod_artifact.api.install_details")
-class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
-    organization_id: int
-    project_id: int
-    user_id: int | None = None
-    artifact_id: str
 
 
 @analytics.eventclass("preprod_artifact.api.size_analysis_compare_download")
@@ -136,13 +149,31 @@ class PreprodApiPrPageCommentsEvent(analytics.Event):
     pr_number: str
 
 
+# Status check events
+@analytics.eventclass("preprod_status_check.triggered_rule_posted")
+class PreprodStatusCheckTriggeredRulePostedEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    artifact_id: int
+    product: Literal["size", "snapshots"]
+
+
+@analytics.eventclass("preprod_status_check.approval_created")
+class PreprodStatusCheckApprovalCreatedEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    artifact_id: int
+    product: Literal["size", "snapshots"]
+
+
 analytics.register(PreprodArtifactApiAssembleEvent)
 analytics.register(PreprodArtifactApiUpdateEvent)
 analytics.register(PreprodArtifactApiAssembleGenericEvent)
 analytics.register(PreprodArtifactApiGetBuildDetailsEvent)
-analytics.register(PreprodArtifactApiListBuildsEvent)
+analytics.register(PreprodArtifactApiGetSnapshotDetailsEvent)
 analytics.register(PreprodArtifactApiInstallDetailsEvent)
 analytics.register(PreprodArtifactApiRerunAnalysisEvent)
+analytics.register(PreprodArtifactApiRerunStatusChecksEvent)
 analytics.register(PreprodArtifactApiAdminGetInfoEvent)
 analytics.register(PreprodArtifactApiAdminBatchDeleteEvent)
 analytics.register(PreprodArtifactApiDeleteEvent)
@@ -155,3 +186,6 @@ analytics.register(PreprodArtifactApiSizeAnalysisCompareDownloadEvent)
 analytics.register(PreprodApiPrPageDetailsEvent)
 analytics.register(PreprodApiPrPageSizeAnalysisDownloadEvent)
 analytics.register(PreprodApiPrPageCommentsEvent)
+# Status check events
+analytics.register(PreprodStatusCheckTriggeredRulePostedEvent)
+analytics.register(PreprodStatusCheckApprovalCreatedEvent)

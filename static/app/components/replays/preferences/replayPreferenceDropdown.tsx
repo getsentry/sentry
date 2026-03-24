@@ -1,18 +1,19 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
-import {Flex} from 'sentry/components/core/layout';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {REPLAY_TIMESTAMP_OPTIONS} from 'sentry/components/replays/preferences/replayPreferences';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-export default function ReplayPreferenceDropdown({
+export function ReplayPreferenceDropdown({
   speedOptions,
   hideFastForward = false,
   isLoading,
@@ -43,12 +44,12 @@ export default function ReplayPreferenceDropdown({
 
   return (
     <CompositeSelect
+      size="sm"
       disabled={isLoading}
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
-          size="sm"
-          title={t('Settings')}
+          tooltipProps={{title: t('Settings')}}
           aria-label={t('Settings')}
           icon={<IconSettings />}
         />
@@ -94,7 +95,7 @@ export default function ReplayPreferenceDropdown({
         value={prefs.timestampType}
         onChange={opt => setPrefs({timestampType: opt.value})}
         options={REPLAY_TIMESTAMP_OPTIONS.map(option => ({
-          label: `${toTitleCase(option)}`,
+          label: toTitleCase(option),
           value: option,
         }))}
       />
@@ -117,5 +118,5 @@ export default function ReplayPreferenceDropdown({
 }
 
 const DurationDisplay = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

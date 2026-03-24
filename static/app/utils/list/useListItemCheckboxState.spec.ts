@@ -1,9 +1,10 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
-const queryKey: ApiQueryKey = ['test'];
+const queryKey: ApiQueryKey = [getApiUrl('/api-tokens/')];
 
 describe('useListItemCheckboxContext', () => {
   describe('All hits are already known', () => {
@@ -19,7 +20,7 @@ describe('useListItemCheckboxContext', () => {
         isAnySelected: false,
         isSelected: expect.any(Function),
         knownIds: ['1', '2', '3'],
-        queryKey,
+        queryKeyRef: {current: queryKey},
         selectAll: expect.any(Function),
         selectedIds: [],
         toggleSelected: expect.any(Function),
@@ -162,7 +163,7 @@ describe('useListItemCheckboxContext', () => {
         isAnySelected: false,
         isSelected: expect.any(Function),
         knownIds: ['1', '2', '3'],
-        queryKey,
+        queryKeyRef: {current: queryKey},
         selectAll: expect.any(Function),
         selectedIds: [],
         toggleSelected: expect.any(Function),

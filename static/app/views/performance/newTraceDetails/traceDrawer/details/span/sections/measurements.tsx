@@ -24,24 +24,24 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 
 export function hasSpanMeasurements(span: TraceTree.Span) {
   return !!span.measurements && Object.keys(span.measurements).length > 0;
 }
 
-function Measurements({
+export function Measurements({
   node,
   location,
   organization,
 }: {
   location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
+  node: SpanNode;
   organization: Organization;
 }) {
   const theme = useTheme();
   const {measurements} = node.value;
-  const measurementNames: string[] = useMemo(() => {
+  const measurementNames = useMemo(() => {
     return Object.keys(measurements ?? {})
       .filter(name => isCustomMeasurement(`measurements.${name}`))
       .filter(isNotMarkMeasurement)
@@ -115,5 +115,3 @@ const Wrapper = styled('div')`
     text-align: left;
   }
 `;
-
-export default Measurements;

@@ -1,3 +1,4 @@
+from django.db import connection
 from django.test import override_settings
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
@@ -61,7 +62,13 @@ class TeamTest(TestCase):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        assert team.id < 1_000_000_000
+
+        # When snowflake is disabled, the ID should come from the PostgreSQL sequence
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT last_value FROM sentry_team_id_seq")
+            seq_value = cursor.fetchone()[0]
+
+        assert team.id == seq_value
         assert Team.objects.filter(id=team.id).exists()
 
 

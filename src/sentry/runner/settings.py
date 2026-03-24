@@ -103,12 +103,6 @@ def configure(
             )
         raise ValueError("Configuration file does not exist at '%s'" % click.format_filename(yaml))
 
-    # Add autoreload for config.yml file if needed
-    if yaml is not None and os.path.exists(yaml):
-        from sentry.utils.uwsgi import reload_on_change
-
-        reload_on_change(yaml)
-
     importer.SENTRY_CONF_PY = py
 
     os.environ["DJANGO_SETTINGS_MODULE"] = "sentry.runner.default_settings"

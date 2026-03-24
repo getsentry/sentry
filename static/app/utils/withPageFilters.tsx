@@ -1,7 +1,6 @@
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import getDisplayName from 'sentry/utils/getDisplayName';
-
-import usePageFilters from './usePageFilters';
+import {getDisplayName} from 'sentry/utils/getDisplayName';
 
 type InjectedPageFiltersProps = {
   isGlobalSelectionReady?: boolean;
@@ -12,7 +11,7 @@ type InjectedPageFiltersProps = {
  * Higher order component that uses PageFiltersStore and provides the active
  * project
  */
-function withPageFilters<P extends InjectedPageFiltersProps>(
+export function withPageFilters<P extends InjectedPageFiltersProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
   type Props = Omit<P, keyof InjectedPageFiltersProps> & InjectedPageFiltersProps;
@@ -34,5 +33,3 @@ function withPageFilters<P extends InjectedPageFiltersProps>(
 
   return WithPageFilters;
 }
-
-export default withPageFilters;

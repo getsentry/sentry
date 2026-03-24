@@ -1,5 +1,6 @@
 from unittest import mock
 
+import orjson
 import pytest
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
@@ -543,6 +544,66 @@ def test_transaction_clusterer_bumps_rules(_, default_organization) -> None:
                         }
                     },
                 },
+            )
+
+        # _get_rules fetches from project options, which arent updated yet.
+        assert get_redis_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
+        assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 1}
+        # Update rules to update the project option storage.
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
+            assert 0 == update_rules(ClustererNamespace.TRANSACTIONS, project1, [])
+        # After project options are updated, the last_seen should also be updated.
+        assert get_redis_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
+        assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
+
+
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 10)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@mock.patch(
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay",
+    wraps=cluster_projects,  # call immediately
+)
+@django_db_all
+def test_segment_clusterer_bumps_rules(_, default_organization) -> None:
+    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
+    project1.save()
+
+    with override_options({"txnames.bump-lifetime-sample-rate": 1.0}):
+        for i in range(10):
+            _record_sample(
+                ClustererNamespace.TRANSACTIONS, project1, f"/user/tx-{project1.name}-{i}/settings"
+            )
+
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
+            spawn_clusterers()
+
+        assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 1}
+
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 2):
+            record_segment_name(
+                project1,
+                {
+                    "name": "/user/*/settings",
+                    "attributes": {
+                        ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE: {
+                            "type": "string",
+                            "value": "sanitized",
+                        },
+                        f"sentry._meta.fields.attributes.{ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME}": {
+                            "type": "string",
+                            "value": orjson.dumps(
+                                {
+                                    "meta": {
+                                        "": {
+                                            "rem": [["int", "s", 0, 0], ["/user/*/**", "s"]],
+                                            "val": "/user/tx-project1-pi/settings",
+                                        }
+                                    }
+                                }
+                            ).decode(),
+                        },
+                    },
+                },  # type: ignore[typeddict-item]
             )
 
         # _get_rules fetches from project options, which arent updated yet.

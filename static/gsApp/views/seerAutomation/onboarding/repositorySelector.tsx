@@ -2,24 +2,25 @@ import {memo, useCallback, useDeferredValue, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import Access from 'sentry/components/acl/access';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
+import {Access} from 'sentry/components/acl/access';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
-import useOrganization from 'sentry/utils/useOrganization';
-import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 
-export function RepositorySelector({disabled = false}: {disabled?: boolean}) {
+export function RepositorySelector() {
   const {
     provider,
     isRepositoriesFetching,
@@ -90,7 +91,6 @@ export function RepositorySelector({disabled = false}: {disabled?: boolean}) {
         <InputGroup.Input
           type="text"
           name="search"
-          disabled={disabled}
           placeholder={t('Search & filter available repositories')}
           size="sm"
           value={searchQuery}
@@ -105,9 +105,7 @@ export function RepositorySelector({disabled = false}: {disabled?: boolean}) {
             : tct('Select all ([count])', {count: filteredRepositories.length})}
         </Label>
         <Checkbox
-          disabled={
-            disabled || isRepositoriesFetching || filteredRepositories.length === 0
-          }
+          disabled={isRepositoriesFetching || filteredRepositories.length === 0}
           checked={!allSelected && !allUnselected ? 'indeterminate' : allSelected}
           onChange={handleToggleAll}
           id="select-all-repositories"
@@ -122,7 +120,6 @@ export function RepositorySelector({disabled = false}: {disabled?: boolean}) {
             {filteredRepositories.map(repository => (
               <RepositoryRow
                 key={repository.id}
-                disabled={disabled}
                 repository={repository}
                 checked={selectedIds.has(repository.id)}
                 onChange={handleToggleRepository}
@@ -147,7 +144,7 @@ export function RepositorySelector({disabled = false}: {disabled?: boolean}) {
           <Access access={['org:integrations']} organization={organization}>
             {({hasAccess}) =>
               hasAccess ? (
-                <p>
+                <Text density="comfortable">
                   {tct(
                     `Can't find a repository? [link:Manage your GitHub integration] and ensure you have granted access to the correct repositories.`,
                     {
@@ -161,12 +158,13 @@ export function RepositorySelector({disabled = false}: {disabled?: boolean}) {
                           buttonProps={{
                             buttonText: t('Manage your GitHub integration'),
                             priority: 'link',
+                            style: {padding: 0},
                           }}
                         />
                       ),
                     }
                   )}
-                </p>
+                </Text>
               ) : null
             }
           </Access>
@@ -178,29 +176,25 @@ export function RepositorySelector({disabled = false}: {disabled?: boolean}) {
 
 interface RepositoryRowProps {
   checked: boolean;
-  disabled: boolean;
   onChange: (repositoryId: string, newValue: boolean) => void;
   repository: Repository;
 }
 
-const RepositoryRow = memo(
-  ({repository, disabled, checked, onChange}: RepositoryRowProps) => {
-    return (
-      <RepositoryItem>
-        <Label htmlFor={repository.id}>{repository.name}</Label>
-        <Checkbox
-          id={repository.id}
-          checked={checked}
-          onChange={e => onChange?.(repository.id, e.target.checked)}
-          disabled={disabled}
-        />
-      </RepositoryItem>
-    );
-  }
-);
+const RepositoryRow = memo(({repository, checked, onChange}: RepositoryRowProps) => {
+  return (
+    <RepositoryItem>
+      <Label htmlFor={repository.id}>{repository.name}</Label>
+      <Checkbox
+        id={repository.id}
+        checked={checked}
+        onChange={e => onChange?.(repository.id, e.target.checked)}
+      />
+    </RepositoryItem>
+  );
+});
 
 const Label = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-bottom: 0;
 `;
 

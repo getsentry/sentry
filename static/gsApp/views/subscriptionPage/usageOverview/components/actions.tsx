@@ -1,29 +1,30 @@
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import useMedia from 'sentry/utils/useMedia';
-import {useNavContext} from 'sentry/views/nav/context';
-import {NavLayout} from 'sentry/views/nav/types';
+import {useMedia} from 'sentry/utils/useMedia';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-function UsageOverviewActions({organization}: {organization: Organization}) {
-  const {layout: navLayout, isCollapsed: navIsCollapsed} = useNavContext();
-  const isMobile = navLayout === NavLayout.MOBILE;
+export function UsageOverviewActions({organization}: {organization: Organization}) {
+  const {layout} = usePrimaryNavigation();
+  const {view} = useSecondaryNavigation();
+  const navIsCollapsed = view !== 'expanded';
   const theme = useTheme();
   const shouldCollapseOnLargeScreen =
     useMedia(
       `(min-width: ${theme.breakpoints.lg}) and (max-width: ${theme.breakpoints.xl})`
     ) && !navIsCollapsed;
   const shouldCollapseOnMobile =
-    useMedia(`(max-width: ${theme.breakpoints.sm})`) && isMobile;
+    useMedia(`(max-width: ${theme.breakpoints.sm})`) && layout === 'mobile';
 
   const shouldCollapseActions = shouldCollapseOnLargeScreen || shouldCollapseOnMobile;
 
@@ -42,7 +43,7 @@ function UsageOverviewActions({organization}: {organization: Organization}) {
   }> = [
     {
       label: t('View all usage'),
-      to: '/settings/billing/usage/',
+      to: `/settings/${organization.slug}/billing/usage/`,
       icon: <IconTable />,
     },
     {
@@ -108,5 +109,3 @@ function UsageOverviewActions({organization}: {organization: Organization}) {
     </Flex>
   );
 }
-
-export default UsageOverviewActions;

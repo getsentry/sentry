@@ -4,9 +4,14 @@ import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import {RateUnit} from 'sentry/utils/discover/fields';
+import {
+  DurationUnit,
+  RateUnit,
+  SizeUnit,
+  type ColumnType,
+} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {
   RawVisualize,
   SavedQuery,
@@ -76,11 +81,13 @@ type BaseGetMetricsUrlParams = {
   title?: string;
 };
 
-function getMetricsUrl(
+export function getMetricsUrl(
   params: BaseGetMetricsUrlParams & {organization: Organization}
 ): string;
-function getMetricsUrl(params: BaseGetMetricsUrlParams & {organization: string}): string;
-function getMetricsUrl({
+export function getMetricsUrl(
+  params: BaseGetMetricsUrlParams & {organization: string}
+): string;
+export function getMetricsUrl({
   organization,
   selection,
   metricQueries,
@@ -93,7 +100,8 @@ function getMetricsUrl({
   const {environments, projects} = selection ?? {};
 
   const queryParams = {
-    project: projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: projects?.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
     start,
@@ -188,7 +196,7 @@ export function makeMetricsAggregate({
     attribute ?? 'value', // hard coded to `value` for now, but can be other attributes
     traceMetric.name,
     traceMetric.type,
-    '-', // hard coded to `-` for now, but can be other units`
+    traceMetric.unit ?? '-',
   ];
   return `${aggregate}(${args.join(',')})`;
 }
@@ -209,4 +217,35 @@ export function updateVisualizeYAxis(
 
 export function isEmptyTraceMetric(traceMetric: TraceMetric): boolean {
   return traceMetric.name === '';
+}
+
+const DURATION_UNIT_VALUES = new Set<string>(Object.values(DurationUnit));
+const SIZE_UNIT_VALUES = new Set<string>(Object.values(SizeUnit));
+const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
+
+/**
+ * Maps a metric unit (from TraceMetric.unit) to the ColumnType and
+ * unit string that the discover FieldRenderer system expects.
+ *
+ * The backend can't infer units for the raw `value` field in events
+ * responses, so the frontend must do this mapping based on the selected
+ * metric's unit.
+ */
+export function mapMetricUnitToFieldType(metricUnit: string | undefined): {
+  fieldType: ColumnType;
+  unit: string | undefined;
+} {
+  if (!metricUnit || metricUnit === '-') {
+    return {fieldType: 'number', unit: undefined};
+  }
+  if (DURATION_UNIT_VALUES.has(metricUnit)) {
+    return {fieldType: 'duration', unit: metricUnit};
+  }
+  if (SIZE_UNIT_VALUES.has(metricUnit)) {
+    return {fieldType: 'size', unit: metricUnit};
+  }
+  if (PERCENTAGE_UNIT_VALUES.has(metricUnit)) {
+    return {fieldType: 'percentage', unit: metricUnit};
+  }
+  return {fieldType: 'number', unit: undefined};
 }

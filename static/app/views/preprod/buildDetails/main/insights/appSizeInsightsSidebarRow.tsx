@@ -1,9 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
-import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,7 +14,7 @@ import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
 import {openMainBinaryExportedSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/mainBinaryExportedSymbolsModal';
 import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
@@ -130,11 +129,11 @@ export function AppSizeInsightsSidebarRow({
         <Text variant="primary" size="md" bold>
           {insight.name}
         </Text>
-        <Flex align="center" gap="sm" style={{flexShrink: 0}}>
+        <Flex align="center" gap="sm" flexShrink={0}>
           <Text size="sm" tabular>
             {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
           </Text>
-          <Tag type="success" style={{minWidth: '56px', justifyContent: 'center'}}>
+          <Tag variant="success" style={{minWidth: '56px', justifyContent: 'center'}}>
             <Text size="sm" tabular variant="success">
               {formatUpside(insight.percentage / 100)}
             </Text>
@@ -183,7 +182,7 @@ export function AppSizeInsightsSidebarRow({
                   width: '100%',
                   overflow: 'hidden',
                   '& > :nth-child(odd)': {
-                    backgroundColor: theme.backgroundSecondary,
+                    backgroundColor: theme.tokens.background.secondary,
                   },
                 })}
               >
@@ -197,7 +196,7 @@ export function AppSizeInsightsSidebarRow({
                   <Text size="sm" variant="muted">
                     {t('Page %s of %s', currentPage + 1, totalPages)}
                   </Text>
-                  <ButtonBar merged gap="0">
+                  <ButtonBar>
                     <Button
                       icon={<IconChevron direction="left" />}
                       aria-label={t('Previous')}
@@ -240,9 +239,7 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
       padding="xs sm"
       radius="sm"
       overflow="hidden"
-      style={{
-        minWidth: 0,
-      }}
+      minWidth={0}
     >
       <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
@@ -270,9 +267,7 @@ function DuplicateGroupFileRow({
         padding="xs sm"
         radius="sm"
         overflow="hidden"
-        style={{
-          minWidth: 0,
-        }}
+        minWidth={0}
       >
         <Text size="sm" ellipsis style={{flex: 1}} bold>
           {group.name}
@@ -315,9 +310,9 @@ function OptimizableImageFileRow({
   }
 
   const hasMinifySavings =
-    originalFile.minified_size !== null && originalFile.minify_savings > 0;
+    typeof originalFile.minified_size === 'number' && originalFile.minify_savings > 0;
   const hasHeicSavings =
-    originalFile.heic_size !== null && originalFile.conversion_savings > 0;
+    typeof originalFile.heic_size === 'number' && originalFile.conversion_savings > 0;
 
   const maxSavings = Math.max(
     originalFile.minify_savings || 0,
@@ -360,18 +355,16 @@ function OptimizableImageFileRow({
         padding="xs sm"
         radius="sm"
         overflow="hidden"
-        style={{
-          minWidth: 0,
-        }}
+        minWidth={0}
       >
-        <Flex align="center" gap="xs" overflow="hidden" style={{minWidth: 0}}>
+        <Flex align="center" gap="xs" overflow="hidden" minWidth={0}>
           <Text size="sm" ellipsis style={{flex: 1}}>
             {file.path}
           </Text>
           {hasMetadata && (
             <Tooltip title={tooltipContent} isHoverable skipWrapper>
-              <Flex align="center" style={{flexShrink: 0}}>
-                <IconFlag size="xs" color="subText" />
+              <Flex align="center" flexShrink={0}>
+                <IconFlag size="xs" variant="muted" />
               </Flex>
             </Tooltip>
           )}

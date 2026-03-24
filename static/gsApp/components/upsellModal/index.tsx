@@ -3,12 +3,11 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
-import HighlightModalContainer from 'sentry/components/highlightModalContainer';
+import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft, getTrialLength, hasPerformance} from 'getsentry/utils/billing';
 
@@ -69,16 +68,16 @@ function UpsellModal({source, organization, subscription}: Props) {
 }
 
 const Header = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const Subheader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.purple300};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.content.accent};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 export const modalCss = css`

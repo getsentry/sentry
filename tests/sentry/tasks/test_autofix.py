@@ -4,9 +4,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.test import TestCase
 
+from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import AutofixState, get_seer_seat_based_tier_cache_key
 from sentry.seer.models import SeerApiError, SummarizeIssueResponse, SummarizeIssueScores
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.autofix import (
     check_autofix_status,
     configure_seer_for_existing_org,
@@ -109,19 +111,29 @@ class TestCheckAutofixStatus(TestCase):
 class TestGenerateIssueSummaryOnly(SentryTestCase):
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
-    def test_generates_fixability_score(
+    def test_generates_fixability_score_after_summary(
         self, mock_get_issue_summary: MagicMock, mock_generate_fixability: MagicMock
     ) -> None:
-        """Test that fixability score is generated and saved to the group."""
+        """Test that fixability score is generated after issue summary is fetched."""
         group = self.create_group(project=self.project)
 
+        mock_get_issue_summary.return_value = (
+            {
+                "groupId": str(group.id),
+                "headline": "Test Headline",
+                "whatsWrong": "Test whats wrong",
+                "trace": "Test trace",
+                "possibleCause": "Test cause",
+            },
+            200,
+        )
         mock_generate_fixability.return_value = SummarizeIssueResponse(
             group_id=str(group.id),
             headline="Test",
             whats_wrong="Test",
             trace="Test",
             possible_cause="Test",
-            scores=SummarizeIssueScores(fixability_score=0.75, actionability_score=0.85),
+            scores=SummarizeIssueScores(fixability_score=0.75),
         )
 
         generate_issue_summary_only(group.id)
@@ -129,7 +141,7 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
         mock_get_issue_summary.assert_called_once_with(
             group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
         )
-        mock_generate_fixability.assert_called_once_with(group)
+        mock_generate_fixability.assert_called_once()
 
         group.refresh_from_db()
         assert group.seer_fixability_score == 0.75
@@ -153,7 +165,6 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
         # Check org-level options
-        assert self.organization.get_option("sentry:enable_seer_coding") is True
         assert self.organization.get_option("sentry:default_autofix_automation_tuning") == "medium"
 
         # Check project-level options
@@ -165,6 +176,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         mock_bulk_get.assert_called_once()
         mock_bulk_set.assert_called_once()
 
+    @pytest.mark.skip("DO NOT override autofix automation tuning off")
     @patch("sentry.tasks.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.autofix.bulk_get_project_preferences")
     def test_overrides_autofix_off_to_medium(
@@ -238,10 +250,10 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
     @patch("sentry.tasks.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.autofix.bulk_get_project_preferences")
-    def test_invalidates_seat_based_tier_cache(
+    def test_sets_seat_based_tier_cache_to_true(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
-        """Test that the seat-based tier cache is invalidated after configuring org."""
+        """Test that the seat-based tier cache is set to True after configuring org."""
         self.create_project(organization=self.organization)
         mock_bulk_get.return_value = {}
 
@@ -252,5 +264,74 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        # Cache should be invalidated
-        assert cache.get(cache_key) is None
+        # Cache should be set to True to prevent race conditions
+        assert cache.get(cache_key) is True
+
+    @patch("sentry.tasks.autofix.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    def test_uses_code_mappings_when_no_existing_preferences(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_get_code_mappings: MagicMock
+    ) -> None:
+        """Test that code mappings are used as fallback when no preferences exist."""
+        project = self.create_project(organization=self.organization)
+        mock_bulk_get.return_value = {}
+        mock_repos = [{"provider": "github", "owner": "test-org", "name": "test-repo"}]
+        mock_get_code_mappings.return_value = mock_repos
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_get_code_mappings.assert_called_once_with(project)
+        preferences = mock_bulk_set.call_args[0][1]
+        assert preferences[0]["repositories"] == mock_repos
+
+    @patch("sentry.tasks.autofix.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    def test_preserves_existing_repositories_when_preferences_exist(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_get_code_mappings: MagicMock
+    ) -> None:
+        """Test that existing repositories are preserved when preferences exist."""
+        project = self.create_project(organization=self.organization)
+        existing_repos = [{"provider": "github", "owner": "existing-org", "name": "existing-repo"}]
+        mock_bulk_get.return_value = {str(project.id): {"repositories": existing_repos}}
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_get_code_mappings.assert_not_called()
+        preferences = mock_bulk_set.call_args[0][1]
+        assert preferences[0]["repositories"] == existing_repos
+
+    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    def test_creates_seer_project_repository(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """Test that SeerProjectRepository is created when feature flag is enabled."""
+        project = self.create_project(organization=self.organization)
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
+            provider="github",
+            external_id="ext123",
+        )
+
+        mock_bulk_get.return_value = {
+            str(project.id): {
+                "repositories": [
+                    {
+                        "provider": "github",
+                        "owner": "test-org",
+                        "name": "test-repo",
+                        "external_id": "ext123",
+                    }
+                ],
+                "automated_run_stopping_point": None,
+            }
+        }
+
+        with self.feature("organizations:seer-project-settings-dual-write"):
+            configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        seer_repo = SeerProjectRepository.objects.get(project=project)
+        assert seer_repo.repository_id == repo.id

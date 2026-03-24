@@ -1,15 +1,16 @@
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link} from 'sentry/components/core/link';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {Hovercard} from 'sentry/components/hovercard';
-import LoadingError from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Placeholder} from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationActionSummary} from 'sentry/views/automations/components/automationActionSummary';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
@@ -35,10 +36,10 @@ function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]
     return (
       <div>
         {Array.from({length: shownAutomations.length}).map((_, index) => (
-          <HovercardSkeletonRow key={index}>
+          <Stack justify="center" padding="md xl" gap="xs" minHeight="64px" key={index}>
             <Placeholder height="20px" width="100%" />
             <Placeholder height="18px" width="40%" />
-          </HovercardSkeletonRow>
+          </Stack>
         ))}
       </div>
     );
@@ -101,26 +102,16 @@ const ConnectedAutomations = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
-  gap: ${space(0.5)};
-`;
-
-const HovercardSkeletonRow = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: ${space(0.5)};
-  padding: ${space(1)} ${space(2)};
-
-  min-height: 64px;
+  gap: ${p => p.theme.space.xs};
 `;
 
 const HovercardRow = styled(Link)`
   position: relative;
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 
   min-height: 64px;
 
@@ -142,13 +133,13 @@ const HovercardRow = styled(Link)`
 `;
 
 const AutomationActionWrapper = styled('div')`
-  margin-top: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  margin-top: ${p => p.theme.space.xs};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MoreText = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   margin: 0;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;

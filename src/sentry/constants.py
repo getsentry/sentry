@@ -69,7 +69,7 @@ STATUS_IGNORED = 2
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-MAX_TAG_VALUE_LENGTH = 200
+MAX_TAG_VALUE_LENGTH = 256
 MAX_CULPRIT_LENGTH = 200
 MAX_EMAIL_FIELD_LENGTH = 75
 
@@ -82,7 +82,7 @@ PROJECT_SLUG_MAX_LENGTH = 100
 
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
-MAX_ROLLUP_POINTS = 10000
+MAX_ROLLUP_POINTS = 10100
 
 
 # Organization slugs which may not be used. Generally these are top level URL patterns
@@ -141,9 +141,9 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "from",
         "get-cli",
         "github-deployment-gate",
-        "gsnlink",
         "go",
         "guide",
+        "healthcheck",
         "help",
         "ingest",
         "ingest-beta",
@@ -311,6 +311,7 @@ _SENTRY_RULES = (
     "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
+    "sentry.rules.filters.issue_type.IssueTypeFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -725,15 +726,18 @@ AUTO_OPEN_PRS_DEFAULT = False
 AUTO_ENABLE_CODE_REVIEW = False
 # Seer Org level default for code review triggers
 DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
-    "on_command_phrase",
     "on_ready_for_review",
     "on_new_commit",
 ]
-# Org level setting to allow/disallow Projects to delegate Seer scanner automation to other LLMS
-ALLOW_BACKGROUND_AGENT_DELEGATION = True
+SEER_DEFAULT_CODING_AGENT_DEFAULT = "seer"
+SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT = "code_changes"
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
-ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
+CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
+
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
+
+# Repository owner for console SDK repositories. Helpful for testing: add your test org here
+CONSOLE_SDK_REPO_OWNER = "getsentry"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
@@ -794,6 +798,7 @@ DS_DENYLIST = frozenset(
 # Also it covers: livez, readyz
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
+    "*health-check*",
     "*heartbeat*",
     "*/health{/,}",
     "*/healthy{/,}",

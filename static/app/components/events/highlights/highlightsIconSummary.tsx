@@ -2,32 +2,34 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
   getContextSummary,
   getContextTitle,
 } from 'sentry/components/events/contexts/utils';
-import ScreenshotModal, {
+import {
   modalCss,
+  ScreenshotModal,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/util';
 import {Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconAttachment, IconReleases, IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventTag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
@@ -114,7 +116,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   return items.length || screenshot ? (
     <Fragment>
       <IconBar>
-        <ScrollCarousel gap={2} aria-label={t('Icon highlights')}>
+        <ScrollCarousel gap="xl" aria-label={t('Icon highlights')}>
           {runtimeInfo && (
             <Fragment>
               <Tooltip title={runtimeInfo.tooltip} isHoverable>
@@ -130,10 +132,10 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
             <Fragment>
               <ScreenshotButton
                 type="button"
-                borderless
+                priority="transparent"
                 size="zero"
-                icon={<IconAttachment color="subText" />}
-                title={t('View Screenshot')}
+                icon={<IconAttachment variant="muted" />}
+                tooltipProps={{title: t('View Screenshot')}}
                 onClick={() => {
                   const downloadUrl = `/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/attachments/${screenshot.id}/`;
                   openModal(
@@ -156,7 +158,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
             </Fragment>
           )}
           {items.map((item, index) => (
-            <IconContainer key={index}>
+            <Flex align="center" flexShrink={0} gap="md" minHeight="24px" key={index}>
               <IconWrapper>{item.icon}</IconWrapper>
               <IconDescription>
                 <div>{item.title}</div>
@@ -166,7 +168,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
                   </IconSubtitle>
                 )}
               </IconDescription>
-            </IconContainer>
+            </Flex>
           ))}
           {projectSlug && projectId && (
             <ReleaseHighlight
@@ -200,9 +202,9 @@ function ReleaseHighlight({
   }
 
   return (
-    <IconContainer key="release">
+    <Flex align="center" flexShrink={0} gap="md" minHeight="24px" key="release">
       <IconWrapper>
-        <IconReleases size="sm" color="subText" />
+        <IconReleases size="sm" variant="muted" />
       </IconWrapper>
       <IconDescription aria-label={t('Event release')}>
         <VersionHoverCard
@@ -213,7 +215,7 @@ function ReleaseHighlight({
           <StyledVersion version={releaseTag.value} projectId={projectId} />
         </VersionHoverCard>
       </IconDescription>
-    </IconContainer>
+    </Flex>
   );
 }
 
@@ -223,14 +225,14 @@ function EnvironmentHighlight({environmentTag}: {environmentTag: EventTag | unde
   }
 
   return (
-    <IconContainer key="environment">
+    <Flex align="center" flexShrink={0} gap="md" minHeight="24px" key="environment">
       <IconWrapper>
-        <IconWindow size="sm" color="subText" />
+        <IconWindow size="sm" variant="muted" />
       </IconWrapper>
       <IconDescription aria-label={t('Event environment')}>
         <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
       </IconDescription>
-    </IconContainer>
+    </Flex>
   );
 }
 
@@ -239,18 +241,10 @@ const IconBar = styled('div')`
   padding: 0;
 `;
 
-const IconContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-shrink: 0;
-  min-height: 24px;
-`;
-
 const IconDescription = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.md};
+  gap: ${p => p.theme.space.sm};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const IconWrapper = styled('div')`
@@ -260,11 +254,11 @@ const IconWrapper = styled('div')`
 
 const IconSubtitle = styled(Tooltip)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledVersion = styled(Version)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.primary};
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
@@ -282,5 +276,5 @@ const DividerWrapper = styled('div')`
 `;
 
 const StyledRuntimeText = styled(Text)`
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} 0;
 `;

@@ -2,8 +2,9 @@ import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import BaseSearchBar from 'sentry/components/searchBar';
-import SearchDropdown from 'sentry/components/searchBar/searchDropdown';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
+import {SearchDropdown} from 'sentry/components/searchBar/searchDropdown';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {getSearchGroupWithItemMarkedActive} from 'sentry/components/searchBar/utils';
@@ -14,8 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -139,12 +139,13 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
           {
             key: SpanFields.TRANSACTION,
             name: SpanFields.TRANSACTION,
+            kind: undefined,
           },
           query
         );
 
         const parsedResults = results.reduce(
-          (searchGroup: SearchGroup, item) => {
+          (searchGroup: SearchGroup, item: string) => {
             searchGroup.children.push({
               value: item,
               title: item,

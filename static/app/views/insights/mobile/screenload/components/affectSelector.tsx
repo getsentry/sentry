@@ -1,4 +1,6 @@
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
 import {useAffectsSelection} from 'sentry/views/insights/mobile/screenload/data/useAffectsSelection';
@@ -20,7 +22,9 @@ export function AffectSelector({transaction}: {transaction?: string}) {
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('Affects'), size: 'md'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Affects')} size="md" />
+      )}
       value={value}
       options={options}
       onChange={newValue => {

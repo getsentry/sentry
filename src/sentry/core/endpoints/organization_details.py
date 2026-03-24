@@ -11,13 +11,14 @@ from django.urls import reverse
 from django.utils import timezone as django_timezone
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
 from sentry import analytics, audit_log, features, options, roles
 from sentry.analytics.events.organization_removed import OrganizationRemoved
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import ONE_DAY, region_silo_endpoint
+from sentry.api.base import ONE_DAY, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -41,15 +42,14 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
-    ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
+    CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
     ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
@@ -67,11 +67,12 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
     calculate_sample_rates_of_projects,
@@ -84,6 +85,8 @@ from sentry.dynamic_sampling.utils import (
     is_project_mode_sampling,
 )
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
+from sentry.hybridcloud.rpc.service import RpcValidationException
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -94,6 +97,7 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
@@ -102,11 +106,9 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteState,
 )
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.services.organization.provisioning import (
-    OrganizationSlugCollisionException,
-    organization_provisioning_service,
-)
+from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
@@ -227,12 +229,6 @@ ORG_OPTIONS = (
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ),
     (
-        "enablePrReviewTestGeneration",
-        "sentry:enable_pr_review_test_generation",
-        bool,
-        ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-    ),
-    (
         "enableSeerEnhancedAlerts",
         "sentry:enable_seer_enhanced_alerts",
         bool,
@@ -243,6 +239,18 @@ ORG_OPTIONS = (
         "sentry:enable_seer_coding",
         bool,
         ENABLE_SEER_CODING_DEFAULT,
+    ),
+    (
+        "defaultCodingAgent",
+        "sentry:seer_default_coding_agent",
+        str,
+        SEER_DEFAULT_CODING_AGENT_DEFAULT,
+    ),
+    (
+        "defaultCodingAgentIntegrationId",
+        "sentry:seer_default_coding_agent_integration_id",
+        int,
+        None,
     ),
     (
         # Informs UI default for automated_run_stopping_point in project preferences
@@ -264,12 +272,6 @@ ORG_OPTIONS = (
         DEFAULT_CODE_REVIEW_TRIGGERS,
     ),
     (
-        "allowBackgroundAgentDelegation",
-        "sentry:allow_background_agent_delegation",
-        bool,
-        ALLOW_BACKGROUND_AGENT_DELEGATION,
-    ),
-    (
         "ingestThroughTrustedRelaysOnly",
         "sentry:ingest-through-trusted-relays-only",
         str,
@@ -280,6 +282,12 @@ ORG_OPTIONS = (
         "sentry:enabled_console_platforms",
         list,
         ENABLED_CONSOLE_PLATFORMS_DEFAULT,
+    ),
+    (
+        "consoleSdkInviteQuota",
+        "sentry:console_sdk_invite_quota_limit",
+        int,
+        CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     ),
 )
 
@@ -352,22 +360,28 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         required=False,
         allow_empty=True,
     )
-    enablePrReviewTestGeneration = serializers.BooleanField(required=False)
+    consoleSdkInviteQuota = serializers.IntegerField(required=False, min_value=0)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
+    defaultCodingAgent = serializers.CharField(required=False, allow_null=True)
+    defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)
     defaultCodeReviewTriggers = serializers.ListField(
-        child=serializers.ChoiceField(
-            choices=["on_command_phrase", "on_ready_for_review", "on_new_commit"]
-        ),
+        child=serializers.ChoiceField(choices=["on_ready_for_review", "on_new_commit"]),
         required=False,
         allow_empty=True,
         help_text="The default code review triggers for new repositories.",
     )
-    allowBackgroundAgentDelegation = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
+    )
+    hasGranularReplayPermissions = serializers.BooleanField(required=False)
+    replayAccessMembers = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_null=True,
+        help_text="List of user IDs that have access to replay data. Only modifiable by owners and managers.",
     )
 
     def _has_sso_enabled(self):
@@ -378,6 +392,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
         return validate_pii_config_update(organization, value)
+
+    def validate_defaultCodingAgentIntegrationId(self, value: int | None) -> int | None:
+        if value is None:
+            return None
+        organization = self.context["organization"]
+        if not integration_service.get_organization_integration(
+            integration_id=value, organization_id=organization.id
+        ):
+            raise serializers.ValidationError("Integration does not exist.")
+        return value
 
     def validate_sensitiveFields(self, value):
         if value and not all(value):
@@ -451,6 +475,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
+    def validate_consoleSdkInviteQuota(self, value):
+        request = self.context["request"]
+
+        if not is_active_staff(request):
+            raise serializers.ValidationError(
+                "Only staff members can change console SDK invite quota limit."
+            )
+
+        return value
+
     def validate_targetSampleRate(self, value):
         organization = self.context["organization"]
         request = self.context["request"]
@@ -474,6 +508,22 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         # as this is handled by a choice field, we don't need to check the values of the field
 
         return value
+
+    def validate_hasGranularReplayPermissions(self, value):
+        self._validate_granular_replay_permissions()
+        return value
+
+    def validate_replayAccessMembers(self, value):
+        self._validate_granular_replay_permissions()
+        return value
+
+    def _validate_granular_replay_permissions(self):
+        request = self.context["request"]
+
+        if not request.access.has_scope("org:write"):
+            raise PermissionDenied(
+                "You do not have permission to modify granular replay permissions."
+            )
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -567,12 +617,18 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         for key, option, type_, default_value in ORG_OPTIONS:
             if key not in data:
                 continue
+            if key == "enableSeerCoding" and features.has(
+                "organizations:seer-disable-coding-setting", org
+            ):
+                continue
             try:
                 option_inst = OrganizationOption.objects.get(organization=org, key=option)
                 update_tracked_data(option_inst)
             except OrganizationOption.DoesNotExist:
                 OrganizationOption.objects.set_value(
-                    organization=org, key=option, value=type_(data[key])
+                    organization=org,
+                    key=option,
+                    value=None if data[key] is None else type_(data[key]),
                 )
 
                 if data[key] != default_value:
@@ -588,6 +644,74 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         trusted_relay_info = data.get("trustedRelays")
         if trusted_relay_info is not None:
             self.save_trusted_relays(trusted_relay_info, changed_data, org)
+
+        if "hasGranularReplayPermissions" in data:
+            option_key = "sentry:granular-replay-permissions"
+            new_value = data["hasGranularReplayPermissions"]
+            option_inst, created = OrganizationOption.objects.get_or_create(
+                organization=org, key=option_key, defaults={"value": new_value}
+            )
+            if not created and option_inst.value != new_value:
+                old_val = option_inst.value
+                option_inst.value = new_value
+                option_inst.save()
+                changed_data["hasGranularReplayPermissions"] = f"from {old_val} to {new_value}"
+            elif created:
+                changed_data["hasGranularReplayPermissions"] = f"to {new_value}"
+
+        if "replayAccessMembers" in data:
+            user_ids = data["replayAccessMembers"]
+            if user_ids is None:
+                user_ids = []
+
+            current_user_ids = set(
+                OrganizationMemberReplayAccess.objects.filter(
+                    organizationmember__organization=org
+                ).values_list("organizationmember__user_id", flat=True)
+            )
+            new_user_ids = set(user_ids)
+
+            to_add = new_user_ids - current_user_ids
+            to_remove = current_user_ids - new_user_ids
+
+            if to_add:
+                user_to_member = dict(
+                    OrganizationMember.objects.filter(
+                        organization=org, user_id__in=to_add
+                    ).values_list("user_id", "id")
+                )
+                invalid_user_ids = to_add - set(user_to_member.keys())
+                if invalid_user_ids:
+                    raise serializers.ValidationError(
+                        {
+                            "replayAccessMembers": f"Invalid user IDs (not members of this organization): {sorted(invalid_user_ids)}"
+                        }
+                    )
+
+                OrganizationMemberReplayAccess.objects.bulk_create(
+                    [
+                        OrganizationMemberReplayAccess(
+                            organizationmember_id=user_to_member[user_id]
+                        )
+                        for user_id in to_add
+                    ],
+                    ignore_conflicts=True,
+                )
+
+            if to_remove:
+                OrganizationMemberReplayAccess.objects.filter(
+                    organizationmember__organization=org, organizationmember__user_id__in=to_remove
+                ).delete()
+
+            if to_add or to_remove:
+                changes = []
+                if to_add:
+                    changes.append(f"added {len(to_add)} user(s)")
+                if to_remove:
+                    changes.append(f"removed {len(to_remove)} user(s)")
+                changed_data["replayAccessMembers"] = (
+                    f"{' and '.join(changes)} (total: {len(new_user_ids)} user(s) with access)"
+                )
 
         if "openMembership" in data:
             org.flags.allow_joinleave = data["openMembership"]
@@ -753,9 +877,9 @@ def create_console_platform_audit_log(
         "autoOpenPrs",
         "autoEnableCodeReview",
         "defaultCodeReviewTriggers",
-        "allowBackgroundAgentDelegation",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "consoleSdkInviteQuota",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -808,6 +932,16 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         choices=roles.get_choices(),
         help_text="The role required to download debug information files, ProGuard mappings and source maps.",
         required=False,
+    )
+    hasGranularReplayPermissions = serializers.BooleanField(
+        help_text="Specify `true` to enable granular replay permissions, allowing per-member access control for replay data.",
+        required=False,
+    )
+    replayAccessMembers = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="A list of user IDs who have permission to access replay data. Requires the hasGranularReplayPermissions flag to be true to be enforced.",
+        required=False,
+        allow_null=True,
     )
 
     # avatar
@@ -955,7 +1089,7 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @extend_schema(tags=["Organizations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
@@ -1071,10 +1205,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     organization_provisioning_service.change_organization_slug(
                         organization_id=organization.id, slug=slug
                     )
-                except OrganizationSlugCollisionException:
+                except RpcValidationException:
                     return self.respond(
-                        {"slug": ["An organization with this slug already exists."]},
-                        status=status.HTTP_409_CONFLICT,
+                        {"slug": [f'The slug "{slug}" is in use by another organization.']},
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
@@ -1137,7 +1271,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
-                RegionScheduledDeletion.cancel(organization)
+                CellScheduledDeletion.cancel(organization)
             elif changed_data:
                 if "enabledConsolePlatforms" in changed_data:
                     create_console_platform_audit_log(
@@ -1173,7 +1307,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
-        measure = SamplingMeasure.TRANSACTIONS
+        measure = SamplingMeasure.SEGMENTS
         if options.get("dynamic-sampling.check_span_feature_flag"):
             span_org_ids = options.get("dynamic-sampling.measure.spans") or []
             if org_id in span_org_ids:

@@ -9,21 +9,22 @@ import {
 } from 'react';
 import {Observer} from 'mobx-react-lite';
 
-import type {AlertProps} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import type {AlertProps} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
-import FormContext from 'sentry/components/forms/formContext';
-import type FormModel from 'sentry/components/forms/model';
+import {FormContext} from 'sentry/components/forms/formContext';
+import type {FormModel} from 'sentry/components/forms/model';
 import {MockModel} from 'sentry/components/forms/model';
 import FormState from 'sentry/components/forms/state';
 import type {FieldValue} from 'sentry/components/forms/types';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import FormFieldControlState from './controlState';
+import {FormFieldControlState} from './controlState';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in
@@ -115,6 +116,12 @@ interface BaseProps {
    */
   getData?: (value: any) => any;
   /**
+   * Transform field value for form submission via getTransformedData().
+   * Unlike getData (which only works for save-on-blur), this is used
+   * when the full form is submitted via saveForm().
+   */
+  getValue?: (value: any) => any;
+  /**
    * Should hide error message?
    */
   hideErrorMessage?: boolean;
@@ -142,7 +149,7 @@ interface BaseProps {
   /**
    * The alert type to use when saveOnBlur is false
    */
-  saveMessageAlertType?: AlertProps['type'];
+  saveMessageAlertVariant?: AlertProps['variant'];
   /**
    * When the field is blurred should it automatically persist its value into
    * the model. Will show a confirm button 'save' otherwise.
@@ -166,7 +173,8 @@ interface BaseProps {
 }
 
 export interface FormFieldProps
-  extends BaseProps,
+  extends
+    BaseProps,
     ObservableProps,
     Omit<FieldGroupProps, keyof ResolvedObservableProps | 'children'> {}
 
@@ -185,12 +193,12 @@ type PassthroughProps = Omit<
   | 'flexibleControlStateSize'
   | 'saveOnBlur'
   | 'saveMessage'
-  | 'saveMessageAlertType'
+  | 'saveMessageAlertVariant'
   | 'hideControlState'
   | 'defaultValue'
 >;
 
-function FormField(props: FormFieldProps) {
+export function FormField(props: FormFieldProps) {
   const initialProps = useRef(props);
 
   const {name, onBlur, onChange, onKeyDown} = props;
@@ -321,7 +329,7 @@ function FormField(props: FormFieldProps) {
         hideErrorMessage,
         flexibleControlStateSize,
         saveMessage,
-        saveMessageAlertType,
+        saveMessageAlertVariant,
         // Don't pass `defaultValue` down to input fields, will be handled in
         // form model
         defaultValue: _defaultValue,
@@ -395,7 +403,7 @@ function FormField(props: FormFieldProps) {
 
                 return (
                   <PanelAlert
-                    type={saveMessageAlertType ?? 'info'}
+                    variant={saveMessageAlertVariant ?? 'info'}
                     trailingItems={
                       <Fragment>
                         <Button onClick={handleCancelField} size="xs">
@@ -457,5 +465,3 @@ function FormField(props: FormFieldProps) {
     <Observer>{() => makeField(observedProps.reduce(resolveObservedProps, {}))}</Observer>
   );
 }
-
-export default FormField;

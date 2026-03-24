@@ -3,13 +3,13 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useFetchEventsTimeSeries} from './useFetchEventsTimeSeries';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('useFetchEventsTimeSeries', () => {
   const organization = OrganizationFixture();
@@ -140,7 +140,7 @@ describe('useFetchEventsTimeSeries', () => {
           interval: '1h',
           query: 'span.op:db*',
           sampling: 'NORMAL',
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -194,7 +194,7 @@ describe('useFetchEventsTimeSeries', () => {
           project: [420],
           interval: '2h',
           sampling: 'NORMAL',
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -244,7 +244,7 @@ describe('useFetchEventsTimeSeries', () => {
           topEvents: 5,
           groupBy: ['span.category', 'transaction'],
           sort: '-p50(span.duration)',
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );

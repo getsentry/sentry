@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import LogoSentry from 'sentry/components/logoSentry';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {LinkButton} from '@sentry/scraps/button';
 
-export default function HeaderWithHelp({docsUrl}: {docsUrl: string}) {
+import {LogoSentry} from 'sentry/components/logoSentry';
+import {t} from 'sentry/locale';
+
+export function HeaderWithHelp({docsUrl}: {docsUrl: string}) {
   return (
     <Header>
       <StyledLogoSentry />
@@ -23,9 +23,9 @@ const Header = styled('div')`
   justify-content: space-between;
   top: 0;
   z-index: 100;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.primary};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const StyledLogoSentry = styled(LogoSentry)`

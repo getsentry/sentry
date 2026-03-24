@@ -2,9 +2,10 @@ import type {
   SessionApiResponse,
   SessionFieldWithOperation,
 } from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   field: SessionFieldWithOperation[];
@@ -51,7 +52,14 @@ export function useSessionsRequest({
   };
 
   const sessionQuery = useApiQuery<SessionApiResponse>(
-    [`/organizations/${organization.slug}/sessions/`, {query: baseQueryParams}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
+      {query: baseQueryParams},
+    ],
     {
       staleTime: 0,
     }

@@ -3,9 +3,8 @@ import type {PopperProps} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {Radio} from 'sentry/components/core/radio';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {space} from 'sentry/styles/space';
+import {Radio} from '@sentry/scraps/radio';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   orientInline?: boolean;
@@ -45,12 +44,11 @@ export type RadioOption<C extends string = string> = [
 ];
 
 export interface RadioGroupProps<C extends string = string>
-  extends BaseRadioGroupProps<C>,
-    Omit<ContainerProps, 'onChange'> {
+  extends BaseRadioGroupProps<C>, Omit<ContainerProps, 'onChange'> {
   name?: string;
 }
 
-function RadioGroup<C extends string>({
+export function RadioGroup<C extends string>({
   name: groupName,
   value,
   disabled: groupDisabled,
@@ -114,7 +112,7 @@ function RadioGroup<C extends string>({
 
 const Container = styled('div')<ContainerProps>`
   display: flex;
-  gap: ${p => space(p.orientInline ? 3 : 1)};
+  gap: ${p => (p.orientInline ? p.theme.space['2xl'] : p.theme.space.md)};
   flex-direction: ${p => (p.orientInline ? 'row' : 'column')};
 `;
 
@@ -126,12 +124,12 @@ export const RadioLineItem = styled('label', {shouldForwardProp})<{
   disabled?: boolean;
 }>`
   display: grid;
-  gap: 0 ${space(0.75)};
+  gap: 0 ${p => p.theme.space.sm};
   grid-template-columns: max-content auto;
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
 
@@ -140,9 +138,7 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
 `;
 
 const Description = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4em;
 `;
-
-export default RadioGroup;

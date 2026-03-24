@@ -5,12 +5,14 @@ from rest_framework.response import Response
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
+from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.models import ReplayDeletionJobModel
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.tasks import run_bulk_replay_delete_job
 
 
@@ -54,9 +56,9 @@ class ReplayDeletionJobCreateSerializer(serializers.Serializer):
     data = ReplayDeletionJobCreateDataSerializer(required=True)  # type: ignore[assignment]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
-    owner = ApiOwner.REPLAY
+    owner = ApiOwner.DATA_BROWSING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
@@ -67,6 +69,9 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         """
         Retrieve a collection of replay delete jobs.
         """
+        if not has_replay_permission(request, project.organization):
+            return Response(status=403)
+
         queryset = ReplayDeletionJobModel.objects.filter(
             organization_id=project.organization_id, project_id=project.id
         )
@@ -85,6 +90,9 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         """
         Create a new replay deletion job.
         """
+        if not has_replay_permission(request, project.organization):
+            return Response(status=403)
+
         serializer = ReplayDeletionJobCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -123,9 +131,8 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         return Response(response, status=201)
 
 
-@region_silo_endpoint
-class ProjectReplayDeletionJobDetailEndpoint(ProjectEndpoint):
-    owner = ApiOwner.REPLAY
+@cell_silo_endpoint
+class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -135,9 +142,13 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectEndpoint):
         """
         Fetch a replay delete job instance.
         """
+        self.check_replay_access(request, project)
+
         try:
             job = ReplayDeletionJobModel.objects.get(
-                id=job_id, organization_id=project.organization_id, project_id=project.id
+                id=job_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
             )
         except ReplayDeletionJobModel.DoesNotExist:
             raise ResourceDoesNotExist

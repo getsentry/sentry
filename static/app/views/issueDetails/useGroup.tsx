@@ -1,10 +1,11 @@
 import type {Group} from 'sentry/types/group';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type FetchGroupQueryParameters = {
@@ -21,10 +22,15 @@ export function makeFetchGroupQueryKey({
   const query: Record<string, string | string[]> = {
     ...(environments.length > 0 ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
-    collapse: ['release', 'tags'],
+    collapse: ['release', 'tags', 'stats'],
   };
 
-  return [`/organizations/${organizationSlug}/issues/${groupId}/`, {query}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+      path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
+    }),
+    {query},
+  ];
 }
 
 interface UseGroupOptions {

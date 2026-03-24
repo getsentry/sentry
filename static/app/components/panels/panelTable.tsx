@@ -2,12 +2,11 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
-import Panel from './panel';
+import {Panel} from './panel';
 
 type PanelTableProps = {
   /**
@@ -158,13 +157,12 @@ const Wrapper = styled(Panel, {
   grid-template-columns: repeat(${p => p.columns}, auto);
 
   > * {
-    ${p => (p.disablePadding ? '' : `padding: ${space(2)};`)}
-
+    padding: ${p => (p.disablePadding ? '0' : p.theme.space.xl)};
     ${p =>
       p.disableHeaderBorderBottom
         ? ''
         : `&:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
-      border-bottom: 1px solid ${p.theme.border};
+      border-bottom: 1px solid ${p.theme.tokens.border.primary};
     }`}
   }
 
@@ -178,12 +176,12 @@ const Wrapper = styled(Panel, {
 `;
 
 const PanelTableHeader = styled('div')<{sticky: boolean}>`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   line-height: 1;
   display: flex;
   flex-direction: column;
@@ -199,4 +197,4 @@ const PanelTableHeader = styled('div')<{sticky: boolean}>`
     `}
 `;
 
-export {PanelTable, type PanelTableProps, PanelTableHeader};
+export {PanelTable};

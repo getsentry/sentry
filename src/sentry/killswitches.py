@@ -239,6 +239,17 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID.",
         },
     ),
+    "spans.process-segments.drop-segments": KillswitchInfo(
+        description="""
+        Drop segments in the process-segments consumer based on organization ID.
+
+        This allows shedding load quickly if a particular organization is generating
+        excessive segments.
+        """,
+        fields={
+            "org_id": "An organization ID to filter segments by.",
+        },
+    ),
 }
 
 
@@ -306,7 +317,7 @@ def value_matches(
             decision = True
             break
 
-    if emit_metrics:
+    if emit_metrics or decision:
         # metrics can have a meaningful performance impact, so allow caller to opt out
         # TODO: re-evaluate after we make metric collection aysnc.
         metrics.incr(

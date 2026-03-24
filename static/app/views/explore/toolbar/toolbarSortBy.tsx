@@ -1,9 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -25,6 +26,7 @@ import {
   useSetQueryParamsAggregateSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function ToolbarSortBy() {
   const mode = useQueryParamsMode();
@@ -46,7 +48,10 @@ export function ToolbarSortBy() {
   // traces table is only sorted by timestamp so disable the sort by
   const disabled = mode === Mode.SAMPLES && tab === Tab.TRACE;
 
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
+
   const fieldOptions = useSortByFields({
+    config: spansConfig,
     fields,
     yAxes: visualizes.map(v => v.yAxis),
     groupBys,

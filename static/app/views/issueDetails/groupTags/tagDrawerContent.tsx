@@ -1,20 +1,19 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
+import {TagDetailsLink} from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-export default function TagDrawerContent({
+export function TagDrawerContent({
   group,
   organization,
   project,
@@ -111,15 +110,15 @@ export default function TagDrawerContent({
 export const Container = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  border: ${p => p.theme.border} solid 1px;
+  border: ${p => p.theme.tokens.border.primary} solid 1px;
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;

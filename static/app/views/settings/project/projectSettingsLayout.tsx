@@ -1,19 +1,21 @@
+import {useEffect, useEffectEvent} from 'react';
 import {Outlet, useOutletContext} from 'react-router-dom';
 
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
-import type {Project} from 'sentry/types/project';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import ProjectContext from 'sentry/views/projects/projectContext';
-import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
-type InnerProps = {
-  params: {projectId: string};
-  project: Project;
-  routes: PlainRoute[];
-};
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {IconProject} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
+import ProjectContext from 'sentry/views/projects/projectContext';
+import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 
 type ProjectSettingsOutletContext = {
   project: Project;
@@ -27,9 +29,7 @@ export function useProjectSettingsOutlet() {
   return useOutletContext<ProjectSettingsOutletContext>();
 }
 
-function InnerProjectSettingsLayout({params, routes, project}: InnerProps) {
-  const location = useLocation();
-
+function InnerProjectSettingsLayout({project}: {project: Project}) {
   // set analytics params for route based analytics
   useRouteAnalyticsParams({
     project_id: project.id,
@@ -37,14 +37,7 @@ function InnerProjectSettingsLayout({params, routes, project}: InnerProps) {
   });
 
   return (
-    <SettingsLayout
-      params={params}
-      routes={routes}
-      location={location}
-      router={undefined as any}
-      route={undefined as any}
-      routeParams={undefined as any}
-    >
+    <SettingsLayout>
       <ProjectSettingsOutlet project={project} />
     </SettingsLayout>
   );
@@ -52,13 +45,47 @@ function InnerProjectSettingsLayout({params, routes, project}: InnerProps) {
 
 export default function ProjectSettingsLayout() {
   const params = useParams<{projectId: string}>();
-  const routes = useRoutes();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const onMissingProject = useEffectEvent(() => {
+    navigateTo(location.pathname, navigate, location);
+  });
+
+  useEffect(() => {
+    if (params.projectId === ':projectId') {
+      onMissingProject();
+    }
+  }, [params.projectId]);
+
+  if (params.projectId === ':projectId') {
+    return (
+      <AnalyticsArea name="project">
+        <Flex justify="center" align="center" flex="1">
+          <EmptyMessage
+            icon={<IconProject size="xl" />}
+            title={t('Choose a Project')}
+            action={
+              <Button
+                priority="primary"
+                onClick={() => navigateTo(location.pathname, navigate, location)}
+              >
+                {t('Choose Project')}
+              </Button>
+            }
+          >
+            {t('Select a project to continue.')}
+          </EmptyMessage>
+        </Flex>
+      </AnalyticsArea>
+    );
+  }
 
   return (
-    <ProjectContext projectSlug={params.projectId}>
-      {({project}) => (
-        <InnerProjectSettingsLayout params={params} routes={routes} project={project} />
-      )}
-    </ProjectContext>
+    <AnalyticsArea name="project">
+      <ProjectContext projectSlug={params.projectId}>
+        {({project}) => <InnerProjectSettingsLayout project={project} />}
+      </ProjectContext>
+    </AnalyticsArea>
   );
 }

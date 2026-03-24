@@ -1,15 +1,16 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
+import {Flex} from '@sentry/scraps/layout';
+
+import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {TimeRangeItem} from 'sentry/components/timeRangeSelector/types';
 import {DEFAULT_RELATIVE_PERIODS, MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import UpsellProvider from 'getsentry/components/upsellProvider';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
 const PREMIUM_PERIODS = ['90d'];
@@ -63,10 +64,10 @@ function DisabledSelectorItems({
                 : '90d-trial',
             label: (
               <SelectorItemLabel>
-                <UpsellLabelWrap>
+                <Flex align="center">
                   {relativePeriods['90d']}
                   <StyledIconBusiness data-test-id="power-icon" />
-                </UpsellLabelWrap>
+                </Flex>
 
                 <UpsellMessage>
                   {canTrial
@@ -104,26 +105,21 @@ function DisabledSelectorItems({
 }
 
 const SelectorItemLabel = styled('div')`
-  margin-left: ${space(0.5)};
-  margin-top: ${space(0.25)};
-  margin-bottom: ${space(0.25)};
-`;
-
-const UpsellLabelWrap = styled('div')`
-  display: flex;
-  align-items: center;
+  margin-left: ${p => p.theme.space.xs};
+  margin-top: ${p => p.theme.space['2xs']};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;
 
 const UpsellMessage = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
 `;
 
 const StyledIconBusiness = styled(IconBusiness)`
   display: grid;
   align-items: center;
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 export default withSubscription(DisabledSelectorItems, {noLoader: true});

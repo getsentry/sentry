@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.services.assignment_source import AssignmentSource
@@ -178,6 +178,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 data=data,
             )
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
+            GroupOwner.invalidate_assignee_exists_cache(group.id)
 
             metrics.incr("group.assignee.change", instance="assigned", skip_internal=True)
             # sync Sentry assignee to external issues
@@ -223,8 +224,8 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             ownership = ProjectOwnership.get_ownership_cached(group.project.id)
             if not ownership:
                 ownership = ProjectOwnership(project_id=group.project.id)
-            GroupOwner.invalidate_assignee_exists_cache(group.project.id, group.id)
-            GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.project.id, group.id)
+            GroupOwner.invalidate_assignee_exists_cache(group.id)
+            GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.id)
 
             metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
             # sync Sentry assignee to external issues
@@ -241,7 +242,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             self.remove_old_assignees(group, previous_groupassignee)
 
 
-@region_silo_model
+@cell_silo_model
 class GroupAssignee(Model):
     """
     Identifies an assignment relationship between a user/team and an

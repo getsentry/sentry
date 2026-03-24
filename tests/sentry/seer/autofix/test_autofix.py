@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import Mock, patch
 
 import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.seer.autofix.autofix import (
@@ -14,14 +16,14 @@ from sentry.seer.autofix.autofix import (
     _get_logs_for_event,
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
+    _pre_resolve_stacktrace_frames,
     _respond_with_error,
     get_all_tags_overview,
-    onboarding_seer_settings_update,
     trigger_autofix,
 )
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
-from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -786,11 +788,35 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
         assert staging_val["count"] == 1
         assert staging_val["percentage"] == "25%"
 
+    def test_get_all_tags_overview_respects_time_range(self) -> None:
+        """Only include tag counts for events within the provided time window (event 2 and 3)"""
+        now = before_now(minutes=0)
+        start = now - timedelta(minutes=3, seconds=30)
+        end = now - timedelta(minutes=1, seconds=30)
+
+        result = get_all_tags_overview(self.group, start=start, end=end)
+
+        assert result is not None
+        tags = {tag["key"]: tag for tag in result["tags_overview"]}
+
+        env_tag = tags["environment"]
+        assert env_tag["total_values"] == 2  # events ~2m and ~3m ago
+        env_values = {val["value"]: val for val in env_tag["top_values"]}
+        assert set(env_values.keys()) == {"production", "staging"}
+        assert env_values["production"]["count"] == 1
+        assert env_values["staging"]["count"] == 1
+
+        user_tag = tags["user_role"]
+        assert user_tag["total_values"] == 2
+        user_values = {val["value"]: val for val in user_tag["top_values"]}
+        assert set(user_values.keys()) == {"admin", "user"}
+        assert user_values["admin"]["count"] == 1
+        assert user_values["user"]["count"] == 1
+
 
 @requires_snuba
 @pytest.mark.django_db
 @with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         super().setUp()
@@ -811,7 +837,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_profile,
         mock_get_tags,
         mock_record_seer_run,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a specified event_id."""
         # Setup test data
@@ -837,6 +862,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             group=group,
             event_id=event.event_id,
             user=test_user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction="Test instruction",
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
         )
@@ -878,7 +904,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_serialized_event,
         mock_get_latest_event,
         mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests error handling when no event can be found for the group."""
         mock_get_recommended_event.return_value = None
@@ -889,7 +914,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group = self.create_group()
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
 
         assert response.status_code == 400
         assert (
@@ -913,7 +943,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_profile,
         mock_get_tags,
         mock_record_seer_run,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a web vitals issue."""
         # Setup test data
@@ -947,7 +976,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
         assert response.status_code == 202
         mock_record_seer_run.assert_called_once()
 
@@ -955,47 +989,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 @requires_snuba
 @pytest.mark.django_db
 @with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
-class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-
-        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
-
-    @patch("sentry.models.Group.get_recommended_event_for_environments")
-    @patch("sentry.models.Group.get_latest_event")
-    @patch("sentry.seer.autofix.autofix._get_serialized_event")
-    def test_trigger_autofix_without_org_acknowledgement(
-        self,
-        mock_get_serialized_event,
-        mock_get_latest_event,
-        mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
-    ):
-        """Tests error handling when no event can be found for the group."""
-        mock_get_recommended_event.return_value = None
-        mock_get_latest_event.return_value = None
-        # We should never reach _get_serialized_event since we have no event
-        mock_get_serialized_event.return_value = (None, None)
-
-        group = self.create_group()
-        user = Mock(spec=AnonymousUser)
-
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
-
-        assert response.status_code == 403
-        assert (
-            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
-            in response.data["detail"]
-        )
-        # Verify _get_serialized_event was not called since we have no event
-        mock_get_serialized_event.assert_not_called()
-
-
-@requires_snuba
-@pytest.mark.django_db
-@with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1011,7 +1004,6 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         mock_get_serialized_event,
         mock_get_latest_event,
         mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests that autofix is blocked when organization has hideAiFeatures set to True"""
         mock_get_recommended_event.return_value = None
@@ -1022,7 +1014,12 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         group = self.create_group()
         user = self.create_user()
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
 
         assert response.status_code == 403
         assert "AI features are disabled for this organization" in response.data["detail"]
@@ -1032,13 +1029,14 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
 
 class TestCallAutofix(TestCase):
     @patch("sentry.seer.autofix.autofix._get_github_username_for_user")
-    @patch("sentry.seer.autofix.autofix.requests.post")
-    @patch("sentry.seer.autofix.autofix.sign_with_seer_secret")
-    def test_call_autofix(self, mock_sign, mock_post, mock_get_username) -> None:
+    @patch("sentry.seer.autofix.autofix.make_autofix_start_request")
+    def test_call_autofix(self, mock_request, mock_get_username) -> None:
         """Tests the _call_autofix function makes the correct API call."""
         # Setup mocks
-        mock_sign.return_value = {"Authorization": "Bearer test"}
-        mock_post.return_value.json.return_value = {"run_id": "test-run-id"}
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": "test-run-id"}
+        mock_request.return_value = mock_response
         mock_get_username.return_value = None  # No GitHub username
 
         # Mock objects
@@ -1074,6 +1072,7 @@ class TestCallAutofix(TestCase):
             trace_tree=trace_tree,
             logs=logs,
             tags_overview=tags_overview,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
@@ -1083,12 +1082,10 @@ class TestCallAutofix(TestCase):
         assert run_id == "test-run-id"
 
         # Verify the API call
-        mock_post.assert_called_once()
-        url = mock_post.call_args[0][0]
-        assert "/v1/automation/autofix/start" in url
+        mock_request.assert_called_once()
 
-        # Verify the request body
-        body = orjson.loads(mock_post.call_args[1]["data"])
+        # Verify the request body (first positional argument)
+        body = orjson.loads(mock_request.call_args[0][0])
         assert body["organization_id"] == 456
         assert body["project_id"] == 789
         assert body["repos"] == repos
@@ -1111,11 +1108,6 @@ class TestCallAutofix(TestCase):
             == "https://github.com/getsentry/sentry/pull/123"
         )
         assert body["options"]["disable_coding_step"] is False
-
-        # Verify headers
-        headers = mock_post.call_args[1]["headers"]
-        assert headers["content-type"] == "application/json;charset=utf-8"
-        assert headers["Authorization"] == "Bearer test"
 
 
 class TestGetGithubUsernameForUser(TestCase):
@@ -1474,95 +1466,199 @@ class TestGetLogsForEvent(TestCase):
         assert merged[2]["message"] == "foo" and "consecutive_count" not in merged[2]
 
 
-@pytest.mark.django_db
-class TestOnboardingSeerSettingsUpdate(TestCase):
-    def test_rca_disabled_sets_automation_tuning_off(self) -> None:
-        """Tests that when RCA is disabled, automation tuning is set to OFF for org and projects."""
-        organization = self.create_organization()
-        project1 = self.create_project(organization=organization)
-        project2 = self.create_project(organization=organization)
+class UpdateAutofixTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.run_id = 123
+        self.payload: AutofixSelectRootCausePayload = {"type": "select_root_cause", "cause_id": 1}
 
-        onboarding_seer_settings_update(
-            organization_id=organization.id,
-            is_rca_enabled=False,
-            is_auto_open_prs_enabled=False,
-            project_repo_dict={},
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_http_error(self, mock_request):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        mock_response = Mock()
+        mock_response.status = 500
+        mock_request.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
-        # Verify org-level option is set to OFF
-        organization.refresh_from_db()
-        assert (
-            organization.get_option("sentry:default_autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
+        assert response.status_code == 500
+        assert response.data["detail"] == "Failed to update autofix run"
+
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_json_decode_error(self, mock_request):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.json.side_effect = Exception("Invalid JSON")
+        mock_request.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
-        # Verify project-level options are set to OFF
-        project1.refresh_from_db()
-        project2.refresh_from_db()
-        assert (
-            project1.get_option("sentry:autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
-        )
-        assert (
-            project2.get_option("sentry:autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
-        )
+        assert response.status_code == 500
+        assert response.data["detail"] == "Seer returned an invalid response"
 
-    @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
-    def test_rca_enabled_without_auto_prs_sets_code_changes_stopping_point(
-        self, mock_bulk_set
-    ) -> None:
-        """Tests that when RCA is enabled but auto PRs disabled, stopping point is CODE_CHANGES."""
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_success(self, mock_request):
+        from sentry.seer.autofix.autofix import update_autofix
 
-        repo = SeerRepoDefinition(
-            provider="github",
-            owner="getsentry",
-            name="sentry",
-            external_id="123",
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": self.run_id, "status": "updated"}
+        mock_request.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
-        onboarding_seer_settings_update(
-            organization_id=organization.id,
-            is_rca_enabled=True,
-            is_auto_open_prs_enabled=False,
-            project_repo_dict={project.id: [repo]},
+        assert response.status_code == 200
+        assert response.data == mock_response.json.return_value
+
+
+class TestPreResolveStacktraceFrames(TestCase):
+    def _make_serialized_event(self, frames, platform="python"):
+        return {
+            "platform": platform,
+            "entries": [
+                {
+                    "type": "exception",
+                    "data": {
+                        "values": [
+                            {
+                                "stacktrace": {
+                                    "frames": frames,
+                                }
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+
+    def test_resolves_frames_with_code_mapping(self):
+        project = self.create_project()
+        repo = self.create_repo(
+            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
+        )
+        self.create_code_mapping(
+            project=project, repo=repo, stack_root="src/", source_root="sentry/"
         )
 
-        mock_bulk_set.assert_called_once()
-        call_args = mock_bulk_set.call_args
-        assert call_args[0][0] == organization.id
-        preferences = call_args[0][1]
-        assert len(preferences) == 1
-        assert preferences[0]["organization_id"] == organization.id
-        assert preferences[0]["project_id"] == project.id
-        assert preferences[0]["automated_run_stopping_point"] == "code_changes"
-        assert len(preferences[0]["repositories"]) == 1
-
-    @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
-    def test_rca_enabled_with_auto_prs_sets_open_pr_stopping_point(self, mock_bulk_set) -> None:
-        """Tests that when RCA and auto PRs are enabled, stopping point is OPEN_PR."""
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-
-        repo = SeerRepoDefinition(
-            provider="github",
-            owner="getsentry",
-            name="sentry",
-            external_id="456",
+        event = self._make_serialized_event(
+            [
+                {"filename": "src/utils.py", "inApp": True},
+                {"filename": "src/models.py", "inApp": True},
+                {"filename": "lib/external.py", "inApp": False},
+            ]
         )
 
-        onboarding_seer_settings_update(
-            organization_id=organization.id,
-            is_rca_enabled=True,
-            is_auto_open_prs_enabled=True,
-            project_repo_dict={project.id: [repo]},
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
+
+        frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["repo_name"] == "getsentry/sentry"
+        assert frames[0]["filename"] == "sentry/utils.py"
+        assert frames[1]["repo_name"] == "getsentry/sentry"
+        assert frames[1]["filename"] == "sentry/models.py"
+        # Non in-app frames should not be resolved
+        assert "repo_name" not in frames[2]
+
+    def test_no_code_mappings_is_noop(self):
+        event = self._make_serialized_event([{"filename": "src/utils.py", "inApp": True}])
+
+        _pre_resolve_stacktrace_frames(event, [])
+
+        frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
+        assert "repo_name" not in frames[0]
+
+    def test_unmatched_frames_left_unresolved(self):
+        project = self.create_project()
+        repo = self.create_repo(
+            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
+        )
+        self.create_code_mapping(
+            project=project, repo=repo, stack_root="src/", source_root="sentry/"
         )
 
-        mock_bulk_set.assert_called_once()
-        call_args = mock_bulk_set.call_args
-        assert call_args[0][0] == organization.id
-        preferences = call_args[0][1]
-        assert len(preferences) == 1
-        assert preferences[0]["automated_run_stopping_point"] == "open_pr"
+        event = self._make_serialized_event(
+            [
+                {"filename": "src/utils.py", "inApp": True},
+                {"filename": "unknown/other.py", "inApp": True},
+            ]
+        )
+
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
+
+        frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["repo_name"] == "getsentry/sentry"
+        assert "repo_name" not in frames[1]
+
+    def test_multiple_repos(self):
+        project = self.create_project()
+        repo1 = self.create_repo(
+            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
+        )
+        repo2 = self.create_repo(
+            name="getsentry/seer", provider="github", external_id="456", integration_id=234
+        )
+        self.create_code_mapping(
+            project=project, repo=repo1, stack_root="src/", source_root="sentry/"
+        )
+        self.create_code_mapping(
+            project=project, repo=repo2, stack_root="ml/", source_root="src/seer/"
+        )
+
+        event = self._make_serialized_event(
+            [
+                {"filename": "src/utils.py", "inApp": True},
+                {"filename": "ml/models.py", "inApp": True},
+            ]
+        )
+
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
+
+        frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["repo_name"] == "getsentry/sentry"
+        assert frames[0]["filename"] == "sentry/utils.py"
+        assert frames[1]["repo_name"] == "getsentry/seer"
+        assert frames[1]["filename"] == "src/seer/models.py"
+
+    def test_resolves_thread_frames(self):
+        project = self.create_project()
+        repo = self.create_repo(
+            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
+        )
+        self.create_code_mapping(
+            project=project, repo=repo, stack_root="src/", source_root="sentry/"
+        )
+
+        event = {
+            "platform": "python",
+            "entries": [
+                {
+                    "type": "threads",
+                    "data": {
+                        "values": [
+                            {
+                                "stacktrace": {
+                                    "frames": [
+                                        {"filename": "src/tasks.py", "inApp": True},
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
+
+        entry: Any = event["entries"][0]
+        frames = entry["data"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["repo_name"] == "getsentry/sentry"
+        assert frames[0]["filename"] == "sentry/tasks.py"

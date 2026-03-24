@@ -1,8 +1,9 @@
 import {cloneElement, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -173,7 +174,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     ) + flamegraphTheme.SIZES.TIMELINE_LABEL_HEIGHT;
 
   return (
-    <FlamegraphLayoutContainer>
+    <Flex flex="1 1 100%">
       <FlamegraphGrid layout={layout}>
         <MinimapContainer
           containerHeight={
@@ -284,10 +285,10 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
             </CollapsibleTimeline>
           </SpansContainer>
         ) : null}
-        <ZoomViewContainer>
+        <Stack flex="1 1 100%" position="relative" area="flamegraph">
           <ProfileLabel>{t('Profile')}</ProfileLabel>
           {props.flamegraph}
-        </ZoomViewContainer>
+        </Stack>
         <FlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
           {cloneElement(props.flamegraphDrawer, {
             onResize: onMouseDown,
@@ -295,7 +296,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
           } as any)}
         </FlamegraphDrawerContainer>
       </FlamegraphGrid>
-    </FlamegraphLayoutContainer>
+    </Flex>
   );
 }
 
@@ -305,19 +306,14 @@ const ProfileLabel = styled(CollapsibleTimelineLabel)`
   left: 0;
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary} 0%,
-    ${p => p.theme.backgroundSecondary} 80%,
+    ${p => p.theme.tokens.background.secondary} 0%,
+    ${p => p.theme.tokens.background.secondary} 80%,
     transparent 100%
   );
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
   z-index: 1;
   /* Visually align with the grid */
   transform: translateY(1px);
-`;
-
-const FlamegraphLayoutContainer = styled('div')`
-  display: flex;
-  flex: 1 1 100%;
 `;
 
 const FlamegraphGrid = styled('div')<{
@@ -384,14 +380,6 @@ const MinimapContainer = styled('div')<{
   grid-area: minimap;
   display: flex;
   flex-direction: column;
-`;
-
-const ZoomViewContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-  grid-area: flamegraph;
-  position: relative;
 `;
 
 const SpansContainer = styled('div')<{

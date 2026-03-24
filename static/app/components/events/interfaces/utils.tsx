@@ -1,9 +1,9 @@
 import partition from 'lodash/partition';
 import * as qs from 'query-string';
 
-import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
+import {getThreadException} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Image} from 'sentry/types/debugImage';
 import type {EntryRequest, EntryThreads, Event, Frame, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';

@@ -1,7 +1,8 @@
 ---
 title: CodeBlock
 description: CodeBlock displays multi-line code snippets with syntax highlighting, copy functionality, and support for tabs, filenames, and line highlighting.
-source: 'sentry/components/core/code'
+category: display
+source: '@sentry/scraps/code'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/code/codeBlock.tsx
   a11y:
@@ -11,14 +12,15 @@ resources:
 
 import {Fragment, useState} from 'react';
 
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {CodeBlock} from 'sentry/components/core/code';
 import {IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/code/codeBlock';
+import {OnTabClickExample} from './__stories__/components';
 
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/code/codeBlock');
 
 export const sampleJavaScript = `Sentry.init({
   // Note, Replay is NOT instantiated below:
@@ -293,29 +295,6 @@ press the copy button?');
 ### onTabClick Callback
 
 Fires when the user switches tabs.
-
-export function OnTabClickExample() {
-  const [tab, setTab] = useState('npm');
-  function handleTabClick(t) {
-      setTab(t);
-      addSuccessMessage('Clicked a different tab');
-  };
-
-return (
-
-<CodeBlock
-tabs={[
-{label: 'npm', value: 'npm'},
-{label: 'Yarn', value: 'yarn'},
-]}
-selectedTab={tab}
-onTabClick={handleTabClick}
-language="bash" >
-{tab === 'npm' ? `npm install --save @sentry/browser` : 'yarn add @sentry/browser'}
-
-</CodeBlock>
-);
-}
 
 <Storybook.Demo>
   <p>Try switching tabs:</p>

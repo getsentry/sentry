@@ -1,12 +1,14 @@
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
+import {Outlet} from 'react-router-dom';
 
-type Props = RouteComponentProps & {
-  children: React.ReactNode;
-};
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 
-function OrganizationSettingsLayout(props: Props) {
-  return <SettingsLayout {...props} />;
+export default function OrganizationSettingsLayout() {
+  return (
+    <AnalyticsArea name="organization">
+      <SettingsLayout>
+        <Outlet />
+      </SettingsLayout>
+    </AnalyticsArea>
+  );
 }
-
-export default OrganizationSettingsLayout;

@@ -10,7 +10,7 @@ class SlackRoutingData:
     Slack only allows us one key to encode data on our actions, so to better route requests, we
     need to encode it with enough data to narrow our targeting.
 
-    This type represents the current data we encode for targeting regions or cells.
+    This type represents the current data we encode for targeting cells.
     """
 
     action: str  # Should be a member of SlackAction, but we don't care about the value for routing
@@ -18,9 +18,13 @@ class SlackRoutingData:
     project_id: int | None = None
 
 
-def encode_action_id(*, action: str, organization_id: int, project_id: int) -> str:
+def encode_action_id(*, action: str, organization_id: int, project_id: int | None) -> str:
     """Used to encode routing data into the outbound action_id for a Slack block."""
-    return f"{action}::{organization_id}::{project_id}"
+    return (
+        f"{action}::{organization_id}::{project_id}"
+        if project_id
+        else f"{action}::{organization_id}"
+    )
 
 
 def decode_action_id(encoded_action_id: str) -> SlackRoutingData:

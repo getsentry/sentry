@@ -1,13 +1,15 @@
 import {Component} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ConfigStore from 'sentry/stores/configStore';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
 
-import ResultTable from 'admin/components/resultTable';
+import {ResultTable} from 'admin/components/resultTable';
 import type {SelectableContainerPanel} from 'admin/components/selectableContainer';
 
 type Props = {
@@ -27,7 +29,7 @@ type State = {
   results: any[];
 };
 
-export default class UserEmailLog extends Component<Props, State> {
+export class UserEmailLog extends Component<Props, State> {
   state: State = {
     loading: null,
     error: false,
@@ -127,7 +129,9 @@ export default class UserEmailLog extends Component<Props, State> {
 
     const emailSelector = (
       <CompactSelect
-        triggerProps={{prefix: 'Results for', size: 'xs'}}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix="Results for" size="xs" />
+        )}
         value={activeEmail}
         options={user.emails.map(e => ({value: e.email, label: e.email}))}
         onChange={opt => this.changeActiveEmail(opt.value)}
@@ -156,7 +160,7 @@ export default class UserEmailLog extends Component<Props, State> {
               <tr>
                 <td colSpan={4}>
                   <Alert.Container>
-                    <Alert type="error" showIcon={false}>
+                    <Alert variant="danger" showIcon={false}>
                       There was a problem loading SendGrid details
                     </Alert>
                   </Alert.Container>

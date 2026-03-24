@@ -5,13 +5,95 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.commit import Commit
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
+
+
+class OrganizationRepositoryGetTest(APITestCase):
+    def test_get_repository(self) -> None:
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example",
+            organization_id=org.id,
+            provider="integrations:github",
+            external_id="abc123",
+        )
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(repo.id)
+        assert response.data["name"] == "example"
+        assert response.data["externalId"] == "abc123"
+        assert "settings" not in response.data
+
+    def test_get_repository_not_found(self) -> None:
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, 99999])
+        response = self.client.get(url)
+
+        assert response.status_code == 404
+
+    def test_get_repository_expand_settings(self) -> None:
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example",
+            organization_id=org.id,
+            provider="integrations:github",
+        )
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=["on_new_commit", "on_ready_for_review"],
+        )
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
+        response = self.client.get(url, {"expand": "settings"})
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(repo.id)
+        assert response.data["settings"] is not None
+        assert response.data["settings"]["enabledCodeReview"] is True
+        assert response.data["settings"]["codeReviewTriggers"] == [
+            "on_new_commit",
+            "on_ready_for_review",
+        ]
+
+    def test_get_repository_expand_settings_no_settings_exist(self) -> None:
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example",
+            organization_id=org.id,
+            provider="integrations:github",
+        )
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
+        response = self.client.get(url, {"expand": "settings"})
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(repo.id)
+        # Settings are auto-created for GitHub repos with org defaults
+        assert response.data["settings"] is not None
+        assert response.data["settings"]["enabledCodeReview"] is False
+        assert response.data["settings"]["codeReviewTriggers"] == [
+            "on_ready_for_review",
+            "on_new_commit",
+        ]
 
 
 class OrganizationRepositoryDeleteTest(APITestCase):
@@ -48,7 +130,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository", date_scheduled__lte=timezone.now()
         ).exists()
         self.assert_rename_pending_delete(response, repo)
@@ -71,7 +153,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository", date_scheduled__gt=timezone.now()
         ).exists()
         self.assert_rename_pending_delete(response, repo, "abc123")
@@ -96,7 +178,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository"
         ).exists()
         self.assert_rename_pending_delete(response, repo, "abc12345")
@@ -120,7 +202,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository"
         ).exists()
         self.assert_rename_pending_delete(response, repo)

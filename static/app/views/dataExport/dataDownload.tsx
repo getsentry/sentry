@@ -1,21 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {ExportQueryType} from 'sentry/components/dataExport';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import Layout from 'sentry/views/auth/layout';
+import {AuthLayoutContent as Layout} from 'sentry/views/auth/layout';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -69,7 +69,7 @@ type OtherDownload = BaseDownload & {
 
 type Download = ExploreDownload | OtherDownload;
 
-function DataDownload() {
+export default function DataDownload() {
   const {dataExportId, orgId: orgSlug} = useParams<{
     dataExportId: string;
     orgId: string;
@@ -80,9 +80,16 @@ function DataDownload() {
     isPending,
     isError,
     error,
-  } = useApiQuery<Download>([`/organizations/${orgSlug}/data-export/${dataExportId}/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<Download>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/data-export/$dataExportId/', {
+        path: {organizationIdOrSlug: orgSlug, dataExportId},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const navigate = useNavigate();
 
@@ -118,7 +125,7 @@ function DataDownload() {
       case ExportQueryType.ISSUES_BY_TAG:
         return `/organizations/${orgSlug}/issues/`;
       case ExportQueryType.DISCOVER:
-        return `/organizations/${orgSlug}/discover/queries/`;
+        return `/organizations/${orgSlug}/explore/discover/queries/`;
       case ExportQueryType.EXPLORE:
         if (traceItemDataset === TraceItemDataset.LOGS) {
           return `/organizations/${orgSlug}/explore/logs/`;
@@ -203,7 +210,7 @@ function DataDownload() {
     } = download;
 
     const to = {
-      pathname: `/organizations/${orgSlug}/discover/results/`,
+      pathname: `/organizations/${orgSlug}/explore/discover/results/`,
       query: info,
     };
 
@@ -371,24 +378,22 @@ function DataDownload() {
 }
 
 const Header = styled('header')`
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(3)} 40px 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  padding: ${p => p.theme.space['2xl']} 40px 0;
   h3 {
     font-size: 24px;
-    margin: 0 0 ${space(3)} 0;
+    margin: 0 0 ${p => p.theme.space['2xl']} 0;
   }
 `;
 
 const Body = styled('div')`
-  padding: ${space(2)} 40px;
+  padding: ${p => p.theme.space.xl} 40px;
   max-width: 500px;
   p {
-    margin: ${space(1.5)} 0;
+    margin: ${p => p.theme.space.lg} 0;
   }
 `;
 
 const DownloadButton = styled(LinkButton)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
-
-export default DataDownload;

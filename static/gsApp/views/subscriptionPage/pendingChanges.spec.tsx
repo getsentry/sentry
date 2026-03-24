@@ -18,7 +18,7 @@ import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {ANNUAL, MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {OnDemandBudgetMode} from 'getsentry/types';
-import PendingChanges from 'getsentry/views/subscriptionPage/pendingChanges';
+import {PendingChanges} from 'getsentry/views/subscriptionPage/pendingChanges';
 
 function getItemWithText(text: string) {
   return screen.getByText(
@@ -403,6 +403,33 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.getByText('Reserved errors change to 100,000')).toBeInTheDocument();
     expect(screen.queryByText(/product access/)).not.toBeInTheDocument();
     expect(screen.queryByText(/budget change/)).not.toBeInTheDocument();
+  });
+
+  it('renders size analysis reserved changes with correct display name', () => {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business'),
+        plan: 'am3_business',
+        planName: 'Business',
+        reserved: {
+          sizeAnalyses: 100,
+        },
+      }),
+    });
+    sub.categories = {
+      ...sub.categories,
+      sizeAnalyses: MetricHistoryFixture({
+        category: 'sizeAnalyses' as any,
+        reserved: 50,
+      }),
+    };
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+    expect(
+      screen.getByText('Reserved size analysis builds change to 100')
+    ).toBeInTheDocument();
   });
 
   it('renders reserved budgets with existing budgets without dynamic sampling', () => {

@@ -1,25 +1,34 @@
-import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
-import AssigneeSelectorDropdown, {
+import {
+  AssigneeSelectorDropdown,
   type AssignableEntity,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {useMutation} from 'sentry/utils/queryClient';
+import {
+  useAssignIssueMutation,
+  type AssignedBy,
+} from 'sentry/views/issueDetails/useAssignIssueMutation';
+
+type HandleAssignOptions = {
+  assignedBy?: AssignedBy;
+};
 
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;
   group: Group;
-  handleAssigneeChange: (assignedActor: AssignableEntity | null) => void;
+  handleAssigneeChange: (
+    assignedActor: AssignableEntity | null,
+    options?: HandleAssignOptions
+  ) => void;
   additionalMenuFooterItems?: React.ReactNode;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
@@ -37,35 +46,44 @@ export function useHandleAssigneeChange({
   group,
   onAssign,
   onSuccess,
+  onError,
 }: {
   group: Group;
   organization: Organization;
   onAssign?: OnAssignCallback;
+  onError?: (error: Error) => void;
   onSuccess?: (assignedTo: Group['assignedTo']) => void;
 }) {
-  const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation({
-    mutationFn: (newAssignee: AssignableEntity | null): Promise<Group> => {
-      if (newAssignee) {
-        return assignToActor({
-          id: group.id,
-          orgSlug: organization.slug,
-          actor: {id: newAssignee.id, type: newAssignee.type},
-          assignedBy: 'assignee_selector',
-        });
-      }
+  const {mutate: assignMutate, isPending: assigneeLoading} = useAssignIssueMutation();
 
-      return clearAssignment(group.id, organization.slug, 'assignee_selector');
-    },
-    onSuccess: (updatedGroup, newAssignee) => {
-      if (onAssign && newAssignee) {
-        onAssign(newAssignee.type, newAssignee.assignee, newAssignee.suggestedAssignee);
+  const handleAssigneeChange = (
+    newAssignee: AssignableEntity | null,
+    {assignedBy = 'assignee_selector'}: HandleAssignOptions = {}
+  ) => {
+    assignMutate(
+      {
+        groupId: group.id,
+        orgSlug: organization.slug,
+        actor: newAssignee ? {id: newAssignee.id, type: newAssignee.type} : null,
+        assignedBy,
+      },
+      {
+        onSuccess: updatedGroup => {
+          if (onAssign && newAssignee) {
+            onAssign(
+              newAssignee.type,
+              newAssignee.assignee,
+              newAssignee.suggestedAssignee
+            );
+          }
+          onSuccess?.(updatedGroup.assignedTo);
+        },
+        onError: error => {
+          onError?.(error);
+        },
       }
-      onSuccess?.(updatedGroup.assignedTo);
-    },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
-    },
-  });
+    );
+  };
 
   return {handleAssigneeChange, assigneeLoading};
 }
@@ -82,8 +100,6 @@ export function AssigneeSelector({
   additionalMenuFooterItems,
   showLabel = false,
 }: AssigneeSelectorProps) {
-  const theme = useTheme();
-
   return (
     <AssigneeSelectorDropdown
       group={group}
@@ -95,10 +111,10 @@ export function AssigneeSelector({
       }
       onClear={() => handleAssigneeChange(null)}
       trigger={(props, isOpen) => (
-        <StyledDropdownButton
+        <StyledTrigger
           {...props}
+          showChevron={false}
           aria-label={t('Modify issue assignee')}
-          borderless={!theme.isChonk}
           size="zero"
         >
           <AssigneeBadge
@@ -113,27 +129,22 @@ export function AssigneeSelector({
             showLabel={showLabel}
             chevronDirection={isOpen ? 'up' : 'down'}
           />
-        </StyledDropdownButton>
+        </StyledTrigger>
       )}
       additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );
 }
 
-const StyledDropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+const StyledTrigger = styled(OverlayTrigger.Button)`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   border: none;
   padding: 0;
   height: unset;
   border-radius: 20px;
   box-shadow: none;
 
-  ${p =>
-    // Chonk tags have a smaller border radius, so we need make sure it matches.
-    p.theme.isChonk &&
-    css`
-      > span > div {
-        border-radius: 20px;
-      }
-    `}
+  > span > div {
+    border-radius: 20px;
+  }
 `;

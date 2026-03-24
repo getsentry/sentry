@@ -1,5 +1,6 @@
-import {ExternalLink} from 'sentry/components/core/link';
-import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {copyDsnFieldBlock} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import type {
   BasePlatformOptions,
   DocsParams,
@@ -92,10 +93,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'custom',
-          content: <CopyDsnField params={params} />,
-        },
+        copyDsnFieldBlock(params),
       ],
     },
   ],

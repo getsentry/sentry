@@ -1,20 +1,22 @@
-import {Component} from 'react';
+import {useEffect, useState} from 'react';
+
+import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
+import {withApi} from 'sentry/utils/withApi';
+import {withProjects} from 'sentry/utils/withProjects';
 
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import TransactionThresholdModal, {modalCss} from './transactionThresholdModal';
+import {useEventViewProject} from './useEventViewProject';
 
 type Props = {
   api: Client;
@@ -25,45 +27,28 @@ type Props = {
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
-type State = {
-  loadingThreshold: boolean;
-  transactionThreshold: number | undefined;
-  transactionThresholdMetric: TransactionThresholdMetric | undefined;
-};
+function TransactionThresholdButton({
+  api,
+  eventView,
+  onChangeThreshold,
+  organization,
+  projects,
+  transactionName,
+}: Props) {
+  const [loadingThreshold, setLoadingThreshold] = useState(false);
+  const [transactionThreshold, setTransactionThreshold] = useState<number>();
+  const [transactionThresholdMetric, setTransactionThresholdMetric] =
+    useState<TransactionThresholdMetric>();
 
-class TransactionThresholdButton extends Component<Props, State> {
-  state: State = {
-    transactionThreshold: undefined,
-    transactionThresholdMetric: undefined,
-    loadingThreshold: false,
-  };
+  const project = useEventViewProject(projects, eventView);
 
-  componentDidMount() {
-    this.fetchTransactionThreshold();
-  }
-
-  getProject() {
-    const {projects, eventView} = this.props;
-    if (!defined(eventView)) {
-      return undefined;
-    }
-
-    const projectId = String(eventView.project[0]);
-    const project = projects.find(proj => proj.id === projectId);
-
-    return project;
-  }
-
-  fetchTransactionThreshold = () => {
-    const {api, organization, transactionName} = this.props;
-
-    const project = this.getProject();
+  useEffect(() => {
     if (!defined(project)) {
       return;
     }
     const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
 
-    this.setState({loadingThreshold: true});
+    setLoadingThreshold(true);
 
     api
       .requestPromise(transactionThresholdUrl, {
@@ -75,15 +60,13 @@ class TransactionThresholdButton extends Component<Props, State> {
         },
       })
       .then(([data]) => {
-        this.setState({
-          loadingThreshold: false,
-          transactionThreshold: data.threshold,
-          transactionThresholdMetric: data.metric,
-        });
+        setLoadingThreshold(false);
+        setTransactionThreshold(data.threshold);
+        setTransactionThresholdMetric(data.metric);
       })
       .catch(() => {
         const projectThresholdUrl = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
-        this.props.api
+        api
           .requestPromise(projectThresholdUrl, {
             method: 'GET',
             includeAllArgs: true,
@@ -92,37 +75,28 @@ class TransactionThresholdButton extends Component<Props, State> {
             },
           })
           .then(([data]) => {
-            this.setState({
-              loadingThreshold: false,
-              transactionThreshold: data.threshold,
-              transactionThresholdMetric: data.metric,
-            });
+            setLoadingThreshold(false);
+            setTransactionThreshold(data.threshold);
+            setTransactionThresholdMetric(data.metric);
           })
           .catch(err => {
-            this.setState({loadingThreshold: false});
+            setLoadingThreshold(false);
             const errorMessage = err.responseJSON?.threshold ?? null;
             addErrorMessage(errorMessage);
           });
       });
-  };
+  }, [api, project, organization.slug, transactionName]);
 
-  onChangeThreshold(threshold: number, metric: TransactionThresholdMetric) {
-    const {onChangeThreshold} = this.props;
-    this.setState({
-      transactionThreshold: threshold,
-      transactionThresholdMetric: metric,
-    });
+  function applyOnChangeThreshold(threshold: number, metric: TransactionThresholdMetric) {
+    setTransactionThreshold(threshold);
+    setTransactionThresholdMetric(metric);
 
     if (defined(onChangeThreshold)) {
       onChangeThreshold(threshold, metric);
     }
   }
 
-  openModal() {
-    const {organization, transactionName, eventView} = this.props;
-
-    const {transactionThreshold, transactionThresholdMetric} = this.state;
-
+  function openTransactionThresholdModal() {
     openModal(
       modalProps => (
         <TransactionThresholdModal
@@ -132,26 +106,23 @@ class TransactionThresholdButton extends Component<Props, State> {
           eventView={eventView}
           transactionThreshold={transactionThreshold}
           transactionThresholdMetric={transactionThresholdMetric}
-          onApply={(threshold, metric) => this.onChangeThreshold(threshold, metric)}
+          onApply={(threshold, metric) => applyOnChangeThreshold(threshold, metric)}
         />
       ),
       {modalCss, closeEvents: 'escape-key'}
     );
   }
 
-  render() {
-    const {loadingThreshold} = this.state;
-    return (
-      <Button
-        size="sm"
-        onClick={() => this.openModal()}
-        icon={<IconSettings />}
-        disabled={loadingThreshold}
-        aria-label={t('Settings')}
-        data-test-id="set-transaction-threshold"
-      />
-    );
-  }
+  return (
+    <Button
+      size="sm"
+      onClick={() => openTransactionThresholdModal()}
+      icon={<IconSettings />}
+      disabled={loadingThreshold}
+      aria-label={t('Settings')}
+      data-test-id="set-transaction-threshold"
+    />
+  );
 }
 
 export default withApi(withProjects(TransactionThresholdButton));

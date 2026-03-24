@@ -11,7 +11,6 @@ from django.apps import apps
 from django.core import serializers
 from django.core.exceptions import FieldDoesNotExist
 from django.db import DatabaseError, connections, router, transaction
-from django.db.models.base import Model
 from sentry_sdk import capture_exception
 
 from sentry.backup.crypto import Decryptor, decrypt_encrypted_tarball
@@ -23,10 +22,10 @@ from sentry.backup.dependencies import (
     dependencies,
     get_model_name,
     reversed_dependencies,
+    sorted_dependencies,
 )
 from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
-from sentry.backup.services.import_export.impl import fixup_array_fields, fixup_json_fields
 from sentry.backup.services.import_export.model import (
     RpcFilter,
     RpcImportError,
@@ -37,7 +36,7 @@ from sentry.backup.services.import_export.model import (
 )
 from sentry.backup.services.import_export.service import ImportExportService
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.hybridcloud.models.outbox import OutboxFlushError, RegionOutbox
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -132,7 +131,7 @@ def _import(
     from sentry.users.models.user import User
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
-        errText = "Imports must be run in REGION or MONOLITH instances only"
+        errText = "Imports must be run in CELL or MONOLITH instances only"
         printer.echo(errText, err=True)
         raise RuntimeError(errText)
 
@@ -174,11 +173,7 @@ def _import(
     content: bytes | str = (
         decrypt_encrypted_tarball(src, decryptor) if decryptor is not None else src.read()
     )
-
     content = remove_deleted_models_and_fields(content)
-
-    content = fixup_array_fields(content)
-    content = fixup_json_fields(content)
 
     filters = []
     if filter_by is not None:
@@ -251,8 +246,69 @@ def _import(
 
         filters.append(email_filter)
 
-    # The input JSON blob should already be ordered by model kind. We simply break it up into
-    # smaller chunks, while guaranteeing that each chunk contains at most 1 model kind.
+    # Reorder models according to dependencies to ensure correct import order.
+    # This is necessary for backward compatibility with exports created before
+    # __relocation_dependencies__ was added to models like DataSource.
+    def reorder_models_by_dependencies(models: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """
+        Reorder a list of model dictionaries to respect dependency ordering.
+
+        Models are grouped by their model name, then reordered according to
+        sorted_dependencies() to ensure dependencies are imported before
+        models that reference them.
+
+        Models not present in sorted_dependencies() (e.g., deleted models from
+        old exports, plugin models) are preserved at the end in their original
+        relative order to avoid data loss.
+        """
+        # Get the correct dependency order and pre-populate models_by_name
+        correct_order = [get_model_name(model) for model in sorted_dependencies()]
+        models_by_name: dict[NormalizedModelName, list[dict[str, Any]]] = {
+            model_name: [] for model_name in correct_order
+        }
+
+        # Walk through input models, preserving order of unknown models
+        unknown_models = []
+        unknown_model_names_seen: set[NormalizedModelName] = set()
+        for model in models:
+            model_name = NormalizedModelName(model["model"])
+            if model_name in models_by_name:
+                # Known model - add to its bucket
+                models_by_name[model_name].append(model)
+            else:
+                # Unknown model - preserve in original order
+                unknown_models.append(model)
+                # Log first occurrence of each unknown model type
+                if model_name not in unknown_model_names_seen:
+                    unknown_model_names_seen.add(model_name)
+                    logger.info(
+                        "import.reorder_models.unknown_model",
+                        extra={
+                            "model_name": str(model_name),
+                        },
+                    )
+
+        # Rebuild the models list in dependency order
+        reordered = []
+        for model_name in correct_order:
+            reordered.extend(models_by_name[model_name])
+
+        # Append unknown models at the end, preserving their relative order
+        if unknown_models:
+            reordered.extend(unknown_models)
+            logger.warning(
+                "import.reorder_models.unordered_models_appended",
+                extra={
+                    "unordered_count": len(unknown_models),
+                    "total_models": len(reordered),
+                },
+            )
+
+        return reordered
+
+    # The input JSON blob should already be ordered by model kind, but to ensure backward
+    # compatibility with old exports, we reorder it based on our dependency information.
+    # We then break it up into smaller chunks, guaranteeing that each chunk contains at most 1 model kind.
     #
     # This generator returns a three-tuple of values: 1. the name of the model being generated, 2. a
     # serialized JSON string containing some number of such model instances, and 3. an offset
@@ -261,8 +317,11 @@ def _import(
     def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = orjson.loads(content)
+
+        # Reorder models to respect dependencies
+        models = reorder_models_by_dependencies(models)
         last_seen_model_name: NormalizedModelName | None = None
-        batch: list[type[Model]] = []
+        batch: list[dict[str, Any]] = []
         num_current_model_instances_yielded = 0
         for model in models:
             model_name = NormalizedModelName(model["model"])
@@ -447,7 +506,7 @@ def _import(
                     try:
                         # Manually create an empty outbox targeting this organization's shard, so
                         # that we can force it to drain.
-                        RegionOutbox(
+                        CellOutbox(
                             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                             shard_identifier=id,
                             category=OutboxCategory.ORGANIZATION_UPDATE,

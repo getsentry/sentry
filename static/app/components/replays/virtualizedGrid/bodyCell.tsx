@@ -1,14 +1,14 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
 const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
-    return `background-color: ${p.theme.purple300};`;
+    return `background-color: ${p.theme.tokens.background.accent.vibrant};`;
   }
   if (p.isStatusError) {
-    return `background-color: ${p.theme.red100};`;
+    return `background-color: ${p.theme.colors.red100};`;
   }
   if (p.isStatusWarning) {
     return `background-color: var(--background-warning-default, rgba(245, 176, 0, 0.09));`;
@@ -18,7 +18,7 @@ const cellBackground = (p: CellProps & {theme: Theme}) => {
 
 const cellColor = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
-    const color = p.theme.white;
+    const color = p.theme.colors.white;
     return `color: ${color};`;
   }
 
@@ -39,7 +39,7 @@ type CellProps = {
 export const Cell = styled('div')<CellProps>`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
 
   ${cellBackground}
@@ -57,16 +57,16 @@ export const Text = styled('div')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
-export const AvatarWrapper = styled('div')`
-  align-self: center;
-`;
+export function AvatarWrapper(props: ContainerProps<'div'>) {
+  return <Container alignSelf="center" {...props} />;
+}
 
 export const ButtonWrapper = styled('div')`
   align-items: center;
-  padding-inline: ${space(1.5)};
+  padding-inline: ${p => p.theme.space.lg};
 `;

@@ -26,12 +26,12 @@ class ProjectUptimeAlertEndpoint(ProjectEndpoint):
         project = kwargs["project"]
 
         try:
-            kwargs["uptime_detector"] = Detector.objects.get(
+            kwargs["uptime_detector"] = Detector.objects.with_type_filters().get(
                 project=project,
                 id=uptime_detector_id,
                 type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
                 data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-                status=ObjectStatus.ACTIVE,
+                status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             )
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist

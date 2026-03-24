@@ -2,18 +2,16 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/core/avatar/avatarList';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
+import {AvatarList, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface DropdownListProps {
   users: User[];
@@ -21,11 +19,7 @@ interface DropdownListProps {
   teams?: Team[];
 }
 
-export default function ParticipantList({
-  users,
-  teams,
-  hideTimestamp,
-}: DropdownListProps) {
+export function ParticipantList({users, teams, hideTimestamp}: DropdownListProps) {
   const {overlayProps, isOpen, triggerProps} = useOverlay({
     position: 'bottom-start',
     shouldCloseOnBlur: true,
@@ -37,7 +31,7 @@ export default function ParticipantList({
 
   return (
     <div>
-      <Button borderless translucentBorder size="zero" {...triggerProps}>
+      <Button priority="transparent" size="zero" {...triggerProps}>
         <StyledAvatarList
           teams={teams}
           users={users}
@@ -109,47 +103,47 @@ const ParticipantListWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
 
   & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const ListTitle = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const UserRow = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  gap: ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.md};
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   min-height: 45px;
 `;
 
 const NameWrapper = styled('div')`
   & > div:only-child {
-    margin-top: ${space(0.25)};
+    margin-top: ${p => p.theme.space['2xs']};
   }
 `;
 
 const SmallText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
 `;
 
 const LastSeen = styled(DateTime)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
 `;

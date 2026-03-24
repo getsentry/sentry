@@ -2,13 +2,14 @@ import type {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import AlertStore from 'sentry/stores/alertStore';
-import TagStore from 'sentry/stores/tagStore';
+import {AlertStore} from 'sentry/stores/alertStore';
+import {TagStore} from 'sentry/stores/tagStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   keepPreviousData,
   useApiQuery,
@@ -27,7 +28,7 @@ function tagFetchSuccess(tags: Tag[] | undefined) {
   if (tags.length > MAX_TAGS) {
     AlertStore.addAlert({
       message: t('You have too many unique tags and some have been truncated'),
-      type: 'warning',
+      variant: 'warning',
     });
   }
   TagStore.loadTagsSuccess(trimmedTags);
@@ -43,7 +44,7 @@ export function loadOrganizationTags(
 ): Promise<void> {
   TagStore.reset();
 
-  const query: Query = selection.datetime
+  const query = selection.datetime
     ? {...normalizeDateTimeParams(selection.datetime)}
     : {};
   query.use_cache = '1';
@@ -189,7 +190,7 @@ export function fetchFeatureFlagValues({
   sort?: '-last_seen' | '-count';
 }): Promise<TagValue[]> {
   // Search syntax may wrap with flags[] or flags[""], but this endpoint doesn't support it.
-  const strippedKey = tagKey.replace(/^flags\[(?:"?)(.*?)(?:"?)\]$/, '$1');
+  const strippedKey = tagKey.replace(/^flags\["?(.*?)"?\]$/, '$1');
 
   const url = `/organizations/${organization.slug}/tags/${strippedKey}/values/`;
 
@@ -264,7 +265,14 @@ const makeFetchOrganizationTags = ({
   if (end) {
     query.end = end;
   }
-  return [`/organizations/${orgSlug}/tags/`, {query}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/tags/', {
+      path: {
+        organizationIdOrSlug: orgSlug,
+      },
+    }),
+    {query},
+  ];
 };
 
 export const useFetchOrganizationTags = (

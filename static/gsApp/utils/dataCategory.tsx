@@ -3,8 +3,7 @@ import upperFirst from 'lodash/upperFirst';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED_RESERVED} from 'getsentry/constants';
@@ -74,7 +73,7 @@ export function getPlanCategoryName({
       ? t('accepted spans')
       : displayNames
         ? displayNames.plural
-        : category;
+        : (getCategoryInfoFromPlural(category)?.titleName?.toLowerCase() ?? category);
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
@@ -98,7 +97,8 @@ export function getSingularCategoryName({
       ? t('accepted span')
       : displayNames
         ? displayNames.singular
-        : category.substring(0, category.length - 1);
+        : (getCategoryInfoFromPlural(category)?.displayName ??
+          category.substring(0, category.length - 1));
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
@@ -238,39 +238,6 @@ export function sortCategoriesWithKeys(
   );
 }
 
-/**
- * Whether the subscription plan includes a data category.
- */
-function hasCategory(subscription: Subscription, category: DataCategory) {
-  return hasPlanCategory(subscription.planDetails, category);
-}
-
-function hasPlanCategory(plan: Plan, category: DataCategory) {
-  return plan.categories.includes(category);
-}
-
-/**
- * Whether an organization has access to a data category.
- *
- * NOTE: Includes accounts that have free access to a data category through
- * custom feature handlers and plan trial. Used for usage UI.
- */
-export function hasCategoryFeature(
-  category: DataCategory,
-  subscription: Subscription,
-  organization: Organization
-) {
-  if (hasCategory(subscription, category)) {
-    return true;
-  }
-
-  const feature = getCategoryInfoFromPlural(category)?.feature;
-  if (!feature) {
-    return false;
-  }
-  return feature ? organization.features.includes(feature) : true;
-}
-
 export function isContinuousProfiling(category: DataCategory | string) {
   return (
     category === DataCategory.PROFILE_DURATION ||
@@ -280,6 +247,15 @@ export function isContinuousProfiling(category: DataCategory | string) {
 
 export function isByteCategory(category: DataCategory | string) {
   return category === DataCategory.ATTACHMENTS || category === DataCategory.LOG_BYTE;
+}
+
+/**
+ * Whether the category is an emerge category (size analysis or build distribution).
+ */
+export function isEmergeCategory(category: DataCategory | string) {
+  return (
+    category === DataCategory.SIZE_ANALYSIS || category === DataCategory.INSTALLABLE_BUILD
+  );
 }
 
 export function getChunkCategoryFromDuration(category: DataCategory) {

@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -33,7 +34,7 @@ interface GroupedErrorRateWidgetProps {
   title: string;
 }
 
-export default function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProps) {
+export function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProps) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
@@ -99,7 +100,9 @@ export default function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProp
         plottables: timeSeries.map(
           (ts, index) =>
             new Line(ts, {
-              color: ts.meta.isOther ? theme.chartOther : colorPalette[index],
+              color: ts.meta.isOther
+                ? theme.tokens.content.secondary
+                : colorPalette[index],
             })
         ),
       }}

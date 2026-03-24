@@ -35,7 +35,6 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     features: [],
     onboardingTasks: [],
     alertsMemberWrite: false,
-    allowBackgroundAgentDelegation: false,
     allowJoinRequests: false,
     allowMemberInvite: true,
     allowMemberProjectCreation: false,
@@ -92,6 +91,8 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     defaultAutofixAutomationTuning: 'off',
     orgRoleList: OrgRoleListFixture(),
     teamRoleList: TeamRoleListFixture(),
+    hasGranularReplayPermissions: false,
+    replayAccessMembers: [],
     ...params,
   };
 }

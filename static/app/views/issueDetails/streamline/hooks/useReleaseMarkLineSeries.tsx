@@ -1,13 +1,13 @@
 import {useTheme} from '@emotion/react';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
@@ -33,7 +33,7 @@ export function useReleaseMarkLineSeries({
   const markLine = MarkLine({
     animation: false,
     lineStyle: {
-      color: theme.purple300,
+      color: theme.tokens.graphics.accent.vibrant,
       opacity: 0.3,
       type: 'solid',
     },
@@ -91,7 +91,7 @@ export function useReleaseMarkLineSeries({
     seriesName: t('Releases'),
     data: [],
     markLine,
-    color: theme.purple400,
+    color: theme.tokens.graphics.accent.vibrant,
     type: 'line',
   };
 }

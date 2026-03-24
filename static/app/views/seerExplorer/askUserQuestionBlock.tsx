@@ -2,11 +2,11 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
-import {Input} from 'sentry/components/core/input';
-import {Radio} from 'sentry/components/core/radio';
 import type {Question} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 
 interface AskUserQuestionBlockProps {
@@ -24,7 +24,7 @@ interface AskUserQuestionBlockProps {
   onMouseLeave?: () => void;
 }
 
-function AskUserQuestionBlock({
+export function AskUserQuestionBlock({
   currentQuestion,
   customText,
   isFocused,
@@ -79,9 +79,9 @@ function AskUserQuestionBlock({
                   exit={{opacity: 0, x: -20}}
                   transition={{duration: 0.12, ease: 'easeOut'}}
                 >
-                  <QuestionContainer>
+                  <Stack gap="lg">
                     <Text>{currentQuestion.question}</Text>
-                    <OptionsContainer>
+                    <Stack gap="sm">
                       {currentQuestion.options.map((option, index) => (
                         <OptionRow
                           key={index}
@@ -127,8 +127,8 @@ function AskUserQuestionBlock({
                           />
                         </CustomInputWrapper>
                       </OptionRow>
-                    </OptionsContainer>
-                  </QuestionContainer>
+                    </Stack>
+                  </Stack>
                 </motion.div>
               </AnimatePresence>
             </BlockContentWrapper>
@@ -139,15 +139,17 @@ function AskUserQuestionBlock({
   );
 }
 
-export default AskUserQuestionBlock;
-
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;
-  border-bottom: ${p => (p.isLast ? 'none' : `1px solid ${p.theme.border}`)};
+  border-bottom: ${p =>
+    p.isLast ? 'none' : `1px solid ${p.theme.tokens.border.primary}`};
   position: relative;
   flex-shrink: 0;
   cursor: pointer;
-  background: ${p => (p.isFocused ? p.theme.hover : 'transparent')};
+  background: ${p =>
+    p.isFocused
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : 'transparent'};
 `;
 
 const BlockContentWrapper = styled('div')`
@@ -155,18 +157,6 @@ const BlockContentWrapper = styled('div')`
   min-width: 0;
   overflow: hidden;
   padding: ${p => p.theme.space.xl};
-`;
-
-const QuestionContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-`;
-
-const OptionsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
 `;
 
 const OptionRow = styled('div')<{isSelected: boolean}>`
@@ -179,7 +169,7 @@ const OptionRow = styled('div')<{isSelected: boolean}>`
   transition: background-color 0.15s ease;
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

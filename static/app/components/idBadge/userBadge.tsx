@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {space} from 'sentry/styles/space';
+import {Link} from '@sentry/scraps/link';
+
 import type {AvatarUser} from 'sentry/types/user';
 
-import BadgeDisplayName from './badgeDisplayName';
+import {BadgeDisplayName} from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';
 
 export interface UserBadgeProps extends BaseBadgeProps {
@@ -15,7 +15,7 @@ export interface UserBadgeProps extends BaseBadgeProps {
   user?: AvatarUser;
 }
 
-function UserBadge({
+export function UserBadge({
   hideEmail = false,
   displayName,
   displayEmail,
@@ -55,14 +55,20 @@ function UserBadge({
 const Name = styled('span')<{hideEmail: boolean}>`
   font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Email = styled('div')`
   font-size: 0.875em;
-  margin-top: ${space(0.25)};
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis};
+  margin-top: ${p => p.theme.space['2xs']};
+  color: ${p => p.theme.tokens.content.secondary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
-
-export default UserBadge;

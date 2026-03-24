@@ -6,7 +6,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {
   makeEAPOccurrence,
   makeTraceError,
@@ -16,6 +15,10 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 class TestNode extends BaseNode {
+  get id(): string {
+    return (this.value as any).event_id;
+  }
+
   get type(): TraceTree.NodeType {
     return 'test' as TraceTree.NodeType;
   }
@@ -33,7 +36,7 @@ class TestNode extends BaseNode {
   }
 
   makeBarColor(theme: Theme): string {
-    return theme.blue300;
+    return theme.tokens.graphics.accent.vibrant;
   }
 
   printNode(): string {
@@ -55,7 +58,7 @@ class TestNode extends BaseNode {
     return <div data-test-id="waterfall-row">Waterfall Row</div>;
   }
 
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     _props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
     return <div data-test-id="node-details">Details</div>;
@@ -63,6 +66,10 @@ class TestNode extends BaseNode {
 
   matchWithFreeText(key: string): boolean {
     return this.description?.includes(key) || this.op?.includes(key) || false;
+  }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
   }
 }
 
@@ -105,7 +112,6 @@ describe('BaseNode', () => {
       expect(node.children).toEqual([]);
       expect(node.errors).toBeInstanceOf(Set);
       expect(node.occurrences).toBeInstanceOf(Set);
-      expect(node.profiles).toBeInstanceOf(Set);
       expect(node.isEAPEvent).toBe(false);
       expect(node.canShowDetails).toBe(true);
       expect(node.searchPriority).toBe(0);
@@ -406,13 +412,13 @@ describe('BaseNode', () => {
     it('should return correct maxIssueSeverity based on error levels', () => {
       const extra = createMockExtra();
 
-      // Node with no errors should return 'default'
+      // Node with no errors should return 'unknown'
       const nodeWithoutErrors = new TestNode(
         null,
         createMockValue({event_id: 'test-id'}),
         extra
       );
-      expect(nodeWithoutErrors.maxIssueSeverity).toBe('default');
+      expect(nodeWithoutErrors.maxIssueSeverity).toBe('unknown');
 
       // Node with error level should return 'error'
       const nodeWithError = new TestNode(
@@ -444,7 +450,7 @@ describe('BaseNode', () => {
       );
       expect(nodeWithFatal.maxIssueSeverity).toBe('fatal');
 
-      // Node with warning level should return 'default' (warning not prioritized)
+      // Node with warning level should return 'unknown' (warning not prioritized)
       const nodeWithWarning = new TestNode(
         null,
         createMockValue({event_id: 'test-id'}),
@@ -457,7 +463,7 @@ describe('BaseNode', () => {
           level: 'warning',
         })
       );
-      expect(nodeWithWarning.maxIssueSeverity).toBe('default');
+      expect(nodeWithWarning.maxIssueSeverity).toBe('unknown');
 
       // Node with mixed levels should prioritize error/fatal
       const nodeWithMixed = new TestNode(
@@ -515,8 +521,7 @@ describe('BaseNode', () => {
 
       const node = new TestNode(null, value, extra);
 
-      expect(node.profiles.size).toBe(1);
-      expect(Array.from(node.profiles)).toEqual([{profile_id: 'profile-123'}]);
+      expect(node.profileId).toBe('profile-123');
     });
 
     it('should collect profile from profiler_id during construction', () => {
@@ -527,9 +532,7 @@ describe('BaseNode', () => {
       });
 
       const node = new TestNode(null, value, extra);
-
-      expect(node.profiles.size).toBe(1);
-      expect(Array.from(node.profiles)).toEqual([{profiler_id: 'profiler-456'}]);
+      expect(node.profilerId).toBe('profiler-456');
     });
 
     it('should ignore empty profile IDs', () => {
@@ -537,12 +540,11 @@ describe('BaseNode', () => {
       const value = createMockValue({
         event_id: 'test-id',
         profile_id: '',
-        profiler_id: '   ',
       });
 
       const node = new TestNode(null, value, extra);
 
-      expect(node.profiles.size).toBe(0);
+      expect(node.profileId).toBeUndefined();
     });
 
     it('should collect both profile_id and profiler_id', () => {
@@ -555,10 +557,8 @@ describe('BaseNode', () => {
 
       const node = new TestNode(null, value, extra);
 
-      expect(node.profiles.size).toBe(2);
-      const profilesArray = Array.from(node.profiles);
-      expect(profilesArray).toContainEqual({profile_id: 'profile-123'});
-      expect(profilesArray).toContainEqual({profiler_id: 'profiler-456'});
+      expect(node.profileId).toBe('profile-123');
+      expect(node.profilerId).toBe('profiler-456');
     });
   });
 
@@ -571,7 +571,7 @@ describe('BaseNode', () => {
 
       parent.children = [child1, child2];
 
-      expect(parent.directChildren).toEqual([child1, child2]);
+      expect(parent.directVisibleChildren).toEqual([child1, child2]);
     });
 
     it('should return visible children when expanded', () => {
@@ -710,7 +710,6 @@ describe('BaseNode', () => {
 
       const result = await node.fetchChildren(false, {} as TraceTree, {
         api: {} as any,
-        preferences: {} as any,
       });
 
       expect(result).toBeNull();
@@ -727,7 +726,9 @@ describe('BaseNode', () => {
         title: 'Trace Header Title',
         subtitle: 'GET /api/users',
       });
-      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().blue300);
+      expect(node.makeBarColor(ThemeFixture())).toEqual(
+        ThemeFixture().tokens.graphics.accent.vibrant
+      );
       expect(node.printNode()).toBe('Print Node(test-id)');
       expect(node.analyticsName()).toBe('test');
 
@@ -824,6 +825,33 @@ describe('BaseNode', () => {
         const found = root.findChild(node => node.id === 'target');
         expect(found).toBe(target);
       });
+
+      it('should handle cycle and not cause infinite loop (A -> B -> A)', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+        const nodeB = new TestNode(nodeA, createMockValue({event_id: 'nodeB'}), extra);
+
+        // Create a cycle: A -> B -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeA];
+
+        // This should not cause infinite recursion
+        const found = nodeA.findChild(node => node.id === 'nonexistent');
+        expect(found).toBeNull();
+      });
+
+      it('should find target in cyclic graph before completing traversal', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+        const nodeB = new TestNode(nodeA, createMockValue({event_id: 'target'}), extra);
+
+        // Create a cycle: A -> B -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeA];
+
+        const found = nodeA.findChild(node => node.id === 'target');
+        expect(found).toBe(nodeB);
+      });
     });
 
     describe('findAllChildren', () => {
@@ -916,6 +944,59 @@ describe('BaseNode', () => {
         const found = parent.findAllChildren(node => node.op === 'nonexistent');
         expect(found).toHaveLength(0);
       });
+
+      it('should handle cycle and not cause infinite loop (A -> B -> A)', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(
+          null,
+          createMockValue({event_id: 'nodeA', op: 'a'}),
+          extra
+        );
+        const nodeB = new TestNode(
+          nodeA,
+          createMockValue({event_id: 'nodeB', op: 'b'}),
+          extra
+        );
+
+        // Create a cycle: A -> B -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeA];
+
+        // This should not cause infinite recursion
+        // nodeA is the starting node (added to visited first), so only nodeB is found
+        const found = nodeA.findAllChildren(() => true);
+        expect(found).toHaveLength(1);
+        expect(found).toContain(nodeB);
+      });
+
+      it('should find all matching nodes in cyclic graph exactly once', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(
+          null,
+          createMockValue({event_id: 'nodeA', op: 'target'}),
+          extra
+        );
+        const nodeB = new TestNode(
+          nodeA,
+          createMockValue({event_id: 'nodeB', op: 'target'}),
+          extra
+        );
+        const nodeC = new TestNode(
+          nodeB,
+          createMockValue({event_id: 'nodeC', op: 'other'}),
+          extra
+        );
+
+        // Create a cycle: A -> B -> C -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeC];
+        nodeC.children = [nodeA];
+
+        // nodeA is the starting node (added to visited first), so only nodeB matches 'target'
+        const found = nodeA.findAllChildren(node => node.op === 'target');
+        expect(found).toHaveLength(1);
+        expect(found).toContain(nodeB);
+      });
     });
 
     describe('forEachChild', () => {
@@ -980,6 +1061,49 @@ describe('BaseNode', () => {
         expect(parent.depth).toBeUndefined();
         expect(child2.depth).toBe(1);
         expect(child1.depth).toBe(2);
+      });
+
+      it('should handle cycle and not cause infinite loop (A -> B -> A)', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+        const nodeB = new TestNode(nodeA, createMockValue({event_id: 'nodeB'}), extra);
+
+        // Create a cycle: A -> B -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeA];
+
+        const visitedIds: string[] = [];
+        nodeA.forEachChild(node => {
+          if (node.id) visitedIds.push(node.id);
+        });
+
+        // Should visit B but not A (A is the starting node, marked visited first)
+        // The key is it doesn't infinitely loop
+        expect(visitedIds).toHaveLength(1);
+        expect(visitedIds).toContain('nodeB');
+      });
+
+      it('should handle longer cycle and not cause infinite loop (A -> B -> C -> A)', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+        const nodeB = new TestNode(nodeA, createMockValue({event_id: 'nodeB'}), extra);
+        const nodeC = new TestNode(nodeB, createMockValue({event_id: 'nodeC'}), extra);
+
+        // Create a longer cycle: A -> B -> C -> A
+        nodeA.children = [nodeB];
+        nodeB.children = [nodeC];
+        nodeC.children = [nodeA];
+
+        const visitedIds: string[] = [];
+        nodeA.forEachChild(node => {
+          if (node.id) visitedIds.push(node.id);
+        });
+
+        // Should visit B and C but not A (A is the starting node, marked visited first)
+        // The key is it doesn't infinitely loop
+        expect(visitedIds).toHaveLength(2);
+        expect(visitedIds).toContain('nodeB');
+        expect(visitedIds).toContain('nodeC');
       });
     });
 
@@ -1185,6 +1309,54 @@ describe('BaseNode', () => {
         const foundRoot = current.findParent(node => node.op === 'root');
         expect(foundRoot).toBe(root);
       });
+
+      it('should handle upward cycle and not cause infinite loop', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(
+          null,
+          createMockValue({event_id: 'nodeA', op: 'a'}),
+          extra
+        );
+        const nodeB = new TestNode(
+          nodeA,
+          createMockValue({event_id: 'nodeB', op: 'b'}),
+          extra
+        );
+
+        // Create an upward cycle: A.parent = B, B.parent = A
+        nodeA.parent = nodeB;
+        nodeB.parent = nodeA;
+
+        // This should not cause infinite recursion
+        const found = nodeA.findParent(node => node.op === 'nonexistent');
+        expect(found).toBeNull();
+      });
+
+      it('should find parent before hitting cycle', () => {
+        const extra = createMockExtra();
+        const nodeA = new TestNode(
+          null,
+          createMockValue({event_id: 'nodeA', op: 'target'}),
+          extra
+        );
+        const nodeB = new TestNode(
+          nodeA,
+          createMockValue({event_id: 'nodeB', op: 'b'}),
+          extra
+        );
+        const nodeC = new TestNode(
+          nodeB,
+          createMockValue({event_id: 'nodeC', op: 'c'}),
+          extra
+        );
+
+        // Create an upward cycle: A.parent = C (creating C -> B -> A -> C)
+        nodeA.parent = nodeC;
+
+        // Should find nodeA before the cycle causes issues
+        const found = nodeC.findParent(node => node.op === 'target');
+        expect(found).toBe(nodeA);
+      });
     });
   });
 
@@ -1222,36 +1394,6 @@ describe('BaseNode', () => {
 
       expect(child1.isLastChild()).toBe(false);
       expect(child2.isLastChild()).toBe(true);
-    });
-
-    it('should consider nested visible children when determining last child', () => {
-      const extra = createMockExtra();
-      const grandparent = new TestNode(
-        null,
-        createMockValue({event_id: 'grandparent'}),
-        extra
-      );
-      const parent1 = new TestNode(
-        grandparent,
-        createMockValue({event_id: 'parent1'}),
-        extra
-      );
-      const parent2 = new TestNode(
-        grandparent,
-        createMockValue({event_id: 'parent2'}),
-        extra
-      );
-      const child = new TestNode(parent2, createMockValue({event_id: 'child'}), extra);
-
-      grandparent.children = [parent1, parent2];
-      parent2.children = [child];
-      grandparent.expanded = true;
-      parent2.expanded = true;
-
-      // child should be the last visible child of grandparent's visible children
-      expect(child.isLastChild()).toBe(true);
-      expect(parent2.isLastChild()).toBe(false);
-      expect(parent1.isLastChild()).toBe(false);
     });
   });
 
@@ -1530,6 +1672,46 @@ describe('BaseNode', () => {
       expect(visibleChildren[0]).toBe(child);
     });
 
+    it('should handle actual cycle in visibleChildren (A -> B -> A)', () => {
+      const extra = createMockExtra();
+      const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+      const nodeB = new TestNode(nodeA, createMockValue({event_id: 'nodeB'}), extra);
+
+      // Create a cycle: A -> B -> A
+      nodeA.children = [nodeB];
+      nodeB.children = [nodeA]; // This creates a cycle
+      nodeA.expanded = true;
+      nodeB.expanded = true;
+
+      // This should not cause infinite recursion
+      // nodeA is the starting node (added to visited first), so when encountered as B's child, it's skipped
+      const visibleChildren = nodeA.visibleChildren;
+      expect(visibleChildren).toHaveLength(1); // Only B, A is skipped as already visited
+      expect(visibleChildren).toContain(nodeB);
+    });
+
+    it('should handle longer cycle in visibleChildren (A -> B -> C -> A)', () => {
+      const extra = createMockExtra();
+      const nodeA = new TestNode(null, createMockValue({event_id: 'nodeA'}), extra);
+      const nodeB = new TestNode(nodeA, createMockValue({event_id: 'nodeB'}), extra);
+      const nodeC = new TestNode(nodeB, createMockValue({event_id: 'nodeC'}), extra);
+
+      // Create a longer cycle: A -> B -> C -> A
+      nodeA.children = [nodeB];
+      nodeB.children = [nodeC];
+      nodeC.children = [nodeA]; // This creates a cycle back to A
+      nodeA.expanded = true;
+      nodeB.expanded = true;
+      nodeC.expanded = true;
+
+      // This should not cause infinite recursion
+      // nodeA is the starting node (added to visited first), so when encountered as C's child, it's skipped
+      const visibleChildren = nodeA.visibleChildren;
+      expect(visibleChildren).toHaveLength(2); // B and C, A is skipped as already visited
+      expect(visibleChildren).toContain(nodeB);
+      expect(visibleChildren).toContain(nodeC);
+    });
+
     it('should correctly calculate visible children with multiple branches', () => {
       const extra = createMockExtra();
       const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
@@ -1588,6 +1770,101 @@ describe('BaseNode', () => {
 
       expect(node.depth).toBeUndefined();
       expect(node.connectors).toBeUndefined();
+    });
+  });
+
+  describe('findParentTransaction', () => {
+    it('should return null when no transaction parent exists', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.findParentNodeStoreTransaction()).toBeNull();
+    });
+
+    it('should find parent transaction node', () => {
+      const extra = createMockExtra();
+      const mockTransactionParent = {
+        type: 'txn',
+        id: 'transaction-parent',
+      };
+
+      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
+      jest.spyOn(child, 'findParent').mockReturnValue(mockTransactionParent as any);
+
+      const result = child.findParentNodeStoreTransaction();
+      expect(result).toBe(mockTransactionParent);
+      expect(child.findParent).toHaveBeenCalledWith(expect.any(Function));
+    });
+  });
+
+  describe('findParentEapTransaction', () => {
+    it('should return null when no EAP transaction parent exists', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.findParentEapTransaction()).toBeNull();
+    });
+
+    it('should find parent EAP transaction node', () => {
+      const extra = createMockExtra();
+      const mockEapTransactionParent = {
+        type: 'eap_span',
+        id: 'eap-transaction-parent',
+        value: {is_transaction: true},
+      };
+
+      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
+      jest.spyOn(child, 'findParent').mockReturnValue(mockEapTransactionParent as any);
+
+      const result = child.findParentEapTransaction();
+      expect(result).toBe(mockEapTransactionParent);
+      expect(child.findParent).toHaveBeenCalledWith(expect.any(Function));
+    });
+  });
+
+  describe('hasErrors getter', () => {
+    it('should return false when node has no errors', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.hasErrors).toBe(false);
+    });
+
+    it('should return true when node has errors', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      node.errors.add(
+        makeTraceError({
+          issue_id: 1,
+          event_id: 'error-1',
+        })
+      );
+
+      expect(node.hasErrors).toBe(true);
+    });
+  });
+
+  describe('hasOccurrences getter', () => {
+    it('should return false when node has no occurrences', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.hasOccurrences).toBe(false);
+    });
+
+    it('should return true when node has occurrences', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      node.occurrences.add(
+        makeEAPOccurrence({
+          issue_id: 1,
+          event_id: 'occurrence-1',
+        })
+      );
+
+      expect(node.hasOccurrences).toBe(true);
     });
   });
 });

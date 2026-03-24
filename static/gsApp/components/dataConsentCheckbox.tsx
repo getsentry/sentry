@@ -1,8 +1,9 @@
-import {ExternalLink} from 'sentry/components/core/link';
-import CheckboxField from 'sentry/components/forms/fields/checkboxField';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
 import {tct} from 'sentry/locale';
 
-export default function DataConsentOrgCreationCheckbox() {
+export function DataConsentOrgCreationCheckbox() {
   return (
     <CheckboxField
       name="aggregatedDataConsent"

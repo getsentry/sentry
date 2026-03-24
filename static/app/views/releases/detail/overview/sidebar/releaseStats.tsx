@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
-import NotAvailable from 'sentry/components/notAvailable';
+import {DeployBadge} from '@sentry/scraps/badge';
+
+import {NotAvailable} from 'sentry/components/notAvailable';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 
@@ -15,7 +15,7 @@ type Props = {
   release: Release;
 };
 
-function ReleaseStats({organization, release, project}: Props) {
+export function ReleaseStats({organization, release, project}: Props) {
   const {lastDeploy, dateCreated, version} = release;
 
   return (
@@ -51,7 +51,5 @@ function ReleaseStats({organization, release, project}: Props) {
 const Container = styled('div')`
   display: grid;
   grid-template-columns: 50% 50%;
-  grid-row-gap: ${space(2)};
+  grid-row-gap: ${p => p.theme.space.xl};
 `;
-
-export default ReleaseStats;

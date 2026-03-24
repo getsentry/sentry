@@ -1,5 +1,5 @@
 import {useMemo, useRef} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaRadioProps} from '@react-aria/radio';
 import {useRadio, useRadioGroup} from '@react-aria/radio';
@@ -9,23 +9,51 @@ import type {RadioGroupProps, RadioGroupState} from '@react-stately/radio';
 import {useRadioGroupState} from '@react-stately/radio';
 import type {Node} from '@react-types/shared';
 import type {CollectionChildren} from '@react-types/shared/src/collections';
-import {LayoutGroup, motion} from 'framer-motion';
+import {LayoutGroup} from 'framer-motion';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import type {TooltipProps} from 'sentry/components/core/tooltip';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
-import type {FormSize} from 'sentry/utils/theme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
+import {DO_NOT_USE_getButtonStyles} from '@sentry/scraps/button';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  ChonkStyledGroupWrap,
-  ChonkStyledLabelWrap,
-  ChonkStyledSegmentWrap,
-  ChonkStyledVisibleLabel,
-  type Priority,
-} from './segmentedControl.chonk';
+import type {FormSize, Theme} from 'sentry/utils/theme';
+
+type Priority = 'default' | 'primary';
+
+const getChildTransforms = (count: number) => {
+  return Array.from(
+    {length: count},
+    (_, index) => css`
+      label:nth-of-type(${index + 1}) {
+        transform: translateX(-${index}px);
+      }
+    `
+  );
+};
+
+function getTextColor({
+  isSelected,
+  priority,
+  theme,
+}: {
+  isSelected: boolean;
+  priority: Priority;
+  theme: Theme;
+  isDisabled?: boolean;
+}) {
+  if (isSelected) {
+    return priority === 'default'
+      ? theme.tokens.interactive.chonky.embossed.neutral.content.accent
+      : undefined;
+  }
+
+  return theme.tokens.content.secondary;
+}
+
+const segmentedWrapPadding = {
+  md: '10px 16px 10px 16px',
+  sm: '8px 12px 8px 12px',
+  xs: '6px 8px 6px 8px',
+} as const;
 
 interface SegmentedControlItemProps<Value extends string> {
   key: Value;
@@ -52,8 +80,10 @@ interface SegmentedControlItemProps<Value extends string> {
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
-interface SegmentedControlProps<Value extends string>
-  extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange' | 'isDisabled'> {
+interface SegmentedControlProps<Value extends string> extends Omit<
+  RadioGroupProps,
+  'value' | 'defaultValue' | 'onChange' | 'isDisabled'
+> {
   children: CollectionChildren<Value>;
   onChange: (value: Value) => void;
   value: Value;
@@ -91,6 +121,7 @@ export function SegmentedControl<Value extends string>({
   return (
     <GroupWrap
       {...radioGroupProps}
+      {...props}
       size={size}
       priority={priority}
       ref={ref}
@@ -123,8 +154,7 @@ SegmentedControl.Item = Item as <Value extends string>(
 ) => React.JSX.Element;
 
 interface SegmentProps<Value extends string>
-  extends SegmentedControlItemProps<Value>,
-    AriaRadioProps {
+  extends SegmentedControlItemProps<Value>, AriaRadioProps {
   lastKey: string;
   layoutGroupId: string;
   priority: Priority;
@@ -136,61 +166,27 @@ interface SegmentProps<Value extends string>
 
 function Segment<Value extends string>({
   state,
-  nextKey,
-  prevKey,
   size,
   priority,
-  layoutGroupId,
   tooltip,
   tooltipOptions = {},
   icon,
   ...props
 }: SegmentProps<Value>) {
   const ref = useRef<HTMLInputElement>(null);
-  const theme = useTheme();
 
   const {inputProps} = useRadio(props, state, ref);
 
-  const prevOptionIsSelected = defined(prevKey) && state.selectedValue === prevKey;
-  const nextOptionIsSelected = defined(nextKey) && state.selectedValue === nextKey;
-
   const isSelected = state.selectedValue === props.value;
-  const showDivider = !isSelected && !nextOptionIsSelected;
 
   const {isDisabled} = props;
 
-  const label = theme.isChonk ? (
-    <VisibleLabel
-      size={size}
-      isSelected={isSelected}
-      isDisabled={isDisabled}
-      priority={priority}
-      role="presentation"
-    >
-      {props.children}
-    </VisibleLabel>
-  ) : (
-    // Once an item is selected, it gets a heavier font weight and becomes slightly
-    // wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that
-    // will always have normal weight to take up constant space; and a visible,
-    // absolutely positioned container (VisibleLabel) that doesn't affect the layout.
-    <InnerLabelWrap role="presentation">
-      <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
-      <VisibleLabel
-        size={size}
-        isSelected={isSelected}
-        isDisabled={isDisabled}
-        priority={priority}
-        role="presentation"
-      >
-        {props.children}
-      </VisibleLabel>
-    </InnerLabelWrap>
-  );
+  const label = <VisibleLabel>{props.children}</VisibleLabel>;
 
   const content = (
     <SegmentWrap
       size={size}
+      shapeVariant={props.children ? 'rectangular' : 'square'}
       isSelected={isSelected}
       isDisabled={isDisabled}
       priority={priority}
@@ -199,26 +195,6 @@ function Segment<Value extends string>({
       aria-disabled={isDisabled}
     >
       <SegmentInput {...inputProps} ref={ref} />
-      {!isDisabled && !theme.isChonk && (
-        <SegmentInteractionStateLayer
-          nextOptionIsSelected={nextOptionIsSelected}
-          prevOptionIsSelected={prevOptionIsSelected}
-        />
-      )}
-      {isSelected && !theme.isChonk && (
-        <SegmentSelectionIndicator
-          layoutId={layoutGroupId}
-          transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
-          priority={priority}
-          aria-hidden
-          // Prevent animations until the user has made a change
-          layoutDependency={isSelected}
-        />
-      )}
-
-      {theme.isChonk ? null : (
-        <Divider visible={showDivider} role="separator" aria-hidden />
-      )}
 
       <LabelWrap
         size={size}
@@ -247,68 +223,80 @@ function Segment<Value extends string>({
   return content;
 }
 
-const GroupWrap = withChonk(
-  styled('div')<{listSize: number; priority: Priority; size: FormSize}>`
-    position: relative;
-    display: inline-grid;
-    grid-auto-flow: column;
-    background: ${p =>
-      p.priority === 'primary'
-        ? p.theme.tokens.background.primary
-        : p.theme.backgroundTertiary};
-    border: solid 1px ${p => p.theme.border};
-    border-radius: ${p => p.theme.radius.md};
-    min-width: 0;
+const GroupWrap = styled('div')<{
+  listSize: number;
+  priority: Priority;
+  size: FormSize;
+}>`
+  position: relative;
+  display: inline-grid;
+  grid-auto-flow: column;
+  min-width: 0;
 
-    font-size: ${p => p.theme.form[p.size].fontSize};
-    height: ${p => p.theme.form[p.size].height};
-    line-height: ${p => p.theme.form[p.size].lineHeight};
-    min-height: ${p => p.theme.form[p.size].minHeight};
-  `,
-  ChonkStyledGroupWrap
-);
+  font-size: ${p => p.theme.form[p.size].fontSize};
+  height: ${p => p.theme.form[p.size].height};
+  line-height: ${p => p.theme.form[p.size].lineHeight};
+  min-height: ${p => p.theme.form[p.size].minHeight};
 
-const segmentedWrapPadding = {
-  md: '10px 16px 10px 16px',
-  sm: '8px 12px 8px 12px',
-  xs: '6px 8px 6px 8px',
-} as const;
+  & > label:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 
-const SegmentWrap = withChonk(
-  styled('label')<{
-    isSelected: boolean;
-    priority: Priority;
-    size: FormSize;
-    isDisabled?: boolean;
-  }>`
-    position: relative;
-    display: flex;
-    align-items: center;
-    margin: 0;
-    border-radius: calc(${p => p.theme.radius.md} - 1px);
-    cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
-    min-height: 0;
-    min-width: 0;
+  & > label:not(:first-child):not(:last-child) {
+    border-radius: 0;
+  }
 
-    padding: ${p => segmentedWrapPadding[p.size]};
-    font-weight: ${p => p.theme.fontWeight.normal};
+  & > label:last-child {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
 
-    ${p =>
-      !p.isDisabled &&
-      css`
-        &:hover {
-          background-color: inherit;
+  ${p => getChildTransforms(p.listSize)}
+`;
 
-          [role='separator'] {
-            opacity: 0;
-          }
-        }
-      `}
+const SegmentWrap = styled('label')<{
+  isSelected: boolean;
+  priority: Priority;
+  shapeVariant: 'rectangular' | 'square';
+  size: FormSize;
+  isDisabled?: boolean;
+}>`
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
+  min-height: 0;
+  min-width: 0;
+  z-index: ${p => (p.isSelected ? 1 : undefined)};
 
-    ${p => p.isSelected && `z-index: 1;`}
-  `,
-  ChonkStyledSegmentWrap
-);
+  padding: ${p => segmentedWrapPadding[p.size]};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+
+  ${p => ({
+    ...DO_NOT_USE_getButtonStyles({
+      ...p,
+      disabled: p.isDisabled,
+      priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default',
+      shapeVariant: p.shapeVariant,
+    }),
+  })}
+
+  &:has(input:focus-visible) {
+    ${p => p.theme.focusRing()};
+
+    /* Hide fallback ring when :has works */
+    span {
+      box-shadow: none !important;
+    }
+  }
+
+  /* Fallback ring (for Firefox, where :has doesn't work) */
+  input:focus-visible + span {
+    ${({theme}) => theme.focusRing()};
+  }
+`;
 
 const SegmentInput = styled('input')`
   appearance: none;
@@ -333,173 +321,26 @@ const SegmentInput = styled('input')`
   }
 `;
 
-const SegmentInteractionStateLayer = styled(InteractionStateLayer)<{
-  nextOptionIsSelected: boolean;
-  prevOptionIsSelected: boolean;
-}>`
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  width: auto;
-  height: auto;
-  transform: none;
-
-  /* Prevent small gaps between adjacent pairs of selected & hovered radios (due to their
-  border radius) by extending the hovered radio's interaction state layer into and
-  behind the selected radio. */
-  transition:
-    left 0.2s,
-    right 0.2s;
-  ${p => p.prevOptionIsSelected && `left: calc(-${p.theme.radius.md} - 2px);`}
-  ${p => p.nextOptionIsSelected && `right: calc(-${p.theme.radius.md} - 2px);`}
-`;
-
-const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-
-  ${p =>
-    p.priority === 'primary'
-      ? css`
-          background: ${p.theme.active};
-          border-radius: ${p.theme.radius.md};
-          input:focus-visible ~ & {
-            box-shadow: 0 0 0 3px ${p.theme.focus};
-          }
-
-          top: -1px;
-          bottom: -1px;
-          label:first-child > & {
-            left: -1px;
-          }
-          label:last-child > & {
-            right: -1px;
-          }
-        `
-      : css`
-          background: ${p.theme.backgroundElevated};
-          border-radius: calc(${p.theme.radius.md} - 1px);
-          box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
-          input:focus-visible ~ & {
-            box-shadow: 0 0 0 2px ${p.theme.focusBorder};
-          }
-        `}
-`;
-
-const LabelWrap = withChonk(
-  styled('span')<{
-    isSelected: boolean;
-    priority: Priority;
-    size: FormSize;
-  }>`
-    display: grid;
-    grid-auto-flow: column;
-    align-items: center;
-    gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
-    z-index: 1;
-  `,
-  ChonkStyledLabelWrap
-);
-
-const InnerLabelWrap = styled('span')`
-  position: relative;
-  display: flex;
-  line-height: 1;
-  min-width: 0;
-`;
-
-const HiddenLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
-  margin: 0 2px;
-  visibility: hidden;
-  user-select: none;
-`;
-
-function getTextColor({
-  isDisabled,
-  isSelected,
-  priority,
-  theme,
-}: {
+const LabelWrap = styled('span')<{
   isSelected: boolean;
   priority: Priority;
-  theme: Theme;
-  isDisabled?: boolean;
-}) {
-  if (isDisabled) {
-    return priority === 'primary'
-      ? isSelected
-        ? css`
-            color: ${theme.white};
-          `
-        : css`
-            color: ${theme.subText};
-          `
-      : css`
-          color: ${theme.subText};
-        `;
-  }
+  size: FormSize;
+}>`
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: ${p => (p.size === 'xs' ? p.theme.space.xs : p.theme.space.sm)};
+  z-index: 1;
+  color: ${p => getTextColor(p)};
+`;
 
-  if (isSelected) {
-    return priority === 'primary'
-      ? css`
-          color: ${theme.white};
-        `
-      : css`
-          color: ${theme.tokens.content.primary};
-        `;
-  }
-
-  return css`
-    color: ${theme.tokens.content.primary};
-  `;
-}
-
-const VisibleLabel = withChonk(
-  styled('span')<{
-    isSelected: boolean;
-    priority: Priority;
-    size: FormSize;
-    isDisabled?: boolean;
-  }>`
-    ${p => p.theme.overflowEllipsis}
-
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    transition: color ${p => p.theme.motion.exit.moderate};
-
-    user-select: none;
-    font-weight: ${p => (p.isSelected ? 600 : 400)};
-    letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
-    text-align: center;
-    line-height: ${p => p.theme.text.lineHeightBody};
-    ${getTextColor}
-  `,
-  ChonkStyledVisibleLabel
-);
-
-const Divider = styled('div')<{visible: boolean}>`
-  position: absolute;
-  top: 50%;
-  right: 0;
-  width: 0;
-  height: 50%;
-  transform: translate(1px, -50%);
-  border-right: solid 1px ${p => p.theme.innerBorder};
-
-  label:last-child > & {
-    display: none;
-  }
-
-  ${p =>
-    !p.visible &&
-    css`
-      opacity: 0;
-    `}
+const VisibleLabel = styled('span')`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  text-align: center;
 `;

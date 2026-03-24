@@ -6,9 +6,12 @@ import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import EventsRequest, {
   type EventsRequestProps,
 } from 'sentry/components/charts/eventsRequest';
@@ -21,13 +24,11 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import LoadingMask from 'sentry/components/loadingMask';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingMask} from 'sentry/components/loadingMask';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {
   Confidence,
@@ -36,6 +37,7 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -44,7 +46,7 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {
@@ -79,7 +81,7 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-import ThresholdsChart from './thresholdsChart';
+import {ThresholdsChart} from './thresholdsChart';
 
 type Props = {
   aggregate: MetricRule['aggregate'];
@@ -106,6 +108,7 @@ type Props = {
   header?: React.ReactNode;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
+  isPreloading?: boolean;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   seriesSamplingInfo?: SeriesSamplingInfo;
@@ -320,6 +323,8 @@ class TriggersChart extends PureComponent<Props, State> {
     errored,
     orgFeatures,
     seriesAdditionalInfo,
+    timeseriesResultsTypes,
+    timeseriesResultsUnits,
   }: {
     isLoading: boolean;
     isQueryValid: boolean;
@@ -332,6 +337,8 @@ class TriggersChart extends PureComponent<Props, State> {
     errored?: boolean;
     minutesThresholdToDisplaySeconds?: number;
     seriesAdditionalInfo?: Record<string, any>;
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
   }) {
     const {
       triggers,
@@ -398,6 +405,8 @@ class TriggersChart extends PureComponent<Props, State> {
             aggregate={aggregate}
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
             isExtrapolatedData={showExtrapolatedChartData}
+            timeseriesResultsTypes={timeseriesResultsTypes}
+            timeseriesResultsUnits={timeseriesResultsUnits}
           />
         )}
 
@@ -434,10 +443,13 @@ class TriggersChart extends PureComponent<Props, State> {
               value={period}
               onChange={opt => this.handleStatsPeriodChange(opt.value)}
               position="bottom-end"
-              triggerProps={{
-                borderless: true,
-                prefix: t('Display'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  priority="transparent"
+                  prefix={t('Display')}
+                />
+              )}
             />
           </InlineContainer>
         </ChartControls>
@@ -467,9 +479,20 @@ class TriggersChart extends PureComponent<Props, State> {
       isQueryValid,
       isOnDemandMetricAlert,
       traceItemType,
+      isPreloading,
+      header,
     } = this.props;
 
     const {adjustedExtrapolationMode} = this.state;
+
+    if (isPreloading) {
+      return (
+        <Fragment>
+          {header}
+          <ChartPlaceholder />
+        </Fragment>
+      );
+    }
 
     const period = this.getStatsPeriod()!;
     const renderComparisonStats = Boolean(
@@ -683,6 +706,8 @@ class TriggersChart extends PureComponent<Props, State> {
             reloading,
             timeseriesData,
             comparisonTimeseriesData,
+            timeseriesResultsTypes,
+            timeseriesResultsUnits,
           }) => {
             let comparisonMarkLines: LineChartSeries[] = [];
             if (renderComparisonStats && comparisonTimeseriesData) {
@@ -706,6 +731,8 @@ class TriggersChart extends PureComponent<Props, State> {
               isQueryValid,
               errored,
               orgFeatures: organization.features,
+              timeseriesResultsTypes,
+              timeseriesResultsUnits,
             });
           }}
         </EventsRequest>
@@ -724,18 +751,18 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
 
 const ChartPlaceholder = styled(Placeholder)`
   /* Height and margin should add up to graph size (200px) */
-  margin: 0 0 ${space(2)};
+  margin: 0 0 ${p => p.theme.space.xl};
   height: 184px;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
   /* Height and margin should with the alert should match up placeholder height of (184px) */
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   height: 119px;
 `;
 
 const ChartErrorWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 interface ErrorChartProps extends React.ComponentProps<'div'> {
@@ -752,7 +779,7 @@ export function ErrorChart({
 }: ErrorChartProps) {
   return (
     <ChartErrorWrapper {...props}>
-      <PanelAlert type="error">
+      <PanelAlert variant="danger">
         {!isAllowIndexed && !isQueryValid
           ? t('Your filter conditions contain an unsupported field - please review.')
           : typeof errorMessage === 'string'
@@ -761,7 +788,7 @@ export function ErrorChart({
       </PanelAlert>
 
       <StyledErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </StyledErrorPanel>
     </ChartErrorWrapper>
   );

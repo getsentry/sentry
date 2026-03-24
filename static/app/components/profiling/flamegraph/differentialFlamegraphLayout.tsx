@@ -1,8 +1,9 @@
 import {cloneElement, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -81,7 +82,7 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
   );
 
   return (
-    <DifferentialFlamegraphLayoutContainer>
+    <Flex flex="1 1 100%">
       <DifferentialFlamegraphGrid layout={layout}>
         <MinimapContainer
           containerHeight={
@@ -99,10 +100,10 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
             {props.minimap}
           </CollapsibleTimeline>
         </MinimapContainer>
-        <ZoomViewContainer>
+        <Stack flex="1 1 100%" position="relative" area="flamegraph">
           <ProfileLabel>{t('Differential Flamegraph')}</ProfileLabel>
           <ZoomViewInnerContainer>{props.flamegraph}</ZoomViewInnerContainer>
-        </ZoomViewContainer>
+        </Stack>
         <DifferentialFlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
           {cloneElement(props.flamegraphDrawer, {
             onResize: onMouseDown,
@@ -110,7 +111,7 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
           } as any)}
         </DifferentialFlamegraphDrawerContainer>
       </DifferentialFlamegraphGrid>
-    </DifferentialFlamegraphLayoutContainer>
+    </Flex>
   );
 }
 
@@ -121,21 +122,16 @@ const ProfileLabel = styled(CollapsibleTimelineLabel)`
   left: 0;
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary} 0%,
-    ${p => p.theme.backgroundSecondary} 80%,
+    ${p => p.theme.tokens.background.secondary} 0%,
+    ${p => p.theme.tokens.background.secondary} 80%,
     transparent 100%
   );
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding-right: ${space(2)};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  padding-right: ${p => p.theme.space.xl};
   z-index: 1;
   /* Visually align with the grid */
   transform: translateY(1px);
-`;
-
-const DifferentialFlamegraphLayoutContainer = styled('div')`
-  display: flex;
-  flex: 1 1 100%;
 `;
 
 const DifferentialFlamegraphGrid = styled('div')<{
@@ -189,13 +185,6 @@ const MinimapContainer = styled('div')<{
   flex-direction: column;
 `;
 
-const ZoomViewContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-  grid-area: flamegraph;
-  position: relative;
-`;
 const ZoomViewInnerContainer = styled('div')`
   flex: 1;
 `;

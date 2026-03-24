@@ -2,50 +2,41 @@ from __future__ import annotations
 
 import logging
 
-import orjson
-import requests
-from django.conf import settings
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.seer.models import PreferenceResponse, SeerProjectPreference
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.autofix.utils import (
+    GetProjectPreferenceRequest,
+    SetProjectPreferenceRequest,
+    deduplicate_repositories,
+    get_autofix_repos_from_project_code_mappings,
+    make_get_project_preference_request,
+    make_set_project_preference_request,
+    write_preference_to_sentry_db,
+)
+from sentry.seer.endpoints.organization_autofix_automation_settings import (
+    RepositorySerializer as BaseRepositorySerializer,
+)
+from sentry.seer.models import PreferenceResponse, SeerApiError, SeerProjectPreference
+from sentry.seer.signed_seer_api import SeerViewerContext, seer_autofix_default_connection_pool
+from sentry.seer.utils import filter_repo_by_provider
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
 
-class BranchOverrideSerializer(CamelSnakeSerializer):
-    tag_name = serializers.CharField(required=True)
-    tag_value = serializers.CharField(required=True)
-    branch_name = serializers.CharField(required=True)
-
-
-class RepositorySerializer(CamelSnakeSerializer):
+class RepositorySerializer(BaseRepositorySerializer):
     organization_id = serializers.IntegerField(required=True)
     integration_id = serializers.CharField(required=True)
-    provider = serializers.CharField(required=True)
-    owner = serializers.CharField(required=True)
-    name = serializers.CharField(required=True)
-    external_id = serializers.CharField(required=True)
-    branch_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    branch_overrides = BranchOverrideSerializer(
-        many=True,
-        required=False,
-        allow_null=True,
-    )
-    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    base_commit_sha = serializers.CharField(required=False, allow_null=True)
-    provider_raw = serializers.CharField(required=False, allow_null=True)
 
 
 class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
@@ -54,7 +45,7 @@ class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
         required=True,
     )
     target = serializers.ChoiceField(
-        choices=["cursor_background_agent"],
+        choices=["cursor_background_agent", "claude_code_agent"],
         required=True,
     )
     integration_id = serializers.IntegerField(required=True)
@@ -68,8 +59,11 @@ class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
         required=False, allow_null=True
     )
 
+    def validate_repositories(self, value):
+        return deduplicate_repositories(value)
 
-@region_silo_endpoint
+
+@cell_silo_endpoint
 class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     permission_classes = (
         ProjectEventPermission,  # Anyone in the org should be able to set preferences, follows event permissions.
@@ -108,50 +102,68 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         serializer = ProjectSeerPreferencesSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        path = "/v1/project-preference/set"
-        body = orjson.dumps(
+        for repo_data in serializer.validated_data.get("repositories", []):
+            provider = repo_data.get("provider")
+            external_id = repo_data.get("external_id")
+            repo_org_id = repo_data.get("organization_id")
+            owner = repo_data.get("owner")
+            name = repo_data.get("name")
+
+            if repo_org_id is not None and repo_org_id != project.organization.id:
+                return Response({"detail": "Invalid repository"}, status=400)
+
+            repo_data["organization_id"] = project.organization.id
+
+            repo = filter_repo_by_provider(
+                project.organization.id, provider, external_id, owner, name
+            ).first()
+            if repo is None:
+                return Response({"detail": "Invalid repository"}, status=400)
+            repo_data["repository_id"] = repo.id
+
+        preference = SeerProjectPreference.validate(
             {
-                "preference": SeerProjectPreference.validate(
-                    {
-                        **serializer.validated_data,
-                        "organization_id": project.organization.id,
-                        "project_id": project.id,
-                    }
-                ).dict(),
+                **serializer.validated_data,
+                "organization_id": project.organization.id,
+                "project_id": project.id,
             }
         )
-
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        viewer_context = SeerViewerContext(
+            organization_id=project.organization.id, user_id=request.user.id
+        )
+        response = make_set_project_preference_request(
+            SetProjectPreferenceRequest(preference=preference.dict()),
+            connection_pool=seer_autofix_default_connection_pool,
+            viewer_context=viewer_context,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+
+        if features.has("organizations:seer-project-settings-dual-write", project.organization):
+            try:
+                write_preference_to_sentry_db(project, preference)
+            except Exception:
+                logger.exception(
+                    "seer.write_preferences.failed",
+                    extra={"project_id": project.id, "organization_id": project.organization.id},
+                )
 
         return Response(status=204)
 
     def get(self, request: Request, project: Project) -> Response:
-        path = "/v1/project-preference"
-        body = orjson.dumps(
-            {
-                "project_id": project.id,
-            }
+        body = GetProjectPreferenceRequest(project_id=project.id)
+        viewer_context = SeerViewerContext(
+            organization_id=project.organization.id, user_id=request.user.id
+        )
+        response = make_get_project_preference_request(
+            body,
+            connection_pool=seer_autofix_default_connection_pool,
+            viewer_context=viewer_context,
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-        )
-
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
 
         result = response.json()
 

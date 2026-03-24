@@ -3,12 +3,14 @@ from __future__ import annotations
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, region_silo_model
+from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, cell_silo_model
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
+ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD = 2
 
-@region_silo_model
+
+@cell_silo_model
 class OrganizationContributors(DefaultFieldsModel):
     """
     Tracks external contributors and their activity for an organization.
@@ -42,3 +44,10 @@ class OrganizationContributors(DefaultFieldsModel):
                 name="sentry_oc_org_date_upd_idx",
             ),
         ]
+
+    @property
+    def is_bot(self) -> bool:
+        """
+        Check if the contributor is a bot (has a [bot] suffix) or is Copilot (special case without [bot] suffix)
+        """
+        return self.alias is not None and (self.alias.endswith("[bot]") or self.alias == "Copilot")

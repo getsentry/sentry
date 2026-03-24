@@ -1,221 +1,246 @@
-import {Component} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {lazy, useEffect, useMemo, useRef} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
+import {Flex} from '@sentry/scraps/layout';
+
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type SplitDiff from 'sentry/components/splitDiff';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getStacktraceBody from 'sentry/utils/getStacktraceBody';
-import withApi from 'sentry/utils/withApi';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-const defaultProps = {
-  baseEventId: 'latest',
-  targetEventId: 'latest',
-};
+const SplitDiffLazy = lazy(() => import('../splitDiff'));
+const STACKTRACE_SECTION_SEPARATOR = '\n\n';
+const SKELETON_ROW_COUNT = 8;
 
-type DefaultProps = typeof defaultProps;
-
-type Props = {
-  api: Client;
+interface IssueDiffProps {
   baseIssueId: string;
-  location: Location;
-  orgId: string;
-  project: Project;
   targetIssueId: string;
   baseEventId?: string;
-  className?: string;
   hasSimilarityEmbeddingsProjectFeature?: boolean;
-  organization?: Organization;
   shouldBeGrouped?: string;
   targetEventId?: string;
-};
-
-type State = {
-  baseEvent: string[];
-  loading: boolean;
-  newestFirst: boolean;
-  targetEvent: string[];
-  SplitDiffAsync?: typeof SplitDiff;
-};
-
-class IssueDiff extends Component<Props, State> {
-  static defaultProps: DefaultProps = defaultProps;
-
-  state: State = {
-    loading: true,
-    baseEvent: [],
-    newestFirst: false,
-    targetEvent: [],
-
-    // `SplitDiffAsync` is an async-loaded component
-    // This will eventually contain a reference to the exported component from `./splitDiff`
-    SplitDiffAsync: undefined,
-  };
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  fetchData() {
-    const {
-      baseIssueId,
-      targetIssueId,
-      baseEventId,
-      targetEventId,
-      organization,
-      shouldBeGrouped,
-      location,
-      hasSimilarityEmbeddingsProjectFeature,
-    } = this.props;
-    const hasSimilarityEmbeddingsFeature =
-      hasSimilarityEmbeddingsProjectFeature ||
-      location.query.similarityEmbeddings === '1';
-
-    // Fetch component and event data
-    const asyncFetch = async () => {
-      try {
-        const splitdiffPromise = import('../splitDiff');
-        const {default: SplitDiffAsync} = await splitdiffPromise;
-
-        const [baseEventData, targetEventData] = await Promise.all([
-          this.fetchEvent(baseIssueId, baseEventId ?? 'latest'),
-          this.fetchEvent(targetIssueId, targetEventId ?? 'latest'),
-        ]);
-        const includeLocation = false;
-        const rawTrace = false;
-        const newestFirst = isStacktraceNewestFirst();
-        const includeJSContext = true;
-        const [baseEvent, targetEvent] = await Promise.all([
-          getStacktraceBody({
-            event: baseEventData,
-            hasSimilarityEmbeddingsFeature,
-            includeLocation,
-            rawTrace,
-            newestFirst,
-            includeJSContext,
-          }),
-          getStacktraceBody({
-            event: targetEventData,
-            hasSimilarityEmbeddingsFeature,
-            includeLocation,
-            rawTrace,
-            newestFirst,
-            includeJSContext,
-          }),
-        ]);
-
-        this.setState({
-          SplitDiffAsync,
-          baseEvent,
-          targetEvent,
-          newestFirst,
-          loading: false,
-        });
-        if (organization && hasSimilarityEmbeddingsFeature) {
-          trackAnalytics('issue_details.similar_issues.diff_clicked', {
-            organization,
-            project_id: baseEventData?.projectID,
-            group_id: baseEventData?.groupID,
-            error_message: baseEventData?.message
-              ? baseEventData.message
-              : baseEventData?.title,
-            stacktrace: baseEvent.join('/n '),
-            transaction: this.getTransaction(
-              baseEventData?.tags ? baseEventData.tags : []
-            ),
-            parent_group_id: targetEventData?.groupID,
-            parent_error_message: targetEventData?.message
-              ? targetEventData.message
-              : targetEventData?.title,
-            parent_stacktrace: targetEvent.join('/n '),
-            parent_transaction: this.getTransaction(
-              targetEventData?.tags ? targetEventData.tags : []
-            ),
-            shouldBeGrouped,
-          });
-        }
-      } catch {
-        addErrorMessage(t('Error loading events'));
-      }
-    };
-
-    asyncFetch();
-  }
-
-  fetchEvent = async (issueId: string, eventId: string) => {
-    const {orgId, project, api} = this.props;
-
-    let paramEventId = eventId;
-
-    if (eventId === 'latest') {
-      const event = await api.requestPromise(`/issues/${issueId}/events/latest/`);
-      paramEventId = event.eventID;
-    }
-
-    const event = await api.requestPromise(
-      `/projects/${orgId}/${project.slug}/events/${paramEventId}/`
-    );
-    return event;
-  };
-
-  getTransaction = (tags: any[]) => {
-    return tags.find(tag => tag.key === 'transaction');
-  };
-
-  render() {
-    const {className} = this.props;
-    const {SplitDiffAsync: DiffComponent, loading, baseEvent, targetEvent} = this.state;
-
-    const baseArray = this.state.newestFirst ? baseEvent.toReversed() : baseEvent;
-    const targetArray = this.state.newestFirst ? targetEvent.toReversed() : targetEvent;
-
-    return (
-      <StyledIssueDiff className={className} loading={loading}>
-        {loading && <LoadingIndicator />}
-        {!loading &&
-          DiffComponent &&
-          baseArray.map((value, i) => (
-            <DiffComponent
-              key={i}
-              base={value}
-              target={targetArray[i] ?? ''}
-              type="lines"
-            />
-          ))}
-      </StyledIssueDiff>
-    );
-  }
 }
 
-export default withApi(IssueDiff);
+function getCombinedStacktrace({
+  event,
+  hasSimilarityEmbeddingsFeature,
+  newestFirst,
+}: {
+  event: Event | undefined;
+  hasSimilarityEmbeddingsFeature: boolean;
+  newestFirst: boolean;
+}): string {
+  if (!event) {
+    return '';
+  }
 
-// required for tests which do not provide API as context
-export {IssueDiff};
+  const stacktrace = getStacktraceBody({
+    event,
+    hasSimilarityEmbeddingsFeature,
+    includeLocation: false,
+    rawTrace: false,
+    newestFirst,
+    includeJSContext: true,
+  });
 
-const StyledIssueDiff = styled('div', {
-  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
-})<Pick<State, 'loading'>>`
-  background-color: ${p => p.theme.backgroundSecondary};
-  overflow: auto;
-  padding: ${space(1)};
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+  const orderedStacktrace = newestFirst ? stacktrace.toReversed() : stacktrace;
+  return orderedStacktrace.join(STACKTRACE_SECTION_SEPARATOR);
+}
 
-  ${p =>
-    p.loading &&
-    css`
-      background-color: ${p.theme.tokens.background.primary};
-      justify-content: center;
-      align-items: center;
-    `};
-`;
+export function IssueDiff({
+  baseIssueId,
+  targetIssueId,
+  baseEventId = 'latest',
+  targetEventId = 'latest',
+  hasSimilarityEmbeddingsProjectFeature,
+  shouldBeGrouped,
+}: IssueDiffProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const hasTrackedAnalytics = useRef(false);
+
+  const hasSimilarityEmbeddingsFeature =
+    hasSimilarityEmbeddingsProjectFeature || location.query.similarityEmbeddings === '1';
+
+  const newestFirst = isStacktraceNewestFirst();
+
+  const baseLatestQuery = useQuery({
+    ...apiOptions.as<{eventID: string}>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: baseIssueId,
+          eventId: 'latest',
+        },
+        staleTime: 60_000,
+      }
+    ),
+    enabled: baseEventId === 'latest',
+  });
+
+  const targetLatestQuery = useQuery({
+    ...apiOptions.as<{eventID: string}>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: targetIssueId,
+          eventId: 'latest',
+        },
+        staleTime: 60_000,
+      }
+    ),
+    enabled: targetEventId === 'latest',
+  });
+
+  const resolvedBaseEventId =
+    baseEventId === 'latest' ? baseLatestQuery.data?.eventID : baseEventId;
+  const resolvedTargetEventId =
+    targetEventId === 'latest' ? targetLatestQuery.data?.eventID : targetEventId;
+
+  const baseEventQuery = useQuery({
+    ...apiOptions.as<Event>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: baseIssueId,
+          eventId: resolvedBaseEventId ?? '',
+        },
+        staleTime: 60_000,
+      }
+    ),
+    enabled: Boolean(resolvedBaseEventId),
+  });
+
+  const targetEventQuery = useQuery({
+    ...apiOptions.as<Event>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: targetIssueId,
+          eventId: resolvedTargetEventId ?? '',
+        },
+        staleTime: 60_000,
+      }
+    ),
+    enabled: Boolean(resolvedTargetEventId),
+  });
+
+  const {combinedBase, combinedTarget} = useMemo(
+    () => ({
+      combinedBase: getCombinedStacktrace({
+        event: baseEventQuery.data,
+        hasSimilarityEmbeddingsFeature,
+        newestFirst,
+      }),
+      combinedTarget: getCombinedStacktrace({
+        event: targetEventQuery.data,
+        hasSimilarityEmbeddingsFeature,
+        newestFirst,
+      }),
+    }),
+    [
+      baseEventQuery.data,
+      targetEventQuery.data,
+      hasSimilarityEmbeddingsFeature,
+      newestFirst,
+    ]
+  );
+
+  useEffect(() => {
+    if (
+      hasTrackedAnalytics.current ||
+      !organization ||
+      !hasSimilarityEmbeddingsFeature ||
+      !baseEventQuery.data ||
+      !targetEventQuery.data
+    ) {
+      return;
+    }
+
+    hasTrackedAnalytics.current = true;
+    trackAnalytics('issue_details.similar_issues.diff_clicked', {
+      organization,
+      project_id: baseEventQuery.data?.projectID,
+      group_id: baseEventQuery.data?.groupID,
+      parent_group_id: targetEventQuery.data?.groupID,
+      shouldBeGrouped,
+    });
+  }, [
+    baseEventQuery.data,
+    hasSimilarityEmbeddingsFeature,
+    organization,
+    shouldBeGrouped,
+    targetEventQuery.data,
+  ]);
+
+  const hasError =
+    baseLatestQuery.isError ||
+    targetLatestQuery.isError ||
+    baseEventQuery.isError ||
+    targetEventQuery.isError;
+
+  const isLoading = baseEventQuery.isPending || targetEventQuery.isPending;
+
+  if (hasError) {
+    return (
+      <Flex background="secondary" overflow="auto" padding="md" direction="column">
+        <LoadingError message={t('Error loading events')} />
+      </Flex>
+    );
+  }
+
+  if (isLoading) {
+    return <IssueDiffLoadingState />;
+  }
+
+  return (
+    <Flex background="secondary" overflow="auto" padding="md" direction="column">
+      <LazyLoad
+        LazyComponent={SplitDiffLazy}
+        base={combinedBase}
+        target={combinedTarget}
+        type="lines"
+        loadingFallback={<IssueDiffLoadingSkeletonRows />}
+      />
+    </Flex>
+  );
+}
+
+function IssueDiffLoadingState() {
+  return (
+    <Flex
+      background="primary"
+      overflow="auto"
+      padding="md"
+      direction="column"
+      data-test-id="issue-diff-loading-skeleton"
+    >
+      <IssueDiffLoadingSkeletonRows />
+    </Flex>
+  );
+}
+
+function IssueDiffLoadingSkeletonRows() {
+  return (
+    <Flex direction="column" gap="sm">
+      {Array.from({length: SKELETON_ROW_COUNT}).map((_, index) => (
+        <Flex key={index} align="center">
+          <Placeholder height="18px" style={{flex: 1}} />
+          <Flex width="20px" flexShrink={0} />
+          <Placeholder height="18px" style={{flex: 1}} />
+        </Flex>
+      ))}
+    </Flex>
+  );
+}

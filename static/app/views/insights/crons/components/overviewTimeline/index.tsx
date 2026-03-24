@@ -1,6 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   deleteMonitorEnvironment,
   setEnvironmentIsMuted,
@@ -13,15 +15,14 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
-import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
@@ -128,22 +129,22 @@ export function OverviewTimeline({monitorList}: Props) {
     <MonitorListPanel role="region">
       <TimelineWidthTracker ref={elementRef} />
       <Header>
-        <HeaderControlsLeft>
+        <Flex justify="between" padding="lg xl" gap="xs" column="1/3">
           <SortSelector size="xs" />
           <DateNavigator
             dateNavigation={dateNavigation}
             direction="back"
             size="xs"
-            borderless
+            priority="transparent"
           />
-        </HeaderControlsLeft>
+        </Flex>
         <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
         <HeaderControlsRight>
           <DateNavigator
             dateNavigation={dateNavigation}
             direction="forward"
             size="xs"
-            borderless
+            priority="transparent"
           />
         </HeaderControlsRight>
       </Header>
@@ -185,12 +186,13 @@ const Header = styled(Sticky)`
   background: ${p => p.theme.tokens.background.primary};
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
-  box-shadow: 0 1px ${p => p.theme.translucentBorder};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   &[data-stuck] {
     border-radius: 0;
-    border-left: 1px solid ${p => p.theme.border};
-    border-right: 1px solid ${p => p.theme.border};
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     margin: 0 -1px;
   }
 `;
@@ -207,7 +209,8 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
-  box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   grid-row: 1;
   grid-column: 3/-1;
 `;
@@ -226,16 +229,8 @@ const MonitorRows = styled('ul')`
   margin: 0;
 `;
 
-const HeaderControlsLeft = styled('div')`
-  grid-column: 1/3;
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(0.5)};
-  padding: ${space(1.5)} ${space(2)};
-`;
-
 const HeaderControlsRight = styled('div')`
   grid-row: 1;
   grid-column: -1;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;

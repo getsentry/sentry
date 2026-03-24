@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
@@ -31,7 +31,7 @@ from sentry.utils.cursors import Cursor, CursorResult
 
 
 @extend_schema(tags=["Releases"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSessionsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -116,14 +116,11 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         except NoProjects:
             raise NoProjects("No projects available")  # give it a description
 
-        query_config = release_health.backend.sessions_query_config(organization)
-
         return QueryDefinition(
             query=request.GET,
             params=params,
             offset=offset,
             limit=limit,
-            query_config=query_config,
         )
 
     @contextmanager

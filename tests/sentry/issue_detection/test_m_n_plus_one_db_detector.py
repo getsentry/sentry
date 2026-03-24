@@ -37,7 +37,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         self, event: dict[str, Any], settings: dict[DetectorType, Any] | None = None
     ) -> list[PerformanceProblem]:
         detector_settings = settings or self._settings
-        detector = self.detector(detector_settings, event)
+        detector = self.detector(detector_settings[self.detector.settings_key], event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -219,8 +219,8 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
-        detector = self.detector(settings, event)
+        settings = get_detection_settings(project)
+        detector = self.detector(settings[self.detector.settings_key], event)
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -230,8 +230,8 @@ class MNPlusOneDBDetectorTest(TestCase):
             value={"n_plus_one_db_queries_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
-        detector = self.detector(settings, event)
+        settings = get_detection_settings(project)
+        detector = self.detector(settings[self.detector.settings_key], event)
 
         assert not detector.is_creation_allowed_for_project(project)
 
@@ -248,7 +248,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         event["project_id"] = project.id
 
-        settings = get_detection_settings(project_id=project.id)
+        settings = get_detection_settings(project)
         assert self.find_problems(event, settings) == []
 
         # Total duration exceeds the threshold
@@ -258,7 +258,7 @@ class MNPlusOneDBDetectorTest(TestCase):
             value={"n_plus_one_db_duration_threshold": 100},
         )
 
-        settings = get_detection_settings(project_id=project.id)
+        settings = get_detection_settings(project)
         assert len(self.find_problems(event, settings)) == 1
 
     @patch("sentry.issue_detection.detectors.mn_plus_one_db_span_detector.metrics")

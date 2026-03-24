@@ -3,8 +3,12 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   updateDashboardFavorite,
@@ -14,27 +18,24 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GridEditable, {
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import TimeSince from 'sentry/components/timeSince';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {
@@ -42,6 +43,7 @@ import type {
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 type Props = {
   api: Client;
@@ -88,10 +90,10 @@ function FavoriteButton({
     <Button
       aria-label={t('Favorite Button')}
       size="zero"
-      borderless
+      priority="transparent"
       icon={
         <IconStar
-          color={favorited ? 'yellow300' : 'gray500'}
+          variant={favorited ? 'warning' : 'muted'}
           isSolid={favorited}
           aria-label={favorited ? t('Unstar') : t('Star')}
           size="sm"
@@ -146,10 +148,9 @@ function DashboardTable({
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
+  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
   const queryLocation = {
-    ...(location.query && Object.keys(location.query).length > 0
-      ? {query: location.query}
-      : {}),
+    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
   };
 
   function renderHeadCell(column: GridColumnOrder<string>) {
@@ -210,14 +211,16 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.NAME) {
       return (
-        <Link
-          to={{
-            pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
-            ...queryLocation,
-          }}
-        >
-          {dataRow[ResponseKeys.NAME]}
-        </Link>
+        <Text ellipsis variant="accent">
+          <Link
+            to={{
+              pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
+              ...queryLocation,
+            }}
+          >
+            {dataRow[ResponseKeys.NAME]}
+          </Link>
+        </Text>
       );
     }
 
@@ -227,15 +230,15 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.OWNER) {
       return dataRow[ResponseKeys.OWNER] ? (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
-        </BodyCellContainer>
+        </Flex>
       ) : (
-        <BodyCellContainer>
-          <Tooltip title="Sentry">
+        <Flex justify="between" align="center" gap="3xl">
+          <Tooltip title={PREBUILT_DASHBOARD_LABEL}>
             <ActivityAvatar type="system" size={26} />
           </Tooltip>
-        </BodyCellContainer>
+        </Flex>
       );
     }
 
@@ -266,7 +269,7 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.CREATED) {
       return (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <DateSelected>
             {dataRow[ResponseKeys.CREATED] ? (
               <DateStatus>
@@ -297,18 +300,10 @@ function DashboardTable({
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
                   size="sm"
-                  disabled={
-                    hasReachedDashboardLimit ||
-                    isLoadingDashboardsLimit ||
-                    (defined(dataRow.prebuiltId) &&
-                      !organization.features.includes('dashboards-prebuilt-controls'))
-                  }
-                  title={
-                    defined(dataRow.prebuiltId) &&
-                    !organization.features.includes('dashboards-prebuilt-controls')
-                      ? t('Prebuilt dashboards cannot be duplicated')
-                      : limitMessage
-                  }
+                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+                  tooltipProps={{
+                    title: limitMessage,
+                  }}
                 />
               )}
             </DashboardCreateLimitWrapper>
@@ -329,14 +324,16 @@ function DashboardTable({
               disabled={
                 (dashboards && dashboards.length <= 1) || defined(dataRow.prebuiltId)
               }
-              title={
-                defined(dataRow.prebuiltId)
-                  ? t('Prebuilt dashboards cannot be deleted')
-                  : undefined
-              }
+              tooltipProps={{
+                title: defined(dataRow.prebuiltId)
+                  ? tct('[label] dashboards cannot be deleted', {
+                      label: PREBUILT_DASHBOARD_LABEL,
+                    })
+                  : undefined,
+              }}
             />
           </Flex>
-        </BodyCellContainer>
+        </Flex>
       );
     }
 
@@ -362,7 +359,7 @@ function DashboardTable({
           if (isHeader) {
             return [
               <IconStar
-                color="yellow300"
+                variant="warning"
                 isSolid
                 aria-label={t('Star Column')}
                 key="favorite-header"
@@ -389,23 +386,19 @@ function DashboardTable({
 export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  display: grid;
-  grid-column-gap: ${space(1)};
+  font-size: ${p => p.theme.font.size.md};
+  grid-column-gap: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const DateStatus = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  padding-left: ${space(1)};
-`;
-
-const BodyCellContainer = styled('div')`
-  display: flex;
-  gap: ${space(4)};
-  justify-content: space-between;
-  align-items: center;
+  padding-left: ${p => p.theme.space.md};
 `;
 
 const StyledButton = styled(Button)`

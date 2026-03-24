@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING
 from typing import Any as TAny
@@ -199,18 +199,16 @@ class OptionsManager:
         assert not_writable_reason not in [
             NotWritableReason.READONLY,
             NotWritableReason.CHANNEL_NOT_ALLOWED,
-        ], (
-            "%r cannot be changed at runtime" % key
-        )
+        ], "%r cannot be changed at runtime" % key
         # Enforce immutability if value is already set on disk
         assert not_writable_reason != NotWritableReason.OPTION_ON_DISK, (
             "%r cannot be changed at runtime because it is configured on disk" % key
         )
         # Enforce that the option has not been changed by a different UpdateChannel
         # that we cannot overwrite.
-        assert (
-            not_writable_reason != NotWritableReason.DRIFTED
-        ), f"Option {key} has drifted. Cannot overwrite"
+        assert not_writable_reason != NotWritableReason.DRIFTED, (
+            f"Option {key} has drifted. Cannot overwrite"
+        )
 
         opt = self.lookup_key(key)
         if coerce:
@@ -450,7 +448,7 @@ class OptionsManager:
         if not opt.type.test(value):
             raise TypeError(f"{key!r}: got {_type(value)!r}, expected {opt.type!r}")
 
-    def all(self):
+    def all(self) -> Iterable[Key]:
         """
         Return an iterator for all keys in the registry.
         """

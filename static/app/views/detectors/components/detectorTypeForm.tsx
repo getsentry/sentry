@@ -2,15 +2,16 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Radio} from 'sentry/components/core/radio';
-import {Text} from 'sentry/components/core/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
+
 import Hook from 'sentry/components/hook';
 import {t, tct} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   makeAutomationBasePathname,
   makeAutomationCreatePathname,
@@ -45,13 +46,17 @@ export function DetectorTypeForm() {
 
 type SelectableDetectorType = Extract<
   DetectorType,
-  'metric_issue' | 'monitor_check_in_failure' | 'uptime_domain_failure'
+  | 'metric_issue'
+  | 'monitor_check_in_failure'
+  | 'uptime_domain_failure'
+  | 'preprod_size_analysis'
 >;
 
 const ALLOWED_DETECTOR_TYPES = [
   'metric_issue',
   'monitor_check_in_failure',
   'uptime_domain_failure',
+  'preprod_size_analysis',
 ] as const satisfies SelectableDetectorType[];
 
 const detectorTypeParser = parseAsStringEnum(ALLOWED_DETECTOR_TYPES)
@@ -69,9 +74,11 @@ interface DetectorTypeOption {
   visualization: React.ReactNode;
   disabled?: boolean;
   infoBanner?: React.ReactNode;
+  show?: boolean;
 }
 
 function MonitorTypeField() {
+  const organization = useOrganization();
   const [selectedDetectorType, setDetectorType] = useDetectorTypeQueryState();
 
   const useMetricDetectorLimit =
@@ -116,47 +123,52 @@ function MonitorTypeField() {
         }
       ),
     },
+    {
+      id: 'preprod_size_analysis',
+      name: getDetectorTypeLabel('preprod_size_analysis'),
+      description: t('Monitor mobile app build sizes and detect regressions.'),
+      visualization: null,
+      show: !!organization?.features?.includes('preprod-size-monitors-frontend'),
+    },
   ];
 
   return (
-    <RadioOptions role="radiogroup" aria-label={t('Monitor type')}>
-      {options.map(({id, name, description, visualization, infoBanner, disabled}) => {
-        const checked = selectedDetectorType === id;
-        return (
-          <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
-            <OptionBody>
-              <Flex direction="column" gap="sm">
-                <Radio
-                  name="detectorType"
-                  checked={checked}
-                  onChange={() => handleChange(id)}
-                  aria-label={name}
-                  disabled={disabled}
-                />
-                <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
-                  {name}
-                </Text>
-                {description && (
-                  <Text size="md" variant="muted">
-                    {description}
+    <Stack gap="md" role="radiogroup" aria-label={t('Monitor type')}>
+      {options
+        .filter(({show}) => show === undefined || show)
+        .map(({id, name, description, visualization, infoBanner, disabled}) => {
+          const checked = selectedDetectorType === id;
+          return (
+            <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
+              <OptionBody>
+                <Flex direction="column" gap="sm">
+                  <Radio
+                    name="detectorType"
+                    checked={checked}
+                    onChange={() => handleChange(id)}
+                    aria-label={name}
+                    disabled={disabled}
+                  />
+                  <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
+                    {name}
                   </Text>
-                )}
-              </Flex>
-              {visualization && <Visualization>{visualization}</Visualization>}
-            </OptionBody>
-            {infoBanner && (checked || disabled) && <OptionInfo>{infoBanner}</OptionInfo>}
-          </OptionLabel>
-        );
-      })}
-    </RadioOptions>
+                  {description && (
+                    <Text size="md" variant="muted">
+                      {description}
+                    </Text>
+                  )}
+                </Flex>
+                {visualization && <Visualization>{visualization}</Visualization>}
+              </OptionBody>
+              {infoBanner && (checked || disabled) && (
+                <OptionInfo>{infoBanner}</OptionInfo>
+              )}
+            </OptionLabel>
+          );
+        })}
+    </Stack>
   );
 }
-
-const RadioOptions = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
 
 const OptionBody = styled('div')`
   display: flex;
@@ -170,9 +182,9 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   display: grid;
   grid-template-columns: 1fr;
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.surface400};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  background-color: ${p => p.theme.tokens.background.primary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   overflow: hidden;
 
@@ -187,8 +199,8 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   }
 
   &[aria-checked='true'] {
-    border-color: ${p => p.theme.focusBorder};
-    outline: solid 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
+    outline: solid 1px ${p => p.theme.tokens.focus.default};
   }
 
   ${OptionBody} {
@@ -197,10 +209,10 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
 `;
 
 const OptionInfo = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.backgroundSecondary};
-  font-size: ${p => p.theme.fontSize.md};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Visualization = styled('div')`
@@ -222,8 +234,10 @@ const Visualization = styled('div')`
 
 function MetricVisualization() {
   const theme = useTheme();
-  const danger = theme.red300;
-  const defaultChartColor = theme.chart.getColorPalette(0)[0] ?? theme.purple400;
+  const danger = theme.colors.red400;
+  const defaultChartColor =
+    theme.chart.getColorPalette(0)[0] ?? theme.tokens.graphics.accent.vibrant;
+
   return (
     <svg fill="none" viewBox="0 0 480 56">
       <path
@@ -241,9 +255,9 @@ function MetricVisualization() {
 
 function CronsVisualization() {
   const theme = useTheme();
-  const danger = theme.red300;
-  const warning = theme.yellow300;
-  const success = theme.green300;
+  const danger = theme.colors.red400;
+  const warning = theme.colors.yellow400;
+  const success = theme.colors.green400;
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 56">
       <rect
@@ -469,8 +483,9 @@ function CronsVisualization() {
 
 function UptimeVisualization() {
   const theme = useTheme();
-  const danger = theme.red300;
-  const success = theme.green300;
+  const danger = theme.colors.red400;
+  const success = theme.colors.green400;
+
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 56">
       <rect

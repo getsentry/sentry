@@ -19,6 +19,7 @@ from sentry.models.dashboard import (
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
 from sentry.models.organizationmember import OrganizationMember
@@ -679,6 +680,91 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         values = [row["title"] for row in response.data]
         assert values == ["Initial dashboard"]
 
+    def test_get_multiple_filters_owned_and_exclude_prebuilt(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="User 1 Custom",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 2 Custom",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 1 Prebuilt",
+            created_by_id=None,
+            organization=self.organization,
+            prebuilt_id=1,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["owned", "excludePrebuilt"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["User 1 Custom"]
+
+    def test_get_multiple_filters_single_filter(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="User 1 Dashboard",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 2 Dashboard",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["owned"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["User 1 Dashboard"]
+
+    def test_get_multiple_filters_favorites_and_owned(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+
+        owned_fav = Dashboard.objects.create(
+            title="Owned and Favorited",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Owned Not Favorited",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        other_fav = Dashboard.objects.create(
+            title="Other Favorited",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization, user_id=user_1.id, dashboard=owned_fav
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization, user_id=user_1.id, dashboard=other_fav
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["onlyFavorites", "owned"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Owned and Favorited"]
+
     def test_get_owned_dashboards_can_pin_starred_at_top(self) -> None:
         user_1 = self.create_user(username="user_1")
         self.create_member(organization=self.organization, user=user_1)
@@ -1145,6 +1231,102 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
 
+    def test_post_widget_layout_rejects_width_exceeding_grid_columns(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 12, "h": 2, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+
+    def test_post_widget_layout_rejects_x_plus_w_exceeding_grid_columns(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 4, "y": 0, "w": 4, "h": 2, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+
+    def test_post_widget_layout_rejects_negative_x(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": -1, "y": 0, "w": 2, "h": 2, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+
+    def test_post_widget_layout_rejects_zero_height(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 2, "h": 0, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+
     def test_post_dashboard_with_filters(self) -> None:
         project1 = self.create_project(name="foo", organization=self.organization)
         project2 = self.create_project(name="bar", organization=self.organization)
@@ -1285,7 +1467,56 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400
-        assert b"Ensure this value is less than or equal to 10" in response.content
+        assert b"The maximum limit for this display type is 10" in response.content
+
+    def test_add_categorical_bar_widget_with_valid_limit(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 20,
+                    "title": "Categorical Bar Widget",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+
+    def test_add_categorical_bar_widget_with_invalid_limit_above_maximum(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 26,
+                    "title": "Categorical Bar Widget",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400
+        assert b"The maximum limit for this display type is 25" in response.content
 
     def test_add_widget_with_invalid_limit_below_minimum(self) -> None:
         data = {
@@ -1422,77 +1653,39 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"malformed-data": "Dashboard from Post"})
         assert response.status_code == 400
 
-    def test_integrity_error(self) -> None:
+    def test_duplicate_title_auto_increments(self) -> None:
         response = self.do_request("post", self.url, data={"title": self.dashboard.title})
-        assert response.status_code == 409
-        assert response.data == "Dashboard title already taken"
-
-    def test_duplicate_dashboard(self) -> None:
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": self.dashboard.title, "duplicate": True},
-        )
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": self.dashboard.title, "duplicate": True},
-        )
+        response = self.do_request("post", self.url, data={"title": self.dashboard.title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy 1"
 
     def test_many_duplicate_dashboards(self) -> None:
         title = "My Awesome Dashboard"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "My Awesome Dashboard"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "My Awesome Dashboard copy"
 
         for i in range(1, 10):
-            response = self.do_request(
-                "post",
-                self.url,
-                data={"title": title, "duplicate": True},
-            )
-
+            response = self.do_request("post", self.url, data={"title": title})
             assert response.status_code == 201, response.data
             assert response.data["title"] == f"My Awesome Dashboard copy {i}"
 
     def test_duplicate_a_duplicate(self) -> None:
         title = "An Amazing Dashboard copy 3"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "An Amazing Dashboard copy 3"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "An Amazing Dashboard copy 4"
 
@@ -1712,9 +1905,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(response.data) > 1
         # Ensure the "permissions" field exists in each dashboard
         for dashboard in response.data:
-            assert (
-                "permissions" in dashboard
-            ), f"Permissions field not found in dashboard: {dashboard}"
+            assert "permissions" in dashboard, (
+                f"Permissions field not found in dashboard: {dashboard}"
+            )
         self.assert_equal_dashboards(self.dashboard, response.data[1])
         assert response.data[1]["permissions"] is None
 
@@ -1991,7 +2184,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 for d in response.data
                 if "prebuiltId" in d and d["prebuiltId"] == prebuilt_dashboard["prebuilt_id"]
             ]
-            assert len(matching_response_data) == 1
+            is_hidden = prebuilt_dashboard.get("hidden", False)
+            assert len(matching_response_data) == (0 if is_hidden else 1)
 
     def test_endpoint_does_not_create_duplicate_prebuilt_dashboards_when_exist(self) -> None:
         with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
@@ -2060,3 +2254,210 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 assert response.status_code == 200
                 assert len(response.data) == 1
                 assert response.data[0]["prebuiltId"] == PrebuiltDashboardId.FRONTEND_SESSION_HEALTH
+
+    def test_get_with_exclude_prebuilt(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url, {"filter": "excludePrebuilt"})
+
+                prebuilt_dashboards_count = Dashboard.objects.filter(
+                    organization=self.organization, prebuilt_id__isnull=False
+                ).count()
+                total_count = Dashboard.objects.filter(organization=self.organization).count()
+                assert prebuilt_dashboards_count == 3
+                assert total_count == 5
+
+                assert response.status_code == 200
+                assert len(response.data) == total_count - prebuilt_dashboards_count
+
+    def test_get_with_only_prebuilt(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url, {"filter": "onlyPrebuilt"})
+
+                prebuilt_dashboards_count = Dashboard.objects.filter(
+                    organization=self.organization, prebuilt_id__isnull=False
+                ).count()
+                assert prebuilt_dashboards_count == 3
+
+                # Response excludes hidden prebuilt dashboards (ID 3 is hidden)
+                visible_count = len(
+                    [d for d in PREBUILT_DASHBOARDS[:3] if not d.get("hidden", False)]
+                )
+                assert response.status_code == 200
+                assert len(response.data) == visible_count
+                assert all(d.get("prebuiltId") is not None for d in response.data)
+
+    def test_hidden_prebuilt_dashboards_excluded_by_default(self) -> None:
+        """Hidden prebuilt dashboards are synced to the DB but excluded from the API response."""
+        # IDs 1, 2, 3 correspond to Frontend Session Health, Queries, Query Details
+        # Query Details (id=3) is marked as isHidden=True
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url)
+
+        assert response.status_code == 200
+
+        # All 3 should be synced to the DB
+        prebuilt_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert prebuilt_count == 3
+
+        # But only 2 non-hidden ones should appear in the response
+        prebuilt_in_response = [d for d in response.data if d.get("prebuiltId") is not None]
+        assert len(prebuilt_in_response) == 2
+        prebuilt_ids_in_response = {d["prebuiltId"] for d in prebuilt_in_response}
+        assert PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY not in prebuilt_ids_in_response
+
+    def test_hidden_prebuilt_dashboards_included_with_show_hidden_filter(self) -> None:
+        """Hidden prebuilt dashboards are included in the response when showHidden filter is set."""
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url, {"filter": "showHidden"})
+
+        assert response.status_code == 200
+
+        prebuilt_in_response = [d for d in response.data if d.get("prebuiltId") is not None]
+        assert len(prebuilt_in_response) == 3
+        prebuilt_ids_in_response = {d["prebuiltId"] for d in prebuilt_in_response}
+        assert PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY in prebuilt_ids_in_response
+
+    def test_post_with_text_widget(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Dashboard from Post",
+                "widgets": [
+                    {
+                        "displayType": "line",
+                        "interval": "5m",
+                        "title": "Chart",
+                        "queries": [
+                            {
+                                "name": "Transactions",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                                "conditions": "event.type:transaction",
+                            }
+                        ],
+                    },
+                    {
+                        "title": "Text Widget",
+                        "displayType": "text",
+                        "description": "This is a text widget description",
+                    },
+                ],
+            }
+            response = self.do_request("post", self.url, data=data)
+            assert response.status_code == 201, response.data
+            dashboard = Dashboard.objects.get(
+                organization=self.organization, title="Dashboard from Post"
+            )
+            assert dashboard.created_by_id == self.user.id
+
+            widgets = self.get_widgets(dashboard.id)
+            assert len(widgets) == 2
+
+            text_widget = widgets[1]
+            assert text_widget.title == "Text Widget"
+            assert text_widget.display_type == DashboardWidgetDisplayTypes.TEXT
+            assert text_widget.description == "This is a text widget description"
+            assert text_widget.widget_type is None
+
+            assert DashboardWidgetQuery.objects.filter(widget=text_widget).count() == 0
+
+    def test_post_with_text_widget_without_feature_flag(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "title": "Text Widget",
+                    "displayType": "text",
+                    "description": "This is a text widget description",
+                }
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+        assert "widgets" in response.data, response.data
+        assert "Text widgets are not enabled" in response.data["widgets"][0]["displayType"][0]
+
+    def test_post_with_text_widget_ignores_queries(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Dashboard from Post",
+                "widgets": [
+                    {
+                        "title": "Text Widget with Queries",
+                        "displayType": "text",
+                        "description": "This should ignore queries",
+                        "queries": [
+                            {
+                                "name": "errors",
+                                "conditions": "event.type:error",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                            }
+                        ],
+                    },
+                ],
+            }
+            response = self.do_request("post", self.url, data=data)
+            assert response.status_code == 400, response.data
+            assert "widgets" in response.data, response.data
+            assert response.data["widgets"][0]["queries"][0] == "Text widgets don't have queries"
+
+    def test_post_validate_only_success_without_creating(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Validated Dashboard",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url + "?validateOnly=1", data=data)
+        assert response.status_code == 200
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Validated Dashboard"
+        ).exists()
+
+    def test_post_validate_only_error_for_invalid_dashboard(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Invalid Dashboard",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url + "?validateOnly=1", data=data)
+        assert response.status_code == 400
+        assert response.data["widgets"][0]["interval"][0] == "This field may not be blank."
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Invalid Dashboard"
+        ).exists()

@@ -5,21 +5,24 @@ import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import useDrawer from 'sentry/components/globalDrawer';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
+import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   feedbackCrashApiPlatforms,
   feedbackNpmPlatforms,
@@ -29,19 +32,19 @@ import {
   replayBackendPlatforms,
   replayJsLoaderInstructionsPlatformList,
 } from 'sentry/data/platformCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useFeedbackOnboardingDrawer() {
   const organization = useOrganization();
@@ -130,7 +133,7 @@ function SidebarContent() {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with User Feedback')}</Heading>
-        <HeaderActions>
+        <Flex justify="between" gap="2xl">
           <div
             onClick={e => {
               // we need to stop bubbling the CompactSelect click event
@@ -145,24 +148,28 @@ function SidebarContent() {
               onChange={opt =>
                 setCurrentProject(allProjects.find(p => p.id === opt.value))
               }
-              triggerProps={{
-                'aria-label': currentProject?.slug,
-                children: currentProject ? (
-                  <StyledIdBadge
-                    project={currentProject}
-                    avatarSize={16}
-                    hideOverflow
-                    disableLink
-                  />
-                ) : (
-                  t('Select a project')
-                ),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  aria-label={currentProject?.slug}
+                >
+                  {currentProject ? (
+                    <StyledIdBadge
+                      project={currentProject}
+                      avatarSize={16}
+                      hideOverflow
+                      disableLink
+                    />
+                  ) : (
+                    t('Select a project')
+                  )}
+                </OverlayTrigger.Button>
+              )}
               options={projectSelectOptions}
               position="bottom-end"
             />
           </div>
-        </HeaderActions>
+        </Flex>
         <OnboardingContent currentProject={currentProject} />
       </TaskList>
     </Fragment>
@@ -176,10 +183,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       value: platform.id,
       textValue: platform.name,
       label: (
-        <PlatformLabel>
+        <Flex align="center" gap="md">
           <PlatformIcon platform={platform.id} size={16} />
           <TextOverflow>{platform.name}</TextOverflow>
-        </PlatformLabel>
+        </Flex>
       ),
     };
   });
@@ -260,12 +267,16 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
             [
               'npm',
               webBackendPlatform ? (
-                <PlatformSelect key="platform-select">
+                <Flex align="center" wrap="wrap" gap="md" key="platform-select">
                   {tct('I use [platformSelect]', {
                     platformSelect: (
                       <CompactSelect
                         size="xs"
-                        triggerProps={{children: jsFramework.label}}
+                        trigger={triggerProps => (
+                          <OverlayTrigger.Button {...triggerProps}>
+                            {jsFramework.label ?? triggerProps.children}
+                          </OverlayTrigger.Button>
+                        )}
                         value={jsFramework.value}
                         onChange={setJsFramework}
                         options={jsFrameworkSelectOptions}
@@ -281,7 +292,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                       disabled={setupMode() === 'jsLoader'}
                     />
                   )}
-                </PlatformSelect>
+                </Flex>
               ) : (
                 t('I use NPM or Yarn')
               ),
@@ -299,7 +310,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         !isExcluded &&
         !crashReportOnboarding &&
         !isLoading && (
-          <PlatformSelect>
+          <Flex align="center" wrap="wrap" gap="md">
             {tct("I'm using [platformSelect]", {
               platformSelect: (
                 <PlatformOptionDropdown
@@ -307,7 +318,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                 />
               ),
             })}
-          </PlatformSelect>
+          </Flex>
         )
       )}
     </Header>
@@ -385,7 +396,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 }
 
 const Header = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;
 
 const TopRightBackgroundImage = styled('img')`
@@ -400,18 +411,19 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: 100%;
-  gap: ${space(1)};
-  margin: 50px ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space.md};
+  margin: 50px ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']}
+    ${p => p.theme.space['3xl']};
 `;
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-size: ${p => p.theme.font.size.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -420,26 +432,6 @@ const StyledIdBadge = styled(IdBadge)`
   flex-shrink: 1;
 `;
 
-const HeaderActions = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(3)};
-`;
-
-const PlatformLabel = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const PlatformSelect = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-wrap: wrap;
-`;
-
 const StyledRadioGroup = styled(RadioGroup)`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;

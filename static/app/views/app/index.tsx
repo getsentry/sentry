@@ -10,36 +10,34 @@ import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import GlobalModal from 'sentry/components/globalModal';
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
-import AlertStore from 'sentry/stores/alertStore';
-import ConfigStore from 'sentry/stores/configStore';
-import GuideStore from 'sentry/stores/guideStore';
-import HookStore from 'sentry/stores/hookStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {AlertStore} from 'sentry/stores/alertStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GuideStore} from 'sentry/stores/guideStore';
+import {HookStore} from 'sentry/stores/hookStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
-import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
+import {isValidOrgSlug} from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
-import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
+import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
-import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
-import ExplorerPanel from 'sentry/views/seerExplorer/explorerPanel';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
+import {ExplorerPanel} from 'sentry/views/seerExplorer/explorerPanel';
+import {ExplorerPanelProvider} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
@@ -48,29 +46,13 @@ const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 /**
  * App is the root level container for all uathenticated routes.
  */
-function App() {
+export function App() {
   useColorscheme();
 
   const api = useApi();
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
-  const {visible: isModalOpen} = useGlobalModal();
   const preloadData = shouldPreloadData(config);
-
-  // Seer explorer panel hook and hotkeys
-  const {isOpen: isExplorerPanelOpen, toggleExplorerPanel} = useExplorerPanel();
-
-  useHotkeys(
-    isModalOpen
-      ? []
-      : [
-          {
-            match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
-            callback: () => toggleExplorerPanel(),
-            includeInputs: true,
-          },
-        ]
-  );
 
   /**
    * Loads the users organization list into the OrganizationsStore
@@ -102,9 +84,9 @@ function App() {
 
     data?.problems?.forEach?.((problem: any) => {
       const {id, message, url} = problem;
-      const type = problem.severity === 'critical' ? 'error' : 'warning';
+      const variant = problem.severity === 'critical' ? 'danger' : 'warning';
 
-      AlertStore.addAlert({id, message, type, url, opaque: true});
+      AlertStore.addAlert({id, message, variant, url, opaque: true});
     });
   }, [api, config.isSelfHosted]);
 
@@ -137,9 +119,16 @@ function App() {
     loadOrganizations();
     checkInternalHealth();
 
-    // Show system-level alerts
+    // Show system-level alerts that were forwarded by the initial client config request
     config.messages.forEach(msg =>
-      AlertStore.addAlert({message: msg.message, type: msg.level, neverExpire: true})
+      AlertStore.addAlert({
+        message: msg.message,
+        variant:
+          // These are django message level tags that need to be mapped to our alert variant types.
+          // See client config in ./src/sentry/web/client_config.py
+          msg.level === 'error' ? 'danger' : msg.level === 'debug' ? 'muted' : msg.level,
+        neverExpire: true,
+      })
     );
 
     // The app is running in deploy preview mode
@@ -256,10 +245,12 @@ function App() {
                 <GlobalFeedbackForm>
                   <MainContainer tabIndex={-1} ref={mainContainerRef}>
                     <DemoToursProvider>
-                      <GlobalModal onClose={handleModalClose} />
-                      <ExplorerPanel isVisible={isExplorerPanelOpen} />
-                      <Indicators className="indicators-container" />
-                      <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                      <ExplorerPanelProvider>
+                        <GlobalModal onClose={handleModalClose} />
+                        <ExplorerPanel />
+                        <Indicators className="indicators-container" />
+                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                      </ExplorerPanelProvider>
                     </DemoToursProvider>
                   </MainContainer>
                 </GlobalFeedbackForm>
@@ -271,8 +262,6 @@ function App() {
     </Profiler>
   );
 }
-
-export default App;
 
 const MainContainer = styled('div')`
   display: flex;

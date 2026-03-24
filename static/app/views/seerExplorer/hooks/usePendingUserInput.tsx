@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 
@@ -103,16 +102,6 @@ export function usePendingUserInput({
 
       if (nextIndex >= fileApprovalTotalPatches) {
         // All patches reviewed - submit to backend
-        const allApproved = newDecisions.every(d => d);
-        const countRejected = newDecisions.filter(d => !d).length;
-        if (!allApproved) {
-          addErrorMessage(
-            t(
-              'You rejected %s change(s). Tell Seer what to do instead to continue.',
-              countRejected
-            )
-          );
-        }
         if (pendingInput?.id) {
           respondToUserInput(pendingInput.id, {
             decisions: newDecisions,

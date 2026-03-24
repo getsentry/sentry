@@ -15,7 +15,7 @@ from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.notifications.utils.rules import get_key_from_rule_data, get_rule_or_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
@@ -76,7 +76,7 @@ def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
         title = ev_metadata["type"]
 
     elif ev_type == "csp":
-        title = f'{ev_metadata["directive"]} - {ev_metadata["uri"]}'
+        title = f"{ev_metadata['directive']} - {ev_metadata['uri']}"
     else:
         if isinstance(obj, GroupEvent):
             if obj.occurrence is not None:
@@ -257,10 +257,7 @@ def build_attachment_replay_link(
     group: Group, url_format: str, event: Event | GroupEvent | None = None
 ) -> str | None:
     has_replay = features.has("organizations:session-replay", group.organization)
-    has_slack_links = features.has(
-        "organizations:session-replay-slack-new-issue", group.organization
-    )
-    if has_replay and has_slack_links and group.has_replays():
+    if has_replay and group.has_replays():
         referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
         replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
 
@@ -291,14 +288,12 @@ def build_footer(
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
-        if features.has("organizations:workflow-engine-ui-links", group.organization):
-            rule_url = absolute_uri(
-                create_link_to_workflow(
-                    group.organization.id, get_key_from_rule_data(rules[0], "workflow_id")
-                )
-            )
-        else:
-            rule_url = build_rule_url(rules[0], group, project)
+        key, value = get_rule_or_workflow_id(rules[0])
+        match key:
+            case "workflow_id":
+                rule_url = absolute_uri(create_link_to_workflow(group.organization.slug, value))
+            case "legacy_rule_id":
+                rule_url = build_rule_url(rules[0], group, project)
 
         # If this notification is triggered via the "Send Test Notification"
         # button then the label is not defined, but the url works.

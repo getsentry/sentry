@@ -1,7 +1,8 @@
 ---
 title: SlideOverPanel
 description: A multi-purpose panel that can be used to reveal more information in a UI without directing to another page.
-source: 'sentry/components/core/slideOverPanel'
+category: overlays
+source: '@sentry/scraps/slideOverPanel'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/slideOverPanel.tsx
 ---
@@ -13,9 +14,7 @@ import {
   SlideOverPanelSkeletonPlayground,
 } from 'sentry/stories/playground/slideOverPanel';
 
-import SlideOverDocumentation from '!!type-loader!@sentry/scraps/slideOverPanel';
-
-export const documentation = SlideOverDocumentation;
+export const documentation = import('!!type-loader!@sentry/scraps/slideOverPanel');
 
 The `SlideOverPanel` component is a panel that can appear on the right, left, or bottom of the page content to reveal more information. It's commonly used for UIs like the Widget Builder to open panels that provide more details or supplementary UIs.
 

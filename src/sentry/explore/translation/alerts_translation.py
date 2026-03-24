@@ -9,7 +9,7 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.subscription_processor import MetricIssueDetectorConfig
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.search.events.fields import parse_function
+from sentry.search.events.fields import is_function, parse_arguments
 from sentry.seer.anomaly_detection.store_data import SeerMethod
 from sentry.seer.anomaly_detection.store_data_workflow_engine import (
     handle_send_historical_data_to_seer,
@@ -67,9 +67,30 @@ def _get_old_query_info(snuba_query: SnubaQuery):
     return old_query_type, old_dataset, old_query, old_aggregate
 
 
-def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+def _verify_event_types(snuba_query: SnubaQuery):
+    if (
+        snuba_query.dataset == Dataset.PerformanceMetrics.value
+        or snuba_query.dataset == Dataset.Transactions.value
+    ):
+        return True
+    if snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value:
+        return SnubaQueryEventType.EventType.TRACE_ITEM_SPAN in snuba_query.event_types
+    return False
+
+
+def translate_detector_and_update_subscription_in_snuba(
+    snuba_query: SnubaQuery, bypass_flag_check: bool = False
+):
+    if not _verify_event_types(snuba_query):
+        logger.info(
+            "Skipping roll forward for query with invalid event types",
+            extra={"snuba_query_id": snuba_query.id},
+        )
+        return
+
     query_subscription_qs = QuerySubscription.objects.filter(
-        snuba_query_id=snuba_query.id, status=QuerySubscription.Status.ACTIVE.value
+        snuba_query_id=snuba_query.id,
+        status__in=[QuerySubscription.Status.ACTIVE.value, QuerySubscription.Status.UPDATING.value],
     )
     query_subscription = query_subscription_qs.first()
 
@@ -85,7 +106,7 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
         logger.info("Data source not found for snuba query %s", snuba_query.id)
         sentry_sdk.capture_exception(e)
         return
-    if not features.has(
+    if not bypass_flag_check and not features.has(
         "organizations:migrate-transaction-alerts-to-spans", data_source.organization
     ):
         logger.info("Feature flag not enabled")
@@ -99,7 +120,10 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
         logger.info("No snapshot created for snuba query %s", snuba_query.id)
         return
 
-    if snapshot.get("user_updated"):
+    if (
+        snapshot.get("user_updated")
+        and snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+    ):
         logger.info(
             "Skipping roll forward for user-updated query", extra={"snuba_query_id": snuba_query.id}
         )
@@ -112,7 +136,11 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
 
     # handles count functions with arguments (even custom measurement arguments)
     if snapshot["aggregate"].startswith(COUNT_AGGREGATE_PREFIX):
-        aggregate, arguments, _ = parse_function(snapshot_aggregate)
+        if (match := is_function(snapshot_aggregate)) is not None:
+            aggregate, arguments_string = match.group("function"), match.group("columns")
+            arguments = parse_arguments(aggregate, arguments_string)
+        else:
+            arguments = []
         snapshot_aggregate = "count()"
         if len(arguments) > 0:
             argument = arguments[0]
@@ -154,7 +182,10 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
     snuba_query.query = translated_query
     snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
 
-    function_name, _, _ = parse_function(old_aggregate)
+    if (match := is_function(old_aggregate)) is not None:
+        function_name = match.group("function")
+    else:
+        function_name = old_aggregate
     if function_name in COUNT_BASED_ALERT_AGGREAGTES:
         if snapshot["dataset"] == Dataset.PerformanceMetrics.value:
             snuba_query.extrapolation_mode = ExtrapolationMode.SERVER_WEIGHTED.value
@@ -216,7 +247,9 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
     return
 
 
-def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+def rollback_detector_query_and_update_subscription_in_snuba(
+    snuba_query: SnubaQuery, bypass_flag_check: bool = False
+):
     # querying for updating as well just in case the subscription gets stuck in updating
     query_subscription_qs = QuerySubscription.objects.filter(
         snuba_query_id=snuba_query.id,
@@ -228,10 +261,16 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
         logger.info("No active query subscription found for snuba query %s", snuba_query.id)
         return
 
-    data_source: DataSource = DataSource.objects.get(
-        source_id=str(query_subscription.id), type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-    )
-    if not features.has(
+    try:
+        data_source: DataSource = DataSource.objects.get(
+            source_id=str(query_subscription.id), type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+    except DataSource.DoesNotExist as e:
+        logger.info("Data source not found for snuba query %s", snuba_query.id)
+        sentry_sdk.capture_exception(e)
+        return
+
+    if not bypass_flag_check and not features.has(
         "organizations:migrate-transaction-alerts-to-spans", data_source.organization
     ):
         logger.info("Feature flag not enabled")

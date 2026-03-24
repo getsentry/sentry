@@ -2,7 +2,7 @@ import type {Organization} from 'sentry/types/organization';
 import {generateFieldAsString, parseFunction} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   type MetricDetectorFormData,
@@ -54,7 +54,10 @@ export function useInitialMetricDetectorFormData(): Partial<MetricDetectorFormDa
     datasetConfig,
     organization
   );
-  const queryFromUrl = decodeScalar(location.query.query, '') ?? '';
+  const queryFromUrl =
+    location.query.query === '' ? '' : decodeScalar(location.query.query);
+  const defaultQuery = DEFAULT_THRESHOLD_METRIC_FORM_DATA.query ?? '';
+  const query = queryFromUrl === undefined ? defaultQuery : queryFromUrl;
   const environmentFromUrl = decodeScalar(location.query.environment, '') ?? '';
   const nameFromUrl = decodeScalar(location.query.name, '') ?? '';
 
@@ -62,7 +65,7 @@ export function useInitialMetricDetectorFormData(): Partial<MetricDetectorFormDa
     ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
     dataset,
     aggregateFunction: aggregateFromUrl ?? defaultAggregate,
-    query: queryFromUrl,
+    query,
     environment: environmentFromUrl,
     name: nameFromUrl,
   } satisfies Partial<MetricDetectorFormData>;

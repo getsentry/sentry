@@ -16,7 +16,7 @@ import {profiling} from './profiling';
 import {replay} from './replay';
 import {installSnippetBlock, platformOptions, type PlatformOptions} from './utils';
 
-const docs: Docs<PlatformOptions> = {
+export const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingNpm: feedback,
   feedbackOnboardingJsLoader,
@@ -40,7 +40,5 @@ const docs: Docs<PlatformOptions> = {
     docsPlatform: 'javascript',
     packageName: '@sentry/browser',
   }),
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: agentMonitoring(),
 };
-
-export default docs;

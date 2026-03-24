@@ -2,9 +2,10 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {AutofixInsightCard} from './autofixInsightCard';
 import {CollapsibleChainLink} from './collapsibleChainLink';
@@ -57,9 +58,9 @@ function AutofixInsightCardsDisplay({
       <VerticalLine />
       {insights.length > 0 ? (
         <InsightsCardContainer>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap">
             <HeaderText>{t('Reasoning')}</HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <Content>
             <Fragment>
               <AnimatePresence initial={hasMounted.current}>
@@ -122,28 +123,21 @@ function AutofixInsightCardsDisplay({
   );
 }
 
-export default function AutofixInsightCards(props: AutofixInsightCardsProps) {
+export function AutofixInsightCards(props: AutofixInsightCardsProps) {
   return <AutofixInsightCardsDisplay {...props} />;
 }
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const HeaderText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const NoInsightsYet = styled('div')`
   display: flex;
   justify-content: center;
   flex-direction: column;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const InsightsContainerWithLines = styled('div')`
@@ -157,7 +151,8 @@ const InsightsContainerWithLines = styled('div')`
 const VerticalLine = styled('div')`
   width: 1px;
   height: ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.border};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background-color: ${p => p.theme.tokens.border.primary};
   margin-left: 16px;
 `;
 
@@ -168,16 +163,16 @@ const CardsStack = styled('div')`
 `;
 
 const InsightsCardContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.lg};
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   width: 100%;
   padding-bottom: 0;
 `;
 
 const Content = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;

@@ -1,13 +1,8 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -24,35 +19,9 @@ export function useNodeDetailsLink({
   const {selection} = usePageFilters();
   const location = useLocation();
 
-  let spanId: string | undefined;
-  let targetId: string | undefined;
-  let timestamp: number | undefined;
-
-  if (node) {
-    if (isEAPSpanNode(node)) {
-      spanId = node.value.event_id;
-      targetId = node.value.transaction_id;
-      timestamp = node.value.start_timestamp;
-    }
-    if (isTransactionNode(node)) {
-      spanId = node.value.event_id;
-      targetId = node.value.event_id;
-      timestamp = node.value.start_timestamp;
-    }
-    if (isSpanNode(node)) {
-      spanId = node.value.span_id;
-      timestamp = node.value.start_timestamp;
-      // Find parent transaction
-      let parent = node.parent;
-      while (parent && !isTransactionNode(parent)) {
-        parent = parent.parent;
-      }
-      if (parent) {
-        targetId = parent.value.event_id;
-        spanId = node.value.span_id;
-      }
-    }
-  }
+  const spanId = node?.id;
+  const targetId = node?.transactionId;
+  const timestamp = node?.startTimestamp;
 
   return getTraceDetailsUrl({
     source,

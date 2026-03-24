@@ -1,20 +1,21 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import ConfirmDelete from 'sentry/components/confirmDelete';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types/user';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
@@ -23,7 +24,7 @@ type Props = {
   onRemove: (app: ApiApplication) => void;
 };
 
-function Row({app, onRemove}: Props) {
+export function Row({app, onRemove}: Props) {
   const api = useApi();
   const [isLoading, setLoading] = useState(false);
 
@@ -49,12 +50,12 @@ function Row({app, onRemove}: Props) {
 
   return (
     <StyledPanelItem>
-      <ApplicationNameWrapper>
+      <Stack flex="1" marginRight="md">
         <ApplicationName to={`${ROUTE_PREFIX}applications/${app.id}/`}>
           {app.name}
         </ApplicationName>
         <ClientId>{app.clientID}</ClientId>
-      </ApplicationNameWrapper>
+      </Stack>
 
       <ConfirmDelete
         message={t(
@@ -72,24 +73,15 @@ function Row({app, onRemove}: Props) {
 }
 
 const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   align-items: center;
 `;
 
-const ApplicationNameWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  margin-right: ${space(1)};
-`;
-
 const ApplicationName = styled(Link)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ClientId = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
-
-export default Row;

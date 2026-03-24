@@ -5,10 +5,12 @@ import devkitCrashesStep2 from 'sentry-images/tempest/devkit-crashes-step2.png';
 import devkitCrashesStep3 from 'sentry-images/tempest/devkit-crashes-step3.png';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
-import {Flex} from 'sentry/components/core/layout/flex';
-import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {
   type DocsParams,
   type OnboardingConfig,
@@ -21,7 +23,6 @@ import {
   AllowListIPAddresses,
 } from 'sentry/views/settings/project/tempest/allowListIPAddresses';
 import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
-import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
 
 const isRetailMode = (params: DocsParams) =>
   params.platformOptions?.installationMode === InstallationMode.RETAIL;
@@ -67,7 +68,7 @@ const onboardingRetail: OnboardingConfig = {
             {
               projectSettingsLink: (
                 <ExternalLink
-                  href={`/settings/projects/${params.project.slug}/playstation/?tab=retail`}
+                  href={`/settings/${params.organization.slug}/projects/${params.project.slug}/playstation/?tab=retail`}
                   openInNewTab
                 />
               ),
@@ -269,8 +270,9 @@ export const onboarding: OnboardingConfig = {
           type: 'custom',
           content: (
             <RequestSdkAccessButton
+              gamingPlatform="playstation"
               organization={params.organization}
-              project={params.project}
+              projectId={params.project.id}
               origin={params.newOrg ? 'onboarding' : 'project-creation'}
             />
           ),
@@ -285,7 +287,7 @@ const CardIllustration = styled('img')`
   max-width: 600px;
   height: auto;
   object-fit: contain;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowLight};
 `;

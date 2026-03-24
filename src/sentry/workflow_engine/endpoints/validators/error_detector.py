@@ -1,17 +1,21 @@
+import builtins
+from typing import Any
+
 from django.db import router, transaction
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
-from sentry import audit_log
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
-from sentry.models.project import Project
-from sentry.utils.audit import create_audit_entry
+from sentry.issues.grouptype import GroupType
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.models.detector import Detector
 
 
 class ErrorDetectorValidator(BaseDetectorTypeValidator):
+    data_source_required = False
+
     fingerprinting_rules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     resolve_age = EmptyIntegerField(
         required=False,
@@ -19,21 +23,27 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
         help_text="Automatically resolve an issue if it hasn't been seen for this many hours. Set to `0` to disable auto-resolve.",
     )
 
-    def validate_type(self, value: str):
+    def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = super().validate_type(value)
         if type.slug != "error":
             raise serializers.ValidationError("Detector type must be error")
 
         return type
 
-    def validate_condition_group(self, value):
+    def validate_condition_group(self, value: Any) -> Any:
         if value is not None:
             raise serializers.ValidationError(
                 "Condition group is not supported for error detectors"
             )
         return value
 
-    def validate_fingerprinting_rules(self, value):
+    def validate_name(self, value: Any) -> str:
+        # if name is different from existing, raise an error
+        if self.instance and self.instance.name != value:
+            raise serializers.ValidationError("Name changes are not supported for error detectors")
+        return value
+
+    def validate_fingerprinting_rules(self, value: Any) -> str | None:
         if not value:
             return value
 
@@ -44,24 +54,22 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
 
         return value
 
-    def validate_resolve_age(self, value):
+    def validate_resolve_age(self, value: Any) -> int | None:
         if value is not None and value < 0:
             raise serializers.ValidationError("Resolve age must be a non-negative number")
 
         return value
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Detector:
+        raise PermissionDenied("Creating error detectors is not supported")
+
+    def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         with transaction.atomic(router.db_for_write(Detector)):
-            detector = Detector.objects.create(
-                project_id=self.context["project"].id,
-                name=validated_data["name"],
-                # no workflow_condition_group
-                type=validated_data["type"].slug,
-                config={},
-            )
+            # ignores name update
 
-            project: Project = detector.project
+            super().update(instance, validated_data)
 
+            project = instance.project
             # update configs, which are project options. continue using them
             for config in validated_data:
                 if config in Detector.error_detector_project_options:
@@ -69,11 +77,4 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
                         Detector.error_detector_project_options[config], validated_data[config]
                     )
 
-            create_audit_entry(
-                request=self.context["request"],
-                organization=self.context["organization"],
-                target_object=detector.id,
-                event=audit_log.get_event_id("DETECTOR_ADD"),
-                data=detector.get_audit_log_data(),
-            )
-        return detector
+        return instance

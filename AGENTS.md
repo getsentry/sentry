@@ -1,6 +1,6 @@
 # Sentry Development Guide for AI Agents
 
-> **IMPORTANT**: AGENTS.md files are the source of truth for AI agent instructions. Always update the relevant AGENTS.md file when adding or modifying agent guidance. do not add to CLAUDE.md or cursor rules
+> **IMPORTANT**: AGENTS.md files are the source of truth for AI agent instructions. Always update the relevant AGENTS.md file when adding or modifying agent guidance. Do not add to CLAUDE.md or Cursor rules.
 
 ## Overview
 
@@ -21,22 +21,61 @@ sentry/
 │   ├── sentry_plugins/   # Plugin system
 │   └── social_auth/      # Social authentication
 ├── static/               # Frontend application
-├── tests/                # Test suite
+├── tests/                # Backend test suite
 ├── fixtures/             # Test fixtures
 ├── devenv/               # Development environment config
 ├── migrations/           # Database migrations
 └── config/               # Configuration files
 ```
 
-> For detailed development patterns, see nested AGENTS.md files:
->
-> - **Backend patterns**: `src/AGENTS.md`
-> - **Testing patterns**: `tests/AGENTS.md`
-> - **Frontend patterns**: `static/AGENTS.md`
+## Command Execution Guide
 
-## Backend
+This section contains critical command execution instructions that apply across all Sentry development.
 
-### Commands
+### Python Command Execution Requirements
+
+**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
+
+#### For AI Agents (automated commands)
+
+Use the full relative path to virtualenv executables:
+
+```bash
+cd /path/to/sentry && .venv/bin/pytest tests/...
+cd /path/to/sentry && .venv/bin/python -m mypy ...
+```
+
+Or source the activate script in your command:
+
+```bash
+cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
+```
+
+**Important for AI agents:**
+
+- Always use `required_permissions: ['all']` when running Python commands to avoid sandbox permission issues
+- The `.venv/bin/` prefix ensures you're using the correct Python interpreter and dependencies
+
+### Backend Development Commands
+
+#### Setup
+
+```bash
+# Install dependencies and setup development environment
+make develop
+
+# Or use the newer devenv command
+devenv sync
+
+# Activate the Python virtual environment (required for running tests and Python commands)
+direnv allow
+
+# Start dev dependencies
+devservices up
+
+# Start the development server
+devservices serve
+```
 
 #### Linting
 
@@ -48,6 +87,17 @@ pre-commit run --files src/sentry/path/to/file.py
 pre-commit run --all-files
 ```
 
+#### Before completing a task
+
+Before you consider a coding task complete, run pre-commit on any files you created or modified. Use the actual paths (e.g. `src/sentry/foo/bar.py`, `tests/sentry/foo/test_bar.py`, `static/app/components/foo.tsx`):
+
+```bash
+# From repo root; for automation use the venv
+cd /path/to/sentry && .venv/bin/pre-commit run --files <file1> [file2 ...]
+```
+
+If pre-commit fails, fix the reported issues and run it again until it passes. Do not push with `--no-verify` to skip hooks—fix the issues and try again instead. Only then treat the task as done.
+
 #### Testing
 
 ```bash
@@ -55,136 +105,45 @@ pre-commit run --all-files
 pytest -svv --reuse-db
 
 # Run specific test file
-pytest tests/sentry/api/test_base.py
+pytest -svv --reuse-db tests/sentry/api/test_base.py
 ```
 
-### Testing Rules
+#### Database Operations
 
-#### Test File Location
+```bash
+# Run migrations
+sentry django migrate
 
-- Code location: `src/sentry/foo/bar.py`
-- Test location: `tests/sentry/foo/test_bar.py`
+# Create new migration
+sentry django makemigrations
 
-**Exception**: Tests ensuring Snuba compatibility MUST be placed in `tests/snuba/`. The tests in this folder will also run in Snuba's CI.
+# Update migration after rebase conflict (handles renaming, dependencies, lockfile)
+./bin/update-migration <migration_name_or_number> <app_label>
+# Example: ./bin/update-migration 0101_workflow_when_condition_group_unique workflow_engine
 
-#### Use Fixtures Instead of `Model.objects.create`
-
-In Sentry Python tests, you MUST use factory methods in this priority order:
-
-1. Fixture methods (e.g., `self.create_model`) from base classes like `sentry.testutils.fixtures.Fixtures`
-2. Factory methods from `sentry.testutils.factories.Factories` when fixtures aren't available
-
-NEVER directly call `Model.objects.create` - this violates our testing standards and bypasses shared test setup logic.
-
-```diff
--        direct_project = Project.objects.create(
--            organization=self.organization,
--            name="Directly Created",
--            slug="directly-created"
--        )
-+        direct_project = self.create_project(
-+            organization=self.organization,
-+            name="Directly Created",
-+            slug="directly-created"
-+        )
+# Reset database
+make reset-db
 ```
 
-#### Use `pytest` Instead of `unittest`
+### Frontend Development Commands
 
-In Sentry Python tests, always use `pytest` instead of `unittest`.
+#### Development Setup
 
-```diff
--        self.assertRaises(ValueError, EffectiveGrantStatus.from_cache, None)
-+        with pytest.raises(ValueError):
-+            EffectiveGrantStatus.from_cache(None)
+```bash
+# Start the development server
+pnpm run dev
+
+# Start only the UI development server with hot reload
+pnpm run dev-ui
 ```
 
-### Security Guidelines
+#### Typechecking
 
-#### Preventing Indirect Object References (IDOR)
+Typechecking only works on the entire project. Individual files cannot be checked.
 
-**Indirect Object Reference** vulnerabilities occur when an attacker can access resources they shouldn't by manipulating IDs passed in requests. This is one of the most critical security issues in multi-tenant applications like Sentry.
-
-**Core Principle: Always Scope Queries by Organization/Project**
-
-When querying resources, ALWAYS include `organization_id` and/or `project_id` in your query filters. Never trust user-supplied IDs alone.
-
-```python
-# WRONG: Vulnerable to IDOR - user can access any resource by guessing IDs
-resource = Resource.objects.get(id=request.data["resource_id"])
-
-# RIGHT: Properly scoped to organization
-resource = Resource.objects.get(
-    id=request.data["resource_id"],
-    organization_id=organization.id
-)
-
-# RIGHT: Properly scoped to project
-resource = Resource.objects.get(
-    id=request.data["resource_id"],
-    project_id=project.id
-)
+```bash
+pnpm run typecheck
 ```
-
-**Project ID Handling: Use `self.get_projects()`**
-
-When project IDs are passed in the request (query string or body), NEVER directly access or trust `request.data["project_id"]` or `request.GET["project_id"]`. Instead, use the endpoint's `self.get_projects()` method which performs proper permission checks.
-
-```python
-# WRONG: Direct access bypasses permission checks
-project_ids = request.data.get("project_id")
-projects = Project.objects.filter(id__in=project_ids)
-
-# RIGHT: Use self.get_projects() which validates permissions
-projects = self.get_projects(
-    request=request,
-    organization=organization,
-    project_ids=request.data.get("project_id")
-)
-```
-
-### Exception Handling
-
-- Avoid blanket exception handling (`except Exception:` or bare `except:`)
-- Only catch specific exceptions when you have a meaningful way to handle them
-- We have global exception handlers in tasks and endpoints that automatically log errors and report them to Sentry
-- Let exceptions bubble up unless you need to:
-  - Add context to the error
-  - Perform cleanup operations
-  - Convert one exception type to another with additional information
-  - Recover from expected error conditions
-
-### Code Comments
-
-Comments should not repeat what the code is saying. Instead, reserve comments for explaining **why** something is being done, or to provide context that is not obvious from the code itself.
-
-```py
-# Bad - narrates what the code does
-retries += 1
-
-# Good - explains why
-# Some APIs occasionally return 500s on valid requests. We retry up to 3 times
-# before surfacing an error.
-retries += 1
-```
-
-**When to Comment:**
-
-- To explain why a particular approach or workaround was chosen
-- To clarify intent when the code could be misread or misunderstood
-- To provide context from external systems, specs, or requirements
-- To document assumptions, edge cases, or limitations
-
-**When Not to Comment:**
-
-- Don't narrate what the code is doing — the code already says that
-- Don't duplicate function or variable names in plain English
-- Don't leave stale comments that contradict the code
-- Don't reference removed or obsolete code paths (e.g. "No longer uses X format")
-
-## Frontend
-
-### Commands
 
 #### Linting
 
@@ -209,103 +168,77 @@ CI=true pnpm test <file_path>
 CI=true pnpm test components/avatar.spec.tsx
 ```
 
-### General Frontend Rules
+### Git worktrees
 
-1. NO new Reflux stores
-2. NO class components
-3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
-4. ALWAYS use TypeScript
-5. ALWAYS colocate tests
-6. Lazy load routes: `React.lazy(() => import('...'))`
+Each worktree has its own `.venv`. When you create a new worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in the new worktree to setup the dev environment. Otherwise run `devenv sync` once in the new worktree, then `direnv allow` to validate and activate the dev environment.
 
-### React Testing
+### Context-Aware Loading
 
-#### Imports
+Use the right AGENTS.md for the area you're working in:
 
-**Always** import from `sentry-test/reactTestingLibrary`, not directly from `@testing-library/react`:
+- **Backend** (`src/**/*.py`) → `src/AGENTS.md` (backend patterns)
+- **Tests** (`tests/**/*.py`, `src/**/tests/**/*.py`) → `tests/AGENTS.md` (testing patterns)
+- **Frontend** (`static/**/*.{ts,tsx,js,jsx,css,scss}`) → `static/AGENTS.md` (frontend patterns)
+- **General** → This file (`AGENTS.md`) for Sentry overview and commands
 
-```tsx
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
-```
+Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (`.agents/skills/`). Attach or read the area `AGENTS.md` when working in that tree. Add or update guidance in the appropriate AGENTS.md or skill—do not duplicate long guidance in editor-specific rule files.
 
-#### Avoid Mocking Hooks
+## Agent Skills
 
-Do not use `jest.mocked()`.
+Skills under `.agents/skills/` should follow the same current-practice conventions as the rest of the repo:
 
-```tsx
-// ❌ Don't mock hooks
-jest.mocked(useDataFetchingHook)
+- Prefer diff-first review workflows. When no explicit file or patch is provided, default to the current branch diff.
+- Keep skill descriptions aligned with natural user requests like PR review, branch audit, and Warden follow-up.
+- If a downstream review harness controls the final response shape, do not hardcode a competing output format in the skill. Specify required evidence instead.
 
-// ✅ Set the response data
-MockApiClient.addMockResponse({
-    url: '/data/',
-    body: DataFixture(),
-})
+## Backend
 
-// ❌ Don't mock contexts
-jest.mocked(useOrganization)
+For backend development patterns, security guidelines, and architecture, see `src/AGENTS.md`.
+For backend testing patterns and best practices, see `tests/AGENTS.md`.
 
-// ✅ Use the provided organization config on render()
-render(<Component />, {organization: OrganizationFixture({...})})
-```
+## Frontend
 
-#### Use `screen` Instead of Destructuring
+For frontend development patterns, design system guidelines, and React testing best practices, see `static/AGENTS.md`.
 
-```tsx
-// ❌ Don't do this
-const {getByRole} = render(<Component />);
+## Feature Flags (FlagPole)
 
-// ✅ Do this
-render(<Component />);
-const button = screen.getByRole('button');
-```
+New features should be gated behind a feature flag.
 
-#### Query Priority (in order of preference)
+1. **Register** the flag in `src/sentry/features/temporary.py`:
 
-1. **`getByRole`** - Primary selector for most elements
-2. **`getByLabelText`/`getByPlaceholderText`** - For form elements
-3. **`getByText`** - For non-interactive elements
-4. **`getByTestId`** - Last resort only
+   ```python
+   manager.add("organizations:my-feature", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+   ```
 
-#### Query Selection Guidelines
+   Use `api_expose=True` if the frontend needs to check the flag. Use `ProjectFeature` and a `projects:` prefix for project-scoped flags.
 
-```tsx
-// ❌ Wrong - use queryBy only for non-existence checks
-expect(screen.queryByRole('alert')).toBeInTheDocument();
+2. **Python check**:
 
-// ✅ Correct - use getBy for elements that should exist
-expect(screen.getByRole('alert')).toBeInTheDocument();
-expect(screen.queryByRole('button')).not.toBeInTheDocument();
-```
+   ```python
+   if features.has("organizations:my-feature", organization, actor=user):
+   ```
 
-#### User Interactions
+3. **Frontend check** (requires `api_expose=True`):
 
-```tsx
-// ❌ Don't use fireEvent
-fireEvent.change(input, {target: {value: 'text'}});
+   ```typescript
+   organization.features.includes('my-feature');
+   ```
 
-// ✅ Use userEvent
-await userEvent.click(input);
-await userEvent.keyboard('text');
-```
+4. **Tests**:
 
-#### Async Testing
+   ```python
+   with self.feature("organizations:my-feature"):
+       ...
+   ```
 
-```tsx
-// ❌ Don't use waitFor for appearance
-await waitFor(() => {
-  expect(screen.getByRole('alert')).toBeInTheDocument();
-});
+5. **Rollout**: FlagPole YAML config lives in the `sentry-options-automator` repo, not here.
 
-// ✅ Use findBy for appearance
-expect(await screen.findByRole('alert')).toBeInTheDocument();
+See https://develop.sentry.dev/feature-flags/ for full docs.
 
-// ✅ Use waitForElementToBeRemoved for disappearance
-await waitForElementToBeRemoved(() => screen.getByRole('alert'));
-```
+## Pull Requests
+
+Frontend (`static/`) and backend (`src/`, `tests/`) are **not atomically deployed**. A CI check enforces this.
+
+- If your changes touch both frontend and backend, split them into **separate PRs**.
+- Land the backend PR first when the frontend depends on new API changes.
+- Pure test additions alongside `src/` changes are fine in one PR.

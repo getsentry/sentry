@@ -1,7 +1,17 @@
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {type ComponentProps} from 'react';
+
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 
-export default function AutofixFeedback() {
+interface AutofixFeedbackProps extends ComponentProps<typeof FeedbackButton> {
+  iconOnly?: boolean;
+}
+
+export function AutofixFeedback({
+  children,
+  iconOnly = false,
+  ...buttonProps
+}: AutofixFeedbackProps) {
   return (
     <FeedbackButton
       size="xs"
@@ -13,6 +23,10 @@ export default function AutofixFeedback() {
           ['feedback.owner']: 'ml-ai',
         },
       }}
-    />
+      tooltipProps={{title: t('Give feedback to the devs')}}
+      {...buttonProps}
+    >
+      {iconOnly ? null : children}
+    </FeedbackButton>
   );
 }

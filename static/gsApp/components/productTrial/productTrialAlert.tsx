@@ -1,29 +1,28 @@
 import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
-import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {ProductTrialTag} from 'getsentry/components/productTrial/productTrialTag';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import type {ProductTrial, Subscription} from 'getsentry/types';
 import {isBizPlanFamily, UsageAction} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
-import titleCase from 'getsentry/utils/titleCase';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {titleCase} from 'getsentry/utils/titleCase';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 function shouldUseOnDemandCta(category: DataCategory): boolean {
   // TODO: other categories that use on demand is still missing here
@@ -49,7 +48,7 @@ interface ProductTrialAlertProps {
   product?: DataCategory;
 }
 
-function ProductTrialAlert(props: ProductTrialAlertProps) {
+export function ProductTrialAlert(props: ProductTrialAlertProps) {
   const {trial, subscription, organization, onDismiss, product, api} = props;
   const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [isUpgradeSent, setIsUpgradeSent] = useState(false);
@@ -134,7 +133,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
           buttonProps={{
             priority: 'default',
             size: 'xs',
-            style: {marginBlock: `-${space(0.25)}`},
+            style: {marginBlock: '-2px'},
           }}
           eventTypes={eventTypes}
           referrer={`product-trial-alert-${eventTypes.join('-')}`}
@@ -167,9 +166,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
           <Button
             priority="primary"
             onClick={() => {
-              browserHistory.push(
-                normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)
-              );
+              browserHistory.push(normalizeUrl(`/checkout/${organization.slug}/`));
             }}
           >
             {t('Update Plan')}
@@ -212,9 +209,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         <Button
           priority="primary"
           onClick={() => {
-            browserHistory.push(
-              normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)
-            );
+            browserHistory.push(normalizeUrl(`/checkout/${organization.slug}/`));
           }}
         >
           {t('Update Plan')}
@@ -223,7 +218,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
   }
 
   const actions = alertButton && (
-    <ButtonBar gap="lg">
+    <Grid flow="column" align="center" gap="lg">
       {alertButton}
       <Button
         icon={<IconClose size="sm" />}
@@ -238,20 +233,20 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
           onDismiss?.();
         }}
         size="zero"
-        borderless
-        title={t('Dismiss')}
+        priority="transparent"
+        tooltipProps={{title: t('Dismiss')}}
         aria-label={t('Dismiss trial notice')}
       />
-    </ButtonBar>
+    </Grid>
   );
 
   return (
-    <TrialAlert system type="muted" trailingItems={actions}>
+    <TrialAlert system variant="muted" trailingItems={actions}>
       <React.Fragment>
         {alertHeader && (
           <Heading>
             <h4>{alertHeader}</h4>
-            <ProductTrialTag trial={trial} type="default" showTrialEnded />
+            <ProductTrialTag trial={trial} variant="muted" showTrialEnded />
           </Heading>
         )}
         {alertText && <div>{alertText}</div>}
@@ -260,17 +255,15 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
   );
 }
 
-export default ProductTrialAlert;
-
 const TrialAlert = styled(Alert)`
   align-items: center;
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Heading = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   h4 {
     margin: 0;

@@ -2,14 +2,14 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -31,7 +31,7 @@ interface EmptyStateProps {
   tempestCredentials?: TempestCredentials[];
 }
 
-export default function EmptyState({
+export function EmptyState({
   project,
   tempestCredentials,
   isRemoving,
@@ -56,7 +56,7 @@ export default function EmptyState({
         <Setup>
           <BodyTitle>{t('Install instructions')}</BodyTitle>
           <Alert.Container>
-            <Alert type="info">
+            <Alert variant="info">
               {t(
                 "Note: You need PlayStation access to complete these instructions. Sentry admin access alone isn't sufficient."
               )}
@@ -66,7 +66,6 @@ export default function EmptyState({
             initialStep={decodeInteger(location.query.guidedStep)}
             onStepChange={step => {
               navigate({
-                pathname: location.pathname,
                 query: {
                   ...location.query,
                   guidedStep: step,
@@ -181,20 +180,20 @@ export default function EmptyState({
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Description = styled('div')``;
 
 const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -203,7 +202,7 @@ const StyledPanelTable = styled(PanelTable)`
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')``;
@@ -225,21 +224,22 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.border};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;
 `;
 
 const CodeSnippetWrapper = styled('div')`
-  margin-bottom: ${space(2)};
-  margin-top: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const DescriptionWrapper = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const BoldText = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

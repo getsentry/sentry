@@ -2,9 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import AutoSelectText from 'sentry/components/autoSelectText';
+import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -33,7 +32,7 @@ type Props = {
   event: Event;
 };
 
-export default function EventCreatedTooltip({event}: Props) {
+export function EventCreatedTooltip({event}: Props) {
   const user = useUser();
   const options = user?.options ?? {};
   const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
@@ -81,11 +80,11 @@ export default function EventCreatedTooltip({event}: Props) {
 const DescriptionList = styled('dl')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(0.75)} ${space(1)};
+  gap: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   text-align: left;
   margin: 0;
 `;
 
 const NotApplicableText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

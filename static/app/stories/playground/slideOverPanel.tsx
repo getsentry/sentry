@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 
 export function SlideOverPanelPlayground() {
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
@@ -63,7 +63,7 @@ function PanelContents({onClick}: PanelContentsProps) {
     <Flex direction="column" border="primary" height="100%" gap="md" padding="md">
       <Button onClick={onClick}>Close Panel</Button>
       <Container>
-        <Alert type="warning">I took a very long time to render!</Alert>
+        <Alert variant="warning">I took a very long time to render!</Alert>
         <ManySlowComponents />
       </Container>
     </Flex>

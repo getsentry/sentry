@@ -1,10 +1,10 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {TextOverflow} from 'sentry/components/textOverflow';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 const toCamelCase = function camalize(str: any) {
   return str
@@ -88,7 +88,7 @@ const Grid = styled('ul')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   grid-template-rows: masonry;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: flex-start;
 
   margin: 0;

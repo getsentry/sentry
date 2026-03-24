@@ -1,15 +1,16 @@
 import {useCallback, useMemo} from 'react';
 import moment from 'moment-timezone';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
@@ -22,6 +23,7 @@ import {
   useMetricsFrozenSearch,
   useMetricsFrozenTracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
@@ -98,6 +100,20 @@ function useMetricsQueryKey({
     if (traceMetric) {
       newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, traceMetric.name);
       newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_TYPE, traceMetric.type);
+      if (traceMetric.unit && traceMetric.unit !== '-') {
+        if (traceMetric.unit !== NONE_UNIT) {
+          newSearch.addFilterValue(
+            TraceMetricKnownFieldKey.METRIC_UNIT,
+            traceMetric.unit
+          );
+        } else if (traceMetric.unit === NONE_UNIT) {
+          newSearch.addOp('(');
+          newSearch.addFilterValue('!has', TraceMetricKnownFieldKey.METRIC_UNIT);
+          newSearch.addOp('OR');
+          newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_UNIT, NONE_UNIT);
+          newSearch.addOp(')');
+        }
+      }
     }
 
     return newSearch.formatString();
@@ -161,7 +177,7 @@ function useMetricsQueryKey({
       per_page: limit,
       referrer,
       sampling: queryExtras?.samplingMode ?? SAMPLING_MODE.NORMAL,
-      caseInsensitive: queryExtras?.caseInsensitive,
+      caseInsensitive: queryExtras?.caseInsensitive ? '1' : undefined,
       disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation
         ? '1'
         : undefined,
@@ -170,7 +186,12 @@ function useMetricsQueryKey({
     eventView,
   };
 
-  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
+  const queryKey: ApiQueryKey = [
+    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+    params,
+  ];
 
   return {
     queryKey,

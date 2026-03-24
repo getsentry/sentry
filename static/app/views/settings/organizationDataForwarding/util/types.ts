@@ -1,5 +1,9 @@
 import type {AvatarProject} from 'sentry/types/project';
 
+export const DATA_FORWARDING_FEATURES = ['organizations:data-forwarding'];
+export const DATA_FORWARDING_DOCS_URL =
+  'https://docs.sentry.io/organization/integrations/data-forwarding/';
+
 export enum DataForwarderProviderSlug {
   SEGMENT = 'segment',
   SQS = 'sqs',

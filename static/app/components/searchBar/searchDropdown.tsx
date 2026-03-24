@@ -2,19 +2,18 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import HotkeysLabel from 'sentry/components/hotkeysLabel';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
+import {HotkeysLabel} from 'sentry/components/hotkeysLabel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 
@@ -54,7 +53,7 @@ type Props = {
   visibleShortcuts?: Shortcut[];
 };
 
-function SearchDropdown({
+export function SearchDropdown({
   className,
   loading,
   items,
@@ -83,9 +82,14 @@ function SearchDropdown({
   return (
     <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
       {loading ? (
-        <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
+        <Flex
+          justify="center"
+          padding="md"
+          key="loading"
+          data-test-id="search-autocomplete-loading"
+        >
           <LoadingIndicator mini />
-        </LoadingWrapper>
+        </Flex>
       ) : (
         <SearchItemsList maxMenuHeight={maxMenuHeight}>
           {items.map(item => {
@@ -133,11 +137,11 @@ function SearchDropdown({
       )}
 
       <DropdownFooter>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {runShortcut &&
             visibleShortcuts?.map(shortcut => (
               <Button
-                borderless
+                priority="transparent"
                 size="xs"
                 key={shortcut.text}
                 onClick={() => runShortcut(shortcut)}
@@ -151,7 +155,7 @@ function SearchDropdown({
                 {shortcut.text}
               </Button>
             ))}
-        </ButtonBar>
+        </Grid>
         <LinkButton
           size="xs"
           href="https://docs.sentry.io/product/sentry-basics/search/"
@@ -164,8 +168,6 @@ function SearchDropdown({
     </SearchDropdownOverlay>
   );
 }
-
-export default SearchDropdown;
 
 type HeaderItemProps = {
   group: SearchGroup;
@@ -298,20 +300,20 @@ type KindTagProps = {
 
 function KindTag({kind, deprecated}: KindTagProps) {
   if (deprecated) {
-    return <Tag type="error">deprecated</Tag>;
+    return <Tag variant="danger">deprecated</Tag>;
   }
 
   switch (kind) {
     case FieldKind.FUNCTION:
     case FieldKind.NUMERIC_METRICS:
-      return <Tag type="success">f(x)</Tag>;
+      return <Tag variant="success">f(x)</Tag>;
     case FieldKind.MEASUREMENT:
     case FieldKind.BREAKDOWN:
-      return <Tag type="highlight">field</Tag>;
+      return <Tag variant="info">field</Tag>;
     case FieldKind.TAG:
-      return <Tag type="warning">{kind}</Tag>;
+      return <Tag variant="warning">{kind}</Tag>;
     default:
-      return <Tag>{kind}</Tag>;
+      return <Tag variant="muted">{kind}</Tag>;
   }
 }
 
@@ -386,11 +388,11 @@ function DropdownItem({
           documentation={item.documentation}
           searchSubstring={searchSubstring}
         />
-        <TagWrapper>
+        <Flex as="span" justify="end" align="center" flexShrink={0}>
           {item.kind && !isChild && (
             <KindTag kind={item.kind} deprecated={item.deprecated} />
           )}
-        </TagWrapper>
+        </Flex>
       </Fragment>
     );
   }
@@ -491,23 +493,17 @@ const SearchDropdownOverlay = styled(Overlay)`
   left: -1px;
   right: -1px;
   overflow: hidden;
-  margin-top: ${space(1)};
-`;
-
-const LoadingWrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const Info = styled('div')`
   display: flex;
-  padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.subText};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.secondary};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -517,16 +513,16 @@ const SearchDropdownGroupTitle = styled('header')`
   display: flex;
   align-items: center;
 
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
 
   margin: 0;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 
   & > svg {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
   }
 `;
 
@@ -550,20 +546,22 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
 
 const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   scroll-margin: 40px 0;
-  font-size: ${p => p.theme.fontSize.lg};
-  padding: 4px ${space(2)};
+  font-size: ${p => p.theme.font.size.lg};
+  padding: 4px ${p => p.theme.space.xl};
 
   min-height: ${p => (p.isChild ? '30px' : '36px')};
-  ${p => !p.isChild && `border-top: 1px solid ${p.theme.innerBorder};`}
+  ${p => !p.isChild && `border-top: 1px solid ${p.theme.tokens.border.secondary};`}
 
   ${p => {
     if (!p.isDisabled) {
       return css`
         cursor: pointer;
 
-        &:hover,
+        &:hover {
+          background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
+        }
         &.active {
-          background: ${p.theme.hover};
+          background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
         }
       `;
     }
@@ -580,70 +578,68 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
 `;
 
 const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
-  display: flex;
   flex-grow: 1;
   flex-shrink: ${p => (p.hasSingleField ? '1' : '0')};
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
-  line-height: ${p => p.theme.text.lineHeightHeading};
+  line-height: ${p => p.theme.font.lineHeight.default};
 
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const RestOfWordsContainer = styled('span')<{
   hasSplit?: boolean;
   isFirstWordHidden?: boolean;
 }>`
-  color: ${p => (p.hasSplit ? p.theme.blue400 : p.theme.tokens.content.primary)};
-  margin-left: ${p => (p.isFirstWordHidden ? space(1) : '0px')};
+  color: ${p =>
+    p.hasSplit ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
+  margin-left: ${p => (p.isFirstWordHidden ? p.theme.space.md : '0px')};
 `;
 
 const FirstWordWrapper = styled('span')`
   font-weight: medium;
 `;
 
-const TagWrapper = styled('span')`
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-end;
-`;
-
 const Documentation = styled('span')`
-  display: flex;
   flex: 2;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   min-width: 0;
 
-  ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSize.md};
-  font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.subText};
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: ${p => p.theme.font.size.md};
+  font-family: ${p => p.theme.font.family.sans};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: pre;
 `;
 
 const DropdownFooter = styled(`div`)`
   width: 100%;
   min-height: 45px;
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   flex-direction: row;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const HotkeyGlyphWrapper = styled('span')`
-  color: ${p => p.theme.subText};
-  margin-right: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-right: ${p => p.theme.space.xs};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
@@ -655,39 +651,47 @@ const IconWrapper = styled('span')`
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
     align-items: center;
     justify-content: center;
   }
 `;
 
 const QueryItemWrapper = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   width: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   display: flex;
   white-space: nowrap;
   word-break: normal;
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const Value = styled('span')<{hasDocs?: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 
   max-width: ${p => (p.hasDocs ? '280px' : 'none')};
 
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const IconOpenWithMargin = styled(IconOpen)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const RecommendedItem = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const RecommendedItemTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

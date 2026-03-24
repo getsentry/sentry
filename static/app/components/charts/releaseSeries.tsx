@@ -8,7 +8,7 @@ import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client, ResponseMeta} from 'sentry/api';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -16,12 +16,12 @@ import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withApi} from 'sentry/utils/withApi';
+import {withOrganization} from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type ReleaseMetaBasic = {
@@ -251,7 +251,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     const markLine = MarkLine({
       animation: false,
       lineStyle: {
-        color: theme.purple300,
+        color: theme.tokens.dataviz.semantic.release,
         opacity: 0.3,
         type: 'solid',
         ...lineStyle,
@@ -314,7 +314,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     return {
       id: 'release-lines',
       seriesName: 'Releases',
-      color: theme.purple200,
+      color: theme.tokens.dataviz.semantic.release,
       data: [],
       markLine,
     };

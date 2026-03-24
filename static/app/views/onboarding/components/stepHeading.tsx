@@ -1,11 +1,9 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
-const StepHeading = styled(
+export const StepHeading = styled(
   (props: React.ComponentProps<typeof motion.h2> & {step: number}) => (
     <motion.h2
       variants={{
@@ -20,11 +18,11 @@ const StepHeading = styled(
     />
   )
 )`
-  margin-left: calc(-${space(2)} - 30px);
+  margin-left: calc(-${p => p.theme.space.xl} - 30px);
   position: relative;
   display: inline-grid;
   grid-template-columns: max-content auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
 
   &:before {
@@ -34,13 +32,9 @@ const StepHeading = styled(
     justify-content: center;
     width: 30px;
     height: 30px;
-    background-color: ${p =>
-      isChonkTheme(p.theme) ? p.theme.colors.chonk.yellow400 : p.theme.yellow300};
+    background-color: ${p => p.theme.tokens.background.warning.vibrant};
     border-radius: 50%;
-    color: ${p =>
-      isChonkTheme(p.theme) ? p.theme.colors.black : p.theme.tokens.content.primary};
+    color: ${p => p.theme.tokens.content.onVibrant.dark};
     font-size: 1rem;
   }
 `;
-
-export default StepHeading;

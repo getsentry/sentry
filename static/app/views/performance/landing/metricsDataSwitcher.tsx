@@ -1,8 +1,9 @@
 import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Flex} from '@sentry/scraps/layout';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -45,29 +46,21 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
   if (metricsCardinality.isLoading && !props.hideLoadingIndicator) {
     return (
       <Fragment>
-        <LoadingContainer>
+        <Flex justify="center">
           <LoadingIndicator />
-        </LoadingContainer>
+        </Flex>
       </Fragment>
     );
   }
 
-  if (!metricsCardinality.outcome) {
-    return (
-      <Fragment>
-        {props.children({
-          forceTransactionsOnly: true,
-        })}
-      </Fragment>
-    );
-  }
-
+  // Always use MetricsSwitchHandler for consistent component structure
+  // to prevent remounting children when outcome changes
   return (
     <Fragment>
       <MetricsSwitchHandler
         eventView={props.eventView}
         location={props.location}
-        outcome={metricsCardinality.outcome}
+        outcome={metricsCardinality.outcome ?? {forceTransactionsOnly: false}}
         switcherChildren={props.children}
       />
     </Fragment>
@@ -116,8 +109,3 @@ function MetricsSwitchHandler({
 
   return <Fragment>{switcherChildren(outcome)}</Fragment>;
 }
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-`;

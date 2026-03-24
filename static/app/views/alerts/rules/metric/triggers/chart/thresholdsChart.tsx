@@ -1,19 +1,27 @@
 import {PureComponent} from 'react';
 import type {Theme} from '@emotion/react';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {LineSeriesOption, TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import {extrapolatedAreaStyle} from 'sentry/components/alerts/onDemandMetricAlert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
+import {
+  axisLabelFormatterUsingAggregateOutputType,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleThresholdType,
@@ -21,7 +29,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
-import {alertAxisFormatter, alertTooltipValueFormatter} from 'sentry/views/alerts/utils';
+import {alertAxisFormatter, isSessionAggregate} from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 
 type DefaultProps = {
@@ -44,20 +52,22 @@ type Props = DefaultProps & {
   maxValue?: number;
   minValue?: number;
   minutesThresholdToDisplaySeconds?: number;
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
 } & Partial<PageFilters['datetime']>;
 
 const CHART_GRID = {
-  left: space(2),
-  right: space(2),
-  top: space(4),
-  bottom: space(2),
+  left: '16px',
+  right: '16px',
+  top: '32px',
+  bottom: '16px',
 };
 
 // Colors to use for trigger thresholds
 const makeTriggerThresholdColors = (theme: Theme) => ({
-  RESOLUTION_FILL: color(theme.green200).alpha(0.1).rgb().string(),
-  CRITICAL_FILL: color(theme.red300).alpha(0.25).rgb().string(),
-  WARNING_FILL: color(theme.yellow200).alpha(0.1).rgb().string(),
+  RESOLUTION_FILL: color(theme.colors.green200).alpha(0.1).rgb().string(),
+  CRITICAL_FILL: color(theme.colors.red400).alpha(0.25).rgb().string(),
+  WARNING_FILL: color(theme.colors.yellow200).alpha(0.1).rgb().string(),
 });
 
 /**
@@ -103,7 +113,7 @@ function getYAxisBounds(
  * This chart displays shaded regions that represent different Trigger thresholds in a
  * Metric Alert rule.
  */
-export default class ThresholdsChart extends PureComponent<Props> {
+export class ThresholdsChart extends PureComponent<Props> {
   static defaultProps: DefaultProps = {
     data: [],
     comparisonData: [],
@@ -135,10 +145,10 @@ export default class ThresholdsChart extends PureComponent<Props> {
 
     const isCritical = trigger.label === AlertRuleTriggerType.CRITICAL;
     const lineColor = isResolution
-      ? this.props.theme.green300
+      ? this.props.theme.colors.green400
       : isCritical
-        ? this.props.theme.red300
-        : this.props.theme.yellow300;
+        ? this.props.theme.colors.red400
+        : this.props.theme.colors.yellow400;
 
     const COLOR = makeTriggerThresholdColors(this.props.theme);
     const areaColor = isResolution
@@ -205,6 +215,8 @@ export default class ThresholdsChart extends PureComponent<Props> {
       resolveThreshold,
       anomalies = [],
       theme,
+      timeseriesResultsTypes,
+      timeseriesResultsUnits,
     } = this.props;
 
     const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => {
@@ -229,12 +241,34 @@ export default class ThresholdsChart extends PureComponent<Props> {
       })
     );
 
+    // Resolve output type and unit from server-provided metadata, falling back
+    // to inferring from the aggregate string when not available.
+    const outputType =
+      timeseriesResultsTypes?.[aggregate] ?? aggregateOutputType(aggregate);
+    const dataUnit = timeseriesResultsUnits?.[aggregate];
+    const isDurationChart = outputType === 'duration';
+    const durationUnit = isDurationChart
+      ? getDurationUnit(dataWithoutRecentBucket, undefined, dataUnit)
+      : undefined;
+    const rateUnit = Object.values(RateUnit).includes(
+      timeseriesResultsUnits?.[aggregate] as RateUnit
+    )
+      ? (timeseriesResultsUnits?.[aggregate] as RateUnit)
+      : undefined;
+
     const chartOptions = {
       tooltip: {
         // use the main aggregate for all series (main, min, max, avg, comparison)
         // to format all values similarly
-        valueFormatter: (value: number) =>
-          alertTooltipValueFormatter(value, aggregate, aggregate),
+        valueFormatter: (value: number) => {
+          if (isSessionAggregate(aggregate)) {
+            return defined(value) ? `${value}%` : '\u2015';
+          }
+          const type =
+            timeseriesResultsTypes?.[aggregate] ?? aggregateOutputType(aggregate);
+          const unit = timeseriesResultsUnits?.[aggregate];
+          return tooltipFormatter(value, type, unit);
+        },
 
         formatAxisLabel: (
           value: number,
@@ -286,10 +320,10 @@ export default class ThresholdsChart extends PureComponent<Props> {
 
           const changeStatusColor =
             changeStatus === AlertRuleTriggerType.CRITICAL
-              ? this.props.theme.red300
+              ? this.props.theme.colors.red400
               : changeStatus === AlertRuleTriggerType.WARNING
-                ? this.props.theme.yellow300
-                : this.props.theme.green300;
+                ? this.props.theme.colors.yellow400
+                : this.props.theme.colors.green400;
 
           return `<span>${date}<span style="color:${changeStatusColor};margin-left:10px;">
             ${Math.sign(changePercentage) === 1 ? '+' : '-'}${Math.abs(
@@ -304,8 +338,20 @@ export default class ThresholdsChart extends PureComponent<Props> {
           resolveThreshold === '' ? null : resolveThreshold
         ),
         axisLabel: {
-          formatter: (value: number) =>
-            alertAxisFormatter(value, data[0]!.seriesName, aggregate),
+          formatter: (value: number) => {
+            if (timeseriesResultsTypes && !isSessionAggregate(aggregate)) {
+              return axisLabelFormatterUsingAggregateOutputType(
+                value,
+                outputType,
+                true,
+                durationUnit,
+                rateUnit,
+                0,
+                dataUnit
+              );
+            }
+            return alertAxisFormatter(value, data[0]!.seriesName, aggregate);
+          },
         },
         splitLine: {
           show: false,
@@ -338,8 +384,12 @@ export default class ThresholdsChart extends PureComponent<Props> {
             LineSeries({
               name: comparisonSeriesName,
               data: _data.map(({name, value}) => [name, value]),
-              lineStyle: {color: this.props.theme.gray200, type: 'dashed', width: 1},
-              itemStyle: {color: this.props.theme.gray200},
+              lineStyle: {
+                color: this.props.theme.colors.gray200,
+                type: 'dashed',
+                width: 1,
+              },
+              itemStyle: {color: this.props.theme.colors.gray200},
               animation: false,
               animationThreshold: 1,
               animationDuration: 0,

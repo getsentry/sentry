@@ -1,23 +1,24 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import configStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Release} from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 function makeReleaseOption(
@@ -58,12 +59,12 @@ interface CustomResolutionModalProps extends ModalRenderProps {
   projectSlug: string | undefined;
 }
 
-function CustomResolutionModal(props: CustomResolutionModalProps) {
+export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const organization = useOrganization();
   const [version, setVersion] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery);
-  const currentUser = configStore.get('user');
+  const currentUser = ConfigStore.get('user');
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
   const releaseListUrl = props.projectSlug
@@ -114,10 +115,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
     );
 
     if (exactRelease) {
-      const exactOption: (typeof baseOptions)[number] = makeReleaseOption(
-        exactRelease,
-        currentUser?.email
-      );
+      const exactOption = makeReleaseOption(exactRelease, currentUser?.email);
 
       const filtered = baseOptions.filter(opt => opt.value !== exactOption.value);
       filtered.unshift(exactOption);
@@ -150,14 +148,15 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
         <StyledCompactSelect
           id="version"
           clearable
-          searchable
-          disableSearchFilter
+          search={{
+            placeholder: t('Search versions'),
+            filter: false,
+            onChange: setSearchQuery,
+          }}
           options={options}
           value={version}
           loading={isFetching}
-          searchPlaceholder={t('Search versions')}
           emptyMessage={isFetching ? t('Loading releases\u2026') : t('No releases found')}
-          onSearch={setSearchQuery}
           onChange={option => {
             setVersion(option?.value ? String(option.value) : '');
             setSelectionError(null);
@@ -165,15 +164,19 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
           }}
           menuTitle={t('Version')}
           menuWidth={548}
-          triggerProps={{
-            prefix: t('Version'),
-            'aria-label': t('Version'),
-            children: version
-              ? undefined
-              : isFetching
-                ? t('Loading\u2026')
-                : t('Select a version'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              prefix={t('Version')}
+              aria-label={t('Version')}
+            >
+              {version
+                ? triggerProps.children
+                : isFetching
+                  ? t('Loading\u2026')
+                  : t('Select a version')}
+            </OverlayTrigger.Button>
+          )}
           onClose={() => setSearchQuery('')}
         />
         {selectionError ? <ErrorText role="alert">{selectionError}</ErrorText> : null}
@@ -210,8 +213,6 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
   );
 }
 
-export default CustomResolutionModal;
-
 const StyledCompactSelect = styled(CompactSelect)`
   width: 100%;
 
@@ -230,6 +231,6 @@ const PlaceholderLink = styled('span')`
 `;
 
 const ErrorText = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   margin-top: ${p => p.theme.space.sm};
 `;

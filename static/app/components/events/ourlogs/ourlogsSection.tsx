@@ -1,9 +1,11 @@
 import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -13,18 +15,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TableBody} from 'sentry/views/explore/components/table';
 import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LOGS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -114,20 +114,18 @@ function OurlogsSectionContent({
             freeze={traceId ? {traceId} : undefined}
           >
             <LogsPageDataProvider disabled={!traceId}>
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <OurlogsDrawer
-                  group={group}
-                  event={event}
-                  project={project}
-                  embeddedOptions={
-                    expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
-                  }
-                  additionalData={{
-                    event,
-                    scrollToDisabled: !!expandedLogId,
-                  }}
-                />
-              </TraceItemAttributeProvider>
+              <OurlogsDrawer
+                group={group}
+                event={event}
+                project={project}
+                embeddedOptions={
+                  expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
+                }
+                additionalData={{
+                  event,
+                  scrollToDisabled: !!expandedLogId,
+                }}
+              />
             </LogsPageDataProvider>
           </LogsQueryParamsProvider>
         ),
@@ -174,7 +172,7 @@ function OurlogsSectionContent({
       title={t('Logs')}
       data-test-id="logs-data-section"
     >
-      <SmallTableContentWrapper>
+      <Stack>
         <SmallTable>
           <TableBody>
             {abbreviatedTableData?.map((row, index) => (
@@ -204,7 +202,7 @@ function OurlogsSectionContent({
             </Button>
           </div>
         ) : null}
-      </SmallTableContentWrapper>
+      </Stack>
     </InterimSection>
   );
 }
@@ -212,9 +210,4 @@ function OurlogsSectionContent({
 const SmallTable = styled('table')`
   display: grid;
   grid-template-columns: 15px auto 1fr;
-`;
-
-const SmallTableContentWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;

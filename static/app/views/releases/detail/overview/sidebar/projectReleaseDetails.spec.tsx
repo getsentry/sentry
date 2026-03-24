@@ -4,7 +4,7 @@ import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import ProjectReleaseDetails from './projectReleaseDetails';
+import {ProjectReleaseDetails} from './projectReleaseDetails';
 
 describe('ProjectReleaseDetails', () => {
   it('should dislay if the release is using semver', () => {

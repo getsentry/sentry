@@ -1,0 +1,281 @@
+from unittest import mock
+
+import pytest
+from django.db.models.signals import post_save
+
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.issue_detection.performance_detection import PERFORMANCE_DETECTOR_CONFIG_MAPPINGS
+from sentry.models.project import Project
+from sentry.receivers.project_detectors import (
+    create_default_anomaly_detector,
+    disable_default_detector_creation,
+)
+from sentry.signals import project_created
+from sentry.snuba.models import QuerySubscription
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.models import DataSource, Detector
+from sentry.workflow_engine.models.data_condition import Condition, DataCondition
+from sentry.workflow_engine.processors.detector import (
+    ensure_default_anomaly_detector,
+    ensure_performance_detectors,
+)
+from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+
+class TestEnsureMetricDetector(TestCase):
+    def test_creates_detector_with_all_components(self):
+        """Test that ensure_default_anomaly_detector creates detector with all required components."""
+        project = self.create_project()
+        team = self.create_team(organization=project.organization)
+        project.add_team(team)
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.detector.send_new_detector_data"
+        ) as mock_send:
+            detector = ensure_default_anomaly_detector(
+                project, owner_team_id=team.id, enabled=False
+            )
+            assert detector is not None
+            mock_send.assert_called_once_with(detector)
+
+        # Verify detector
+        assert detector.project == project
+        assert detector.name == "High Error Count (Default)"
+        assert detector.type == MetricIssue.slug
+        assert detector.owner_team_id == team.id
+        assert detector.enabled is False
+        assert detector.config["detection_type"] == AlertRuleDetectionType.DYNAMIC.value
+
+        # Verify condition group and condition
+        condition_group = detector.workflow_condition_group
+        assert condition_group is not None
+        conditions = DataCondition.objects.filter(condition_group=condition_group)
+        assert conditions.count() == 1
+        condition = conditions.first()
+        assert condition is not None
+        assert condition.type == Condition.ANOMALY_DETECTION
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        # Verify data source and subscription
+        data_source = DataSource.objects.get(
+            organization_id=project.organization_id,
+            type="snuba_query_subscription",
+        )
+        assert data_source.detectors.filter(id=detector.id).exists()
+
+        subscription = QuerySubscription.objects.get(id=int(data_source.source_id))
+        assert subscription.project == project
+        snuba_query = subscription.snuba_query
+        assert snuba_query.aggregate == "count()"
+        assert snuba_query.time_window == 60 * 15  # 15 minutes in seconds
+
+    def test_creates_detector_without_team(self):
+        """Test that detector can be created without an owner team."""
+        project = self.create_project()
+
+        with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
+            detector = ensure_default_anomaly_detector(project, owner_team_id=None, enabled=True)
+
+        assert detector is not None
+        assert detector.owner_team_id is None
+        assert detector.enabled is True
+
+    def test_send_new_detector_data_failure_blocks_creation(self):
+        """Test that detector is NOT created if sending data to Seer fails."""
+        project = self.create_project()
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.detector.send_new_detector_data",
+            side_effect=Exception("Seer unavailable"),
+        ):
+            with pytest.raises(Exception, match="Seer unavailable"):
+                ensure_default_anomaly_detector(project)
+
+        # Transaction was rolled back, so no detector should exist
+        assert not Detector.objects.filter(project=project, type=MetricIssue.slug).exists()
+
+    def test_returns_existing_detector_without_creating_duplicates(self):
+        """Test that calling ensure_default_anomaly_detector twice returns the same detector."""
+        project = self.create_project()
+
+        with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
+            detector1 = ensure_default_anomaly_detector(project)
+            detector2 = ensure_default_anomaly_detector(project)
+
+        assert detector1 is not None
+        assert detector2 is not None
+        assert detector1.id == detector2.id
+        assert Detector.objects.filter(project=project, type=MetricIssue.slug).count() == 1
+        assert DataSource.objects.filter(organization_id=project.organization_id).count() == 1
+        assert QuerySubscription.objects.filter(project=project).count() == 1
+
+
+class TestCreateDefaultAnomalyDetector(TestCase):
+    @with_feature("organizations:default-anomaly-detector")
+    @with_feature("organizations:anomaly-detection-alerts")
+    def test_creates_enabled_detector_when_both_features_enabled(self):
+        """Test that detector is created and enabled when both feature flags are enabled."""
+        project = self.create_project()
+        # Get the team that was auto-created with the project
+        team = project.teams.first()
+        assert team is not None
+
+        with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
+            create_default_anomaly_detector(project, user=self.user)
+
+        detector = Detector.objects.get(project=project, type=MetricIssue.slug)
+        assert detector.name == "High Error Count (Default)"
+        assert detector.owner_team_id == team.id
+        assert detector.enabled is True
+
+    @with_feature("organizations:default-anomaly-detector")
+    def test_creates_disabled_detector_when_plan_feature_missing(self):
+        """Test that detector is created but disabled when anomaly-detection-alerts is off."""
+        project = self.create_project()
+
+        with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
+            create_default_anomaly_detector(project, user=self.user)
+
+        detector = Detector.objects.get(project=project, type=MetricIssue.slug)
+        assert detector.enabled is False
+
+    @with_feature({"organizations:default-anomaly-detector": False})
+    def test_does_not_create_detector_when_feature_disabled(self):
+        """Test that detector is not created when feature flag is disabled."""
+        project = self.create_project()
+
+        create_default_anomaly_detector(project, user=self.user)
+
+        assert not Detector.objects.filter(project=project, type=MetricIssue.slug).exists()
+
+    @with_feature("organizations:default-anomaly-detector")
+    def test_creates_detector_without_team(self):
+        """Test that detector is created even when project has no teams."""
+        project = self.create_project()
+        # Remove all teams
+        project.teams.clear()
+
+        with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
+            create_default_anomaly_detector(project, user=self.user)
+
+        detector = Detector.objects.get(project=project, type=MetricIssue.slug)
+        assert detector.owner_team_id is None
+
+
+class TestDisableDefaultDetectorCreation(TestCase):
+    def test_context_manager_disables_signal(self):
+        """Test that disable_default_detector_creation prevents default detectors."""
+        with disable_default_detector_creation():
+            project = self.create_project(create_default_detectors=True)
+
+        # Default detectors should not be created
+        assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+        assert not Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).exists()
+
+    def test_context_manager_reconnects_on_exception(self):
+        """Test that signals are reconnected even if exception occurs."""
+        try:
+            with disable_default_detector_creation():
+                raise ValueError("Test exception")
+        except ValueError:
+            pass
+
+        # post_save signal should be reconnected
+        receiver_uids = [r[0][0] for r in post_save.receivers if r[0][1] == id(Project)]
+        assert "create_project_detectors" in receiver_uids
+
+        # project_created signal should be reconnected
+        project_created_uids = [r[0][0] for r in project_created.receivers]
+        assert "create_default_anomaly_detector" in project_created_uids
+
+    @with_feature("organizations:default-anomaly-detector")
+    def test_context_manager_disables_metric_detector_signal(self):
+        """Test that disable_default_detector_creation also prevents metric detector creation."""
+        with (
+            disable_default_detector_creation(),
+            mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"),
+        ):
+            # fire_project_created=True ensures the project_created signal is sent
+            project = self.create_project(fire_project_created=True)
+
+        # Metric detector should not be created because the signal handler was disconnected
+        assert not Detector.objects.filter(project=project, type=MetricIssue.slug).exists()
+
+
+class TestCreatePerformanceDetectors(TestCase):
+    @with_feature("projects:workflow-engine-performance-detectors")
+    def test_creates_detectors_on_project_creation(self):
+        project = self.create_project()
+
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            assert Detector.objects.filter(project=project, type=mapping.wfe_detector_type).exists()
+
+    def test_does_not_create_detectors_when_flag_disabled(self):
+        project = self.create_project()
+
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            assert not Detector.objects.filter(
+                project=project, type=mapping.wfe_detector_type
+            ).exists()
+
+    @with_feature("projects:workflow-engine-performance-detectors")
+    def test_idempotent_no_duplicates(self):
+        with disable_default_detector_creation():
+            project = self.create_project()
+
+        ensure_performance_detectors(project)
+        ensure_performance_detectors(project)
+
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            assert (
+                Detector.objects.filter(project=project, type=mapping.wfe_detector_type).count()
+                == 1
+            )
+
+    @with_feature("projects:workflow-engine-performance-detectors")
+    def test_disable_default_detector_creation_prevents_performance_detectors(self):
+        with disable_default_detector_creation():
+            project = self.create_project()
+
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            assert not Detector.objects.filter(
+                project=project, type=mapping.wfe_detector_type
+            ).exists()
+
+    @with_feature("projects:workflow-engine-performance-detectors")
+    @mock.patch(
+        "sentry.workflow_engine.processors.detector.DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS",
+        {
+            "slow_db_queries_detection_enabled": True,
+            "large_http_payload_detection_enabled": True,
+            "db_query_injection_detection_enabled": False,
+        },
+    )
+    @mock.patch(
+        "sentry.workflow_engine.processors.detector.get_disabled_platforms_by_detector_type",
+        return_value={
+            "performance_slow_db_query": frozenset({"ruby", "php"}),
+        },
+    )
+    def test_respects_default_enabled_state(self, mock_disabled_platforms):
+        """Test that detectors respect both platform-specific disabling and default enabled state."""
+        with disable_default_detector_creation():
+            project = self.create_project(platform="ruby")
+
+        ensure_performance_detectors(project)
+
+        # Disabled because platform is in the disabled list
+        detector = Detector.objects.get(project=project, type="performance_slow_db_query")
+        assert detector.enabled is False
+
+        # Enabled: platform not in any disabled list and default is True
+        detector = Detector.objects.get(project=project, type="performance_large_http_payload")
+        assert detector.enabled is True
+
+        # Disabled because default setting is False (regardless of platform)
+        detector = Detector.objects.get(project=project, type="query_injection_vulnerability")
+        assert detector.enabled is False

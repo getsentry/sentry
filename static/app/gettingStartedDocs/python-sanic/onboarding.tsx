@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
@@ -39,11 +40,11 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI with the [code:sanic] extra:', {
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
             code: <code />,
           }),
         },
-        getPythonInstallCodeBlock({packageName: 'sentry-sdk[sanic]'}),
+        getPythonInstallCodeBlock({additionalPackage: 'sanic'}),
         ...getPythonAiocontextvarsCodeBlocks(),
       ],
     },

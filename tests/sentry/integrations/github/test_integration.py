@@ -454,7 +454,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_plugin_migration(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             accessible_repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -477,7 +477,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # Updates the existing Repository to belong to the new Integration
             assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
             # Doesn't touch Repositories not accessible by the new Integration
@@ -599,7 +599,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_disable_plugin_when_fully_migrated(self) -> None:
         self._stub_github()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             project = Project.objects.create(organization_id=self.organization.id)
 
             plugin = plugins.get("github")
@@ -696,7 +696,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_stacktrace_link_file_exists(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -726,7 +726,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -756,7 +756,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -899,10 +899,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def _expected_trees(self, repo_info_list=None):
         result = {}
-        # bar and baz are defined to fail, thus, do not show up in the default case
+        # bar (409 empty repo) returns an empty RepoTree since we cache the result
+        # baz (404) still fails and is excluded
         list = repo_info_list or [
             ("xyz", "master", ["src/xyz.py"]),
             ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+            ("bar", "main", []),
         ]
         for repo, branch, files in list:
             result[f"{self.gh_org}/{repo}"] = RepoTree(
@@ -983,6 +985,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     ("xyz", "master", ["src/xyz.py"]),
                     # Now that the rate limit is reset we should get files for foo
                     ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                    ("bar", "main", []),
                 ]
             )
 
@@ -1007,12 +1010,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # This time the rate limit will not fail, thus, it will fetch the trees
+        # bar (409 empty repo) now returns an empty RepoTree since we cache the empty result
         self.set_rate_limit()
         trees = installation.get_trees_for_org()
         assert trees == self._expected_trees(
             [
                 ("xyz", "master", ["src/xyz.py"]),
                 ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                ("bar", "main", []),
             ]
         )
 
@@ -1053,15 +1058,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=2,
         ):
-
             trees = installation.get_trees_for_org()
             assert trees == self._expected_trees(
                 [
                     # xyz is missing because its request errors
                     # foo has data because its API request is made in spite of xyz's error
                     ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
-                    # bar and baz are missing because their API requests throw errors for
-                    # other reasons in the default mock responses
+                    # bar (409 empty repo) is present with empty files since we cache the result
+                    # baz (404) is missing because its API request throws an error
+                    ("bar", "main", []),
                 ]
             )
 
@@ -1087,7 +1092,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=1,
         ):
-
             trees = installation.get_trees_for_org()
             assert trees == self._expected_trees(
                 [
@@ -1104,7 +1108,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_commit_context_all_frames(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -1201,7 +1205,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = self.get_installation_helper()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/repo",
@@ -1220,7 +1224,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = self.get_installation_helper()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/repo",
@@ -1242,7 +1246,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test that URLs with special characters (like square brackets) are properly encoded"""
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -1274,7 +1278,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test that URLs with special characters (like square brackets) are properly encoded"""
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -1339,21 +1343,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_render: MagicMock, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         installations = [
             {
                 "installation_id": "1",
                 "github_account": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                "count": 1,
             },
             {
                 "installation_id": "2",
                 "github_account": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                "count": 1,
             },
             {
                 "installation_id": "-1",
                 "github_account": "Integrate with a new GitHub organization",
                 "avatar_url": "",
+                "count": 0,
             },
         ]
 
@@ -1494,21 +1503,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_render: MagicMock, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         installations = [
             {
                 "installation_id": "1",
                 "github_account": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                "count": 1,
             },
             {
                 "installation_id": "2",
                 "github_account": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                "count": 1,
             },
             {
                 "installation_id": "-1",
                 "github_account": "Integrate with a new GitHub organization",
                 "avatar_url": "",
+                "count": 0,
             },
         ]
 
@@ -1539,21 +1553,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_render: MagicMock, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         installations = [
             {
                 "installation_id": "1",
                 "github_account": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                "count": 1,
             },
             {
                 "installation_id": "2",
                 "github_account": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                "count": 1,
             },
             {
                 "installation_id": "-1",
                 "github_account": "Integrate with a new GitHub organization",
                 "avatar_url": "",
+                "count": 0,
             },
         ]
 
@@ -1574,7 +1593,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # We rendered the GithubOrganizationSelection UI and the user chose to skip
-        resp = self._setup_choose_installation("12345")
+        resp = self._setup_choose_installation("1")
 
         self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
         assert (
@@ -1583,6 +1602,41 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         assert b'window.opener.postMessage({"success":false' in resp.content
         assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)
+
+    @with_feature({"organizations:integrations-scm-multi-org": False})
+    @responses.activate
+    def test_allows_installing_orphaned_integration(self) -> None:
+        self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
+        OrganizationIntegration.objects.all().delete()
+
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/app/installations/1",
+            json={
+                "id": "1",
+                "app_id": self.app_id,
+                "account": {
+                    "id": "1",
+                    "login": "poggers-org",
+                    "avatar_url": "http://example.com/bufo-pog.png",
+                    "html_url": "https://github.com/pog-organization",
+                    "type": "Organization",
+                },
+            },
+        )
+
+        self._setup_select_github_organization()
+        resp = self._setup_choose_installation("1")
+
+        self.assertDialogSuccess(resp)
+
+        integration = Integration.objects.get(external_id="1")
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=integration
+        ).exists()
 
     @with_feature("organizations:integrations-scm-multi-org")
     @responses.activate
@@ -1645,6 +1699,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         chosen_installation_id = "1"
 
         self._setup_select_github_organization()
@@ -1665,7 +1721,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)
 
     @responses.activate
-    @with_feature("organizations:integrations-github-project-management")
     def test_get_organization_config(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -1790,7 +1845,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 1
@@ -1815,7 +1870,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 1
@@ -1838,7 +1893,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=False)
 
         assert len(responses.calls) == 1
@@ -1856,7 +1911,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 0
@@ -1871,7 +1926,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 0
@@ -1891,7 +1946,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 1
@@ -1927,7 +1982,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, None, assign=True)
 
         # Should not make any API calls when user is None and assign=True
@@ -1966,7 +2021,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             json={"state": "closed", "number": 123},
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_status_outbound(
                 external_issue, is_resolved=True, project_id=self.project.id
             )
@@ -2009,7 +2064,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             json={"state": "open", "number": 123},
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_status_outbound(
                 external_issue, is_resolved=False, project_id=self.project.id
             )
@@ -2047,7 +2102,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # Test resolve when already closed - should not make update call
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_status_outbound(
                 external_issue, is_resolved=True, project_id=self.project.id
             )
@@ -2063,7 +2118,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = self.integration.get_installation(self.organization.id)
 
         # Create external issue without project mapping
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             external_issue = self.create_integration_external_issue(
                 group=self.group,
                 integration=self.integration,
@@ -2071,7 +2126,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
         # No responses needed - should return early
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # Should not raise an exception, just return early
             installation.sync_status_outbound(
                 external_issue, is_resolved=True, project_id=self.project.id
@@ -2106,7 +2161,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             status=404,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             with pytest.raises(IntegrationError):
                 installation.sync_status_outbound(
                     external_issue, is_resolved=True, project_id=self.project.id
@@ -2149,7 +2204,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # Test that error is raised properly
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             with pytest.raises(IntegrationError):
                 installation.sync_status_outbound(
                     external_issue, is_resolved=True, project_id=self.project.id
@@ -2186,3 +2241,28 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     "body": "**** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     I've changed it"
                 },
             )
+
+    @responses.activate
+    def test_get_debug_metadata(self) -> None:
+        installation = self.get_installation_helper()
+        metadata = installation.get_debug_metadata()
+
+        assert metadata == {
+            "account_type": "Organization",
+            "domain_name": "github.com/Test-Organization",
+            "permissions": {
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
+        }
+
+        del installation.model.metadata["permissions"]
+        metadata = installation.get_debug_metadata()
+        assert metadata == {
+            "account_type": "Organization",
+            "domain_name": "github.com/Test-Organization",
+            "permissions": None,
+        }

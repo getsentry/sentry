@@ -1,7 +1,8 @@
 import {Flex} from '@sentry/scraps/layout';
+import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
-import {TabList, TabPanels, TabStateProvider} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
 import {
@@ -11,6 +12,7 @@ import {
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsMode,
@@ -26,33 +28,39 @@ interface MetricInfoTabsProps {
   isMetricOptionsEmpty?: boolean;
 }
 
-export default function MetricInfoTabs({
+export function MetricInfoTabs({
   traceMetric,
   additionalActions,
   contentsHidden,
   orientation,
   isMetricOptionsEmpty,
 }: MetricInfoTabsProps) {
+  const organization = useOrganization();
   const visualize = useMetricVisualize();
   const queryParamsMode = useQueryParamsMode();
   const setAggregatesMode = useSetQueryParamsMode();
+
+  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
+
+  const size = hasMetricsUIRefresh ? 'md' : 'xs';
+
   return (
     <TabStateProvider<Mode>
-      defaultValue={queryParamsMode}
+      value={queryParamsMode}
       onChange={mode => {
         setAggregatesMode(mode);
       }}
-      size="xs"
+      size={size}
     >
       {(orientation === 'right' || visualize.visible) && (
         <Flex direction="row" justify="between" align="center" paddingRight="xl">
           <TabListWrapper orientation={orientation}>
-            <TabList>
-              <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
-                {t('Aggregates')}
-              </TabList.Item>
+            <TabList variant="floating">
               <TabList.Item key={Mode.SAMPLES} disabled={contentsHidden}>
                 {t('Samples')}
+              </TabList.Item>
+              <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
+                {t('Aggregates')}
               </TabList.Item>
             </TabList>
           </TabListWrapper>

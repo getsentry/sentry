@@ -4,7 +4,7 @@ import merge from 'lodash/merge';
 
 type Props = YAXisComponentOption & {theme: Theme};
 
-export default function YAxis({theme, ...props}: Props): YAXisComponentOption {
+export function YAxis({theme, ...props}: Props): YAXisComponentOption {
   return merge(
     {
       axisLine: {
@@ -14,12 +14,12 @@ export default function YAxis({theme, ...props}: Props): YAXisComponentOption {
         show: false,
       },
       axisLabel: {
-        color: theme.chartLabel,
-        fontFamily: theme.text.family,
+        color: theme.tokens.content.secondary,
+        fontFamily: theme.font.family.sans,
       },
       splitLine: {
         lineStyle: {
-          color: theme.chartLineColor,
+          color: theme.colors.gray300,
           opacity: 0.3,
         },
       },

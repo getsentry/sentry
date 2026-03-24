@@ -1,14 +1,13 @@
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
-import {space} from 'sentry/styles/space';
+import {Panel} from 'sentry/components/panels/panel';
 
 export const ModalChartContainer = styled('div')`
   height: 280px;
 `;
 
 export const ModalTableWrapper = styled(Panel)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const getColumns = (props: {columns?: number}) => {
@@ -18,11 +17,11 @@ const getColumns = (props: {columns?: number}) => {
 export const WidgetFooterTable = styled('div')<{columns?: number}>`
   display: grid;
   grid-template-columns: max-content 1fr repeat(${p => getColumns(p) - 2}, max-content);
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   width: 100%;
 
   & > * {
-    padding: ${space(1)} ${space(0.5)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xs};
     text-align: right;
   }
 
@@ -32,19 +31,23 @@ export const WidgetFooterTable = styled('div')<{columns?: number}>`
   }
 
   & > *:nth-child(${p => getColumns(p)}n + 2) {
-    ${p => p.theme.overflowEllipsis};
-    padding-left: ${space(1.5)};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: ${p => p.theme.space.lg};
     min-width: 0px;
     text-align: left;
   }
 
   & > *:nth-child(${p => getColumns(p)}n) {
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space.xl};
     text-align: right;
   }
 
   & > *:not(:nth-last-child(-n + ${p => getColumns(p)})) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -58,8 +61,8 @@ export const SeriesColorIndicator = styled('div')`
 
 const StyledGrid = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  padding-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.xl};
 
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 190px 190px 300px 300px 300px 300px;

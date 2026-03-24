@@ -2,20 +2,21 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {Container, Stack} from '@sentry/scraps/layout';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
-import Placeholder from 'sentry/components/placeholder';
-import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
+import {Placeholder} from 'sentry/components/placeholder';
+import {ReplayTagsTableRow} from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useOrganization from 'sentry/utils/useOrganization';
-import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
-import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
-import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TabItemContainer} from 'sentry/views/replays/detail/tabItemContainer';
+import {TagFilters} from 'sentry/views/replays/detail/tagPanel/tagFilters';
+import {useTagFilters} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
-export default function TagPanel() {
+export function TagPanel() {
   const organization = useOrganization();
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
@@ -59,9 +60,10 @@ export default function TagPanel() {
       query: {
         // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
         query: `${name}:"${value}"`,
+        project: replayRecord?.project_id,
       },
     }),
-    [organization]
+    [organization, replayRecord?.project_id]
   );
 
   if (!replayRecord) {
@@ -70,10 +72,10 @@ export default function TagPanel() {
   const filteredTags = Object.entries(items);
 
   return (
-    <Wrapper>
+    <Stack wrap="nowrap" minHeight="0">
       <TagFilters tags={tags} {...filterProps} />
       <TabItemContainer>
-        <OverflowBody>
+        <Container as="section" flex="1 1 auto" overflow="auto">
           {filteredTags.length ? (
             <KeyValueTable noMargin>
               {filteredTags.map(([key, values]) => (
@@ -88,24 +90,12 @@ export default function TagPanel() {
           ) : (
             <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
           )}
-        </OverflowBody>
+        </Container>
       </TabItemContainer>
-    </Wrapper>
+    </Stack>
   );
 }
 
 const PaddedPlaceholder = styled(Placeholder)`
-  padding-top: ${space(1)};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  min-height: 0;
-`;
-
-const OverflowBody = styled('section')`
-  flex: 1 1 auto;
-  overflow: auto;
+  padding-top: ${p => p.theme.space.md};
 `;

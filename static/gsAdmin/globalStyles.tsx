@@ -4,19 +4,19 @@ import {css, Global} from '@emotion/react';
 const styles = (theme: Theme) => css`
   body {
     color: ${theme.tokens.content.primary};
-    background: ${theme.backgroundSecondary};
+    background: ${theme.tokens.background.secondary};
   }
 
   a {
-    color: ${theme.linkColor};
+    color: ${theme.tokens.interactive.link.accent.rest};
     &:hover {
-      color: ${theme.linkHoverColor};
+      color: ${theme.tokens.interactive.link.accent.hover};
     }
   }
 
   .loading .loading-indicator {
-    border-color: ${theme.backgroundSecondary};
-    border-left-color: ${theme.purple300};
+    border-color: ${theme.tokens.border.transparent.neutral.muted};
+    border-left-color: ${theme.tokens.graphics.accent.vibrant};
   }
 
   acronym,
@@ -29,8 +29,6 @@ const styles = (theme: Theme) => css`
 /**
  * Renders an emotion global styles injection component
  */
-function GlobalStyles({theme}: {theme: Theme}) {
+export function GlobalStyles({theme}: {theme: Theme}) {
   return <Global styles={styles(theme)} />;
 }
-
-export default GlobalStyles;

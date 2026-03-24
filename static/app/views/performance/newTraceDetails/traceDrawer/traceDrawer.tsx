@@ -2,17 +2,16 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconCircleFill, IconClose, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {Color} from 'sentry/utils/theme';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {DrawerContainerRefContext} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
@@ -24,10 +23,9 @@ import type {
   TraceShape,
   TraceTree,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {makeTraceNodeBarColor} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import type {
   TraceReducerAction,
   TraceReducerState,
@@ -37,19 +35,14 @@ import {
   useTraceState,
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {
-  getTraceTabTitle,
-  type TraceTabsReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
+import {type TraceTabsReducerState} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
   meta: TraceMetaQueryResults;
-  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onScrollToNode: (node: BaseNode) => void;
+  onTabScrollToNode: (node: BaseNode) => void;
   replay: ReplayRecord | null;
   scheduler: TraceScheduler;
   trace: TraceTree;
@@ -206,7 +199,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
 
   const {onMouseDown, size} = usePassiveResizableDrawer(resizableDrawerOptions);
   const onParentClick = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+    (node: BaseNode) => {
       props.onTabScrollToNode(node);
       traceDispatch({
         type: 'activate tab',
@@ -298,11 +291,11 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.traceGridRef.style.gridTemplateRows = `1fr minmax(${minimizedBottomDrawerSize}px, 0%)`;
         size.current = minimizedBottomDrawerSize;
       } else if (traceStateRef.current.preferences.layout === 'drawer left') {
-        props.traceGridRef.style.gridTemplateColumns = `minmax(${0}px, 0%) 1fr`;
+        props.traceGridRef.style.gridTemplateColumns = `minmax(0px, 0%) 1fr`;
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
         size.current = 0;
       } else {
-        props.traceGridRef.style.gridTemplateColumns = `1fr minmax(${0}px, 0%)`;
+        props.traceGridRef.style.gridTemplateColumns = `1fr minmax(0px, 0%)`;
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
         size.current = 0;
       }
@@ -388,18 +381,19 @@ export function TraceDrawer(props: TraceDrawerProps) {
             data-test-id="trace-drawer"
           >
             <ContentWrapper>
-              {traceState.tabs.current_tab ? (
-                <TraceTreeNodeDetails
-                  tree={props.trace}
-                  replay={props.replay}
-                  manager={props.manager}
-                  organization={organization}
-                  onParentClick={onParentClick}
-                  node={traceState.tabs.current_tab.node}
-                  traceId={props.traceId}
-                  onTabScrollToNode={props.onTabScrollToNode}
-                />
-              ) : null}
+              {traceState.tabs.current_tab &&
+              typeof traceState.tabs.current_tab.node !== 'string'
+                ? traceState.tabs.current_tab.node.renderDetails({
+                    manager: props.manager,
+                    node: traceState.tabs.current_tab.node,
+                    onParentClick,
+                    onTabScrollToNode: props.onTabScrollToNode,
+                    organization,
+                    replay: props.replay,
+                    traceId: props.traceId,
+                    tree: props.trace,
+                  })
+                : null}
             </ContentWrapper>
           </Content>
         </DrawerContainerRefContext>
@@ -410,7 +404,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
 
 interface TraceDrawerTabProps {
   index: number;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onTabScrollToNode: (node: BaseNode) => void;
   pinned: boolean;
   tab: TraceTabsReducerState['tabs'][number];
   theme: Theme;
@@ -443,9 +437,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         {props.tab.node === 'trace' ||
         props.tab.node === 'vitals' ||
         props.tab.node === 'profiles' ? null : (
-          <TabButtonIndicator
-            backgroundColor={makeTraceNodeBarColor(props.theme, root!)}
-          />
+          <TabButtonIndicator backgroundColor={root!.makeBarColor(props.theme)} />
         )}
         <TabButton>{props.tab.label ?? node}</TabButton>
       </Tab>
@@ -462,11 +454,8 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         props.traceDispatch({type: 'activate tab', payload: props.index});
       }}
     >
-      <StyledIconCircleFilled
-        size="xs"
-        color={makeTraceNodeBarColor(props.theme, node) as Color}
-      />
-      <TabButton>{getTraceTabTitle(node)}</TabButton>
+      <StyledIconCircleFilled size="xs" fill={node.makeBarColor(props.theme)} />
+      <TabButton>{node.drawerTabsTitle}</TabButton>
       <TabPinButton
         pinned={props.pinned}
         onClick={e => {
@@ -489,7 +478,6 @@ function TraceLayoutMinimizeButton(props: {
     <CloseButton
       priority="link"
       size="xs"
-      borderless
       aria-label={t('Close Drawer')}
       icon={<StyledIconClose />}
       onClick={props.onClick}
@@ -505,8 +493,8 @@ const StyledIconClose = styled(IconClose)`
 `;
 
 const CloseButton = styled(Button)`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 100%;
   border-bottom: 2px solid transparent;
   &:hover {
@@ -514,8 +502,9 @@ const CloseButton = styled(Button)`
   }
 `;
 
-const StyledIconCircleFilled = styled(IconCircleFill)`
-  margin-right: ${space(0.25)};
+const StyledIconCircleFilled = styled(IconCircleFill)<{fill: string}>`
+  margin-right: ${p => p.theme.space['2xs']};
+  fill: ${p => p.fill};
 `;
 
 const ResizeableHandle = styled('div')<{
@@ -542,11 +531,11 @@ const PanelWrapper = styled('div')<{
   overflow: hidden;
   width: 100%;
   border-top: ${p =>
-    p.layout === 'drawer bottom' ? `1px solid ${p.theme.border}` : 'none'};
+    p.layout === 'drawer bottom' ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
   border-left: ${p =>
-    p.layout === 'drawer right' ? `1px solid ${p.theme.border}` : 'none'};
+    p.layout === 'drawer right' ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
   border-right: ${p =>
-    p.layout === 'drawer left' ? `1px solid ${p.theme.border}` : 'none'};
+    p.layout === 'drawer left' ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
   bottom: 0;
   right: 0;
   position: relative;
@@ -566,15 +555,15 @@ const TabsHeightContainer = styled('div')<{
   right: ${p => (p.layout === 'drawer right' ? '0' : 'initial')};
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
   height: 38px;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
 `;
 
 const TabsLayout = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr auto;
-  padding-left: ${space(1)};
-  padding-right: ${space(0.5)};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.xs};
   width: 100%;
 `;
 
@@ -585,7 +574,7 @@ const TabsContainer = styled('ul')`
   width: 100%;
   align-items: center;
   justify-content: left;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   padding-left: 0;
   margin-bottom: 0;
 `;
@@ -599,17 +588,18 @@ const TabActions = styled('ul')`
   flex: none;
 
   button {
-    padding: 0 ${space(0.25)};
+    padding: 0 ${p => p.theme.space['2xs']};
   }
 `;
 
 const TabSeparator = styled('span')`
   display: inline-block;
-  margin-left: ${space(0.5)};
-  margin-right: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
+  margin-right: ${p => p.theme.space.xs};
   height: 16px;
   width: 1px;
-  background-color: ${p => p.theme.border};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background-color: ${p => p.theme.tokens.border.primary};
   transform: translateY(3px);
 `;
 
@@ -628,7 +618,7 @@ const Tab = styled('li')`
   display: flex;
   align-items: center;
   border-bottom: 2px solid transparent;
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   position: relative;
 
   &.Static + li:not(.Static) {
@@ -643,12 +633,13 @@ const Tab = styled('li')`
       transform: translateY(-50%);
       height: 16px;
       width: 1px;
-      background-color: ${p => p.theme.border};
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background-color: ${p => p.theme.tokens.border.primary};
     }
   }
 
   &:hover {
-    border-bottom: 2px solid ${p => p.theme.blue200};
+    border-bottom: 2px solid ${p => p.theme.tokens.border.accent.vibrant};
 
     button:last-child {
       transition: all 0.3s ease-in-out 500ms;
@@ -657,7 +648,7 @@ const Tab = styled('li')`
     }
   }
   &[aria-selected='true'] {
-    border-bottom: 2px solid ${p => p.theme.blue400};
+    border-bottom: 2px solid ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
@@ -666,7 +657,7 @@ const TabButtonIndicator = styled('div')<{backgroundColor: string}>`
   height: 12px;
   min-width: 12px;
   border-radius: 2px;
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
   background-color: ${p => p.backgroundColor};
 `;
 
@@ -681,8 +672,8 @@ const TabButton = styled('button')`
 
   border-radius: 0;
   margin: 0;
-  padding: 0 ${space(0.25)};
-  font-size: ${p => p.theme.fontSize.sm};
+  padding: 0 ${p => p.theme.space['2xs']};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   background: transparent;
 `;
@@ -701,13 +692,12 @@ function TabPinButton(props: {
   pinned: boolean;
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
-  const theme = useTheme();
   return (
     <StyledButton
       data-test-id="trace-drawer-tab-pin-button"
       size="zero"
       onClick={props.onClick}
-      priority={theme.isChonk ? 'transparent' : 'default'}
+      priority="transparent"
       aria-label={props.pinned ? t('Unpin Tab') : t('Pin Tab')}
       icon={<StyledIconPin size="xs" isSolid={props.pinned} />}
     />
@@ -725,6 +715,6 @@ const StyledIconPin = styled(IconPin)`
 `;
 
 const ContentWrapper = styled('div')`
-  inset: ${space(1)};
+  inset: ${p => p.theme.space.md};
   position: absolute;
 `;

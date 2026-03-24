@@ -119,8 +119,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
 
         timestamp = self.data["timestamp"]
-        date = datetime.fromtimestamp(timestamp)
-        date = date.replace(tzinfo=timezone.utc)
+        date = datetime.fromtimestamp(timestamp, tz=timezone.utc)
         return date
 
     @property
@@ -290,7 +289,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         from sentry.models.project import Project
 
         if not hasattr(self, "_project_cache"):
-            self._project_cache = Project.objects.get(id=self.project_id)
+            self._project_cache = Project.objects.get_from_cache(id=self.project_id)
         return self._project_cache
 
     @project.setter
@@ -599,8 +598,8 @@ class Event(BaseEvent):
         return state
 
     def __repr__(self) -> str:
-        return "<sentry.services.eventstore.models.Event at 0x{:x}: event_id={}>".format(
-            id(self), self.event_id
+        return (
+            f"<sentry.services.eventstore.models.Event at 0x{id(self):x}: event_id={self.event_id}>"
         )
 
     @property

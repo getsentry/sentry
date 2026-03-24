@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import {space} from 'sentry/styles/space';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   makePerformanceScoreColors,
   type PerformanceScore,
@@ -18,7 +18,7 @@ type Props = {
   onClick?: () => void;
 };
 
-function VitalCard({
+export function VitalCard({
   description,
   formattedValue,
   status,
@@ -56,14 +56,14 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 `;
 
 const MeterBarBody = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   border-bottom: none;
-  padding: ${space(1)} 0 ${space(0.5)} 0;
+  padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.xs} 0;
 `;
 
 const MeterHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   display: inline-block;
   text-align: center;
@@ -74,7 +74,7 @@ const MeterValueText = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   color: ${p => p.theme.tokens.content.primary};
   flex: 1;
   text-align: center;
@@ -102,14 +102,12 @@ const MeterBarFooterContainer = styled('div')<{
   background-color: ${p =>
     p.status === 'none' ? 'none' : makePerformanceScoreColors(p.theme)[p.status].light};
   border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};
-  font-size: ${p => p.theme.fontSize.xs};
-  padding: ${space(0.5)};
+  font-size: ${p => p.theme.font.size.xs};
+  padding: ${p => p.theme.space.xs};
   text-align: center;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
 `;
-
-export default VitalCard;

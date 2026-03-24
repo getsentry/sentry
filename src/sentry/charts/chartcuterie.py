@@ -69,7 +69,6 @@ class Chartcuterie(ChartRenderer):
             op="charts.chartcuterie.generate_chart",
             name=type(self).__name__,
         ):
-
             # Using sentry json formatter to handle datetime objects
             assert self.service_url is not None
             resp = requests.post(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 from urllib.parse import urlparse
 
@@ -10,6 +10,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
+from sentry import features
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
@@ -21,6 +22,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITLAB_PR_BOT_REFERRER
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
@@ -32,10 +34,13 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
+    ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationProviderError,
 )
@@ -47,8 +52,10 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
+from .issue_sync import GitlabIssueSyncSpec
 from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
+from .utils import parse_gitlab_blob_url
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -109,12 +116,18 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration):
+class GitlabIntegration(
+    RepositoryIntegration, GitlabIssuesSpec, GitlabIssueSyncSpec, CommitContextIntegration
+):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
     def integration_name(self) -> str:
         return IntegrationProviderSlug.GITLAB
+
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
 
     def get_client(self) -> GitLabApiClient:
         try:
@@ -148,10 +161,15 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
     def get_repositories(
         self, query: str | None = None, page_number_limit: int | None = None
     ) -> list[dict[str, Any]]:
-        # Note: gitlab projects are the same things as repos everywhere else
-        group = self.get_group_id()
-        resp = self.get_client().search_projects(group, query)
-        return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
+        try:
+            # Note: gitlab projects are the same things as repos everywhere else
+            group = self.get_group_id()
+            resp = self.get_client().search_projects(group, query)
+            return [
+                {"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp
+            ]
+        except (ApiForbiddenError, ApiUnauthorized) as e:
+            raise IntegrationConfigurationError(self.message_from_error(e)) from e
 
     def source_url_matches(self, url: str) -> bool:
         return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
@@ -165,16 +183,87 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/-/blob/", "")
-        url = url.replace(f"{repo.url}/blob/", "")
-        branch, _, _ = url.partition("/")
+        if not repo.url:
+            return ""
+        branch, _ = parse_gitlab_blob_url(repo.url, url)
         return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/-/blob/", "")
-        url = url.replace(f"{repo.url}/blob/", "")
-        _, _, source_path = url.partition("/")
+        if not repo.url:
+            return ""
+        _, source_path = parse_gitlab_blob_url(repo.url, url)
         return source_path
+
+    # IssueSyncIntegration methods
+
+    def _get_organization_config_default_values(self) -> list[dict[str, Any]]:
+        config: list[dict[str, Any]] = []
+
+        if self.check_feature_flag():
+            config.extend(
+                [
+                    {
+                        "name": self.inbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync GitLab Assignment to Sentry"),
+                        "help": _(
+                            "When an issue is assigned in GitLab, assign its linked Sentry issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.outbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Assignment to GitLab"),
+                        "help": _(
+                            "When an issue is assigned in Sentry, assign its linked GitLab issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.comment_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Comments to GitLab"),
+                        "help": _("Post comments from Sentry issues to linked GitLab issues"),
+                    },
+                ]
+            )
+
+        return config
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        config = self._get_organization_config_default_values()
+
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        assert context, "organizationcontext must exist to get org"
+        organization = context.organization
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+
+        if not has_issue_sync:
+            for field in config:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return config
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        if not self.org_integration:
+            return
+
+        config = self.org_integration.config
+
+        config.update(data)
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     # CommitContextIntegration methods
 
@@ -187,6 +276,9 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
             return True
 
         return False
+
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name", "group_id", "include_subgroups", "verify_ssl", "base_url"]
 
     # Gitlab only functions
 
@@ -379,7 +471,7 @@ class InstallationGuideView:
         return render_to_response(
             template="sentry/integrations/gitlab-config.html",
             context={
-                "next_url": f'{absolute_uri("/extensions/gitlab/setup/")}?completed_installation_guide',
+                "next_url": f"{absolute_uri('/extensions/gitlab/setup/')}?completed_installation_guide",
                 "setup_values": [
                     {"label": "Name", "value": "Sentry"},
                     {"label": "Redirect URI", "value": absolute_uri("/extensions/gitlab/setup/")},

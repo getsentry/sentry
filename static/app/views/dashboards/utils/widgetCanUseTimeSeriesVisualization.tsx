@@ -4,9 +4,10 @@ const SUPPORTED_WIDGET_TYPES = new Set<WidgetType>([
   WidgetType.RELEASE,
   WidgetType.SPANS,
   WidgetType.ISSUE,
-  // TODO(nar): Uncomment this to use new timeseries visualization, there is currently
-  // a bug when adding a new y-axis in the widget builder to use this.
-  // WidgetType.TRACEMETRICS,
+  WidgetType.LOGS,
+  WidgetType.ERRORS,
+  WidgetType.TRACEMETRICS,
+  WidgetType.PREPROD_APP_SIZE,
 ]);
 
 const SUPPORTED_DISPLAY_TYPES = new Set<DisplayType>([

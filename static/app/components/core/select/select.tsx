@@ -2,23 +2,20 @@ import {useMemo} from 'react';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
-import type {CSSObject, Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
+import type {AsyncProps} from 'react-select/src/Async';
+import type {CreatableProps} from 'react-select/src/Creatable';
+import {css, useTheme} from '@emotion/react';
+import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {
-  ChonkClearIndicator,
-  ChonkDropdownIndicator,
-  getChonkStylesConfig,
-  selectSpacing,
-  type StylesConfig,
-} from '@sentry/scraps/select/select.chonk';
+import {Button} from '@sentry/scraps/button';
 
 import type {
   GroupedOptionsType,
   OptionsType,
   OptionTypeBase,
   Props as ReactSelectProps,
+  StylesConfig as ReactSelectStylesConfig,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import {
   createFilter,
@@ -26,18 +23,319 @@ import {
   ReactSelect,
   components as selectComponents,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Choices, SelectValue} from 'sentry/types/core';
-import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
-import PanelProvider from 'sentry/utils/panelProvider';
-import type {FormSize} from 'sentry/utils/theme';
+import {defined} from 'sentry/utils';
+import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
+import {PanelProvider} from 'sentry/utils/panelProvider';
+import type {FormSize, Theme} from 'sentry/utils/theme';
 
 import {SelectOption} from './option';
 
-export type {StylesConfig};
+// We don't care about any options for the styles config
+export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
+
+const selectSpacing = {
+  md: '8px',
+  sm: '6px',
+  xs: '4px',
+} as const satisfies Record<FormSize, string>;
+
+const multiValueSizeMapping = {
+  md: {
+    height: '20px',
+    spacing: '4px',
+  },
+  sm: {
+    height: '18px',
+    spacing: '2px',
+  },
+  xs: {
+    height: '16px',
+    spacing: '2px',
+  },
+} satisfies Record<FormSize, {height: string; spacing: string}>;
+
+const getStylesConfig = ({
+  theme,
+  size = 'md',
+  maxMenuWidth,
+  isInsideModal,
+  isSearchable,
+  isDisabled,
+}: {
+  isDisabled: boolean | undefined;
+  isInsideModal: boolean | undefined;
+  isSearchable: boolean | undefined;
+  maxMenuWidth: string | number | undefined;
+  size: FormSize | undefined;
+  theme: Theme;
+}) => {
+  // TODO(epurkhiser): The loading indicator should probably also be our loading
+  // indicator.
+
+  // Unfortunately we cannot use emotions `css` helper here, since react-select
+  // *requires* object styles, which the css helper cannot produce.
+  const indicatorStyles: StylesConfig['clearIndicator'] &
+    StylesConfig['loadingIndicator'] = (provided, state: any) => ({
+    ...provided,
+    padding: '0 4px 0 4px',
+    alignItems: 'center',
+    cursor: state.isDisabled ? 'not-allowed' : 'pointer',
+    color: state.isDisabled
+      ? theme.tokens.content.disabled
+      : theme.tokens.content.primary,
+    ':hover': {
+      color: 'currentcolor',
+    },
+  });
+  const boxShadow = `0px 1px 0px 0px ${theme.tokens.interactive.chonky.debossed.neutral.chonk} inset`;
+
+  return {
+    control: (_, state) => ({
+      display: 'flex',
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.primary,
+      backgroundColor: theme.tokens.interactive.chonky.debossed.neutral.background,
+      border: `1px solid ${theme.tokens.border.primary}`,
+      boxShadow,
+      borderRadius: theme.form[size].borderRadius,
+      transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
+      alignItems: 'center',
+      ...(state.isFocused && theme.focusRing(boxShadow)),
+      ...(state.isDisabled && {
+        background: theme.tokens.background.primary,
+        color: theme.tokens.content.disabled,
+        cursor: 'not-allowed',
+        opacity: '60%',
+      }),
+      minHeight: theme.form[size].minHeight,
+      fontSize: theme.form[size].fontSize,
+      lineHeight: theme.form[size].lineHeight,
+      ...(state.isMulti && {
+        maxHeight: '12em', // 10 lines (1.2em * 10) + padding
+        overflow: 'hidden',
+      }),
+    }),
+
+    menu: provided => ({
+      ...provided,
+      zIndex: theme.zIndex.dropdown,
+      background: theme.tokens.background.primary,
+      borderRadius: theme.radius.md,
+      border: `1px solid ${theme.tokens.border.primary}`,
+      boxShadow: 'none',
+      width: 'auto',
+      minWidth: '100%',
+      maxWidth: maxMenuWidth ?? 'auto',
+    }),
+    noOptionsMessage: provided => ({
+      ...provided,
+      color: theme.tokens.content.disabled,
+    }),
+    menuPortal: provided => ({
+      ...provided,
+      maxWidth: maxMenuWidth ?? '24rem',
+      zIndex: isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
+    }),
+
+    option: provided => ({
+      ...provided,
+      color: theme.tokens.content.primary,
+      background: 'transparent',
+      padding: 0,
+      ':active': {
+        background: 'transparent',
+      },
+    }),
+    container: (provided, state) => ({
+      ...provided,
+      ...(state.isDisabled && {
+        pointerEvents: 'unset',
+      }),
+    }),
+    valueContainer: (provided, state) => ({
+      ...provided,
+      cursor: isDisabled ? 'not-allowed' : isSearchable ? 'default' : 'pointer',
+      alignItems: 'center',
+      // flex alignItems makes sure we don't need paddings
+      paddingTop: 0,
+      paddingBottom: 0,
+      paddingLeft: theme.form[size].paddingLeft,
+      paddingRight: selectSpacing[size],
+      ...(state.isMulti && {
+        maxHeight: 'inherit',
+        overflowY: 'auto',
+        scrollbarColor: `${theme.tokens.graphics.accent.moderate} ${theme.tokens.background.primary}`,
+      }),
+    }),
+    input: provided => ({
+      ...provided,
+      color: theme.tokens.content.primary,
+      margin: 0,
+    }),
+    singleValue: (provided, state) => ({
+      ...provided,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.primary,
+      display: 'flex',
+      alignItems: 'center',
+      marginLeft: 0,
+      marginRight: 0,
+      width: `calc(100% - ${theme.form[size].paddingLeft}px - ${theme.space.xs})`,
+    }),
+    placeholder: (provided, state) => ({
+      ...provided,
+      color: state.isDisabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.content.secondary,
+    }),
+    multiValue: provided => ({
+      ...provided,
+      backgroundColor: theme.tokens.background.primary,
+      color: isDisabled ? theme.tokens.content.disabled : theme.tokens.content.primary,
+      borderRadius: '4px',
+      border: `1px solid ${theme.tokens.border.primary}`,
+      boxShadow: `0px 1px 0px 0px ${theme.tokens.border.primary}`,
+      display: 'flex',
+      margin: 0,
+      marginTop: multiValueSizeMapping[size].spacing,
+      marginBottom: multiValueSizeMapping[size].spacing,
+      marginRight: multiValueSizeMapping[size].spacing,
+    }),
+    multiValueLabel: provided => ({
+      ...provided,
+      color: isDisabled ? theme.tokens.content.disabled : theme.tokens.content.primary,
+      padding: multiValueSizeMapping[size].spacing,
+      paddingLeft: multiValueSizeMapping[size].spacing,
+      height: multiValueSizeMapping[size].height,
+      display: 'flex',
+      alignItems: 'center',
+    }),
+    multiValueRemove: () => ({
+      alignItems: 'center',
+      display: 'flex',
+      margin: '4px 4px',
+
+      ...(isDisabled
+        ? {
+            pointerEvents: 'none',
+          }
+        : {
+            '&:hover': {
+              cursor: 'pointer',
+              background: theme.tokens.interactive.transparent.neutral.background.hover,
+            },
+          }),
+    }),
+    indicatorsContainer: () => ({
+      display: 'grid',
+      gridAutoFlow: 'column',
+      marginRight: selectSpacing[size],
+    }),
+    clearIndicator: indicatorStyles,
+    dropdownIndicator: indicatorStyles,
+    loadingIndicator: indicatorStyles,
+    groupHeading: provided => ({
+      ...provided,
+      lineHeight: '1.5',
+      fontWeight: 600,
+      color: theme.tokens.content.secondary,
+      marginBottom: 0,
+      padding: `${theme.space.xs} ${theme.space.lg}`,
+      ':empty': {
+        display: 'none',
+      },
+    }),
+    group: provided => ({
+      ...provided,
+      paddingTop: 0,
+      ':last-of-type': {
+        paddingBottom: 0,
+      },
+      ':not(:last-of-type)': {
+        position: 'relative',
+        marginBottom: theme.space.md,
+      },
+      // Add divider between sections
+      ':not(:last-of-type)::after': {
+        content: '""',
+        position: 'absolute',
+        left: theme.space.lg,
+        right: theme.space.lg,
+        bottom: 0,
+        borderBottom: `solid 1px ${theme.tokens.border.secondary}`,
+      },
+    }),
+  } satisfies StylesConfig;
+};
+
+function ClearIndicator(
+  props: React.ComponentProps<typeof selectComponents.ClearIndicator>
+) {
+  // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
+  // now we manually add aria labels to these interactive elements to help with
+  // testing
+  return (
+    <selectComponents.ClearIndicator {...props}>
+      <Button
+        priority="transparent"
+        icon={<IconClose legacySize="10px" />}
+        size="zero"
+        aria-label={t('Clear choices')}
+        onClick={props.clearValue}
+      />
+    </selectComponents.ClearIndicator>
+  );
+}
+
+function DropdownIndicator(
+  props: React.ComponentProps<typeof selectComponents.DropdownIndicator>
+) {
+  return (
+    <selectComponents.DropdownIndicator {...props}>
+      <IconChevron direction="down" size="xs" />
+    </selectComponents.DropdownIndicator>
+  );
+}
+
+export const CheckWrap = styled('div')<{
+  isMultiple: boolean;
+  isSelected: boolean;
+  size: FormSize;
+}>`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 1em;
+  height: 1.4em;
+
+  ${p =>
+    p.isMultiple
+      ? css`
+          padding: 1px;
+          border: solid 1px ${p.theme.tokens.border.primary};
+          background: ${p.theme.tokens.background.primary};
+          border-radius: 2px;
+          height: 1em;
+          margin-top: 2px;
+          ${p.isSelected &&
+          css`
+            background: ${p.theme.tokens.background.accent.vibrant};
+            border-color: ${p.theme.tokens.border.accent};
+          `}
+        `
+      : css`
+          ${p.isSelected &&
+          css`
+            color: ${p.theme.tokens.content.accent};
+          `}
+        `}
+`;
 
 function isGroupedOptions<OptionType extends OptionTypeBase>(
   maybe:
@@ -50,29 +348,6 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
     return false;
   }
   return (maybe as GroupedOptionsType<OptionType>)[0]!.options !== undefined;
-}
-
-function ClearIndicator(
-  props: React.ComponentProps<typeof selectComponents.ClearIndicator>
-) {
-  // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
-  // now we manually add aria labels to these interactive elements to help with
-  // testing
-  return (
-    <selectComponents.ClearIndicator {...props}>
-      <IconClose aria-label={t('Clear choices')} legacySize="10px" />
-    </selectComponents.ClearIndicator>
-  );
-}
-
-function DropdownIndicator(
-  props: React.ComponentProps<typeof selectComponents.DropdownIndicator>
-) {
-  return (
-    <selectComponents.DropdownIndicator {...props}>
-      <IconChevron color="subText" direction="down" size="xs" />
-    </selectComponents.DropdownIndicator>
-  );
 }
 
 function MultiValueRemove(
@@ -89,7 +364,7 @@ function MultiValueRemove(
 }
 
 function SelectLoadingIndicator() {
-  return <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />;
+  return <LoadingIndicator mini size={14} style={{height: 14, width: 14}} />;
 }
 
 function SingleValue(props: React.ComponentProps<typeof selectComponents.SingleValue>) {
@@ -107,12 +382,16 @@ function SingleValue(props: React.ComponentProps<typeof selectComponents.SingleV
 const SingleValueWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
 const SingleValueLabel = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
@@ -124,47 +403,91 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   );
 }
 
-export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
-  extends Omit<ReactSelectProps<OptionType>, 'onChange' | 'value' | 'menuPlacement'> {
-  /**
-   * Backwards compatible shim to work with select2 style choice type.
-   */
-  choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
-  /**
-   * Set to true to prefix selected values with content
-   */
-  inFieldLabel?: string;
-  /**
-   * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
-   */
-  isInsideModal?: boolean;
-  /**
-   * Maximum width of the menu component. Menu item labels that overflow the
-   * menu's boundaries will automatically be truncated.
-   */
-  maxMenuWidth?: number | string;
-  /**
-   * Used by MultiSelectControl.
-   */
-  multiple?: boolean;
-  /**
-   * Handler for changes. Narrower than the types in react-select.
-   */
-  onChange?: (value?: OptionType | null) => void;
-  ref?: React.Ref<typeof ReactSelect>;
-  /**
-   * Show line dividers between options
-   */
-  showDividers?: boolean;
-  size?: FormSize;
-  /**
-   * Unlike react-select which expects an OptionType as its value
-   * we accept the option.value and resolve the option object.
-   * Because this type is embedded in the OptionType generic we
-   * can't have a good type here.
-   */
-  value?: any;
-}
+type MultipleProps<OptionType extends OptionTypeBase> = {
+  multiple: true;
+  clearable?: boolean;
+  onChange?: (option: OptionType[]) => void;
+};
+
+type SingleProps<OptionType extends OptionTypeBase> = {
+  clearable?: false;
+  multiple?: false;
+  onChange?: (option: OptionType) => void;
+};
+
+type SingleClearableProps<OptionType extends OptionTypeBase> = {
+  clearable: true;
+  multiple?: false;
+  onChange?: (option: OptionType | null) => void;
+};
+
+type SelectProps<OptionType extends OptionTypeBase> =
+  | MultipleProps<OptionType>
+  | SingleProps<OptionType>
+  | SingleClearableProps<OptionType>;
+
+export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> =
+  SelectProps<OptionType> &
+    AsyncProps<OptionType> &
+    CreatableProps<OptionType, boolean> &
+    Omit<
+      ReactSelectProps<OptionType, boolean>,
+      'onChange' | 'value' | 'menuPlacement' | 'theme'
+    > & {
+      /**
+       * Enable async option loading.
+       */
+      async?: boolean;
+      cache?: Record<string, unknown>;
+      /**
+       * Backwards compatible shim to work with select2 style choice type.
+       */
+      choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
+      /**
+       * Enable 'create' mode which allows values to be created inline.
+       */
+      creatable?: boolean;
+      disabled?: boolean;
+      /**
+       * Set to true to prefix selected values with content
+       */
+      inFieldLabel?: string;
+      inputRef?: React.Ref<any>;
+      /**
+       * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
+       */
+      isInsideModal?: boolean;
+      /**
+       * custom value comparator function
+       * defaults to === comparison of the option values
+       */
+      isValueEqual?: (
+        optionA: OptionType['value'],
+        optionB: OptionType['value']
+      ) => boolean;
+
+      /**
+       * Maximum width of the menu component. Menu item labels that overflow the
+       * menu's boundaries will automatically be truncated.
+       */
+      maxMenuWidth?: number | string;
+      onClear?: () => void;
+      ref?: React.Ref<any>;
+      searchable?: boolean;
+      /**
+       * Show line dividers between options
+       */
+      showDividers?: boolean;
+      size?: FormSize;
+
+      /**
+       * Unlike react-select which expects an OptionType as its value
+       * we accept the option.value and resolve the option object.
+       * Because this type is embedded in the OptionType generic we
+       * can't have a good type here.
+       */
+      value?: any;
+    };
 
 // TODO(ts) The exported component uses forwardRef.
 // This means we cannot fill the SelectValue generic
@@ -172,197 +495,11 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
 // controls that have custom option structures
 export type GeneralSelectValue = SelectValue<any>;
 
-const getStylesConfig = ({
-  theme,
-  size,
-  maxMenuWidth,
-  isInsideModal,
-}: {
-  isInsideModal: boolean | undefined;
-  maxMenuWidth: string | number | undefined;
-  size: ControlProps['size'];
-  theme: Theme;
-}) => {
-  // TODO(epurkhiser): The loading indicator should probably also be our loading
-  // indicator.
-
-  // Unfortunately we cannot use emotions `css` helper here, since react-select
-  // *requires* object styles, which the css helper cannot produce.
-  const indicatorStyles = (provided: CSSObject): CSSObject => ({
-    ...provided,
-    padding: '4px',
-    alignItems: 'center',
-    cursor: 'pointer',
-    color: theme.subText,
-  });
-
-  return {
-    control: (_, state: any) => ({
-      display: 'flex',
-      color: theme.gray400,
-      background: theme.tokens.background.primary,
-      border: `1px solid ${theme.border}`,
-      boxShadow: theme.dropShadowMedium,
-      borderRadius: theme.radius.md,
-      transition: 'border 0.1s, box-shadow 0.1s',
-      alignItems: 'center',
-      ...(state.isFocused && {
-        borderColor: theme.focusBorder,
-        boxShadow: `${theme.focusBorder} 0 0 0 1px`,
-      }),
-      ...(state.isDisabled && {
-        borderColor: theme.border,
-        background: theme.backgroundSecondary,
-        color: theme.disabled,
-        cursor: 'not-allowed',
-      }),
-      ...(!state.isSearchable && {
-        cursor: 'pointer',
-      }),
-      minHeight: theme.form[size ?? 'md'].minHeight,
-      fontSize: theme.form[size ?? 'md'].fontSize,
-      lineHeight: theme.form[size ?? 'md'].lineHeight,
-      ...(state.isMulti && {
-        maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
-        overflow: 'hidden',
-      }),
-    }),
-
-    menu: provided => ({
-      ...provided,
-      zIndex: theme.zIndex.dropdown,
-      background: theme.backgroundElevated,
-      borderRadius: theme.radius.md,
-      boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
-      width: 'auto',
-      minWidth: '100%',
-      maxWidth: maxMenuWidth ?? 'auto',
-    }),
-
-    menuPortal: provided => ({
-      ...provided,
-      maxWidth: maxMenuWidth ?? '24rem',
-      zIndex: isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
-    }),
-
-    option: provided => ({
-      ...provided,
-      cursor: 'pointer',
-      color: theme.tokens.content.primary,
-      background: 'transparent',
-      padding: 0,
-      ':active': {
-        background: 'transparent',
-      },
-    }),
-    valueContainer: (provided, state) => ({
-      ...provided,
-      alignItems: 'center',
-      paddingLeft: theme.form[size ?? 'md'].paddingLeft,
-      paddingRight: space(0.5),
-      // offset horizontal margin/padding from multiValue (space(0.25)) &
-      // multiValueLabel (space(0.75))
-      ...(state.isMulti && {
-        marginLeft: `-${space(1)}`,
-        maxHeight: 'inherit',
-        overflowY: 'auto',
-        scrollbarColor: `${theme.purple200} ${theme.tokens.background.primary}`,
-      }),
-    }),
-    input: provided => ({
-      ...provided,
-      color: theme.gray400,
-      margin: 0,
-    }),
-    singleValue: provided => ({
-      ...provided,
-      color: theme.gray400,
-      display: 'flex',
-      alignItems: 'center',
-      marginLeft: 0,
-      marginRight: 0,
-      width: `calc(100% - ${theme.form[size ?? 'md'].paddingLeft}px - ${space(0.5)})`,
-    }),
-    placeholder: provided => ({
-      ...provided,
-      color: theme.formPlaceholder,
-    }),
-    multiValue: provided => ({
-      ...provided,
-      backgroundColor: theme.tokens.background.primary,
-      color: theme.tokens.content.primary,
-      borderRadius: '2px',
-      border: `1px solid ${theme.border}`,
-      display: 'flex',
-      marginLeft: space(0.25),
-    }),
-    multiValueLabel: provided => ({
-      ...provided,
-      color: theme.tokens.content.primary,
-      padding: '0',
-      paddingLeft: space(0.75),
-      lineHeight: '1.8',
-    }),
-    multiValueRemove: () => ({
-      cursor: 'pointer',
-      alignItems: 'center',
-      borderLeft: `1px solid ${theme.innerBorder}`,
-      borderRadius: '0 2px 2px 0',
-      display: 'flex',
-      padding: '0 4px',
-      marginLeft: '4px',
-
-      '&:hover': {
-        color: theme.tokens.content.primary,
-        background: theme.backgroundTertiary,
-      },
-    }),
-    indicatorsContainer: () => ({
-      display: 'grid',
-      gridAutoFlow: 'column',
-      gridGap: '2px',
-      marginRight: '6px',
-    }),
-    clearIndicator: indicatorStyles,
-    dropdownIndicator: indicatorStyles,
-    loadingIndicator: indicatorStyles,
-    groupHeading: provided => ({
-      ...provided,
-      lineHeight: '1.5',
-      fontWeight: 600,
-      color: theme.subText,
-      marginBottom: 0,
-      padding: `${space(0.5)} ${space(1.5)}`,
-      ':empty': {
-        display: 'none',
-      },
-    }),
-    group: provided => ({
-      ...provided,
-      paddingTop: 0,
-      ':last-of-type': {
-        paddingBottom: 0,
-      },
-      ':not(:last-of-type)': {
-        position: 'relative',
-        marginBottom: space(1),
-      },
-      // Add divider between sections
-      ':not(:last-of-type)::after': {
-        content: '""',
-        position: 'absolute',
-        left: space(1.5),
-        right: space(1.5),
-        bottom: 0,
-        borderBottom: `solid 1px ${theme.innerBorder}`,
-      },
-    }),
-  } satisfies StylesConfig;
-};
-
-function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
-  props: ControlProps<OptionType>
+export function Select<OptionType extends GeneralSelectValue = GeneralSelectValue>(
+  p: ControlProps<OptionType>
 ) {
+  // todo(tkdodo): typing `p` and keeping `any` localized avoids leaking it
+  const props = p as any;
   const theme = useTheme();
   const {size, maxMenuWidth, isInsideModal} = props;
 
@@ -370,24 +507,22 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   const isDisabled = props.isDisabled || props.disabled;
 
   const defaultStyles = useMemo(() => {
-    return theme.isChonk
-      ? getChonkStylesConfig({
-          theme,
-          size,
-          maxMenuWidth,
-          isInsideModal,
-          isSearchable,
-          isDisabled,
-        })
-      : getStylesConfig({theme, size, maxMenuWidth, isInsideModal});
+    return getStylesConfig({
+      theme,
+      size,
+      maxMenuWidth,
+      isInsideModal,
+      isSearchable,
+      isDisabled,
+    });
   }, [theme, size, maxMenuWidth, isInsideModal, isSearchable, isDisabled]);
 
   const getFieldLabelStyle = (label?: string): CSSObject => ({
     ':before': {
       content: `"${label}"`,
-      color: theme.isChonk ? theme.gray500 : theme.gray300,
+      color: theme.colors.gray800,
       fontWeight: 600,
-      marginRight: selectSpacing[size ?? 'md'],
+      marginRight: selectSpacing[p.size ?? 'md'],
     },
   });
 
@@ -414,7 +549,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     options;
 
   // It's possible that `choicesOrOptions` does not exist (e.g. in the case of AsyncSelect)
-  let mappedValue = value;
+  // When isValueEqual is provided, the value is a raw domain object (e.g.
+  // {id, name}) that react-select can't handle directly — it would call
+  // callbacks like getOptionValue on it expecting a full option shape. In that
+  // case, fall back to null instead of passing the raw object through.
+  // Otherwise the value is a primitive or option-shaped object that
+  // react-select can handle directly.
+  const noMatchFallback = props.isValueEqual ? (props.multiple ? [] : null) : value;
+  let mappedValue = noMatchFallback;
 
   if (choicesOrOptions) {
     /**
@@ -429,10 +571,21 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     } else {
       flatOptions = choicesOrOptions.flatMap((option: any) => option);
     }
+
+    const compare = (
+      a: OptionType['value'] | null | undefined,
+      b: OptionType['value'] | null | undefined
+    ) => {
+      if (props.isValueEqual && defined(a) && defined(b)) {
+        return props.isValueEqual(a, b);
+      }
+      return a === b;
+    };
+
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val => flatOptions.find(option => option.value === val))
-        : flatOptions.find(opt => opt.value === value) || value;
+        ? value.map(val => flatOptions.find(option => compare(option.value, val)))
+        : flatOptions.find(opt => compare(opt.value, value)) || noMatchFallback;
   }
 
   // Override the default style with in-field labels if they are provided
@@ -446,21 +599,21 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...getFieldLabelStyle(inFieldLabel),
     }),
   };
-  const labelOrDefaultStyles: StylesConfig = inFieldLabel
+  const labelOrDefaultStyles = inFieldLabel
     ? mergeStyles(defaultStyles, inFieldLabelStyles)
     : defaultStyles;
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles: StylesConfig = styles
+  const mappedStyles = styles
     ? mergeStyles(labelOrDefaultStyles, styles)
     : labelOrDefaultStyles;
 
   const replacedComponents = {
     SingleValue,
-    ClearIndicator: theme.isChonk ? ChonkClearIndicator : ClearIndicator,
-    DropdownIndicator: theme.isChonk ? ChonkDropdownIndicator : DropdownIndicator,
+    ClearIndicator,
+    DropdownIndicator,
     MultiValueRemove,
     LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
@@ -499,28 +652,12 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-interface PickerProps<OptionType extends OptionTypeBase>
-  extends ControlProps<OptionType> {
-  /**
-   * Enable async option loading.
-   */
-  async?: boolean;
-  /**
-   * Enable 'clearable' which allows values to be removed.
-   */
-  clearable?: boolean;
-  /**
-   * Enable 'create' mode which allows values to be created inline.
-   */
-  creatable?: boolean;
-}
-
 function SelectPicker<OptionType extends OptionTypeBase>({
   async,
   creatable,
   ref,
   ...props
-}: PickerProps<OptionType>) {
+}: ControlProps<OptionType>) {
   // Pick the right component to use
   // Using any here as react-select types also use any
   let Component: React.ComponentType<any> | undefined;
@@ -536,11 +673,3 @@ function SelectPicker<OptionType extends OptionTypeBase>({
 
   return <Component ref={ref as any} {...props} menuPlacement="auto" />;
 }
-
-// XXX (tkdodo): this type assertion is a leftover from when we had forwardRef
-// Omit on the ControlProps messes up the union type
-// the fix is to remove this type assertion, export Select directly and fix the type issues
-export const Select = SelectControl as (
-  props: Omit<ControlProps, 'ref'> &
-    React.RefAttributes<typeof ReactSelect<GeneralSelectValue>>
-) => React.JSX.Element;

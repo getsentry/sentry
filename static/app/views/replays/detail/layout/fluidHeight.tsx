@@ -1,12 +1,5 @@
-import styled from '@emotion/styled';
+import {Stack, type StackProps} from '@sentry/scraps/layout';
 
-const FluidHeight = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-  overflow: hidden;
-  height: 100%;
-`;
-
-export default FluidHeight;
+export function FluidHeight(props: StackProps<'div'>) {
+  return <Stack wrap="nowrap" flexGrow={1} height="100%" overflow="hidden" {...props} />;
+}

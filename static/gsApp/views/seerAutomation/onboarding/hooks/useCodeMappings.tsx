@@ -2,8 +2,9 @@ import {useEffect, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseCodeMappingsParams {
   enabled: boolean;
@@ -19,7 +20,11 @@ export function useCodeMappings({enabled}: UseCodeMappingsParams) {
     isPending,
     isError,
   } = useApiQuery<RepositoryProjectPathConfig[]>(
-    [`/organizations/${organization.slug}/code-mappings/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       // Code mappings are not updated frequently, so we can cache them for a longer time.
       staleTime: FIFTEEN_MINUTES,
@@ -37,8 +42,8 @@ export function useCodeMappings({enabled}: UseCodeMappingsParams) {
     const map = new Map<string, Set<string>>();
     codeMappings.forEach(mapping => {
       const existingProjects = map.get(mapping.repoId) || new Set<string>();
-      if (!existingProjects.has(mapping.projectSlug)) {
-        existingProjects.add(mapping.projectSlug);
+      if (!existingProjects.has(mapping.projectId)) {
+        existingProjects.add(mapping.projectId);
         map.set(mapping.repoId, existingProjects);
       }
     });

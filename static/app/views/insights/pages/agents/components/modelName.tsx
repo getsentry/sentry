@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import type {Space} from 'sentry/utils/theme/theme';
+import type {SpaceSize} from 'sentry/utils/theme';
 
 interface ModelNameProps {
-  modelId: string;
-  gap?: Space;
+  modelId: string | null;
+  gap?: SpaceSize;
   provider?: string;
   size?: number;
 }
@@ -20,7 +21,9 @@ export function ModelName({modelId, provider, size = 16, gap = 'md'}: ModelNameP
       <IconWrapper>
         <PlatformIcon platform={platform ?? 'unknown'} size={size} />
       </IconWrapper>
-      <NameWrapper>{modelId === 'null' ? t('(no value)') : modelId}</NameWrapper>
+      <NameWrapper>
+        {!modelId || modelId === 'null' ? t('(no value)') : modelId}
+      </NameWrapper>
     </Flex>
   );
 }
@@ -30,13 +33,21 @@ const IconWrapper = styled('div')`
 `;
 
 const NameWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
 `;
 
-export function getModelPlatform(modelId: string, provider?: string) {
+export function getModelPlatform(modelId: string | null, provider?: string) {
   if (provider) {
     return provider;
+  }
+
+  if (!modelId) {
+    return null;
   }
 
   const lowerCaseModelId = modelId.toLowerCase();

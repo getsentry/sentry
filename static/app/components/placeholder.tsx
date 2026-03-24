@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
-import type {ValidSize} from 'sentry/styles/space';
-import {space} from 'sentry/styles/space';
+import type {SpaceSize} from 'sentry/utils/theme';
 
 export interface PlaceholderProps {
-  bottomGutter?: ValidSize;
+  bottomGutter?: SpaceSize;
   children?: React.ReactNode;
   className?: string;
   error?: React.ReactNode;
@@ -15,7 +14,7 @@ export interface PlaceholderProps {
   width?: string;
 }
 
-const Placeholder = styled(
+export const Placeholder = styled(
   ({
     className,
     children,
@@ -36,15 +35,12 @@ const Placeholder = styled(
   justify-content: center;
   align-items: center;
   border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundTertiary)};
-  ${p => !!p.error && `color: ${p.theme.red200};`}
+  background-color: ${p =>
+    p.error ? p.theme.colors.red100 : p.theme.tokens.background.tertiary};
+  ${p => !!p.error && `color: ${p.theme.colors.red200};`}
   width: ${p => p.width ?? '100%'};
   height: ${p => p.height ?? '60px'};
   ${({shape = 'rect'}) => (shape === 'circle' ? 'border-radius: 100%;' : '')}
-  ${({bottomGutter = 0}) =>
-    typeof bottomGutter === 'number' && bottomGutter > 0
-      ? `margin-bottom: ${space(bottomGutter as Parameters<typeof space>[0])};`
-      : ''}
+  ${({bottomGutter, theme}) =>
+    bottomGutter ? `margin-bottom: ${theme.space[bottomGutter]};` : ''}
 `;
-
-export default Placeholder;

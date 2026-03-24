@@ -1,28 +1,41 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSeer} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 
 interface EmptyStateProps {
+  isError?: boolean;
   isLoading?: boolean;
+  runId?: number | null;
 }
 
-function EmptyState({isLoading}: EmptyStateProps) {
+export function EmptyState({isLoading = false, isError = false, runId}: EmptyStateProps) {
+  const runIdDisplay = runId?.toString() ?? 'null';
   return (
     <Container>
-      {isLoading ? (
-        <LoadingIndicator size={32} />
+      {isError ? (
+        <Fragment>
+          <IconSeer size="xl" />
+          <Text>
+            {tct('Error loading this session (ID=[runIdDisplay]).', {runIdDisplay})}
+          </Text>
+        </Fragment>
+      ) : isLoading ? (
+        <Fragment>
+          <LoadingIndicator size={32} />
+          <Text>{t('Ask Seer anything about your application.')}</Text>
+        </Fragment>
       ) : (
-        <IconSeer size="xl" variant="waiting" />
+        <Fragment>
+          <IconSeer size="xl" animation="waiting" />
+          <Text>{t('Ask Seer anything about your application.')}</Text>
+        </Fragment>
       )}
-      <Text>{!isLoading && t('Ask Seer anything about your application.')}</Text>
     </Container>
   );
 }
-
-export default EmptyState;
 
 const Container = styled('div')`
   flex: 1;
@@ -30,14 +43,14 @@ const Container = styled('div')`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
   text-align: center;
 `;
 
 const Text = styled('div')`
-  margin-top: ${space(2)};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  margin-top: ${p => p.theme.space.xl};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;
   max-width: 300px;
 `;

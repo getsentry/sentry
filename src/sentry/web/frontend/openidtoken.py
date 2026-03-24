@@ -1,8 +1,9 @@
 from datetime import timedelta
+from typing import Protocol
 
 from django.utils import timezone
 
-from sentry.models.apigrant import ApiGrant
+from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import jwt as jwt_utils
 
@@ -11,6 +12,18 @@ DEFAULT_EXPIRATION = timedelta(minutes=10)
 
 def default_expiration():
     return timezone.now() + DEFAULT_EXPIRATION
+
+
+class GrantLike(Protocol):
+    """Protocol for objects that can be used to generate OpenID tokens.
+
+    This allows both ApiGrant objects and grant-like objects (e.g., those
+    reconstructed after the grant has been deleted) to be used.
+    """
+
+    user: User
+
+    def has_scope(self, scope: str) -> bool: ...
 
 
 class OpenIDToken:
@@ -31,13 +44,13 @@ class OpenIDToken:
     ):
         self.shared_secret = shared_secret
         self.aud = aud
-        self.sub = sub
+        self.sub = str(sub)  # Convert to string per OpenID Connect spec
         self.iss = iss
         self.nonce = nonce
         self.exp = exp if exp else default_expiration()
         self.iat = iat if iat else timezone.now()
 
-    def get_signed_id_token(self, grant: ApiGrant) -> str:
+    def get_signed_id_token(self, grant: GrantLike) -> str:
         headers = {
             "alg": "HS256",
             "typ": "JWT",
@@ -55,7 +68,7 @@ class OpenIDToken:
             claims["nonce"] = self.nonce
         return jwt_utils.encode(claims, self.shared_secret, headers={**headers, "alg": "HS256"})
 
-    def _get_user_details(self, grant: ApiGrant) -> dict:
+    def _get_user_details(self, grant: GrantLike) -> dict:
         user_details = {}
         if grant.has_scope("profile"):
             profile_details = {

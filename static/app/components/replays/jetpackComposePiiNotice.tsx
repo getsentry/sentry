@@ -1,10 +1,11 @@
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX} from 'sentry/utils/replays/sdkVersions';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -19,14 +20,14 @@ export function JetpackComposePiiNotice() {
   return (
     <Alert.Container>
       <Alert
-        type="error"
+        variant="danger"
         trailingItems={
           <Button
             aria-label={t('Dismiss')}
             icon={<IconClose />}
             onClick={dismiss}
             size="zero"
-            borderless
+            priority="transparent"
           />
         }
       >

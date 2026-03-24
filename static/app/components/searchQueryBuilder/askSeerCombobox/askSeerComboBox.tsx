@@ -5,15 +5,17 @@ import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {Text} from 'sentry/components/core/text';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {AskSeerSearchSkeleton} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton';
-import QueryTokens from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
+import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
 import type {
   AskSeerSearchItems,
   QueryTokensProps,
@@ -30,8 +32,8 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useMutation, type MutationOptions} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import useOrganization from 'sentry/utils/useOrganization';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
@@ -81,8 +83,10 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
-interface AskSeerComboBoxProps<T extends QueryTokensProps>
-  extends Omit<AriaComboBoxProps<unknown>, 'children'> {
+interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
+  AriaComboBoxProps<unknown>,
+  'children'
+> {
   /**
    * The source of the analytics event, must be a dot-separated identifier like "trace.
    * explorer" or "issue.list"
@@ -173,7 +177,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     }
   };
 
-  const items: Array<AskSeerSearchItems<T>> = useMemo(() => {
+  const items = useMemo(() => {
     if (data?.queries && data?.queries.length > 0) {
       const results: Array<AskSeerSearchItems<T>> = data?.queries.map((query, index) => ({
         ...query,
@@ -249,6 +253,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             query={item?.query}
             groupBys={item?.groupBys}
             statsPeriod={item?.statsPeriod}
+            start={item?.start}
+            end={item?.end}
             visualizations={item?.visualizations}
           />
         </Item>
@@ -432,7 +438,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             setDisplayAskSeer(false);
           }}
           aria-label={t('Close Seer Search')}
-          borderless
+          priority="transparent"
         />
       </ButtonsWrapper>
       {state.isOpen ? (
@@ -445,35 +451,35 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           overlayProps={overlayProps}
         >
           {isPending ? (
-            <SeerContent>
+            <Stack flex="1">
               <AskSeerSearchHeader title={t('Let me think about that...')} loading />
               <AskSeerSearchSkeleton />
-            </SeerContent>
+            </Stack>
           ) : isError ? (
-            <SeerContent>
+            <Stack flex="1">
               <AskSeerSearchHeader
                 title={t('An error occurred while fetching Seer queries')}
               />
-            </SeerContent>
+            </Stack>
           ) : data?.queries && (data?.queries?.length ?? 0) > 0 ? (
-            <SeerContent onMouseLeave={onMouseLeave}>
+            <Stack flex="1" onMouseLeave={onMouseLeave}>
               <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
               <AskSeerSearchListBox
                 {...listBoxProps}
                 listBoxRef={listBoxRef}
                 state={state}
               />
-            </SeerContent>
+            </Stack>
           ) : data?.unsupported_reason ? (
-            <SeerContent>
+            <Stack flex="1">
               <AskSeerSearchHeader
                 title={data?.unsupported_reason || 'This query is not supported'}
               />
-            </SeerContent>
+            </Stack>
           ) : (
-            <SeerContent onMouseLeave={onMouseLeave}>
+            <Stack flex="1" onMouseLeave={onMouseLeave}>
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
-            </SeerContent>
+            </Stack>
           )}
           <SeerFooter>
             {openForm && (
@@ -506,7 +512,7 @@ const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: text;
 
   border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
@@ -516,11 +522,11 @@ const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${p => p.theme.space.lg};
-  top: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.md)};
+  top: ${p => p.theme.space.sm};
 `;
 
 const SearchIcon = styled(IconSearch)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 22px;
 `;
 
@@ -558,7 +564,7 @@ const InvisibleInput = styled('input')`
   }
 
   [disabled] {
-    color: ${p => p.theme.disabled};
+    color: ${p => p.theme.tokens.content.disabled};
   }
 `;
 
@@ -576,12 +582,6 @@ const SeerFooter = styled('div')`
   display: flex;
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
-`;
-
-const SeerContent = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
 `;

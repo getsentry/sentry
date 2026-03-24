@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   StepType,
   type DocsParams,
@@ -66,14 +67,11 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'Install [code:sentry-sdk] from PyPI with the [code:tornado] extra:',
-            {
-              code: <code />,
-            }
-          ),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
+            code: <code />,
+          }),
         },
-        getPythonInstallCodeBlock(),
+        getPythonInstallCodeBlock({additionalPackage: 'tornado'}),
         ...getPythonAiocontextvarsCodeBlocks(),
       ],
     },

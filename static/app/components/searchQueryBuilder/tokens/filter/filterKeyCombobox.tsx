@@ -1,7 +1,8 @@
 import {useCallback, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {Item} from '@react-stately/collections';
 import type {Node} from '@react-types/shared';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -21,7 +22,7 @@ import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKey} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type KeyComboboxProps = {
   item: Node<ParseResultToken>;
@@ -35,7 +36,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
 
   const organization = useOrganization();
   const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
-  const sortedFilterKeys = useSortedFilterKeyItems({
+  const {items: sortedFilterKeys, isLoading} = useSortedFilterKeyItems({
     filterValue: inputValue,
     inputValue,
     includeSuggestions: false,
@@ -162,10 +163,11 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   }, [onCommit]);
 
   return (
-    <EditingWrapper>
+    <Flex align="center" paddingLeft="2xs" maxWidth="400px" height="100%">
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={sortedFilterKeys}
+        isLoading={isLoading}
         onOptionSelected={onOptionSelected}
         onCustomValueCommitted={onValueCommitted}
         onCustomValueBlurred={onCustomValueBlurred}
@@ -186,14 +188,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
           </Item>
         )}
       </SearchQueryBuilderCombobox>
-    </EditingWrapper>
+    </Flex>
   );
 }
-
-const EditingWrapper = styled('div')`
-  display: flex;
-  height: 100%;
-  align-items: center;
-  max-width: 400px;
-  padding-left: ${p => p.theme.space['2xs']};
-`;

@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button} from 'sentry/components/core/button';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 export default Storybook.story('CopyToClipboardButton', story => {
   story('Basic', () => (

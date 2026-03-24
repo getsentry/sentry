@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   message: React.ReactNode;
@@ -29,19 +28,19 @@ export function SearchInvalidTag({message, highlightMessage, docLink}: Props) {
 }
 
 const Invalid = styled(`span`)`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.gray400};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.sans};
+  color: ${p => p.theme.colors.gray500};
 
   code {
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     padding: 0;
   }
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   width: 100%;
 `;
 
 const Highlight = styled(`strong`)`
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;

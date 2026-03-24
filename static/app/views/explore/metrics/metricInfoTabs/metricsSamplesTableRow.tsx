@@ -1,13 +1,14 @@
 import {useRef, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -16,17 +17,13 @@ import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
 import {FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {TimestampRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
-import {
-  NoPaddingColumns,
-  type AlwaysPresentTraceMetricFields,
-} from 'sentry/views/explore/metrics/constants';
+import {NoPaddingColumns} from 'sentry/views/explore/metrics/constants';
 import {useTraceTelemetry} from 'sentry/views/explore/metrics/hooks/useTraceTelemetry';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {
@@ -37,8 +34,9 @@ import {
   TableRowContainer,
   WrappingText,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
 import {stripMetricParamsFromLocation} from 'sentry/views/explore/metrics/metricQuery';
-import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
@@ -124,8 +122,7 @@ export function SampleTableRow({
   const [isExpanded, setIsExpanded] = useState(false);
   const measureRef = useRef<HTMLTableRowElement>(null);
   const projects = useProjects();
-  const projectId: (typeof AlwaysPresentTraceMetricFields)[1] =
-    row[TraceMetricKnownFieldKey.PROJECT_ID];
+  const projectId = row[TraceMetricKnownFieldKey.PROJECT_ID];
   const project = projects.projects.find(p => p.id === '' + projectId);
   const projectSlug = project?.slug ?? '';
 
@@ -139,7 +136,7 @@ export function SampleTableRow({
         aria-label={t('Toggle trace details')}
         aria-expanded={isExpanded}
         size={embedded ? 'zero' : 'sm'}
-        borderless
+        priority="transparent"
         onClick={() => setIsExpanded(!isExpanded)}
       />
     );
@@ -185,7 +182,6 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.gray400,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -200,7 +196,6 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.purple400,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -215,7 +210,6 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.red300,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -227,7 +221,7 @@ export function SampleTableRow({
 
   const renderTimestampCell = (field: string) => {
     return (
-      <div style={{whiteSpace: 'nowrap'}}>
+      <StyledTimestampWrapper>
         {TimestampRenderer({
           item: {
             fieldKey: field,
@@ -243,11 +237,16 @@ export function SampleTableRow({
             theme,
           },
         })}
-      </div>
+      </StyledTimestampWrapper>
     );
   };
 
   const renderDefaultCell = (field: string) => {
+    // For the metric value column, keep column.type as 'number' so that
+    // CellAction/updateQuery adds the raw numeric value to the filter
+    // instead of converting it with a duration assumption. The renderer
+    // still picks up the correct formatter via meta.fields/meta.units.
+    const isMetricValue = field === TraceMetricKnownFieldKey.METRIC_VALUE;
     const discoverColumn: TableColumn<keyof TableDataRow> = {
       column: {
         field,
@@ -256,7 +255,9 @@ export function SampleTableRow({
       name: field,
       key: field,
       isSortable: true,
-      type: (meta?.fields?.[field] as ColumnValueType) ?? FieldValueType.STRING,
+      type: isMetricValue
+        ? 'number'
+        : ((meta?.fields?.[field] as ColumnValueType) ?? FieldValueType.STRING),
     };
     return (
       <FieldRenderer
@@ -278,7 +279,7 @@ export function SampleTableRow({
 
   const renderProjectCell = () => {
     return (
-      <Flex align="center" justify="center" style={{minWidth: '18px'}}>
+      <Flex align="center" justify="center" minWidth="18px">
         <ProjectBadge avatarSize={14} project={project ?? {slug: projectSlug}} hideName />
       </Flex>
     );

@@ -1,35 +1,37 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {Location} from 'history';
 import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
-import Collapsible from 'sentry/components/collapsible';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Collapsible} from 'sentry/components/collapsible';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {useUser} from 'sentry/utils/useUser';
-import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRelease';
+import {useFinalizeRelease} from 'sentry/views/releases/components/useFinalizeRelease';
 import type {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/releases/list/releasesRequest';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-import ReleaseCardCommits from './releaseCardCommits';
-import ReleaseCardProjectRow from './releaseCardProjectRow';
+import {ReleaseCardCommits} from './releaseCardCommits';
+import {ReleaseCardProjectRow} from './releaseCardProjectRow';
 import ReleaseCardStatsPeriod from './releaseCardStatsPeriod';
 
 function getReleaseProjectId(release: Release, selection: PageFilters) {
@@ -63,7 +65,7 @@ type Props = {
   showReleaseAdoptionStages: boolean;
 };
 
-function ReleaseCard({
+export function ReleaseCard({
   release,
   organization,
   activeDisplay,
@@ -119,26 +121,29 @@ function ReleaseCard({
       <ReleaseInfo>
         {/* Header/info is the table sidecard */}
         <ReleaseInfoHeader>
-          <GlobalSelectionLink
+          <Link
             to={{
               pathname: makeReleasesPathname({
                 organization,
                 path: `/${encodeURIComponent(version)}/`,
               }),
-              query: {project: getReleaseProjectId(release, selection)},
+              query: {
+                ...extractSelectionParameters(location.query),
+                project: getReleaseProjectId(release, selection),
+              },
             }}
           >
-            <VersionWrapper>
+            <Flex align="center">
               <StyledVersion version={version} tooltipRawVersion anchor={false} />
-            </VersionWrapper>
-          </GlobalSelectionLink>
+            </Flex>
+          </Link>
           {commitCount > 0 && (
             <ReleaseCardCommits release={release} withHeading={false} />
           )}
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
-          <ReleaseInfoSubheaderUpper>
-            <PackageContainer>
+          <Flex justify="between" flex="1 1 auto" height="100%">
+            <Container flex="1" marginRight="md" minWidth="0" overflow="hidden">
               <PackageName>
                 {versionInfo?.package && (
                   <TextOverflow ellipsisDirection="right">
@@ -152,7 +157,7 @@ function ReleaseCard({
               />
               {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
               &nbsp;
-            </PackageContainer>
+            </Container>
             <FinalizeWrapper>
               {release.dateReleased ? (
                 <Tooltip
@@ -168,7 +173,7 @@ function ReleaseCard({
                     ),
                   })}
                 >
-                  <Tag type="success" icon={<IconCheckmark />} />
+                  <Tag variant="success" icon={<IconCheckmark />} />
                 </Tooltip>
               ) : (
                 <Tooltip
@@ -204,7 +209,7 @@ function ReleaseCard({
                 </Tooltip>
               )}
             </FinalizeWrapper>
-          </ReleaseInfoSubheaderUpper>
+          </Flex>
         </ReleaseInfoSubheader>
       </ReleaseInfo>
 
@@ -226,7 +231,7 @@ function ReleaseCard({
           </ReleaseProjectsLayout>
         </ReleaseProjectsHeader>
 
-        <ProjectRows>
+        <Container position="relative">
           <Collapsible
             expandButton={({onExpand, numberOfHiddenItems}) => (
               <ExpandButtonWrapper>
@@ -236,11 +241,11 @@ function ReleaseCard({
               </ExpandButtonWrapper>
             )}
             collapseButton={({onCollapse}) => (
-              <CollapseButtonWrapper>
+              <Flex justify="center" align="center" height="41px">
                 <Button priority="primary" size="xs" onClick={onCollapse}>
                   {t('Collapse')}
                 </Button>
-              </CollapseButtonWrapper>
+              </Flex>
             )}
           >
             {projectsToShow.map((project, index) => {
@@ -263,7 +268,7 @@ function ReleaseCard({
               );
             })}
           </Collapsible>
-        </ProjectRows>
+        </Container>
 
         {projectsToHide.length > 0 && (
           <HiddenProjectsMessage data-test-id="hidden-projects">
@@ -283,13 +288,12 @@ function ReleaseCard({
   );
 }
 
-const VersionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const StyledVersion = styled(Version)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledPanel = styled(Panel)<{reloading: number}>`
@@ -302,14 +306,14 @@ const StyledPanel = styled(Panel)<{reloading: number}>`
 `;
 
 const ReleaseInfo = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   flex-shrink: 1;
   display: flex;
   flex-direction: column;
   justify-content: stretch;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     min-width: 260px;
     width: 22%;
     max-width: 300px;
@@ -317,19 +321,11 @@ const ReleaseInfo = styled('div')`
 `;
 
 const ReleaseInfoSubheader = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.gray400};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.colors.gray500};
   flex-grow: 1;
 `;
 
-const ReleaseInfoSubheaderUpper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  flex: initial;
-  flex-grow: 1;
-  height: 100%;
-`;
 const FinalizeWrapper = styled('div')`
   display: flex;
   flex-direction: row;
@@ -346,23 +342,16 @@ const FinalizeWrapper = styled('div')`
 `;
 
 const PackageName = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   max-width: 100%;
 `;
 
-const PackageContainer = styled('div')`
-  overflow: hidden;
-  flex: 1;
-  min-width: 0;
-  margin-right: ${space(1)};
-`;
-
 const ReleaseProjects = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   flex-grow: 1;
   display: grid;
 
@@ -372,21 +361,17 @@ const ReleaseProjects = styled('div')`
 `;
 
 const ReleaseInfoHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
 
 const ReleaseProjectsHeader = styled(PanelHeader)`
   border-top-left-radius: 0;
-  padding: ${space(1.5)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const ProjectRows = styled('div')`
-  position: relative;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const ExpandButtonWrapper = styled('div')`
@@ -402,19 +387,12 @@ const ExpandButtonWrapper = styled('div')`
     ${p => p.theme.tokens.background.primary}
   );
   background-repeat: repeat-x;
-  border-bottom: ${space(1)} solid ${p => p.theme.tokens.background.primary};
-  border-top: ${space(1)} solid transparent;
+  border-bottom: ${p => p.theme.space.md} solid ${p => p.theme.tokens.background.primary};
+  border-top: ${p => p.theme.space.md} solid transparent;
   border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     border-bottom-left-radius: ${p => p.theme.radius.md};
   }
-`;
-
-const CollapseButtonWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 41px;
 `;
 
 export const ReleaseProjectsLayout = styled('div')<{
@@ -423,7 +401,7 @@ export const ReleaseProjectsLayout = styled('div')<{
   display: grid;
   grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   align-items: center;
   width: 100%;
 
@@ -444,7 +422,11 @@ export const ReleaseProjectsLayout = styled('div')<{
 `;
 
 export const ReleaseProjectColumn = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 20px;
 `;
 
@@ -508,18 +490,16 @@ export const DisplaySmallCol = styled(ReleaseProjectColumn)`
 const HiddenProjectsMessage = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
-  padding: 0 ${space(2)};
-  border-top: 1px solid ${p => p.theme.border};
+  font-size: ${p => p.theme.font.size.sm};
+  padding: 0 ${p => p.theme.space.xl};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
   height: 24px;
   line-height: 24px;
-  color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.tokens.content.secondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 `;
-
-export default ReleaseCard;

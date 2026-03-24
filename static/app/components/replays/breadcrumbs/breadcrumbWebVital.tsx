@@ -1,17 +1,16 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout/flex';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isCLSFrame, isWebVitalFrame} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
@@ -94,7 +93,7 @@ export function BreadcrumbWebVital({
         >
           <ValueObjectKey>{t('element')}</ValueObjectKey>
           <span>{': '}</span>
-          <SelectorButton size="zero" borderless>
+          <SelectorButton size="zero" priority="transparent">
             {key}
           </SelectorButton>
         </span>
@@ -138,7 +137,7 @@ const ValueObjectKey = styled('span')`
 `;
 
 const ValueNull = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-property);
 `;
 
@@ -147,11 +146,11 @@ const SelectorButton = styled(Button)`
   border: none;
   padding: 0 2px;
   border-radius: 2px;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   box-shadow: none;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  margin: 0 ${space(0.5)};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin: 0 ${p => p.theme.space.xs};
   height: auto;
   min-height: auto;
 `;

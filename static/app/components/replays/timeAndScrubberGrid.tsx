@@ -2,23 +2,23 @@ import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration/duration';
-import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
-import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
-import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
+import {Duration} from 'sentry/components/duration/duration';
+import {ReplayTimeline} from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import {TimelineTooltip} from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
+import {ReplayCurrentTime} from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import useTimelineMouseTracking from 'sentry/components/replays/player/useTimelineMouseTracking';
+import {useTimelineMouseTracking} from 'sentry/components/replays/player/useTimelineMouseTracking';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useTimelineScale} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TimeAndScrubberGridProps = {
   isCompact?: boolean;
@@ -50,12 +50,12 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   }, [timelineScale, maxScale, setTimelineScale, organization]);
 
   return (
-    <ButtonBar gap="0">
+    <Grid flow="column" align="center" gap="0">
       <Button
         size="xs"
-        title={t('Zoom out')}
+        tooltipProps={{title: t('Zoom out')}}
         icon={<IconSubtract />}
-        borderless
+        priority="transparent"
         onClick={handleZoomOut}
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1 || isLoading}
@@ -66,18 +66,18 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
       </span>
       <Button
         size="xs"
-        title={t('Zoom in')}
+        tooltipProps={{title: t('Zoom in')}}
         icon={<IconAdd />}
-        borderless
+        priority="transparent"
         onClick={handleZoomIn}
         aria-label={t('Zoom in')}
         disabled={timelineScale === maxScale || isLoading}
       />
-    </ButtonBar>
+    </Grid>
   );
 }
 
-export default function TimeAndScrubberGrid({
+export function TimeAndScrubberGrid({
   isCompact = false,
   showZoom = false,
   isLoading,
@@ -100,10 +100,13 @@ export default function TimeAndScrubberGrid({
   });
 
   return (
-    <Grid id="replay-timeline-tooltip-container" isCompact={isCompact}>
-      <Padded style={{gridArea: 'currentTime'}}>
+    <TimeAndScrubberGridLayout
+      id="replay-timeline-tooltip-container"
+      isCompact={isCompact}
+    >
+      <Flex justify="center" padding="0 lg" area="currentTime">
         <ReplayCurrentTime />
-      </Padded>
+      </Flex>
 
       <TimelineWrapper
         style={{gridArea: 'timeline'}}
@@ -131,7 +134,7 @@ export default function TimeAndScrubberGrid({
         ) : null}
       </ScrubberWrapper>
 
-      <Padded style={{gridArea: 'duration'}}>
+      <Flex justify="center" padding="0 lg" area="duration">
         {durationMs === undefined ? (
           '--:--'
         ) : timestampType === 'absolute' ? (
@@ -139,25 +142,25 @@ export default function TimeAndScrubberGrid({
         ) : (
           <Duration duration={[durationMs, 'ms']} precision="sec" />
         )}
-      </Padded>
-    </Grid>
+      </Flex>
+    </TimeAndScrubberGridLayout>
   );
 }
 
-const Grid = styled('div')<{isCompact: boolean}>`
+const TimeAndScrubberGridLayout = styled('div')<{isCompact: boolean}>`
   width: 100%;
   display: grid;
   grid-template-areas:
     '. timeline timelineSize'
     'currentTime scrubber duration';
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   grid-template-columns: max-content auto max-content;
   align-items: center;
 
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   font-variant-numeric: tabular-nums;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   ${p =>
     p.isCompact
       ? css`
@@ -170,10 +173,11 @@ const Grid = styled('div')<{isCompact: boolean}>`
 
 const TimelineWrapper = styled('div')`
   position: relative;
-  height: 100%;
+  height: 28px;
   display: flex;
   align-items: center;
   cursor: pointer;
+  overflow: hidden;
 
   & > * {
     height: 20px;
@@ -186,10 +190,4 @@ const ScrubberWrapper = styled('div')`
   display: flex;
   align-items: center;
   cursor: pointer;
-`;
-
-const Padded = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding-inline: ${space(1.5)};
 `;

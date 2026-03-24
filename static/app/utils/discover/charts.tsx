@@ -4,11 +4,26 @@ import type {LegendComponentOption} from 'echarts';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import type {
+  AggregationOutputType,
+  DataUnit,
+  RateUnit,
+} from 'sentry/utils/discover/fields';
+import {
+  ABYTE_UNITS,
+  DURATION_UNIT_MULTIPLIERS,
+  SizeUnit,
+} from 'sentry/utils/discover/fields';
 import {axisDuration} from 'sentry/utils/duration/axisDuration';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {convertSize} from 'sentry/utils/unitConversion/convertSize';
+import {
+  isADurationUnit,
+  isASizeUnit,
+} from 'sentry/views/dashboards/widgets/common/typePredicates';
 
 import {categorizeDuration} from './categorizeDuration';
 
@@ -18,12 +33,13 @@ import {categorizeDuration} from './categorizeDuration';
  */
 export function tooltipFormatter(
   value: number | null,
-  outputType: AggregationOutputType = 'number'
+  outputType: AggregationOutputType = 'number',
+  unit?: DataUnit
 ): string {
   if (!defined(value)) {
     return '\u2014';
   }
-  return tooltipFormatterUsingAggregateOutputType(value, outputType);
+  return tooltipFormatterUsingAggregateOutputType(value, outputType, unit);
 }
 
 /**
@@ -31,7 +47,8 @@ export function tooltipFormatter(
  */
 export function tooltipFormatterUsingAggregateOutputType(
   value: number | null,
-  type: string
+  type: string,
+  unit?: DataUnit
 ): string {
   if (!defined(value)) {
     return '\u2014';
@@ -42,10 +59,29 @@ export function tooltipFormatterUsingAggregateOutputType(
       return value.toLocaleString();
     case 'percentage':
       return formatPercentage(value, 2);
-    case 'duration':
-      return getDuration(value / 1000, 2, true);
-    case 'size':
-      return formatBytesBase2(value);
+    case 'duration': {
+      const durationUnitString = unit ?? undefined;
+      const durationMultiplier = isADurationUnit(durationUnitString)
+        ? DURATION_UNIT_MULTIPLIERS[durationUnitString]
+        : 1; // default to milliseconds
+      const valueInMs = value * durationMultiplier;
+      return getDuration(valueInMs / 1000, 2, true);
+    }
+    case 'size': {
+      const unitString = unit ?? undefined;
+      const resolvedUnit = isASizeUnit(unitString) ? unitString : SizeUnit.BYTE;
+      const sizeInBytes = convertSize(value, resolvedUnit, SizeUnit.BYTE);
+      const formatter =
+        unitString && ABYTE_UNITS.includes(unitString)
+          ? formatBytesBase10
+          : formatBytesBase2;
+      return formatter(sizeInBytes);
+    }
+    case 'rate':
+      if (unit) {
+        return formatRate(value, unit as RateUnit);
+      }
+      return formatRate(value);
     default:
       return value.toString();
   }
@@ -61,7 +97,8 @@ export function axisLabelFormatter(
   abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
-  decimalPlaces?: number
+  decimalPlaces?: number,
+  sizeUnit?: DataUnit
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
@@ -69,7 +106,8 @@ export function axisLabelFormatter(
     abbreviation,
     durationUnit,
     rateUnit,
-    decimalPlaces
+    decimalPlaces,
+    sizeUnit
   );
 }
 
@@ -82,7 +120,8 @@ export function axisLabelFormatterUsingAggregateOutputType(
   abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
-  decimalPlaces = 0
+  decimalPlaces = 0,
+  sizeUnit?: DataUnit
 ): string {
   switch (type) {
     case 'integer':
@@ -90,10 +129,24 @@ export function axisLabelFormatterUsingAggregateOutputType(
       return abbreviation ? formatAbbreviatedNumber(value) : value.toLocaleString();
     case 'percentage':
       return formatPercentage(value, decimalPlaces);
-    case 'duration':
-      return axisDuration(value, durationUnit);
-    case 'size':
-      return formatBytesBase2(value, 0);
+    case 'duration': {
+      const durationDataUnit = sizeUnit ?? undefined;
+      const durationMult = isADurationUnit(durationDataUnit)
+        ? DURATION_UNIT_MULTIPLIERS[durationDataUnit]
+        : 1; // default to milliseconds
+      const valueInMs = value * durationMult;
+      return axisDuration(valueInMs, durationUnit);
+    }
+    case 'size': {
+      const unitString = sizeUnit ?? undefined;
+      const resolvedUnit = isASizeUnit(unitString) ? unitString : SizeUnit.BYTE;
+      const sizeInBytes = convertSize(value, resolvedUnit, SizeUnit.BYTE);
+      const formatter =
+        unitString && ABYTE_UNITS.includes(unitString)
+          ? formatBytesBase10
+          : formatBytesBase2;
+      return formatter(sizeInBytes, 0);
+    }
     case 'rate':
       return formatRate(value, rateUnit);
     default:
@@ -154,13 +207,20 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
  */
 export function getDurationUnit(
   series: Series[],
-  legend?: LegendComponentOption
+  legend?: LegendComponentOption,
+  dataUnit?: DataUnit
 ): number {
   let durationUnit = 0;
   const range = findRangeOfMultiSeries(series, legend);
   if (range) {
-    const avg = (range.max + range.min) / 2;
-    durationUnit = categorizeDuration((range.max - range.min) / 5); // avg of 5 yAxis ticks per chart
+    const unitString = dataUnit ?? undefined;
+    const multiplier = isADurationUnit(unitString)
+      ? DURATION_UNIT_MULTIPLIERS[unitString]
+      : 1; // default to milliseconds
+    const min = range.min * multiplier;
+    const max = range.max * multiplier;
+    const avg = (max + min) / 2;
+    durationUnit = categorizeDuration((max - min) / 5); // avg of 5 yAxis ticks per chart
 
     const numOfDigits = (avg / durationUnit).toFixed(0).length;
     if (numOfDigits > 6) {

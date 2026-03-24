@@ -1,13 +1,15 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Loading from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Stack} from '@sentry/scraps/layout';
+
+import {LoadingIndicator as Loading} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -16,9 +18,9 @@ import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetai
 import {getInitialTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
-import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
-import EmptyState from 'sentry/views/replays/detail/emptyState';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+import {StyledEmptyStateWarning as EmptyState} from 'sentry/views/replays/detail/emptyState';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import {useReplayTraces} from './useReplayTraces';
@@ -149,7 +151,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
   }
 
   return (
-    <TraceViewWaterfallWrapper>
+    <Stack height="100%">
       <TraceWaterfall
         traceSlug={firstTrace.traceSlug}
         trace={trace}
@@ -162,24 +164,18 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
         source="replay"
         replay={replay}
       />
-    </TraceViewWaterfallWrapper>
+    </Stack>
   );
 }
 
 // This has the gray background, to match other loaders on Replay Details
 const StyledPlaceholder = styled(Placeholder)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 
 // White background, to match the loaded component
 const BorderedSection = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const TraceViewWaterfallWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
 `;

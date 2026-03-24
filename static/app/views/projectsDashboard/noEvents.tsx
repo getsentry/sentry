@@ -6,15 +6,13 @@ type Props = {
   seriesCount: number;
 };
 
-function NoEvents({seriesCount}: Props) {
+export function NoEvents({seriesCount}: Props) {
   return (
     <Container>
       <EmptyText seriesCount={seriesCount}>{t('No activity yet.')}</EmptyText>
     </Container>
   );
 }
-
-export default NoEvents;
 
 const Container = styled('div')`
   position: absolute;
@@ -31,5 +29,5 @@ const EmptyText = styled('div')<Props>`
   margin-left: 4px;
   margin-right: 4px;
   height: ${p => (p.seriesCount > 1 ? '90px' : '150px')};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

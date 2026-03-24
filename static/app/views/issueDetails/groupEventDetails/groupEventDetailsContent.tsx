@@ -2,26 +2,27 @@ import {Fragment, useMemo, useRef} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {CommitRow} from 'sentry/components/commitRow';
-import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
+import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
-import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
+import {EventHydrationDiff} from 'sentry/components/events/eventHydrationDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
-import EventReplay from 'sentry/components/events/eventReplay';
+import {EventReplay} from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
-import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
-import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
-import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
+import {AggregateSpanDiff} from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
+import {EventBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
+import {EventComparison} from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
@@ -29,9 +30,10 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
+import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
-import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
+import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
@@ -49,6 +51,7 @@ import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
+import {UptimeAssertionsSection} from 'sentry/components/events/interfaces/uptime/uptimeAssertionsSection';
 import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
@@ -57,10 +60,9 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -68,13 +70,19 @@ import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {isJavascriptPlatform} from 'sentry/utils/platform';
+import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
+import {
+  getHangProfileData,
+  MetricKitHangProfileSection,
+} from 'sentry/views/issueDetails/metricKitHangProfileSection';
+import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
+import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
@@ -108,6 +116,12 @@ export function EventDetailsContent({
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
+  const hangProfileData =
+    mechanism === 'mx_hang_diagnostic' &&
+    organization.features.includes('metrickit-flamegraph')
+      ? getHangProfileData(event)
+      : null;
+  const isMetricKitHang = hangProfileData !== null;
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   const hasActionableItems = actionableItemsEnabled({
@@ -146,7 +160,10 @@ export function EventDetailsContent({
         <ActionableItems event={event} project={project} />
       )}
       {issueTypeConfig.tags.enabled && (
-        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+        <HighlightsDataSection event={event} project={project} />
+      )}
+      {isMobilePlatform(project.platform) && (
+        <ProfilePreviewSection event={event} project={project} />
       )}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
@@ -170,11 +187,11 @@ export function EventDetailsContent({
                   size="xs"
                   icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
                   onClick={showFeedback ? dismissPrompt : showPrompt}
-                  title={
-                    showFeedback
+                  tooltipProps={{
+                    title: showFeedback
                       ? t('Hide feedback on all issue details')
-                      : t('Unhide feedback on all issue details')
-                  }
+                      : t('Unhide feedback on all issue details'),
+                  }}
                   disabled={promptError}
                   busy={promptLoading}
                 >
@@ -215,66 +232,78 @@ export function EventDetailsContent({
         />
       )}
       <EventEvidence event={event} group={group} project={project} />
+      {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
+        <UptimeAssertionsSection event={event} />
+      )}
+      {hasStreamlinedUI && issueTypeConfig.instrumentationFixSection.enabled && (
+        <ErrorBoundary mini>
+          <InstrumentationFixSection event={event} group={group} />
+        </ErrorBoundary>
+      )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
       )}
-      {/* Wrapping all stacktrace components since multiple could appear */}
-      <ClassNames>
-        {({css}) => (
-          <GuideAnchor
-            target="stacktrace"
-            position="top"
-            disabled={
-              !(
-                defined(eventEntries[EntryType.EXCEPTION]) ||
-                defined(eventEntries[EntryType.STACKTRACE]) ||
-                defined(eventEntries[EntryType.THREADS]) ||
-                hasStreamlinedUI
-              )
-            }
-            // Prevent the container span from shrinking the content
-            containerClassName={css`
-              display: block !important;
-            `}
-          >
-            {defined(eventEntries[EntryType.EXCEPTION]) && (
-              <EntryErrorBoundary type={EntryType.EXCEPTION}>
-                <Exception
-                  event={event}
-                  data={eventEntries[EntryType.EXCEPTION].data}
-                  projectSlug={project.slug}
-                  group={group}
-                  groupingCurrentLevel={groupingCurrentLevel}
-                />
-              </EntryErrorBoundary>
-            )}
-            {issueTypeConfig.stacktrace.enabled &&
-              defined(eventEntries[EntryType.STACKTRACE]) && (
-                <EntryErrorBoundary type={EntryType.STACKTRACE}>
-                  <StackTrace
+      {isMetricKitHang ? (
+        <MetricKitHangProfileSection data={hangProfileData} />
+      ) : (
+        /* Wrapping all stacktrace components since multiple could appear */
+        <ClassNames>
+          {({css}) => (
+            <GuideAnchor
+              target="stacktrace"
+              position="top"
+              disabled={
+                !(
+                  defined(eventEntries[EntryType.EXCEPTION]) ||
+                  defined(eventEntries[EntryType.STACKTRACE]) ||
+                  defined(eventEntries[EntryType.THREADS]) ||
+                  hasStreamlinedUI
+                )
+              }
+              // Prevent the container span from shrinking the content
+              containerClassName={css`
+                display: block !important;
+              `}
+            >
+              {defined(eventEntries[EntryType.EXCEPTION]) && (
+                <EntryErrorBoundary type={EntryType.EXCEPTION}>
+                  <Exception
                     event={event}
-                    data={eventEntries[EntryType.STACKTRACE].data}
-                    projectSlug={projectSlug}
+                    data={eventEntries[EntryType.EXCEPTION].data}
+                    projectSlug={project.slug}
+                    group={group}
                     groupingCurrentLevel={groupingCurrentLevel}
                   />
                 </EntryErrorBoundary>
               )}
-            {defined(eventEntries[EntryType.THREADS]) && (
-              <EntryErrorBoundary type={EntryType.THREADS}>
-                <Threads
-                  event={event}
-                  data={eventEntries[EntryType.THREADS].data}
-                  projectSlug={project.slug}
-                  groupingCurrentLevel={groupingCurrentLevel}
-                  group={group}
-                />
-              </EntryErrorBoundary>
-            )}
-          </GuideAnchor>
-        )}
-      </ClassNames>
+              {issueTypeConfig.stacktrace.enabled &&
+                defined(eventEntries[EntryType.STACKTRACE]) && (
+                  <EntryErrorBoundary type={EntryType.STACKTRACE}>
+                    <StackTrace
+                      event={event}
+                      data={eventEntries[EntryType.STACKTRACE].data}
+                      projectSlug={projectSlug}
+                      groupingCurrentLevel={groupingCurrentLevel}
+                    />
+                  </EntryErrorBoundary>
+                )}
+              {defined(eventEntries[EntryType.THREADS]) && (
+                <EntryErrorBoundary type={EntryType.THREADS}>
+                  <Threads
+                    event={event}
+                    data={eventEntries[EntryType.THREADS].data}
+                    projectSlug={project.slug}
+                    groupingCurrentLevel={groupingCurrentLevel}
+                    group={group}
+                  />
+                </EntryErrorBoundary>
+              )}
+            </GuideAnchor>
+          )}
+        </ClassNames>
+      )}
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
@@ -333,7 +362,7 @@ export function EventDetailsContent({
         </Fragment>
       )}
       <ErrorBoundary customComponent={() => null}>
-        <MetricDetectorTriggeredSection event={event} />
+        <MetricDetectorTriggeredSection group={group} event={event} />
       </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
@@ -414,6 +443,7 @@ export function EventDetailsContent({
       </ErrorBoundary>
       <EventExtraData event={event} />
       <EventViewHierarchy event={event} project={project} />
+      <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
       <EventAttachments event={event} project={project} group={group} />
@@ -454,7 +484,7 @@ export function EventDetailsContent({
   );
 }
 
-export default function GroupEventDetailsContent({
+export function GroupEventDetailsContent({
   group,
   event,
   project,
@@ -502,14 +532,14 @@ function EntryErrorBoundary({
 }
 
 const NotFoundMessage = styled('div')`
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
 
 const StyledDataSection = styled(DataSection)`
-  padding: ${space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(1)} ${space(4)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
   }
 
   &:empty {

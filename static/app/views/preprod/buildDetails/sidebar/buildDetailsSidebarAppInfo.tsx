@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -6,15 +7,14 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
 import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
-import {openInstallModal} from 'sentry/views/preprod/components/installModal';
+import {AppIcon} from 'sentry/views/preprod/components/appIcon';
+import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import {type BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   getLabels,
-  getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
   getReadableArtifactTypeTooltip,
   getReadablePlatformLabel,
@@ -37,19 +37,23 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
   return (
     <Flex direction="column" gap="xl">
       <Flex align="center" gap="sm">
-        <AppIcon>
-          <AppIconPlaceholder>{props.appInfo.name?.charAt(0) || ''}</AppIconPlaceholder>
-        </AppIcon>
-        {props.appInfo.name && <Heading as="h3">{props.appInfo.name}</Heading>}
+        {props.appInfo.name && (
+          <Fragment>
+            <AppIcon
+              appName={props.appInfo.name}
+              appIconId={props.appInfo.app_icon_id}
+              projectId={props.projectId}
+            />
+            <Heading as="h3">{props.appInfo.name}</Heading>
+          </Fragment>
+        )}
       </Flex>
 
       <Flex wrap="wrap" gap="md">
         <Flex gap="2xs" align="center">
           <InfoIcon>
             {props.appInfo.platform ? (
-              <PlatformIcon
-                platform={getPlatformIconFromPlatform(props.appInfo.platform)}
-              />
+              <PlatformIcon platform={props.appInfo.platform} />
             ) : null}
           </InfoIcon>
           <Text>
@@ -98,24 +102,21 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             </Text>
           </Flex>
         </Tooltip>
-        <Feature features="organizations:preprod-build-distribution">
-          <Flex gap="2xs" align="center">
-            <InfoIcon>
-              <IconLink />
-            </InfoIcon>
-            <Text>
-              {props.projectId ? (
-                <InstallableLink
-                  onClick={() => {
-                    openInstallModal(props.projectId!, props.artifactId);
-                  }}
-                >
-                  Install
-                </InstallableLink>
-              ) : null}
-            </Text>
-          </Flex>
-        </Feature>
+        <Flex gap="2xs" align="center">
+          <InfoIcon>
+            <IconLink />
+          </InfoIcon>
+          <Text>
+            {props.projectId ? (
+              <InstallAppButton
+                projectId={props.projectId}
+                artifactId={props.artifactId}
+                platform={props.appInfo.platform ?? null}
+                source="build_details_sidebar"
+              />
+            ) : null}
+          </Text>
+        </Flex>
         {props.appInfo.build_configuration && (
           <Tooltip title={labels.buildConfiguration}>
             <Flex gap="2xs" align="center">
@@ -133,45 +134,12 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
   );
 }
 
-const AppIcon = styled('div')`
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background: #ff6600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-`;
-
-const AppIconPlaceholder = styled('div')`
-  color: white;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
 const InfoIcon = styled('div')`
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const InstallableLink = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font-size: inherit;
-  color: ${p => p.theme.linkColor};
-  text-decoration: underline;
-  cursor: pointer;
-  font-family: inherit;
-
-  &:hover {
-    color: ${p => p.theme.linkHoverColor};
-  }
 `;
 
 const InlineCodeSnippet = styled(CodeBlock)`

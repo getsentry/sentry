@@ -46,9 +46,9 @@ class SecretScanningGitHubTest(TestCase):
         )
 
     @override_options({"secret-scanning.github.enable-signature-verification": False})
-    def test_false_positive_deactivated_user_token(self) -> None:
+    def test_false_positive_deactivated_personal_token(self) -> None:
         user = self.create_user()
-        token = ApiToken.objects.create(user=user, name="test user token", scope_list=[])
+        token = ApiToken.objects.create(user=user, name="test personal token", scope_list=[])
 
         # revoke token
         token.delete()
@@ -57,7 +57,7 @@ class SecretScanningGitHubTest(TestCase):
             {
                 "source": "commit",
                 "token": str(token),
-                "type": "sentry_user_auth_token",
+                "type": "sentry_personal_token",
                 "url": "https://example.com/base-repo-url/",
             }
         ]
@@ -68,7 +68,7 @@ class SecretScanningGitHubTest(TestCase):
         expected = [
             {
                 "token_hash": hash_token(str(token)),
-                "token_type": "sentry_user_auth_token",
+                "token_type": "sentry_personal_token",
                 "label": "false_positive",
             }
         ]
@@ -94,7 +94,7 @@ class SecretScanningGitHubTest(TestCase):
             {
                 "source": "commit",
                 "token": token_str,
-                "type": "sentry_org_auth_token",
+                "type": "sentry_organization_token",
                 "url": "https://example.com/base-repo-url/",
             }
         ]
@@ -105,7 +105,7 @@ class SecretScanningGitHubTest(TestCase):
         expected = [
             {
                 "token_hash": hash_digest,
-                "token_type": "sentry_org_auth_token",
+                "token_type": "sentry_organization_token",
                 "label": "false_positive",
             }
         ]
@@ -113,17 +113,22 @@ class SecretScanningGitHubTest(TestCase):
 
         assert len(mail.outbox) == 0
 
-    @override_options({"secret-scanning.github.enable-signature-verification": False})
+    @override_options(
+        {
+            "secret-scanning.github.enable-signature-verification": False,
+        }
+    )
     @patch("sentry.api.endpoints.secret_scanning.github.logger")
-    def test_true_positive_user_token(self, mock_logger: MagicMock) -> None:
-        user = self.create_user()
-        token = ApiToken.objects.create(user=user, name="test user token", scope_list=[])
+    def test_true_positive_personal_token(self, mock_logger: MagicMock) -> None:
+        user = self.create_user(email="test@example.com")
+        token = ApiToken.objects.create(user=user, name="test personal token", scope_list=[])
+        hash_digest = hash_token(token.token)
 
         payload = [
             {
                 "source": "commit",
                 "token": str(token.token),
-                "type": "sentry_user_auth_token",
+                "type": "sentry_personal_token",
                 "url": "https://example.com/base-repo-url/",
             }
         ]
@@ -131,7 +136,14 @@ class SecretScanningGitHubTest(TestCase):
         with self.tasks():
             response = self.client.post(self.path, content_type="application/json", data=payload)
         assert response.status_code == 200
-        assert response.content == b"[]"
+        expected = [
+            {
+                "token_hash": hash_digest,
+                "token_type": "sentry_personal_token",
+                "label": "true_positive",
+            }
+        ]
+        assert json.loads(response.content.decode("utf-8")) == expected
 
         extra = {
             "exposed_source": "commit",
@@ -142,31 +154,39 @@ class SecretScanningGitHubTest(TestCase):
         mock_logger.info.assert_called_with("found an exposed auth token", extra=extra)
 
         assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == [user.username]
-        assert mail.outbox[0].subject == "[Sentry]Action Required: User Auth Token Exposed"
+        assert mail.outbox[0].to == [user.email]
+        assert mail.outbox[0].subject == "[Sentry]Action Required: Personal Token Exposed"
         assert (
-            "Your Sentry User Auth Token was found publicly on the internet" in mail.outbox[0].body
+            "Your Sentry Personal Token was found publicly on the internet" in mail.outbox[0].body
         )
         assert "http://testserver/settings/account/api/auth-tokens" in mail.outbox[0].body
-        assert "test user token" in mail.outbox[0].body
+        assert "test personal token" in mail.outbox[0].body
         assert token.hashed_token in mail.outbox[0].body
 
-    @override_options({"secret-scanning.github.enable-signature-verification": False})
+    @override_options(
+        {
+            "secret-scanning.github.enable-signature-verification": False,
+        }
+    )
     @patch("sentry.api.endpoints.secret_scanning.github.logger")
     def test_true_positive_org_token(self, mock_logger: MagicMock) -> None:
+        self.user.email = "org-owner@example.com"
+        self.user.save()
+
         token_str = generate_token("test-org", "https://test-region.sentry.io")
+        hash_digest = hash_token(token_str)
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="test org token",
             scope_list=["org:ci"],
-            token_hashed=hash_token(token_str),
+            token_hashed=hash_digest,
         )
 
         payload = [
             {
                 "source": "commit",
                 "token": token_str,
-                "type": "sentry_org_auth_token",
+                "type": "sentry_organization_token",
                 "url": "https://example.com/base-repo-url/",
             }
         ]
@@ -174,7 +194,14 @@ class SecretScanningGitHubTest(TestCase):
         with self.tasks():
             response = self.client.post(self.path, content_type="application/json", data=payload)
         assert response.status_code == 200
-        assert response.content == b"[]"
+        expected = [
+            {
+                "token_hash": hash_digest,
+                "token_type": "sentry_organization_token",
+                "label": "true_positive",
+            }
+        ]
+        assert json.loads(response.content.decode("utf-8")) == expected
 
         extra = {
             "exposed_source": "commit",
@@ -185,10 +212,10 @@ class SecretScanningGitHubTest(TestCase):
         mock_logger.info.assert_called_with("found an exposed auth token", extra=extra)
 
         assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == [self.user.username]
-        assert mail.outbox[0].subject == "[Sentry]Action Required: Organization Auth Token Exposed"
+        assert mail.outbox[0].to == [self.user.email]
+        assert mail.outbox[0].subject == "[Sentry]Action Required: Organization Token Exposed"
         assert (
-            "Your Sentry Organization Auth Token was found publicly on the internet"
+            "Your Sentry Organization Token was found publicly on the internet"
             in mail.outbox[0].body
         )
         assert "http://baz.testserver/settings/auth-tokens/" in mail.outbox[0].body

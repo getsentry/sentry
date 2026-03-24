@@ -1,10 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import Feature from 'sentry/components/acl/feature';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock, IconEllipsis, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -12,11 +14,11 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
   DashboardWidgetSource,
@@ -30,8 +32,6 @@ import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVis
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {
   useQueryParamsAggregateFields,
@@ -149,7 +149,7 @@ function Graph({
       isSampled: samplingMeta.isSampled,
       sampleCount: samplingMeta.sampleCount,
       samplingMode: undefined,
-      topEvents: isTopEvents ? TOP_EVENTS_LIMIT : undefined,
+      topEvents: isTopEvents ? series.filter(s => !s.meta.isOther).length : undefined,
     };
   }, [
     visualize.chartType,
@@ -173,34 +173,42 @@ function Graph({
 
   const Actions = (
     <Fragment>
-      <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
-        <CompactSelect
-          triggerProps={{
-            icon: <IconGraph type={chartIcon} />,
-            borderless: true,
-            showChevron: false,
-            size: 'xs',
-          }}
-          value={visualize.chartType}
-          menuTitle="Type"
-          options={EXPLORE_CHART_TYPE_OPTIONS}
-          onChange={option => onChartTypeChange(option.value)}
-        />
-      </Tooltip>
-      <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
-        <CompactSelect
-          value={interval}
-          onChange={({value}) => setInterval(value)}
-          triggerProps={{
-            icon: <IconClock />,
-            borderless: true,
-            showChevron: false,
-            size: 'xs',
-          }}
-          menuTitle="Interval"
-          options={intervalOptions}
-        />
-      </Tooltip>
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            tooltipProps={{
+              title: t('Type of chart displayed in this visualization (ex. line)'),
+            }}
+            icon={<IconGraph type={chartIcon} />}
+            priority="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        value={visualize.chartType}
+        menuTitle="Type"
+        options={EXPLORE_CHART_TYPE_OPTIONS}
+        onChange={option => onChartTypeChange(option.value)}
+      />
+      <CompactSelect
+        value={interval}
+        onChange={({value}) => setInterval(value)}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            tooltipProps={{
+              title: t('Time interval displayed in this visualization (ex. 5m)'),
+            }}
+            icon={<IconClock />}
+            priority="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        menuTitle="Interval"
+        options={intervalOptions}
+      />
       <ContextMenu
         interval={interval}
         visualize={visualize}
@@ -274,7 +282,7 @@ function ContextMenu({
         organization,
         dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
         interval,
-        eventTypes: 'trace_item_log',
+        eventTypes: [EventTypes.TRACE_ITEM_LOG],
       }),
       onAction: () => {
         trackAnalytics('logs.save_as', {
@@ -393,7 +401,7 @@ function ContextMenu({
     <DropdownMenu
       triggerProps={{
         size: 'xs',
-        borderless: true,
+        priority: 'transparent',
         showChevron: false,
         icon: <IconEllipsis />,
       }}
@@ -404,5 +412,5 @@ function ContextMenu({
 }
 
 const DisabledText = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;

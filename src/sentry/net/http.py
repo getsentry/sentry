@@ -3,8 +3,6 @@ from __future__ import annotations
 import socket
 from collections.abc import Callable
 from functools import partial
-from socket import error as SocketError
-from socket import timeout as SocketTimeout
 from typing import Optional
 
 from requests import Session as _Session
@@ -86,13 +84,13 @@ class SafeConnectionMixin:
             )
             # End custom code.
 
-        except SocketTimeout:
+        except TimeoutError:
             raise ConnectTimeoutError(
                 self,
                 f"Connection to {self.host} timed out. (connect timeout={self.timeout})",
             )
 
-        except SocketError as e:
+        except OSError as e:
             raise NewConnectionError(self, f"Failed to establish a new connection: {e}")
 
         return conn

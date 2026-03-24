@@ -1,9 +1,10 @@
 import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 interface StartTourModalProps {
@@ -34,7 +35,7 @@ export function StartTourModal({
         <TextContainer>
           <Header>{header}</Header>
           <Description>{description}</Description>
-          <Footer>
+          <Flex justify="end" marginTop="xl" gap="md">
             <TextTourAction
               onClick={() => {
                 onDismissTour();
@@ -52,7 +53,7 @@ export function StartTourModal({
             >
               {t('Take a tour')}
             </TourAction>
-          </Footer>
+          </Flex>
         </TextContainer>
       </TourContainer>
     </ThemeProvider>
@@ -60,8 +61,8 @@ export function StartTourModal({
 }
 
 const ModalImage = styled('img')`
-  width: calc(100% - ${space(1.5)} - ${space(1.5)});
-  margin: ${space(1.5)} 0 0 ${space(1.5)};
+  width: calc(100% - ${p => p.theme.space.lg} - ${p => p.theme.space.lg});
+  margin: ${p => p.theme.space.lg} 0 0 ${p => p.theme.space.lg};
   background-size: cover;
   background-position: center;
   border-radius: ${p => p.theme.radius.md};
@@ -70,9 +71,9 @@ const ModalImage = styled('img')`
 
 // XXX: The negative margin is to undo the global modal styling
 const TourContainer = styled('div')`
-  margin: -${space(4)} -${space(3)};
+  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['2xl']};
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${space(4)};
+    margin: -${p => p.theme.space['3xl']};
   }
   border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.tokens.background.primary};
@@ -80,30 +81,25 @@ const TourContainer = styled('div')`
 `;
 
 const TextContainer = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const Header = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.primary};
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${space(2)};
-  gap: ${space(1)};
+  white-space: pre-line;
 `;
 
 export const startTourModalCss = css`
   width: 545px;
   [role='document'] {
     box-shadow: none;
+    border: none;
   }
 `;

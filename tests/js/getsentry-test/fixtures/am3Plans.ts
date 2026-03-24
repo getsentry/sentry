@@ -17,6 +17,8 @@ const AM3_CHECKOUT_CATEGORIES = [
   'spans',
   'uptime',
   'logBytes',
+  'sizeAnalyses',
+  'installableBuilds',
 ] as DataCategory[];
 
 const AM3_ONDEMAND_CATEGORIES = [
@@ -67,6 +69,11 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
   seerUsers: {singular: 'active contributor', plural: 'active contributors'},
+  sizeAnalyses: {singular: 'size analysis build', plural: 'size analysis builds'},
+  installableBuilds: {
+    singular: 'build distribution install',
+    plural: 'build distribution installs',
+  },
 };
 
 const AM3_DS_CATEGORY_DISPLAY_NAMES = {
@@ -139,7 +146,7 @@ const AM3_DS_FEATURES = [
   'dynamic-sampling-custom',
 ];
 
-export const SEER_TIERS_DEVELOPER = {
+export const LEGACY_SEER_TIERS_DEVELOPER = {
   seerAutofix: [
     {
       events: 0,
@@ -158,7 +165,7 @@ export const SEER_TIERS_DEVELOPER = {
   ],
 };
 
-export const SEER_TIERS_TRIAL_OR_ENTERPRISE = {
+export const LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE = {
   seerAutofix: [
     {
       events: -2,
@@ -177,7 +184,7 @@ export const SEER_TIERS_TRIAL_OR_ENTERPRISE = {
   ],
 };
 
-export const SEER_TIERS = {
+export const LEGACY_SEER_TIERS = {
   seerAutofix: [
     {
       events: -2,
@@ -208,7 +215,7 @@ export const SEER_TIERS = {
   ],
 };
 
-export const SEER_TIERS_ANNUAL = {
+export const LEGACY_SEER_TIERS_ANNUAL = {
   seerAutofix: [
     {
       events: -2,
@@ -235,6 +242,17 @@ export const SEER_TIERS_ANNUAL = {
       unitPrice: 0,
       price: 0,
       onDemandPrice: 1.25,
+    },
+  ],
+};
+
+export const SEER_TIERS = {
+  seerUsers: [
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
     },
   ],
 };
@@ -274,7 +292,7 @@ const commonFieldsForDs = {
   availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
 };
 
-const AM3_PLANS: Record<string, Plan> = {
+export const AM3_PLANS = {
   am3_business: {
     ...commonFields,
     id: 'am3_business',
@@ -989,6 +1007,23 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
   },
@@ -1488,7 +1523,24 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_ANNUAL,
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_ANNUAL,
+      ...SEER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1587,7 +1639,24 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1686,7 +1755,24 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1793,7 +1879,24 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1900,7 +2003,24 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1999,7 +2119,24 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_DEVELOPER,
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_DEVELOPER,
+      ...SEER_TIERS,
     },
     dashboardLimit: 10,
     metricDetectorLimit: 20,
@@ -2098,7 +2235,24 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2205,7 +2359,24 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2708,6 +2879,23 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 25000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
   },
@@ -3209,7 +3397,24 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
-      ...SEER_TIERS_ANNUAL,
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 25000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_ANNUAL,
+      ...SEER_TIERS,
     },
   },
   am3_t: {
@@ -3300,8 +3505,22 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
     },
   },
-};
-
-export default AM3_PLANS;
+} as const satisfies Record<string, Plan>;

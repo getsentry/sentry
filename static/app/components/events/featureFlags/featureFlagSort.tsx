@@ -1,11 +1,7 @@
-import {Button} from 'sentry/components/core/button';
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
-import {
-  getDefaultOrderBy,
-  getSelectionType,
-  type OrderBy,
-  type SortBy,
-} from 'sentry/components/events/featureFlags/utils';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {type OrderBy} from 'sentry/components/events/featureFlags/utils';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -16,56 +12,28 @@ interface Props {
     value: OrderBy;
   }>;
   setOrderBy: (value: React.SetStateAction<OrderBy>) => void;
-  setSortBy: (value: React.SetStateAction<SortBy>) => void;
-  sortBy: SortBy;
-  sortByOptions: Array<{
-    label: string;
-    value: SortBy;
-  }>;
 }
 
-export default function FeatureFlagSort({
-  sortBy,
-  orderBy,
-  setOrderBy,
-  setSortBy,
-  orderByOptions,
-  sortByOptions,
-}: Props) {
+export function FeatureFlagSort({orderBy, setOrderBy, orderByOptions}: Props) {
   return (
     <CompositeSelect
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('Sort Flags')}
           size="xs"
           icon={<IconSort />}
-          title={t('Sort Flags')}
+          tooltipProps={{title: t('Sort Flags')}}
         />
       )}
     >
-      <CompositeSelect.Region
-        label={t('Sort By')}
-        value={sortBy}
-        onChange={selection => {
-          if (selection.value !== sortBy) {
-            setOrderBy(getDefaultOrderBy(selection.value));
-          }
-          setSortBy(selection.value);
-        }}
-        options={sortByOptions}
-        closeOnSelect={false}
-      />
       <CompositeSelect.Region
         label={t('Order By')}
         value={orderBy}
         onChange={selection => {
           setOrderBy(selection.value);
         }}
-        options={orderByOptions.filter(o => {
-          const selectionType = getSelectionType(o.value);
-          return selectionType === sortBy;
-        })}
+        options={orderByOptions}
         closeOnSelect={false}
       />
     </CompositeSelect>

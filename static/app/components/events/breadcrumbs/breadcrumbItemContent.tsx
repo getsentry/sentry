@@ -5,7 +5,6 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';
-import {space} from 'sentry/styles/space';
 import {
   BreadcrumbMessageFormat,
   BreadcrumbType,
@@ -33,7 +32,7 @@ interface BreadcrumbItemContentProps {
   meta?: Record<string, any>;
 }
 
-export default function BreadcrumbItemContent({
+export function BreadcrumbItemContent({
   breadcrumb: bc,
   meta,
   fullyExpanded = true,
@@ -265,15 +264,15 @@ const Link = styled('a')`
 const SQLText = styled('pre')`
   &.language-sql {
     margin: 0;
-    padding: ${space(0.25)} 0;
-    font-size: ${p => p.theme.fontSize.sm};
+    padding: ${p => p.theme.space['2xs']} 0;
+    font-size: ${p => p.theme.font.size.sm};
     white-space: pre-wrap;
   }
 `;
 
 const BreadcrumbText = styled(Timeline.Text)`
   white-space: pre-wrap;
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
 `;

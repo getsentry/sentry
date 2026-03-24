@@ -1,14 +1,14 @@
 import {useCallback, useEffect} from 'react';
-import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {type DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
+import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {type DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
 import OverviewPageloadsChartWidget from 'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget';
 import OverviewSlowNextjsSSRWidget from 'sentry/views/insights/common/components/widgets/overviewSlowNextjsSSRWidget';
@@ -43,7 +43,7 @@ export function NextJsOverviewPage({datePageFilterProps}: NextJsOverviewPageProp
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeTable: TableType = isTableType(location.query.view)
+  const activeTable = isTableType(location.query.view)
     ? location.query.view
     : TableType.CLIENT;
 
@@ -111,13 +111,13 @@ export function NextJsOverviewPage({datePageFilterProps}: NextJsOverviewPageProp
           <OverviewSlowNextjsSSRWidget />
         </WidgetGrid.Position6>
       </WidgetGrid>
-      <ControlsWrapper>
+      <Flex justify="between" align="center" margin="xl 0" gap="md">
         <TableControl value={activeTable} onChange={handleTableViewChange} size="sm">
           <TableControlItem key={TableType.CLIENT}>{t('Client')}</TableControlItem>
           <TableControlItem key={TableType.API}>{t('API')}</TableControlItem>
           <TableControlItem key={TableType.SSR}>{t('SSR')}</TableControlItem>
         </TableControl>
-      </ControlsWrapper>
+      </Flex>
 
       {activeTable === TableType.API && <ApiTable />}
       {activeTable === TableType.CLIENT && <ClientTable />}
@@ -125,11 +125,3 @@ export function NextJsOverviewPage({datePageFilterProps}: NextJsOverviewPageProp
     </PlatformLandingPageLayout>
   );
 }
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
-  margin: ${space(2)} 0;
-`;

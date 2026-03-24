@@ -1,14 +1,17 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {TextArea} from '@sentry/scraps/textarea/textarea';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {PRWidget} from 'sentry/views/seerExplorer/prWidget';
+import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface FileApprovalActions {
   currentIndex: number;
@@ -28,51 +31,71 @@ interface QuestionActions {
 }
 
 interface InputSectionProps {
+  blocks: Block[];
+  enabled: boolean;
   focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
   onClear: () => void;
+  onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
+  onInterrupt: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onPRWidgetClick: () => void;
+  prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
+  repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   fileApprovalActions?: FileApprovalActions;
   isMinimized?: boolean;
   isVisible?: boolean;
   questionActions?: QuestionActions;
+  wasJustInterrupted?: boolean;
 }
 
-function InputSection({
+export function InputSection({
+  blocks,
+  enabled,
   inputValue,
   focusedBlockIndex,
   isMinimized = false,
   isPolling,
   interruptRequested,
   isVisible = false,
+  onCreatePR,
   onInputChange,
   onInputClick,
+  onInterrupt,
   onKeyDown,
+  onPRWidgetClick,
+  prWidgetButtonRef,
+  repoPRStates,
   textAreaRef,
   fileApprovalActions,
   questionActions,
+  wasJustInterrupted = false,
 }: InputSectionProps) {
+  // Check if there are any file patches for showing the PR widget
+  const hasCodeChanges = useMemo(() => {
+    return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
+  }, [blocks]);
   const getPlaceholder = () => {
+    if (!enabled) {
+      return 'This conversation is owned by another user and is read-only';
+    }
+    if (wasJustInterrupted) {
+      return 'Interrupted. What should Seer do instead?';
+    }
     if (focusedBlockIndex !== -1) {
       return 'Press Tab ⇥ to return here';
-    }
-    if (interruptRequested) {
-      return 'Winding down...';
-    }
-    if (isPolling) {
-      return 'Press Esc to interrupt';
     }
     return 'Type your message or / command and press Enter ↵';
   };
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
-    if (!fileApprovalActions || !isVisible || isMinimized) {
+    if (!enabled || !fileApprovalActions || !isVisible || isMinimized) {
       return undefined;
     }
 
@@ -88,7 +111,7 @@ function InputSection({
       if (e.key === 'Enter') {
         e.preventDefault();
         fileApprovalActions.onApprove();
-      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      } else if (e.key === 'Escape') {
         e.preventDefault();
         fileApprovalActions.onReject();
       }
@@ -96,11 +119,11 @@ function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [fileApprovalActions, isVisible, isMinimized]);
+  }, [enabled, fileApprovalActions, isVisible, isMinimized]);
 
   // Handle keyboard shortcuts for questions
   useEffect(() => {
-    if (!questionActions || !isVisible || isMinimized) {
+    if (!enabled || !questionActions || !isVisible || isMinimized) {
       return undefined;
     }
 
@@ -136,7 +159,30 @@ function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [questionActions, isVisible, isMinimized]);
+  }, [enabled, questionActions, isVisible, isMinimized]);
+
+  // Render disabled input element if not enabled
+  if (!enabled) {
+    return (
+      <InputBlock>
+        <InputRow>
+          <StyledInputGroup>
+            <InputGroup.TextArea
+              disabled
+              ref={textAreaRef}
+              value={inputValue}
+              onChange={onInputChange}
+              onKeyDown={onKeyDown}
+              onClick={onInputClick}
+              placeholder={getPlaceholder()}
+              rows={1}
+              data-test-id="seer-explorer-input"
+            />
+          </StyledInputGroup>
+        </InputRow>
+      </InputBlock>
+    );
+  }
 
   // Render file approval action bar instead of entire input section
   if (fileApprovalActions) {
@@ -162,14 +208,14 @@ function InputSection({
                 </Text>
               )}
             </Flex>
-            <ButtonBar gap="md">
+            <Grid flow="column" align="center" gap="md">
               <Button size="md" onClick={onReject}>
-                {t('Reject')} ⌫
+                {t('Reject')} <Kbd>esc</Kbd>
               </Button>
               <Button size="md" priority="primary" onClick={onApprove}>
-                {t('Approve')} ⏎
+                {t('Approve')} <Kbd>↵</Kbd>
               </Button>
-            </ButtonBar>
+            </Grid>
           </Flex>
         </Container>
       </ActionBar>
@@ -178,7 +224,13 @@ function InputSection({
 
   // Render question action bar
   if (questionActions) {
-    const {currentIndex, totalQuestions, onBack, onNext, canSubmit} = questionActions;
+    const {
+      currentIndex,
+      totalQuestions,
+      onBack,
+      onNext,
+      canSubmit: canSubmitQuestion,
+    } = questionActions;
     const hasMultiple = totalQuestions > 1;
     const isLastQuestion = currentIndex >= totalQuestions - 1;
 
@@ -201,41 +253,81 @@ function InputSection({
                 </Text>
               )}
             </Flex>
-            <ButtonBar gap="md">
+            <Grid flow="column" align="center" gap="md">
               {currentIndex > 0 && (
                 <Button size="md" onClick={onBack}>
                   {t('Back')} ⌫
                 </Button>
               )}
-              <Button size="md" priority="primary" onClick={onNext} disabled={!canSubmit}>
+              <Button
+                size="md"
+                priority="primary"
+                onClick={onNext}
+                disabled={!canSubmitQuestion}
+              >
                 {isLastQuestion ? t('Submit') : t('Next')} ⏎
               </Button>
-            </ButtonBar>
+            </Grid>
           </Flex>
         </Container>
       </ActionBar>
     );
   }
 
+  const renderActionButton = () => {
+    if (interruptRequested) {
+      return (
+        <ActionButtonWrapper title={t('Winding down...')} isDanger>
+          <LoadingIndicator size={16} />
+        </ActionButtonWrapper>
+      );
+    }
+
+    if (isPolling) {
+      return (
+        <Button
+          icon={<IconPause variant="muted" />}
+          onClick={onInterrupt}
+          size="sm"
+          priority="transparent"
+          aria-label={t('Interrupt')}
+          tooltipProps={{title: t('Press Esc to interrupt')}}
+        />
+      );
+    }
+
+    return null;
+  };
+
   return (
     <InputBlock>
       <InputRow>
-        <InputTextarea
-          ref={textAreaRef}
-          value={inputValue}
-          onChange={onInputChange}
-          onKeyDown={onKeyDown}
-          onClick={onInputClick}
-          placeholder={getPlaceholder()}
-          rows={1}
-          data-test-id="seer-explorer-input"
-        />
+        <StyledInputGroup interrupted={wasJustInterrupted}>
+          <InputGroup.TextArea
+            ref={textAreaRef}
+            value={inputValue}
+            onChange={onInputChange}
+            onKeyDown={onKeyDown}
+            onClick={onInputClick}
+            placeholder={getPlaceholder()}
+            rows={1}
+            data-test-id="seer-explorer-input"
+          />
+          <InputGroup.TrailingItems>{renderActionButton()}</InputGroup.TrailingItems>
+        </StyledInputGroup>
+        {enabled && hasCodeChanges && (
+          <PRWidget
+            ref={prWidgetButtonRef}
+            blocks={blocks}
+            repoPRStates={repoPRStates}
+            onCreatePR={onCreatePR}
+            onToggleMenu={onPRWidgetClick}
+          />
+        )}
       </InputRow>
     </InputBlock>
   );
 }
-
-export default InputSection;
 
 // Styled components
 const InputBlock = styled('div')`
@@ -247,17 +339,25 @@ const InputBlock = styled('div')`
 
 const InputRow = styled('div')`
   display: flex;
-  align-items: stretch;
-  width: 100%;
-  padding: 0;
+  align-items: flex-end;
+  gap: ${p => p.theme.space.sm};
+  margin: ${p => p.theme.space.sm};
 `;
 
-const InputTextarea = styled(TextArea)`
-  width: 100%;
-  margin: ${p => p.theme.space.sm};
-  color: ${p => p.theme.tokens.content.primary};
-  resize: none;
-  overflow-y: auto;
+const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
+  flex: 1;
+
+  textarea {
+    resize: none;
+
+    &::placeholder {
+      color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};
+    }
+  }
+
+  [data-test-id='input-trailing-items'] {
+    right: ${p => p.theme.space.xs};
+  }
 `;
 
 const ActionBar = styled(motion.div)`
@@ -266,4 +366,29 @@ const ActionBar = styled(motion.div)`
   background: ${p => p.theme.tokens.background.primary};
   position: sticky;
   bottom: 0;
+`;
+
+const ActionButtonWrapper = styled('div')<{isDanger?: boolean}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+
+  .loading-indicator {
+    margin: 0;
+    padding: 0;
+    ${p =>
+      p.isDanger &&
+      `
+      border-color: ${p.theme.tokens.content.warning};
+      border-left-color: transparent;
+    `}
+  }
+`;
+
+const Kbd = styled('span')`
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.xs};
+  margin-left: ${p => p.theme.space.xs};
 `;

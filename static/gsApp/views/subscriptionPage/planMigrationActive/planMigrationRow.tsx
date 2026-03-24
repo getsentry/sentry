@@ -80,7 +80,7 @@ function formatCategoryRowString(
   return `${reservedWithUnits} ${quantity === 1 ? displayName : plural}`;
 }
 
-function PlanMigrationRow(props: Props) {
+export function PlanMigrationRow(props: Props) {
   let currentValue: React.ReactNode;
   let nextValue: React.ReactNode;
   let discountPrice: string | undefined;
@@ -140,7 +140,7 @@ function PlanMigrationRow(props: Props) {
       <Title>{currentTitle}</Title>
       <td data-test-id={`current-${dataTestIdSuffix}`}>{currentValue}</td>
       <td>
-        <IconArrow size="xs" direction="right" color="gray300" />
+        <IconArrow size="xs" direction="right" variant="muted" />
       </td>
       {hasDiscount ? (
         <DiscountCell data-test-id={`new-${dataTestIdSuffix}`}>
@@ -168,5 +168,3 @@ const DiscountedPrice = styled('span')`
   text-decoration: line-through;
   font-weight: 400;
 `;
-
-export default PlanMigrationRow;

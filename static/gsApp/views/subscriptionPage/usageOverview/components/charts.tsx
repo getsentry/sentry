@@ -1,6 +1,6 @@
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {ChartControls, InlineContainer} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -15,16 +15,25 @@ import {
   getChunkCategoryFromDuration,
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {
   ProductUsageChart,
   selectedTransform,
 } from 'getsentry/views/subscriptionPage/reservedUsageChart';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
-import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
-import UsageTotalsTable from 'getsentry/views/subscriptionPage/usageTotalsTable';
+import {UsageTotalsTable} from 'getsentry/views/subscriptionPage/usageTotalsTable';
 
-function UsageCharts({
+const EMPTY_STAT_TOTAL = {
+  accepted: 0,
+  dropped: 0,
+  droppedOther: 0,
+  droppedOverQuota: 0,
+  droppedSpikeProtection: 0,
+  filtered: 0,
+  projected: 0,
+};
+
+export function UsageCharts({
   selectedProduct,
   usageData,
   subscription,
@@ -38,6 +47,8 @@ function UsageCharts({
   }
 
   const category = selectedProduct as DataCategory;
+  // we do not normalize metric history here because if it is isn't present
+  // there shouldn't be any usage to show in charts anyway
   const metricHistory = subscription.categories[category];
   const categoryInfo = getCategoryInfoFromPlural(category);
 
@@ -142,4 +153,3 @@ function UsageCharts({
     </Container>
   );
 }
-export default UsageCharts;

@@ -6,7 +6,6 @@ from django.conf import settings
 
 
 class ReplayStore:
-
     def save(self, data: dict[str, Any]) -> None:
         request_url = settings.SENTRY_SNUBA + "/tests/entities/replays/insert"
         response = requests.post(request_url, json=[data])

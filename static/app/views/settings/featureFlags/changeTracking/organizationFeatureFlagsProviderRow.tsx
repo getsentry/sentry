@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TimeSince from 'sentry/components/timeSince';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Confirm} from 'sentry/components/confirm';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useUserFromId from 'sentry/utils/useUserFromId';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
 
 export function OrganizationFeatureFlagsProviderRow({
@@ -28,16 +28,18 @@ export function OrganizationFeatureFlagsProviderRow({
     <Fragment>
       <div>
         <div>{secret.provider}</div>
-        <SecretPreview aria-label={t('Secret preview')}>{secret.secret}</SecretPreview>
+        <Text variant="secondary" aria-label={t('Secret preview')}>
+          {secret.secret}
+        </Text>
       </div>
 
-      <DateTime>
+      <Flex align="center" gap="xs">
         <TimeSince date={secret.createdAt} />
-      </DateTime>
+      </Flex>
 
       <Flex align="center">{isUserPending ? <LoadingIndicator mini /> : user?.name}</Flex>
 
-      <Actions>
+      <Flex justify="end">
         <Tooltip
           title={t(
             'You must be an organization owner, manager or admin to remove a secret.'
@@ -62,22 +64,7 @@ export function OrganizationFeatureFlagsProviderRow({
             </Button>
           </Confirm>
         </Tooltip>
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
-
-const Actions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
-const DateTime = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const SecretPreview = styled('div')`
-  color: ${p => p.theme.subText};
-`;

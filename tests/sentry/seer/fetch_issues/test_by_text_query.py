@@ -94,6 +94,8 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
             query="hello",
         )
         assert "error" not in seer_response
@@ -106,6 +108,8 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
             query="auth",
         )
         assert "error" not in seer_response
@@ -144,6 +148,8 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
             query="nonexistent_keyword_xyz123",
         )
 
@@ -165,6 +171,8 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
             query="database conn",
         )
 
@@ -189,6 +197,8 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
             query="common.py",
             limit=limit,
         )
@@ -213,6 +223,8 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
         )
 
         # Test the internal function directly with a query that should match the created event
@@ -236,6 +248,8 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
         )
 
         # Test the internal function with a query that won't match anything

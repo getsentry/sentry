@@ -272,27 +272,34 @@ def truncate_denormalizations(project: Project, group: Group) -> None:
         [str(group.id)],
     )
 
-    similarity.delete(project, group)
+    # Don't do MinHash work if we use embeddings-based similarity.
+    if not project.get_option("sentry:similarity_backfill_completed"):
+        similarity.delete(project, group)
 
 
 def collect_group_environment_data(
     events: Sequence[GroupEvent],
-) -> dict[tuple[int, str], str | None]:
+) -> dict[tuple[int, str], tuple[str | None, datetime]]:
     """\
-    Find the first release for a each group and environment pair from a
-    date-descending sorted list of events.
+    Find the first release and first seen datetime for each group and
+    environment pair from a date-descending sorted list of events.
     """
-    results: dict[tuple[int, str], str | None] = {}
+    results: dict[tuple[int, str], tuple[str | None, datetime]] = {}
     for event in events:
-        results[(event.group_id, get_environment_name(event))] = event.get_tag("sentry:release")
+        results[(event.group_id, get_environment_name(event))] = (
+            event.get_tag("sentry:release"),
+            event.datetime,
+        )
     return results
 
 
 def repair_group_environment_data(
     caches: Mapping[str, Any], project: Project, events: Sequence[GroupEvent]
 ) -> None:
-    for (group_id, env_name), first_release in collect_group_environment_data(events).items():
-        fields = {}
+    for (group_id, env_name), (first_release, first_seen) in collect_group_environment_data(
+        events
+    ).items():
+        fields: dict[str, Any] = {"first_seen": first_seen}
         if first_release:
             fields["first_release"] = caches["Release"](project.organization_id, first_release)
 
@@ -458,8 +465,10 @@ def repair_denormalizations(
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
 
-    for event in events:
-        similarity.record(project, [event])
+    # Don't do MinHash work if we use embeddings-based similarity.
+    if not project.get_option("sentry:similarity_backfill_completed"):
+        for event in events:
+            similarity.record(project, [event])
 
 
 def lock_hashes(project_id: int, source_id: int, fingerprints: Sequence[str]) -> list[str]:
@@ -490,8 +499,8 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
 @instrumented_task(
     name="sentry.tasks.unmerge",
     namespace=issues_tasks,
-    processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    processing_deadline_duration=300,
+    silo_mode=SiloMode.CELL,
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
     args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)

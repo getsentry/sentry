@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/dashboard';
 
 type ToolbarProps = {
@@ -44,7 +45,7 @@ export function Toolbar({
               size="xs"
               aria-label={t('Drag Widget')}
               icon={<IconGrabbable />}
-              borderless
+              priority="transparent"
               className={DRAG_HANDLE_CLASS}
               disabled={disableDrag}
             />
@@ -60,7 +61,7 @@ export function Toolbar({
               data-test-id="widget-edit"
               aria-label={t('Edit Widget')}
               size="xs"
-              borderless
+              priority="transparent"
               onClick={onEdit}
               icon={<IconEdit />}
               disabled={disableEdit}
@@ -76,7 +77,7 @@ export function Toolbar({
             <Button
               aria-label={t('Duplicate Widget')}
               size="xs"
-              borderless
+              priority="transparent"
               onClick={onDuplicate}
               icon={<IconCopy />}
               disabled={disableDuplicate}
@@ -92,7 +93,7 @@ export function Toolbar({
             <Button
               data-test-id="widget-delete"
               aria-label={t('Delete Widget')}
-              borderless
+              priority="transparent"
               size="xs"
               onClick={onDelete}
               icon={<IconDelete />}
@@ -118,13 +119,14 @@ const ToolbarPanel = styled('div')`
   justify-content: flex-end;
   align-items: flex-start;
 
-  background-color: ${p => color(p.theme.surface300).alpha(0.7).string()};
+  background-color: ${p =>
+    color(p.theme.tokens.background.secondary).alpha(0.7).string()};
   border-radius: calc(${p => p.theme.radius.md} - 1px);
 `;
 
 const IconContainer = styled('div')`
   display: flex;
-  margin: ${space(1)};
+  margin: ${p => p.theme.space.md};
   touch-action: none;
 `;
 

@@ -1,18 +1,16 @@
 import {useCallback} from 'react';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {CreateBroadcastModal} from 'admin/components/createBroadcastModal';
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 import {getBroadcastSchema} from 'admin/schemas/broadcasts';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 const getRow = (row: any) => [
   <td key="title">
@@ -38,7 +36,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function Broadcasts(props: Props) {
+export function Broadcasts() {
   const hasPermission = ConfigStore.get('user').permissions.has('broadcasts.admin');
   const fields = getBroadcastSchema();
 
@@ -53,9 +51,11 @@ function Broadcasts(props: Props) {
       <PageHeader title="Broadcasts">
         <Button
           disabled={!hasPermission}
-          title={
-            hasPermission ? undefined : "You don't have the broadcasts.admin permission"
-          }
+          tooltipProps={{
+            title: hasPermission
+              ? undefined
+              : "You don't have the broadcasts.admin permission",
+          }}
           onClick={handleNewBroadcast}
           priority="primary"
           size="sm"
@@ -91,10 +91,7 @@ function Broadcasts(props: Props) {
           ['expires', 'Date Expires'],
         ]}
         defaultSort="created"
-        {...props}
       />
     </div>
   );
 }
-
-export default Broadcasts;

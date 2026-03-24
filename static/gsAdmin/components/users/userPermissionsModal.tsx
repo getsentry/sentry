@@ -2,13 +2,14 @@ import {Fragment} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {Form} from 'sentry/components/forms/form';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const fieldProps = {
   stacked: true,
@@ -21,19 +22,33 @@ type Props = ModalRenderProps & {
   user: User;
 };
 
-function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props) {
+export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props) {
   const api = useApi({persistInFlight: true});
 
   const {
     data: availablePermissions,
     isPending: availablePermissionsLoading,
     isError: availablePermissionsError,
-  } = useApiQuery<string[]>([`/users/${user.id}/permissions/config/`], {staleTime: 0});
+  } = useApiQuery<string[]>(
+    [
+      getApiUrl(`/users/$userId/permissions/config/`, {
+        path: {userId: user.id},
+      }),
+    ],
+    {staleTime: 0}
+  );
   const {
     data: permissionList,
     isPending: permissionListLoading,
     isError: permissionListError,
-  } = useApiQuery<string[]>([`/users/${user.id}/permissions/`], {staleTime: 0});
+  } = useApiQuery<string[]>(
+    [
+      getApiUrl(`/users/$userId/permissions/`, {
+        path: {userId: user.id},
+      }),
+    ],
+    {staleTime: 0}
+  );
 
   if (permissionListError || availablePermissionsError) {
     return <LoadingError />;
@@ -130,5 +145,3 @@ function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props)
     </Fragment>
   );
 }
-
-export default UserPermissionsModal;

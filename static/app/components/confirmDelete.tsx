@@ -1,21 +1,24 @@
 import {Fragment, useId} from 'react';
 
-import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {InlineCode} from 'sentry/components/core/code';
-import {Input} from 'sentry/components/core/input';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {Alert} from '@sentry/scraps/alert';
+import {InlineCode} from '@sentry/scraps/code';
+import {Input} from '@sentry/scraps/input';
+
+import {Confirm} from 'sentry/components/confirm';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 
-interface Props
-  extends Omit<React.ComponentProps<typeof Confirm>, 'renderConfirmMessage'> {
+interface Props extends Omit<
+  React.ComponentProps<typeof Confirm>,
+  'renderConfirmMessage'
+> {
   /**
    * The string that the user must enter to confirm the deletion
    */
   confirmInput: string;
 }
 
-function ConfirmDelete({message, confirmInput, ...props}: Props) {
+export function ConfirmDelete({message, confirmInput, ...props}: Props) {
   const id = useId();
 
   return (
@@ -27,7 +30,7 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
       renderMessage={({disableConfirmButton, confirm: triggerConfirm}) => (
         <Fragment>
           <Alert.Container>
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {message}
             </Alert>
           </Alert.Container>
@@ -61,5 +64,3 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
     />
   );
 }
-
-export default ConfirmDelete;

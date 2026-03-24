@@ -5,12 +5,9 @@ from django.views.generic.base import View as BaseView
 from rest_framework.request import Request
 
 from sentry.conf.types.sentry_config import SentryMode
-from sentry.models.project import Project
 from sentry.utils import json
-from sentry.utils.http import get_origins
 from sentry.web.client_config import get_client_config
-from sentry.web.frontend.base import all_silo_view, region_silo_view
-from sentry.web.helpers import render_to_response
+from sentry.web.frontend.base import all_silo_view
 
 # Paths to pages should not be added here, otherwise crawlers will
 # not be able to access the metadata with the 'none' directive
@@ -98,21 +95,6 @@ def mcp_json(request):
         return HttpResponse(status=404)
 
     return HttpResponse(json.dumps(MCP_CONFIG), content_type="application/json")
-
-
-@region_silo_view
-@cache_control(max_age=60)
-def crossdomain_xml(request, project_id):
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-    except Project.DoesNotExist:
-        return HttpResponse(status=404)
-
-    origin_list = get_origins(project)
-    response = render_to_response("sentry/crossdomain.xml", {"origin_list": origin_list})
-    response["Content-Type"] = "application/xml"
-
-    return response
 
 
 @all_silo_view

@@ -1,5 +1,5 @@
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import {getDetectorTypePath} from './utils/detectorTypeConfig';
 
@@ -21,6 +21,10 @@ export const makeMonitorDetailsPathname = (orgSlug: string, monitorId: string) =
 
 export const makeMonitorCreatePathname = (orgSlug: string) => {
   return normalizeUrl(`${makeMonitorBasePathname(orgSlug)}new/`);
+};
+
+export const makeMonitorCreateSettingsPathname = (orgSlug: string) => {
+  return normalizeUrl(`${makeMonitorBasePathname(orgSlug)}new/settings/`);
 };
 
 export const makeMonitorEditPathname = (orgSlug: string, monitorId: string) => {

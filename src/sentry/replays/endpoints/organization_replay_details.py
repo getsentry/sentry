@@ -17,16 +17,16 @@ from snuba_sdk import (
 )
 
 from sentry import features
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases.organization import NoProjects
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
+from sentry.replays.endpoints.organization_replay_endpoint import OrganizationReplayEndpoint
 from sentry.replays.lib.eap import read as eap_read
 from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
@@ -214,16 +214,15 @@ def query_replay_instance_eap(
     return result
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
-class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
+class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
     """
     The same data as ProjectReplayDetails, except no project is required.
     This works as we'll query for this replay_id across all projects in the
     organization that the user has access to.
     """
 
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -243,8 +242,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         """
         Return details on an individual replay.
         """
-        if not features.has("organizations:session-replay", organization, actor=request.user):
-            return Response(status=404)
+        self.check_replay_access(request, organization)
 
         try:
             filter_params = self.get_filter_params(
@@ -294,12 +292,12 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
                 request_user_id=request.user.id,
             )
 
-        response = process_raw_response(
+        replay_data = process_raw_response(
             snuba_response,
             fields=request.query_params.getlist("field"),
         )
 
-        if len(response) == 0:
+        if len(replay_data) == 0:
             return Response(status=404)
         else:
-            return Response({"data": response[0]}, status=200)
+            return Response({"data": replay_data[0]}, status=200)

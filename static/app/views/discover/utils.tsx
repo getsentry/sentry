@@ -2,10 +2,10 @@ import type {Location} from 'history';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {
   NewQuery,
@@ -14,6 +14,7 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -53,7 +54,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {
   getAllViews,
   getTransactionViews,
@@ -63,6 +64,27 @@ import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
 import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+/**
+ * @returns whether `widgetType` is one that stores a {@link DisplayType} directly
+ * in `eventView.display`, rather than a {@link DisplayModes} value that needs conversion.
+ */
+function widgetTypeUsesDisplayTypeDirectly(widgetType: WidgetType | undefined) {
+  return (
+    widgetType === WidgetType.SPANS ||
+    widgetType === WidgetType.LOGS ||
+    widgetType === WidgetType.TRACEMETRICS
+  );
+}
+
+function resolveDisplayType(
+  widgetType: WidgetType | undefined,
+  eventViewDisplay: string | undefined
+) {
+  return widgetTypeUsesDisplayTypeDirectly(widgetType)
+    ? (eventViewDisplay as DisplayType)
+    : displayModeToDisplayType(eventViewDisplay as DisplayModes);
+}
 
 const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',
@@ -169,7 +191,7 @@ export function getPrebuiltQueries(organization: Organization) {
 function disableMacros(value: string | null | boolean | number) {
   const unsafeCharacterRegex = /^[=+\-@]/;
 
-  if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
+  if (typeof value === 'string' && value.match(unsafeCharacterRegex)) {
     return `'${value}`;
   }
 
@@ -346,7 +368,7 @@ function generateAdditionalConditions(
       const shouldQuote =
         value === null || value === undefined
           ? false
-          : /[\s()\\"]/g.test(String(value).trim());
+          : /[\s()\\"]/.test(String(value).trim());
       const nextValue =
         value === null || value === undefined
           ? ''
@@ -649,10 +671,7 @@ export function handleAddQueryToDashboard({
   query?: NewQuery;
   yAxis?: string | string[];
 }) {
-  const displayType =
-    widgetType === WidgetType.SPANS
-      ? (eventView.display as DisplayType)
-      : displayModeToDisplayType(eventView.display as DisplayModes);
+  const displayType = resolveDisplayType(widgetType, eventView.display);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
@@ -683,32 +702,103 @@ export function handleAddQueryToDashboard({
         utc: eventView.utc,
       },
     },
-    widget: {
-      // We need the event view name for when we're adding from a saved query page
-      title: (query?.name ??
-        (eventView.name === 'All Errors' ? DEFAULT_WIDGET_NAME : eventView.name))!,
+    widgets: [
+      {
+        // We need the event view name for when we're adding from a saved query page
+        title: (query?.name ??
+          (eventView.name === 'All Errors' ? DEFAULT_WIDGET_NAME : eventView.name))!,
+        displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
+        queries: [
+          {
+            ...defaultWidgetQuery,
+            aggregates: [
+              ...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()'])),
+            ],
+            ...{
+              // The widget query params filters out aggregate fields
+              // so we can use the fields as columns. This is so yAxes
+              // can be grouped by the fields.
+              fields: widgetAsQueryParams?.field ?? [],
+              columns: widgetAsQueryParams?.field ?? [],
+            },
+          },
+        ],
+        interval: eventView.interval!,
+        limit: widgetAsQueryParams?.limit,
+        widgetType,
+      },
+    ],
+    source,
+    location,
+  });
+  return;
+}
+
+export function handleAddMultipleQueriesToDashboard({
+  eventViews,
+  location,
+  organization,
+  widgetType,
+  source,
+  selection,
+}: {
+  eventViews: EventView[];
+  location: Location;
+  organization: Organization;
+  selection: PageFilters;
+  source: DashboardWidgetSource;
+  widgetType: WidgetType | undefined;
+}) {
+  if (eventViews.length === 0) {
+    return;
+  }
+
+  const widgets = eventViews.map(eventView => {
+    const displayType = resolveDisplayType(widgetType, eventView.display);
+
+    const defaultWidgetQuery = eventViewToWidgetQuery({
+      eventView,
+      displayType,
+      yAxis: eventView.yAxis,
+    });
+
+    const yAxis = eventView.yAxis;
+
+    const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
+      eventView,
+      query: eventView.toNewQuery(),
+      organization,
+      yAxis,
+      location,
+      widgetType,
+      source,
+    });
+
+    return {
+      title: eventView.name === 'All Errors' ? DEFAULT_WIDGET_NAME : eventView.name!,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       queries: [
         {
           ...defaultWidgetQuery,
-          aggregates: [...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']))],
-          ...{
-            // The widget query params filters out aggregate fields
-            // so we can use the fields as columns. This is so yAxes
-            // can be grouped by the fields.
-            fields: widgetAsQueryParams?.field ?? [],
-            columns: widgetAsQueryParams?.field ?? [],
-          },
+          aggregates: toArray(yAxis ?? 'count()'),
+          fields: widgetAsQueryParams?.field ?? [],
+          columns: widgetAsQueryParams?.field ?? [],
         },
       ],
       interval: eventView.interval!,
       limit: widgetAsQueryParams?.limit,
       widgetType,
-    },
-    source,
-    location,
+    } as Widget;
   });
-  return;
+
+  openAddToDashboardModal({
+    organization,
+    selection,
+    widgets: widgets as [Widget, ...Widget[]],
+    location,
+    source,
+    actions: ['add-and-stay-on-current-page', 'add-and-open-dashboard'],
+  });
 }
 
 export function getTargetForTransactionSummaryLink(
@@ -765,10 +855,7 @@ export function constructAddQueryToDashboardLink({
   widgetType?: WidgetType;
   yAxis?: string | string[];
 }) {
-  const displayType =
-    widgetType === WidgetType.SPANS
-      ? (eventView.display as DisplayType)
-      : displayModeToDisplayType(eventView.display as DisplayModes);
+  const displayType = resolveDisplayType(widgetType, eventView.display);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
@@ -795,7 +882,7 @@ export function constructAddQueryToDashboardLink({
         aggregates: [...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']))],
         fields: eventView.getFields(),
         columns:
-          widgetType === WidgetType.SPANS ||
+          widgetTypeUsesDisplayTypeDirectly(widgetType) ||
           displayType === DisplayType.TOP_N ||
           eventView.display === DisplayModes.DAILYTOP5
             ? eventView
@@ -812,7 +899,7 @@ export function constructAddQueryToDashboardLink({
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
-      ...convertWidgetToBuilderStateParams(widget),
+      ...convertWidgetToQueryParams(widget),
       source,
     },
   };

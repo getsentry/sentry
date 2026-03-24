@@ -12,12 +12,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
@@ -52,13 +50,7 @@ describe('MetricsTabContent', () => {
   });
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
-    return (
-      <MultiMetricsQueryParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.TRACEMETRICS} enabled>
-          {children}
-        </TraceItemAttributeProvider>
-      </MultiMetricsQueryParamsProvider>
-    );
+    return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
   }
 
   const initialRouterConfig = {
@@ -128,7 +120,7 @@ describe('MetricsTabContent', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -238,7 +230,7 @@ describe('MetricsTabContent', () => {
           query_status: 'success',
           sample_counts: [0],
           table_result_length: 6,
-          table_result_mode: 'aggregates',
+          table_result_mode: 'metric samples',
           table_result_sort: ['-timestamp'],
           user_queries: '',
           user_queries_count: 0,
@@ -273,7 +265,7 @@ describe('MetricsTabContent', () => {
         query_status: 'success',
         sample_counts: [0],
         table_result_length: 6,
-        table_result_mode: 'aggregates',
+        table_result_mode: 'metric samples',
         table_result_sort: ['-timestamp'],
         user_queries: '',
         user_queries_count: 0,
@@ -462,7 +454,7 @@ describe('MetricsTabContent', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -521,5 +513,218 @@ describe('MetricsTabContent', () => {
     });
 
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should switch to aggregate mode when a group by is added', async () => {
+    // Mock the trace-items attributes endpoint for string type attributes
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {key: 'test.region', name: 'test.region'},
+        {key: 'test.service', name: 'test.service'},
+      ],
+      match: [MockApiClient.matchQuery({attributeType: 'string'})],
+    });
+
+    // Mock the trace-items attributes endpoint for number type attributes (empty)
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+    });
+
+    const {router} = render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig,
+        organization,
+      }
+    );
+
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(1);
+
+    // Wait for the toolbar to load
+    await waitFor(() => {
+      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+    });
+
+    // Verify initial state is samples mode
+    const initialMetricQuery = JSON.parse(router.location.query.metric as string);
+    expect(initialMetricQuery.mode).toBe('samples');
+
+    // Click on the Group by selector - use text content since prefix renders differently
+    const groupByButton = within(toolbars[0]!).getByText('Group by');
+    await userEvent.click(groupByButton);
+
+    // Select a group by option (test.region)
+    const regionOption = await screen.findByRole('option', {name: 'test.region'});
+    await userEvent.click(regionOption);
+
+    let metricQuery = router.location.query.metric;
+    expect(metricQuery).toBeDefined();
+
+    // Verify that the mode switched to aggregate in the URL
+    let parsedQuery: ReturnType<typeof JSON.parse>;
+    await waitFor(() => {
+      metricQuery = router.location.query.metric;
+      parsedQuery = JSON.parse(metricQuery as string);
+      expect(parsedQuery.mode).toBe('aggregate');
+    });
+    expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
+  });
+});
+
+describe('MetricsTabContent (tracemetrics-ui-refresh)', () => {
+  const {
+    organization,
+    project,
+    initialLocation,
+    setupPageFilters,
+    setupTraceItemsMock,
+    setupEventsMock,
+  } = initializeTraceMetricsTest({
+    orgFeatures: ['tracemetrics-ui-refresh'],
+    routerQuery: {
+      start: '2025-04-10T14%3A37%3A55',
+      end: '2025-04-10T20%3A04%3A51',
+      metric: ['bar||distribution'],
+      title: 'Test Title',
+    },
+  });
+
+  function ProviderWrapper({children}: {children: React.ReactNode}) {
+    return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
+  }
+
+  const initialRouterConfig = {
+    location: initialLocation,
+    route: '/organizations/:orgId/explore/metrics/',
+  };
+
+  beforeEach(() => {
+    window.localStorage.removeItem('explore-metrics-toolbar');
+    MockApiClient.clearMockResponses();
+    trackAnalyticsMock.mockClear();
+    setupPageFilters();
+
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    setupTraceItemsMock(metricFixtures.detailedFixtures);
+    // Fallback for background /events/ queries from the refreshed panel that this
+    // sidebar toggle test doesn't assert on directly.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
+    });
+
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-options',
+      }),
+    ]);
+
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-aggregates-table',
+      }),
+    ]);
+
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-samples-table',
+      }),
+    ]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {
+        timeSeries: [TimeSeriesFixture()],
+      },
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.explore.metric-timeseries',
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {
+        timeSeries: [TimeSeriesFixture()],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/stats_v2/`,
+      method: 'GET',
+      body: {},
+    });
+  });
+
+  it('toggles the query builder sidebar with the expand control', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig,
+        organization,
+      }
+    );
+
+    await waitFor(() => {
+      expect(
+        within(screen.getAllByTestId('metric-toolbar')[0]!).getByRole('button', {
+          name: 'bar',
+        })
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', {name: 'Collapse sidebar'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse sidebar'}));
+
+    expect(screen.queryByTestId('metric-toolbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Expand sidebar'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand sidebar'}));
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(1);
+    });
   });
 });

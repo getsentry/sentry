@@ -1,5 +1,5 @@
 import InputField from 'sentry/components/deprecatedforms/inputField';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 import FormState from 'sentry/components/forms/state';
 
 type Props = InputField['props'] & {

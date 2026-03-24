@@ -1,25 +1,26 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PluginConfig from 'sentry/components/pluginConfig';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PluginConfig} from 'sentry/components/pluginConfig';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {useTogglePluginMutation} from './useTogglePluginMutation';
@@ -28,8 +29,22 @@ export default function ProjectPluginDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const {pluginId} = useParams<{pluginId: string; projectId: string}>();
-  const pluginsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/`;
-  const pluginDetailsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/${pluginId}/`;
+  const pluginsQueryKey = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+    }
+  );
+  const pluginDetailsQueryKey = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/$pluginId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: project.slug,
+        pluginId,
+      },
+    }
+  );
 
   const {
     data: plugins,
@@ -224,5 +239,5 @@ export default function ProjectPluginDetails() {
 }
 
 const StyledButton = styled(Button)`
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space.sm};
 `;

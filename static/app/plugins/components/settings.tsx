@@ -1,12 +1,13 @@
 import {css} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Stack} from 'sentry/components/core/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
 import type {Plugin} from 'sentry/types/integrations';
@@ -76,6 +77,7 @@ class PluginSettings<
   }
 
   changeField(name: string, value: any) {
+    // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
     const formData: State['formData'] = this.state.formData;
     formData[name] = value;
     // upon changing a field, remove errors
@@ -184,7 +186,7 @@ class PluginSettings<
       return (
         <div className="m-b-1">
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               {data.config_error}
             </Alert>
           </Alert.Container>
@@ -198,7 +200,7 @@ class PluginSettings<
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {tct(
               'An unknown error occurred. Need help with this? [link:Contact support]',
               {
@@ -210,7 +212,7 @@ class PluginSettings<
       );
     }
 
-    const fieldList: State['fieldList'] = this.state.fieldList;
+    const fieldList = this.state.fieldList;
 
     if (!fieldList?.length) {
       return null;
@@ -225,7 +227,7 @@ class PluginSettings<
       >
         <Stack>
           {this.state.errors.__all__ && (
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <ul>
                 <li>{this.state.errors.__all__}</li>
               </ul>

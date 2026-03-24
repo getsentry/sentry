@@ -1,21 +1,20 @@
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
 import {motion, type HTMLMotionProps} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {chonkFor} from 'sentry/components/core/chonk';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 import type {Theme} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 
-export interface ToastProps {
+interface ToastProps {
   indicator: Indicator;
   onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
 }
@@ -97,43 +96,43 @@ function getContainerTheme(theme: Theme, type: Indicator['type']): React.CSSProp
   switch (type) {
     case 'success':
       return {
-        background: theme.colors.green100,
-        borderBottom: `2px solid ${theme.tokens.border.success}`,
-        border: `1px solid ${chonkFor(theme, theme.colors.chonk.green400)}`,
-        boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.green400)}`,
+        background: theme.tokens.background.transparent.success.muted,
+        borderBottom: `2px solid ${theme.tokens.border.success.moderate}`,
+        border: `1px solid ${theme.tokens.border.success.moderate}`,
+        boxShadow: theme.shadow.medium,
       };
     case 'error':
       return {
-        background: theme.colors.red100,
-        borderBottom: `2px solid ${theme.tokens.border.danger}`,
-        border: `1px solid ${chonkFor(theme, theme.colors.chonk.red400)}`,
-        boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.red400)}`,
+        background: theme.tokens.background.transparent.danger.muted,
+        borderBottom: `2px solid ${theme.tokens.border.danger.moderate}`,
+        border: `1px solid ${theme.tokens.border.danger.moderate}`,
+        boxShadow: theme.shadow.medium,
       };
     default:
       return {
-        background: theme.tokens.background.primary,
-        borderBottom: `2px solid ${theme.tokens.border.accent}`,
-        border: `1px solid ${chonkFor(theme, theme.colors.chonk.blue400)}`,
-        boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.blue400)}`,
+        background: theme.tokens.background.overlay,
+        borderBottom: `2px solid ${theme.tokens.border.primary}`,
+        border: `1px solid ${theme.tokens.border.primary}`,
+        boxShadow: theme.shadow.medium,
       };
   }
 }
 
-interface ChonkToastContainerProps extends HTMLMotionProps<'div'> {
+interface ToastContainerProps extends HTMLMotionProps<'div'> {
   children: React.ReactNode;
   type: Indicator['type'];
 }
 
-const ToastContainer = chonkStyled((props: ChonkToastContainerProps) => {
+const ToastContainer = styled((props: ToastContainerProps) => {
   const {type, children, ...rest} = props;
   return (
     <ToastOuterContainer type={type} {...rest}>
       <ToastInnerContainer type={type}>{children}</ToastInnerContainer>
     </ToastOuterContainer>
   );
-})<ChonkToastContainerProps>``;
+})<ToastContainerProps>``;
 
-const ToastOuterContainer = chonkStyled(motion.div)<{type: Indicator['type']}>`
+const ToastOuterContainer = styled(motion.div)<{type: Indicator['type']}>`
   overflow: hidden;
   /* The outer container is a separate element because the colors are not opaque,
    * so we set the background color here to the background color so that the
@@ -145,7 +144,7 @@ const ToastOuterContainer = chonkStyled(motion.div)<{type: Indicator['type']}>`
   box-shadow: ${p => getContainerTheme(p.theme, p.type).boxShadow};
 `;
 
-const ToastInnerContainer = chonkStyled('div')<{type: Indicator['type']}>`
+const ToastInnerContainer = styled('div')<{type: Indicator['type']}>`
   display: flex;
   align-items: stretch;
   background: ${p => getContainerTheme(p.theme, p.type).background};
@@ -158,22 +157,22 @@ function getToastIconContainerTheme(
   switch (type) {
     case 'success':
       return {
-        background: theme.colors.chonk.green400,
-        borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.green400)}`,
+        background: theme.tokens.background.success.vibrant,
+        borderRight: `1px solid ${theme.tokens.border.success.moderate}`,
       };
     case 'error':
       return {
-        background: theme.colors.chonk.red400,
-        borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.red400)}`,
+        background: theme.tokens.background.danger.vibrant,
+        borderRight: `1px solid ${theme.tokens.border.danger.moderate}`,
       };
     default:
       return {
-        background: theme.tokens.background.primary,
-        borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.blue400)}`,
+        background: theme.tokens.background.overlay,
+        borderRight: `1px solid ${theme.tokens.border.primary}`,
       };
   }
 }
-const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
+const ToastIconContainer = styled('div')<{type: Indicator['type']}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -184,13 +183,15 @@ const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
   svg {
     width: 16px;
     height: 16px;
-    color: ${p => (p.type === 'success' ? p.theme.colors.black : p.type === 'error' ? p.theme.colors.white : undefined)} !important;
+    color: ${p =>
+      p.type === 'success'
+        ? p.theme.tokens.content.onVibrant.dark
+        : p.type === 'error'
+          ? p.theme.tokens.content.onVibrant.light
+          : undefined} !important;
   }
 `;
 
-const ToastLoadingIndicator = chonkStyled(LoadingIndicator)`
+const ToastLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
-  .loading-indicator {
-
-  }
 `;

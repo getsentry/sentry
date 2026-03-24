@@ -13,7 +13,6 @@ from sentry.sentry_metrics.indexer.base import (
     metric_path_key_compatible_rev_resolve,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.utils import metrics
 
 # !!! DO NOT CHANGE THESE VALUES !!!
 #
@@ -200,6 +199,9 @@ SHARED_TAG_STRINGS = {
     "cardinality.window": PREFIX + 278,
     "cardinality.limit": PREFIX + 279,
     "cardinality.scope": PREFIX + 280,
+    "has_transaction": PREFIX + 281,
+    "was_transaction": PREFIX + 282,
+    "is_segment": PREFIX + 283,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -231,12 +233,8 @@ SPAN_METRICS_NAMES = {
     "g:spans/self_time_light@millisecond": PREFIX + 420,
     "g:spans/total_time@millisecond": PREFIX + 421,
     "c:spans/count_per_root_project@none": PREFIX + 422,
+    "c:spans/count_segments_per_root_project@none": PREFIX + 423,
     # Last possible index: 499
-}
-
-# 500-599
-ESCALATING_ISSUES_METRIC_NAMES = {
-    "c:escalating_issues/event_ingested@none": PREFIX + 500,
 }
 
 # 600-699
@@ -260,7 +258,6 @@ SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
     **TRANSACTION_METRICS_NAMES,
     **SPAN_METRICS_NAMES,
-    **ESCALATING_ISSUES_METRIC_NAMES,
     **PROFILING_METRIC_NAMES,
     **BUNDLE_ANALYSIS_METRIC_NAMES,
     **METRIC_STATS_METRIC_NAMES,
@@ -313,9 +310,6 @@ class StaticStringIndexer(StringIndexer):
 
     @metric_path_key_compatible_resolve
     def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
-        # TODO: remove this metric after investigation is over
-        if use_case_id is UseCaseID.ESCALATING_ISSUES:
-            metrics.incr("sentry_metrics.indexer.string_indexer_resolve_escalating_issues")
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id, org_id, string)

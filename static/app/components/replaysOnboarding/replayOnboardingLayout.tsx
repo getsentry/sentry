@@ -1,20 +1,25 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from 'sentry/components/core/layout';
+import {Stack} from '@sentry/scraps/layout';
+
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
-import ConfigStore from 'sentry/stores/configStore';
+import {ReplayConfigToggle} from 'sentry/components/replaysOnboarding/replayConfigToggle';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function ReplayOnboardingLayout({
   docsConfig,
@@ -34,6 +39,7 @@ export function ReplayOnboardingLayout({
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -102,49 +108,63 @@ export function ReplayOnboardingLayout({
     />
   );
 
+  // TODO(aknaus): Move inserting the toggle into the docs definitions
+  // once the content blocks migration is done. This logic here is very brittle.
+  const transformedSteps = steps.map(step => {
+    if (step.type !== StepType.CONFIGURE || hideMaskBlockToggles) {
+      return step;
+    }
+
+    if (step.content) {
+      const codeIndex = step.content?.findIndex(b => b.type === 'code');
+      if (codeIndex === -1) {
+        return step;
+      }
+      const newContent = [...step.content];
+      if (codeIndex !== undefined) {
+        newContent.splice(codeIndex, 0, {
+          type: 'custom',
+          bottomMargin: false,
+          content: replayConfigToggle,
+        });
+      }
+      return {
+        ...step,
+        content: newContent,
+      };
+    }
+
+    return {
+      ...step,
+      codeHeader: replayConfigToggle,
+    };
+  });
+
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
-      <Wrapper>
-        {introduction && <Introduction>{introduction}</Introduction>}
-        <Stack gap="lg">
-          {steps
-            // TODO(aknaus): Move inserting the toggle into the docs definitions
-            // once the content blocks migration is done. This logic here is very brittle.
-            .map(step => {
-              if (step.type !== StepType.CONFIGURE || hideMaskBlockToggles) {
-                return step;
-              }
-
-              if (step.content) {
-                // Insert the feedback config toggle before the code block
-                const codeIndex = step.content?.findIndex(b => b.type === 'code');
-                if (codeIndex === -1) {
-                  return step;
+      <TabSelectionScope>
+        <Wrapper>
+          {introduction && <Stack margin="0 0 xl 0">{introduction}</Stack>}
+          <Stack gap="lg">
+            {transformedSteps.map((step, index) => (
+              <Step
+                key={step.title ?? step.type}
+                stepIndex={index}
+                {...step}
+                trailingItems={
+                  index === 0 && copyEnabled ? (
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={transformedSteps}
+                      source="replay_onboarding"
+                    />
+                  ) : undefined
                 }
-                const newContent = [...step.content];
-                if (codeIndex !== undefined) {
-                  newContent.splice(codeIndex, 0, {
-                    type: 'custom',
-                    bottomMargin: false,
-                    content: replayConfigToggle,
-                  });
-                }
-                return {
-                  ...step,
-                  content: newContent,
-                };
-              }
-
-              return {
-                ...step,
-                codeHeader: replayConfigToggle,
-              };
-            })
-            .map(step => (
-              <Step key={step.title ?? step.type} {...step} />
+              />
             ))}
-        </Stack>
-      </Wrapper>
+          </Stack>
+        </Wrapper>
+      </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }
@@ -161,10 +181,4 @@ const Wrapper = styled('div')`
       margin-bottom: 0;
     }
   }
-`;
-
-const Introduction = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin: 0 0 ${space(2)} 0;
 `;

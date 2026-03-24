@@ -1,11 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import LoadingError from 'sentry/components/loadingError';
+import {Button} from '@sentry/scraps/button';
+
+import {LoadingError} from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
+import {Pagination} from 'sentry/components/pagination';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {t, tct} from 'sentry/locale';
@@ -66,7 +67,7 @@ function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: num
   );
 }
 
-export default function ConnectedMonitorsList({
+export function ConnectedMonitorsList({
   detectorIds,
   connectedDetectorIds,
   toggleConnected,

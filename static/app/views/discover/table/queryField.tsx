@@ -1,20 +1,19 @@
 import {Component, createRef, type ReactNode} from 'react';
-import {withTheme, type Theme} from '@emotion/react';
+import {withTheme, type CSSObject, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import type {InputProps} from 'sentry/components/core/input';
-import {Input} from 'sentry/components/core/input';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {InputProps} from '@sentry/scraps/input';
+import {Input} from '@sentry/scraps/input';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {
   AggregateParameter,
@@ -25,9 +24,11 @@ import type {
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
 import {AGGREGATIONS, DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
+import type {FieldValueType} from 'sentry/utils/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
-import ArithmeticInput from './arithmeticInput';
+import {ArithmeticInput} from './arithmeticInput';
 import type {FieldValue, FieldValueColumns} from './types';
 import {FieldValueKind} from './types';
 
@@ -106,7 +107,7 @@ type Props = {
    */
   renderTagOverride?: (
     kind: FieldValueKind,
-    label: string,
+    label: ReactNode,
     meta: FieldValue['meta']
   ) => ReactNode;
   /**
@@ -123,15 +124,9 @@ type Props = {
   useMenuPortal?: boolean;
 };
 
-// Type for completing generics in react-select
-type OptionType = {
-  label: string;
-  value: FieldValue;
-};
-
 class _QueryField extends Component<Props> {
   FieldSelectComponents = {
-    SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => {
+    SingleValue: ({data, ...props}: SingleValueProps<FieldValueOption>): ReactNode => {
       return (
         <components.SingleValue data={data} {...props}>
           <span data-test-id="label">{data.label}</span>
@@ -142,7 +137,7 @@ class _QueryField extends Component<Props> {
   };
 
   FieldSelectStyles = {
-    singleValue(provided: React.CSSProperties) {
+    singleValue(provided: CSSObject) {
       const custom = {
         display: 'flex',
         justifyContent: 'space-between',
@@ -158,7 +153,7 @@ class _QueryField extends Component<Props> {
     }
     const {value} = selected;
     const current = this.props.fieldValue;
-    let fieldValue: QueryFieldValue = cloneDeep(this.props.fieldValue);
+    let fieldValue = cloneDeep(this.props.fieldValue);
 
     switch (value.kind) {
       case FieldValueKind.TAG:
@@ -380,8 +375,7 @@ class _QueryField extends Component<Props> {
     let parameterDescriptions: ParameterDescription[] = [];
     // Generate options and values for each parameter.
     if (
-      field &&
-      field.kind === FieldValueKind.FUNCTION &&
+      field?.kind === FieldValueKind.FUNCTION &&
       field.meta.parameters.length > 0 &&
       fieldValue?.kind === FieldValueKind.FUNCTION
     ) {
@@ -475,7 +469,7 @@ class _QueryField extends Component<Props> {
           ? {
               menuPortalTarget: document.body,
               styles: {
-                menuPortal: (provided: any) => ({
+                menuPortal: (provided: CSSObject) => ({
                   ...provided,
                   // This ensures that the dropdown appears above the widget builder
                   // because the default dropdown z-index is too low
@@ -494,7 +488,6 @@ class _QueryField extends Component<Props> {
             placeholder={t('Select value')}
             options={aggregateParameters}
             value={descriptor.value}
-            required={descriptor.required}
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled || disableParameterSelector}
@@ -557,7 +550,6 @@ class _QueryField extends Component<Props> {
             placeholder={t('Select value')}
             options={descriptor.options}
             value={descriptor.value}
-            required={descriptor.required}
             onChange={this.handleDropdownParameterChange(index + 1)}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled}
@@ -586,7 +578,7 @@ class _QueryField extends Component<Props> {
     return inputs;
   }
 
-  renderTag(kind: FieldValueKind, label: string, meta: FieldValue['meta']) {
+  renderTag(kind: FieldValueKind, label: React.ReactNode, meta: FieldValue['meta']) {
     const {shouldRenderTag, renderTagOverride} = this.props;
     if (shouldRenderTag === false) {
       return null;
@@ -594,38 +586,18 @@ class _QueryField extends Component<Props> {
     if (renderTagOverride) {
       return renderTagOverride(kind, label, meta);
     }
-    let text: string;
-    let tagType: 'success' | 'highlight' | 'warning' | undefined = undefined;
-    switch (kind) {
-      case FieldValueKind.FUNCTION:
-        text = 'f(x)';
-        tagType = 'success';
-        break;
-      case FieldValueKind.CUSTOM_MEASUREMENT:
-      case FieldValueKind.MEASUREMENT:
-        text = 'field';
-        tagType = 'highlight';
-        break;
-      case FieldValueKind.BREAKDOWN:
-        text = 'field';
-        tagType = 'highlight';
-        break;
-      case FieldValueKind.TAG:
-        text = kind;
-        tagType = 'warning';
-        break;
-      case FieldValueKind.NUMERIC_METRICS:
-        text = 'f(x)';
-        tagType = 'success';
-        break;
-      case FieldValueKind.FIELD:
-        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-        tagType = 'highlight';
-        break;
-      default:
-        text = kind;
-    }
-    return <Tag type={tagType}>{text}</Tag>;
+
+    const valueType =
+      meta && 'dataType' in meta ? (meta.dataType as FieldValueType) : undefined;
+
+    return (
+      <TypeBadge
+        label={label}
+        valueKind={kind}
+        valueType={valueType}
+        deprecatedFields={DEPRECATED_FIELDS}
+      />
+    );
   }
 
   render() {
@@ -667,7 +639,7 @@ class _QueryField extends Component<Props> {
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
-      noOptionsMessage: () => noFieldsMessage,
+      noOptionsMessage: () => noFieldsMessage ?? null,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -695,7 +667,7 @@ class _QueryField extends Component<Props> {
           />
           {error ? (
             <ArithmeticError title={error}>
-              <IconWarning color="errorText" data-test-id="arithmeticErrorWarning" />
+              <IconWarning variant="danger" data-test-id="arithmeticErrorWarning" />
             </ArithmeticError>
           ) : null}
         </Container>
@@ -772,7 +744,7 @@ const Container = styled('div')<{
     p.tripleLayout
       ? `grid-template-columns: 1fr 2fr;`
       : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 
   flex-grow: 1;
@@ -853,21 +825,21 @@ const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
   height: ${p => p.theme.form.md.height};
   min-width: 50px;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
   justify-content: center;
 
   &:after {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     content: '${t('No parameter')}';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const ArithmeticError = styled(Tooltip)`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
 `;
@@ -884,11 +856,11 @@ function appendFieldIfUnknown(
     return fieldOptions;
   }
 
-  if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
+  if (field?.kind === FieldValueKind.TAG && field.meta.unknown) {
     // Clone the options so we don't mutate other rows.
     fieldOptions = Object.assign({}, fieldOptions);
     fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
-  } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
+  } else if (field?.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
     fieldOptions = Object.assign({}, fieldOptions);
     fieldOptions[`measurement:${field.meta.name}`] = {
       label: field.meta.name,

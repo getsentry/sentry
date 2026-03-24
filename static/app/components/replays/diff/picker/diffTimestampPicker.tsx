@@ -1,19 +1,19 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
-import CrumbItem from 'sentry/components/replays/diff/picker/crumbItem';
-import MutationOption from 'sentry/components/replays/diff/picker/mutationOption';
+import {CrumbItem} from 'sentry/components/replays/diff/picker/crumbItem';
+import {MutationOption} from 'sentry/components/replays/diff/picker/mutationOption';
 import {After, Before} from 'sentry/components/replays/diff/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isHydrateCrumb, isRRWebChangeFrame} from 'sentry/utils/replays/types';
 
 const maxOptions = 3;
 
-export default function DiffTimestampPicker() {
+export function DiffTimestampPicker() {
   const {
     frameOrEvent,
     leftOffsetMs,
@@ -106,7 +106,7 @@ export default function DiffTimestampPicker() {
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-template-columns: max-content ${space(4)} max-content;
+  grid-template-columns: max-content ${p => p.theme.space['3xl']} max-content;
   justify-content: center;
   margin-top: 1em; /* Reserve space for the CrumbItem title */
 `;
@@ -118,7 +118,7 @@ const List = styled('ul')`
   list-style: none;
   margin: 0;
   padding: 0;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ListItem = styled('li')`
@@ -130,18 +130,18 @@ const ListItem = styled('li')`
   border: 1px solid transparent;
 
   &[data-before='true'] {
-    border-color: ${p => p.theme.red400};
+    border-color: ${p => p.theme.colors.red500};
   }
   &[data-after='true'] {
-    border-color: ${p => p.theme.green400};
+    border-color: ${p => p.theme.colors.green500};
   }
 
   &[data-before='true']:hover,
   &[data-before='true'][data-selected='true'] {
-    background-color: ${p => p.theme.red100};
+    background-color: ${p => p.theme.colors.red100};
   }
   &[data-after='true']:hover,
   &[data-after='true'][data-selected='true'] {
-    background-color: ${p => p.theme.green100};
+    background-color: ${p => p.theme.colors.green100};
   }
 `;

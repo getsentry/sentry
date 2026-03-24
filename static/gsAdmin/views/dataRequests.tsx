@@ -1,26 +1,28 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import EmailField from 'sentry/components/forms/fields/emailField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {EmailField} from 'sentry/components/forms/fields/emailField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
 type ResultQuery = {
   email: string;
   orgSlug: string;
 };
 
-function DataRequests() {
+export function DataRequests() {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -43,7 +45,9 @@ function DataRequests() {
 
   const {data: eventsData = [], isLoading: isLoadingEvents} = useApiQuery<any[]>(
     [
-      `/organizations/${queryFromRouterOrgSlug}/events/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+        path: {organizationIdOrSlug: queryFromRouterOrgSlug},
+      }),
       {query: {query: 'user.email:' + queryFromRouterEmail}},
     ],
     {
@@ -53,7 +57,7 @@ function DataRequests() {
   );
 
   const {data: usersData = [], isLoading: isLoadingUsers} = useApiQuery<any[]>(
-    ['/users/', {query: {query: 'email:' + queryFromRouterEmail}}],
+    [getApiUrl('/users/'), {query: {query: 'email:' + queryFromRouterEmail}}],
     {
       staleTime: 0,
       enabled: hasQuery && !isEventSearch,
@@ -139,7 +143,7 @@ function DataRequests() {
       <PageHeader title="Data Requests" />
 
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           Use this form to determine what action needs taken for a data request.
         </Alert>
       </Alert.Container>
@@ -174,5 +178,3 @@ function DataRequests() {
     </Fragment>
   );
 }
-
-export default DataRequests;

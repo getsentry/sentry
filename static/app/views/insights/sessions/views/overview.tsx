@@ -2,15 +2,15 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {space} from 'sentry/styles/space';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {
@@ -18,11 +18,11 @@ import {
   type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
 import {ChartPlacementSlot} from 'sentry/views/insights/sessions/components/chartPlacement';
-import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
-import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
-import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
-import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
-import useHasDashboardsPlatformizedSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedSessionHealth';
+import {FilterReleaseDropdown} from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
+import {ReleaseTableSearch} from 'sentry/views/insights/sessions/components/releaseTableSearch';
+import {ReleaseHealth} from 'sentry/views/insights/sessions/components/tables/releaseHealth';
+import {useProjectHasSessions} from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import {PlatformizedMobileSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedMobileOverview';
 import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -130,10 +130,15 @@ function ViewSpecificCharts({
 }
 
 function PageWithProviders() {
-  const hasDashboardsPlatformizedSessionHealth =
-    useHasDashboardsPlatformizedSessionHealth();
-  if (hasDashboardsPlatformizedSessionHealth) {
+  const {view = ''} = useDomainViewFilters();
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+
+  if (hasPlatformizedInsights && view === FRONTEND_LANDING_SUB_PATH) {
     return <PlatformizedSessionsOverview />;
+  }
+
+  if (hasPlatformizedInsights && view === MOBILE_LANDING_SUB_PATH) {
+    return <PlatformizedMobileSessionsOverview />;
   }
   return (
     <ModulePageProviders moduleName="sessions">
@@ -145,8 +150,8 @@ function PageWithProviders() {
 export default PageWithProviders;
 
 const FilterWrapper = styled('div')`
-  margin: ${space(2)} 0;
-  gap: ${space(1)};
+  margin: ${p => p.theme.space.xl} 0;
+  gap: ${p => p.theme.space.md};
   display: grid;
   grid-template-columns: auto 1fr;
   @media (max-width: ${p => p.theme.breakpoints.md}) {

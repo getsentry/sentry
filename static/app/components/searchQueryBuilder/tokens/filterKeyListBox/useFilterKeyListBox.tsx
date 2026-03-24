@@ -17,7 +17,6 @@ import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/token
 import {
   ALL_CATEGORY,
   ALL_CATEGORY_VALUE,
-  createAskSeerConsentItem,
   createAskSeerItem,
   createLogicFilterItem,
   createRecentFilterItem,
@@ -35,9 +34,9 @@ import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import clamp from 'sentry/utils/number/clamp';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
+import {clamp} from 'sentry/utils/number/clamp';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 const MAX_OPTIONS_WITHOUT_SEARCH = 100;
 const MAX_OPTIONS_WITH_SEARCH = 8;
@@ -80,7 +79,7 @@ function findNextMatchingItem(
   predicate: (item: Node<FilterKeyItem>) => boolean,
   direction: 'after' | 'before'
 ): Node<FilterKeyItem> | null {
-  let nextItem: Node<FilterKeyItem> | null = item;
+  let nextItem = item;
 
   do {
     const nextKey = direction === 'after' ? nextItem?.nextKey : nextItem?.prevKey;
@@ -135,11 +134,6 @@ function useFilterKeySections({
   recentSearches: RecentSearch[] | undefined;
 }) {
   const {filterKeySections, query, disallowLogicalOperators} = useSearchQueryBuilder();
-  const organization = useOrganization();
-  const hasConditionalsInCombobox = organization.features.includes(
-    'search-query-builder-conditionals-combobox-menus'
-  );
-
   const sections = useMemo<Section[]>(() => {
     const definedSections = filterKeySections.map(section => ({
       value: section.value,
@@ -157,25 +151,19 @@ function useFilterKeySections({
         ...definedSections,
       ];
 
-      if (!disallowLogicalOperators && hasConditionalsInCombobox) {
+      if (!disallowLogicalOperators) {
         recentSearchesSections.push(LOGIC_CATEGORY);
       }
       return recentSearchesSections;
     }
 
     const customSections: Section[] = [ALL_CATEGORY, ...definedSections];
-    if (!disallowLogicalOperators && hasConditionalsInCombobox) {
+    if (!disallowLogicalOperators) {
       customSections.push(LOGIC_CATEGORY);
     }
 
     return customSections;
-  }, [
-    disallowLogicalOperators,
-    filterKeySections,
-    hasConditionalsInCombobox,
-    query,
-    recentSearches?.length,
-  ]);
+  }, [disallowLogicalOperators, filterKeySections, query, recentSearches?.length]);
 
   const [selectedSection, setSelectedSection] = useState<string>(
     sections[0]?.value ?? ''
@@ -211,7 +199,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     setAutoSubmitSeer,
     setDisplayAskSeer,
     enableAISearch,
-    gaveSeerConsent,
     currentInputValueRef,
     disallowLogicalOperators,
   } = useSearchQueryBuilder();
@@ -223,25 +210,13 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
   });
 
   const organization = useOrganization();
-  const hasAskSeerConsentFlowChanges = organization.features.includes(
-    'gen-ai-consent-flow-removal'
-  );
-  const hasConditionalsInCombobox = organization.features.includes(
-    'search-query-builder-conditionals-combobox-menus'
-  );
 
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
 
     const askSeerItem = [];
     if (enableAISearch) {
-      askSeerItem.push(
-        hasAskSeerConsentFlowChanges
-          ? createAskSeerItem()
-          : gaveSeerConsent
-            ? createAskSeerItem()
-            : createAskSeerConsentItem()
-      );
+      askSeerItem.push(createAskSeerItem());
     }
 
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
@@ -256,11 +231,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
       ];
     }
 
-    if (
-      !disallowLogicalOperators &&
-      selectedSection === LOGIC_CATEGORY_VALUE &&
-      hasConditionalsInCombobox
-    ) {
+    if (!disallowLogicalOperators && selectedSection === LOGIC_CATEGORY_VALUE) {
       return [...askSeerItem, ...logicFilterItems];
     }
 
@@ -280,10 +251,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     disallowLogicalOperators,
     enableAISearch,
     filterKeys,
-    gaveSeerConsent,
     getFieldDefinition,
-    hasAskSeerConsentFlowChanges,
-    hasConditionalsInCombobox,
     recentFilters,
     recentSearches,
     sectionedItems,

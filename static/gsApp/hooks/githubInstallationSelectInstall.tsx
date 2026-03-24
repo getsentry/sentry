@@ -1,17 +1,17 @@
 import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectKey} from 'sentry/components/core/compactSelect';
-import GlobalModal from 'sentry/components/globalModal';
+import {Button} from '@sentry/scraps/button';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
+
+import {GlobalModal} from 'sentry/components/globalModal';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
 type Props = {
@@ -66,7 +66,7 @@ function GithubInstallationSelectInstallButton({
 }
 
 const StyledButton = styled(Button)`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space.sm};
   &:not(:disabled) {
     background-color: #6c5fc7;
     color: #fff;

@@ -1,7 +1,9 @@
 import {useState} from 'react';
 
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {getInterval} from 'sentry/components/charts/utils';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {
   _timeRangeAutoCompleteFilter,
   makeItem,
@@ -143,11 +145,7 @@ function bindInterval(
   return intervalHours < intervalOption.min || intervalHours > optionMax;
 }
 
-export default function IntervalSelector({
-  displayMode,
-  eventView,
-  onIntervalChange,
-}: Props) {
+export function IntervalSelector({displayMode, eventView, onIntervalChange}: Props) {
   // Get the interval from the eventView if one was set, otherwise determine what the default is
   // TODO: use the INTERVAL_OPTIONS default instead
   // Can't just do usingDefaultInterval ? ... : ...; here cause the type of interval will include undefined
@@ -213,23 +211,26 @@ export default function IntervalSelector({
 
   return (
     <CompactSelect
-      searchPlaceholder={t('Provide a time interval')}
+      search={{
+        placeholder: t('Provide a time interval'),
+        filter: false,
+        onChange: filterValue => setItems(intervalAutoComplete(filterValue)),
+      }}
       value={interval}
       options={items}
       onChange={option => onIntervalChange(option.value)}
-      searchable
-      disableSearchFilter
-      onSearch={filterValue => {
-        setItems(intervalAutoComplete(filterValue));
-      }}
       size="sm"
       position="bottom-end"
       menuWidth={200}
-      triggerProps={{
-        prefix: t('Interval'),
-        borderless: true,
-        children: interval,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={t('Interval')}
+          priority="transparent"
+        >
+          {interval}
+        </OverlayTrigger.Button>
+      )}
       disabled={false}
     />
   );

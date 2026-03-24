@@ -1,17 +1,16 @@
 import styled from '@emotion/styled';
 
-import Processings from 'sentry/components/events/interfaces/debugMeta/debugImage/processings';
+import {Processings} from 'sentry/components/events/interfaces/debugMeta/debugImage/processings';
 import {getImageAddress} from 'sentry/components/events/interfaces/debugMeta/utils';
-import NotAvailable from 'sentry/components/notAvailable';
+import {NotAvailable} from 'sentry/components/notAvailable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Image} from 'sentry/types/debugImage';
 
 type Props = {
   image?: Image;
 };
 
-function GeneralInfo({image}: Props) {
+export function GeneralInfo({image}: Props) {
   const {debug_id, debug_file, code_id, code_file, arch, unwind_status, debug_status} =
     image ?? {};
 
@@ -49,8 +48,6 @@ function GeneralInfo({image}: Props) {
   );
 }
 
-export default GeneralInfo;
-
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -58,15 +55,16 @@ const Wrapper = styled('div')`
 
 const Label = styled('div')<{coloredBg?: boolean}>`
   color: ${p => p.theme.tokens.content.primary};
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1)};
-  ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.md}
+    ${p => p.theme.space.md};
+  ${p => p.coloredBg && `background-color: ${p.theme.tokens.background.secondary};`}
 `;
 
 const Value = styled(Label)`
   white-space: pre-wrap;
   word-break: break-all;
-  color: ${p => p.theme.subText};
-  padding: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
-  ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: ${p => p.theme.space.md};
+  font-family: ${p => p.theme.font.family.mono};
+  ${p => p.coloredBg && `background-color: ${p.theme.tokens.background.secondary};`}
 `;

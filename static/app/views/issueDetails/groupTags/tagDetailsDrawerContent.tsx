@@ -3,30 +3,31 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import TimeSince from 'sentry/components/timeSince';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {Pagination} from 'sentry/components/pagination';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {escapeIssueTagKey, generateQueryWithTag, percent} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
@@ -41,10 +42,9 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
-  const sort: TagSort =
-    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
 
   const {
     data: tagValues,
@@ -88,7 +88,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   return (
     <Fragment>
       {tag && tagValues?.length && (
-        <Table>
+        <Table data-test-id="group-tag-value">
           <Header>
             <ColumnTitle>{t('Value')}</ColumnTitle>
             <ColumnSort
@@ -158,6 +158,7 @@ function TagDetailsRow({
   tag: Tag;
   tagValue: TagValue;
 }) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
 
@@ -201,7 +202,7 @@ function TagDetailsRow({
       <RightAlignedValue>{tagValue.count.toLocaleString()}</RightAlignedValue>
       <RightAlignedValue>{displayPercentage}</RightAlignedValue>
       {tag.totalValues ? (
-        <TagBar percentage={percentage} style={{height: space(1.5)}} />
+        <TagBar percentage={percentage} style={{height: theme.space.lg}} />
       ) : (
         '--'
       )}
@@ -227,7 +228,7 @@ function TagDetailsValue({
   if (tagValue.value !== '') {
     if (tagKey === 'user') {
       valueComponent = (
-        <UserValue>
+        <Flex align="center" gap="sm" minWidth={0} overflow="hidden">
           {getContextIcon({
             alias: 'user',
             type: 'user',
@@ -237,9 +238,11 @@ function TagDetailsValue({
             },
             theme,
           })}
-          <div>{userValues.title}</div>
-          {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
-        </UserValue>
+          <Flex wrap="wrap" gap="xs" minWidth={0}>
+            <Text>{userValues.title}</Text>
+            {userValues.subtitle && <Text variant="muted">{userValues.subtitle}</Text>}
+          </Flex>
+        </Flex>
       );
     } else if (tagKey === 'device') {
       valueComponent = <DeviceName value={tagValue.value} />;
@@ -247,13 +250,14 @@ function TagDetailsValue({
   }
 
   return (
-    <Flex gap="xs" align="center">
+    <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
           priority="link"
           icon={<IconOpen />}
           aria-label="Open link"
+          data-test-id="group-tag-url"
           size="xs"
           onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
         />
@@ -272,6 +276,7 @@ function TagValueActionsMenu({
   tagValue: TagValue;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const {copy} = useCopyToClipboard();
 
   const referrer = 'tag-details-drawer';
@@ -281,6 +286,7 @@ function TagValueActionsMenu({
         query: tagValue.query,
       }
     : generateQueryWithTag({referrer}, {key, value: tagValue.value});
+  const globalSelectionParams = extractSelectionParameters(location.query);
   const eventView = useIssueDetailsEventView({group, queryProps: query});
   const [isVisible, setIsVisible] = useState(false);
 
@@ -311,7 +317,7 @@ function TagValueActionsMenu({
           label: t('View other events with this tag value'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-            query,
+            query: {...globalSelectionParams, ...query},
           },
         },
         {
@@ -319,7 +325,7 @@ function TagValueActionsMenu({
           label: t('Search issues with this tag value'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/`,
-            query,
+            query: {...globalSelectionParams, ...query},
           },
         },
         {
@@ -337,19 +343,19 @@ function TagValueActionsMenu({
 const Table = styled('div')`
   display: grid;
   grid-template-columns: 1fr 0.22fr min-content min-content 45px min-content;
-  column-gap: ${space(1)};
-  row-gap: ${space(0.5)};
-  margin: 0 -${space(1)};
+  column-gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.xs};
+  margin: 0 -${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    column-gap: ${space(2)};
+    column-gap: ${p => p.theme.space.xl};
   }
 `;
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ShareColumnTitle = styled(ColumnTitle)`
@@ -358,16 +364,16 @@ const ShareColumnTitle = styled(ColumnTitle)`
 
 const ColumnSort = styled(Link)`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   white-space: nowrap;
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.tokens.content.primary};
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -378,17 +384,17 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.border};
-  margin: 0 ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  margin: 0 ${p => p.theme.space.md};
 `;
 
 const Row = styled(Body)`
   &:nth-child(even) {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
   }
   align-items: center;
   border-radius: 4px;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {
     visibility: hidden;
@@ -405,26 +411,20 @@ const RightAlignedValue = styled('div')`
   text-align: right;
 `;
 
-const UserSubtitle = styled('div')`
-  color: ${p => p.theme.subText};
-  display: inline-block; /* Prevent inheriting text decoration */
-`;
-
 const ValueLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  word-break: break-all;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ExternalLinkbutton = styled(Button)`
-  color: ${p => p.theme.subText};
-`;
-
-const UserValue = styled('div')`
-  display: flex;
-  gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

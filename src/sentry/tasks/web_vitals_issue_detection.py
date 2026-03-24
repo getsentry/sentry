@@ -14,7 +14,6 @@ from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.explorer.utils import normalize_description
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.base import instrumented_task
@@ -98,12 +97,12 @@ def dispatch_detection_for_project_ids(
             continue
 
         # Check if web vitals detection is enabled in the project's performance issue settings
-        performance_settings = get_merged_settings(project.id)
+        performance_settings = get_merged_settings(project)
         if not performance_settings.get("web_vitals_detection_enabled", False):
             results[project.id] = {"success": False, "reason": "web_vitals_detection_not_enabled"}
             continue
 
-        detect_web_vitals_issues_for_project.delay(project.id)
+        detect_web_vitals_issues_for_project.delay(project.id, project.organization.slug)
         results[project.id] = {"success": True}
         projects_dispatched_count += 1
 
@@ -126,11 +125,23 @@ def dispatch_detection_for_project_ids(
     namespace=issues_tasks,
     processing_deadline_duration=120,
 )
-def detect_web_vitals_issues_for_project(project_id: int) -> None:
+def detect_web_vitals_issues_for_project(
+    project_id: int, organization_slug: str | None = None
+) -> None:
     """
     Process a single project for Web Vitals issue detection.
     """
     if not options.get("issue-detection.web-vitals-detection.enabled"):
+        metrics.incr(
+            "web_vitals_issue_detection.projects.skipped",
+            amount=1,
+            tags={
+                "reason": "disabled",
+                "project_id": project_id,
+                "organization": organization_slug,
+            },
+            sample_rate=1.0,
+        )
         return
 
     web_vital_issue_groups = get_highest_opportunity_page_vitals_for_project(
@@ -138,6 +149,7 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
     )
     sent_counts: dict[WebVitalIssueDetectionGroupingType, int] = defaultdict(int)
     rejected_no_trace_count = 0
+    rejected_already_exists_count = 0
     for web_vital_issue_group in web_vital_issue_groups:
         scores = web_vital_issue_group["scores"]
         values = web_vital_issue_group["values"]
@@ -158,6 +170,8 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
             sent = send_web_vitals_issue_to_platform(web_vital_issue_group, trace_id=trace.trace_id)
             if sent:
                 sent_counts[web_vital_issue_group["vital_grouping"]] += 1
+            else:
+                rejected_already_exists_count += 1
         else:
             rejected_no_trace_count += 1
 
@@ -165,14 +179,33 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
         metrics.incr(
             "web_vitals_issue_detection.issues.sent",
             amount=count,
-            tags={"kind": vital_grouping},  # rendering, cls, or inp
+            tags={
+                "kind": vital_grouping,
+                "project_id": project_id,
+                "organization": organization_slug,
+            },  # rendering, cls, or inp
             sample_rate=1.0,
         )
 
     metrics.incr(
         "web_vitals_issue_detection.rejected",
         amount=rejected_no_trace_count,
-        tags={"reason": "no_trace"},
+        tags={
+            "reason": "no_trace",
+            "project_id": project_id,
+            "organization": organization_slug,
+        },
+        sample_rate=1.0,
+    )
+
+    metrics.incr(
+        "web_vitals_issue_detection.rejected",
+        amount=rejected_already_exists_count,
+        tags={
+            "reason": "already_exists",
+            "project_id": project_id,
+            "organization": organization_slug,
+        },
         sample_rate=1.0,
     )
 
@@ -190,7 +223,7 @@ def get_highest_opportunity_page_vitals_for_project(
     The number of samples is set by SAMPLES_COUNT_THRESHOLD.
     """
     try:
-        project = Project.objects.get(id=project_id)
+        project = Project.objects.select_related("organization").get(id=project_id)
     except Project.DoesNotExist:
         logger.exception(
             "Project does not exist; cannot fetch transactions", extra={"project_id": project_id}
@@ -201,7 +234,7 @@ def get_highest_opportunity_page_vitals_for_project(
     start_time = end_time - timedelta(**start_time_delta)
 
     # Get the samples count threshold from performance issue settings
-    performance_settings = get_merged_settings(project.id)
+    performance_settings = get_merged_settings(project)
     samples_count_threshold = performance_settings.get(
         "web_vitals_count", DEFAULT_SAMPLES_COUNT_THRESHOLD
     )
@@ -281,17 +314,21 @@ def get_highest_opportunity_page_vitals_for_project(
                         "values": {vital: p75_value},
                     }
                 else:
-                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["scores"][
-                        vital
-                    ] = score
-                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["values"][
-                        vital
-                    ] = p75_value
+                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["scores"][vital] = (
+                        score
+                    )
+                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["values"][vital] = (
+                        p75_value
+                    )
 
     metrics.incr(
         "web_vitals_issue_detection.rejected",
         amount=rejected_insufficient_samples_count,
-        tags={"reason": "insufficient_samples"},
+        tags={
+            "reason": "insufficient_samples",
+            "project_id": project.id,
+            "organization": project.organization.slug,
+        },
         sample_rate=1.0,
     )
 
@@ -307,9 +344,6 @@ def check_seer_setup_for_project(project: Project) -> bool:
         return False
 
     if project.organization.get_option("sentry:hide_ai_features"):
-        return False
-
-    if not get_seer_org_acknowledgement(project.organization):
         return False
 
     repos = get_autofix_repos_from_project_code_mappings(project)

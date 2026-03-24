@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
+export const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
   cursor: pointer;
   display: block;
   color: ${p => p.theme.tokens.content.primary};
@@ -11,13 +11,19 @@ const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
   ${p =>
     p.highlighted &&
     css`
-      color: ${p.theme.activeText};
-      background: ${p.theme.backgroundSecondary};
+      color: ${p.theme.tokens.interactive.link.accent.rest};
+      background: ${p.theme.tokens.background.secondary};
+
+      &:hover {
+        background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
+      }
+
+      &:active {
+        background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      }
     `};
 
   &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
-
-export default SearchResultWrapper;

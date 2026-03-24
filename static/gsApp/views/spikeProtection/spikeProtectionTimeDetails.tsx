@@ -1,14 +1,15 @@
 import styled from '@emotion/styled';
 
-import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {AlertBadge} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
+
 import {IconCalendar} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
-function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
+export function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
   const {start, end} = spike;
   const format = getFormat({timeOnly: true});
   const formattedTime = end
@@ -27,38 +28,31 @@ function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
   return (
     <SpikeTimeDetailsWrapper>
       <AlertBadge status={IncidentStatus.CRITICAL} />
-      <SpikeTimeDetailsTextWrapper>
+      <Stack>
         <strong>{formattedTime.toLowerCase()}</strong>
         <span>
-          <StyledIconCalendar size="xs" color="gray300" />
+          <StyledIconCalendar size="xs" variant="muted" />
           {dateFormat}
         </span>
-      </SpikeTimeDetailsTextWrapper>
+      </Stack>
     </SpikeTimeDetailsWrapper>
   );
 }
 
-export default SpikeProtectionTimeDetails;
-
 const SpikeTimeDetailsWrapper = styled('div')`
   display: grid;
   grid-template-columns: 40px auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   strong {
     display: block;
     white-space: nowrap;
   }
   span {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     display: inline-block;
   }
 `;
 
-const SpikeTimeDetailsTextWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const StyledIconCalendar = styled(IconCalendar)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;

@@ -2,18 +2,20 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {getFormat} from 'sentry/utils/dates';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
-function GenerateSpikeProjectionsForBatch() {
+export function GenerateSpikeProjectionsForBatch() {
   const [batchId, setBatchId] = useState<number | null>(null);
   const regions = ConfigStore.get('regions');
   const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
@@ -70,7 +72,9 @@ function GenerateSpikeProjectionsForBatch() {
           specified batch of customers in the specified region.
         </p>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region ? region.url : undefined}
           options={regions.map((r: any) => ({
             label: r.name,
@@ -144,7 +148,5 @@ const BatchInput = styled(Input)`
 `;
 
 const BatchRunTime = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
-
-export default GenerateSpikeProjectionsForBatch;

@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconNot} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 
@@ -18,7 +19,7 @@ type Props = {
     skipConfirmModal?: boolean;
     visible?: boolean;
   }>;
-  label?: string;
+  label: string;
 };
 
 /**
@@ -54,10 +55,10 @@ function mapActionsToCompactSelect(
     .filter(Boolean) as Array<SelectOption<string>>;
 }
 
-function DropdownActions({actions, label}: Props) {
+export function DropdownActions({actions, label}: Props) {
   return (
     <CompactSelect
-      searchable
+      search
       options={mapActionsToCompactSelect(actions)}
       value={undefined}
       onChange={option => {
@@ -84,18 +85,17 @@ function DropdownActions({actions, label}: Props) {
           onConfirm: action.onAction,
         });
       }}
-      triggerProps={{
-        'data-test-id': 'detail-actions',
-        children: label,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} data-test-id="detail-actions">
+          {label}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }
 
-export default DropdownActions;
-
 const StyledIconNot = styled(IconNot)`
-  color: ${p => p.theme.red200};
-  margin-left: ${space(0.5)};
+  color: ${p => p.theme.colors.red200};
+  margin-left: ${p => p.theme.space.xs};
   transform: translateY(2px);
 `;

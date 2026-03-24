@@ -1,16 +1,21 @@
 import {useState} from 'react';
 
 // projects can be passed as a direct prop as well
-import type {GeneralSelectValue} from 'sentry/components/core/select';
-import type {Result, SelectAsyncControlProps} from 'sentry/components/core/select/async';
-import {SelectAsync} from 'sentry/components/core/select/async';
-import FormField from 'sentry/components/forms/formField';
+import type {
+  GeneralSelectValue,
+  Result,
+  SelectAsyncControlProps,
+} from '@sentry/scraps/select';
+import {SelectAsync} from '@sentry/scraps/select';
+
+import {FormField} from 'sentry/components/forms/formField';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
 
 export interface SelectAsyncFieldProps
-  extends Omit<InputFieldProps, 'highlighted' | 'visible' | 'required' | 'value'>,
+  extends
+    Omit<InputFieldProps, 'highlighted' | 'visible' | 'required' | 'value'>,
     SelectAsyncControlProps {
   /**
    * Similar to onChange, except it provides the entire option object (including label) when a
@@ -19,7 +24,7 @@ export interface SelectAsyncFieldProps
   onChangeOption?: (option: GeneralSelectValue, event: any) => void;
 }
 
-function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
+export function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
   const [results, setResults] = useState<Result[]>([]);
   const [latestSelection, setLatestSelection] = useState<
     GeneralSelectValue | undefined
@@ -90,5 +95,3 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
     </FormField>
   );
 }
-
-export default SelectAsyncField;

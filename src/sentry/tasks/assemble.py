@@ -232,14 +232,14 @@ def delete_assemble_status(task, scope, checksum):
     name="sentry.tasks.assemble.assemble_dif",
     namespace=attachments_tasks,
     processing_deadline_duration=60 * 3,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
     from sentry.lang.native.sources import record_last_upload
-    from sentry.models.debugfile import BadDif, create_dif_from_id, detect_dif_from_path
+    from sentry.models.debugfile import BadDif, create_dif_from_file
     from sentry.models.project import Project
 
     sentry_sdk.get_isolation_scope().set_tag("project", project_id)
@@ -268,21 +268,15 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             # We only permit split difs to hit this endpoint.
             # The client is required to split them up first or we error.
             try:
-                result = detect_dif_from_path(temp_file.name, name=name, debug_id=debug_id)
+                dif, created = create_dif_from_file(
+                    project, file, temp_file.name, name=name, debug_id=debug_id
+                )
             except BadDif as e:
                 set_assemble_status(
                     AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=e.args[0]
                 )
                 return
 
-            if len(result) != 1:
-                detail = "Object contains %s architectures (1 expected)" % len(result)
-                set_assemble_status(
-                    AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=detail
-                )
-                return
-
-            dif, created = create_dif_from_id(project, result[0], file=file)
             delete_file = False
 
             if created:
@@ -373,9 +367,9 @@ class ArtifactBundlePostAssembler:
         self.release = self.release or self.archive.manifest.get("release")
         self.dist = self.dist or self.archive.manifest.get("dist")
 
-        # In case we have a release bundle migration, we are fetching *all*
-        # the projects associated with a release, which can be quite a lot.
-        # We rather use the `project` of the bundle manifest instead.
+        # In case we have a release bundle migration, we are fetching *all* the projects associated with a release,
+        # which can be quite a lot. We rather use the `project` of the bundle manifest instead, but ONLY if that
+        # project is already in the authorized project_ids list to prevent an IDOR.
         if len(self.project_ids) > 2 and self.is_release_bundle_migration:
             if project_in_manifest := self.archive.manifest.get("project"):
                 project_ids = list(
@@ -383,6 +377,7 @@ class ArtifactBundlePostAssembler:
                         organization=self.organization,
                         status=ObjectStatus.ACTIVE,
                         slug=project_in_manifest,
+                        id__in=self.project_ids,
                     ).values_list("id", flat=True)
                 )
                 if len(project_ids) > 0:
@@ -608,7 +603,7 @@ class ArtifactBundlePostAssembler:
     name="sentry.tasks.assemble.assemble_artifacts",
     namespace=attachments_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_artifacts(
     org_id,

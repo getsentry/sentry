@@ -2,11 +2,11 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {Alert} from 'sentry/components/core/alert';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -25,21 +25,21 @@ import {
   getReservedBudgetCategoryFromCategories,
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {
   formatOnDemandBudget,
   hasOnDemandBudgetsFeature,
   isOnDemandBudgetsEqual,
   parseOnDemandBudgets,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 type Props = {
   organization: Organization;
   subscription: Subscription;
 };
 
-function PendingChanges({organization, subscription}: Props) {
+export function PendingChanges({organization, subscription}: Props) {
   const {pendingChanges} = subscription;
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -173,14 +173,19 @@ function PendingChanges({organization, subscription}: Props) {
           pendingReserved !== RESERVED_BUDGET_QUOTA &&
           pendingReserved !== 0
         ) {
+          const formattedQuantity = formatReservedWithUnits(
+            pendingReserved ?? null,
+            category
+          );
+          const displayName = getPlanCategoryName({
+            plan: pendingChanges.planDetails,
+            category,
+            capitalize: false,
+          });
           results.push(
             tct('Reserved [displayName] change to [quantity]', {
-              displayName: getPlanCategoryName({
-                plan: pendingChanges.planDetails,
-                category,
-                capitalize: false,
-              }),
-              quantity: formatReservedWithUnits(pendingReserved ?? null, category),
+              displayName,
+              quantity: formattedQuantity,
             })
           );
         }
@@ -378,9 +383,9 @@ function PendingChanges({organization, subscription}: Props) {
 
   return (
     <StyledAlert
-      type="info"
+      variant="info"
       trailingItems={
-        <LinkButton to="/settings/billing/activity-logs">
+        <LinkButton to={`/settings/${organization.slug}/billing/activity-logs`}>
           {t('View all activity')}
         </LinkButton>
       }
@@ -461,5 +466,3 @@ const StyledAlert = styled(Alert)`
     padding: 0;
   }
 `;
-
-export default PendingChanges;

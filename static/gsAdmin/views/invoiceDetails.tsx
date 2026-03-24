@@ -1,34 +1,36 @@
 import moment from 'moment-timezone';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ConfigStore from 'sentry/stores/configStore';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
-import openChangeEffectiveAtModal from 'admin/components/changeEffectiveAtAction';
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
-import DetailsPage from 'admin/components/detailsPage';
-import ResultTable from 'admin/components/resultTable';
+import {openChangeEffectiveAtModal} from 'admin/components/changeEffectiveAtAction';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
+import {DetailsPage} from 'admin/components/detailsPage';
+import {ResultTable} from 'admin/components/resultTable';
 import {isBillingAdmin, prettyDate} from 'admin/utils';
 import type {Invoice, InvoiceItem} from 'getsentry/types';
 import {InvoiceStatus} from 'getsentry/types';
 
 const ERR_MESSAGE = 'There was an internal error updating this invoice';
 
-function InvoiceDetails() {
+export function InvoiceDetails() {
   const {invoiceId, orgId, region} = useParams<{
     invoiceId: string;
     orgId: string;
@@ -40,7 +42,9 @@ function InvoiceDetails() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const QUERY_KEY: ApiQueryKey = [
-    `/_admin/invoices/${invoiceId}/`,
+    getApiUrl(`/_admin/cells/$region/admin-invoices/$invoiceId/`, {
+      path: {region, invoiceId},
+    }),
     {
       host: regionInfo ? regionInfo.url : '',
     },
@@ -73,9 +77,10 @@ function InvoiceDetails() {
   const handleClose = async () => {
     try {
       const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/close/`,
+        `/_admin/cells/${region}/invoices/${invoiceId}/close/`,
         {
           method: 'PUT',
+          host: regionInfo ? regionInfo.url : '',
         }
       );
       updateCache(updatedInvoice);
@@ -135,17 +140,15 @@ function InvoiceDetails() {
     return 'Unlabeled item';
   };
 
-  type TagType = React.ComponentProps<typeof Tag>['type'];
-
   const invoiceStatus = invoice.isPaid
     ? InvoiceStatus.PAID
     : invoice.isClosed
       ? InvoiceStatus.CLOSED
       : InvoiceStatus.AWAITING_PAYMENT;
 
-  const invoiceStatusTagType: Record<InvoiceStatus, TagType> = {
+  const invoiceStatusTagType: Record<InvoiceStatus, TagProps['variant']> = {
     [InvoiceStatus.PAID]: 'success',
-    [InvoiceStatus.CLOSED]: 'error',
+    [InvoiceStatus.CLOSED]: 'danger',
     [InvoiceStatus.AWAITING_PAYMENT]: 'warning',
   };
 
@@ -162,7 +165,7 @@ function InvoiceDetails() {
           )}
         </DetailLabel>
         <DetailLabel title="Status">
-          <Tag type={invoiceStatusTagType[invoiceStatus]}>{invoiceStatus}</Tag>
+          <Tag variant={invoiceStatusTagType[invoiceStatus]}>{invoiceStatus}</Tag>
         </DetailLabel>
         <DetailLabel title="Date Created">{prettyDate(invoice.dateCreated)}</DetailLabel>
         <DetailLabel title="Amount">
@@ -254,9 +257,9 @@ function InvoiceDetails() {
             </td>
             <td style={{textAlign: 'center'}}>
               {row.isPaid ? (
-                <Tag type="success">Paid</Tag>
+                <Tag variant="success">Paid</Tag>
               ) : (
-                <Tag type="error">{row.failureCode}</Tag>
+                <Tag variant="danger">{row.failureCode}</Tag>
               )}
             </td>
             <td style={{textAlign: 'center'}}>
@@ -334,5 +337,3 @@ function InvoiceDetails() {
     />
   );
 }
-
-export default InvoiceDetails;

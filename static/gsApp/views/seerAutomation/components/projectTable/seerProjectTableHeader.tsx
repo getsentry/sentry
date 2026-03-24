@@ -1,68 +1,105 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Alert} from '@sentry/scraps/alert';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {parseQueryKey} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;
+  updateBulkAutofixAutomationSettings: ReturnType<
+    typeof useUpdateBulkAutofixAutomationSettings
+  >['mutate'];
 }
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Auto Fix'), key: 'fixes'},
-  {title: t('PR Creation'), key: 'pr_creation'},
-  {title: t('Background Agent'), key: 'is_delegated'},
+  {title: t('Autofix Handoff'), key: 'fixes'},
+  {
+    title: (
+      <Flex gap="sm" align="center">
+        {t('PR Creation')}
+        <InfoTip
+          title={t(
+            'This setting only applies when an Autofix Handoff is configured to run automatically.'
+          )}
+        />
+      </Flex>
+    ),
+    key: 'pr_creation',
+  },
   {title: t('Repos'), key: 'repos'},
 ];
 
-export default function ProjectTableHeader({projects, onSortClick, sort}: Props) {
+function getMutationCallbacks(count: number) {
+  return {
+    onError: () =>
+      addErrorMessage(
+        tn(
+          'Failed to update settings for %s project',
+          'Failed to update settings for %s projects',
+          count
+        )
+      ),
+    onSuccess: () =>
+      addSuccessMessage(
+        tn('Settings updated for %s project', 'Settings updated for %s projects', count)
+      ),
+  };
+}
+
+export function ProjectTableHeader({
+  projects,
+  onSortClick,
+  sort,
+  updateBulkAutofixAutomationSettings,
+}: Props) {
+  const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
   const {
     countSelected,
     isAllSelected,
     isAnySelected,
-    queryKey,
+    queryKeyRef,
     selectAll,
-    selectedIds: _selectedIds,
+    selectedIds,
   } = listItemCheckboxState;
-  const queryOptions = parseQueryKey(queryKey).options;
+  const queryOptions = queryKeyRef.current
+    ? parseQueryKey(queryKeyRef.current).options
+    : undefined;
   const queryString = queryOptions?.query?.query;
 
-  const handleBulkAutoFix = (_value: 'on' | 'off') => {
-    // const autofixAutomationTuning = value ? 'medium' : 'off';
-    // Set project.autofixAutomationTuning for all _selectedIds
-    // See: useUpdateProjectAutomation()
-  };
-  const handleBulkPRCreate = (_value: 'on' | 'off') => {
-    // const automatedRunStoppingPoint = value ? 'open_pr' : 'code_changes';
-    // Set preferences.automated_run_stopping_point for all _selectedIds
-    // See: useUpdateProjectSeerPreferences()
-  };
+  const projectIds = useMemo(
+    () => (selectedIds === 'all' ? projects.map(project => project.id) : selectedIds),
+    [projects, selectedIds]
+  );
 
   return (
     <Fragment>
       <TableHeader>
-        <SimpleTable.HeaderCell>
+        {/* <SimpleTable.HeaderCell>
           <SelectAllCheckbox
             listItemCheckboxState={listItemCheckboxState}
             projects={projects}
           />
-        </SimpleTable.HeaderCell>
+        </SimpleTable.HeaderCell> */}
         {COLUMNS.map(({title, key, sortKey}) => (
           <SimpleTable.HeaderCell
             key={key}
@@ -97,64 +134,57 @@ export default function ProjectTableHeader({projects, onSortClick, sort}: Props)
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
             <DropdownMenu
-              isDisabled={!canWrite}
+              isDisabled={!canWrite || organization.enableSeerCoding === false}
               size="xs"
               items={[
                 {
-                  key: 'on',
+                  key: 'open_pr',
                   label: t('On'),
-                  onAction: () => handleBulkAutoFix('on'),
+                  onAction: () =>
+                    updateBulkAutofixAutomationSettings(
+                      {projectIds, automatedRunStoppingPoint: 'open_pr'},
+                      getMutationCallbacks(projectIds.length)
+                    ),
                 },
                 {
-                  key: 'off',
+                  key: 'code_changes',
                   label: t('Off'),
-                  onAction: () => handleBulkAutoFix('off'),
+                  onAction: () =>
+                    updateBulkAutofixAutomationSettings(
+                      {projectIds, automatedRunStoppingPoint: 'code_changes'},
+                      getMutationCallbacks(projectIds.length)
+                    ),
                 },
               ]}
-              triggerLabel={t('Auto Fix')}
-            />
-            <DropdownMenu
-              isDisabled={!canWrite}
-              size="xs"
-              items={[
-                {
-                  key: 'on',
-                  label: t('On'),
-                  onAction: () => handleBulkPRCreate('on'),
-                },
-                {
-                  key: 'off',
-                  label: t('Off'),
-                  onAction: () => handleBulkPRCreate('off'),
-                },
-              ]}
-              triggerLabel={t('PR Creation')}
+              triggerLabel={t('Auto Create PRs')}
             />
           </TableCellsRemainingContent>
         </TableHeader>
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap" gap="md">
             {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
             <a onClick={selectAll}>
               {queryString
-                ? tct('Select all projects that match: [queryString].', {
+                ? tct('Select all [count] projects that match: [queryString].', {
+                    count: listItemCheckboxState.hits,
                     queryString: <var>{queryString}</var>,
                   })
-                : t('Select all projects.')}
+                : t('Select all %s projects.', listItemCheckboxState.hits)}
             </a>
           </Flex>
         </FullGridAlert>
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString
-                ? tct('Selected all projects matching: [queryString].', {
+                ? tct('Selected all [count] projects matching: [queryString].', {
+                    count: countSelected,
                     queryString: <var>{queryString}</var>,
                   })
                 : countSelected > projects.length

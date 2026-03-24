@@ -1,16 +1,18 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {
   CronsBannerOnDemandCTA,
   CronsBannerUpgradeCTA,
 } from 'getsentry/components/crons/cronsBannerUpgradeCTA';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {
   BillingConfig,
@@ -49,10 +51,16 @@ export function CronsBillingBanner({organization, subscription}: Props) {
   const {data: billingConfig} = useBillingConfig({organization, subscription});
   const {onDemandPrice, reserved} = getCronsPricingInfo(billingConfig);
 
-  const queryKey = [`/organizations/${organization.slug}/monitor-count/`] as const;
-  const {data, isPending} = useApiQuery<MonitorCountResponse>(queryKey, {
-    staleTime: 0,
-  });
+  const {data, isPending} = useApiQuery<MonitorCountResponse>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/monitor-count/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (!data || isPending || !subscription.canSelfServe || !onDemandPrice || !reserved) {
     return null;
@@ -164,7 +172,7 @@ function TrialBanner({
   return (
     <Alert.Container>
       <NoBorderRadiusAlert
-        type="warning"
+        variant="warning"
         trailingItems={<CronsBannerUpgradeCTA hasBillingAccess={hasBillingAccess} />}
       >
         {children}
@@ -181,7 +189,7 @@ function InsufficentOnDemandMonitorsDisabledBanner({
   return (
     <Alert.Container>
       <NoBorderRadiusAlert
-        type="warning"
+        variant="warning"
         trailingItems={
           <CronsBannerOnDemandCTA
             hasBillingAccess={hasBillingAccess}

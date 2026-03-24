@@ -14,12 +14,13 @@ from sentry.db.models import (
     DefaultFieldsModelExisting,
     control_silo_model,
 )
+from sentry.db.models.fields.encryption import EncryptedJSONField
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import integration_added
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.cell import find_cells_for_orgs
 
 if TYPE_CHECKING:
     from sentry.integrations.base import (
@@ -49,10 +50,12 @@ class Integration(DefaultFieldsModelExisting):
     # metadata might be used to store things like credentials, but it should NOT
     # be used to store organization-specific information, as an Integration
     # instance can be shared by multiple organizations
-    metadata = models.JSONField(default=dict)
+    metadata = EncryptedJSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )
+    # A place to store non-senstive data for debugging or querying
+    debug_data = models.JSONField(default=dict, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -95,9 +98,9 @@ class Integration(DefaultFieldsModelExisting):
                 shard_identifier=identifier,
                 object_identifier=identifier,
                 category=OutboxCategory.INTEGRATION_UPDATE,
-                region_name=region_name,
+                cell_name=cell_name,
             )
-            for region_name in find_regions_for_orgs(org_ids)
+            for cell_name in find_cells_for_orgs(org_ids)
         ]
 
     def add_organization(

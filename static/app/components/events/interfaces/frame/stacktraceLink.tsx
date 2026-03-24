@@ -2,48 +2,31 @@ import {useEffect, useMemo, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
 import {CodecovStatusCode} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
-import StacktraceLinkModal from './stacktraceLinkModal';
-import useStacktraceLink from './useStacktraceLink';
-
-// Keep this list in sync with PLATFORMS_CONFIG in auto_source_code_config/constants.py
-const supportedStacktracePlatforms: PlatformKey[] = [
-  'clojure',
-  'csharp',
-  'elixir', // Elixir is not listed on the main list
-  'go',
-  'groovy',
-  'java',
-  'javascript',
-  'node',
-  'php',
-  'python',
-  'ruby',
-  'scala',
-];
+import {StacktraceLinkModal} from './stacktraceLinkModal';
+import {useStacktraceLink} from './useStacktraceLink';
 
 const scmProviders = ['github', 'gitlab', 'bitbucket'];
 
@@ -231,11 +214,8 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   // Check if the line starts and ends with {snip}
   const isMinifiedJsError =
     event.platform === 'javascript' && /(\{snip\}).*\1/.test(line ?? '');
-  const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
-    event.platform as PlatformKey
-  );
 
-  const hideErrors = isMinifiedJsError || isUnsupportedPlatform || disableSetup;
+  const hideErrors = isMinifiedJsError || disableSetup;
   // for .NET projects, if there is no match found but there is a GitHub source link, use that
   if (
     frame.sourceLink &&
@@ -257,7 +237,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
         ) : coverage &&
           shouldShowCodecovFeatures(organization, match, coverage.status) ? (
           <CodecovLink
-            coverageUrl={`${frame.sourceLink}`}
+            coverageUrl={frame.sourceLink}
             status={coverage.status}
             organization={organization}
             event={event}
@@ -278,7 +258,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
       scmProviders.includes(integration.provider?.key)
     );
     return (
-      <StacktraceLinkWrapper>
+      <StacktraceLinkWrapper data-has-setup="true">
         <CopyFrameLink event={event} frame={frame} />
         <Button
           size={DEFAULT_BUTTON_SIZE}
@@ -366,7 +346,7 @@ function CodecovLink({
     return (
       <Flex align="center" gap="sm">
         <Text variant="danger">{t('Code Coverage not found')}</Text>
-        <IconWarning size={DEFAULT_ICON_SIZE} color="errorText" />
+        <IconWarning size={DEFAULT_ICON_SIZE} variant="danger" />
       </Flex>
     );
   }
@@ -457,9 +437,14 @@ const FadeInStacktraceLinkWrapper = styled(Flex)`
   }
 `;
 
-function StacktraceLinkWrapper({children}: {children: React.ReactNode}) {
+function StacktraceLinkWrapper({
+  children,
+  ...props
+}: {children: React.ReactNode} & React.ComponentPropsWithoutRef<typeof Flex>) {
   return (
-    <FadeInStacktraceLinkWrapper align="center">{children}</FadeInStacktraceLinkWrapper>
+    <FadeInStacktraceLinkWrapper align="center" {...props}>
+      {children}
+    </FadeInStacktraceLinkWrapper>
   );
 }
 

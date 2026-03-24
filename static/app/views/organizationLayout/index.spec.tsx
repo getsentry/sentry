@@ -1,15 +1,15 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import AlertStore from 'sentry/stores/alertStore';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {AlertStore} from 'sentry/stores/alertStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import OrganizationLayout from 'sentry/views/organizationLayout';
+import {OrganizationLayout} from 'sentry/views/organizationLayout';
 
 describe('OrganizationLayout', () => {
   beforeEach(() => {
@@ -51,17 +51,26 @@ describe('OrganizationLayout', () => {
       });
       OrganizationStore.onUpdate(organization);
 
+      const restoreRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        method: 'PUT',
+        body: organization,
+      });
+
       render(<OrganizationLayout />, {
         organization,
       });
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
-      expect(screen.getByLabelText('Restore Organization')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Would you like to cancel this process and restore the organization back to the original state?'
-        )
-      ).toBeInTheDocument();
+
+      const restoreButton = screen.getByLabelText('Restore Organization');
+      expect(restoreButton).toBeInTheDocument();
+
+      await userEvent.click(restoreButton);
+      expect(restoreRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/`,
+        expect.objectContaining({data: {cancelDeletion: true}})
+      );
     });
 
     it('should render a restoration prompt without action for members', async () => {
@@ -81,7 +90,8 @@ describe('OrganizationLayout', () => {
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
 
       const mistakeText = screen.getByText(
-        'If this is a mistake, contact an organization owner and ask them to restore this organization.'
+        'If this is a mistake, contact an organization owner and ask them to restore this organization.',
+        {exact: false}
       );
 
       expect(mistakeText).toBeInTheDocument();
@@ -117,7 +127,7 @@ describe('OrganizationLayout', () => {
     AlertStore.addAlert({
       id: 'abc123',
       message: 'Celery workers have not checked in',
-      type: 'error',
+      variant: 'danger',
       url: '/internal/health/',
     });
 

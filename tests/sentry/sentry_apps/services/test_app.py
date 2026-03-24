@@ -281,6 +281,18 @@ def test_update_sentry_app() -> None:
 
 @django_db_all(transaction=True)
 @all_silo_test
+def test_prepare_sentry_app_components_returns_none_for_nonexistent_installation() -> None:
+    """Test that prepare_sentry_app_components returns None when installation doesn't exist"""
+    # Use a non-existent installation ID
+    result = app_service.prepare_sentry_app_components(
+        installation_id=999999999,
+        component_type="alert-rule-action",
+    )
+    assert result is None
+
+
+@django_db_all(transaction=True)
+@all_silo_test
 def test_get_internal_integrations() -> None:
     org = Factories.create_organization()
     other_org = Factories.create_organization()

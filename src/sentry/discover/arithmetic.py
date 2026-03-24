@@ -193,8 +193,27 @@ class ArithmeticVisitor(NodeVisitor):
         "eps",
         "epm",
         "count_miserable",
-        "count_web_vitals",
         "percentile_range",
+        # Web vitals uses these functions
+        "count_web_vitals",
+        "performance_score",
+        "opportunity_score",
+        # Frontend overview uses these functions
+        "tpm",
+        "p50_if",
+        "p75_if",
+        "p90_if",
+        "p95_if",
+        "p99_if",
+        "sum_if",
+        "avg_if",
+        "division_if",
+        "failure_rate_if",
+        # Mobile vitals uses these functions
+        "ttid_contribution_rate",
+        "ttfd_contribution_rate",
+        # AI Agents overview uses these functions
+        "trace_status_rate",
     }
 
     def __init__(self, max_operators: int | None, custom_measurements: set[str] | None):

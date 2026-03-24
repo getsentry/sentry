@@ -9,20 +9,31 @@ from typing import Any
 import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
+from taskbroker_client.retry import Retry
 
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.preprod.eap.write import (
+    produce_preprod_build_distribution_to_eap,
+    produce_preprod_size_metric_to_eap,
+)
+from sentry.preprod.exceptions import NoPreprodQuota
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.producer import produce_preprod_artifact_to_kafka
+from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
+from sentry.preprod.quotas import has_installable_quota, has_size_quota
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
-from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
+from sentry.preprod.size_analysis.tasks import (
+    compare_preprod_artifact_size_analysis,
+    maybe_emit_issues_from_absolute_size_results,
+)
+from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
@@ -34,8 +45,7 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import attachments_tasks, preprod_tasks
-from sentry.taskworker.retry import Retry
+from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import bind_organization_context
@@ -46,9 +56,9 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact",
     retry=Retry(times=3),
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_preprod_artifact(
     org_id: int,
@@ -125,16 +135,24 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_bundle_error",
             }
         )
 
         return
 
     try:
+        # Note: requested_features is no longer used for filtering - all features are
+        # requested here, and the actual quota/filter checks happen in the update endpoint
+        # (project_preprod_artifact_update.py) after preprocessing completes.
         produce_preprod_artifact_to_kafka(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
+            requested_features=[
+                PreprodFeature.SIZE_ANALYSIS,
+                PreprodFeature.BUILD_DISTRIBUTION,
+            ],
         )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
@@ -156,6 +174,7 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_dispatch_error",
             }
         )
         return
@@ -178,6 +197,7 @@ def create_preprod_artifact(
     checksum: str,
     build_configuration_name: str | None = None,
     release_notes: str | None = None,
+    install_groups: list[str] | None = None,
     head_sha: str | None = None,
     base_sha: str | None = None,
     provider: str | None = None,
@@ -192,20 +212,40 @@ def create_preprod_artifact(
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
 
+        # Check if organization has quota for either SIZE_ANALYSIS or INSTALLABLE_BUILD
+        org_has_size_quota = has_size_quota(organization)
+        org_has_installable_quota = has_installable_quota(organization)
+        if not org_has_size_quota and not org_has_installable_quota:
+            logger.info(
+                "No quota available for preprod artifact creation",
+                extra={
+                    "project_id": project_id,
+                    "organization_id": org_id,
+                    "checksum": checksum,
+                    "has_size_quota": org_has_size_quota,
+                    "has_installable_quota": org_has_installable_quota,
+                },
+            )
+            raise NoPreprodQuota(
+                "Organization does not have quota for preprod features (SIZE_ANALYSIS or INSTALLABLE_BUILD)"
+            )
+
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
             # Create CommitComparison if git information is provided
             commit_comparison = None
-            if head_sha and head_repo_name and provider and head_ref:
+            if head_sha and head_repo_name and provider:
                 commit_comparison, _ = CommitComparison.objects.get_or_create(
                     organization_id=org_id,
+                    head_repo_name=head_repo_name,
                     head_sha=head_sha,
                     base_sha=base_sha,
-                    provider=provider,
-                    head_repo_name=head_repo_name,
-                    base_repo_name=base_repo_name,
-                    head_ref=head_ref,
-                    base_ref=base_ref,
-                    pr_number=pr_number,
+                    defaults={
+                        "provider": provider,
+                        "base_repo_name": base_repo_name,
+                        "head_ref": head_ref,
+                        "base_ref": base_ref,
+                        "pr_number": pr_number,
+                    },
                 )
             else:
                 logger.info(
@@ -231,10 +271,14 @@ def create_preprod_artifact(
                     name=build_configuration_name,
                 )
 
-            # Prepare extras data if release_notes is provided
-            extras = None
-            if release_notes:
-                extras = {"release_notes": release_notes}
+            # Prepare extras data if release_notes, install_groups is provided
+            extras: dict[str, str | list[str]] | None = None
+            if release_notes or install_groups:
+                extras = {}
+                if release_notes:
+                    extras["release_notes"] = release_notes
+                if install_groups:
+                    extras["install_groups"] = install_groups
 
             preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
@@ -244,7 +288,6 @@ def create_preprod_artifact(
                 extras=extras,
             )
 
-            # TODO(preprod): add gating to only create if has quota
             PreprodArtifactSizeMetrics.objects.get_or_create(
                 preprod_artifact=preprod_artifact,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -265,6 +308,8 @@ def create_preprod_artifact(
 
             return preprod_artifact
 
+    except NoPreprodQuota:
+        raise
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.exception(
@@ -365,7 +410,7 @@ def _assemble_preprod_artifact_size_analysis(
 
     preprod_artifact = None
     try:
-        preprod_artifact = PreprodArtifact.objects.get(
+        preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
             id=artifact_id,
         )
@@ -469,6 +514,39 @@ def _assemble_preprod_artifact_size_analysis(
         metrics_committed_successfully = True
         size_metrics_updated = metrics_in_transaction
 
+        try:
+            organization = preprod_artifact.project.organization
+            for size_metric in size_metrics_updated:
+                produce_preprod_size_metric_to_eap(
+                    size_metric=size_metric,
+                    organization=organization,
+                    organization_id=org_id,
+                    project_id=project.id,
+                )
+            logger.info(
+                "Successfully wrote preprod size metrics to EAP",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "size_metrics_ids": [m.id for m in size_metrics_updated],
+                    "organization_id": org_id,
+                    "project_id": project.id,
+                },
+            )
+        except Exception as eap_error:
+            logger.exception(
+                "Failed to write preprod size metrics to EAP",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "size_metrics_ids": [m.id for m in size_metrics_updated],
+                    "organization_id": org_id,
+                    "project_id": project.id,
+                    "error": str(eap_error),
+                },
+            )
+
+        for size_metric in size_metrics_updated:
+            maybe_emit_issues_from_absolute_size_results(head_metric=size_metric)
+
         if size_analysis_results.analysis_duration is not None:
             with transaction.atomic(router.db_for_write(PreprodArtifact)):
                 preprod_artifact.refresh_from_db()
@@ -568,6 +646,7 @@ def _assemble_preprod_artifact_size_analysis(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_completion",
             }
         )
 
@@ -606,9 +685,9 @@ def _assemble_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_preprod_artifact_size_analysis(
     org_id: int,
@@ -637,7 +716,7 @@ def _assemble_preprod_artifact_installable_app(
     assemble_result: AssembleResult, project: Project, artifact_id: int, org_id: int
 ) -> None:
     try:
-        preprod_artifact = PreprodArtifact.objects.get(
+        preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
             id=artifact_id,
         )
@@ -667,6 +746,32 @@ def _assemble_preprod_artifact_installable_app(
         preprod_artifact.installable_app_file_id = assemble_result.bundle.id
         preprod_artifact.save(update_fields=["installable_app_file_id", "date_updated"])
 
+    try:
+        organization = preprod_artifact.project.organization
+        produce_preprod_build_distribution_to_eap(
+            artifact=preprod_artifact,
+            organization=organization,
+            organization_id=org_id,
+            project_id=project.id,
+        )
+        logger.info(
+            "Successfully wrote preprod build distribution to EAP",
+            extra={
+                "preprod_artifact_id": preprod_artifact.id,
+                "organization_id": org_id,
+                "project_id": project.id,
+            },
+        )
+    except Exception:
+        logger.exception(
+            "Failed to write preprod build distribution to EAP",
+            extra={
+                "preprod_artifact_id": preprod_artifact.id,
+                "organization_id": org_id,
+                "project_id": project.id,
+            },
+        )
+
     # Ideally we want to report an outcome at most once per
     # preprod_artifact. This isn't yet robust to:
     # - multiple calls to assemble_file racing
@@ -690,12 +795,19 @@ def _assemble_preprod_artifact_installable_app(
         key_id=None,
     )
 
+    create_preprod_pr_comment_task.apply_async(
+        kwargs={
+            "preprod_artifact_id": artifact_id,
+            "caller": "installable_app_assembled",
+        }
+    )
+
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_preprod_artifact_installable_app(
     org_id: int, project_id: int, checksum: str, chunks: Any, artifact_id: int, **kwargs: Any
@@ -716,7 +828,7 @@ def assemble_preprod_artifact_installable_app(
     name="sentry.preprod.tasks.detect_expired_preprod_artifacts",
     namespace=preprod_tasks,
     processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def detect_expired_preprod_artifacts() -> None:
     """
@@ -743,6 +855,7 @@ def detect_expired_preprod_artifacts() -> None:
     expired_artifacts = PreprodArtifact.objects.filter(
         state__in=[PreprodArtifact.ArtifactState.UPLOADING, PreprodArtifact.ArtifactState.UPLOADED],
         date_updated__lte=timeout_threshold,
+        preprodsnapshotmetrics__isnull=True,
     )
 
     expired_artifacts_count = 0
@@ -784,7 +897,7 @@ def detect_expired_preprod_artifacts() -> None:
             )
             try:
                 create_preprod_status_check_task.apply_async(
-                    kwargs={"preprod_artifact_id": artifact_id}
+                    kwargs={"preprod_artifact_id": artifact_id, "caller": "expired_artifact"}
                 )
             except Exception:
                 logger.exception(

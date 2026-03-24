@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from typing import Any, NotRequired
 
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
     SpanEvent,
     _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue,
@@ -20,7 +21,7 @@ DEFAULT_SPAN_OP = "default"
 
 
 def get_span_op(span: SpanEvent) -> str:
-    return attribute_value(span, "sentry.op") or DEFAULT_SPAN_OP
+    return attribute_value(span, ATTRIBUTE_NAMES.SENTRY_OP) or DEFAULT_SPAN_OP
 
 
 class CompatibleSpan(SpanEvent, total=True):
@@ -43,6 +44,6 @@ def attribute_value(span: Mapping[str, Any], key: str) -> Any:
 
 
 def is_gen_ai_span(span: SpanEvent) -> bool:
-    return attribute_value(span, "gen_ai.operation.name") is not None or get_span_op(
+    return attribute_value(span, ATTRIBUTE_NAMES.GEN_AI_OPERATION_NAME) is not None or get_span_op(
         span
     ).startswith("gen_ai.")

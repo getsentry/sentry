@@ -1,11 +1,13 @@
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
@@ -25,11 +27,10 @@ export const TTID_CONTRIBUTING_SPAN_OPS = [
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: Props) {
+export function SpanOpSelector({transaction, primaryRelease}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -41,11 +42,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     `span.op:[${TTID_CONTRIBUTING_SPAN_OPS.join(',')}]`,
     'has:span.description',
   ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   const {data} = useSpans(
     {
@@ -70,7 +67,9 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('Operation'), size: 'md'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Operation')} size="md" />
+      )}
       value={value}
       options={options ?? []}
       onChange={newValue => {

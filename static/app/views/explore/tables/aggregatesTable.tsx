@@ -2,11 +2,12 @@ import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination, {type CursorHandler} from 'sentry/components/pagination';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination, type CursorHandler} from 'sentry/components/pagination';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -19,7 +20,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
   Table,
@@ -33,7 +34,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -101,8 +102,9 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const meta = result.meta ?? {};
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
@@ -149,7 +151,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
-              const label = prettifyField(field, stringTags, numberTags);
+              const label = prettifyField(field, stringTags, numberTags, booleanTags);
 
               const direction = sorts.find(s => s.field === field)?.kind;
 
@@ -199,7 +201,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             </TableStatus>
           ) : result.isError ? (
             <TableStatus>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
@@ -267,9 +269,10 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 function prettifyField(
   field: string,
   stringTags: TagCollection,
-  numberTags: TagCollection
+  numberTags: TagCollection,
+  booleanTags: TagCollection
 ): string {
-  const tag = stringTags[field] ?? numberTags[field] ?? null;
+  const tag = stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
   if (tag) {
     return tag.name;
   }

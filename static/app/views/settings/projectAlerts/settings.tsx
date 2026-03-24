@@ -1,24 +1,26 @@
 import {Fragment} from 'react';
 
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Form from 'sentry/components/forms/form';
+import {AlertLink} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PluginList from 'sentry/components/pluginList';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PluginList} from 'sentry/components/pluginList';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import useOrganization from 'sentry/utils/useOrganization';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectAlertsOutlet} from 'sentry/views/settings/projectAlerts';
 
@@ -26,7 +28,11 @@ function makeFetchProjectPluginsQueryKey(
   organizationSlug: string,
   projectSlug: string
 ): ApiQueryKey {
-  return [`/projects/${organizationSlug}/${projectSlug}/plugins/`];
+  return [
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/`, {
+      path: {organizationIdOrSlug: organizationSlug, projectIdOrSlug: projectSlug},
+    }),
+  ];
 }
 
 export default function ProjectAlertSettings() {
@@ -74,7 +80,7 @@ export default function ProjectAlertSettings() {
         <AlertLink
           to="/settings/account/notifications/"
           trailingItems={<IconMail />}
-          type="info"
+          variant="info"
         >
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
@@ -108,7 +114,7 @@ export default function ProjectAlertSettings() {
               disabled={!canEditRule}
               fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
               renderHeader={() => (
-                <PanelAlert type="info">
+                <PanelAlert variant="info">
                   {t(
                     'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. To control how frequently notifications are delivered, use the sliders below.'
                   )}

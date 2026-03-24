@@ -2,8 +2,6 @@ import {memo} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type PillType = 'positive' | 'negative' | 'error';
 
 type Props = {
@@ -14,7 +12,7 @@ type Props = {
   value?: number | string | boolean | null;
 };
 
-const Pill = memo(({name, value, children, type, className}: Props) => {
+export const Pill = memo(({name, value, children, type, className}: Props) => {
   const getTypeAndValue = (): Partial<{renderValue: string; valueType: PillType}> => {
     if (value === undefined) {
       return {};
@@ -61,12 +59,12 @@ const getPillStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'error':
       return css`
-        background: ${theme.red100};
-        border: 1px solid ${theme.red300};
+        background: ${theme.colors.red100};
+        border: 1px solid ${theme.colors.red400};
       `;
     default:
       return css`
-        border: 1px solid ${theme.border};
+        border: 1px solid ${theme.tokens.border.primary};
       `;
   }
 };
@@ -75,34 +73,34 @@ const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'positive':
       return css`
-        background: ${theme.green100};
-        border: 1px solid ${theme.green300};
-        font-family: ${theme.text.familyMono};
+        background: ${theme.colors.green100};
+        border: 1px solid ${theme.colors.green400};
+        font-family: ${theme.font.family.mono};
         margin: -1px;
       `;
     case 'error':
       return css`
-        background: ${theme.red100};
-        border: 1px solid ${theme.red300};
+        background: ${theme.colors.red100};
+        border: 1px solid ${theme.colors.red400};
         margin: -1px;
       `;
     case 'negative':
       return css`
-        background: ${theme.red100};
-        border: 1px solid ${theme.red300};
-        font-family: ${theme.text.familyMono};
+        background: ${theme.colors.red100};
+        border: 1px solid ${theme.colors.red400};
+        font-family: ${theme.font.family.mono};
         margin: -1px;
       `;
     default:
       return css`
-        background: ${theme.backgroundSecondary};
-        font-family: ${theme.text.familyMono};
+        background: ${theme.tokens.background.secondary};
+        font-family: ${theme.font.family.mono};
       `;
   }
 };
 
 const PillName = styled('span')`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   min-width: 0;
   white-space: nowrap;
   display: flex;
@@ -110,7 +108,7 @@ const PillName = styled('span')`
 `;
 
 const PillValue = styled(PillName)`
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => `0 ${p.theme.radius.md} ${p.theme.radius.md} 0`};
   max-width: 100%;
   display: flex;
@@ -128,8 +126,8 @@ const PillValue = styled(PillName)`
   .pill-icon,
   .external-icon {
     display: inline;
-    margin: 0 0 0 ${space(1)};
-    color: ${p => p.theme.subText};
+    margin: 0 0 0 ${p => p.theme.space.md};
+    color: ${p => p.theme.tokens.content.secondary};
     &:hover {
       color: ${p => p.theme.tokens.content.primary};
     }
@@ -138,7 +136,7 @@ const PillValue = styled(PillName)`
 
 const StyledPill = styled('li')<{type?: PillType}>`
   white-space: nowrap;
-  margin: 0 ${space(1)} ${space(1)} 0;
+  margin: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
   display: flex;
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowLight};
@@ -154,5 +152,3 @@ const StyledPill = styled('li')<{type?: PillType}>`
     ${getPillValueStyle};
   }
 `;
-
-export default Pill;

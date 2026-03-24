@@ -2,11 +2,12 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 interface AiConfigResult {
   areAiFeaturesAllowed: boolean;
+  autofixEnabled: boolean;
   hasAutofix: boolean;
   hasAutofixQuota: boolean;
   hasGithubIntegration: boolean;
@@ -15,6 +16,7 @@ interface AiConfigResult {
   isAutofixSetupLoading: boolean;
   orgNeedsGenAiAcknowledgement: boolean;
   refetchAutofixSetup: () => void;
+  seerReposLinked: boolean;
 }
 
 export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
@@ -24,6 +26,8 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     isPending: isAutofixSetupLoading,
     hasAutofixQuota,
     refetch: refetchAutofixSetup,
+    seerReposLinked,
+    autofixEnabled,
   } = useAutofixSetup({
     groupId: group.id,
   });
@@ -43,20 +47,17 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
   const hasAutofix = isAutofixEnabled && areAiFeaturesAllowed && !isSampleError;
   const hasGithubIntegration = !!autofixSetupData?.integration.ok;
 
-  const orgNeedsGenAiAcknowledgement =
-    !autofixSetupData?.setupAcknowledgement.orgHasAcknowledged &&
-    (isSummaryEnabled || isAutofixEnabled) &&
-    areAiFeaturesAllowed;
-
   return {
     hasSummary,
     hasAutofix,
-    orgNeedsGenAiAcknowledgement,
+    orgNeedsGenAiAcknowledgement: false,
     hasResources,
     isAutofixSetupLoading,
     areAiFeaturesAllowed,
     hasGithubIntegration,
     hasAutofixQuota,
     refetchAutofixSetup,
+    seerReposLinked,
+    autofixEnabled,
   };
 };

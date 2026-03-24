@@ -2,15 +2,18 @@ import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
+import * as Layout from 'sentry/components/layouts/thirds';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {TraceAiSpans} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
   TraceViewMetricsProviderWrapper,
@@ -22,6 +25,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
 import {TraceTabsAndVitals} from 'sentry/views/performance/newTraceDetails/traceTabsAndVitals';
+import {PartialTraceDataWarning} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/partialTraceDataWarning';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {
   TraceLayoutTabKeys,
@@ -42,7 +46,7 @@ import {TraceMetaDataHeader} from './traceHeader';
 import {useInitialTraceMetricData} from './useInitialTraceMetricData';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';
-import useTraceStateAnalytics from './useTraceStateAnalytics';
+import {useTraceStateAnalytics} from './useTraceStateAnalytics';
 
 function decodeTraceSlug(maybeSlug: string | undefined): string {
   if (!maybeSlug || maybeSlug === 'null' || maybeSlug === 'undefined') {
@@ -117,7 +121,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
-    additionalAttributes: ['thread.id'],
+    additionalAttributes: ['thread.id', 'tags[performance.timeOrigin,number]'],
   });
   const tree = useTraceTree({traceSlug, trace, replay: null});
 
@@ -148,7 +152,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
       orgSlug={organization.slug}
     >
       <NoProjectMessage organization={organization}>
-        <TraceExternalLayout>
+        <LayoutPageWithHiddenFooter>
           <TraceMetaDataHeader
             rootEventResults={rootEventResults}
             tree={tree}
@@ -164,6 +168,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               tree={tree}
               traceSlug={traceSlug}
               organization={organization}
+            />
+            <PartialTraceDataWarning
+              timestamp={queryParams.timestamp}
+              logs={logsData}
+              tree={tree}
             />
             <TraceTabsAndVitals
               tabsConfig={{
@@ -206,31 +215,29 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceAiSpans traceSlug={traceSlug} />
             ) : null}
           </TraceInnerLayout>
-        </TraceExternalLayout>
+        </LayoutPageWithHiddenFooter>
       </NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
 
-const TraceExternalLayout = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-  max-height: 100vh;
-
+const LayoutPageWithHiddenFooter = styled(Layout.Page)`
   ~ footer {
     display: none;
   }
 `;
 
-const FlexBox = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const TraceInnerLayout = styled(FlexBox)`
-  padding: ${space(2)} ${space(3)};
-  flex-grow: 1;
-  overflow-y: auto;
-`;
+function TraceInnerLayout(props: FlexProps<'div'>) {
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <Flex
+      {...props}
+      background={hasPageFrame ? 'primary' : undefined}
+      direction="column"
+      gap="md"
+      padding="xl"
+      flex="1"
+      overflowY="auto"
+    />
+  );
+}

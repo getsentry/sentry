@@ -6,9 +6,9 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-import NetworkDetailsContent from 'sentry/views/replays/detail/network/details/content';
+import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {NetworkDetailsContent} from 'sentry/views/replays/detail/network/details/content';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
@@ -16,7 +16,7 @@ jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 function mockNeedsUpdate(needsUpdate: boolean) {
   jest
     .mocked(useProjectSdkNeedsUpdate)
-    .mockReturnValue({isError: false, isFetching: false, needsUpdate});
+    .mockReturnValue({isError: false, isFetching: false, needsUpdate, data: []});
 }
 
 const [
@@ -37,13 +37,13 @@ const [
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
   }),
   ReplayRequestFrameFixture({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -55,7 +55,7 @@ const [
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -73,7 +73,7 @@ const [
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -91,7 +91,7 @@ const [
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,

@@ -4,19 +4,66 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
+  PERCENTAGE_3XX,
+  PERCENTAGE_4XX,
+  PERCENTAGE_5XX,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/constants';
+import {
   AVERAGE_DURATION_TEXT,
   BASE_FILTERS,
-  DASHBOARD_TITLE,
+  DETAILS_DASHBOARD_TITLE,
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
-const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const DOMAIN_WIDGET: Widget = {
+  id: 'domain-widget',
+  title: t('Domain'),
+  displayType: DisplayType.DETAILS,
+  widgetType: WidgetType.SPANS,
+  interval: '5m',
+  queries: [
+    {
+      name: '',
+      fields: [
+        SpanFields.ID,
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_GROUP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.SPAN_CATEGORY,
+      ] satisfies DefaultDetailWidgetFields[],
+      aggregates: [],
+      columns: [
+        SpanFields.ID,
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_GROUP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.SPAN_CATEGORY,
+      ] satisfies DefaultDetailWidgetFields[],
+      fieldAliases: [],
+      conditions: FILTER_STRING,
+      orderby: SpanFields.ID,
+      onDemand: [],
+      linkedDashboards: [],
+    },
+  ],
+  layout: {
+    x: 0,
+    y: 0,
+    minH: 1,
+    h: 1,
+    w: 6,
+  },
+};
+
+const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-big-number',
@@ -45,15 +92,15 @@ const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
         {
           name: AVERAGE_DURATION_TEXT,
           conditions: FILTER_STRING,
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
     {
-      id: '3xx-count-big-number',
+      id: '3xx-percentage-big-number',
       title: t('3XX'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
@@ -61,16 +108,16 @@ const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('3XX'),
-          conditions: `${FILTER_STRING} tags[http.response.status_code,number]:>=300 tags[http.response.status_code,number]:<=399`,
-          fields: [`count(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+          conditions: FILTER_STRING,
+          fields: [PERCENTAGE_3XX],
+          aggregates: [PERCENTAGE_3XX],
           columns: [],
-          orderby: `count(${SpanFields.SPAN_DURATION})`,
+          orderby: PERCENTAGE_3XX,
         },
       ],
     },
     {
-      id: '4xx-count-big-number',
+      id: '4xx-percentage-big-number',
       title: t('4XX'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
@@ -78,16 +125,16 @@ const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('4XX'),
-          conditions: `${FILTER_STRING} tags[http.response.status_code,number]:>=400 tags[http.response.status_code,number]:<=499`,
-          fields: [`count(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+          conditions: FILTER_STRING,
+          fields: [PERCENTAGE_4XX],
+          aggregates: [PERCENTAGE_4XX],
           columns: [],
-          orderby: `count(${SpanFields.SPAN_DURATION})`,
+          orderby: PERCENTAGE_4XX,
         },
       ],
     },
     {
-      id: '5xx-count-big-number',
+      id: '5xx-percentage-big-number',
       title: t('5XX'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
@@ -95,11 +142,11 @@ const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('5XX'),
-          conditions: `${FILTER_STRING} tags[http.response.status_code,number]:>=500 tags[http.response.status_code,number]:<=599`,
-          fields: [`count(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+          conditions: FILTER_STRING,
+          fields: [PERCENTAGE_5XX],
+          aggregates: [PERCENTAGE_5XX],
           columns: [],
-          orderby: `count(${SpanFields.SPAN_DURATION})`,
+          orderby: PERCENTAGE_5XX,
         },
       ],
     },
@@ -113,19 +160,19 @@ const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
         {
           name: DataTitles.timeSpent,
           conditions: FILTER_STRING,
-          fields: [`sum(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`sum(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`sum(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`sum(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          orderby: `sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `sum(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
   ],
-  0,
+  1,
   {h: 1, minH: 1}
 );
 
-const CHART_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const CHART_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-chart',
@@ -154,10 +201,10 @@ const CHART_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
         {
           name: AVERAGE_DURATION_TEXT,
           conditions: FILTER_STRING,
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -169,33 +216,17 @@ const CHART_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       interval: '5m',
       queries: [
         {
-          name: '3XX',
-          conditions: `${FILTER_STRING} tags[http.response.status_code,number]:>=300 tags[http.response.status_code,number]:<=399`,
-          fields: ['count(span.duration)'],
-          aggregates: ['count(span.duration)'],
+          name: '',
+          conditions: FILTER_STRING,
+          fields: [PERCENTAGE_3XX, PERCENTAGE_4XX, PERCENTAGE_5XX],
+          aggregates: [PERCENTAGE_3XX, PERCENTAGE_4XX, PERCENTAGE_5XX],
           columns: [],
-          orderby: 'count(span.duration)',
-        },
-        {
-          name: '4XX',
-          conditions: `${FILTER_STRING} tags[http.response.status_code,number]:>=400 tags[http.response.status_code,number]:<=499`,
-          fields: ['count(span.duration)'],
-          aggregates: ['count(span.duration)'],
-          columns: [],
-          orderby: 'count(span.duration)',
-        },
-        {
-          name: '5XX',
-          conditions: `${FILTER_STRING} tags[http.response.status_code,number]:>=500 tags[http.response.status_code,number]:<=599`,
-          fields: ['count(span.duration)'],
-          aggregates: ['count(span.duration)'],
-          columns: [],
-          orderby: 'count(span.duration)',
+          orderby: PERCENTAGE_3XX,
         },
       ],
     },
   ],
-  1
+  2
 );
 
 const TRANSACTIONS_TABLE: Widget = {
@@ -208,31 +239,40 @@ const TRANSACTIONS_TABLE: Widget = {
     {
       aggregates: [
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        PERCENTAGE_3XX,
+        PERCENTAGE_4XX,
+        PERCENTAGE_5XX,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
       fields: [
         SpanFields.TRANSACTION,
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        PERCENTAGE_3XX,
+        PERCENTAGE_4XX,
+        PERCENTAGE_5XX,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
       ],
       fieldAliases: [
         t('Found In'),
         THROUGHPUT_TEXT,
+        t('3XXs'),
+        t('4XXs'),
+        t('5XXs'),
         DataTitles.avg,
         DataTitles.timeSpent,
       ],
       conditions: FILTER_STRING,
       name: '',
-      orderby: '-sum(span.self_time)',
+      orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
   layout: {
     x: 0,
-    y: 3,
-    minH: 2,
+    y: 4,
+    minH: TABLE_MIN_HEIGHT,
     h: 5,
     w: 6,
   },
@@ -241,7 +281,7 @@ const TRANSACTIONS_TABLE: Widget = {
 export const HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: DASHBOARD_TITLE,
+  title: DETAILS_DASHBOARD_TITLE,
   filters: {
     globalFilter: [
       {
@@ -255,5 +295,11 @@ export const HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
-  widgets: [...BIG_NUMBER_ROW_WIDGETS, ...CHART_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  widgets: [
+    DOMAIN_WIDGET,
+    ...BIG_NUMBER_ROW_WIDGETS,
+    ...CHART_ROW_WIDGETS,
+    TRANSACTIONS_TABLE,
+  ],
+  onboarding: {type: 'module', moduleName: ModuleName.HTTP},
 };

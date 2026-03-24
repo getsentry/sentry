@@ -1,33 +1,33 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
-import ProgressRing from 'sentry/components/progressRing';
+import {ProgressRing} from 'sentry/components/progressRing';
 import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
-import {space} from 'sentry/styles/space';
+import {DemoWalkthroughStore} from 'sentry/stores/demoWalkthroughStore';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
-import {useStackedNavigationTour} from 'sentry/views/nav/tour/tour';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete
@@ -85,7 +85,9 @@ function TaskCard({
       className={className}
     >
       {onClick && <InteractionStateLayer />}
-      <TaskCardIcon>{icon}</TaskCardIcon>
+      <Flex justify="center" align="center" height="20px">
+        {icon}
+      </Flex>
       <TaskCardDescription>
         {title}
         {description && <p>{description}</p>}
@@ -133,14 +135,14 @@ interface SkipConfirmationProps {
 
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Flex direction="column" gap="md">
         {t("Not sure what to do? We're here for you!")}
         <Flex justify="between" gap="xs" flex={1}>
           <LinkButton external href="https://sentry.io/support/" size="xs">
             {t('Contact Support')}
           </LinkButton>
-          <ButtonBar gap="xs">
+          <Grid flow="column" align="center" gap="xs">
             <Button
               onClick={event => {
                 event.stopPropagation();
@@ -160,7 +162,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
             >
               {t('Just Skip')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Flex>
       </Flex>
     </Alert>
@@ -176,11 +178,12 @@ interface TaskProps {
 function Task({task, hidePanel}: TaskProps) {
   const organization = useOrganization();
   const mutateOnboardingTasks = useMutateOnboardingTasks();
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
   const tours = useDemoTours();
-  const sidebarTour = useStackedNavigationTour();
+  const sidebarTour = useNavigationTour();
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -213,7 +216,7 @@ function Task({task, hidePanel}: TaskProps) {
       }
 
       if (task.actionType === 'action') {
-        task.action(router);
+        task.action({navigate, location});
       }
 
       if (task.actionType === 'app') {
@@ -223,11 +226,11 @@ function Task({task, hidePanel}: TaskProps) {
         // Add referrer to all links
         to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
 
-        navigateTo(to, router);
+        navigateTo(to, navigate, location);
       }
       hidePanel();
     },
-    [task, organization, router, hidePanel, tours, sidebarTour]
+    [task, organization, navigate, location, hidePanel, tours, sidebarTour]
   );
 
   const handleMarkSkipped = useCallback(() => {
@@ -288,24 +291,24 @@ function Task({task, hidePanel}: TaskProps) {
         icon={
           task.skippable ? (
             <Button
-              icon={<IconNot size="sm" color="subText" />}
+              icon={<IconNot size="sm" variant="muted" />}
               aria-label={t('Skip Task')}
               onClick={event => {
                 event.stopPropagation();
                 setShowSkipConfirmation(!showSkipConfirmation);
               }}
               size="zero"
-              borderless
-              title={t('Skip Task')}
+              priority="transparent"
+              tooltipProps={{title: t('Skip Task')}}
             />
           ) : undefined
         }
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
-          <ClickIndicator>
-            <IconChevron direction="right" size="xs" color="subText" />
-          </ClickIndicator>
+          <Flex justify="center" align="center" width="20px" height="100%">
+            <IconChevron direction="right" size="xs" variant="muted" />
+          </Flex>
         }
       />
       {showSkipConfirmation && (
@@ -375,14 +378,11 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
   }, [unseenDoneTasks, markSeenOnOpen]);
 
   return (
-    <Fragment>
-      <hr />
-      <TaskGroupBody>
-        {tasks.map(task => (
-          <Task key={task.task} task={task} hidePanel={hidePanel} />
-        ))}
-      </TaskGroupBody>
-    </Fragment>
+    <TaskGroupBody>
+      {tasks.map(task => (
+        <Task key={task.task} task={task} hidePanel={hidePanel} />
+      ))}
+    </TaskGroupBody>
   );
 }
 
@@ -392,6 +392,7 @@ interface TaskGroupProps {
    */
   group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
+  separator: boolean;
   tasks: OnboardingTask[];
   title: string;
   expanded?: boolean;
@@ -402,6 +403,7 @@ function TaskGroup({
   title,
   tasks,
   expanded,
+  separator,
   hidePanel,
   toggleable = true,
   group,
@@ -446,7 +448,7 @@ function TaskGroup({
   ]);
 
   return (
-    <TaskGroupWrapper>
+    <Stack paddingBottom="0" gap="md">
       <TaskGroupHeader
         title={<strong>{title}</strong>}
         description={
@@ -468,7 +470,7 @@ function TaskGroup({
           ) : (
             <ProgressRing
               value={(doneTasks.length / tasks.length) * 100}
-              backgroundColor={theme.gray200}
+              backgroundColor={theme.colors.gray200}
               progressEndcaps="round"
               progressColor={theme.tokens.content.accent}
               size={22}
@@ -482,12 +484,13 @@ function TaskGroup({
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             aria-expanded={isExpanded}
             size="zero"
-            borderless
+            priority="transparent"
           />
         }
       />
-      {isExpanded && <ExpandedTaskGroup tasks={tasks} hidePanel={hidePanel} />}
-    </TaskGroupWrapper>
+      {isExpanded ? <ExpandedTaskGroup tasks={tasks} hidePanel={hidePanel} /> : null}
+      {separator && <Stack.Separator />}
+    </Stack>
   );
 }
 
@@ -511,7 +514,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
   );
 
   return (
-    <Content data-test-id="quick-start-content">
+    <Stack overscrollBehavior="none" data-test-id="quick-start-content">
       <TaskGroup
         title={t('Getting Started')}
         tasks={sortedGettingStartedTasks}
@@ -521,6 +524,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
         }
         toggleable={sortedBeyondBasicsTasks.length > 0}
         group="getting_started"
+        separator={sortedBeyondBasicsTasks.length > 0}
       />
       {sortedBeyondBasicsTasks.length > 0 && (
         <TaskGroup
@@ -533,51 +537,26 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
             groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
           }
           group="beyond_basics"
+          separator={allTasks.length === doneTasks.length}
         />
       )}
       {allTasks.length === doneTasks.length && (
-        <CompletionCelebrationText>
-          <div>{t('Good job, you’re all done here!')}</div>
-          {t('Now get out of here and write some broken code.')}
-        </CompletionCelebrationText>
+        <Container padding="2xl" paddingBottom="2xl">
+          <Text as="p" size="md" align="center">
+            {t(
+              'Good job, you’re all done here! Now get out of here and write some broken code.'
+            )}
+          </Text>
+        </Container>
       )}
-    </Content>
+    </Stack>
   );
 }
 
-const CompletionCelebrationText = styled('div')`
-  margin-top: ${space(1.5)};
-  text-align: center;
-`;
-
-const Content = styled('div')`
-  padding: ${space(3)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  flex: 1;
-
-  p {
-    margin-bottom: ${space(1)};
-  }
-`;
-
-const TaskGroupWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1)};
-
-  background-color: ${p => p.theme.tokens.background.primary};
-
-  hr {
-    border-color: ${p => p.theme.translucentBorder};
-    margin: ${space(1)} -${space(1)};
-  }
-`;
-
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   p {
-    color: ${p => (p.hasProgress ? p.theme.tokens.content.accent : p.theme.subText)};
+    color: ${p =>
+      p.hasProgress ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
   }
 `;
 
@@ -589,31 +568,23 @@ const TaskGroupBody = styled('ul')`
 `;
 
 const TaskWrapper = styled('li')`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   p {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const ClickIndicator = styled('div')`
-  width: 20px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: 22px 1fr max-content;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} 0;
   p {
     margin: 0;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
   button {
     visibility: hidden;
@@ -632,17 +603,10 @@ const TaskCardDescription = styled('div')`
   }
 `;
 
-const TaskCardIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 20px;
-`;
-
 const TaskCardActions = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 20px;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: flex-start;
 `;

@@ -1,9 +1,10 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -49,7 +50,8 @@ describe('transformEventsResponseToTable', () => {
 });
 
 describe('getCustomFieldRenderer', () => {
-  const {organization, router} = initializeOrg();
+  const organization = OrganizationFixture();
+  const location = LocationFixture();
 
   const baseEventViewOptions: EventViewOptions = {
     start: undefined,
@@ -71,44 +73,40 @@ describe('getCustomFieldRenderer', () => {
 
   it('links trace ids to performance', async () => {
     const customFieldRenderer = getCustomEventsFieldRenderer('trace', {});
-    render(
+    const {router} = render(
       customFieldRenderer(
         {trace: 'abcd'},
         {
           organization,
-          location: router.location,
+          location,
           theme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'trace'}],
           }),
         }
-      ) as React.ReactElement<any, any>,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      ) as React.ReactElement<any, any>
     );
     await userEvent.click(await screen.findByText('abcd'));
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboards/trace/abcd/',
-      query: {
-        pageEnd: undefined,
-        pageStart: undefined,
-        statsPeriod: '14d',
-      },
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/dashboards/trace/abcd/'
+    );
+    expect(router.location.query).toEqual({
+      pageEnd: undefined,
+      pageStart: undefined,
+      statsPeriod: '14d',
     });
   });
 
   it('links event ids to event details', async () => {
     const project = ProjectFixture();
     const customFieldRenderer = getCustomEventsFieldRenderer('id', {});
-    render(
+    const {router} = render(
       customFieldRenderer(
         {id: 'defg', 'project.name': project.slug},
         {
           organization,
-          location: router.location,
+          location,
           theme,
           eventView: new EventView({
             ...baseEventViewOptions,
@@ -116,45 +114,41 @@ describe('getCustomFieldRenderer', () => {
             project: [parseInt(project.id, 10)],
           }),
         }
-      ) as React.ReactElement<any, any>,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      ) as React.ReactElement<any, any>
     );
 
     await userEvent.click(await screen.findByText('defg'));
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: `/organizations/org-slug/explore/discover/${project.slug}:defg/`,
-      query: {
-        display: undefined,
-        environment: undefined,
-        field: 'id',
-        id: undefined,
-        interval: undefined,
-        name: undefined,
-        project: project.id,
-        query: '',
-        sort: undefined,
-        topEvents: undefined,
-        widths: undefined,
-        yAxis: 'count()',
-        pageEnd: undefined,
-        pageStart: undefined,
-        statsPeriod: '14d',
-      },
+    expect(router.location.pathname).toBe(
+      `/organizations/org-slug/explore/discover/${project.slug}:defg/`
+    );
+    expect(router.location.query).toEqual({
+      display: undefined,
+      environment: undefined,
+      field: 'id',
+      id: undefined,
+      interval: undefined,
+      name: undefined,
+      project: project.id,
+      query: '',
+      sort: undefined,
+      topEvents: undefined,
+      widths: undefined,
+      yAxis: 'count()',
+      pageEnd: undefined,
+      pageStart: undefined,
+      statsPeriod: '14d',
     });
   });
 
   it('links << unparameterized >> title/transaction columns to event details', async () => {
     const project = ProjectFixture();
     const customFieldRenderer = getCustomEventsFieldRenderer('title', {});
-    render(
+    const {router} = render(
       customFieldRenderer(
         {title: '<< unparameterized >>'},
         {
           organization,
-          location: router.location,
+          location,
           theme,
           eventView: new EventView({
             ...baseEventViewOptions,
@@ -162,20 +156,16 @@ describe('getCustomFieldRenderer', () => {
             project: [parseInt(project.id, 10)],
           }),
         }
-      ) as React.ReactElement<any, any>,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      ) as React.ReactElement<any, any>
     );
 
     await userEvent.click(await screen.findByText('<< unparameterized >>'));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/explore/discover/results/'
+    );
+    expect(router.location.query).toEqual(
       expect.objectContaining({
-        pathname: `/organizations/org-slug/explore/discover/results/`,
-        query: expect.objectContaining({
-          query: 'event.type:transaction transaction.source:"url"',
-        }),
+        query: 'event.type:transaction transaction.source:"url"',
       })
     );
   });

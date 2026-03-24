@@ -88,10 +88,10 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: AVERAGE_DURATION_TEXT,
           conditions: FILTER_STRING,
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
       layout: {
@@ -116,16 +116,16 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [
             SpanFields.NORMALIZED_DESCRIPTION,
             'epm()',
-            `avg(${SpanFields.SPAN_SELF_TIME})`,
-            `sum(${SpanFields.SPAN_SELF_TIME})`,
+            `avg(${SpanFields.SPAN_DURATION})`,
+            `sum(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
             'epm()',
-            `avg(${SpanFields.SPAN_SELF_TIME})`,
-            `sum(${SpanFields.SPAN_SELF_TIME})`,
+            `avg(${SpanFields.SPAN_DURATION})`,
+            `sum(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
-          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `-sum(${SpanFields.SPAN_DURATION})`,
           fieldAliases: [
             t('Query Description'),
             `${t('Queries')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
@@ -150,4 +150,5 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.DB},
 };

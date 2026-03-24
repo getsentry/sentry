@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
 type BannerProps = {
   description: React.ReactNode;
@@ -41,8 +41,8 @@ function Banner(props: BannerProps) {
       <ActionsWrapper>
         <BannerTitle>{props.title}</BannerTitle>
         <BannerDescription>{props.description}</BannerDescription>
-        <ButtonsWrapper>
-          <ActionButton>
+        <Flex align="center" gap="xs">
+          <Flex gap="md">
             <Button
               priority="primary"
               onClick={event => {
@@ -52,8 +52,8 @@ function Banner(props: BannerProps) {
             >
               {props.primaryButtonText}
             </Button>
-          </ActionButton>
-          <ActionButton>
+          </Flex>
+          <Flex gap="md">
             <LinkButton
               onClick={props.onSecondaryButtonClick}
               href={props.docsRoute}
@@ -61,16 +61,16 @@ function Banner(props: BannerProps) {
             >
               {t('Learn More')}
             </LinkButton>
-          </ActionButton>
-        </ButtonsWrapper>
+          </Flex>
+        </Flex>
       </ActionsWrapper>
       <BannerBackground image={props.image} />
       <CloseDropdownMenu
         position="bottom-end"
         triggerProps={{
           showChevron: false,
-          borderless: true,
-          icon: <IconClose color="subText" />,
+          priority: 'transparent',
+          icon: <IconClose variant="muted" />,
         }}
         size="xs"
         items={[
@@ -92,14 +92,14 @@ function Banner(props: BannerProps) {
 
 const BannerWrapper = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
   container-type: inline-size;
 `;
@@ -108,28 +108,22 @@ const ActionsWrapper = styled('div')`
   max-width: 50%;
 `;
 
-const ButtonsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  margin-bottom: ${p => p.theme.space.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`
   position: absolute;
   display: block;
-  top: ${space(1)};
-  right: ${space(1)};
-  color: ${p => p.theme.white};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.md};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;
@@ -150,11 +144,6 @@ const BannerBackground = styled('div')<{image: any}>`
   @container (max-width: 840px) {
     display: none;
   }
-`;
-
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const TraceWarningComponents = {

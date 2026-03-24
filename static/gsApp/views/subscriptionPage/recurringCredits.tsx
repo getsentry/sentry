@@ -4,9 +4,8 @@ import moment from 'moment-timezone';
 
 import {Container} from '@sentry/scraps/layout';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 
 import {useRecurringCredits} from 'getsentry/hooks/useRecurringCredits';
@@ -34,7 +33,7 @@ type Props = {
   planDetails: Plan;
 };
 
-function RecurringCredits({displayType, planDetails}: Props) {
+export function RecurringCredits({displayType, planDetails}: Props) {
   const {recurringCredits, isLoading} = useRecurringCredits();
   if (isLoading) {
     return null;
@@ -141,17 +140,15 @@ function RecurringCredits({displayType, planDetails}: Props) {
   );
 }
 
-export default RecurringCredits;
-
 const StyledPanelBody = styled(PanelBodyWithTable)`
   h4 {
-    margin-bottom: ${space(1.5)};
+    margin-bottom: ${p => p.theme.space.lg};
   }
 `;
 
 const SubText = styled('p')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Title = styled('td')`
@@ -159,5 +156,5 @@ const Title = styled('td')`
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;

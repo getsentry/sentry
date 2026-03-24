@@ -1,9 +1,9 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconArrow, IconInfo} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type BaseRecord = Record<string, unknown>;
 export interface SortConfig<RecordType extends BaseRecord> {
@@ -30,7 +30,7 @@ function CatchClicks({children}: {children: ReactNode}) {
   return <div onClick={e => e.stopPropagation()}>{children}</div>;
 }
 
-function HeaderCell<T extends BaseRecord>({
+export function HeaderCell<T extends BaseRecord>({
   field,
   handleSort,
   label,
@@ -48,7 +48,7 @@ function HeaderCell<T extends BaseRecord>({
         </Tooltip>
       ) : null}
       <IconArrow
-        color="gray300"
+        variant="muted"
         size="xs"
         direction={sortConfig.by === field && !sortConfig.asc ? 'down' : 'up'}
         style={{visibility: sortConfig.by === field ? 'visible' : 'hidden'}}
@@ -59,12 +59,12 @@ function HeaderCell<T extends BaseRecord>({
 
 const HeaderButton = styled('button')`
   border: 0;
-  border-bottom: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
 
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 16px;
   text-align: unset;
   text-transform: uppercase;
@@ -74,11 +74,10 @@ const HeaderButton = styled('button')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(0.5)} ${space(1)} ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs}
+    ${p => p.theme.space.lg};
 
   svg {
-    margin-left: ${space(0.25)};
+    margin-left: ${p => p.theme.space['2xs']};
   }
 `;
-
-export default HeaderCell;

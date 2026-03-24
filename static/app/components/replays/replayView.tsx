@@ -1,33 +1,34 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CanvasSupportNotice} from 'sentry/components/replays/canvasSupportNotice';
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
 } from 'sentry/components/replays/jetpackComposePiiNotice';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import ReplayController from 'sentry/components/replays/replayController';
-import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
-import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
+import {ReplayController} from 'sentry/components/replays/replayController';
+import {ReplayCurrentScreen} from 'sentry/components/replays/replayCurrentScreen';
+import {ReplayCurrentUrl} from 'sentry/components/replays/replayCurrentUrl';
+import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
+import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {IconFatal} from 'sentry/icons/iconFatal';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
-import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
-import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import ReplayViewScale from 'sentry/views/replays/detail/replayViewScale';
+import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
+import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
+import {BrowserOSIcons} from 'sentry/views/replays/detail/browserOSIcons';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+import {ReplayViewScale} from 'sentry/views/replays/detail/replayViewScale';
 
 type Props = {
   isLoading: boolean;
@@ -42,7 +43,7 @@ function FatalIconTooltip({error}: {error: Error | null}) {
   );
 }
 
-export default function ReplayView({toggleFullscreen, isLoading}: Props) {
+export function ReplayView({toggleFullscreen, isLoading}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const replay = useReplayReader();
@@ -54,7 +55,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
 
   return (
     <Fragment>
-      <PlayerBreadcrumbContainer>
+      <Flex flexGrow={1} gap="md">
         <PlayerContainer>
           <ContextContainer>
             {isLoading ? (
@@ -62,7 +63,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
                 {''}
               </TextCopyInput>
             ) : isVideoReplay ? (
-              <ScreenNameContainer>
+              <Flex align="center" flex="1" gap="md" width="100%">
                 {replay?.getReplay()?.sdk.name?.includes('flutter') ? (
                   <QuestionTooltip
                     isHoverable
@@ -77,10 +78,10 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
                     size="sm"
                   />
                 ) : null}
-                <ScreenNameInputContainer>
+                <Container flex="1" width="100%">
                   <ReplayCurrentScreen />
-                </ScreenNameInputContainer>
-              </ScreenNameContainer>
+                </Container>
+              </Flex>
             ) : (
               <ReplayCurrentUrl />
             )}
@@ -123,7 +124,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
             <Breadcrumbs />
           </BreadcrumbContainer>
         ) : null}
-      </PlayerBreadcrumbContainer>
+      </Flex>
       {isFullscreen ? (
         <ReplayController
           isLoading={isLoading}
@@ -138,7 +139,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
 const Panel = styled(FluidHeight)`
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
@@ -147,27 +148,14 @@ const ContextContainer = styled('div')`
   grid-auto-flow: column;
   grid-template-columns: 1fr max-content;
   align-items: center;
-  gap: ${space(1.5)};
-`;
-
-const ScreenNameContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  width: 100%;
-  flex: 1;
-`;
-
-const ScreenNameInputContainer = styled('div')`
-  flex: 1;
-  width: 100%;
+  gap: ${p => p.theme.space.lg};
 `;
 
 const PlayerContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-rows: auto 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-grow: 1;
 `;
 
@@ -178,11 +166,4 @@ const BreadcrumbContainer = styled('div')`
   & > div {
     flex-grow: 1;
   }
-`;
-
-const PlayerBreadcrumbContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-grow: 1;
-  gap: ${space(1)};
 `;

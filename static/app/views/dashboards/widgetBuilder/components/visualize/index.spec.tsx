@@ -10,15 +10,15 @@ import {
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/spanTagsContext');
+jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');
 jest.mock('sentry/utils/useNavigate');
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
@@ -36,47 +36,64 @@ describe('Visualize', () => {
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useTraceItemTags).mockImplementation((type?: 'number' | 'string') => {
-      if (type === 'number') {
+    jest
+      .mocked(useTraceItemDatasetAttributes)
+      .mockImplementation((_traceItemType, _options, type?) => {
+        if (type === 'number') {
+          const tags: TagCollection = {
+            'span.duration': {
+              key: 'span.duration',
+              name: 'span.duration',
+              kind: FieldKind.MEASUREMENT,
+              secondaryAliases: [],
+            },
+            'span.self_time': {
+              key: 'span.self_time',
+              name: 'span.self_time',
+              kind: FieldKind.MEASUREMENT,
+              secondaryAliases: [],
+            },
+          };
+          return {attributes: tags, isLoading: false, secondaryAliases: {}};
+        }
+
+        if (type === 'boolean') {
+          const tags: TagCollection = {
+            'span.status': {
+              key: 'span.status',
+              name: 'span.status',
+              kind: FieldKind.BOOLEAN,
+            },
+          };
+          return {attributes: tags, isLoading: false, secondaryAliases: {}};
+        }
+
         const tags: TagCollection = {
-          'span.duration': {
-            key: 'span.duration',
-            name: 'span.duration',
-            kind: FieldKind.MEASUREMENT,
-            secondaryAliases: [],
+          'span.op': {
+            key: 'span.op',
+            name: 'span.op',
+            kind: FieldKind.TAG,
           },
-          'span.self_time': {
-            key: 'span.self_time',
-            name: 'span.self_time',
-            kind: FieldKind.MEASUREMENT,
-            secondaryAliases: [],
+          'span.description': {
+            key: 'span.description',
+            name: 'span.description',
+            kind: FieldKind.TAG,
           },
         };
-        return {tags, isLoading: false, secondaryAliases: {}};
-      }
 
-      const tags: TagCollection = {
-        'span.op': {
-          key: 'span.op',
-          name: 'span.op',
-          kind: FieldKind.TAG,
-        },
-        'span.description': {
-          key: 'span.description',
-          name: 'span.description',
-          kind: FieldKind.TAG,
-        },
-      };
-
-      return {
-        tags,
-        secondaryAliases: {},
-        isLoading: false,
-      };
-    });
+        return {
+          attributes: tags,
+          secondaryAliases: {},
+          isLoading: false,
+        };
+      });
 
     mockNavigate = jest.fn();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('renders basic aggregates correctly from the URL params', async () => {
@@ -396,9 +413,8 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'p50'}));
 
     // Indicate that the column selection is open, and multiple options are available
-    expect(
-      screen.getByRole('option', {name: 'transaction.duration'})
-    ).toBeInTheDocument();
+    const option = await screen.findByRole('option', {name: 'transaction.duration'});
+    expect(option).toBeInTheDocument();
     expect(screen.getAllByRole('option').length).toBeGreaterThan(1);
   });
 
@@ -1247,38 +1263,44 @@ describe('Visualize', () => {
 
   describe('spans', () => {
     beforeEach(() => {
-      jest.mocked(useTraceItemTags).mockImplementation((type?: 'string' | 'number') => {
-        if (type === 'number') {
+      jest
+        .mocked(useTraceItemDatasetAttributes)
+        .mockImplementation((_traceItemType, _options, type?) => {
+          if (type === 'number') {
+            return {
+              attributes: {
+                'span.duration': {
+                  key: 'span.duration',
+                  name: 'span.duration',
+                  kind: 'measurement',
+                },
+                'tags[anotherNumericTag,number]': {
+                  key: 'anotherNumericTag',
+                  name: 'anotherNumericTag',
+                  kind: 'measurement',
+                },
+              } as TagCollection,
+              secondaryAliases: {},
+              isLoading: false,
+            };
+          }
+
+          if (type === 'boolean') {
+            return {attributes: {}, isLoading: false, secondaryAliases: {}};
+          }
+
           return {
-            tags: {
-              'span.duration': {
-                key: 'span.duration',
-                name: 'span.duration',
-                kind: 'measurement',
-              },
-              'tags[anotherNumericTag,number]': {
-                key: 'anotherNumericTag',
-                name: 'anotherNumericTag',
-                kind: 'measurement',
+            attributes: {
+              'span.description': {
+                key: 'span.description',
+                name: 'span.description',
+                kind: 'tag',
               },
             } as TagCollection,
             secondaryAliases: {},
             isLoading: false,
           };
-        }
-
-        return {
-          tags: {
-            'span.description': {
-              key: 'span.description',
-              name: 'span.description',
-              kind: 'tag',
-            },
-          } as TagCollection,
-          secondaryAliases: {},
-          isLoading: false,
-        };
-      });
+        });
     });
 
     it('shows numeric tags as primary options for chart widgets', async () => {
@@ -1414,23 +1436,31 @@ describe('Visualize', () => {
     });
 
     it('differentiates between function and column values in selection', async () => {
-      jest.mocked(useTraceItemTags).mockImplementation((type?: 'string' | 'number') => {
-        if (type === 'number') {
+      jest
+        .mocked(useTraceItemDatasetAttributes)
+        .mockImplementation((_traceItemType, _options, type?) => {
+          if (type === 'number') {
+            return {
+              attributes: {
+                'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
+              } as TagCollection,
+              secondaryAliases: {},
+              isLoading: false,
+            };
+          }
+
+          if (type === 'boolean') {
+            return {attributes: {}, secondaryAliases: {}, isLoading: false};
+          }
+
           return {
-            tags: {
-              'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
+            attributes: {
+              count: {key: 'count', name: 'count', kind: 'tag'},
             } as TagCollection,
             secondaryAliases: {},
             isLoading: false,
           };
-        }
-
-        return {
-          tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
-          secondaryAliases: {},
-          isLoading: false,
-        };
-      });
+        });
       render(
         <WidgetBuilderProvider>
           <Visualize />
@@ -1458,15 +1488,11 @@ describe('Visualize', () => {
     });
 
     it('adds equations', async () => {
-      const organizationWithFlag = OrganizationFixture();
-      organizationWithFlag.features.push('visibility-explore-equations');
-
       render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: organizationWithFlag,
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -1513,15 +1539,11 @@ describe('Visualize', () => {
     });
 
     it('adds equations line chart', async () => {
-      const organizationWithFlag = OrganizationFixture();
-      organizationWithFlag.features.push('visibility-explore-equations');
-
       render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: organizationWithFlag,
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -1874,6 +1896,66 @@ describe('Visualize', () => {
 
     const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
     expect(columnSelect).toBeDisabled();
+  });
+
+  it('duplicates the last y-axis when adding a series for trace metrics timeseries chart', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            ['metric.name']: 'alpha_metric',
+            ['metric.type']: 'counter',
+            ['count(metric.name)']: 1,
+          },
+        ],
+      },
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              yAxis: ['sum(value,alpha_metric,counter,-)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    // Wait for the initial aggregate selector to render
+    const initialAggregateSelectors = await screen.findAllByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(initialAggregateSelectors).toHaveLength(1);
+    expect(initialAggregateSelectors[0]).toHaveTextContent('sum');
+
+    // Click "Add Series"
+    await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
+
+    const metricSelectors = await screen.findAllByRole('button', {
+      name: 'alpha_metric',
+    });
+    expect(metricSelectors).toHaveLength(2);
+    expect(metricSelectors[0]).toHaveTextContent('alpha_metric');
+    expect(metricSelectors[1]).toHaveTextContent('alpha_metric');
+
+    // Should now have two aggregate selectors, both showing 'sum' (duplicated from last)
+    const aggregateSelectors = await screen.findAllByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelectors).toHaveLength(2);
+    expect(aggregateSelectors[0]).toHaveTextContent('sum');
+    expect(aggregateSelectors[1]).toHaveTextContent('sum');
   });
 
   it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async () => {

@@ -1,40 +1,41 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   useMutation,
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import DebugFileRow from './debugFileRow';
-import Sources from './sources';
+import {DebugFileRow} from './debugFileRow';
+import {Sources} from './sources';
 
 function makeDebugFilesQueryKey({
   orgSlug,
@@ -45,7 +46,12 @@ function makeDebugFilesQueryKey({
   projectSlug: string;
   query: {cursor: string | undefined; query: string | undefined};
 }): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/files/dsyms/`, {query}];
+  return [
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/`, {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }),
+    {query},
+  ];
 }
 
 function makeSymbolSourcesQueryKey({
@@ -55,7 +61,12 @@ function makeSymbolSourcesQueryKey({
   orgSlug: string;
   platform?: string;
 }): ApiQueryKey {
-  return [`/organizations/${orgSlug}/builtin-symbol-sources/`, {query: {platform}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/builtin-symbol-sources/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: {platform}},
+  ];
 }
 
 export default function ProjectDebugSymbols() {
@@ -274,10 +285,10 @@ const Actions = styled('div')`
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   align-items: center;
-  margin-top: ${space(4)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space['3xl']};
+  margin-bottom: ${p => p.theme.space.md};
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
@@ -288,17 +299,17 @@ const Filters = styled('div')`
   grid-template-columns: min-content minmax(200px, 400px);
   align-items: center;
   justify-content: flex-end;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: min-content 1fr;
   }
 `;
 
 const Label = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   display: flex;
   align-items: center;
   margin-bottom: 0;
   white-space: nowrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

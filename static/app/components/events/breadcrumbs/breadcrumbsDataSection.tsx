@@ -2,15 +2,16 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
   BreadcrumbsDrawer,
 } from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
-import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BREADCRUMB_TIME_DISPLAY_OPTIONS,
@@ -22,19 +23,17 @@ import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconClock, IconEllipsis, IconSearch, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
@@ -43,14 +42,13 @@ interface BreadcrumbsDataSectionProps {
   initialCollapse?: boolean;
 }
 
-export default function BreadcrumbsDataSection({
+export function BreadcrumbsDataSection({
   event,
   group,
   project,
   initialCollapse,
 }: BreadcrumbsDataSectionProps) {
   const theme = useTheme();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
@@ -125,19 +123,21 @@ export default function BreadcrumbsDataSection({
       : BreadcrumbTimeDisplay.ABSOLUTE;
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <Button
         aria-label={t('Open Breadcrumb Search')}
         icon={<IconSearch size="xs" />}
         size="xs"
-        title={t('Open Search')}
+        tooltipProps={{title: t('Open Search')}}
         onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
       />
       <Button
         aria-label={t('Change Time Format for Breadcrumbs')}
-        title={tct('Use [format] Timestamps', {
-          format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
-        })}
+        tooltipProps={{
+          title: tct('Use [format] Timestamps', {
+            format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
+          }),
+        }}
         icon={
           timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
             <IconClock size="xs" />
@@ -154,7 +154,8 @@ export default function BreadcrumbsDataSection({
         }}
         size="xs"
       />
-    </ButtonBar>
+      <CopyBreadcrumbsDropdown breadcrumbs={enhancedCrumbs} />
+    </Grid>
   );
 
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
@@ -164,11 +165,7 @@ export default function BreadcrumbsDataSection({
     <InterimSection
       key="breadcrumbs"
       type={SectionKey.BREADCRUMBS}
-      title={
-        <GuideAnchor target="breadcrumbs" position="top" disabled={hasStreamlinedUI}>
-          {t('Breadcrumbs')}
-        </GuideAnchor>
-      }
+      title={t('Breadcrumbs')}
       data-test-id="breadcrumbs-data-section"
       actions={actions}
       initialCollapse={initialCollapse}
@@ -210,25 +207,26 @@ const ViewAllContainer = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   &::after {
     content: '';
     position: absolute;
     left: 10.5px;
     width: 1px;
-    top: -${space(1)};
-    height: ${space(1)};
-    background: ${p => p.theme.border};
+    top: -${p => p.theme.space.md};
+    height: ${p => p.theme.space.md};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
 const VerticalEllipsis = styled(IconEllipsis)`
   height: 22px;
-  color: ${p => p.theme.subText};
-  margin: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin: ${p => p.theme.space.xs};
   transform: rotate(90deg);
 `;
 
 const ViewAllButton = styled(Button)`
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
 `;

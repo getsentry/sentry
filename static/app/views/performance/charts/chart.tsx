@@ -43,7 +43,7 @@ function computeAxisMax(data: Series[]) {
   }
 
   const power = Math.log10(maxValue);
-  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
+  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]);
 
   let scale: number;
   if (magnitude <= 2.5) {
@@ -60,7 +60,7 @@ function computeAxisMax(data: Series[]) {
   return Math.round(Math.ceil(maxValue / step) * step);
 }
 
-function Chart({
+export function Chart({
   data,
   previousData,
   statsPeriod,
@@ -111,7 +111,7 @@ function Chart({
           minInterval: durationUnit,
           splitNumber: definedAxisTicks,
           axisLabel: {
-            color: theme.chartLabel,
+            color: theme.tokens.content.secondary,
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
@@ -130,7 +130,7 @@ function Chart({
           minInterval: durationUnit,
           max: dataMax,
           axisLabel: {
-            color: theme.chartLabel,
+            color: theme.tokens.content.secondary,
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
@@ -147,7 +147,7 @@ function Chart({
           max: dataMax,
           minInterval: durationUnit,
           axisLabel: {
-            color: theme.chartLabel,
+            color: theme.tokens.content.secondary,
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
@@ -264,5 +264,3 @@ function Chart({
     </ChartZoom>
   );
 }
-
-export default Chart;

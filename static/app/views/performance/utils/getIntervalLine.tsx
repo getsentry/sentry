@@ -1,14 +1,16 @@
 import type {Theme} from '@emotion/react';
 
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
-import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-import transformTransaction from 'sentry/views/performance/utils/transformTransaction';
+import {
+  transformTransaction,
+  type BreakpointTransaction,
+} from 'sentry/views/performance/utils/transformTransaction';
 
 const DEFAULT_CHART_HEIGHT = 200;
 const X_AXIS_MARGIN_OFFSET = 23;
@@ -18,7 +20,7 @@ export function getIntervalLine(
   series: Series[],
   intervalRatio: number,
   label: boolean,
-  transaction?: NormalizedTrendsTransaction,
+  transaction?: BreakpointTransaction,
   useRegressionFormat?: boolean
 ): LineChartSeries[] {
   if (!transaction || !series.length || !series[0]!.data?.length) {
@@ -166,12 +168,12 @@ export function getIntervalLine(
 
     periodDividingLine.markLine.lineStyle = {
       ...periodDividingLine.markLine.lineStyle,
-      color: theme.red300,
+      color: theme.colors.red400,
     };
 
     currentPeriod.markLine.lineStyle = {
       ...currentPeriod.markLine.lineStyle,
-      color: theme.red300,
+      color: theme.colors.red400,
     };
 
     currentPeriod.markLine.label = {
@@ -180,7 +182,7 @@ export function getIntervalLine(
         transformedTransaction.aggregate_range_2
       )}`,
       position: 'insideEndTop',
-      color: theme.gray400,
+      color: theme.colors.gray500,
     };
 
     additionalLineSeries.push({
@@ -189,7 +191,7 @@ export function getIntervalLine(
       markArea: MarkArea({
         silent: true,
         itemStyle: {
-          color: theme.red300,
+          color: theme.colors.red400,
           opacity: 0.2,
         },
         data: [
@@ -213,7 +215,7 @@ export function getIntervalLine(
           label: {
             show: false,
           },
-          lineStyle: {color: theme.green400, type: 'solid', width: 4},
+          lineStyle: {color: theme.colors.green500, type: 'solid', width: 4},
           data: [
             // The line needs to be hard-coded to a pixel coordinate because
             // the lowest y-value is dynamic and 'min' doesn't work here
@@ -235,7 +237,7 @@ export function getIntervalLine(
           label: {
             show: false,
           },
-          lineStyle: {color: theme.red300, type: 'solid', width: 4},
+          lineStyle: {color: theme.colors.red400, type: 'solid', width: 4},
           data: [
             // The line needs to be hard-coded to a pixel coordinate because
             // the lowest y-value is dynamic and 'min' doesn't work here

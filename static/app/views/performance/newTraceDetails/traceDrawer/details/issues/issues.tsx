@@ -1,23 +1,25 @@
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {Level} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {isTraceOccurence} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 type IssueProps = {
   issue: TraceTree.TraceIssue;
@@ -26,7 +28,7 @@ type IssueProps = {
 
 const MAX_DISPLAYED_ISSUES_COUNT = 3;
 
-const issueOrderPriority: Record<keyof Theme['level'], number> = {
+const issueOrderPriority: Record<Level | 'default', number> = {
   fatal: 0,
   error: 1,
   warning: 2,
@@ -55,7 +57,7 @@ function Issue(props: IssueProps) {
     error,
   } = useApiQuery<Group>(
     [
-      `/issues/${props.issue.issue_id}/`,
+      getApiUrl(`/issues/$issueId/`, {path: {issueId: props.issue.issue_id}}),
       {
         query: {
           collapse: 'release',
@@ -69,8 +71,7 @@ function Issue(props: IssueProps) {
     }
   );
 
-  const isOccurence: boolean = isTraceOccurence(props.issue);
-  const iconClassName: string = isOccurence ? 'occurence' : props.issue.level;
+  const iconClassName = getTraceIssueSeverityClassName(props.issue);
 
   return isPending ? (
     <StyledLoadingIndicatorWrapper>
@@ -83,10 +84,10 @@ function Issue(props: IssueProps) {
           <TraceIcons.Icon event={props.issue} />
         </IconBackground>
       </IconWrapper>
-      <SummaryWrapper>
-        <EventOrGroupHeader data={fetchedIssue} eventId={props.issue.event_id} />
-        <EventOrGroupExtraDetails data={fetchedIssue} />
-      </SummaryWrapper>
+      <Stack justify="left" width="100%" overflow="hidden">
+        <GroupHeaderRow data={fetchedIssue} eventId={props.issue.event_id} />
+        <GroupMetaRow data={fetchedIssue} />
+      </Stack>
     </StyledPanelItem>
   ) : isError ? (
     <LoadingError
@@ -109,13 +110,13 @@ const IconBackground = styled('div')`
   svg {
     width: 16px;
     height: 16px;
-    fill: ${p => p.theme.white};
+    fill: ${p => p.theme.colors.white};
   }
 `;
 
 const IconWrapper = styled('div')`
   border-radius: 50%;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space['2xs']};
 
   &.info {
     border: 1px solid var(--info);
@@ -142,10 +143,10 @@ const IconWrapper = styled('div')`
       background-color: var(--error);
     }
   }
-  &.occurence {
-    border: 1px solid var(--occurence);
+  &.occurrence {
+    border: 1px solid var(--occurrence);
     ${IconBackground} {
-      background-color: var(--occurence);
+      background-color: var(--occurrence);
     }
   }
   &.default {
@@ -163,7 +164,7 @@ const IconWrapper = styled('div')`
 
   &.info,
   &.warning,
-  &.occurence,
+  &.occurrence,
   &.default,
   &.unknown {
     svg {
@@ -172,24 +173,16 @@ const IconWrapper = styled('div')`
   }
 `;
 
-const SummaryWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  width: 100%;
-  justify-content: left;
-`;
-
 type IssueListProps = {
   issues: TraceTree.TraceIssue[];
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   organization: Organization;
 };
 
 export function IssueList({issues, node, organization}: IssueListProps) {
   const uniqueIssues = [
-    ...TraceTree.UniqueErrorIssues(node).sort(sortIssuesByLevel),
-    ...TraceTree.UniqueOccurrences(node),
+    ...node.uniqueErrorIssues.sort(sortIssuesByLevel),
+    ...node.uniqueOccurrenceIssues,
   ];
 
   if (!issues.length) {
@@ -205,25 +198,18 @@ export function IssueList({issues, node, organization}: IssueListProps) {
       </StyledPanel>
       {uniqueIssues.length > MAX_DISPLAYED_ISSUES_COUNT ? (
         <TraceDrawerComponents.IssuesLink node={node}>
-          <IssueLinkWrapper>
+          <Flex align="center" marginLeft="2xs" gap="xs">
             <IconOpen />
             {t(
               `Open %s more in Issues`,
               uniqueIssues.length - MAX_DISPLAYED_ISSUES_COUNT
             )}
-          </IssueLinkWrapper>
+          </Flex>
         </TraceDrawerComponents.IssuesLink>
       ) : null}
     </IssuesWrapper>
   );
 }
-
-const IssueLinkWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  margin-left: ${space(0.25)};
-`;
 
 const StyledPanel = styled(Panel)`
   container-type: inline-size;
@@ -232,9 +218,9 @@ const StyledPanel = styled(Panel)`
 const IssuesWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   justify-content: left;
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 
   ${StyledPanel} {
     margin-bottom: 0;
@@ -246,26 +232,27 @@ const StyledLoadingIndicatorWrapper = styled('div')`
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: ${space(2)} 0;
+  padding: ${p => p.theme.space.xl} 0;
   min-height: 76px;
 
   /* Add a border between two rows of loading issue states */
   & + & {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StyledLegacyPanelItem = styled(PanelItem)`
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
   line-height: 1.1;
 `;
 
 const StyledPanelItem = styled(StyledLegacyPanelItem)`
   justify-content: left;
   align-items: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   height: fit-content;
-  padding: ${space(1)} ${space(2)} ${space(1.5)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.lg}
+    ${p => p.theme.space.md};
 `;

@@ -1,18 +1,16 @@
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import type {SentryRouteObject} from 'sentry/router/types';
-import errorHandler from 'sentry/utils/errorHandler';
-import withDomainRedirect from 'sentry/utils/withDomainRedirect';
-import withDomainRequired from 'sentry/utils/withDomainRequired';
+import {errorHandler} from 'sentry/utils/errorHandler';
+import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
+import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 
-import OrganizationSubscriptionContext from 'getsentry/components/organizationSubscriptionContext';
+import {OrganizationSubscriptionContext} from 'getsentry/components/organizationSubscriptionContext';
 
-const rootRoutes = (): SentryRouteObject => ({
+export const rootRoutes = (): SentryRouteObject => ({
   children: [
     {
-      // TODO(checkout v3): rename this to /checkout/ when the legacy checkout route is removed
       path: '/checkout/',
       component: withDomainRequired(errorHandler(OrganizationSubscriptionContext)),
-      deprecatedRouteProps: true,
       customerDomainOnlyRoute: true,
       children: [
         {
@@ -24,7 +22,6 @@ const rootRoutes = (): SentryRouteObject => ({
     {
       path: '/checkout/:orgId/',
       component: withDomainRedirect(errorHandler(OrganizationSubscriptionContext)),
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -34,5 +31,3 @@ const rootRoutes = (): SentryRouteObject => ({
     },
   ],
 });
-
-export default rootRoutes;

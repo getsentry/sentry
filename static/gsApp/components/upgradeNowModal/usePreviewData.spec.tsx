@@ -9,7 +9,7 @@ import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
 import {PlanTier} from 'getsentry/types';
 
 import type {Reservations} from './types';
-import usePreviewData from './usePreviewData';
+import {usePreviewData} from './usePreviewData';
 
 const mockReservations: Reservations = {
   reservedErrors: 50000,
@@ -24,8 +24,8 @@ const mockReservations: Reservations = {
   reservedSpans: undefined,
   reservedSeerAutofix: 0,
   reservedSeerScanner: 0,
-  reservedSeerUsers: undefined,
-  reservedPreventUsers: undefined,
+  reservedSeerUsers: 0,
+  reservedSizeAnalyses: 100,
 };
 
 const mockPreview = PreviewDataFixture({});

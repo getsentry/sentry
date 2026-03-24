@@ -1,23 +1,26 @@
-import Access from 'sentry/components/acl/access';
-import {ExternalLink} from 'sentry/components/core/link';
-import Form from 'sentry/components/forms/form';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {Access} from 'sentry/components/acl/access';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import formGroups from 'sentry/data/forms/cspReports';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {formGroups} from 'sentry/data/forms/cspReports';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import useOrganization from 'sentry/utils/useOrganization';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import ReportUri, {
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {
   getSecurityDsn,
+  ReportUri,
 } from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
 function getInstructions(keyList: ProjectKey[]) {
@@ -49,25 +52,38 @@ function getReportOnlyInstructions(keyList: ProjectKey[]) {
 
 export default function ProjectCspReports() {
   const organization = useOrganization();
-  const params = useParams();
-  const projectId = params.projectId!;
+  const {projectId} = useParams<{projectId: string}>();
 
   const {
     data: keyList,
     isPending: isLoadingKeyList,
     isError: isKeyListError,
     refetch: refetchKeyList,
-  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<ProjectKey[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
   const {
     data: project,
     isPending: isLoadingProject,
     isError: isProjectError,
     refetch: refetchProject,
-  } = useApiQuery<Project>([`/projects/${organization.slug}/${projectId}/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<Project>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isLoadingKeyList || isLoadingProject) {
     return <LoadingIndicator />;

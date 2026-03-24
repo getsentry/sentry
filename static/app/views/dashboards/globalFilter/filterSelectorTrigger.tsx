@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Badge} from 'sentry/components/core/badge';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -20,7 +20,7 @@ type FilterSelectorTriggerProps = {
   queryResult: UseQueryResult<string[], Error>;
 };
 
-function FilterSelectorTrigger({
+export function FilterSelectorTrigger({
   globalFilter,
   activeFilterValues,
   operator,
@@ -41,6 +41,8 @@ function FilterSelectorTrigger({
   const filterValue = activeFilterValues[0] ?? '';
   const isDefaultOperator = operator === TermOperator.DEFAULT;
   const opLabel = isDefaultOperator ? ':' : OP_LABELS[operator];
+  const label =
+    options.find(option => option.value === filterValue)?.label || filterValue;
 
   return (
     <ButtonLabelWrapper gap="xs">
@@ -53,19 +55,17 @@ function FilterSelectorTrigger({
           {isAllSelected ? (
             t('All')
           ) : (
-            <FilterValueTruncated>{filterValue}</FilterValueTruncated>
+            <FilterValueTruncated>{label}</FilterValueTruncated>
           )}
         </span>
       )}
       {isFetching && <StyledLoadingIndicator size={14} />}
       {shouldShowBadge && (
-        <StyledBadge type="default">{`+${activeFilterValues.length - 1}`}</StyledBadge>
+        <StyledBadge variant="muted">{`+${activeFilterValues.length - 1}`}</StyledBadge>
       )}
     </ButtonLabelWrapper>
   );
 }
-
-export default FilterSelectorTrigger;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
@@ -76,12 +76,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
-  height: 16px;
-  line-height: 16px;
-  min-width: 16px;
-  border-radius: 16px;
-  font-size: 10px;
-  padding: 0 ${p => p.theme.space.xs};
 `;
 
 const ButtonLabelWrapper = styled(Flex)`
@@ -89,12 +83,15 @@ const ButtonLabelWrapper = styled(Flex)`
 `;
 
 export const FilterValueTruncated = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 300px;
   width: min-content;
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.gray400};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.colors.gray500};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
-import type {Location, LocationDescriptor} from 'history';
+import type {Location} from 'history';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Link} from 'sentry/components/core/link';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import UserMisery from 'sentry/components/userMisery';
-import {IconOpen} from 'sentry/icons';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {UserMisery} from 'sentry/components/userMisery';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -16,14 +15,10 @@ import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {WebVital} from 'sentry/utils/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {ModuleName} from 'sentry/views/insights/types';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
+import {VitalInfo} from 'sentry/views/performance/vitalDetail/vitalInfo';
 
 type Props = {
   error: QueryError | null;
@@ -36,20 +31,15 @@ type Props = {
   transactionName: string;
 };
 
-function UserStats({
+export function UserStats({
   isLoading,
   hasWebVitals,
   error,
   totals,
   location,
   organization,
-  transactionName,
   eventView,
 }: Props) {
-  const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
-
-  const hasWebVitalsFlag = organization.features.includes('insight-modules');
-
   let userMisery = error === null ? <Placeholder height="34px" /> : <div>{'\u2014'}</div>;
 
   if (!isLoading && error === null && totals) {
@@ -57,8 +47,8 @@ function UserStats({
       ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         totals.project_threshold_config[1]
       : undefined;
-    const miserableUsers: number | undefined = totals['count_miserable_user()'];
-    const userMiseryScore: number = totals['user_misery()'] || 0;
+    const miserableUsers = totals['count_miserable_user()'];
+    const userMiseryScore = totals['user_misery()'] || 0;
     const totalUsers = totals['count_unique_user()'];
     userMisery = (
       <UserMisery
@@ -74,24 +64,6 @@ function UserStats({
 
   const orgSlug = organization.slug;
 
-  let webVitalsTarget: LocationDescriptor = vitalsRouteWithQuery({
-    organization,
-    transaction: transactionName,
-    projectID: decodeScalar(location.query.project),
-    query: location.query,
-  });
-
-  if (hasWebVitalsFlag) {
-    webVitalsTarget = {
-      pathname: `${webVitalsUrl}/overview/`,
-      query: {
-        transaction: transactionName,
-      },
-    };
-  }
-
-  const showLink = hasWebVitalsFlag;
-
   const mepSetting = useMEPSettingContext();
   const mepCardinalityContext = useMetricsCardinalityContext();
   const queryExtras = getTransactionMEPParamsIfApplicable(
@@ -104,7 +76,7 @@ function UserStats({
     <Fragment>
       {hasWebVitals && (
         <Fragment>
-          <VitalsHeading>
+          <Flex justify="between" align="center">
             <SectionHeading>
               {t('Web Vitals')}
               <QuestionTooltip
@@ -115,12 +87,7 @@ function UserStats({
                 size="sm"
               />
             </SectionHeading>
-            {showLink && (
-              <Link to={webVitalsTarget}>
-                <IconOpen />
-              </Link>
-            )}
-          </VitalsHeading>
+          </Flex>
           <VitalInfo
             location={location}
             vital={[WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]}
@@ -146,14 +113,18 @@ function UserStats({
               See User Misery, Apdex, and more metrics, along with related events and suspect spans.`
           )}
         >
-          <SectionHeading>
-            {t('User Misery')}
-            <QuestionTooltip
-              position="top"
-              title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
-              size="sm"
-            />
-          </SectionHeading>
+          {tourProps => (
+            <div {...tourProps}>
+              <SectionHeading>
+                {t('User Misery')}
+                <QuestionTooltip
+                  position="top"
+                  title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
+                  size="sm"
+                />
+              </SectionHeading>
+            </div>
+          )}
         </DemoTourElement>
         {userMisery}
       </Fragment>
@@ -162,11 +133,3 @@ function UserStats({
     </Fragment>
   );
 }
-
-const VitalsHeading = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-export default UserStats;

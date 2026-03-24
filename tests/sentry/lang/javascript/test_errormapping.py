@@ -148,7 +148,7 @@ class ErrorMappingTest(unittest.TestCase):
         assert rewrite_exception(data)
 
         assert data["exception"]["values"][0]["value"] == (
-            'Component.getChildContext(): key "" is not defined in ' "childContextTypes."
+            'Component.getChildContext(): key "" is not defined in childContextTypes.'
         )
 
     @responses.activate
@@ -192,7 +192,7 @@ class ErrorMappingTest(unittest.TestCase):
         assert rewrite_exception(data)
 
         assert data["exception"]["values"][0]["value"] == (
-            '<redacted>.getChildContext(): key "<redacted>" is not defined in ' "childContextTypes."
+            '<redacted>.getChildContext(): key "<redacted>" is not defined in childContextTypes.'
         )
 
     @responses.activate

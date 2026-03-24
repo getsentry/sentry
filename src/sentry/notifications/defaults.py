@@ -25,6 +25,7 @@ NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
     NotificationSettingEnum.QUOTA_SEER_BUDGET: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_LOG_BYTES: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_SEER_USERS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_SIZE_ANALYSIS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_WARNINGS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_THRESHOLDS: NotificationSettingsOptionEnum.ALWAYS,

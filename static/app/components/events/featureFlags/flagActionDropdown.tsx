@@ -6,14 +6,13 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export default function FlagActionDropdown({
+export function FlagActionDropdown({
   flag,
   result,
   generateAction,
@@ -75,20 +74,20 @@ export default function FlagActionDropdown({
 }
 
 const StyledDropdownMenu = styled(DropdownMenu)`
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 
   /* Override monospace styling that might be applied */
   [data-test-id='menu-list-item-label'] {
-    font-family: ${p => p.theme.text.family};
+    font-family: ${p => p.theme.font.family.sans};
   }
 
   .flag-button {
     height: 15px;
     min-height: 15px;
     width: 25px;
-    margin-top: ${space(0.5)};
-    padding: 0 ${space(0.75)};
-    border-radius: ${space(0.5)};
+    margin-top: ${p => p.theme.space.xs};
+    padding: 0 ${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.space.xs};
     z-index: 0;
   }
 `;

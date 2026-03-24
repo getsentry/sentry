@@ -1,12 +1,19 @@
+from typing import Any
+
 import pytest
 
 from sentry.event_manager import EventManager
 from sentry.services import eventstore
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
+from tests.sentry.event_manager.interfaces import CustomSnapshotter as CustomSnapshotterBase
+
+SnapshotInput = dict[str, Any]
+CustomSnapshotter = CustomSnapshotterBase[SnapshotInput]
 
 
 @pytest.fixture
-def make_debug_meta_snapshot(insta_snapshot):
-    def inner(data):
+def make_debug_meta_snapshot(insta_snapshot: InstaSnapshotter) -> CustomSnapshotter:
+    def inner(data: SnapshotInput) -> None:
         mgr = EventManager(data={"debug_meta": data})
         mgr.normalize()
         evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
@@ -27,11 +34,11 @@ def make_debug_meta_snapshot(insta_snapshot):
         {"images": [None]},
     ],
 )
-def test_null_values(make_debug_meta_snapshot, input) -> None:
+def test_null_values(make_debug_meta_snapshot: CustomSnapshotter, input: SnapshotInput) -> None:
     make_debug_meta_snapshot(input)
 
 
-def test_apple_behavior(make_debug_meta_snapshot) -> None:
+def test_apple_behavior(make_debug_meta_snapshot: CustomSnapshotter) -> None:
     image_name = (
         "/var/containers/Bundle/Application/"
         "B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest"
@@ -60,7 +67,7 @@ def test_apple_behavior(make_debug_meta_snapshot) -> None:
     )
 
 
-def test_apple_behavior_with_arch(make_debug_meta_snapshot) -> None:
+def test_apple_behavior_with_arch(make_debug_meta_snapshot: CustomSnapshotter) -> None:
     image_name = (
         "/var/containers/Bundle/Application/"
         "B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest"
@@ -90,7 +97,7 @@ def test_apple_behavior_with_arch(make_debug_meta_snapshot) -> None:
     )
 
 
-def test_symbolic_behavior(make_debug_meta_snapshot) -> None:
+def test_symbolic_behavior(make_debug_meta_snapshot: CustomSnapshotter) -> None:
     make_debug_meta_snapshot(
         {
             "images": [
@@ -112,7 +119,7 @@ def test_symbolic_behavior(make_debug_meta_snapshot) -> None:
     )
 
 
-def test_symbolic_behavior_with_arch(make_debug_meta_snapshot) -> None:
+def test_symbolic_behavior_with_arch(make_debug_meta_snapshot: CustomSnapshotter) -> None:
     make_debug_meta_snapshot(
         {
             "images": [
@@ -135,7 +142,7 @@ def test_symbolic_behavior_with_arch(make_debug_meta_snapshot) -> None:
     )
 
 
-def test_proguard_behavior(make_debug_meta_snapshot) -> None:
+def test_proguard_behavior(make_debug_meta_snapshot: CustomSnapshotter) -> None:
     make_debug_meta_snapshot(
         {"images": [{"type": "proguard", "uuid": "C05B4DDD-69A7-3840-A649-32180D341587"}]}
     )

@@ -4,8 +4,9 @@ import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSup
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {OnboardingTask, OnboardingTaskDescriptor} from 'sentry/types/onboarding';
 import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
@@ -58,14 +59,20 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // but if the user falls into this case for some reason,
   // he needs to select the platform again since it is not available as a parameter here
   if (!projects?.length) {
-    return `/organizations/${organization.slug}/insights/projects/:projectId/getting-started/`;
+    return makeProjectsPathname({
+      path: `/:projectId/getting-started/`,
+      organization,
+    });
   }
 
   const allProjectsWithoutErrors = projects.every(project => !project.firstEvent);
   // If all created projects don't have any errors,
   // we ask the user to pick a project before navigating to the instructions
   if (allProjectsWithoutErrors) {
-    return `/organizations/${organization.slug}/insights/projects/:projectId/getting-started/`;
+    return makeProjectsPathname({
+      path: `/:projectId/getting-started/`,
+      organization,
+    });
   }
 
   // Pick the first project without an error
@@ -74,13 +81,10 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // but if the user falls into this case for some reason, we pick the first project
   const project = firstProjectWithoutError ?? projects[0]!;
 
-  let url = `/organizations/${organization.slug}/insights/projects/${project.slug}/getting-started/`;
-
-  if (project.platform) {
-    url = url + `${project.platform}/`;
-  }
-
-  return url;
+  return makeProjectsPathname({
+    path: `/${project.slug}/getting-started/`,
+    organization,
+  });
 }
 
 export function getOnboardingTasks({
@@ -225,11 +229,11 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'action',
-      action: router => {
+      action: ({navigate, location}) => {
         // TODO: add analytics here for this specific action.
 
         if (!projects) {
-          navigateTo(performanceUrl, router);
+          navigateTo(performanceUrl, navigate, location);
           return;
         }
 
@@ -237,21 +241,23 @@ export function getOnboardingTasks({
           filterProjects(projects);
 
         if (projectsWithoutFirstTransactionEvent.length <= 0) {
-          navigateTo(performanceUrl, router);
+          navigateTo(performanceUrl, navigate, location);
           return;
         }
 
         if (projectsForOnboarding.length) {
           navigateTo(
             `${performanceUrl}?project=${projectsForOnboarding[0]!.id}#performance-sidequest`,
-            router
+            navigate,
+            location
           );
           return;
         }
 
         navigateTo(
           `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0]!.id}#performance-sidequest`,
-          router
+          navigate,
+          location
         );
       },
       display: true,
@@ -264,8 +270,8 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'action',
-      action: router => {
-        router.push({
+      action: ({navigate}) => {
+        navigate({
           pathname: makeReplaysPathname({
             path: '/',
             organization,

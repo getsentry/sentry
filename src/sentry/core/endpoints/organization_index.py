@@ -16,7 +16,7 @@ from sentry.analytics.events.data_consent_org_creation import (
 )
 from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
@@ -68,7 +68,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
 
 
 @extend_schema(tags=["Users"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationIndexEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -262,8 +262,8 @@ class OrganizationIndexEndpoint(Endpoint):
                 ),
             )
 
-            rpc_org = organization_provisioning_service.provision_organization_in_region(
-                region_name=settings.SENTRY_REGION or settings.SENTRY_MONOLITH_REGION,
+            rpc_org = organization_provisioning_service.provision_organization_in_cell(
+                cell_name=settings.SENTRY_REGION or settings.SENTRY_MONOLITH_REGION,
                 provisioning_options=provision_args,
             )
             org = Organization.objects.get(id=rpc_org.id)

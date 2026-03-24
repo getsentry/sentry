@@ -1,7 +1,11 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {
@@ -9,32 +13,30 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
-import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
+import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {
+  useIssueSelectionActions,
+  useIssueSelectionSummary,
+} from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
-import ActionSet from './actionSet';
-import Headers from './headers';
+import {ActionSet} from './actionSet';
+import {Headers} from './headers';
 import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 
 type IssueListActionsProps = {
@@ -70,6 +72,7 @@ function ActionsBarPriority({
   handleDelete,
   handleMerge,
   handleUpdate,
+  toggleSelectAllVisible,
   selectedProjectSlug,
   onSelectStatsPeriod,
   isSavedSearchesOpen,
@@ -93,6 +96,7 @@ function ActionsBarPriority({
   selectedProjectSlug: string | undefined;
   selection: PageFilters;
   statsPeriod: string;
+  toggleSelectAllVisible: () => void;
 }) {
   const shouldDisplayActions = anySelected && !narrowViewport;
 
@@ -100,7 +104,7 @@ function ActionsBarPriority({
     <ActionsBarContainer>
       {!narrowViewport && (
         <Checkbox
-          onChange={() => SelectedGroupStore.toggleSelectAll()}
+          onChange={toggleSelectAllVisible}
           checked={pageSelected || (anySelected ? 'indeterminate' : false)}
           aria-label={pageSelected ? t('Deselect all') : t('Select all')}
           disabled={displayReprocessingActions}
@@ -148,7 +152,7 @@ function ActionsBarPriority({
   );
 }
 
-function IssueListActions({
+export function IssueListActions({
   allResultsVisible,
   displayReprocessingActions,
   groupIds,
@@ -163,15 +167,18 @@ function IssueListActions({
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {
-    pageSelected,
-    multiSelected,
-    anySelected,
-    allInQuerySelected,
-    selectedIdsSet,
-    selectedProjectSlug,
-    setAllInQuerySelected,
-  } = useSelectedGroupsState();
+  const {setAllInQuerySelected, deselectAll, toggleSelectAllVisible} =
+    useIssueSelectionActions();
+  const {pageSelected, multiSelected, anySelected, allInQuerySelected, selectedIdsSet} =
+    useIssueSelectionSummary();
+  const selectedProjectSlug = useMemo(() => {
+    const projects = [...selectedIdsSet]
+      .map(id => GroupStore.get(id))
+      .filter((group): group is Group => !!group?.project)
+      .map(group => group.project.slug);
+    const uniqProjects = uniq(projects);
+    return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
+  }, [selectedIdsSet]);
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -191,7 +198,7 @@ function IssueListActions({
 
     callback(selectedIds);
 
-    SelectedGroupStore.deselectAll();
+    deselectAll();
   }
 
   // TODO: Remove issue.category:error filter when merging/deleting performance issues is supported
@@ -361,6 +368,7 @@ function IssueListActions({
         handleDelete={handleDelete}
         handleMerge={handleMerge}
         handleUpdate={handleUpdate}
+        toggleSelectAllVisible={toggleSelectAllVisible}
         multiSelected={multiSelected}
         narrowViewport={disableActions}
         selectedProjectSlug={selectedProjectSlug}
@@ -369,7 +377,7 @@ function IssueListActions({
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <Alert system type="warning" showIcon={false}>
+        <Alert system variant="warning" showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
@@ -413,42 +421,6 @@ function IssueListActions({
   );
 }
 
-function useSelectedGroupsState() {
-  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
-  const selectedGroupState = useLegacyStore(SelectedGroupStore);
-  const selectedIds = SelectedGroupStore.getSelectedIds();
-
-  const projects = [...selectedIds]
-    .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!group?.project)
-    .map(group => group.project.slug);
-
-  const uniqProjects = uniq(projects);
-  // we only want selectedProjectSlug set if there is 1 project
-  // more or fewer should result in a null so that the action toolbar
-  // can behave correctly.
-  const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
-
-  const pageSelected = SelectedGroupStore.allSelected();
-  const multiSelected = SelectedGroupStore.multiSelected();
-  const anySelected = SelectedGroupStore.anySelected();
-  const selectedIdsSet = SelectedGroupStore.getSelectedIds();
-
-  useEffect(() => {
-    setAllInQuerySelected(false);
-  }, [selectedGroupState]);
-
-  return {
-    pageSelected,
-    multiSelected,
-    anySelected,
-    allInQuerySelected,
-    selectedIdsSet,
-    selectedProjectSlug,
-    setAllInQuerySelected,
-  };
-}
-
 function shouldConfirm(
   action: ConfirmAction,
   {pageSelected, selectedIdsSet}: {pageSelected: boolean; selectedIdsSet: Set<string>}
@@ -479,7 +451,7 @@ const StickyActions = styled(Sticky)`
     border-radius: 0;
   }
 
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-top: none;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 `;
@@ -487,13 +459,13 @@ const StickyActions = styled(Sticky)`
 const ActionsBarContainer = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   min-height: 36px;
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
-  padding-left: ${space(2)};
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
+  padding-left: ${p => p.theme.space.xl};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: 6px 6px 0 0;
 `;
 
@@ -503,7 +475,7 @@ const HeaderButtonsWrapper = styled(motion.div)`
   }
   grid-column: 2 / -1;
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   grid-auto-flow: column;
   justify-content: flex-start;
   white-space: nowrap;
@@ -514,7 +486,3 @@ const AnimatedHeaderItemsContainer = styled(motion.div)`
   display: flex;
   align-items: center;
 `;
-
-export {IssueListActions};
-
-export default IssueListActions;

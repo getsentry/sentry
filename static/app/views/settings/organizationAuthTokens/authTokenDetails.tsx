@@ -1,73 +1,63 @@
 import {useCallback} from 'react';
+import {z} from 'zod';
+
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {ExternalLink} from 'sentry/components/core/link';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
+  fetchMutation,
   getApiQueryData,
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withOrganization from 'sentry/utils/withOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {
   makeFetchOrgAuthTokensForOrgQueryKey,
   tokenPreview,
 } from 'sentry/views/settings/organizationAuthTokens';
-
-type Props = {
-  organization: Organization;
-  params: {tokenId: string};
-};
 
 type FetchOrgAuthTokenParameters = {
   orgSlug: string;
   tokenId: string;
 };
 type FetchOrgAuthTokenResponse = OrgAuthToken;
-type UpdateTokenQueryVariables = {
-  name: string;
-};
 
 const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
-  [`/organizations/${orgSlug}/org-auth-tokens/${tokenId}/`] as const;
+  [
+    getApiUrl(`/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/`, {
+      path: {organizationIdOrSlug: orgSlug, tokenId},
+    }),
+  ] as const;
 
-function AuthTokenDetailsForm({
-  token,
-  organization,
-}: {
-  organization: Organization;
-  token: OrgAuthToken;
-}) {
-  const initialData = {
-    name: token.name,
-    tokenPreview: tokenPreview(token.tokenLastCharacters || '****'),
-  };
+const schema = z.object({
+  name: z.string().min(1, t('Name is required')),
+});
 
+function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
+  const organization = useOrganization();
   const navigate = useNavigate();
-  const api = useApi();
   const queryClient = useQueryClient();
 
   const handleGoBack = useCallback(
@@ -75,21 +65,13 @@ function AuthTokenDetailsForm({
     [navigate, organization.slug]
   );
 
-  const {mutate: submitToken} = useMutation<
-    unknown,
-    RequestError,
-    UpdateTokenQueryVariables
-  >({
-    mutationFn: ({name}) =>
-      api.requestPromise(
-        `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,
-        {
-          method: 'PUT',
-          data: {
-            name,
-          },
-        }
-      ),
+  const mutation = useMutation<unknown, RequestError, z.infer<typeof schema>>({
+    mutationFn: data =>
+      fetchMutation({
+        url: `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,
+        method: 'PUT',
+        data,
+      }),
 
     onSuccess: (_data, {name}) => {
       addSuccessMessage(t('Updated auth token.'));
@@ -144,46 +126,56 @@ function AuthTokenDetailsForm({
     },
   });
 
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {name: token.name},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      addLoadingMessage();
+      return mutation.mutateAsync(value).catch(() => {});
+    },
+  });
+
   return (
-    <Form
-      apiMethod="PUT"
-      initialData={initialData}
-      apiEndpoint={`/organizations/${organization.slug}/org-auth-tokens/${token.id}/`}
-      onSubmit={({name}) => {
-        addLoadingMessage();
+    <form.AppForm form={form}>
+      <form.FieldGroup title={t('Organization Token Details')}>
+        <form.AppField name="name">
+          {field => (
+            <field.Layout.Row
+              label={t('Name')}
+              hintText={t('A name to help you identify this token.')}
+              required
+            >
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <FieldGroup
+          label={t('Token')}
+          help={t('You can only view the token once after creation.')}
+        >
+          <div>{tokenPreview(token.tokenLastCharacters || '****')}</div>
+        </FieldGroup>
 
-        return submitToken({
-          name,
-        });
-      }}
-      onCancel={handleGoBack}
-    >
-      <TextField
-        name="name"
-        label={t('Name')}
-        required
-        help={t('A name to help you identify this token.')}
-      />
+        <FieldGroup
+          label={t('Scopes')}
+          help={t('You cannot change the scopes of an existing token.')}
+        >
+          <div>{token.scopes.slice().sort().join(', ')}</div>
+        </FieldGroup>
+      </form.FieldGroup>
 
-      <TextField
-        name="tokenPreview"
-        label={t('Token')}
-        disabled
-        help={t('You can only view the token once after creation.')}
-      />
-
-      <FieldGroup
-        label={t('Scopes')}
-        help={t('You cannot change the scopes of an existing token.')}
-      >
-        <div>{token.scopes.slice().sort().join(', ')}</div>
-      </FieldGroup>
-    </Form>
+      <Flex justify="end" gap="md" padding="md">
+        <Button onClick={handleGoBack}>{t('Cancel')}</Button>
+        <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+      </Flex>
+    </form.AppForm>
   );
 }
 
-function OrganizationAuthTokensDetails({params, organization}: Props) {
-  const {tokenId} = params;
+function OrganizationAuthTokensDetails() {
+  const organization = useOrganization();
+  const {tokenId} = useParams<{tokenId: string}>();
 
   const {
     isPending,
@@ -215,26 +207,19 @@ function OrganizationAuthTokensDetails({params, organization}: Props) {
           }
         )}
       </TextBlock>
-      <Panel>
-        <PanelHeader>{t('Organization Token Details')}</PanelHeader>
 
-        <PanelBody>
-          {isError && (
-            <LoadingError
-              message={t('Failed to load organization token.')}
-              onRetry={refetchToken}
-            />
-          )}
+      {isError && (
+        <LoadingError
+          message={t('Failed to load organization token.')}
+          onRetry={refetchToken}
+        />
+      )}
 
-          {isPending && <LoadingIndicator />}
+      {isPending && <LoadingIndicator />}
 
-          {!isPending && !isError && token && (
-            <AuthTokenDetailsForm token={token} organization={organization} />
-          )}
-        </PanelBody>
-      </Panel>
+      {!isPending && !isError && token && <AuthTokenDetailsForm token={token} />}
     </div>
   );
 }
 
-export default withOrganization(OrganizationAuthTokensDetails);
+export default OrganizationAuthTokensDetails;

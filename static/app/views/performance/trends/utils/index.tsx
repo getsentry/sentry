@@ -106,22 +106,22 @@ export const TRENDS_PARAMETERS: TrendParameter[] = [
 export function makeTrendToColorMapping(theme: Theme) {
   return {
     [TrendChangeType.IMPROVED]: {
-      lighter: theme.green200,
-      default: theme.green300,
+      lighter: theme.colors.green200,
+      default: theme.colors.green400,
     },
     [TrendChangeType.REGRESSION]: {
-      lighter: theme.red200,
-      default: theme.red300,
+      lighter: theme.colors.red200,
+      default: theme.colors.red400,
     },
     neutral: {
-      lighter: theme.yellow200,
-      default: theme.yellow300,
+      lighter: theme.colors.yellow200,
+      default: theme.colors.yellow400,
     },
     // TODO remove this once backend starts sending
     // TrendChangeType.IMPROVED as change type
     improvement: {
-      lighter: theme.green200,
-      default: theme.green300,
+      lighter: theme.colors.green200,
+      default: theme.colors.green400,
     },
   };
 }

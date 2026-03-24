@@ -10,7 +10,7 @@ import {
   measurementType,
 } from 'sentry/utils/discover/fields';
 
-import grammar from './grammar.pegjs';
+import {parse} from './grammar.pegjs';
 import {getKeyName} from './utils';
 
 type TextFn = () => string;
@@ -45,6 +45,7 @@ export enum Token {
   KEY_EXPLICIT_NUMBER_FLAG = 'keyExplicitNumberFlag',
   KEY_EXPLICIT_STRING_FLAG = 'keyExplicitStringFlag',
   KEY_EXPLICIT_TAG = 'keyExplicitTag',
+  KEY_EXPLICIT_BOOLEAN_TAG = 'keyExplicitBooleanTag',
   KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
   KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
   KEY_AGGREGATE = 'keyAggregate',
@@ -75,6 +76,8 @@ export enum TermOperator {
   LESS_THAN = '<',
   EQUAL = '=',
   NOT_EQUAL = '!=',
+  // NOTE: These wildcard operators are internal implementation details and
+  // should not be included in product docs. Users should use `*` instead.
   CONTAINS = '\uf00dContains\uf00d',
   DOES_NOT_CONTAIN = '\uf00dDoesNotContain\uf00d',
   STARTS_WITH = '\uf00dStartsWith\uf00d',
@@ -590,6 +593,16 @@ export class TokenConverter {
     key,
   });
 
+  tokenKeyExplicitBooleanTag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_BOOLEAN_TAG as const,
+    prefix,
+    key,
+  });
+
   tokenKeyAggregateParam = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
     type: Token.KEY_AGGREGATE_PARAMS as const,
@@ -879,6 +892,7 @@ export class TokenConverter {
         Token.KEY_SIMPLE,
         Token.KEY_EXPLICIT_TAG,
         Token.KEY_AGGREGATE,
+        Token.KEY_EXPLICIT_BOOLEAN_TAG,
         Token.KEY_EXPLICIT_NUMBER_TAG,
         Token.KEY_EXPLICIT_STRING_TAG,
         Token.KEY_EXPLICIT_FLAG,
@@ -895,6 +909,7 @@ export class TokenConverter {
         | Token.KEY_EXPLICIT_TAG
         | Token.KEY_EXPLICIT_FLAG
         | Token.KEY_AGGREGATE
+        | Token.KEY_EXPLICIT_BOOLEAN_TAG
         | Token.KEY_EXPLICIT_NUMBER_TAG
         | Token.KEY_EXPLICIT_NUMBER_FLAG
         | Token.KEY_EXPLICIT_STRING_TAG
@@ -1503,7 +1518,7 @@ function tryParseSearch<T extends {config: SearchConfig}>(
   config: T
 ): ParseResult | null {
   try {
-    return grammar.parse(query, config);
+    return parse(query, config);
   } catch (e: any) {
     Sentry.logger.error('Search syntax parse error', {
       message: e.message?.slice(-100),

@@ -5,22 +5,27 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {SelectContext} from 'sentry/components/core/compactSelect/control';
-import {SelectFilterContext} from 'sentry/components/core/compactSelect/list';
 import {
+  ControlContext,
   ListLabel,
   ListSeparator,
   ListWrap,
+  SelectFilterContext,
   SizeLimitMessage,
-} from 'sentry/components/core/compactSelect/styles';
-import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
+  useVirtualizedItems,
+  type SelectKey,
+  type SelectSection,
+} from '@sentry/scraps/compactSelect';
+import {Container} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 
 import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';
 
 interface GridListProps
-  extends Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
+  extends
+    Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
     Omit<
       AriaGridListOptions<any>,
       | 'disabledKeys'
@@ -60,6 +65,10 @@ interface GridListProps
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+  /**
+   * If true, virtualization will be enabled for the list.
+   */
+  virtualized?: boolean;
 }
 
 /**
@@ -79,6 +88,7 @@ function GridList({
   onSectionToggle,
   sizeLimitMessage,
   keyDownHandler,
+  virtualized,
   ...props
 }: GridListProps) {
   const ref = useRef<HTMLUListElement>(null);
@@ -97,7 +107,7 @@ function GridList({
     }
   };
 
-  const {overlayIsOpen, search} = useContext(SelectContext);
+  const {overlayIsOpen, searchable} = useContext(ControlContext);
   const hiddenOptions = useContext(SelectFilterContext);
   const listItems = useMemo(
     () =>
@@ -111,41 +121,61 @@ function GridList({
     [listState.collection, hiddenOptions]
   );
 
+  const virtualizer = useVirtualizedItems({
+    listItems,
+    virtualized,
+    size,
+  });
+
+  const mergedProps = mergeProps(gridProps, props);
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
-        <ListWrap {...mergeProps(gridProps, props)} onKeyDown={onKeyDown} ref={ref}>
-          {listItems.map(item => {
-            if (item.type === 'section') {
-              return (
-                <GridListSection
-                  key={item.key}
-                  node={item}
-                  listState={listState}
-                  onToggle={onSectionToggle}
-                  size={size}
-                />
-              );
-            }
+        <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
+          <Container {...virtualizer.wrapperProps}>
+            <ListWrap
+              {...mergedProps}
+              style={{...mergedProps.style, ...virtualizer.listWrapStyle}}
+              onKeyDown={onKeyDown}
+              ref={ref}
+            >
+              {virtualizer.items.map(row => {
+                const item = listItems[row.index]!;
+                if (item.type === 'section') {
+                  return (
+                    <GridListSection
+                      {...virtualizer.itemProps(row.index)}
+                      key={item.key}
+                      node={item}
+                      listState={listState}
+                      onToggle={onSectionToggle}
+                      size={size}
+                    />
+                  );
+                }
 
-            return (
-              <GridListOption
-                key={item.key}
-                node={item}
-                listState={listState}
-                size={size}
-              />
-            );
-          })}
+                return (
+                  <GridListOption
+                    key={item.key}
+                    {...virtualizer.itemProps(row.index)}
+                    node={item}
+                    listState={listState}
+                    size={size}
+                  />
+                );
+              })}
 
-          {!search && hiddenOptions.size > 0 && (
-            <SizeLimitMessage>
-              {sizeLimitMessage ?? t('Use search to find more options…')}
-            </SizeLimitMessage>
-          )}
-        </ListWrap>
+              {!searchable && hiddenOptions.size > 0 && (
+                <SizeLimitMessage>
+                  {sizeLimitMessage ?? t('Use search to find more options…')}
+                </SizeLimitMessage>
+              )}
+            </ListWrap>
+          </Container>
+        </Container>
       )}
     </Fragment>
   );

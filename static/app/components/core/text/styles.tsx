@@ -1,11 +1,17 @@
 import type {Theme} from '@emotion/react';
 
-import type {Responsive} from 'sentry/components/core/layout/styles';
+import type {HeadingSize, TextSize} from 'sentry/utils/theme';
 
-import type {HeadingProps} from './heading';
-import type {TextProps} from './text';
+import type {HeadingProps, HeadingPropsWithRenderFunction} from './heading';
+import type {TextProps, TextPropsWithRenderFunction} from './text';
 
-export function getTextDecoration(p: TextProps<any> | HeadingProps) {
+export function getTextDecoration(
+  p:
+    | TextProps<any>
+    | HeadingProps
+    | TextPropsWithRenderFunction
+    | HeadingPropsWithRenderFunction
+) {
   const decorations: string[] = [];
   if (p.strikethrough) {
     decorations.push('line-through');
@@ -20,24 +26,31 @@ export function getTextDecoration(p: TextProps<any> | HeadingProps) {
   return decorations.join(' ');
 }
 
-export function getLineHeight(density: ResponsiveValue<TextProps<any>['density']>) {
+export function getLineHeight(
+  density: 'compressed' | 'comfortable' | undefined,
+  theme: Theme
+): string | undefined {
+  if (density === undefined) {
+    return undefined;
+  }
+
   switch (density) {
     case 'compressed':
-      return '1';
+      return theme.font.lineHeight.compressed.toString();
     case 'comfortable':
-      return '1.4';
-    // @TODO: Fixed density is 16, how does that work with larger sizes?
-    case undefined:
+      return theme.font.lineHeight.comfortable.toString();
     default:
-      return '1.2';
+      return undefined;
   }
 }
 
 export function getFontSize(
-  size: NonNullable<ResponsiveValue<TextProps<any>['size']>>,
+  size: TextSize | HeadingSize | undefined,
   theme: Theme
-) {
-  return theme.fontSize[size];
-}
+): string | undefined {
+  if (size === undefined) {
+    return undefined;
+  }
 
-type ResponsiveValue<T> = T extends Responsive<infer U> ? U : T;
+  return theme.font.size[size];
+}

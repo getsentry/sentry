@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from django.db import IntegrityError, models
 from django.db.models import Q
@@ -8,7 +11,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    region_silo_model,
+    cell_silo_model,
 )
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import IncidentType
@@ -20,10 +23,15 @@ from sentry.workflow_engine.models import DetectorGroup
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
+if TYPE_CHECKING:
+    from sentry.incidents.models.incident import Incident
+    from sentry.issues.issue_occurrence import IssueOccurrence
+    from sentry.models.groupopenperiod import GroupOpenPeriod
+
 logger = logging.getLogger(__name__)
 
 
-@region_silo_model
+@cell_silo_model
 class IncidentGroupOpenPeriod(DefaultFieldsModel):
     """
     A lookup model for incidents and group open periods.
@@ -38,6 +46,9 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
     class Meta:
         db_table = "workflow_engine_incidentgroupopenperiod"
         app_label = "workflow_engine"
+        indexes = [
+            models.Index(fields=["incident_identifier"]),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(incident_identifier__isnull=False) & Q(incident_id__isnull=False)
@@ -47,7 +58,9 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
         ]
 
     @classmethod
-    def create_from_occurrence(cls, occurrence, group, open_period):
+    def create_from_occurrence(
+        cls, occurrence: IssueOccurrence, group: Group, open_period: GroupOpenPeriod
+    ) -> IncidentGroupOpenPeriod | None:
         """
         Creates an IncidentGroupOpenPeriod relationship from an issue occurrence.
         This method handles the case where the incident might not exist yet.
@@ -106,7 +119,13 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             return None
 
     @classmethod
-    def create_incident_for_open_period(cls, occurrence, alert_rule, group, open_period):
+    def create_incident_for_open_period(
+        cls,
+        occurrence: IssueOccurrence,
+        alert_rule: AlertRule,
+        group: Group,
+        open_period: GroupOpenPeriod,
+    ) -> Incident:
         from sentry.incidents.logic import create_incident, update_incident_status
         from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
         from sentry.incidents.utils.process_update_helpers import (
@@ -196,14 +215,16 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
         return incident
 
     @classmethod
-    def get_relationship(cls, open_period):
+    def get_relationship(cls, open_period: GroupOpenPeriod) -> IncidentGroupOpenPeriod | None:
         """
         Returns the IncidentGroupOpenPeriod relationship if it exists.
         """
         return cls.objects.filter(group_open_period=open_period).first()
 
     @classmethod
-    def create_relationship(cls, incident, open_period):
+    def create_relationship(
+        cls, incident: Incident, open_period: GroupOpenPeriod
+    ) -> IncidentGroupOpenPeriod | None:
         """
         Creates IncidentGroupOpenPeriod relationship.
 

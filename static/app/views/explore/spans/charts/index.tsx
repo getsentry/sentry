@@ -1,26 +1,29 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -161,9 +164,14 @@ function Chart({
   topEvents,
   setTab,
 }: ChartProps) {
-  const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const {
+    dismiss: dismissChartSelectionAlert,
+    isDismissed: isChartSelectionAlertDismissed,
+  } = useDismissAlert({
+    key: CHART_SELECTION_ALERT_KEY,
+  });
 
   const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
 
@@ -204,23 +212,26 @@ function Chart({
   }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
 
   const Title = (
-    <ChartTitle>
+    <Flex>
       <Widget.WidgetTitle
         title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
       />
-    </ChartTitle>
+    </Flex>
   );
 
   const Actions = (
     <Fragment>
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
         <CompactSelect
-          triggerProps={{
-            icon: <IconGraph type={chartIcon} />,
-            borderless: true,
-            showChevron: false,
-            size: 'xs',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconGraph type={chartIcon} />}
+              priority="transparent"
+              showChevron={false}
+              size="xs"
+            />
+          )}
           value={chartType}
           menuTitle="Type"
           options={EXPLORE_CHART_TYPE_OPTIONS}
@@ -231,12 +242,15 @@ function Chart({
         <CompactSelect
           value={interval}
           onChange={option => setInterval(option.value)}
-          triggerProps={{
-            icon: <IconClock />,
-            borderless: true,
-            showChevron: false,
-            size: 'xs',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconClock />}
+              priority="transparent"
+              showChevron={false}
+              size="xs"
+            />
+          )}
           menuTitle="Interval"
           options={intervalOptions}
         />
@@ -254,9 +268,7 @@ function Chart({
   );
 
   const initialChartSelection =
-    chartSelection && chartSelection.chartIndex === index
-      ? chartSelection.selection
-      : undefined;
+    chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
   return (
     <ChartWrapper ref={chartWrapperRef}>
@@ -270,20 +282,34 @@ function Chart({
               chartRef={chartRef}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
+                onSelectionEnd: () => {
+                  if (!isChartSelectionAlertDismissed) {
+                    dismissChartSelectionAlert();
+                  }
+                },
+                onInsideSelectionClick: params => {
+                  if (!params.selectionState) return;
+
+                  params.setSelectionState({
+                    ...params.selectionState,
+                    isActionMenuVisible: true,
+                  });
+                },
+                onOutsideSelectionClick: params => {
+                  if (!params.selectionState?.isActionMenuVisible) return;
+
+                  params.setSelectionState({
+                    ...params.selectionState,
+                    isActionMenuVisible: false,
+                  });
+                },
                 onClearSelection: () => {
                   setChartSelection(null);
                 },
-                disabled: !organization.features.includes(
-                  'performance-spans-suspect-attributes'
-                ),
-                actionMenuRenderer: (selection, clearSelection) => {
+                disabled: false,
+                actionMenuRenderer: params => {
                   return (
-                    <FloatingTrigger
-                      chartIndex={index}
-                      selection={selection}
-                      clearSelection={clearSelection}
-                      setTab={setTab}
-                    />
+                    <FloatingTrigger chartIndex={index} params={params} setTab={setTab} />
                   );
                 },
               }}
@@ -321,10 +347,6 @@ const ChartWrapper = styled('div')`
 const ChartList = styled('div')`
   position: relative;
   display: grid;
-  row-gap: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
-const ChartTitle = styled('div')`
-  display: flex;
+  row-gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;

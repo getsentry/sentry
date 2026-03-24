@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   makeTraceItemAttributeKeysQueryOptions,
   useGetTraceItemAttributeKeys,
@@ -13,6 +13,7 @@ import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 
 interface UseTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
   enabled?: boolean;
+  projectIds?: Array<string | number>;
   query?: string;
   search?: string;
 }
@@ -22,14 +23,15 @@ export function useTraceItemAttributeKeys({
   type,
   traceItemType,
   projects,
+  projectIds: explicitProjectIds,
   query,
   search,
 }: UseTraceItemAttributeKeysProps) {
   const {selection} = usePageFilters();
 
-  const projectIds = defined(projects)
-    ? projects.map(project => project.id)
-    : selection.projects;
+  const projectIds =
+    explicitProjectIds ??
+    (defined(projects) ? projects.map(project => project.id) : selection.projects);
 
   const queryOptions = useMemo(() => {
     return makeTraceItemAttributeKeysQueryOptions({

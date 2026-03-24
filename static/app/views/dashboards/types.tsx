@@ -4,9 +4,23 @@ import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
+import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
+
+export enum DashboardFilter {
+  ONLY_FAVORITES = 'onlyFavorites',
+  EXCLUDE_FAVORITES = 'excludeFavorites',
+  OWNED = 'owned',
+  SHARED = 'shared',
+  EXCLUDE_PREBUILT = 'excludePrebuilt',
+  ONLY_PREBUILT = 'onlyPrebuilt',
+  SHOW_HIDDEN = 'showHidden',
+}
+
+export type LegendType = 'default' | 'breakdown';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the
@@ -15,8 +29,13 @@ import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/t
 export const MAX_WIDGETS = 30;
 
 export const DEFAULT_TABLE_LIMIT = 5;
+export const MAX_TABLE_LIMIT = 10;
+
+export const DEFAULT_CATEGORICAL_BAR_LIMIT = 20;
+export const MAX_CATEGORICAL_BAR_LIMIT = 25;
 
 export const DEFAULT_WIDGET_NAME = t('Custom Widget');
+export const PREBUILT_DASHBOARD_LABEL = t('Sentry Built');
 
 export enum DisplayType {
   AREA = 'area',
@@ -25,8 +44,13 @@ export enum DisplayType {
   TABLE = 'table',
   BIG_NUMBER = 'big_number',
   DETAILS = 'details',
+  SERVER_TREE = 'server_tree',
+  RAGE_AND_DEAD_CLICKS = 'rage_and_dead_clicks',
   TOP_N = 'top_n',
   WHEEL = 'wheel',
+  CATEGORICAL_BAR = 'categorical_bar',
+  AGENTS_TRACES_TABLE = 'agents_traces_table',
+  TEXT = 'text',
 }
 
 export enum WidgetType {
@@ -39,6 +63,7 @@ export enum WidgetType {
   SPANS = 'spans',
   LOGS = 'logs',
   TRACEMETRICS = 'tracemetrics',
+  PREPROD_APP_SIZE = 'preprod-app-size',
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -78,6 +103,9 @@ export type LinkedDashboard = {
   // The destination dashboard id, set this to '-1' for prebuilt dashboards that link to other prebuilt dashboards
   dashboardId: string;
   field: string;
+  // List of additional datasets to apply new dashboard filters to.
+  // Typically we only apply filters to the same dataset as the widget, but this allows us to apply to other datasets when needed.
+  additionalGlobalFilterDatasetTargets?: WidgetType[];
   // Used for static dashboards that are not saved to the database
   staticDashboardId?: PrebuiltDashboardId;
 };
@@ -95,6 +123,8 @@ export type WidgetQuery = {
   // Table column alias.
   // We may want to have alias for y-axis in the future too
   fieldAliases?: string[];
+  // Used to define the units of the fields in the widget queries, currently not saved
+  fieldMeta?: Array<Pick<TimeSeriesMeta, 'valueType' | 'valueUnit'> | null>;
   // Fields is replaced with aggregates + columns. It
   // is currently used to track column order on table
   // widgets.
@@ -105,6 +135,10 @@ export type WidgetQuery = {
   onDemand?: WidgetQueryOnDemand[];
   // Aggregate selected for the Big Number widget builder
   selectedAggregate?: number;
+  // Links the widget query to a slide out panel if exists.
+  // TODO: currently not stored in the backend, only used
+  // by prebuilt dashboards in the frontend.
+  slideOutId?: SlideoutId;
 };
 
 type WidgetChangedReason = {
@@ -124,6 +158,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  axisRange?: AxisRange;
   changedReason?: WidgetChangedReason[];
   dashboardId?: string;
   datasetSource?: DatasetSource;
@@ -131,6 +166,7 @@ export type Widget = {
   exploreUrls?: null | string[];
   id?: string;
   layout?: WidgetLayout | null;
+  legendType?: LegendType;
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
   // Used for table widget column widths, currently is not saved
@@ -234,4 +270,18 @@ export enum DashboardWidgetSource {
   TRACE_EXPLORER = 'traceExplorer',
   LOGS = 'logs',
   INSIGHTS = 'insights',
+  TRACEMETRICS = 'traceMetrics',
+}
+
+export enum SlideoutId {
+  LCP = 'lcp',
+  FCP = 'fcp',
+  INP = 'inp',
+  CLS = 'cls',
+  TTFB = 'ttfb',
+  LCP_SUMMARY = 'lcp-summary',
+  FCP_SUMMARY = 'fcp-summary',
+  INP_SUMMARY = 'inp-summary',
+  CLS_SUMMARY = 'cls-summary',
+  TTFB_SUMMARY = 'ttfb-summary',
 }

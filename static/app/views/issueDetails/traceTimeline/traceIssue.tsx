@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Link} from '@sentry/scraps/link';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Link} from 'sentry/components/core/link';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
-import {space} from 'sentry/styles/space';
+import {Placeholder} from 'sentry/components/placeholder';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
 
@@ -18,11 +19,12 @@ interface TraceIssueEventProps {
 }
 
 export function TraceIssueEvent({event}: TraceIssueEventProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: event['project.name']});
   const issueId = event['issue.id'];
   const {title, subtitle, message} = getTitleSubtitleMessage(event);
-  const avatarSize = parseInt(space(4), 10);
+  const avatarSize = parseInt(theme.space['3xl'], 10);
   const area = useAnalyticsArea();
 
   // Referrer used to be hard-coded for this component. It's used for analytics
@@ -125,16 +127,17 @@ export function getTitleSubtitleMessage(event: TimelineEvent) {
 
 const TraceIssueLinkContainer = styled(Link)`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.primary};
-  padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
-  margin: ${space(1)} 0 ${space(1)} 0;
-  border: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl}
+    ${p => p.theme.space.xl};
+  margin: ${p => p.theme.space.md} 0 ${p => p.theme.space.md} 0;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundTertiary};
+    background-color: ${p => p.theme.tokens.background.tertiary};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
@@ -153,18 +156,26 @@ const TraceIssueProjectBadge = styled('div')`
 `;
 
 const TraceIssueDetailsContainer = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const NoOverflowDiv = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TraceIssueEventTitle = styled('span')`
   font-weight: 600;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const TraceIssueEventSubtitle = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

@@ -25,10 +25,16 @@ class Referrer(StrEnum):
         "api.auth-token.events.metrics-enhanced.primary"
     )
     API_AUTH_TOKEN_EVENTS = "api.auth-token.events"
+
+    # ** Dashboards **
+
+    API_DASHBOARDS_RELEASE_SELECTOR = "api.dashboards-release-selector"
+    API_DASHBOARDS_DETAILS_WIDGET_DOMAIN_STATUS = "api.dashboards.details-widget.domain-status"
     API_DASHBOARDS_BIGNUMBERWIDGET_METRICS_ENHANCED_PRIMARY = (
         "api.dashboards.bignumberwidget.metrics-enhanced.primary"
     )
     API_DASHBOARDS_BIGNUMBERWIDGET = "api.dashboards.bignumberwidget"
+    API_DASHBOARDS_BIGNUMBERWIDGET_ROW = "api.dashboards.bignumberwidget.row"
     API_DASHBOARDS_TABLEWIDGET_METRICS_ENHANCED_PRIMARY = (
         "api.dashboards.tablewidget.metrics-enhanced.primary"
     )
@@ -36,6 +42,7 @@ class Referrer(StrEnum):
         "api.dashboards.tablewidget.metrics-enhanced.secondary"
     )
     API_DASHBOARDS_TABLEWIDGET = "api.dashboards.tablewidget"
+    API_DASHBOARDS_TABLEWIDGET_ROW = "api.dashboards.tablewidget.row"
     API_DASHBOARDS_TOP_EVENTS = "api.dashboards.top-events"
     API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN = "api.dashboards.widget.area-chart.find-topn"
     API_DASHBOARDS_WIDGET_AREA_CHART_METRICS_ENHANCED = (
@@ -48,6 +55,7 @@ class Referrer(StrEnum):
         "api.dashboards.widget.area-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_AREA_CHART = "api.dashboards.widget.area-chart"
+    API_DASHBOARDS_WIDGET_AREA_CHART_ROW = "api.dashboards.widget.area-chart.row"
     API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN = "api.dashboards.widget.bar-chart.find-topn"
     API_DASHBOARDS_WIDGET_BAR_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.bar-chart.metrics-enhanced"
@@ -59,6 +67,7 @@ class Referrer(StrEnum):
         "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_BAR_CHART = "api.dashboards.widget.bar-chart"
+    API_DASHBOARDS_WIDGET_BAR_CHART_ROW = "api.dashboards.widget.bar-chart.row"
     API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN = "api.dashboards.widget.line-chart.find-topn"
     API_DASHBOARDS_WIDGET_LINE_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.line-chart.metrics-enhanced"
@@ -70,6 +79,7 @@ class Referrer(StrEnum):
         "api.dashboards.widget.line-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
+    API_DASHBOARDS_WIDGET_LINE_CHART_ROW = "api.dashboards.widget.line-chart.row"
 
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_SPANS_TOTAL_COUNT_FIELD = "api.spans.total-events-field"
@@ -122,6 +132,9 @@ class Referrer(StrEnum):
     API_EXPLORE_LOGS_RAW_COUNT_NORMAL = "api.explore.logs.raw-count.normal"
     API_EXPLORE_LOGS_RAW_COUNT_HIGH_ACCURACY = "api.explore.logs.raw-count.high-accuracy"
     API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL = "api.explore.tracemetrics.raw-count.normal"
+    API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL_EXTRAPOLATED_TOTAL = (
+        "api.explore.tracemetrics.raw-count.normal-extrapolated-total"
+    )
     API_EXPLORE_TRACEMETRICS_RAW_COUNT_HIGH_ACCURACY = (
         "api.explore.tracemetrics.raw-count.high-accuracy"
     )
@@ -308,9 +321,6 @@ class Referrer(StrEnum):
     API_INSIGHTS_MOBILE_SPARTUP_SPAN_TABLE = "api.insights.mobile-spartup-span-table"
     API_INSIGHTS_MOBILE_SCREENS_METRICS = "api.insights.mobile-screens-metrics"
     API_INSIGHTS_MOBILE_SCREENS_SPAN_METRICS = "api.insights.mobile-screens-span-metrics"
-    API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_METRICS = (
-        "api.insights.mobile-screens-screen-table-metrics"
-    )
     API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_SPAN_METRICS = (
         "api.insights.mobile-screens-screen-table-span-metrics"
     )
@@ -319,12 +329,12 @@ class Referrer(StrEnum):
     API_INSIGHTS_MOBILE_SPAN_TABLE = "api.insights.mobile-span-table"
     API_INSIGHTS_MOBILE_LANDING_TABLE = "api.insights.mobile.landing-table"
 
-    # Service Entry Spans
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE = "api.insights.service-entry-spans-table"
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_WITH_CATEGORY = (
-        "api.insights.service-entry-spans-table-with-category"
+    # Segment Spans
+    API_INSIGHTS_SEGMENT_SPANS_TABLE = "api.insights.segment-spans-table"
+    API_INSIGHTS_SEGMENT_SPANS_TABLE_WITH_CATEGORY = (
+        "api.insights.segment-spans-table-with-category"
     )
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_COUNT = "api.insights.service-entry-spans-table-count"
+    API_INSIGHTS_SEGMENT_SPANS_TABLE_COUNT = "api.insights.segment-spans-table-count"
 
     # Trace Panel
     API_INSIGHTS_TRACE_PANEL_LEFT_TRACE_LINK = "api.insights.trace-panel-left-trace-link"
@@ -461,7 +471,6 @@ class Referrer(StrEnum):
         "api.organization-events.metrics-enhanced.secondary"
     )
     API_ORGANIZATION_EVENTS_SPAN_OPS = "api.organization-events-span-ops"
-    API_ORGANIZATION_EVENTS_SPANS_HISTOGRAM = "api.organization-events-spans-histogram"
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
         "api.organization-events-spans-performance-examples"
     )
@@ -482,12 +491,13 @@ class Referrer(StrEnum):
     API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
-    API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
     API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
+    API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
+    API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
@@ -561,6 +571,10 @@ class Referrer(StrEnum):
     API_LOGS_TAG_KEYS_RPC = "api.logs.tags-keys.rpc"
     API_LOGS_TAG_VALUES_RPC = "api.logs.tags-values.rpc"
     API_LOGS_TAB_VIEW = "api.logs-tab.view"
+    API_PREPROD_TAG_KEYS_RPC = "api.preprod.tags-keys.rpc"
+    API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
+    API_PROCESSING_ERRORS_TAG_KEYS_RPC = "api.processing-errors.tags-keys.rpc"
+    API_PROCESSING_ERRORS_TAG_VALUES_RPC = "api.processing-errors.tags-values.rpc"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
@@ -645,9 +659,6 @@ class Referrer(StrEnum):
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
-    DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
-        "dynamic_sampling.tasks.custom_rule_notifications"
-    )
     DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
@@ -658,12 +669,6 @@ class Referrer(StrEnum):
     EXPORT_EVENTS = "export-events"
     FETCH_EVENTS_FOR_DELETION = "fetch_events_for_deletion"
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
-    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_CONDITIONS = (
-        "getsentry.promotion.mobile_performance_adoption.check_conditions"
-    )
-    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
-        "getsentry.promotion.mobile_performance_adoption.check_eligible"
-    )
     GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
     GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
@@ -678,6 +683,15 @@ class Referrer(StrEnum):
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
+    ISSUES_SUSPECT_FLAGS_QUERY_BASELINE_SET = "issues.suspect_flags.query_baseline_set"
+    ISSUES_SUSPECT_FLAGS_QUERY_SELECTION_SET = "issues.suspect_flags.query_selection_set"
+    ISSUES_SUSPECT_FLAGS_QUERY_ERROR_COUNTS = "issues.suspect_flags.query_error_counts"
+    ISSUES_SUSPECT_TAGS_QUERY_BASELINE_SET = "issues.suspect_tags.query_baseline_set"
+    ISSUES_SUSPECT_TAGS_QUERY_SELECTION_SET = "issues.suspect_tags.query_selection_set"
+    ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS = "issues.suspect_tags.query_error_counts"
+    ISSUES_LLM_ISSUE_DETECTION_TRANSACTION = "issues.llm_issue_detection.transaction"
+    ISSUES_LLM_ISSUE_DETECTION_TRACE = "issues.llm_issue_detection.trace"
+    ISSUES_LLM_ISSUE_DETECTION_SPAN_COUNT = "issues.llm_issue_detection.span_count"
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
@@ -779,12 +793,6 @@ class Referrer(StrEnum):
     REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
-    DAILY_SUMMARY_KEY_ERRORS = "daily_summary.key_errors"
-    DAILY_SUMMARY_KEY_PERFORMANCE_ISSUES = "daily_summary.key_performance_issues"
-    DAILY_SUMMARY_KEY_TRANSACTIONS_P95 = "daily_summary.key_transactions.p95"
-    DAILY_SUMMARY_KEY_TRANSACTIONS = "daily_summary.key_transactions"
-    DAILY_SUMMARY_OUTCOME_SERIES = "daily_summary.outcome_series"
-    DAILY_SUMMARY_OUTCOMES = "daily_summary.outcomes"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
     REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
     SEARCH_SAMPLE = "search_sample"
@@ -795,6 +803,7 @@ class Referrer(StrEnum):
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
     SEER_EXPLORER_INDEX = "seer.explorer_index"
+    SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
@@ -844,6 +853,9 @@ class Referrer(StrEnum):
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"
+    TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS = (
+        "tagstore._get_tag_keys_and_top_values_empty_counts"
+    )
     TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
@@ -933,6 +945,7 @@ class Referrer(StrEnum):
 
     # Getsentry scripts
     DELETE_EVENTS_FROM_FILE = "delete-events-from-file"
+    DELETE_EVENTS_BY_TAG_VALUE = "delete-events-by-tag-value"
 
     # Referrers in tests
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"

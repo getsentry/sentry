@@ -1,14 +1,14 @@
-import type {Theme} from '@emotion/react';
 import {createStore} from 'reflux';
 
 import {defined} from 'sentry/utils';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import type {AlertVariant} from 'sentry/utils/theme';
 
 import type {StrictStoreDefinition} from './types';
 
 type Alert = {
   message: React.ReactNode;
-  type: keyof Theme['alert'];
+  variant: AlertVariant;
   expireAfter?: number;
   id?: string;
   key?: number;
@@ -23,8 +23,7 @@ interface InternalAlertStoreDefinition {
   count: number;
 }
 interface AlertStoreDefinition
-  extends StrictStoreDefinition<Alert[]>,
-    InternalAlertStoreDefinition {
+  extends StrictStoreDefinition<Alert[]>, InternalAlertStoreDefinition {
   addAlert(alert: Alert): void;
   closeAlert(alert: Alert, duration?: number): void;
 }
@@ -48,7 +47,7 @@ const storeConfig: AlertStoreDefinition = {
     }
 
     if (defined(alert.id)) {
-      const mutedData = localStorage.getItem('alerts:muted');
+      const mutedData = localStorageWrapper.getItem('alerts:muted');
       if (typeof mutedData === 'string' && mutedData.length) {
         const expirations: Record<string, number> = JSON.parse(mutedData);
 
@@ -59,7 +58,7 @@ const storeConfig: AlertStoreDefinition = {
             delete expirations[key];
           }
         }
-        localStorage.setItem('alerts:muted', JSON.stringify(expirations));
+        localStorageWrapper.setItem('alerts:muted', JSON.stringify(expirations));
 
         if (expirations.hasOwnProperty(alert.id)) {
           return;
@@ -89,14 +88,14 @@ const storeConfig: AlertStoreDefinition = {
   closeAlert(alert, duration = 60 * 60 * 7 * 24) {
     if (defined(alert.id) && defined(duration)) {
       const expiry = Math.floor(Date.now() / 1000) + duration;
-      const mutedData = localStorage.getItem('alerts:muted');
+      const mutedData = localStorageWrapper.getItem('alerts:muted');
 
       let expirations: Record<string, number> = {};
       if (typeof mutedData === 'string' && expirations.length) {
         expirations = JSON.parse(mutedData);
       }
       expirations[alert.id] = expiry;
-      localStorage.setItem('alerts:muted', JSON.stringify(expirations));
+      localStorageWrapper.setItem('alerts:muted', JSON.stringify(expirations));
     }
 
     // TODO(dcramer): we need some animations here for closing alerts
@@ -109,5 +108,4 @@ const storeConfig: AlertStoreDefinition = {
   },
 };
 
-const AlertStore = createStore(storeConfig);
-export default AlertStore;
+export const AlertStore = createStore(storeConfig);

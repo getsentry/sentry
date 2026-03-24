@@ -1,17 +1,13 @@
 import logging
 import operator
-import time
-from datetime import timedelta
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar, cast
 
 from django.db import models
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
 from sentry.utils import metrics, registry
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import ConditionError, DataConditionResult, DetectorPriorityLevel
@@ -46,17 +42,20 @@ class Condition(StrEnum):
     FIRST_SEEN_EVENT = "first_seen_event"
     ISSUE_CATEGORY = "issue_category"
     ISSUE_OCCURRENCES = "issue_occurrences"
+    ISSUE_OPEN_DURATION = "issue_open_duration"
+    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+    ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
+    ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
+    ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
+    ISSUE_RESOLVED_TRIGGER = "issue_resolved_trigger"
+    ISSUE_TYPE = "issue_type"
     LATEST_ADOPTED_RELEASE = "latest_adopted_release"
     LATEST_RELEASE = "latest_release"
     LEVEL = "level"
     NEW_HIGH_PRIORITY_ISSUE = "new_high_priority_issue"
-    REGRESSION_EVENT = "regression_event"
     REAPPEARED_EVENT = "reappeared_event"
+    REGRESSION_EVENT = "regression_event"
     TAGGED_EVENT = "tagged_event"
-    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
-    ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
-    ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
-    ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
 
     # Event frequency conditions
     EVENT_FREQUENCY_COUNT = "event_frequency_count"
@@ -69,6 +68,13 @@ class Condition(StrEnum):
     # Migration Only
     EVERY_EVENT = "every_event"
 
+
+TRIGGER_CONDITIONS = [
+    Condition.FIRST_SEEN_EVENT,
+    Condition.ISSUE_RESOLVED_TRIGGER,
+    Condition.REAPPEARED_EVENT,
+    Condition.REGRESSION_EVENT,
+]
 
 CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
@@ -104,12 +110,6 @@ LEGACY_CONDITIONS = [
 
 T = TypeVar("T")
 
-# Threshold at which we consider a fast condition's evaluation time to
-# be long enough to be worth logging. Our systems are designed on the
-# assumption that fast conditions should be fast, and if they aren't,
-# it's worth investigating.
-FAST_CONDITION_TOO_SLOW_THRESHOLD = timedelta(milliseconds=500)
-
 
 class DataConditionSnapshot(TypedDict):
     id: int
@@ -118,7 +118,7 @@ class DataConditionSnapshot(TypedDict):
     condition_result: DataConditionResult
 
 
-@region_silo_model
+@cell_silo_model
 class DataCondition(DefaultFieldsModel):
     """
     A data condition is a way to specify a logic condition, if the condition is met, the condition_result is returned.
@@ -201,7 +201,6 @@ class DataCondition(DefaultFieldsModel):
             return ConditionError(msg="No registration exists for condition")
 
         should_be_fast = not is_slow_condition(self)
-        start_time = time.time()
         try:
             with metrics.timer(
                 "workflow_engine.data_condition.evaluation_duration",
@@ -221,20 +220,6 @@ class DataCondition(DefaultFieldsModel):
                 },
             )
             return ConditionError(msg=str(e))
-        finally:
-            duration = time.time() - start_time
-            if should_be_fast and duration >= FAST_CONDITION_TOO_SLOW_THRESHOLD.total_seconds():
-                logger.error(
-                    "Fast condition evaluation too slow; took %s seconds",
-                    duration,
-                    extra={
-                        "condition_id": self.id,
-                        "duration": duration,
-                        "type": self.type,
-                        "value": value,
-                        "comparison": self.comparison,
-                    },
-                )
 
         return result
 
@@ -282,14 +267,9 @@ def enforce_data_condition_json_schema(data_condition: DataCondition) -> None:
         )
         return None
 
-    schema = handler.comparison_json_schema
+    schema = handler().comparison_json_schema
 
     try:
         validate(data_condition.comparison, schema)
     except ValidationError as e:
         raise ValidationError(f"Invalid config: {e.message}")
-
-
-@receiver(pre_save, sender=DataCondition)
-def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
-    enforce_data_condition_json_schema(instance)

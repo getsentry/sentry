@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {DeployBadge} from 'sentry/components/core/badge';
+import {DeployBadge} from '@sentry/scraps/badge';
+
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Deploy} from 'sentry/types/release';
 
 type Props = {
@@ -15,7 +15,7 @@ type Props = {
   version: string;
 };
 
-function Deploys({version, orgSlug, projectId, deploys}: Props) {
+export function Deploys({version, orgSlug, projectId, deploys}: Props) {
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Deploys')}</SidebarSection.Title>
@@ -40,12 +40,10 @@ function Deploys({version, orgSlug, projectId, deploys}: Props) {
 
 const Row = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  margin-bottom: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default Deploys;

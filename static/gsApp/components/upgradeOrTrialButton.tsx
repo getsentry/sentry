@@ -1,19 +1,18 @@
 import {useState} from 'react';
 
+import type {ButtonProps, LinkButtonProps} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import type {Client} from 'sentry/api';
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type ChildRenderProps = {
   action: 'upgrade' | 'trial';
@@ -153,7 +152,7 @@ function UpgradeOrTrialButton({
   if (hasAccess) {
     // send self-serve directly to checkout
     const baseUrl = subscription.canSelfServe
-      ? `/settings/${slug}/billing/checkout/`
+      ? `/checkout/${slug}/`
       : `/settings/${slug}/billing/overview/`;
 
     return (

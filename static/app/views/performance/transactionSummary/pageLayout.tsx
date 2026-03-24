@@ -5,38 +5,36 @@ import styled from '@emotion/styled';
 import {isString} from '@sentry/core';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Tabs} from '@sentry/scraps/tabs';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
-import {Tabs} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {PickProjectToContinue} from 'sentry/components/pickProjectToContinue';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   MetricsCardinalityProvider,
   useMetricsCardinalityContext,
 } from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
-import {decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useRouter from 'sentry/utils/useRouter';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
+import {useRouter} from 'sentry/utils/useRouter';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
@@ -48,20 +46,17 @@ import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
-import {vitalsRouteWithQuery} from './transactionVitals/utils';
-import TransactionHeader, {type Props as TransactionHeaderProps} from './header';
+import {TransactionHeader} from './header';
 import Tab from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 
 type TabEvents =
-  | 'performance_views.vitals.vitals_tab_clicked'
   | 'performance_views.tags.tags_tab_clicked'
   | 'performance_views.events.events_tab_clicked'
   | 'performance_views.spans.spans_tab_clicked';
 
 export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
-  [Tab.WEB_VITALS]: 'performance_views.vitals.vitals_tab_clicked',
   [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
 };
@@ -70,7 +65,7 @@ type Props = {
   generateEventView: (props: {
     location: Location;
     organization: Organization;
-    shouldUseOTelFriendlyUI: boolean;
+    shouldUseEAP: boolean;
     theme: Theme;
     transactionName: string;
   }) => EventView;
@@ -83,7 +78,7 @@ type Props = {
   fillSpace?: boolean;
 };
 
-function PageLayout(props: Props) {
+export function PageLayout(props: Props) {
   const {
     location,
     organization,
@@ -111,8 +106,6 @@ function PageLayout(props: Props) {
     TransactionThresholdMetric | undefined
   >();
 
-  const {isInDomainView} = useDomainViewFilters();
-
   const dataCategories: [DataCategory, ...DataCategory[]] = useMemo(() => {
     switch (tab) {
       case Tab.PROFILING:
@@ -121,8 +114,6 @@ function PageLayout(props: Props) {
         return [DataCategory.REPLAYS];
       case Tab.EVENTS:
       case Tab.TAGS:
-      case Tab.WEB_VITALS:
-        return [DataCategory.TRANSACTIONS];
       case Tab.TRANSACTION_SUMMARY:
         // The transactions summary page technically also uses transactions
         // in additional to spans. But if we specify transactions here, it'll
@@ -162,13 +153,6 @@ function PageLayout(props: Props) {
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
         }
-        case Tab.WEB_VITALS:
-          return vitalsRouteWithQuery({
-            organization,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          });
         case Tab.TRANSACTION_SUMMARY:
         default:
           return transactionSummaryRouteWithQuery(routeQuery);
@@ -197,7 +181,7 @@ function PageLayout(props: Props) {
     [getNewRoute, tab, organization, location, projects]
   );
 
-  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
+  const shouldUseEAP = useTransactionSummaryEAP();
 
   if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
@@ -208,7 +192,7 @@ function PageLayout(props: Props) {
     location,
     organization,
     transactionName,
-    shouldUseOTelFriendlyUI,
+    shouldUseEAP,
     theme,
   });
 
@@ -279,16 +263,6 @@ function PageLayout(props: Props) {
 
   const project = projects.find(p => p.id === projectId);
 
-  let hasWebVitals: TransactionHeaderProps['hasWebVitals'] =
-    tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
-
-  // TODO: /performance routes have been deprecated and all orgs should now evaluate isInDomainView as true
-  // We do not show the old web vitals tab for any orgs, with the exception of AM1 orgs as they do not have access to the new web vitals module
-  // Delete this check once all orgs have been migrated off AM1
-  if (isInDomainView && organization.features.includes('insights-modules-use-eap')) {
-    hasWebVitals = 'no';
-  }
-
   return (
     <SentryDocumentTitle
       title={getDocumentTitle(transactionName)}
@@ -330,7 +304,6 @@ function PageLayout(props: Props) {
                     projectId={projectId}
                     transactionName={transactionName}
                     currentTab={tab}
-                    hasWebVitals={hasWebVitals}
                     onChangeThreshold={(threshold, metric) => {
                       setTransactionThreshold(threshold);
                       setTransactionThresholdMetric(metric);
@@ -338,7 +311,9 @@ function PageLayout(props: Props) {
                     metricsCardinality={metricsCardinality}
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                    {defined(error) && <StyledAlert type="error">{error}</StyledAlert>}
+                    {defined(error) && (
+                      <StyledAlert variant="danger">{error}</StyledAlert>
+                    )}
                     <TransactionSummaryContext
                       value={{
                         eventView,
@@ -367,7 +342,7 @@ function PageLayout(props: Props) {
 function NoAccess() {
   return (
     <Alert.Container>
-      <Alert type="warning" showIcon={false}>
+      <Alert variant="warning" showIcon={false}>
         {t("You don't have access to this feature")}
       </Alert>
     </Alert.Container>
@@ -384,12 +359,12 @@ const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}
     css`
       display: flex;
       flex-direction: column;
-      gap: ${space(3)};
+      gap: ${p.theme.space['2xl']};
 
       @media (min-width: ${p.theme.breakpoints.lg}) {
         display: flex;
         flex-direction: column;
-        gap: ${space(3)};
+        gap: ${p.theme.space['2xl']};
       }
     `}
 `;
@@ -408,5 +383,3 @@ export function redirectToPerformanceHomepage(
     })
   );
 }
-
-export default PageLayout;

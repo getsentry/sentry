@@ -5,7 +5,8 @@ import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SpansContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphSpansContextMenu';
 import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
@@ -26,8 +27,7 @@ import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRende
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -101,7 +101,7 @@ export function FlamegraphSpans({
     return new SelectedFrameRenderer(spansCanvasRef);
   }, [spansCanvasRef]);
 
-  const hoveredNode: SpanChartNode | null = useMemo(() => {
+  const hoveredNode = useMemo(() => {
     if (!configSpaceCursor || !spansRenderer) {
       return null;
     }

@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.helpers.default_inbound_filters import set_default_inbound_filters
@@ -31,6 +31,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.similarity.utils import (
     project_is_seer_eligible,
+    set_default_project_auto_open_prs,
     set_default_project_autofix_automation_tuning,
     set_default_project_seer_scanner_automation,
 )
@@ -55,6 +56,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
 
     set_default_project_autofix_automation_tuning(organization, project)
     set_default_project_seer_scanner_automation(organization, project)
+    set_default_project_auto_open_prs(organization, project)
 
 
 class ProjectPostSerializer(serializers.Serializer):
@@ -129,7 +131,7 @@ class AuditData(TypedDict):
 
 
 @extend_schema(tags=["Teams"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class TeamProjectsEndpoint(TeamEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,

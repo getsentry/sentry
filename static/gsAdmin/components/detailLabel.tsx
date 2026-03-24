@@ -2,8 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {space} from 'sentry/styles/space';
+import {Tag} from '@sentry/scraps/badge';
 
 type Props = {
   /**
@@ -24,13 +23,13 @@ type Props = {
 /**
  * Detail label is used within DetailList
  */
-function DetailLabel({title, yesNo, multiLine, children}: Props) {
+export function DetailLabel({title, yesNo, multiLine, children}: Props) {
   return (
     <Fragment>
       <dt>{title}:</dt>
       <Value multiLine={!!multiLine}>
         {yesNo !== undefined &&
-          (yesNo ? <Tag type="success">yes</Tag> : <Tag type="error">no</Tag>)}
+          (yesNo ? <Tag variant="success">yes</Tag> : <Tag variant="danger">no</Tag>)}
         {children}
       </Value>
     </Fragment>
@@ -43,8 +42,6 @@ const Value = styled('dd')<{multiLine: boolean}>`
     css`
       display: flex;
       flex-direction: column;
-      gap: ${space(0.5)};
+      gap: ${p.theme.space.xs};
     `};
 `;
-
-export default DetailLabel;

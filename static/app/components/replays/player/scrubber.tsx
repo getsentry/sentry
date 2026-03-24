@@ -1,16 +1,15 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/sliderAndInputWrapper';
-import ZoomTriangles from 'sentry/components/replays/player/zoomTrianges';
+import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
+import {SliderAndInputWrapper} from 'sentry/components/forms/controls/rangeSlider/sliderAndInputWrapper';
+import {ZoomTriangles} from 'sentry/components/replays/player/zoomTrianges';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import divide from 'sentry/utils/number/divide';
-import toPercent from 'sentry/utils/number/toPercent';
+import {divide} from 'sentry/utils/number/divide';
+import {toPercent} from 'sentry/utils/number/toPercent';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 type Props = {
   className?: string;
@@ -56,7 +55,7 @@ const Meter = styled('div')`
   height: 100%;
   width: 100%;
   pointer-events: none;
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const RangeWrapper = styled('div')`
@@ -140,16 +139,16 @@ export const TimelineScrubber = styled(Scrubber)`
    */
   ${PlaybackTimeValue},
   ${MouseTrackingValue} {
-    border-right: ${space(0.25)} solid ${p => p.theme.purple300};
+    border-right: ${p => p.theme.space['2xs']} solid
+      ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
 export const PlayerScrubber = styled(Scrubber)`
-  height: ${space(0.5)};
+  height: ${p => p.theme.space.xs};
 
   ${Meter} {
     border-radius: ${p => p.theme.radius.md};
-    background: ${p => p.theme.translucentInnerBorder};
   }
 
   ${RangeWrapper} {
@@ -165,7 +164,7 @@ export const PlayerScrubber = styled(Scrubber)`
   }
 
   ${PlaybackTimeValue} {
-    background: ${p => p.theme.purple200};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
     border-radius: ${p => p.theme.radius.md};
 
     /**
@@ -175,12 +174,12 @@ export const PlayerScrubber = styled(Scrubber)`
      *           PlaybackTimeValue @ 20s
      */
     :after {
-      background: ${p => p.theme.purple300};
+      background: ${p => p.theme.tokens.background.accent.vibrant};
     }
   }
 
   ${MouseTrackingValue} {
-    background: ${p => p.theme.translucentBorder};
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-radius: ${p => p.theme.radius.md};
 
     /**
@@ -191,14 +190,14 @@ export const PlayerScrubber = styled(Scrubber)`
      *      MouseTrackingValue @ 10s
      */
     :after {
-      background: ${p => p.theme.gray400};
+      background: ${p => p.theme.tokens.background.overlay};
     }
   }
 
   ${PlaybackTimeValue}:after,
   ${MouseTrackingValue}:after {
-    --size: ${space(2)};
-    --borderWidth: ${space(0.25)};
+    --size: ${p => p.theme.space.xl};
+    --borderWidth: ${p => p.theme.space['2xs']};
     content: '';
     display: block;
     width: var(--size);
@@ -206,7 +205,7 @@ export const PlayerScrubber = styled(Scrubber)`
     pointer-events: none;
     box-sizing: content-box;
     border-radius: var(--size);
-    border: solid ${p => p.theme.white};
+    border: solid ${p => p.theme.tokens.border.onVibrant.light};
     border-width: var(--borderWidth);
     position: absolute;
     top: 0;

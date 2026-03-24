@@ -1,12 +1,13 @@
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUpdateAutomation} from 'sentry/views/automations/hooks';
 
 type DisabledAlertProps = {
@@ -53,7 +54,7 @@ export function DisabledAlert({automation}: DisabledAlertProps) {
   return (
     <Alert.Container>
       <Alert
-        type="muted"
+        variant="muted"
         trailingItems={
           <Tooltip
             title={canEdit ? undefined : permissionTooltipText}

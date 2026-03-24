@@ -1,14 +1,12 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   children: React.ReactNode;
   description: React.ReactNode;
   title: string;
 };
 
-function DescriptionCard({title, description, children}: Props) {
+export function DescriptionCard({title, description, children}: Props) {
   return (
     <Wrapper>
       <LeftPanel>
@@ -20,13 +18,11 @@ function DescriptionCard({title, description, children}: Props) {
   );
 }
 
-export default DescriptionCard;
-
 const Wrapper = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
   flex-direction: column;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -35,24 +31,24 @@ const Wrapper = styled('div')`
 `;
 
 const LeftPanel = styled('div')`
-  padding: ${space(2)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     max-width: 250px;
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     border-bottom: 0;
   }
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  margin: 0 0 ${space(0.5)};
+  font-size: ${p => p.theme.font.size.lg};
+  margin: 0 0 ${p => p.theme.space.xs};
 `;
 
 const Description = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const RightPanel = styled('div')`

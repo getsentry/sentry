@@ -1,0 +1,210 @@
+import {useEffect, useMemo} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
+
+import {Flex, Stack} from '@sentry/scraps/layout';
+
+import Feature from 'sentry/components/acl/feature';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoAccess} from 'sentry/components/noAccess';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {
+  useSpanSearchQueryBuilderProps,
+  type UseSpanSearchQueryBuilderProps,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import type {TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
+import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
+import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useShowConversationOnboarding} from 'sentry/views/insights/pages/conversations/hooks/useShowConversationOnboarding';
+import {ConversationOnboarding} from 'sentry/views/insights/pages/conversations/onboarding';
+import {MAX_PICKABLE_DAYS} from 'sentry/views/insights/pages/conversations/settings';
+import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+
+const DISABLE_AGGREGATES: never[] = [];
+
+interface ConversationsOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+function ConversationsOverviewPage({
+  datePageFilterProps,
+}: ConversationsOverviewPageProps) {
+  const organization = useOrganization();
+
+  return (
+    <Feature
+      features="performance-view"
+      organization={organization}
+      renderDisabled={NoAccess}
+    >
+      <Feature
+        features="gen-ai-conversations"
+        organization={organization}
+        renderDisabled={NoAccess}
+      >
+        <ConversationsContent datePageFilterProps={datePageFilterProps} />
+      </Feature>
+    </Feature>
+  );
+}
+
+function ConversationsContent({datePageFilterProps}: ConversationsOverviewPageProps) {
+  const organization = useOrganization();
+  useDefaultToAllProjects();
+  const {
+    showOnboarding,
+    isLoading: isOnboardingLoading,
+    refetch: refetchOnboarding,
+  } = useShowConversationOnboarding();
+
+  const [urlState] = useConversationDrawerQueryState();
+  // Start fetching data and open drawer without
+  // waiting for table to finish loading
+  useConversation({conversationId: urlState.conversationId ?? ''});
+  const {openConversationViewDrawer} = useConversationViewDrawer();
+
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
+  );
+  const {unsetCursor} = useTableCursor();
+
+  useEffect(() => {
+    trackAnalytics('conversations.page-view', {
+      organization,
+    });
+  }, [organization]);
+
+  const {attributes: numberTags = [], isLoading: numberTagsLoading} =
+    useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags = [], isLoading: stringTagsLoading} =
+    useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags = [], isLoading: booleanTagsLoading} =
+    useSpanItemAttributes({}, 'boolean');
+
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+
+  const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
+    () => ({
+      initialQuery: searchQuery ?? '',
+      onSearch: (newQuery: string) => {
+        setSearchQuery(newQuery);
+        unsetCursor();
+      },
+      searchSource: 'conversations',
+      replaceRawSearchKeys: hasRawSearchReplacement
+        ? ['span.description', 'span.name']
+        : undefined,
+      matchKeySuggestions: [
+        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+      ],
+    }),
+    [hasRawSearchReplacement, searchQuery, setSearchQuery, unsetCursor]
+  );
+
+  const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
+    useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
+
+  return (
+    <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
+      <Layout.Body>
+        <Layout.Main width="full">
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <Stack gap="md">
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <InsightsProjectSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                    <InsightsEnvironmentSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                  </PageFilterBar>
+                  <AgentSelector
+                    storageKeyPrefix="conversations:agent-filter"
+                    referrer="api.insights.conversations.get-agent-names"
+                  />
+                  {!showOnboarding && !isOnboardingLoading && (
+                    <Flex flex={2}>
+                      <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+                    </Flex>
+                  )}
+                </ToolRibbon>
+                {!showOnboarding && !isOnboardingLoading && (
+                  <SchemaHintsList
+                    supportedAggregates={DISABLE_AGGREGATES}
+                    booleanTags={booleanTags as TagCollection}
+                    numberTags={numberTags as TagCollection}
+                    stringTags={stringTags as TagCollection}
+                    isLoading={
+                      numberTagsLoading || stringTagsLoading || booleanTagsLoading
+                    }
+                    exploreQuery={searchQuery ?? ''}
+                    source={SchemaHintsSources.CONVERSATIONS}
+                  />
+                )}
+              </Stack>
+            </ModuleLayout.Full>
+
+            <ModuleLayout.Full>
+              {isOnboardingLoading ? (
+                <LoadingIndicator />
+              ) : showOnboarding ? (
+                <ConversationOnboarding onDismiss={refetchOnboarding} />
+              ) : (
+                <ConversationsTable
+                  openConversationViewDrawer={openConversationViewDrawer}
+                />
+              )}
+            </ModuleLayout.Full>
+          </ModuleLayout.Layout>
+        </Layout.Main>
+      </Layout.Body>
+    </SearchQueryBuilderProvider>
+  );
+}
+
+function PageWithProviders() {
+  // EAP only retains/samples data for the last 30 days,
+  // so conversation data and aggregations are not accurate beyond that window.
+  const datePageFilterProps = useDatePageFilterProps({
+    maxPickableDays: MAX_PICKABLE_DAYS,
+    maxUpgradableDays: MAX_PICKABLE_DAYS,
+  });
+
+  return (
+    <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>
+      <ConversationsOverviewPage datePageFilterProps={datePageFilterProps} />
+    </DomainOverviewPageProviders>
+  );
+}
+
+export default PageWithProviders;

@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import AutoSelectText from 'sentry/components/autoSelectText';
-import type {LinkProps} from 'sentry/components/core/link';
-import {Link} from 'sentry/components/core/link';
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
+
+import {AutoSelectText} from 'sentry/components/autoSelectText';
 
 interface Props {
   shortId: string;
@@ -15,7 +16,7 @@ interface Props {
   to?: LinkProps['to'];
 }
 
-function ShortId({shortId, avatar, onClick, to, className}: Props) {
+export function ShortId({shortId, avatar, onClick, to, className}: Props) {
   if (!shortId) {
     return null;
   }
@@ -33,7 +34,7 @@ function ShortId({shortId, avatar, onClick, to, className}: Props) {
 }
 
 const StyledShortId = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   display: grid;
   grid-auto-flow: column;
   gap: 0.5em;
@@ -45,8 +46,6 @@ export const StyledAutoSelectText = styled(AutoSelectText)`
   min-width: 0;
 
   a & {
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
   }
 `;
-
-export default ShortId;

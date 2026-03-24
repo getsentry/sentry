@@ -1,16 +1,13 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectOption} from '@sentry/scraps/select/option';
+import {Select, SelectOption} from '@sentry/scraps/select';
 
-import {Select} from 'sentry/components/core/select';
-import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types/core';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   providerDetails,
   type IssueAlertNotificationProps,
@@ -28,7 +25,7 @@ type ChannelListResponse = {
   results: Channel[];
 };
 
-export default function MessagingIntegrationAlertRule({
+export function MessagingIntegrationAlertRule({
   channel,
   integration,
   provider,
@@ -40,7 +37,17 @@ export default function MessagingIntegrationAlertRule({
   const organization = useOrganization();
 
   const {data: channels, isPending} = useApiQuery<ChannelListResponse>(
-    [`/organizations/${organization.slug}/integrations/${integration?.id}/channels/`],
+    [
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            integrationId: integration?.id!,
+          },
+        }
+      ),
+    ],
     {
       staleTime: Infinity,
       enabled: !!provider && !!integration?.id,
@@ -129,9 +136,7 @@ export default function MessagingIntegrationAlertRule({
                 isLoading={isPending || validateChannel.isFetching}
                 disabled={!integration}
                 value={channel ? {label: channel.label, value: channel.value} : undefined}
-                onChange={(
-                  option: (SelectValue<string> & {label: string}) | undefined
-                ) => {
+                onChange={option => {
                   if (option) {
                     setChannel({value: option.value, label: option.label, new: false});
                   } else {
@@ -147,14 +152,11 @@ export default function MessagingIntegrationAlertRule({
                 // This allows them to add a channel that is not present in the results.
                 creatable
                 formatCreateLabel={(inputValue: string) => inputValue}
-                menuPlacement="auto"
                 components={{
-                  Option: (
-                    optionProps: React.ComponentProps<typeof SelectComponents.Option>
-                  ) => {
+                  Option: optionProps => {
                     return (
                       <SelectOption
-                        {...optionProps}
+                        {...(optionProps as any)}
                         data={{
                           ...optionProps.data,
                           // Hide IconAdd for new channel options by setting __isNew__ to false
@@ -175,13 +177,13 @@ export default function MessagingIntegrationAlertRule({
 }
 
 const Rule = styled('div')`
-  padding: ${space(1)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  padding: ${p => p.theme.space.md};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const InlineSelectControl = styled(Select)`

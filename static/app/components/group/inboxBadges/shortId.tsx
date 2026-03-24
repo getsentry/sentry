@@ -11,7 +11,7 @@ type Props = {
   className?: string;
 };
 
-function ShortId({shortId, avatar, className}: Props) {
+export function ShortId({shortId, avatar, className}: Props) {
   return (
     <Wrapper className={className}>
       <AvatarWrapper>{avatar}</AvatarWrapper>
@@ -20,14 +20,12 @@ function ShortId({shortId, avatar, className}: Props) {
   );
 }
 
-export default ShortId;
-
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 const AvatarWrapper = styled('div')`
   margin-right: 3px;

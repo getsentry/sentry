@@ -96,3 +96,45 @@ class DatabaseBackedUserService(TestCase):
         # Tests that only verified emails are returned
         assert verified_emails[user1.id].exists
         assert not verified_emails[user2.id].exists
+
+    def test_update_user_with_superuser_and_staff_fields(self) -> None:
+        """Test that update_user correctly handles is_superuser and is_staff fields."""
+        user = self.create_user(is_superuser=False, is_staff=False)
+
+        # Update user to have superuser and staff privileges
+        result = user_service.update_user(
+            user_id=user.id,
+            attrs={
+                "is_superuser": True,
+                "is_staff": True,
+            },
+        )
+
+        assert result is not None
+        user.refresh_from_db()
+        assert user.is_superuser is True
+        assert user.is_staff is True
+
+        result = user_service.update_user(
+            user_id=user.id,
+            attrs={
+                "is_superuser": False,
+                "is_staff": False,
+            },
+        )
+
+        assert result is not None
+        user.refresh_from_db()
+        assert user.is_staff is False
+        assert user.is_superuser is False  # type: ignore[unreachable]
+
+    def test_update_user_with_nonexistent_user(self) -> None:
+        """Test that update_user returns None for nonexistent users."""
+        result = user_service.update_user(
+            user_id=999999,
+            attrs={
+                "is_superuser": True,
+                "is_staff": True,
+            },
+        )
+        assert result is None

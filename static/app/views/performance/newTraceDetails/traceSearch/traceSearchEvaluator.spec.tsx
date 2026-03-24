@@ -5,14 +5,15 @@ import {waitFor} from 'sentry-test/reactTestingLibrary';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   makeEAPSpan,
-  makeEventTransaction,
   makeSpan,
   makeTraceError,
   makeTracePerformanceIssue,
   makeTransaction,
+  mockSpansResponse,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import {searchInTraceTreeTokens} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
 import {parseTraceSearch} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 const search = (query: string, tree: TraceTree, cb: any) => {
   searchInTraceTreeTokens(
@@ -305,7 +306,13 @@ describe('TraceSearchEvaluator', () => {
     it('text filter', async () => {
       const tree = TraceTree.FromTrace(
         {
-          transactions: [makeTransaction({'transaction.op': 'operation'})],
+          transactions: [
+            makeTransaction({
+              'transaction.op': 'operation',
+              event_id: 'txn-1',
+              project_slug: 'project-1',
+            }),
+          ],
           orphan_errors: [],
         },
         {
@@ -314,24 +321,37 @@ describe('TraceSearchEvaluator', () => {
           organization,
         }
       );
-      TraceTree.FromSpans(
-        tree.root.children[0]!,
+
+      mockSpansResponse(
         [makeSpan({op: 'db'}), makeSpan({op: 'http'})],
-        makeEventTransaction()
+        'project-1',
+        'txn-1'
       );
+
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+        api: new MockApiClient(),
+        organization,
+        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      });
 
       const cb = jest.fn();
       search('op:db', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
-      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 2, value: tree.list[2]}]);
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('text filter with prefix', async () => {
       const tree = TraceTree.FromTrace(
         {
-          transactions: [makeTransaction({'transaction.op': 'operation'})],
+          transactions: [
+            makeTransaction({
+              'transaction.op': 'operation',
+              event_id: 'txn-1',
+              project_slug: 'project-1',
+            }),
+          ],
           orphan_errors: [],
         },
         {
@@ -340,24 +360,35 @@ describe('TraceSearchEvaluator', () => {
           organization,
         }
       );
-      TraceTree.FromSpans(
-        tree.root.children[0]!,
+      mockSpansResponse(
         [makeSpan({op: 'db'}), makeSpan({op: 'http'})],
-        makeEventTransaction()
+        'project-1',
+        'txn-1'
       );
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+        api: new MockApiClient(),
+        organization,
+        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      });
 
       const cb = jest.fn();
       search('span.op:db', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
-      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 2, value: tree.list[2]}]);
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('span.duration (milliseconds)', async () => {
       const tree = TraceTree.FromTrace(
         {
-          transactions: [makeTransaction({'transaction.op': 'operation'})],
+          transactions: [
+            makeTransaction({
+              'transaction.op': 'operation',
+              event_id: 'txn-1',
+              project_slug: 'project-1',
+            }),
+          ],
           orphan_errors: [],
         },
         {
@@ -366,27 +397,38 @@ describe('TraceSearchEvaluator', () => {
           organization,
         }
       );
-      TraceTree.FromSpans(
-        tree.root.children[0]!,
+      mockSpansResponse(
         [
           makeSpan({start_timestamp: 0, timestamp: 1}),
           makeSpan({start_timestamp: 0, timestamp: 0.5}),
         ],
-        makeEventTransaction()
+        'project-1',
+        'txn-1'
       );
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+        api: new MockApiClient(),
+        organization,
+        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      });
 
       const cb = jest.fn();
       search('span.duration:>500ms', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
-      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 2, value: tree.list[2]}]);
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('span.duration (seconds)', async () => {
       const tree = TraceTree.FromTrace(
         {
-          transactions: [makeTransaction({'transaction.op': 'operation'})],
+          transactions: [
+            makeTransaction({
+              'transaction.op': 'operation',
+              event_id: 'txn-1',
+              project_slug: 'project-1',
+            }),
+          ],
           orphan_errors: [],
         },
         {
@@ -395,27 +437,38 @@ describe('TraceSearchEvaluator', () => {
           organization,
         }
       );
-      TraceTree.FromSpans(
-        tree.root.children[0]!,
+      mockSpansResponse(
         [
           makeSpan({start_timestamp: 0, timestamp: 1}),
           makeSpan({start_timestamp: 0, timestamp: 0.5}),
         ],
-        makeEventTransaction()
+        'project-1',
+        'txn-1'
       );
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+        api: new MockApiClient(),
+        organization,
+        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      });
 
       const cb = jest.fn();
       search('span.duration:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
-      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 2, value: tree.list[2]}]);
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('span.total_time', async () => {
       const tree = TraceTree.FromTrace(
         {
-          transactions: [makeTransaction({'transaction.op': 'operation'})],
+          transactions: [
+            makeTransaction({
+              'transaction.op': 'operation',
+              event_id: 'txn-1',
+              project_slug: 'project-1',
+            }),
+          ],
           orphan_errors: [],
         },
         {
@@ -424,26 +477,37 @@ describe('TraceSearchEvaluator', () => {
           organization,
         }
       );
-      TraceTree.FromSpans(
-        tree.root.children[0]!,
+      mockSpansResponse(
         [
           makeSpan({start_timestamp: 0, timestamp: 1}),
           makeSpan({start_timestamp: 0, timestamp: 0.5}),
         ],
-        makeEventTransaction()
+        'project-1',
+        'txn-1'
       );
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+        api: new MockApiClient(),
+        organization,
+        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      });
 
       const cb = jest.fn();
       search('span.total_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
-      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 2, value: tree.list[2]}]);
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
     it('span.self_time', async () => {
       const tree = TraceTree.FromTrace(
         {
-          transactions: [makeTransaction({'transaction.op': 'operation'})],
+          transactions: [
+            makeTransaction({
+              'transaction.op': 'operation',
+              event_id: 'txn-1',
+              project_slug: 'project-1',
+            }),
+          ],
           orphan_errors: [],
         },
         {
@@ -452,23 +516,34 @@ describe('TraceSearchEvaluator', () => {
           organization,
         }
       );
-      TraceTree.FromSpans(
-        tree.root.children[0]!,
+      mockSpansResponse(
         [makeSpan({exclusive_time: 1000}), makeSpan({exclusive_time: 500})],
-        makeEventTransaction()
+        'project-1',
+        'txn-1'
       );
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+        api: new MockApiClient(),
+        organization,
+        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      });
 
       const cb = jest.fn();
       search('span.self_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
-      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 2, value: tree.list[2]}]);
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
     it('span.exclusive_time', async () => {
       const tree = TraceTree.FromTrace(
         {
-          transactions: [makeTransaction({'transaction.op': 'operation'})],
+          transactions: [
+            makeTransaction({
+              'transaction.op': 'operation',
+              event_id: 'txn-1',
+              project_slug: 'project-1',
+            }),
+          ],
           orphan_errors: [],
         },
         {
@@ -477,23 +552,34 @@ describe('TraceSearchEvaluator', () => {
           organization,
         }
       );
-      TraceTree.FromSpans(
-        tree.root.children[0]!,
+      mockSpansResponse(
         [makeSpan({exclusive_time: 1000}), makeSpan({exclusive_time: 500})],
-        makeEventTransaction()
+        'project-1',
+        'txn-1'
       );
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+        api: new MockApiClient(),
+        organization,
+        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      });
 
       const cb = jest.fn();
       search('span.exclusive_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
-      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 2, value: tree.list[2]}]);
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
     it('exclusive_time', async () => {
       const tree = TraceTree.FromTrace(
         {
-          transactions: [makeTransaction({'transaction.op': 'operation'})],
+          transactions: [
+            makeTransaction({
+              'transaction.op': 'operation',
+              event_id: 'txn-1',
+              project_slug: 'project-1',
+            }),
+          ],
           orphan_errors: [],
         },
         {
@@ -502,17 +588,22 @@ describe('TraceSearchEvaluator', () => {
           organization,
         }
       );
-      TraceTree.FromSpans(
-        tree.root.children[0]!,
+      mockSpansResponse(
         [makeSpan({exclusive_time: 1000}), makeSpan({exclusive_time: 500})],
-        makeEventTransaction()
+        'project-1',
+        'txn-1'
       );
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+        api: new MockApiClient(),
+        organization,
+        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      });
 
       const cb = jest.fn();
       search('exclusive_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
-      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 2, value: tree.list[2]}]);
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
   });

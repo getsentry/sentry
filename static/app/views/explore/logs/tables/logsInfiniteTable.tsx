@@ -1,22 +1,23 @@
 import type {CSSProperties, RefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import FileSize from 'sentry/components/fileSize';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import JumpButtons from 'sentry/components/replays/jumpButtons';
-import useJumpButtons from 'sentry/components/replays/useJumpButtons';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {FileSize} from 'sentry/components/fileSize';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {JumpButtons} from 'sentry/components/replays/jumpButtons';
+import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -77,6 +78,7 @@ type LogsTableProps = {
     scrollToDisabled?: boolean;
   };
   allowPagination?: boolean;
+  booleanAttributes?: TagCollection;
   embedded?: boolean;
   embeddedOptions?: {
     openWithExpandedIds?: string[];
@@ -96,6 +98,8 @@ type LogsTableProps = {
   stringAttributes?: TagCollection;
 };
 
+const {info, fmt} = Sentry.logger;
+
 const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // If you are less than this number of pixels from the top of the table while scrolling backward, fetch the previous page.
 const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible area.
 
@@ -105,12 +109,12 @@ export function LogsInfiniteTable({
   emptyRenderer,
   numberAttributes,
   stringAttributes,
+  booleanAttributes,
   scrollContainer,
   embeddedStyling,
   embeddedOptions,
   additionalData,
 }: LogsTableProps) {
-  const theme = useTheme();
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
@@ -154,7 +158,7 @@ export function LogsInfiniteTable({
     return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
   }, [additionalData, baseData, isPending, isError]);
 
-  const data: LogTableRowItem[] = useMemo(() => {
+  const data = useMemo(() => {
     if (
       !additionalData?.event ||
       !baseData ||
@@ -241,13 +245,15 @@ export function LogsInfiniteTable({
     [expandedLogRowsHeights, data]
   );
 
+  const searchString = search.formatString();
   const highlightTerms = useMemo(() => {
     const terms = getLogBodySearchTerms(search);
     if (localOnlyItemFilters?.filterText) {
       terms.push(localOnlyItemFilters.filterText);
     }
     return terms;
-  }, [search, localOnlyItemFilters?.filterText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchString, localOnlyItemFilters?.filterText]);
 
   const windowVirtualizer = useWindowVirtualizer({
     count: data?.length ?? 0,
@@ -411,28 +417,36 @@ export function LogsInfiniteTable({
   const tableStaticCSS = useMemo(() => {
     return {
       '.log-table-row-chevron-button': {
-        width: theme.isChonk ? '24px' : '18px',
-        height: theme.isChonk ? '24px' : '18px',
-        padding: `${space(0.5)} ${space(0.75)}`,
+        width: '24px',
+        height: '24px',
+        padding: '4px 6px',
         marginRight: '4px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       },
     };
-  }, [theme.isChonk]);
+  }, []);
 
   // For replay context, render empty states outside the table for proper centering
   if (hasReplay && (isPending || isError || isEmpty)) {
     return (
       <Fragment>
-        <CenteredEmptyStateContainer>
+        <Flex justify="center" align="center" height="100%" minHeight="200px">
           {isPending && <LoadingRenderer />}
           {isError && <ErrorRenderer />}
           {isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
-        </CenteredEmptyStateContainer>
+        </Flex>
       </Fragment>
     );
+  }
+
+  if (originalData.length < 20 && originalData.length > 0 && !isPending && !isError) {
+    if (virtualItems.length !== originalData.length) {
+      info(
+        fmt`Mismatch in virtualItems.length and data.length: virtualItems.length: ${virtualItems.length}, data.length: ${originalData.length}`
+      );
+    }
   }
 
   return (
@@ -450,6 +464,7 @@ export function LogsInfiniteTable({
             isFrozen={embedded}
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
+            booleanAttributes={booleanAttributes}
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
@@ -501,7 +516,6 @@ export function LogsInfiniteTable({
                   embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
-                  canDeferRenderElements
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   logStart={logStart}
@@ -555,10 +569,11 @@ export function LogsInfiniteTable({
 
 function LogsTableHeader({
   isFrozen,
+  booleanAttributes,
   numberAttributes,
   stringAttributes,
   onResizeMouseDown,
-}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes'> & {
+}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes' | 'booleanAttributes'> & {
   isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
@@ -581,7 +596,8 @@ function LogsTableHeader({
           const headerLabel = getTableHeaderLabel(
             field,
             stringAttributes,
-            numberAttributes
+            numberAttributes,
+            booleanAttributes
           );
 
           if (isPending) {
@@ -695,7 +711,7 @@ function EmptyRenderer({
 function ErrorRenderer() {
   return (
     <TableStatus>
-      <IconWarning color="gray300" size="lg" />
+      <IconWarning variant="muted" size="lg" />
     </TableStatus>
   );
 }
@@ -703,7 +719,7 @@ function ErrorRenderer() {
 export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
   return (
     <TableStatus>
-      <LoadingStateContainer>
+      <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
           {defined(bytesScanned) && bytesScanned > 0 && (
@@ -718,16 +734,10 @@ export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
             </Fragment>
           )}
         </EmptyStateText>
-      </LoadingStateContainer>
+      </Stack>
     </TableStatus>
   );
 }
-
-const LoadingStateContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)<{
   margin: CSSProperties['margin'];
@@ -756,14 +766,6 @@ function HoveringRowLoadingRenderer({
     </HoveringRowLoadingRendererContainer>
   );
 }
-
-const CenteredEmptyStateContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  min-height: 200px;
-`;
 
 function BackToTopButton({
   virtualizer,

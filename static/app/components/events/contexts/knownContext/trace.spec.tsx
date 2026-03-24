@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ContextCard from 'sentry/components/events/contexts/contextCard';
+import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import {
   getTraceContextData,
   type TraceContext,
@@ -162,5 +162,22 @@ describe('TraceContext', () => {
     expect(screen.getByRole('link', {name: TRACE_ID})).toBeInTheDocument();
     expect(screen.getByText('Origin')).toBeInTheDocument();
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
+  });
+
+  it('returns trace_id with tooltip when trace is not sampled', () => {
+    const result = getTraceContextData({
+      data: {trace_id: TRACE_ID, sampled: false},
+      event: EventFixture(),
+      organization,
+      location,
+    });
+
+    const traceItem = result.find(item => item.key === 'trace_id');
+    expect(traceItem).toMatchObject({
+      key: 'trace_id',
+      subject: 'Trace ID',
+    });
+    // When not sampled, value is a React element (Tooltip) not a string
+    expect(traceItem?.action).toBeUndefined();
   });
 });

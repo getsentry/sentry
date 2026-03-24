@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.utils import json, metrics
 
@@ -64,7 +64,7 @@ def to_order_independent_string(val: Any) -> str:
     return ret_val
 
 
-@region_silo_model
+@cell_silo_model
 class CustomDynamicSamplingRuleProject(Model):
     """
     Many-to-many relationship between a custom dynamic sampling rule and a project.
@@ -83,7 +83,7 @@ class CustomDynamicSamplingRuleProject(Model):
         unique_together = (("custom_dynamic_sampling_rule", "project"),)
 
 
-@region_silo_model
+@cell_silo_model
 class CustomDynamicSamplingRule(Model):
     """
     This represents a custom dynamic sampling rule that is created by the user based
@@ -279,8 +279,7 @@ class CustomDynamicSamplingRule(Model):
         """
         CustomDynamicSamplingRule.objects.filter(
             # give it a minute grace period to make sure we don't deactivate rules that are still active
-            end_date__lt=timezone.now()
-            - timedelta(minutes=1),
+            end_date__lt=timezone.now() - timedelta(minutes=1),
         ).update(is_active=False)
 
     @staticmethod

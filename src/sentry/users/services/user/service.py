@@ -314,8 +314,32 @@ class UserService(RpcService):
         """
         pass
 
+    @rpc_method
+    @abstractmethod
+    def add_permission(self, *, user_id: int, permission: str) -> bool:
+        """
+        Add a permission to a user
 
-@back_with_silo_cache("user_service.get_user", SiloMode.REGION, RpcUser)
+        :param user_id: The user to add the permission to.
+        :param permission: The permission name to add (e.g., "superuser.write").
+        :return: True if permission was added, False if it already existed.
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def remove_permission(self, *, user_id: int, permission: str) -> bool:
+        """
+        Remove a permission from a user
+
+        :param user_id: The user to remove the permission from.
+        :param permission: The permission name to remove (e.g., "superuser.write").
+        :return: True if permission was removed, False if it didn't exist.
+        """
+        pass
+
+
+@back_with_silo_cache("user_service.get_user", SiloMode.CELL, RpcUser)
 def get_user(user_id: int) -> RpcUser | None:
     users = user_service.get_many(filter={"user_ids": [user_id]})
     if len(users) > 0:
@@ -323,7 +347,7 @@ def get_user(user_id: int) -> RpcUser | None:
     return None
 
 
-@back_with_silo_cache_many("user_service.get_many_by_id", SiloMode.REGION, RpcUser)
+@back_with_silo_cache_many("user_service.get_many_by_id", SiloMode.CELL, RpcUser)
 def get_many_by_id(ids: list[int]) -> list[RpcUser]:
     return user_service.get_many(filter={"user_ids": ids})
 

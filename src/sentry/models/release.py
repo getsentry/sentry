@@ -24,7 +24,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -98,8 +98,11 @@ class ReleaseModelManager(BaseManager["Release"]):
     def get_queryset(self) -> ReleaseQuerySet:
         return ReleaseQuerySet(self.model, using=self._db)
 
-    def annotate_prerelease_column(self):
+    def annotate_prerelease_column(self) -> ReleaseQuerySet:
         return self.get_queryset().annotate_prerelease_column()
+
+    def annotate_build_code_column(self) -> ReleaseQuerySet:
+        return self.get_queryset().annotate_build_code_column()
 
     def filter_to_semver(self) -> ReleaseQuerySet:
         return self.get_queryset().filter_to_semver()
@@ -189,7 +192,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         return release_version or None
 
 
-@region_silo_model
+@cell_silo_model
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a
@@ -300,6 +303,18 @@ class Release(Model):
     __repr__ = sane_repr("organization_id", "version")
 
     SEMVER_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
+
+    SEMVER_COLS_WITH_BUILD_CODE = [
+        "major",
+        "minor",
+        "patch",
+        "revision",
+        "prerelease_case",
+        "prerelease",
+        "build_code_case",
+        "build_number",
+        "build_code",
+    ]
 
     def __eq__(self, other: object) -> bool:
         """Make sure that specialized releases are only comparable to the same
@@ -785,10 +800,9 @@ class Release(Model):
             GroupRelease.objects.filter(release_id=OuterRef("id"), last_seen__gte=cutoff_date)
         )
 
-        # Subquery for checking if there are recent group resolutions (within 90 days)
-        recent_group_resolutions_exist = Exists(
-            GroupResolution.objects.filter(release_id=OuterRef("id"), datetime__gte=cutoff_date)
-        )
+        # Check ALL GroupResolutions (not just recent) - needed by GroupResolution.has_resolution()
+        # Deleting releases with GroupResolutions breaks regression detection for resolved issues.
+        group_resolutions_exist = Exists(GroupResolution.objects.filter(release_id=OuterRef("id")))
 
         # Subquery for checking if GroupEnvironment has this release as first_release
         group_environment_first_release_exists = Exists(
@@ -808,8 +822,8 @@ class Release(Model):
             | group_environment_first_release_exists
             # Releases referenced by group history
             | group_history_exists
-            # Releases with recent group resolutions (only recent ones, old ones can be cleaned up)
-            | recent_group_resolutions_exist
+            # Releases with any group resolutions (keeps resolution tracking intact)
+            | group_resolutions_exist
             # Releases with recent distributions (only recent ones, old ones can be cleaned up)
             | recent_distributions_exist
             # Releases with recent deploys (only recent ones, old ones can be cleaned up)

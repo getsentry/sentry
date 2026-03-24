@@ -1,6 +1,5 @@
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
-export type AITraceSpanNode = TraceTreeNode<
-  TraceTree.Transaction | TraceTree.EAPSpan | TraceTree.Span
->;
+export type AITraceSpanNode = TransactionNode | EapSpanNode | SpanNode;

@@ -1,7 +1,5 @@
 import type {Theme} from '@emotion/react';
 
-import {space} from 'sentry/styles/space';
-
 type Options = {
   theme: Theme;
   minHeight?: number;
@@ -14,8 +12,8 @@ type Options = {
  */
 export function mentionStyle({theme, minHeight, streamlined}: Options) {
   const inputProps = {
-    fontSize: theme.fontSize.md,
-    padding: `${space(1.5)} ${space(2)}`,
+    fontSize: theme.font.size.md,
+    padding: `${theme.space.lg} ${theme.space.xl}`,
     outline: 0,
     border: 0,
     minHeight,
@@ -23,10 +21,10 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
   };
 
   const streamlinedInputProps = {
-    fontSize: theme.fontSize.md,
-    padding: `${space(1)} ${space(1.5)}`,
+    fontSize: theme.font.size.md,
+    padding: `${theme.space.md} ${theme.space.lg}`,
     outline: 0,
-    border: `1px solid ${theme.border}`,
+    border: `1px solid ${theme.tokens.border.primary}`,
     borderRadius: theme.radius.md,
     minHeight,
     overflow: 'auto',
@@ -34,7 +32,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
 
   return {
     control: {
-      backgroundColor: `${theme.tokens.background.primary}`,
+      backgroundColor: theme.tokens.background.primary,
       fontSize: 15,
       fontWeight: 'normal',
     },
@@ -62,7 +60,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
 
     '&multiLine': {
       control: {
-        fontFamily: theme.text.family,
+        fontFamily: theme.font.family.sans,
         minHeight,
       },
 
@@ -76,18 +74,18 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
         maxHeight: 142,
         minWidth: 220,
         overflow: 'auto',
-        backgroundColor: `${theme.tokens.background.primary}`,
+        backgroundColor: theme.tokens.background.primary,
         border: '1px solid rgba(0,0,0,0.15)',
         borderRadius: theme.radius.md,
-        fontSize: theme.fontSize.sm,
-        padding: space(0.5),
+        fontSize: theme.font.size.sm,
+        padding: theme.space.xs,
       },
 
       item: {
-        padding: space(0.5),
+        padding: theme.space.xs,
         borderRadius: theme.radius.md,
         '&focused': {
-          backgroundColor: theme.hover,
+          backgroundColor: theme.tokens.interactive.transparent.neutral.background.active,
         },
       },
     },

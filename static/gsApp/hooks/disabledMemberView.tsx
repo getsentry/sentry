@@ -1,29 +1,30 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import Footer from 'sentry/components/footer';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageOverlay from 'sentry/components/pageOverlay';
+import {Confirm} from 'sentry/components/confirm';
+import {Footer} from 'sentry/components/footer';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageOverlay} from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
-import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
-import {UserDropdown} from 'sentry/views/nav/userDropdown';
+import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
+import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
-import DeactivatedMember from 'getsentry/components/features/illustrations/deactivatedMember';
-import withSubscription from 'getsentry/components/withSubscription';
+import {DeactivatedMember} from 'getsentry/components/features/illustrations/deactivatedMember';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
   subscription: Subscription;
@@ -43,7 +44,12 @@ function DisabledMemberView(props: Props) {
     isError,
     refetch,
   } = useApiQuery<Organization>(
-    [`/organizations/${orgSlug}/`, {query: {detailed: '0', include_feature_flags: '1'}}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {query: {detailed: '0', include_feature_flags: '1'}},
+    ],
     {
       staleTime: 0,
     }
@@ -118,9 +124,9 @@ function DisabledMemberView(props: Props) {
     </Button>
   );
   return (
-    <PageContainer>
+    <Stack flexGrow={1} minHeight="100vh">
       <MinimalistSidebar>
-        {organization ? <OrgDropdown hideOrgLinks /> : null}
+        {organization ? <OrganizationDropdown hideCurrentOrganizationLinks /> : null}
         {<UserDropdown />}
       </MinimalistSidebar>
 
@@ -190,7 +196,7 @@ function DisabledMemberView(props: Props) {
         />
       )}
       <Footer />
-    </PageContainer>
+    </Stack>
   );
 }
 
@@ -198,24 +204,17 @@ export default withSubscription(DisabledMemberView);
 
 const MinimalistSidebar = styled('div')`
   height: 60px;
-  border-bottom: 1px solid
-    ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
-  background: ${p =>
-    p.theme.isChonk ? p.theme.tokens.background.primary : p.theme.surface300};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.primary};
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
 `;
 
-const PageContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  min-height: 100vh;
-`;
-
-const DisabledMemberButtonBar = styled(ButtonBar)`
+const DisabledMemberButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   max-width: fit-content;
 `;
 

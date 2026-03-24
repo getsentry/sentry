@@ -1,9 +1,10 @@
 import {Component, Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Alert} from '@sentry/scraps/alert';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
@@ -11,8 +12,8 @@ import {
   comparePermissionLevels,
   toResourcePermissions,
 } from 'sentry/utils/consolidatedScopes';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
-import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 type DefaultProps = {
   appPublished: boolean;
@@ -31,7 +32,7 @@ type State = {
   permissions: Permissions;
 };
 
-export default class PermissionsObserver extends Component<Props, State> {
+export class PermissionsObserver extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
     appPublished: false,
@@ -94,7 +95,7 @@ export default class PermissionsObserver extends Component<Props, State> {
     if (!this.props.newApp && elevating === true) {
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {t(
               'You are going to increase privileges for this integration. Organization members who already had access to the Client Secret may gain extra permissions due to this change. If this is not what you are expecting, consider rotating the Client Secret below.'
             )}

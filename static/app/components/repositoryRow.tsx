@@ -1,19 +1,22 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/integrations';
-import Access from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {Access} from 'sentry/components/acl/access';
+import {Confirm} from 'sentry/components/confirm';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
 import {IconDelete} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = {
   orgSlug: string;
@@ -22,22 +25,7 @@ type Props = {
   showProvider?: boolean;
 };
 
-function getStatusLabel(repo: Repository) {
-  switch (repo.status) {
-    case RepositoryStatus.PENDING_DELETION:
-      return 'Deletion Queued';
-    case RepositoryStatus.DELETION_IN_PROGRESS:
-      return 'Deletion in Progress';
-    case RepositoryStatus.DISABLED:
-      return 'Disabled';
-    case RepositoryStatus.HIDDEN:
-      return 'Disabled';
-    default:
-      return null;
-  }
-}
-
-function RepositoryRow({
+export function RepositoryRow({
   repository,
   onRepositoryChange,
   orgSlug,
@@ -49,9 +37,7 @@ function RepositoryRow({
   const cancelDelete = () =>
     cancelDeleteRepository(api, orgSlug, repository.id).then(
       data => {
-        if (onRepositoryChange) {
-          onRepositoryChange(data);
-        }
+        onRepositoryChange?.(data);
       },
       () => {}
     );
@@ -59,71 +45,89 @@ function RepositoryRow({
   const deleteRepo = () =>
     hideRepository(api, orgSlug, repository.id).then(
       data => {
-        if (onRepositoryChange) {
-          onRepositoryChange(data);
-        }
+        onRepositoryChange?.(data);
       },
       () => {}
     );
-
-  const renderDeleteButton = (hasAccess: boolean) => (
-    <Tooltip
-      title={t(
-        'You must be an organization owner, manager or admin to remove a repository.'
-      )}
-      disabled={hasAccess}
-    >
-      <Confirm
-        disabled={
-          !hasAccess || (!isActive && repository.status !== RepositoryStatus.DISABLED)
-        }
-        onConfirm={deleteRepo}
-        message={t(
-          'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
-        )}
-      >
-        <StyledButton
-          size="xs"
-          icon={<IconDelete />}
-          aria-label={t('delete')}
-          disabled={!hasAccess}
-        />
-      </Confirm>
-    </Tooltip>
-  );
 
   return (
     <Access access={['org:integrations']}>
       {({hasAccess}) => (
         <StyledPanelItem status={repository.status}>
-          <RepositoryTitleAndUrl>
-            <RepositoryTitle>
-              <strong>{repository.name}</strong>
-              {!isActive && <small> &mdash; {getStatusLabel(repository)}</small>}
-              {repository.status === RepositoryStatus.PENDING_DELETION && (
-                <StyledButton
+          <Flex gap="md" justify="between" align="center" flex={1}>
+            <Stack>
+              <RepositoryTitle>
+                <Flex gap="md">
+                  <strong>{repository.name}</strong>
+                  {!isActive && <small> &mdash; {getRepoStatusLabel(repository)}</small>}
+                  {repository.status === RepositoryStatus.PENDING_DELETION && (
+                    <Button
+                      size="xs"
+                      onClick={cancelDelete}
+                      disabled={!hasAccess}
+                      data-test-id="repo-cancel"
+                    >
+                      {t('Cancel')}
+                    </Button>
+                  )}
+                </Flex>
+              </RepositoryTitle>
+              <div>
+                {showProvider && (
+                  <Flex as="span" align="center" gap="xs" display="inline-flex">
+                    <small>{repository.provider.name}</small>
+                    {repository.provider.id === 'unknown' && (
+                      <QuestionTooltip
+                        isHoverable
+                        size="xs"
+                        title={tct(
+                          'This repository is not linked to a source code management integration. It was detected from your release or stack trace data. [link:Set up an integration].',
+                          {
+                            link: <Link to={`/settings/${orgSlug}/integrations/`} />,
+                          }
+                        )}
+                      />
+                    )}
+                  </Flex>
+                )}
+                {showProvider && repository.url && <span>&nbsp;&mdash;&nbsp;</span>}
+                {repository.url && (
+                  <small>
+                    <ExternalLink href={repository.url}>
+                      {repository.url.replace('https://', '')}
+                    </ExternalLink>
+                  </small>
+                )}
+              </div>
+            </Stack>
+            <Tooltip
+              title={t(
+                'You must be an organization owner, manager or admin to remove a repository.'
+              )}
+              disabled={hasAccess}
+            >
+              <Confirm
+                disabled={
+                  !hasAccess ||
+                  (!isActive && repository.status !== RepositoryStatus.DISABLED)
+                }
+                onConfirm={deleteRepo}
+                message={t(
+                  'Are you sure you want to remove %s? All associated commit data will be removed in addition to the repository.',
+                  <code>{repository.name}</code>
+                )}
+              >
+                <Button
                   size="xs"
-                  onClick={cancelDelete}
+                  priority="danger"
+                  icon={<IconDelete />}
                   disabled={!hasAccess}
-                  data-test-id="repo-cancel"
                 >
-                  {t('Cancel')}
-                </StyledButton>
-              )}
-            </RepositoryTitle>
-            <div>
-              {showProvider && <small>{repository.provider.name}</small>}
-              {showProvider && repository.url && <span>&nbsp;&mdash;&nbsp;</span>}
-              {repository.url && (
-                <small>
-                  <ExternalLink href={repository.url}>
-                    {repository.url.replace('https://', '')}
-                  </ExternalLink>
-                </small>
-              )}
-            </div>
-          </RepositoryTitleAndUrl>
-          {renderDeleteButton(hasAccess)}
+                  {t('Delete')}
+                </Button>
+              </Confirm>
+            </Tooltip>
+          </Flex>
         </StyledPanelItem>
       )}
     </Access>
@@ -132,7 +136,7 @@ function RepositoryRow({
 
 const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
   /* shorter top padding because of title lineheight */
-  padding: ${space(1)} ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   justify-content: space-between;
   align-items: center;
   flex: 1;
@@ -149,18 +153,7 @@ const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
   }
 `;
 
-const StyledButton = styled(Button)`
-  margin-left: ${space(1)};
-`;
-
-const RepositoryTitleAndUrl = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const RepositoryTitle = styled('div')`
   /* accommodate cancel button height */
   line-height: 26px;
 `;
-
-export default RepositoryRow;

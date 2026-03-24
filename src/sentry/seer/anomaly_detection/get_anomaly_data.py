@@ -1,14 +1,14 @@
 import logging
 
 from django.conf import settings
-from urllib3 import Retry
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import (
     SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
     SEER_ANOMALY_DETECTION_ENDPOINT_URL,
 )
-from sentry.incidents.handlers.condition.anomaly_detection_handler import AnomalyDetectionUpdate
+from sentry.incidents.utils.types import AnomalyDetectionValues
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
@@ -20,23 +20,76 @@ from sentry.seer.anomaly_detection.types import (
     DataSourceType,
     DetectAnomaliesRequest,
     DetectAnomaliesResponse,
+    GetAnomalyThresholdDataRequest,
     SeerDetectorDataResponse,
     TimeSeriesPoint,
 )
-from sentry.seer.anomaly_detection.utils import translate_direction
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.anomaly_detection.utils import get_aggregate_type, translate_direction
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
+
+def _adjust_timestamps_for_time_window(
+    data_points: list[TimeSeriesPoint] | list[AnomalyThresholdDataPoint],
+    time_window_seconds: int,
+    detector_created_at: float,
+) -> None:
+    """
+    Adjust timestamps in-place to be one time window behind for data points
+    that were created after the detector was created. Historical data points
+    (before detector creation) remain unchanged.
+
+    Seer returns end-of-bucket timestamps, but we want start-of-bucket timestamps
+    for data points generated after the detector was created.
+    """
+    for point in data_points:
+        if point["timestamp"] >= detector_created_at:
+            point["timestamp"] = point["timestamp"] - time_window_seconds
+
+
 SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
-SEER_RETRIES = Retry(total=2, backoff_factor=0.5)
+SEER_RETRIES = Retry(
+    total=2,
+    backoff_factor=0.5,
+    status_forcelist=[408, 429, 502, 503, 504],
+    allowed_methods=["GET", "POST"],
+)
+
+
+def make_detect_anomalies_request(
+    body: DetectAnomaliesRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or SEER_ANOMALY_DETECTION_CONNECTION_POOL,
+        SEER_ANOMALY_DETECTION_ENDPOINT_URL,
+        body=json.dumps(body).encode("utf-8"),
+        retries=SEER_RETRIES,
+        viewer_context=viewer_context,
+    )
+
+
+def make_get_anomaly_threshold_data_request(
+    body: GetAnomalyThresholdDataRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or SEER_ANOMALY_DETECTION_CONNECTION_POOL,
+        SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
+        body=json.dumps(body).encode("utf-8"),
+        retries=SEER_RETRIES,
+        viewer_context=viewer_context,
+    )
 
 
 def get_anomaly_data_from_seer(
@@ -44,14 +97,15 @@ def get_anomaly_data_from_seer(
     seasonality: AnomalyDetectionSeasonality,
     threshold_type: AnomalyDetectionThresholdType,
     subscription: QuerySubscription,
-    subscription_update: AnomalyDetectionUpdate,
+    subscription_update: AnomalyDetectionValues,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query: SnubaQuery = subscription.snuba_query
     aggregation_value = subscription_update.get("value")
     source_id = subscription.id
     source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
-    if aggregation_value is None:
-        logger.error(
+
+    if aggregation_value is None or str(aggregation_value) == "nan":
+        logger.warning(
             "Invalid aggregation value", extra={"source_id": source_id, "source_type": source_type}
         )
         return None
@@ -72,6 +126,8 @@ def get_anomaly_data_from_seer(
         direction=translate_direction(threshold_type),
         expected_seasonality=seasonality,
     )
+    if aggregate_type := get_aggregate_type(snuba_query.aggregate):
+        anomaly_detection_config["aggregate"] = aggregate_type
     context = AlertInSeer(
         id=None,
         source_id=source_id,
@@ -87,11 +143,9 @@ def get_anomaly_data_from_seer(
     extra_data["dataset"] = snuba_query.dataset
     try:
         logger.info("Sending subscription update data to Seer", extra=extra_data)
-        response = make_signed_seer_api_request(
-            SEER_ANOMALY_DETECTION_CONNECTION_POOL,
-            SEER_ANOMALY_DETECTION_ENDPOINT_URL,
-            json.dumps(detect_anomalies_request).encode("utf-8"),
-            retries=SEER_RETRIES,
+        viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
+        response = make_detect_anomalies_request(
+            detect_anomalies_request, viewer_context=viewer_context
         )
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
@@ -170,31 +224,24 @@ def get_anomaly_threshold_data_from_seer(
     source_id = subscription.id
     source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
 
-    payload = {
-        "alert": {
-            "id": None,
-            "source_id": source_id,
-            "source_type": source_type,
-        },
-        "start": start,
-        "end": end,
-    }
+    body = GetAnomalyThresholdDataRequest(
+        alert=AlertInSeer(id=None, source_id=source_id, source_type=source_type),
+        start=start,
+        end=end,
+    )
+    viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
     try:
-        response = make_signed_seer_api_request(
-            connection_pool=SEER_ANOMALY_DETECTION_CONNECTION_POOL,
-            path=SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
-            body=json.dumps(payload).encode("utf-8"),
-        )
+        response = make_get_anomaly_threshold_data_request(body, viewer_context=viewer_context)
     except (TimeoutError, MaxRetryError):
-        logger.warning("Timeout error when hitting anomaly detection detector data endpoint")
+        logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")
         return None
 
     if response.status >= 400:
         logger.error(
-            "Error when hitting Seer detector data endpoint",
+            "anomaly_threshold.seer_http_error",
             extra={
                 "response_data": response.data,
-                "payload": payload,
+                "payload": body,
                 "status": response.status,
             },
         )
@@ -204,19 +251,37 @@ def get_anomaly_threshold_data_from_seer(
         results: SeerDetectorDataResponse = json.loads(response.data.decode("utf-8"))
     except JSONDecodeError:
         logger.exception(
-            "Failed to parse Seer detector data response",
+            "anomaly_threshold.failed_to_parse_seer_detector_data_response",
             extra={
                 "response_data": response.data,
-                "payload": payload,
+                "payload": body,
             },
         )
         return None
 
     if not results.get("success"):
         detailed_error_message = results.get("message", "<unknown>")
-        # We want Sentry to group them by error message.
-        msg = f"Error when hitting Seer detector data endpoint: {detailed_error_message}"
-        logger.warning(msg)
+        logger.warning(
+            "anomaly_threshold.seer_returned_failure",
+            extra={"error_message": detailed_error_message},
+        )
         return None
 
-    return results.get("data")
+    data = results.get("data")
+    if data:
+        # Adjust timestamps to be one time window behind for data points after detector creation
+        snuba_query: SnubaQuery = subscription.snuba_query
+        _adjust_timestamps_for_time_window(
+            data_points=data,
+            time_window_seconds=snuba_query.time_window,
+            detector_created_at=subscription.date_added.timestamp(),
+        )
+        logger.info(
+            "anomaly_threshold.success",
+            extra={
+                "source_id": source_id,
+                "source_type": source_type,
+                "data_points_count": len(data),
+            },
+        )
+    return data

@@ -15,19 +15,19 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 
-import triggerChangePlanAction from 'admin/components/changePlanAction';
+import {triggerChangePlanAction} from 'admin/components/changePlanAction';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {PlanTier, type Subscription} from 'getsentry/types';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import {PlanTier} from 'getsentry/types';
 
 describe('ChangePlanAction', () => {
   const mockOrg = OrganizationFixture({slug: 'org-slug'});
-  const subscription: Subscription = SubscriptionFixture({
+  const subscription = SubscriptionFixture({
     organization: mockOrg,
     planTier: PlanTier.AM3,
     plan: 'am3_business',
@@ -91,13 +91,14 @@ describe('ChangePlanAction', () => {
 
     // Set up default subscription response
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
+      url: `/customers/${mockOrg.slug}/`,
       body: subscription,
     });
 
     MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+      url: `/customers/${mockOrg.slug}/billing-config/`,
       body: BILLING_CONFIG,
+      match: [MockApiClient.matchQuery({tier: 'all'})],
     });
   });
 
@@ -156,7 +157,7 @@ describe('ChangePlanAction', () => {
 
     // Verify tab change changes categories displayed
     expect(screen.getAllByRole('textbox')).toHaveLength(
-      PlanDetailsLookupFixture('am2_business')!.checkoutCategories.length + 2 // +2 for audit fields
+      PlanDetailsLookupFixture('am2_business').checkoutCategories.length + 2 // +2 for audit fields
     );
     expect(screen.getByRole('textbox', {name: 'Performance units'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
@@ -184,7 +185,7 @@ describe('ChangePlanAction', () => {
     });
     SubscriptionStore.set(mockOrg.slug, ntSubscription);
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
+      url: `/customers/${mockOrg.slug}/`,
       body: ntSubscription,
     });
 
@@ -228,6 +229,14 @@ describe('ChangePlanAction', () => {
       '1'
     );
     await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Size analysis builds'}),
+      '100'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Build distribution installs'}),
+      '-1'
+    );
 
     expect(screen.getByText('Available Products')).toBeInTheDocument(); // will always show if any product is launched and available for an org
 
@@ -265,6 +274,14 @@ describe('ChangePlanAction', () => {
       '1'
     );
     await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Size analysis builds'}),
+      '100'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Build distribution installs'}),
+      '-1'
+    );
 
     // XXX: irl we would not have both versions of Seer available, but doing this for testing multiple addons
     expect(screen.getByText('Available Products')).toBeInTheDocument();
@@ -397,13 +414,14 @@ describe('ChangePlanAction', () => {
 
       // Set up default subscription response
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${mockOrg.slug}/`,
+        url: `/customers/${mockOrg.slug}/`,
         body: subscription,
       });
 
       MockApiClient.addMockResponse({
-        url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+        url: `/customers/${mockOrg.slug}/billing-config/`,
         body: BILLING_CONFIG,
+        match: [MockApiClient.matchQuery({tier: 'all'})],
       });
     });
 
@@ -459,7 +477,7 @@ describe('ChangePlanAction', () => {
 
       SubscriptionStore.set(mockOrg.slug, subscriptionWithSeer);
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${mockOrg.slug}/`,
+        url: `/customers/${mockOrg.slug}/`,
         body: subscriptionWithSeer,
       });
 
@@ -539,6 +557,14 @@ describe('ChangePlanAction', () => {
         '1'
       );
       await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Size analysis builds'}),
+        '100'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Build distribution installs'}),
+        '-1'
+      );
 
       // Submit the form
       expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
@@ -591,6 +617,14 @@ describe('ChangePlanAction', () => {
         '1'
       );
       await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Size analysis builds'}),
+        '100'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Build distribution installs'}),
+        '-1'
+      );
 
       // Submit the form
       expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();

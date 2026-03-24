@@ -1,15 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
+import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 
 import {BreadcrumbProvider} from './settingsBreadcrumb/context';
 
 describe('SettingsLayout', () => {
-  const {routerProps} = initializeOrg();
-
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -33,7 +30,7 @@ describe('SettingsLayout', () => {
   it('renders', () => {
     render(
       <BreadcrumbProvider>
-        <SettingsLayout {...routerProps}>content</SettingsLayout>
+        <SettingsLayout>content</SettingsLayout>
       </BreadcrumbProvider>
     );
   });

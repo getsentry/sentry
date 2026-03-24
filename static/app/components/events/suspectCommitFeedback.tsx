@@ -1,10 +1,11 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -53,7 +54,7 @@ export function SuspectCommitFeedback({
   return (
     <FeedbackContainer>
       <FeedbackText>{t('Is this correct?')}</FeedbackText>
-      <ButtonGroup>
+      <Flex gap="2xs">
         <Button
           size="xs"
           icon={<IconThumb direction="up" size="sm" />}
@@ -66,19 +67,19 @@ export function SuspectCommitFeedback({
           onClick={() => handleFeedback(false)}
           aria-label={t('No, this suspect commit is incorrect')}
         />
-      </ButtonGroup>
+      </Flex>
     </FeedbackContainer>
   );
 }
 
 const FeedbackContainer = styled('div')`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.md};
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
   @media (max-width: ${p => p.theme.breakpoints.xs}) {
     display: none;
@@ -86,20 +87,15 @@ const FeedbackContainer = styled('div')`
 `;
 
 const FeedbackText = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.5;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 
 const ThankYouText = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.5;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
-`;
-
-const ButtonGroup = styled('div')`
-  display: flex;
-  gap: ${space(0.25)};
 `;

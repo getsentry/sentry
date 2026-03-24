@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import Card from 'sentry/components/card';
-import {ExternalLink} from 'sentry/components/core/link';
-import {space} from 'sentry/styles/space';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {Card} from 'sentry/components/card';
 
 type Props = {
   imgUrl: string;
@@ -10,7 +10,7 @@ type Props = {
   title: string;
 };
 
-function ResourceCard({title, link, imgUrl}: Props) {
+export function ResourceCard({title, link, imgUrl}: Props) {
   return (
     <Card interactive>
       <StyledLink href={link}>
@@ -21,22 +21,20 @@ function ResourceCard({title, link, imgUrl}: Props) {
   );
 }
 
-export default ResourceCard;
-
 const StyledLink = styled(ExternalLink)`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   flex: 1;
 `;
 
 const StyledImg = styled('img')`
   display: block;
-  margin: 0 auto ${space(3)} auto;
+  margin: 0 auto ${p => p.theme.space['2xl']} auto;
   height: 160px;
 `;
 
 const StyledTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   text-align: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

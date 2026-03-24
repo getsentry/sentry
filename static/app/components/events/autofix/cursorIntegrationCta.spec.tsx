@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('CursorIntegrationCta', () => {
   const project = ProjectFixture();
@@ -97,7 +98,10 @@ describe('CursorIntegrationCta', () => {
       const installLink = await screen.findByRole('button', {
         name: 'Install Cursor Integration',
       });
-      expect(installLink).toHaveAttribute('href', '/settings/integrations/cursor/');
+      expect(installLink).toHaveAttribute(
+        'href',
+        `/settings/${organization.slug}/integrations/cursor/`
+      );
     });
 
     it('includes documentation link', async () => {
@@ -153,7 +157,7 @@ describe('CursorIntegrationCta', () => {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: 'cursor_background_agent',
+            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
             integration_id: 123,
           },
         },
@@ -178,7 +182,7 @@ describe('CursorIntegrationCta', () => {
               automated_run_stopping_point: 'root_cause',
               automation_handoff: {
                 handoff_point: 'root_cause',
-                target: 'cursor_background_agent',
+                target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
                 integration_id: 123,
               },
             },
@@ -198,7 +202,7 @@ describe('CursorIntegrationCta', () => {
       });
       expect(settingsLink).toHaveAttribute(
         'href',
-        `/settings/projects/${project.slug}/seer/`
+        `/settings/${organization.slug}/projects/${project.slug}/seer/`
       );
     });
 
@@ -228,7 +232,7 @@ describe('CursorIntegrationCta', () => {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: 'cursor_background_agent',
+            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
             integration_id: 123,
           },
         },
@@ -275,7 +279,7 @@ describe('CursorIntegrationCta', () => {
               automated_run_stopping_point: 'root_cause',
               automation_handoff: {
                 handoff_point: 'root_cause',
-                target: 'cursor_background_agent',
+                target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
                 integration_id: 123,
               },
             },
@@ -306,7 +310,7 @@ describe('CursorIntegrationCta', () => {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: 'cursor_background_agent',
+            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
             integration_id: 123,
           },
         },
@@ -360,7 +364,7 @@ describe('CursorIntegrationCta', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 123,
             },
           },
@@ -416,7 +420,7 @@ describe('CursorIntegrationCta', () => {
             automated_run_stopping_point: 'root_cause',
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 123,
             },
           },

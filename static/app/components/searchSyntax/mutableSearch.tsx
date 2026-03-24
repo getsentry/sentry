@@ -6,7 +6,6 @@ import {
   parseSearch,
   TermOperator,
   WildcardOperators,
-  type ParseResult,
   type TokenResult,
 } from './parser';
 import {getKeyName} from './utils';
@@ -15,7 +14,7 @@ const EMPTY_OPTION_VALUE = '(empty)';
 
 // Hoisted regular expressions to avoid recompilation in hot paths
 const TRIMMABLE_ENDS_RE = /^["(]+|[")]+$/g;
-const WILDCARD_ESCAPE_RE = /([*])/g;
+const WILDCARD_ESCAPE_RE = /(\*)/g;
 const NEEDS_QUOTING_RE = /[\s(),\\"]/;
 const VALUE_IS_LIST_RE = /^\[.*\]$/;
 const VALUE_IS_QUOTED_RE = /^".*"$/;
@@ -107,7 +106,7 @@ function escapeFilterValue(value: string) {
 }
 
 function parseToFlatTokens(query: string): Token[] {
-  const parsed: ParseResult | null = parseSearch(query, {flattenParenGroups: true});
+  const parsed = parseSearch(query, {flattenParenGroups: true});
   const tokens: Token[] = [];
 
   if (!parsed) {
@@ -158,8 +157,9 @@ function parseToFlatTokens(query: string): Token[] {
                 | ParserToken.VALUE_TEXT
                 | ParserToken.KEY_SIMPLE
                 | ParserToken.KEY_EXPLICIT_TAG
-                | ParserToken.KEY_EXPLICIT_STRING_TAG
+                | ParserToken.KEY_EXPLICIT_BOOLEAN_TAG
                 | ParserToken.KEY_EXPLICIT_NUMBER_TAG
+                | ParserToken.KEY_EXPLICIT_STRING_TAG
                 | ParserToken.KEY_EXPLICIT_FLAG
                 | ParserToken.KEY_EXPLICIT_STRING_FLAG
                 | ParserToken.KEY_EXPLICIT_NUMBER_FLAG
@@ -249,6 +249,7 @@ const KEY_TOKENS = [
   ParserToken.KEY_SIMPLE,
   ParserToken.KEY_EXPLICIT_TAG,
   ParserToken.KEY_AGGREGATE,
+  ParserToken.KEY_EXPLICIT_BOOLEAN_TAG,
   ParserToken.KEY_EXPLICIT_NUMBER_TAG,
   ParserToken.KEY_EXPLICIT_STRING_TAG,
   ParserToken.KEY_EXPLICIT_FLAG,

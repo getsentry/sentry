@@ -46,6 +46,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.project import Project
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
@@ -60,7 +61,7 @@ from sentry.search.eap.types import (
 )
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
-from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key
+from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
 from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
@@ -98,6 +99,7 @@ class TableRequest:
 
     rpc_request: TraceItemTableRequest
     columns: list[ResolvedColumn]
+    sort_column_aliases: set[str] = field(default_factory=set)
 
 
 def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
@@ -106,18 +108,6 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
             if row[axis] and row[axis] != 0:
                 return True
     return False
-
-
-def log_rpc_request(message: str, rpc_request, rpc_logger: logging.Logger = logger):
-    rpc_debug_json = json.loads(MessageToJson(rpc_request))
-    rpc_logger.info(
-        message,
-        extra={
-            "rpc_query": rpc_debug_json,
-            "referrer": rpc_request.meta.referrer,
-            "trace_item_type": rpc_request.meta.trace_item_type,
-        },
-    )
 
 
 class RPCBase:
@@ -184,28 +174,33 @@ class RPCBase:
         raise TypeError(f"Unsupported proto definition type: {type(proto_definition)}")
 
     @classmethod
-    def get_cross_trace_queries(cls, query: TableQuery) -> list[TraceItemFilterWithType]:
+    def get_cross_trace_queries(
+        cls,
+        additional_queries: AdditionalQueries | None,
+        config: SearchResolverConfig,
+        query_params: SnubaParams,
+    ) -> list[TraceItemFilterWithType]:
         from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
         from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
         from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 
-        if query.additional_queries is None:
+        if additional_queries is None:
             return []
 
         # resolve cross trace queries
         # Copy the existing resolver, but we don't allow aggregate conditions for cross trace filters
-        cross_trace_config = replace(query.resolver.config, use_aggregate_conditions=False)
+        cross_trace_config = replace(config, use_aggregate_conditions=False)
 
         cross_trace_queries = []
         for queries, definitions, item_type in [
             (
-                query.additional_queries.log,
+                additional_queries.log,
                 OURLOG_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_LOG,
             ),
-            (query.additional_queries.span, SPAN_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_SPAN),
+            (additional_queries.span, SPAN_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_SPAN),
             (
-                query.additional_queries.metric,
+                additional_queries.metric,
                 TRACE_METRICS_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_METRIC,
             ),
@@ -213,7 +208,7 @@ class RPCBase:
             if queries is not None:
                 # Create a resolver for the subqueries
                 cross_resolver = SearchResolver(
-                    params=query.resolver.params,
+                    params=query_params,
                     config=cross_trace_config,
                     definitions=definitions,
                 )
@@ -229,6 +224,10 @@ class RPCBase:
                         )
         return cross_trace_queries
 
+    @classmethod
+    def filter_project(cls, project: Project) -> bool:
+        return True
+
     """ Table Methods """
 
     @classmethod
@@ -236,7 +235,11 @@ class RPCBase:
         """Make the query"""
         resolver = query.resolver
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
-        meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
+        meta = resolver.resolve_meta(
+            referrer=query.referrer,
+            sampling_mode=query.sampling_mode,
+            filter_project=cls.filter_project,
+        )
         where, having, query_contexts = resolver.resolve_query_with_columns(
             query.query_string,
             query.selected_columns,
@@ -246,7 +249,9 @@ class RPCBase:
         # if there are additional conditions to be added, make sure to merge them with the
         where = and_trace_item_filters(where, query.extra_conditions)
 
-        cross_trace_queries = cls.get_cross_trace_queries(query)
+        cross_trace_queries = cls.get_cross_trace_queries(
+            query.additional_queries, query.resolver.config, query.resolver.params
+        )
 
         trace_column, _ = resolver.resolve_column("trace")
         if (
@@ -280,6 +285,9 @@ class RPCBase:
             orderby_aliases[get_function_alias(alias_column.public_alias)] = alias_column
         # Orderby is only applicable to TraceItemTableRequest
         resolved_orderby = []
+        # Track sort columns added for virtual context ordering so we can
+        # include them in columns/group_by and strip them from results.
+        sort_column_aliases: set[str] = set()
         orderby_columns = query.orderby if query.orderby is not None else []
         for orderby_column in orderby_columns:
             stripped_orderby = orderby_column.lstrip("-")
@@ -290,9 +298,26 @@ class RPCBase:
                 raise InvalidSearchQuery("orderby must also be in the selected columns or groupby")
             else:
                 resolved_column = resolver.resolve_column(stripped_orderby)[0]
+
+            # Virtual context columns transform values (e.g. "1" -> "low") which
+            # can produce an undesirable alphabetical sort order. When a sort_column
+            # is specified, order by the raw source column instead.
+            orderby_resolved = resolved_column
+            context_def = resolver.definitions.contexts.get(stripped_orderby)
+            if context_def is not None and context_def.sort_column is not None:
+                sort_alias = f"__sort_{stripped_orderby}"
+                sort_col = ResolvedAttribute(
+                    public_alias=sort_alias,
+                    internal_name=context_def.sort_column,
+                    search_type="string",
+                )
+                orderby_resolved = sort_col
+                all_columns.append(sort_col)
+                sort_column_aliases.add(sort_alias)
+
             resolved_orderby.append(
                 TraceItemTableRequest.OrderBy(
-                    column=cls.categorize_column(resolved_column),
+                    column=cls.categorize_column(orderby_resolved),
                     descending=orderby_column.startswith("-"),
                 )
             )
@@ -310,6 +335,15 @@ class RPCBase:
             for col in columns:
                 if isinstance(col.proto_definition, AttributeKey):
                     group_by.append(col.proto_definition)
+            # Sort columns added for virtual context ordering must also be
+            # in GROUP BY for ClickHouse to allow the ORDER BY reference.
+            group_by_names = {key.name for key in group_by}
+            for alias in sort_column_aliases:
+                for col in all_columns:
+                    if isinstance(col, ResolvedAttribute) and col.public_alias == alias:
+                        if col.internal_name not in group_by_names:
+                            group_by.append(col.proto_definition)
+                            group_by_names.add(col.internal_name)
         else:
             group_by = []
 
@@ -331,6 +365,7 @@ class RPCBase:
                 trace_filters=cross_trace_queries,
             ),
             all_columns,
+            sort_column_aliases=sort_column_aliases,
         )
 
     @classmethod
@@ -338,12 +373,11 @@ class RPCBase:
     def _run_table_query(
         cls,
         query: TableQuery,
-        debug: bool = False,
+        debug: str | bool = False,
     ) -> EAPResponse:
         """Run the query"""
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
-        log_rpc_request("Running a table query with debug on", rpc_request)
         try:
             rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
         except Exception as e:
@@ -403,7 +437,7 @@ class RPCBase:
         cls,
         rpc_response: TraceItemTableResponse,
         table_request: TableRequest,
-        debug: bool = False,
+        debug: str | bool = False,
     ) -> EAPResponse:
         """Process the results"""
         final_data: SnubaData = []
@@ -414,10 +448,16 @@ class RPCBase:
 
         for column_value in rpc_response.column_values:
             attribute = column_value.attribute_name
+            # Skip internal sort columns used for virtual context ordering
+            if attribute in table_request.sort_column_aliases:
+                continue
             if attribute not in columns_by_name:
                 logger.warning(
                     "A column was returned by the rpc but not a known column",
-                    extra={"attribute": attribute},
+                    extra={
+                        "attribute": attribute,
+                        "debug": debug,
+                    },
                 )
                 continue
             resolved_column = columns_by_name[attribute]
@@ -551,11 +591,10 @@ class RPCBase:
 
     @classmethod
     def _run_timeseries_rpc(
-        self, debug: bool, rpc_request: TimeSeriesRequest
+        cls, debug: str | bool, rpc_request: TimeSeriesRequest
     ) -> TimeSeriesResponse:
-        log_rpc_request("Running a timeseries query with debug on", rpc_request)
         try:
-            return snuba_rpc.timeseries_rpc([rpc_request])[0]
+            return snuba_rpc.timeseries_rpc([rpc_request], debug=debug)[0]
         except Exception as e:
             # add the rpc to the error so we can include it in the response
             if debug:
@@ -601,6 +640,7 @@ class RPCBase:
         referrer: str,
         sampling_mode: SAMPLING_MODES | None,
         extra_conditions: TraceItemFilter | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> tuple[
         TimeSeriesRequest,
         list[ResolvedColumn],
@@ -612,11 +652,19 @@ class RPCBase:
         groupbys, groupby_contexts = search_resolver.resolve_attributes(groupby)
 
         timeseries_filter, params = cls.update_timestamps(params, search_resolver)
-        meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
+        meta = search_resolver.resolve_meta(
+            referrer=referrer,
+            sampling_mode=sampling_mode,
+            filter_project=cls.filter_project,
+        )
         query, _, _ = search_resolver.resolve_query_with_columns(
             query_string,
             selected_axes,
             selected_equations,
+        )
+
+        cross_trace_queries = cls.get_cross_trace_queries(
+            additional_queries, search_resolver.config, search_resolver.params
         )
 
         trace_column, _ = search_resolver.resolve_column("trace")
@@ -663,12 +711,14 @@ class RPCBase:
                     if isinstance(groupby.proto_definition, AttributeKey)
                 ],
                 granularity_secs=params.timeseries_granularity_secs,
+                trace_filters=cross_trace_queries,
             ),
             (functions + equations),
             groupbys,
         )
 
     @classmethod
+    @sentry_sdk.trace
     def run_timeseries_query(
         cls,
         *,
@@ -679,8 +729,89 @@ class RPCBase:
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
-        raise NotImplementedError()
+        """Make the query"""
+        cls.validate_granularity(params)
+        search_resolver = cls.get_resolver(params, config)
+        rpc_request, aggregates, groupbys = cls.get_timeseries_query(
+            search_resolver=search_resolver,
+            params=params,
+            query_string=query_string,
+            y_axes=y_axes,
+            groupby=[],
+            referrer=referrer,
+            sampling_mode=sampling_mode,
+            additional_queries=additional_queries,
+        )
+
+        """Run the query"""
+        rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
+
+        """Process the results"""
+        result = ProcessedTimeseries()
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
+        if params.debug:
+            set_debug_meta(final_meta, rpc_response.meta, rpc_request)
+        for resolved_field in aggregates + groupbys:
+            final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
+
+        for timeseries in rpc_response.result_timeseries:
+            processed = cls.process_timeseries_list([timeseries])
+            if len(result.timeseries) == 0:
+                result = processed
+            else:
+                for attr in ["timeseries", "confidence", "sample_count", "sampling_rate"]:
+                    for existing, new in zip(getattr(result, attr), getattr(processed, attr)):
+                        existing.update(new)
+        if len(result.timeseries) == 0:
+            # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
+            result.timeseries = zerofill(
+                [],
+                params.start_date,
+                params.end_date,
+                params.timeseries_granularity_secs,
+                ["time"],
+            )
+
+        if comparison_delta is not None:
+            if len(rpc_request.expressions) != 1:
+                raise InvalidSearchQuery("Only one column can be selected for comparison queries")
+
+            comp_query_params = params.copy()
+            assert comp_query_params.start is not None, "start is required"
+            assert comp_query_params.end is not None, "end is required"
+            comp_query_params.start = comp_query_params.start_date - comparison_delta
+            comp_query_params.end = comp_query_params.end_date - comparison_delta
+
+            search_resolver = cls.get_resolver(comp_query_params, config)
+            comp_rpc_request, aggregates, groupbys = cls.get_timeseries_query(
+                search_resolver=search_resolver,
+                params=comp_query_params,
+                query_string=query_string,
+                y_axes=y_axes,
+                groupby=[],
+                referrer=referrer,
+                sampling_mode=sampling_mode,
+                additional_queries=additional_queries,
+            )
+            comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
+
+            if comp_rpc_response.result_timeseries:
+                timeseries = comp_rpc_response.result_timeseries[0]
+                processed = cls.process_timeseries_list([timeseries])
+                for existing, new in zip(result.timeseries, processed.timeseries):
+                    existing["comparisonCount"] = new[timeseries.label]
+            else:
+                for existing in result.timeseries:
+                    existing["comparisonCount"] = 0
+
+        return SnubaTSResult(
+            {"data": result.timeseries, "processed_timeseries": result, "meta": final_meta},
+            params.start,
+            params.end,
+            params.granularity_secs,
+        )
 
     @classmethod
     @sentry_sdk.trace
@@ -694,9 +825,12 @@ class RPCBase:
             other_row_conditions = []
             for key in groupby_columns:
                 if key == "project.id":
-                    value = resolver.params.project_slug_map[
-                        event.get("project") or event["project.slug"]
-                    ]
+                    if "project.id" in event:
+                        value = event["project.id"]
+                    else:
+                        value = resolver.params.project_slug_map[
+                            event.get("project") or event["project.slug"]
+                        ]
                 else:
                     value = event[key]
                 resolved_term, context = resolver.resolve_term(
@@ -742,6 +876,7 @@ class RPCBase:
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         equations: list[str] | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> Any:
         """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
         functions that both would call
@@ -761,7 +896,8 @@ class RPCBase:
         table_search_resolver = cls.get_resolver(table_query_params, config)
 
         # Make a table query first to get what we need to filter by
-        _, non_equation_axes = arithmetic.categorize_columns(y_axes)
+        equation_axes, non_equation_axes = arithmetic.categorize_columns(y_axes)
+        all_equations = (equations or []) + equation_axes
         top_events = cls._run_table_query(
             TableQuery(
                 query_string=query_string,
@@ -772,8 +908,10 @@ class RPCBase:
                 referrer=f"{referrer}.find-topn",
                 sampling_mode=sampling_mode,
                 resolver=table_search_resolver,
-                equations=equations,
-            )
+                equations=all_equations,
+                additional_queries=additional_queries,
+            ),
+            debug=params.debug,
         )
         # There aren't any top events, just return an empty dict and save a query
         if len(top_events["data"]) == 0:
@@ -800,6 +938,7 @@ class RPCBase:
             referrer=f"{referrer}.topn",
             sampling_mode=sampling_mode,
             extra_conditions=top_conditions,
+            additional_queries=additional_queries,
         )
         requests = [rpc_request]
         if include_other:
@@ -812,14 +951,13 @@ class RPCBase:
                 referrer=f"{referrer}.query-other",
                 sampling_mode=sampling_mode,
                 extra_conditions=other_conditions,
+                additional_queries=additional_queries,
             )
             requests.append(other_request)
 
         """Run the query"""
-        for rpc_request in requests:
-            log_rpc_request("Running a top events query with debug on", rpc_request)
         try:
-            timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
+            timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests, debug=params.debug)
             rpc_response = timeseries_rpc_response[0]
             if len(timeseries_rpc_response) > 1:
                 other_response = timeseries_rpc_response[1]

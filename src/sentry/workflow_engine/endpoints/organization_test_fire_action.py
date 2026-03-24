@@ -9,12 +9,13 @@ from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
 from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
 from sentry.notifications.types import TEST_NOTIFICATION_ID
@@ -29,10 +30,10 @@ from sentry.workflow_engine.types import WorkflowEventData
 logger = logging.getLogger(__name__)
 
 
-class TestActionsValidator(CamelSnakeSerializer):
+class TestActionsValidator(CamelSnakeSerializer[Any]):
     actions = serializers.ListField(required=True)
 
-    def validate_actions(self, value):
+    def validate_actions(self, value: Any) -> Any:
         validated_actions = []
         for action in value:
             action_validator = BaseActionValidator(data=action, context=self.context)
@@ -48,7 +49,7 @@ class TestFireActionErrorsResponse(TypedDict):
     actions: list[str]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -68,7 +69,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Test fires a list of actions without saving them to the database.
 
@@ -107,7 +108,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         return Response(status=status, data=response_data)
 
 
-def test_fire_actions(actions: list[dict[str, Any]], project: Project):
+def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[Any, Any]:
     action_exceptions = []
 
     test_event = get_test_notification_event_data(project)

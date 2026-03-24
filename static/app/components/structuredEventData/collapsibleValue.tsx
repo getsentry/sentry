@@ -1,12 +1,12 @@
 import {Children, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
-import useExpandedState from 'sentry/components/structuredEventData/useExpandedState';
+import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
+
+import {useExpandedState} from 'sentry/components/structuredEventData/useExpandedState';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   children: ReactNode;
@@ -64,7 +64,7 @@ export function CollapsibleValue({
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
-          borderless
+          priority="transparent"
           data-base-with-toggle={baseLevelPadding}
         />
       ) : null}
@@ -101,12 +101,12 @@ const CollapsibleDataContainer = styled('span')`
 
   &[data-base-with-toggle='true'] {
     display: block;
-    padding-left: ${space(3)};
+    padding-left: ${p => p.theme.space['2xl']};
   }
 `;
 
 const IndentedValues = styled('div')`
-  padding-left: ${space(1.5)};
+  padding-left: ${p => p.theme.space.lg};
 `;
 
 const NumItemsButton = styled(Button)`
@@ -114,11 +114,11 @@ const NumItemsButton = styled(Button)`
   border: none;
   padding: 0 2px;
   border-radius: 2px;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   box-shadow: none;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  margin: 0 ${space(0.5)};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin: 0 ${p => p.theme.space.xs};
 
   height: 18px;
   min-height: 18px;
@@ -126,8 +126,8 @@ const NumItemsButton = styled(Button)`
 
 const ToggleButton = styled(Button)`
   position: absolute;
-  left: -${space(3)};
-  top: ${p => (p.theme.isChonk ? '0px' : '2px')};
+  left: -${p => p.theme.space['2xl']};
+  top: 0px;
   border-radius: 2px;
   align-items: center;
   justify-content: center;

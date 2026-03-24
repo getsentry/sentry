@@ -2,16 +2,16 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Placeholder from 'sentry/components/placeholder';
-import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Placeholder} from 'sentry/components/placeholder';
+import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
-export default function BrowserOSIcons({
+export function BrowserOSIcons({
   showBrowser = true,
   isLoading,
 }: {
@@ -75,6 +75,6 @@ export default function BrowserOSIcons({
 }
 
 const Overlap = styled('div')`
-  margin-right: -${space(0.75)};
+  margin-right: -${p => p.theme.space.sm};
   z-index: 1;
 `;

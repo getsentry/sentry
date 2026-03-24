@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 import sentry_sdk
 
@@ -17,6 +18,7 @@ def test_fire_action(action: Action, event_data: WorkflowEventData) -> list[str]
     try:
         action.trigger(
             event_data=event_data,
+            notification_uuid=str(uuid.uuid4()),
         )
     except Exception as exc:
         if isinstance(exc, IntegrationFormError):

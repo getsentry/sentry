@@ -3,12 +3,12 @@ import {CSS} from '@dnd-kit/utilities';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
-function SortableVisualizeFieldWrapper({
+export function SortableVisualizeFieldWrapper({
   dragId,
   canDrag,
   children,
@@ -30,7 +30,7 @@ function SortableVisualizeFieldWrapper({
     transition,
     zIndex: 'auto',
     display: 'flex',
-    gap: space(0.5),
+    gap: theme.space.xs,
     width: '100%',
   } as React.CSSProperties;
 
@@ -39,7 +39,7 @@ function SortableVisualizeFieldWrapper({
       ...style,
       zIndex: 100,
       height: theme.form.md.height,
-      border: `2px dashed ${theme.border}`,
+      border: `2px dashed ${theme.tokens.border.primary}`,
       borderRadius: theme.radius.md,
     };
   }
@@ -53,7 +53,7 @@ function SortableVisualizeFieldWrapper({
           aria-label={t('Drag to reorder')}
           icon={<IconGrabbable size="xs" />}
           size="zero"
-          borderless
+          priority="transparent"
           isDragging={isDragging}
         />
       )}
@@ -61,8 +61,6 @@ function SortableVisualizeFieldWrapper({
     </div>
   );
 }
-
-export default SortableVisualizeFieldWrapper;
 
 const DragAndReorderButton = styled(Button)<{isDragging: boolean}>`
   height: ${p => p.theme.form.md.height};

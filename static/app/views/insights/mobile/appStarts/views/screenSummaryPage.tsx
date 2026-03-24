@@ -4,18 +4,13 @@ import omit from 'lodash/omit';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  ReleaseComparisonSelector,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
+import {ReleaseSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
@@ -24,7 +19,7 @@ import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
-import AppStartWidgets from 'sentry/views/insights/mobile/appStarts/components/widgets';
+import {SummaryWidgets as AppStartWidgets} from 'sentry/views/insights/mobile/appStarts/components/widgets';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {ModuleName, SpanFields, type SpanProperty} from 'sentry/views/insights/types';
@@ -34,7 +29,6 @@ type Query = {
   'device.class': string;
   primaryRelease: string;
   project: string;
-  secondaryRelease: string;
   spanDescription: string;
   spanGroup: string;
   spanOp: string;
@@ -51,9 +45,7 @@ export function ScreenSummaryContentPage() {
     [SpanFields.APP_START_TYPE]: appStartType,
   } = location.query;
 
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
-
-  const showComparison = defined(primaryRelease) && defined(secondaryRelease);
+  const {primaryRelease} = useReleaseSelection();
 
   useEffect(() => {
     // Default the start type to cold start if not present
@@ -93,15 +85,7 @@ export function ScreenSummaryContentPage() {
   });
 
   let fields: SpanProperty[] = [];
-  if (showComparison) {
-    fields = [
-      `avg_if(span.duration,release,equals,${primaryRelease})`,
-      `avg_if(span.duration,release,equals,${secondaryRelease})`,
-      `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
-      `count_if(release,equals,${primaryRelease})`,
-      `count_if(release,equals,${secondaryRelease})`,
-    ];
-  } else if (defined(primaryRelease)) {
+  if (defined(primaryRelease)) {
     fields = [
       `avg_if(span.duration,release,equals,${primaryRelease})`,
       `count_if(release,equals,${primaryRelease})`,
@@ -115,7 +99,7 @@ export function ScreenSummaryContentPage() {
       <HeaderContainer>
         <ToolRibbon>
           <ModulePageFilterBar moduleName={ModuleName.APP_START} disableProjectFilter />
-          <ReleaseComparisonSelector moduleName={ModuleName.APP_START} />
+          <ReleaseSelector moduleName={ModuleName.APP_START} />
           <StartTypeSelector />
         </ToolRibbon>
         <MobileMetricsRibbon
@@ -129,65 +113,26 @@ export function ScreenSummaryContentPage() {
             ')',
           ]}
           fields={fields}
-          blocks={
-            showComparison
-              ? [
-                  {
-                    unit: DurationUnit.MILLISECOND,
-                    allowZero: false,
-                    title:
-                      appStartType === COLD_START_TYPE
-                        ? t('Avg Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
-                        : t('Avg Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
-                    dataKey: `avg_if(span.duration,release,equals,${primaryRelease})`,
-                  },
-                  {
-                    unit: DurationUnit.MILLISECOND,
-                    allowZero: false,
-                    title:
-                      appStartType === COLD_START_TYPE
-                        ? t('Avg Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
-                        : t('Avg Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
-                    dataKey: `avg_if(span.duration,release,equals,${secondaryRelease})`,
-                  },
-                  {
-                    unit: 'percent_change',
-                    title: t('Change'),
-                    dataKey: `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
-                    preferredPolarity: '-',
-                  },
-                  {
-                    unit: 'count',
-                    title: t('Count (%s)', PRIMARY_RELEASE_ALIAS),
-                    dataKey: `count_if(release,equals,${primaryRelease})`,
-                  },
-                  {
-                    unit: 'count',
-                    title: t('Count (%s)', SECONDARY_RELEASE_ALIAS),
-                    dataKey: `count_if(release,equals,${secondaryRelease})`,
-                  },
-                ]
-              : [
-                  {
-                    unit: DurationUnit.MILLISECOND,
-                    allowZero: false,
-                    title:
-                      appStartType === COLD_START_TYPE
-                        ? t('Avg Cold Start')
-                        : t('Avg Warm Start'),
-                    dataKey: primaryRelease
-                      ? `avg_if(span.duration,release,equals,${primaryRelease})`
-                      : 'avg(span.duration)',
-                  },
-                  {
-                    unit: 'count',
-                    title: t('Count'),
-                    dataKey: primaryRelease
-                      ? `count_if(release,equals,${primaryRelease})`
-                      : 'count()',
-                  },
-                ]
-          }
+          blocks={[
+            {
+              unit: DurationUnit.MILLISECOND,
+              allowZero: false,
+              title:
+                appStartType === COLD_START_TYPE
+                  ? t('Avg Cold Start')
+                  : t('Avg Warm Start'),
+              dataKey: primaryRelease
+                ? `avg_if(span.duration,release,equals,${primaryRelease})`
+                : 'avg(span.duration)',
+            },
+            {
+              unit: 'count',
+              title: t('Count'),
+              dataKey: primaryRelease
+                ? `count_if(release,equals,${primaryRelease})`
+                : 'count()',
+            },
+          ]}
           referrer="api.insights.mobile-startup-totals"
         />
       </HeaderContainer>
@@ -202,5 +147,5 @@ export function ScreenSummaryContentPage() {
 }
 
 const SamplesContainer = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;

@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -22,9 +21,9 @@ type Props = {
   transactionMethod?: string;
 };
 
-function SampleInfo(props: Props) {
+export function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod, subregions} = props;
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
 
   const ribbonFilters: SpanQueryFilters = {
     'span.group': groupId,
@@ -55,7 +54,7 @@ function SampleInfo(props: Props) {
   );
 
   if (error) {
-    setPageError(error.message);
+    setPageDanger(error.message);
   }
 
   return (
@@ -85,7 +84,5 @@ function SampleInfo(props: Props) {
 }
 
 const StyledReadoutRibbon = styled(ReadoutRibbon)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
-
-export default SampleInfo;

@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
@@ -117,14 +116,14 @@ const Wrapper = styled('div')`
 const Line = styled('div')`
   display: grid;
   grid-template-columns: 58px 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   height: 22px;
   line-height: 22px;
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const LineNumber = styled('div')`
-  background: ${p => p.theme.purple400};
-  color: ${p => p.theme.white};
-  padding: 0 ${space(1)};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
+  color: ${p => p.theme.tokens.content.onVibrant.light};
+  padding: 0 ${p => p.theme.space.md};
 `;

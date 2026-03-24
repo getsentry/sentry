@@ -22,7 +22,7 @@ import type {Client} from 'sentry/__mocks__/api';
 import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
@@ -103,29 +103,76 @@ jest.mock('@stripe/stripe-js', () => ({
     })
   ),
 }));
-jest.mock('@stripe/react-stripe-js', () => ({
-  Elements: jest.fn(({children}: {children: any}) => children),
-  AddressElement: jest.fn(() => null),
-  CardElement: jest.fn(() => null),
-  PaymentElement: jest.fn(() => null),
-  useStripe: jest.fn(() => ({
-    confirmCardPayment: jest.fn(() =>
-      Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
-    ),
-    confirmCardSetup: jest.fn((secretKey: string) => {
-      if (secretKey === 'ERROR') {
-        return Promise.resolve({error: {message: 'card invalid'}});
-      }
-      return Promise.resolve({
-        error: undefined,
-        setupIntent: {payment_method: 'test-pm'},
-      });
+jest.mock('@stripe/react-stripe-js', () => {
+  const {useEffect} = jest.requireActual('react');
+  return {
+    Elements: jest.fn(({children}: {children: any}) => children),
+    AddressElement: jest.fn(({onReady}: any) => {
+      // Simulate AddressElement loading by calling onReady after mount
+      useEffect(() => {
+        if (onReady) {
+          // Use setTimeout to allow initial render assertions to run
+          setTimeout(() => onReady(), 0);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
     }),
-  })),
-  useElements: jest.fn(() => ({
-    getElement: jest.fn(() => ({})),
-  })),
-}));
+    CardElement: jest.fn(() => null),
+    PaymentElement: jest.fn(({onChange, onReady}: any) => {
+      // Simulate a completed Stripe form by calling onChange and onReady after mount
+      useEffect(() => {
+        // Use setTimeout to allow initial render assertions to run
+        setTimeout(() => {
+          if (onReady) {
+            onReady();
+          }
+          if (onChange) {
+            onChange({complete: true});
+          }
+        }, 0);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }),
+    useStripe: jest.fn(() => ({
+      confirmCardPayment: jest.fn(() =>
+        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
+      ),
+      confirmCardSetup: jest.fn((secretKey: string) => {
+        if (secretKey === 'ERROR') {
+          return Promise.resolve({error: {message: 'card invalid'}});
+        }
+        return Promise.resolve({
+          error: undefined,
+          setupIntent: {payment_method: 'test-pm'},
+        });
+      }),
+      confirmSetup: jest.fn((options: any) => {
+        if (options?.clientSecret === 'ERROR') {
+          return Promise.resolve({error: {message: 'card invalid'}});
+        }
+        return Promise.resolve({
+          error: undefined,
+          setupIntent: {payment_method: 'test-pm'},
+        });
+      }),
+      confirmPayment: jest.fn((options: any) => {
+        if (options?.clientSecret === 'ERROR') {
+          return Promise.resolve({error: {message: 'payment failed'}});
+        }
+        return Promise.resolve({
+          error: undefined,
+          paymentIntent: {id: 'test-payment'},
+        });
+      }),
+    })),
+    useElements: jest.fn(() => ({
+      getElement: jest.fn(() => ({})),
+      submit: jest.fn(() => Promise.resolve({error: undefined})),
+    })),
+  };
+});
 jest.mock('getsentry/utils/trackMarketingEvent');
 jest.mock('getsentry/utils/trackAmplitudeEvent');
 jest.mock('getsentry/utils/trackReloadEvent');
@@ -155,18 +202,6 @@ DANGEROUS_SET_TEST_HISTORY({
 
 // Close any open modals before each test
 beforeEach(closeModal);
-
-jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
-  const ActualReactVirtualized = jest.requireActual('react-virtualized');
-  return {
-    ...ActualReactVirtualized,
-    AutoSizer: ({
-      children,
-    }: {
-      children: (props: {height: number; width: number}) => React.ReactNode;
-    }) => children({width: 100, height: 100}),
-  };
-});
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
@@ -205,6 +240,7 @@ jest.mock('@sentry/react', function sentryReact() {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     withProfiler: SentryReact.withProfiler,
     metrics: {
+      count: jest.fn(),
       increment: jest.fn(),
       gauge: jest.fn(),
       set: jest.fn(),
@@ -343,4 +379,11 @@ Object.defineProperty(global.self, 'crypto', {
 
 if (typeof globalThis.structuredClone === 'undefined') {
   globalThis.structuredClone = nodeStructuredClone;
+}
+
+if (typeof globalThis.setImmediate === 'undefined') {
+  // @ts-expect-error setImmediate is not defined in jsdom, but we can use setTimeout as a polyfill
+  globalThis.setImmediate = setTimeout;
+  // @ts-expect-error clearImmediate is not defined in jsdom, but we can use clearTimeout as a polyfill
+  globalThis.clearImmediate = clearTimeout;
 }

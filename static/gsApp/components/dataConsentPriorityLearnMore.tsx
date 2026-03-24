@@ -3,19 +3,19 @@ import styled from '@emotion/styled';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import getOrganizationAge from 'sentry/utils/getOrganizationAge';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getOrganizationAge} from 'sentry/utils/getOrganizationAge';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openDataConsentModal} from 'getsentry/actionCreators/modal';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 function DataConsentPriorityLearnMore({subscription}: {subscription?: Subscription}) {
   const organization = useOrganization();
@@ -71,7 +71,7 @@ function DataConsentPriorityLearnMore({subscription}: {subscription?: Subscripti
         analyticsEventKey="data_consent_priority.dismiss"
         analyticsEventName="Data Consent Priority: Dismiss"
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}
@@ -86,27 +86,27 @@ const LearnMoreWrapper = styled('div')`
   position: relative;
   max-width: 230px;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  padding: ${space(1.5)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  font-size: ${p => p.theme.font.size.sm};
+  padding: ${p => p.theme.space.lg};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   background: linear-gradient(
     269.35deg,
-    ${p => p.theme.backgroundTertiary} 0.32%,
+    ${p => p.theme.tokens.background.tertiary} 0.32%,
     rgba(245, 243, 247, 0) 99.69%
   );
 
   p {
-    margin: 0 0 ${space(0.5)} 0;
+    margin: 0 0 ${p => p.theme.space.xs} 0;
   }
 `;
 
 const DismissButton = styled(Button)`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(1.5)};
-  color: ${p => p.theme.subText};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.lg};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BannerStar1 = styled('img')`

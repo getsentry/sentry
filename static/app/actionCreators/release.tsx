@@ -31,9 +31,7 @@ export function archiveRelease(api: Client, params: ParamsGet) {
       addSuccessMessage(t('Release was successfully archived.'));
     })
     .catch(error => {
-      addErrorMessage(
-        error.responseJSON?.detail ?? t('Release could not be be archived.')
-      );
+      addErrorMessage(error.responseJSON?.detail ?? t('Release could not be archived.'));
       throw error;
     });
 }
@@ -56,9 +54,7 @@ export function restoreRelease(api: Client, params: ParamsGet) {
       addSuccessMessage(t('Release was successfully restored.'));
     })
     .catch(error => {
-      addErrorMessage(
-        error.responseJSON?.detail ?? t('Release could not be be restored.')
-      );
+      addErrorMessage(error.responseJSON?.detail ?? t('Release could not be restored.'));
       throw error;
     });
 }

@@ -3,45 +3,79 @@ import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TextArea} from 'sentry/components/core/textarea';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {TextArea} from '@sentry/scraps/textarea';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import {IconArrow, IconChevron, IconSeer} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface AutofixStartBoxProps {
   groupId: string;
   onSend: (message: string, stoppingPoint?: AutofixStoppingPoint) => void;
 }
 
-const STOPPING_POINT_OPTIONS = [
-  {
-    key: AutofixStoppingPoint.ROOT_CAUSE,
-    label: t('Start Root Cause Analysis'),
-    value: AutofixStoppingPoint.ROOT_CAUSE,
-  },
-  {
-    key: AutofixStoppingPoint.SOLUTION,
-    label: t('Plan a Solution'),
-    value: AutofixStoppingPoint.SOLUTION,
-  },
-  {
-    key: AutofixStoppingPoint.CODE_CHANGES,
-    label: t('Write Code Changes'),
-    value: AutofixStoppingPoint.CODE_CHANGES,
-  },
-  {
-    key: AutofixStoppingPoint.OPEN_PR,
-    label: t('Draft a Pull Request'),
-    value: AutofixStoppingPoint.OPEN_PR,
-  },
-] as const;
+function getStoppingPointOptions(organization: Organization) {
+  const enableSeerCoding = organization.enableSeerCoding !== false;
+  return [
+    {
+      key: AutofixStoppingPoint.ROOT_CAUSE,
+      label: t('Start Root Cause Analysis'),
+      value: AutofixStoppingPoint.ROOT_CAUSE,
+      disabled: false,
+      tooltip: undefined,
+    },
+    {
+      key: AutofixStoppingPoint.SOLUTION,
+      label: t('Plan a Solution'),
+      value: AutofixStoppingPoint.SOLUTION,
+      disabled: false,
+      tooltip: undefined,
+    },
+    {
+      key: AutofixStoppingPoint.CODE_CHANGES,
+      label: t('Write Code Changes'),
+      value: AutofixStoppingPoint.CODE_CHANGES,
+      disabled: !enableSeerCoding,
+      tooltip: enableSeerCoding
+        ? undefined
+        : tct(
+            '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+            {
+              settings: (
+                <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+              ),
+            }
+          ),
+    },
+    {
+      key: AutofixStoppingPoint.OPEN_PR,
+      label: t('Draft a Pull Request'),
+      value: AutofixStoppingPoint.OPEN_PR,
+      disabled: !enableSeerCoding,
+      tooltip: enableSeerCoding
+        ? undefined
+        : tct(
+            '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+            {
+              settings: (
+                <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+              ),
+            }
+          ),
+    },
+  ] as const;
+}
 
 export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
+  const organization = useOrganization();
   const [message, setMessage] = useState('');
   const [selectedStoppingPoint, setSelectedStoppingPoint] =
     useLocalStorageState<AutofixStoppingPoint>(
@@ -60,19 +94,21 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   );
 
   const {primaryOption, dropdownOptions} = useMemo(() => {
+    const options = getStoppingPointOptions(organization);
     const primary =
-      STOPPING_POINT_OPTIONS.find(opt => opt.value === selectedStoppingPoint) ??
-      STOPPING_POINT_OPTIONS[0];
-    const dropdown = STOPPING_POINT_OPTIONS.filter(
-      opt => opt.value !== selectedStoppingPoint
-    ).map(opt => ({
-      key: opt.key,
-      label: opt.label,
-      onAction: () =>
-        handleSubmit({preventDefault: () => {}} as React.FormEvent, opt.value),
-    }));
+      options.find(opt => opt.value === selectedStoppingPoint) ?? options[0];
+    const dropdown = options
+      .filter(opt => opt.value !== selectedStoppingPoint)
+      .map(opt => ({
+        key: opt.key,
+        label: opt.label,
+        disabled: opt.disabled ?? false,
+        tooltip: opt.tooltip,
+        onAction: () =>
+          handleSubmit({preventDefault: () => {}} as React.FormEvent, opt.value),
+      }));
     return {primaryOption: primary, dropdownOptions: dropdown};
-  }, [selectedStoppingPoint, handleSubmit]);
+  }, [organization, selectedStoppingPoint, handleSubmit]);
 
   return (
     <Wrapper>
@@ -110,9 +146,9 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                 transform: 'rotate(30deg)',
               }}
             />
-            <StartTextRow>
-              <IconSeer variant="waiting" color="textColor" size="xl" />
-            </StartTextRow>
+            <Flex justify="center" align="center" gap="md" width="100%">
+              <IconSeer animation="waiting" variant="primary" size="xl" />
+            </Flex>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
             <StyledInput
@@ -130,24 +166,31 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               maxRows={10}
               size="sm"
             />
-            <ButtonBar merged gap="0">
-              <StyledButton
-                type="submit"
-                priority="primary"
-                analyticsEventKey={
-                  message
-                    ? 'autofix.give_instructions_clicked'
-                    : 'autofix.start_fix_clicked'
-                }
-                analyticsEventName={
-                  message
-                    ? 'Autofix: Give Instructions Clicked'
-                    : 'Autofix: Start Fix Clicked'
-                }
-                analyticsParams={{group_id: groupId}}
+            <ButtonBar>
+              <Tooltip
+                title={primaryOption.tooltip}
+                skipWrapper
+                disabled={!primaryOption.disabled}
               >
-                {primaryOption.label}
-              </StyledButton>
+                <StyledButton
+                  type="submit"
+                  priority="primary"
+                  disabled={primaryOption.disabled}
+                  analyticsEventKey={
+                    message
+                      ? 'autofix.give_instructions_clicked'
+                      : 'autofix.start_fix_clicked'
+                  }
+                  analyticsEventName={
+                    message
+                      ? 'Autofix: Give Instructions Clicked'
+                      : 'Autofix: Start Fix Clicked'
+                  }
+                  analyticsParams={{group_id: groupId}}
+                >
+                  {primaryOption.label}
+                </StyledButton>
+              </Tooltip>
               <DropdownMenu
                 items={dropdownOptions}
                 trigger={(triggerProps, isOpen) => (
@@ -171,8 +214,8 @@ const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: ${space(1)} ${space(4)};
-  gap: ${space(1)};
+  margin: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ScaleContainer = styled('div')`
@@ -180,7 +223,7 @@ const ScaleContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   margin-bottom: 100px;
 `;
 
@@ -189,28 +232,24 @@ const Container = styled('div')`
   width: 100%;
   border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.tokens.background.primary}
-    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
+    linear-gradient(
+      135deg,
+      ${p => p.theme.colors.pink500}08,
+      ${p => p.theme.colors.pink500}20
+    );
   overflow: visible;
-  padding: ${space(0.5)};
-  border: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.xs};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AutofixStartText = styled('div')`
   margin: 0;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   position: relative;
   overflow: hidden;
-`;
-
-const StartTextRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  width: 100%;
-  justify-content: center;
 `;
 
 const BackgroundStar = styled('img')`
@@ -222,7 +261,7 @@ const BackgroundStar = styled('img')`
 `;
 
 const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   opacity: 0.5;
 `;
 
@@ -236,9 +275,9 @@ const StyledInput = styled(TextArea)`
   resize: none;
   background: ${p => p.theme.tokens.background.primary};
 
-  border-color: ${p => p.theme.innerBorder};
+  border-color: ${p => p.theme.tokens.border.secondary};
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 

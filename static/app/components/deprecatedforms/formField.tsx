@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
@@ -36,7 +36,7 @@ type FormFieldState = {
   value: Value;
 };
 
-export default abstract class FormField<
+export abstract class FormField<
   Props extends FormFieldProps = FormFieldProps,
   State extends FormFieldState = FormFieldState,
 > extends PureComponent<Props, State> {
@@ -163,6 +163,6 @@ export default abstract class FormField<
 }
 
 const ErrorMessage = styled('p')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.errorText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.danger};
 `;

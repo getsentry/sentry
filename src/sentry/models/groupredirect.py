@@ -8,13 +8,13 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.models.group import Group
 
 
-@region_silo_model
+@cell_silo_model
 class GroupRedirect(Model):
     """
     Maintains a reference from a group that has been merged (and subsequently

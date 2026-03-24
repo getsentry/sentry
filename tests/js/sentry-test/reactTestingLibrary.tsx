@@ -17,25 +17,19 @@ import {
   type RouterNavigateOptions,
 } from '@remix-run/router';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
-
+import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
-import GlobalModal from 'sentry/components/globalModal';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import {GlobalModal} from 'sentry/components/globalModal';
 import type {Organization} from 'sentry/types/organization';
-import {
-  DANGEROUS_SET_REACT_ROUTER_6_HISTORY,
-  DANGEROUS_SET_TEST_HISTORY,
-} from 'sentry/utils/browserHistory';
+import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import {TestRouteContext} from 'sentry/views/routeContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
@@ -48,44 +42,20 @@ interface ProviderOptions {
   /**
    * Pass additional context providers
    */
-  additionalWrapper?: RenderOptions['wrapper'];
-  /**
-   * @deprecated do not use this option for new tests
-   *
-   * If enabled, the router will be mocked and will not react to user events (links, navigations, etc).
-   */
-  deprecatedRouterMocks?: boolean;
-  /**
-   * Sets the history for the router.
-   */
-  history?: MemoryHistory;
+  additionalWrapper?: rtl.RenderOptions['wrapper'];
   /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
   organization?: Partial<Organization> | null;
-  /**
-   * Sets the RouterContext.
-   */
-  router?: Partial<InjectedRouter>;
 }
 
-interface BaseRenderOptions<T extends boolean = boolean>
-  extends Pick<ProviderOptions, 'organization' | 'additionalWrapper'>,
-    rtl.RenderOptions {
-  /**
-   * @deprecated do not use this option for new tests
-   *
-   * If enabled, the router will be mocked and will not react to user events (links, navigations, etc).
-   */
-  deprecatedRouterMocks?: T;
-}
-
-type LocationConfig = {
+interface LocationConfig {
   pathname: string;
   query?: Record<string, string | number | string[]>;
-};
+  state?: any;
+}
 
-export type RouterConfig = {
+export interface RouterConfig {
   /**
    * Child routes
    */
@@ -115,69 +85,31 @@ export type RouterConfig = {
    * routes: ['/issues/:issueId/', '/issues/:issueId/events/:eventId/']
    */
   routes?: string[];
-};
+}
 
-type RenderOptions<T extends boolean = false> = T extends true
-  ? BaseRenderOptions<T> & {router?: Partial<InjectedRouter>}
-  : BaseRenderOptions<T> & {
-      initialRouterConfig?: RouterConfig;
-      outletContext?: Record<string, unknown>;
-    };
+interface RenderOptions extends rtl.RenderOptions, ProviderOptions {
+  initialRouterConfig?: RouterConfig;
+  outletContext?: Record<string, unknown>;
+}
 
-type RenderReturn<T extends boolean = false> = T extends true
-  ? rtl.RenderResult
-  : rtl.RenderResult & {router: TestRouter};
+interface RenderReturn extends rtl.RenderResult {
+  router: TestRouter;
+}
 
-type RenderHookWithProvidersOptions<Props> = Omit<
-  rtl.RenderHookOptions<Props>,
-  'wrapper'
-> &
-  Pick<ProviderOptions, 'additionalWrapper' | 'organization'> & {
-    initialRouterConfig?: RouterConfig;
-    outletContext?: Record<string, unknown>;
-  };
+interface RenderHookWithProvidersOptions<Props>
+  extends Omit<rtl.RenderHookOptions<Props>, 'wrapper'>, ProviderOptions {
+  initialRouterConfig?: RouterConfig;
+  outletContext?: Record<string, unknown>;
+}
 
-// Inject legacy react-router 3 style router mocked navigation functions
-// into the memory history used in react router 6
-function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: InjectedRouter) {
-  Object.defineProperty(history, 'location', {get: () => router.location});
-  history.replace = router.replace;
-  history.push = (path: any) => {
-    if (typeof path === 'object' && path.search) {
-      path.query = qs.parse(path.search);
-      delete path.search;
-      delete path.hash;
-      delete path.state;
-      delete path.key;
-    }
-
-    // XXX(epurkhiser): This is a hack for react-router 3 to 6. react-router
-    // 6 will not convert objects into strings before pushing. We can detect
-    // this by looking for an empty hash, which we normally do not set for
-    // our browserHistory.push calls
-    if (typeof path === 'object' && path.hash === '') {
-      const queryString = path.query ? qs.stringify(path.query) : null;
-      path = `${path.pathname}${queryString ? `?${queryString}` : ''}`;
-    }
-
-    router.push(path);
-  };
-
-  DANGEROUS_SET_TEST_HISTORY({
-    goBack: router.goBack,
-    push: router.push,
-    replace: router.replace,
-    listen: jest.fn(() => {}),
-    listenBefore: jest.fn(),
-    getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
-  });
+interface InitialRouterOptions {
+  initialRouterConfig?: RouterConfig;
+  outletContext?: Record<string, unknown>;
 }
 
 function makeAllTheProviders(options: ProviderOptions) {
-  const enableRouterMocks = options.deprecatedRouterMocks ?? false;
-  const {organization, router} = initializeOrg({
+  const {organization} = initializeOrg({
     organization: options.organization === null ? undefined : options.organization,
-    router: options.router,
   });
 
   // In some cases we may want to not provide an organization at all
@@ -194,25 +126,7 @@ function makeAllTheProviders(options: ProviderOptions) {
       </OrganizationContext>
     );
 
-    const wrappedContent = enableRouterMocks ? (
-      <TestRouteContext
-        value={{
-          router,
-          location: router.location,
-          params: router.params,
-          routes: router.routes,
-        }}
-      >
-        {/* ProvideAriaRouter may not be necessary in tests but matches routes.tsx */}
-        <ProvideAriaRouter>{content}</ProvideAriaRouter>
-      </TestRouteContext>
-    ) : (
-      content
-    );
-
-    if (enableRouterMocks) {
-      patchBrowserHistoryMocksEnabled(options.history ?? createMemoryHistory(), router);
-    }
+    const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;
 
     return (
       <CacheProvider value={{...cache, compat: true}}>
@@ -340,14 +254,23 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
     return LocationFixture().pathname;
   }
 
-  if (location.query) {
-    return {
-      pathname: location.pathname,
-      search: parseQueryString(location.query),
-    };
+  if (!location.query && !location.state) {
+    return location.pathname;
   }
 
-  return location.pathname;
+  const config: InitialEntry = {
+    pathname: location.pathname,
+  };
+
+  if (location.query) {
+    config.search = parseQueryString(location.query);
+  }
+
+  if (location.state) {
+    config.state = location.state;
+  }
+
+  return config;
 }
 
 function parseQueryString(query: Record<string, string | number | string[]> | undefined) {
@@ -358,29 +281,15 @@ function parseQueryString(query: Record<string, string | number | string[]> | un
   return queryString ? `?${queryString}` : '';
 }
 
-function getInitialRouterConfig<T extends boolean = true>(
-  options: RenderOptions<T>
-): {
+function getInitialRouterConfig(options: InitialRouterOptions): {
   config: RouterConfig | undefined;
   initialEntry: InitialEntry;
-  legacyRouterConfig: Partial<InjectedRouter> | undefined;
   outletContext: Record<string, unknown> | undefined;
 } {
-  if (options.deprecatedRouterMocks) {
-    return {
-      initialEntry: options.router?.location?.pathname ?? LocationFixture().pathname,
-      legacyRouterConfig: options.router,
-      config: undefined,
-      outletContext: undefined,
-    };
-  }
-
-  const opts = options as RenderOptions<false>;
   return {
-    initialEntry: parseLocationConfig(opts.initialRouterConfig?.location),
-    legacyRouterConfig: undefined,
-    config: opts.initialRouterConfig,
-    outletContext: opts.outletContext,
+    initialEntry: parseLocationConfig(options.initialRouterConfig?.location),
+    config: options.initialRouterConfig,
+    outletContext: options.outletContext,
   };
 }
 
@@ -393,17 +302,12 @@ function getInitialRouterConfig<T extends boolean = true>(
  * If your component requires additional context you can pass it in the
  * options.
  *
- * To test route changes, pass `disableRouterMocks: true`. This will return a
- * `router` property which can be used to access the location or manually
- * navigate to a route. To set the initial location with mocks disabled,
- * pass an `initialRouterConfig`.
+ * To test route changes, this function returns a `router` you can use to
+ * access the location or manually navigate to a route. To set the initial
+ * location, pass an `initialRouterConfig`.
  */
-function render<T extends boolean = false>(
-  ui: React.ReactElement,
-  options: RenderOptions<T> = {} as RenderOptions<T>
-): RenderReturn<T> {
-  const {initialEntry, config, legacyRouterConfig, outletContext} =
-    getInitialRouterConfig(options);
+function render(ui: React.ReactElement, options: RenderOptions = {}): RenderReturn {
+  const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 
   const history = createMemoryHistory({
     initialEntries: [initialEntry],
@@ -412,9 +316,6 @@ function render<T extends boolean = false>(
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
     additionalWrapper: options.additionalWrapper,
-    router: legacyRouterConfig,
-    deprecatedRouterMocks: options.deprecatedRouterMocks,
-    history,
   });
 
   const memoryRouter = makeRouter({
@@ -451,16 +352,15 @@ function render<T extends boolean = false>(
   return {
     ...renderResult,
     rerender,
-    ...(options.deprecatedRouterMocks ? {} : {router: testRouter}),
-  } as RenderReturn<T>;
+    router: testRouter,
+  } as RenderReturn;
 }
 
 function renderHookWithProviders<Result = unknown, Props = unknown>(
   callback: (initialProps: Props) => Result,
   options: RenderHookWithProvidersOptions<Props> = {} as RenderHookWithProvidersOptions<Props>
 ): rtl.RenderHookResult<Result, Props> & {router: TestRouter} {
-  const {initialEntry, config, legacyRouterConfig, outletContext} =
-    getInitialRouterConfig(options as unknown as RenderOptions<false>);
+  const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 
   const history = createMemoryHistory({
     initialEntries: [initialEntry],
@@ -469,9 +369,6 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
     additionalWrapper: options.additionalWrapper,
-    router: legacyRouterConfig,
-    deprecatedRouterMocks: false,
-    history,
   });
 
   let memoryRouter: Router | null = null;
@@ -515,7 +412,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
  */
 const fireEvent = rtl.fireEvent;
 
-function renderGlobalModal<T extends boolean = true>(options?: RenderOptions<T>) {
+function renderGlobalModal(options?: RenderOptions) {
   const result = render(<GlobalModal />, options);
 
   /**
@@ -555,11 +452,11 @@ export * from '@testing-library/react';
 
 export {
   // eslint-disable-next-line import/export
+  fireEvent,
+  // eslint-disable-next-line import/export
   render,
   renderGlobalModal,
   renderHookWithProviders,
   userEvent,
-  // eslint-disable-next-line import/export
-  fireEvent,
   waitForDrawerToHide,
 };

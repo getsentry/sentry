@@ -3,26 +3,28 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptorObject} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import Pagination from 'sentry/components/pagination';
-import SearchBar from 'sentry/components/searchBar';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {Pagination} from 'sentry/components/pagination';
+import {SearchBar} from 'sentry/components/searchBar';
 import type {
   Alignments,
   Directions,
 } from 'sentry/components/tables/gridEditable/sortLink';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import type {UsageSeries} from './types';
 import type {TableStat} from './usageTable';
@@ -117,7 +119,9 @@ export function UsageStatsProjects({
     isPending: loading,
   } = useApiQuery<UsageSeries>(
     [
-      `/organizations/${organization.slug}/stats_v2/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         // We do not need more granularity in the data so interval is '1d'
         query: endpointQuery,
@@ -139,7 +143,7 @@ export function UsageStatsProjects({
       };
     }
 
-    let key: string = parentTableSort;
+    let key = parentTableSort;
     let direction = -1;
 
     if (parentTableSort.charAt(0) === '-') {
@@ -475,9 +479,9 @@ export function UsageStatsProjects({
   return (
     <Fragment>
       {isSingleProject && (
-        <PanelHeading>
+        <Flex align="center" marginBottom="xl">
           <Title>{t('All Projects')}</Title>
-        </PanelHeading>
+        </Flex>
       )}
       {!isSingleProject && (
         <Container>
@@ -508,20 +512,14 @@ export function UsageStatsProjects({
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.gray400};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.colors.gray500};
   display: flex;
   flex: 1;
-  align-items: center;
-`;
-
-const PanelHeading = styled('div')`
-  display: flex;
-  margin-bottom: ${space(2)};
   align-items: center;
 `;

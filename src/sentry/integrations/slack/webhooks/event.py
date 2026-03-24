@@ -15,7 +15,9 @@ from sentry import analytics, features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
+from sentry.constants import ObjectStatus
 from sentry.integrations.messaging.metrics import (
+    AppMentionHaltReason,
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
@@ -30,8 +32,10 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
 
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
@@ -110,7 +114,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         client = SlackSdkClient(integration_id=slack_request.integration.id)
         if slack_request.user_id is None:
-            _logger.error("prompt_link.post-ephemeral-error", extra=logger_params)
+            _logger.warning("prompt_link.post-ephemeral-error", extra=logger_params)
         else:
             try:
                 client.chat_postEphemeral(
@@ -120,7 +124,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
                 )
             except SlackApiError:
-                _logger.exception("prompt_link.post-ephemeral-error", extra=logger_params)
+                _logger.warning("prompt_link.post-ephemeral-error", extra=logger_params)
 
     def on_message(self, request: Request, slack_request: SlackDMRequest) -> Response:
         command = request.data.get("event", {}).get("text", "").lower()
@@ -145,7 +149,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         client = SlackSdkClient(integration_id=slack_request.integration.id)
         if slack_request.channel_id is None:
-            _logger.error("on_message.post-message-error", extra=logger_params)
+            _logger.warning("on_message.post-message-error", extra=logger_params)
         else:
             try:
                 client.chat_postMessage(
@@ -156,7 +160,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     ).as_payload(),
                 )
             except SlackApiError:
-                _logger.exception("on_message.post-message-error", extra=logger_params)
+                _logger.warning("on_message.post-message-error", extra=logger_params)
 
         return self.respond()
 
@@ -304,6 +308,74 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         return True
 
+    def on_app_mention(self, slack_request: SlackDMRequest) -> Response:
+        """Handle @mention events for Seer Explorer."""
+        with MessagingInteractionEvent(
+            interaction_type=MessagingInteractionType.APP_MENTION,
+            spec=SlackMessagingSpec(),
+        ).capture() as lifecycle:
+            data = slack_request.data.get("event", {})
+            lifecycle.add_extras(
+                {
+                    "integration_id": slack_request.integration.id,
+                    "thread_ts": data.get("thread_ts"),
+                }
+            )
+
+            ois = integration_service.get_organization_integrations(
+                integration_id=slack_request.integration.id,
+                status=ObjectStatus.ACTIVE,
+                limit=1,
+            )
+            if not ois:
+                lifecycle.record_halt(AppMentionHaltReason.NO_ORGANIZATION)
+                return self.respond()
+
+            organization_id = ois[0].organization_id
+            lifecycle.add_extra("organization_id", organization_id)
+
+            organization_context = organization_service.get_organization_by_id(
+                id=organization_id,
+                user_id=None,
+                include_projects=False,
+                include_teams=False,
+            )
+            if not organization_context:
+                lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_FOUND)
+                return self.respond()
+
+            if organization_context.organization.status != OrganizationStatus.ACTIVE:
+                lifecycle.add_extra("status", organization_context.organization.status)
+                lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_ACTIVE)
+                return self.respond()
+
+            if not features.has(
+                "organizations:seer-slack-explorer", organization_context.organization
+            ):
+                lifecycle.record_halt(AppMentionHaltReason.FEATURE_NOT_ENABLED)
+                return self.respond()
+
+            channel_id = data.get("channel")
+            text = data.get("text")
+            thread_ts = data.get("ts")
+
+            if not channel_id or not text or not thread_ts:
+                lifecycle.record_halt(AppMentionHaltReason.MISSING_CHANNEL_OR_TEXT)
+                return self.respond()
+
+            process_mention_for_slack.apply_async(
+                kwargs={
+                    "integration_id": slack_request.integration.id,
+                    "organization_id": organization_id,
+                    "channel_id": channel_id,
+                    "thread_ts": thread_ts,
+                    "text": text,
+                    "slack_user_id": slack_request.user_id,
+                }
+            )
+
+        return self.respond()
+
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     def post(self, request: Request) -> Response:
         try:
@@ -317,6 +389,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if slack_request.type == "link_shared":
             if self.on_link_shared(request, slack_request):
                 return self.respond()
+
+        if slack_request.type == "app_mention":
+            return self.on_app_mention(slack_request)
 
         if slack_request.type == "message":
             if slack_request.is_bot():

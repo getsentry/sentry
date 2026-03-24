@@ -2,9 +2,11 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Select} from 'sentry/components/core/select';
+import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
@@ -14,6 +16,7 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import {BufferedInput} from 'sentry/views/discover/table/queryField';
@@ -23,7 +26,7 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
@@ -37,6 +40,7 @@ interface Props {
   aggregate: string;
   eventTypes: EventTypes[];
   onChange: (value: string, meta: Record<string, any>) => void;
+  project?: Project;
 }
 
 const SUPPORTED_MULTI_PARAM_AGGREGATES = [
@@ -68,29 +72,40 @@ const LOG_OPERATIONS = [
   value: aggregate as OurLogsAggregate,
 })) satisfies Array<{label: string; value: OurLogsAggregate}>;
 
-function EAPFieldWrapper({aggregate, onChange, eventTypes}: Props) {
-  return <EAPField aggregate={aggregate} onChange={onChange} eventTypes={eventTypes} />;
-}
-
-function EAPField({aggregate, onChange, eventTypes}: Props) {
+export function EAPField({aggregate, onChange, eventTypes, project}: Props) {
+  const organization = useOrganization();
   const traceItemType =
     getTraceItemTypeForDatasetAndEventType(
       Dataset.EVENTS_ANALYTICS_PLATFORM,
       eventTypes
     ) || TraceItemDataset.SPANS;
+  const isAttributesEnabled = organization.features.includes('visibility-explore-view');
 
   const {name: aggregation, arguments: aggregateFuncArgs} = parseFunction(aggregate) ?? {
     arguments: undefined,
   };
 
-  const {attributes: storedNumberTags} = useTraceItemAttributes('number');
-  const {attributes: storedStringTags} = useTraceItemAttributes('string');
+  const {attributes: storedNumberTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    {enabled: isAttributesEnabled, projects: project ? [project] : undefined},
+    'number'
+  );
+  const {attributes: storedStringTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    {enabled: isAttributesEnabled, projects: project ? [project] : undefined},
+    'string'
+  );
+  const {attributes: storedBooleanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    {enabled: isAttributesEnabled, projects: project ? [project] : undefined},
+    'boolean'
+  );
 
   const storedTags = useMemo(() => {
     return aggregation === AggregationKey.COUNT_UNIQUE
-      ? {...storedNumberTags, ...storedStringTags}
+      ? {...storedNumberTags, ...storedStringTags, ...storedBooleanTags}
       : storedNumberTags;
-  }, [aggregation, storedNumberTags, storedStringTags]);
+  }, [aggregation, storedBooleanTags, storedNumberTags, storedStringTags]);
 
   const fieldsArray = useMemo(() => {
     return Object.values(storedTags).toSorted((a, b) => {
@@ -228,7 +243,7 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
     : undefined;
 
   return (
-    <Wrapper>
+    <Flex gap="md">
       <StyledSelectControl
         searchable
         placeholder={t('Select an operation')}
@@ -302,16 +317,9 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
           />
         </FlexWrapper>
       )}
-    </Wrapper>
+    </Flex>
   );
 }
-
-export default EAPFieldWrapper;
-
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 const FlexWrapper = styled('div')`
   flex: 1;

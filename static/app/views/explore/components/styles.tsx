@@ -1,12 +1,15 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     border-bottom: none;
@@ -16,7 +19,7 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
             width: 343px; /* 300px for the toolbar + padding */
             padding: ${p.theme.space.xl} ${p.theme.space.lg} ${p.theme.space.md}
               ${p.theme.space['3xl']};
-            border-right: 1px solid ${p.theme.border};
+            border-right: 1px solid ${p.theme.tokens.border.primary};
           `
         : css`
             overflow: hidden;
@@ -27,29 +30,18 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   }
 `;
 
-export const ExploreContentSection = styled('section')<{expanded: boolean}>`
-  background-color: ${p => p.theme.backgroundSecondary};
-  flex: 1 1 auto;
-  min-width: 0;
-
-  padding-top: ${p => p.theme.space.md};
-  padding-right: ${p => p.theme.space.xl};
-  padding-bottom: ${p => p.theme.space['2xl']};
-  padding-left: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    ${p =>
-      p.expanded
-        ? css`
-            padding: ${p.theme.space.md} ${p.theme.space['3xl']} ${p.theme.space['2xl']}
-              ${p.theme.space.lg};
-          `
-        : css`
-            padding: ${p.theme.space.md} ${p.theme.space['3xl']} ${p.theme.space['2xl']}
-              ${p.theme.space['3xl']};
-          `}
-  }
-`;
+export function ExploreContentSection(props: ContainerProps) {
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <Container
+      {...props}
+      background={hasPageFrame ? 'primary' : 'secondary'}
+      flex="1 1 auto"
+      minWidth="0"
+      padding="xl"
+    />
+  );
+}
 
 export const ExploreFilterSection = styled('div')`
   display: grid;
@@ -72,7 +64,7 @@ export const ExploreSchemaHintsSection = styled(SchemaHintsSection)`
 
 export const ExploreBodySearch = styled(Layout.Body)`
   flex-grow: 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {

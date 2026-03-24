@@ -3,24 +3,24 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
 import * as qs from 'query-string';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
-import FooterWithButtons from './components/footerWithButtons';
-import HeaderWithHelp from './components/headerWithHelp';
+import {FooterWithButtons} from './components/footerWithButtons';
+import {HeaderWithHelp} from './components/headerWithHelp';
 
 type Props = {projects: Project[]};
 
-export default class AwsLambdaProjectSelect extends Component<Props> {
+export class AwsLambdaProjectSelect extends Component<Props> {
   model = new FormModel();
 
   handleSubmit = (e: React.MouseEvent) => {
@@ -59,7 +59,7 @@ export default class AwsLambdaProjectSelect extends Component<Props> {
                 stacked
               />
               <Alert.Container>
-                <Alert type="info" showIcon={false}>
+                <Alert variant="info" showIcon={false}>
                   {t('Currently only supports Node and Python Lambda functions')}
                 </Alert>
               </Alert.Container>
@@ -85,5 +85,5 @@ const StyledList = styled(List)`
 `;
 
 const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
-  padding: 0 0 ${space(2)} 0;
+  padding: 0 0 ${p => p.theme.space.xl} 0;
 `;

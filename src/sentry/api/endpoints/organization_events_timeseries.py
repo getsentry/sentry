@@ -1,20 +1,22 @@
-from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
+    INGESTION_DELAY,
+    INGESTION_DELAY_MESSAGE,
     Row,
     SeriesMeta,
     StatsMeta,
@@ -22,13 +24,19 @@ from sentry.api.endpoints.timeseries import (
     TimeSeries,
 )
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs import constants as api_constants
+from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
 )
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import AdditionalQueries, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
@@ -40,11 +48,13 @@ from sentry.snuba import (
     transactions,
 )
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
@@ -55,14 +65,11 @@ TOP_EVENTS_DATASETS = {
     spans_metrics,
     Spans,
     OurLogs,
+    PreprodSize,
     TraceMetrics,
     errors,
     transactions,
 }
-
-# Assumed ingestion delay for timeseries, this is a static number for now just to match how the frontend was doing it
-INGESTION_DELAY = 90
-INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
 
 
 def null_zero(value: float) -> float | None:
@@ -72,35 +79,24 @@ def null_zero(value: float) -> float | None:
         return value
 
 
-@region_silo_endpoint
+@extend_schema(tags=["Explore"])
+@cell_silo_endpoint
 class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
-    def get_features(
-        self, organization: Organization, request: Request
-    ) -> Mapping[str, bool | None]:
-        feature_names = [
-            "organizations:performance-use-metrics",
-            "organizations:dashboards-mep",
-            "organizations:mep-rollout-flag",
-        ]
-        batch_features = features.batch_has(
-            feature_names,
-            organization=organization,
-            actor=request.user,
-        )
-        return (
-            batch_features.get(f"organization:{organization.id}", {})
-            if batch_features is not None
-            else {
-                feature_name: features.has(
-                    feature_name, organization=organization, actor=request.user
-                )
-                for feature_name in feature_names
+    enforce_rate_limit = True
+
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=30, window=1, concurrent_limit=15),
+                RateLimitCategory.USER: RateLimit(limit=30, window=1, concurrent_limit=15),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=30, window=1, concurrent_limit=15),
             }
-        )
+        }
+    )
 
     def get_request_querysource(self, request: Request, referrer: str) -> QuerySource:
         if referrer in SENTRY_BACKEND_REFERRERS:
@@ -132,7 +128,43 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         else:
             return None
 
+    @extend_schema(
+        operation_id="Query Explore Events in Timeseries Format",
+        parameters=[
+            GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.START,
+            GlobalParams.STATS_PERIOD,
+            VisibilityParams.TOP_EVENTS,
+            VisibilityParams.COMPARISON_DELTA,
+            VisibilityParams.DATASET,
+            VisibilityParams.INTERVAL,
+            VisibilityParams.SORT,
+            VisibilityParams.GROUP_BY,
+            VisibilityParams.Y_AXIS,
+            VisibilityParams.QUERY,
+            VisibilityParams.DISABLE_AGGREGATE_EXTRAPOLATION,
+            VisibilityParams.PREVENT_METRIC_AGGREGATES,
+            VisibilityParams.EXCLUDE_OTHER,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsTimeseriesResponse", StatsResponse
+            ),
+            400: OpenApiResponse(description="Invalid Query"),
+            404: api_constants.RESPONSE_NOT_FOUND,
+        },
+        examples=DiscoverAndPerformanceExamples.QUERY_TIMESERIES,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Retrieves explore data for a given organization as a timeseries.
+
+        This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
+        on the parameters passed
+        """
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
@@ -159,6 +191,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 )
             except NoProjects:
                 return Response(EMPTY_STATS_RESPONSE, status=200)
+            additional_queries = self.get_additional_queries(request)
 
         with handle_query_errors():
             self.validate_comparison_delta(comparison_delta, snuba_params, organization)
@@ -175,10 +208,44 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 snuba_params,
                 rollup,
                 comparison_delta,
+                additional_queries,
             )
             return Response(
                 self.serialize_stats_data(events_stats, axes, snuba_params, rollup, dataset),
                 status=200,
+            )
+
+    def get_rpc_config(self, dataset: Any, request: Request) -> SearchResolverConfig:
+        if dataset not in RPC_DATASETS:
+            raise NotImplementedError
+
+        extrapolation_mode = self.get_extrapolation_mode(request)
+        disable_aggregate_extrapolation = (
+            request.GET.get("disableAggregateExtrapolation", "0") == "1"
+        )
+
+        if dataset == TraceMetrics:
+            # tracemetrics uses aggregate conditions
+            return TraceMetricsSearchResolverConfig(
+                metric=get_trace_metric_from_request(request),
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                extrapolation_mode=extrapolation_mode,
+            )
+        elif dataset == PreprodSize:
+            return PreprodSizeSearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                extrapolation_mode=extrapolation_mode,
+            )
+        else:
+            return SearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                extrapolation_mode=extrapolation_mode,
             )
 
     def get_event_stats(
@@ -192,6 +259,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         snuba_params: SnubaParams,
         rollup: int,
         comparison_delta: timedelta | None,
+        additional_queries: AdditionalQueries,
     ) -> SnubaTSResult | dict[str, SnubaTSResult]:
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
@@ -206,51 +274,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         query_source = self.get_request_querysource(request, referrer)
 
         self._emit_analytics_event(organization, referrer)
-
-        batch_features = self.get_features(organization, request)
-        use_metrics = (
-            batch_features.get("organizations:performance-use-metrics", False)
-            or batch_features.get("organizations:dashboards-mep", False)
-            or (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and features.has(
-                    "organizations:dynamic-sampling",
-                    organization=organization,
-                    actor=request.user,
-                )
-            )
-        )
-
-        def get_rpc_config():
-            if dataset not in RPC_DATASETS:
-                raise NotImplementedError
-
-            extrapolation_mode = self.get_extrapolation_mode(request)
-
-            if dataset == TraceMetrics:
-                # tracemetrics uses aggregate conditions
-                metric = get_trace_metric_from_request(request)
-
-                return TraceMetricsSearchResolverConfig(
-                    metric=metric,
-                    auto_fields=False,
-                    use_aggregate_conditions=True,
-                    disable_aggregate_extrapolation=request.GET.get(
-                        "disableAggregateExtrapolation", "0"
-                    )
-                    == "1",
-                    extrapolation_mode=extrapolation_mode,
-                )
-
-            return SearchResolverConfig(
-                auto_fields=False,
-                use_aggregate_conditions=True,
-                disable_aggregate_extrapolation=request.GET.get(
-                    "disableAggregateExtrapolation", "0"
-                )
-                == "1",
-                extrapolation_mode=extrapolation_mode,
-            )
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
@@ -272,9 +295,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     limit=top_events,
                     include_other=include_other,
                     referrer=referrer,
-                    config=get_rpc_config(),
+                    config=self.get_rpc_config(dataset, request),
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
+                    additional_queries=additional_queries,
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
@@ -301,9 +325,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 query_string=query,
                 y_axes=query_columns,
                 referrer=referrer,
-                config=get_rpc_config(),
+                config=self.get_rpc_config(dataset, request),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
+                additional_queries=additional_queries,
             )
 
         return dataset.timeseries_query(
@@ -315,7 +340,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             zerofill_results=True,
             comparison_delta=comparison_delta,
             allow_metric_aggregates=allow_metric_aggregates,
-            has_metrics=use_metrics,
+            has_metrics=True,
             query_source=query_source,
             fallback_to_transactions=True,
             transform_alias_to_input_format=True,

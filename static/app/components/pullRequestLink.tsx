@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {PullRequest, Repository} from 'sentry/types/integrations';
 
 function renderIcon(repo: Repository) {
@@ -32,7 +32,7 @@ type Props = {
   inline?: boolean;
 };
 
-function PullRequestLink({pullRequest, repository, inline}: Props) {
+export function PullRequestLink({pullRequest, repository, inline}: Props) {
   const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
 
   if (!pullRequest.externalUrl) {
@@ -59,11 +59,9 @@ function PullRequestLink({pullRequest, repository, inline}: Props) {
 const ExternalPullLink = styled(ExternalLink)`
   display: inline-flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
   svg {
     flex-shrink: 0;
   }
 `;
-
-export default PullRequestLink;

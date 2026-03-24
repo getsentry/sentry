@@ -2,7 +2,6 @@ import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -50,15 +49,15 @@ function traceItemTypeToType(
 }
 
 const Details = styled('div')`
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   max-width: 220px;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const DetailsLabel = styled('p')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   word-break: break-all;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const DetailsDescription = styled('p')`

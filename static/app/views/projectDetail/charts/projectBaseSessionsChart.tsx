@@ -8,29 +8,29 @@ import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
+import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartEventHandler, Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 
-import ProjectSessionsAnrRequest from './projectSessionsAnrRequest';
+import {ProjectSessionsAnrRequest} from './projectSessionsAnrRequest';
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 
 type Props = {
@@ -108,7 +108,7 @@ function ProjectBaseSessionsChart({
                       if (errored) {
                         return (
                           <ErrorPanel>
-                            <IconWarning color="gray300" size="lg" />
+                            <IconWarning variant="muted" size="lg" />
                           </ErrorPanel>
                         );
                       }
@@ -274,7 +274,7 @@ class Chart extends Component<ChartProps, ChartState> {
         color: theme.tokens.content.primary,
         verticalAlign: 'top',
         fontSize: 11,
-        fontFamily: theme.text.family,
+        fontFamily: theme.font.family.sans,
       },
       data: [
         ...timeSeries.map(s => s.seriesName),

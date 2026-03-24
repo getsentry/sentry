@@ -4,14 +4,16 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconChevron,
   IconCopy,
@@ -21,7 +23,6 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -33,17 +34,17 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type GroupEventCarouselProps = {
@@ -182,18 +183,22 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       disabled={isDisabled}
       options={eventNavDropdownOptions}
       value={selectedValue ? selectedValue : EventNavDropdownOption.CUSTOM}
-      triggerProps={{
-        children: selectedValue ? (
-          selectedValue === EventNavDropdownOption.RECOMMENDED ? (
-            t('Recommended')
-          ) : undefined
-        ) : (
-          <TimeSince
-            date={event.dateCreated ?? event.dateReceived}
-            disabledAbsoluteTooltip
-          />
-        ),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>
+          {selectedValue ? (
+            selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+              t('Recommended')
+            ) : (
+              triggerProps.children
+            )
+          ) : (
+            <TimeSince
+              date={event.dateCreated ?? event.dateReceived}
+              disabledAbsoluteTooltip
+            />
+          )}
+        </OverlayTrigger.Button>
+      )}
       menuWidth={232}
       onChange={selectedOption => {
         trackAnalytics('issue_details.event_dropdown_option_selected', {
@@ -336,7 +341,7 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
       />
       {xlargeViewport && (
         <Button
-          title={t('Copy link to this issue event')}
+          tooltipProps={{title: t('Copy link to this issue event')}}
           size={BUTTON_SIZE}
           onClick={handleCopyLink}
           aria-label={t('Copy Link')}
@@ -345,7 +350,7 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
       )}
       {xlargeViewport && (
         <Button
-          title={t('View JSON')}
+          tooltipProps={{title: t('View JSON')}}
           size={BUTTON_SIZE}
           onClick={downloadJson}
           aria-label={t('View JSON')}
@@ -369,7 +374,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const {copy} = useCopyToClipboard();
 
   return (
-    <CarouselAndButtonsWrapper>
+    <Flex justify="between" align="start" marginBottom="xs" gap="md">
       <div>
         <EventHeading>
           <EventIdAndTimeContainer>
@@ -384,16 +389,14 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                   ...getAnalyticsDataForEvent(event),
                   streamline: false,
                 }}
-                borderless
+                priority="transparent"
                 onClick={() =>
                   copy(event.id, {
                     successMessage: t('Event ID copied to clipboard'),
                   })
                 }
                 size="zero"
-                title={event.id}
-                tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
-                translucentBorder
+                tooltipProps={{title: event.id, overlayStyle: {maxWidth: 'max-content'}}}
               >
                 <EventId>
                   {getShortEventId(event.id)}
@@ -420,7 +423,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 })}
                 {isOverLatencyThreshold && (
                   <Tooltip title="High latency">
-                    <StyledIconWarning size="xs" color="warningText" />
+                    <StyledIconWarning size="xs" variant="warning" />
                   </Tooltip>
                 )}
               </EventTimeLabel>
@@ -428,7 +431,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           </EventIdAndTimeContainer>
         </EventHeading>
       </div>
-      <ActionsWrapper>
+      <Flex align="center" gap="xs">
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
         <EventNavigationDropdown
           isDisabled={!hasPreviousEvent && !hasNextEvent}
@@ -453,35 +456,21 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             referrer="next-event"
           />
         </NavButtons>
-      </ActionsWrapper>
-    </CarouselAndButtonsWrapper>
+      </Flex>
+    </Flex>
   );
 }
-
-const CarouselAndButtonsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: ${space(1)};
-  margin-bottom: ${space(0.5)};
-`;
 
 const EventHeading = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.lg};
+  gap: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.lg};
 
   @media (max-width: 600px) {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
-`;
-
-const ActionsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const StyledNavButton = styled(LinkButton)`
@@ -515,7 +504,7 @@ const NavButtons = styled('div')`
 const EventIdAndTimeContainer = styled('div')`
   display: flex;
   align-items: center;
-  column-gap: ${space(0.75)};
+  column-gap: ${p => p.theme.space.sm};
   row-gap: 0;
   flex-wrap: wrap;
 `;
@@ -523,37 +512,37 @@ const EventIdAndTimeContainer = styled('div')`
 const EventIdContainer = styled('div')`
   display: flex;
   align-items: center;
-  column-gap: ${space(0.25)};
+  column-gap: ${p => p.theme.space['2xs']};
 `;
 
 const EventTimeLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconWarning = styled(IconWarning)`
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space['2xs']};
   position: relative;
   top: 1px;
 `;
 
 const EventId = styled('span')`
   position: relative;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.lg};
   &:hover {
     > span {
       display: flex;
     }
   }
   @media (max-width: 600px) {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 
 const CopyIconContainer = styled('span')`
   display: none;
   align-items: center;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space['2xs']};
   background: ${p => p.theme.tokens.background.primary};
   position: absolute;
   right: 0;

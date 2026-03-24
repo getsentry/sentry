@@ -5,6 +5,8 @@
 
 from typing import Any, TypedDict
 
+from pydantic import Field
+
 from sentry.hybridcloud.rpc import RpcModel
 from social_auth.backends import BaseAuth
 from social_auth.utils import get_backend, tokens
@@ -15,7 +17,7 @@ class RpcUserSocialAuth(RpcModel):
     user_id: int
     provider: str
     uid: str
-    extra_data: dict[str, Any]
+    extra_data: dict[str, Any] = Field(repr=False)
 
     def get_backend(self) -> type[BaseAuth] | None:
         return get_backend(instance=self)

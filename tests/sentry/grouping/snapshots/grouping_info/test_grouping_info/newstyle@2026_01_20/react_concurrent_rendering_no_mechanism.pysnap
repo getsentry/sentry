@@ -1,0 +1,98 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_chained_exception_message": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "chained_exception",
+            "name": null,
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "exception",
+                "name": "exception",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "type",
+                    "name": null,
+                    "values": [
+                      "TypeError"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "value",
+                    "name": null,
+                    "values": [
+                      "Load failed"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "stacktrace",
+                    "name": "stacktrace",
+                    "values": []
+                  }
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "exception",
+                "name": "exception",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "type",
+                    "name": null,
+                    "values": [
+                      "Error"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "value",
+                    "name": null,
+                    "values": [
+                      "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root."
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "stacktrace",
+                    "name": "stacktrace",
+                    "values": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "chained exception messages",
+      "hash": "5f209162115f576bedbaf6f0ad30e5aa",
+      "hint": null,
+      "key": "app_chained_exception_message",
+      "type": "component"
+    }
+  }
+}

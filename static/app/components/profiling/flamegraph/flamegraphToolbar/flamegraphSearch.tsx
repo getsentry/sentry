@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {SearchBar, SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
@@ -13,10 +13,10 @@ import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFl
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {parseRegExp} from 'sentry/utils/profiling/validators/regExp';
+import {fzf} from 'sentry/utils/search/fzf';
 
 function isFlamegraphFrame(
   frame: FlamegraphFrame | SpanChartNode
@@ -225,7 +225,7 @@ function sortFrameResults(
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
   let sid = -1;
-  const spans: Array<SpanChartNode | FlamegraphFrame> = new Array(results.spans.size);
+  const spans = new Array<SpanChartNode | FlamegraphFrame>(results.spans.size);
   for (const n of results.spans.values()) {
     spans[++sid] = n.span;
   }
@@ -440,14 +440,14 @@ function FlamegraphSearch({
             </StyledTrailingText>
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron size="xs" />}
               aria-label={t('Next')}
               onClick={onPreviousSearchClick}
             />
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron size="xs" direction="down" />}
               aria-label={t('Previous')}
               onClick={onNextSearchClick}
@@ -455,7 +455,7 @@ function FlamegraphSearch({
           </Fragment>
         ) : (
           <Tooltip title={t(`Also supports regular expressions, e.g. /^functionName/i`)}>
-            <StyledIconInfo size="xs" color="gray300" />
+            <StyledIconInfo size="xs" variant="muted" />
           </Tooltip>
         )
       }
@@ -472,15 +472,15 @@ const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
 `;
 
 const StyledTrailingText = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
   flex: 1 1 100%;
 
   > div > div:last-child {
-    gap: ${space(0.25)};
+    gap: ${p => p.theme.space['2xs']};
   }
 `;
 

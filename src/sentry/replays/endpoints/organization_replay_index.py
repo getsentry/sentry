@@ -6,11 +6,9 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases.organization import NoProjects
 from sentry.api.event_search import parse_search_query
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
@@ -18,6 +16,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.replays.endpoints.organization_replay_endpoint import OrganizationReplayEndpoint
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection_paginated, replay_url_parser_config
 from sentry.replays.usecases.errors import handled_snuba_exceptions
@@ -26,10 +25,9 @@ from sentry.replays.validators import ReplayValidator
 from sentry.utils.cursors import Cursor, CursorResult
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
-class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.REPLAY
+class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -49,9 +47,8 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         """
         Return a list of replays belonging to an organization.
         """
+        self.check_replay_access(request, organization)
 
-        if not features.has("organizations:session-replay", organization, actor=request.user):
-            return Response(status=404)
         try:
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:

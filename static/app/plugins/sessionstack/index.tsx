@@ -2,9 +2,9 @@ import BasePlugin from 'sentry/plugins/basePlugin';
 
 import Settings from './components/settings';
 
-class SessionStackPlugin extends BasePlugin {
+export class SessionStackPlugin extends BasePlugin {
   displayName = 'SessionStack';
-  // should never be be called since this is a non-issue plugin
+  // should never be called since this is a non-issue plugin
   renderGroupActions() {
     return null;
   }
@@ -13,5 +13,3 @@ class SessionStackPlugin extends BasePlugin {
     return <Settings plugin={this.plugin} {...props} />;
   }
 }
-
-export default SessionStackPlugin;

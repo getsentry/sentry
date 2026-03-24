@@ -1,7 +1,6 @@
 import itertools
 from collections import defaultdict
 from collections.abc import Collection, Mapping
-from typing import DefaultDict
 
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -22,7 +21,7 @@ class RawSimpleIndexer(StringIndexer):
 
     def __init__(self) -> None:
         self._counter = itertools.count(start=10000)
-        self._strings: DefaultDict[UseCaseID, DefaultDict[OrgId, DefaultDict[str, int | None]]] = (
+        self._strings: defaultdict[UseCaseID, defaultdict[OrgId, defaultdict[str, int | None]]] = (
             defaultdict(lambda: defaultdict(lambda: defaultdict(self._counter.__next__)))
         )
         self._reverse: dict[int, str] = {}

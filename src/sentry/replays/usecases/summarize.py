@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Generator, Iterator
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
@@ -13,16 +13,20 @@ from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance, query_trace_connected_events
-from sentry.replays.usecases.ingest.event_parser import EventType
+from sentry.replays.usecases.ingest.event_parser import (
+    EventType,
+    parse_network_content_lengths,
+    which,
+)
 from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
 )
-from sentry.replays.usecases.ingest.event_parser import parse_network_content_lengths, which
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import Event
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
+from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.platform_categories import MOBILE
 
 logger = logging.getLogger(__name__)
@@ -553,21 +557,24 @@ def rpc_get_replay_summary_logs(
     replay_start = processed_response[0].get("started_at")
     replay_end = processed_response[0].get("finished_at")
     if replay_start:
-        start = max(
-            datetime.fromisoformat(replay_start) - timedelta(seconds=10),
-            datetime.now(UTC) - timedelta(days=90),
-        )
+        start = max(datetime.fromisoformat(replay_start) - timedelta(seconds=10), start)
     if replay_end:
-        end = min(datetime.fromisoformat(replay_end) + timedelta(seconds=10), datetime.now(UTC))
+        end = min(datetime.fromisoformat(replay_end) + timedelta(seconds=10), end)
+
+    # Clamp start to the organization's retention period.
+    _, start = outside_retention_with_modified_start(start, end, project.organization)
 
     # Fetch same-trace errors.
-    trace_connected_errors = fetch_trace_connected_errors(
-        project=project,
-        trace_ids=trace_ids,
-        start=start,
-        end=end,
-        limit=100,
-    )
+    if start >= end:
+        trace_connected_errors = []
+    else:
+        trace_connected_errors = fetch_trace_connected_errors(
+            project=project,
+            trace_ids=trace_ids,
+            start=start,
+            end=end,
+            limit=100,
+        )
     trace_connected_error_ids = {x["id"] for x in trace_connected_errors}
 
     # Fetch directly linked errors, if they weren't returned by the trace query.

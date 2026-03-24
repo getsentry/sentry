@@ -5,19 +5,19 @@ import type {Query} from 'history';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {getAggregateArg, getMeasurementSlug} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ViewProps} from 'sentry/views/performance/types';
 
-import Content from './content';
+import {Content} from './content';
 
 type Props = ViewProps & {
   organization: OrganizationSummary;
@@ -25,7 +25,7 @@ type Props = ViewProps & {
   queryExtras?: Record<string, string>;
 };
 
-function VitalsChart({
+export function VitalsChart({
   project,
   environment,
   organization,
@@ -149,5 +149,3 @@ function VitalsChart({
     </Fragment>
   );
 }
-
-export default VitalsChart;

@@ -45,7 +45,6 @@ class OrganizationTraceItemsStatsEndpointTest(
                 start_ts=self.ten_mins_ago,
                 duration=duration or 1000,
             ),
-            is_eap=True,
         )
 
     def test_no_project(self) -> None:
@@ -122,7 +121,6 @@ class OrganizationTraceItemsStatsEndpointTest(
                 start_ts=self.ten_mins_ago,
                 duration=100,
             ),
-            is_eap=True,
         )
         self.store_span(
             self.create_span(
@@ -132,7 +130,6 @@ class OrganizationTraceItemsStatsEndpointTest(
                 start_ts=self.ten_mins_ago,
                 duration=200,
             ),
-            is_eap=True,
         )
 
         response = self.do_request(
@@ -232,9 +229,7 @@ class OrganizationTraceItemsStatsEndpointTest(
 
         assert len(response.data["data"]) == 1
         attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
-        assert (
-            len(attribute_distribution) == 2
-        )  # We return limit + 1 to check if there is a next page
+        assert len(attribute_distribution) == 1
 
         if "Link" in response:
             links = {}

@@ -16,7 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import SentryAPIException
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
@@ -157,7 +157,7 @@ class PushEventWebhook(BitbucketWebhook):
                     pass
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class BitbucketWebhookEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
@@ -189,7 +189,7 @@ class BitbucketWebhookEndpoint(Endpoint):
 
         body = bytes(request.body)
         if not body:
-            logger.error(
+            logger.warning(
                 "%s.webhook.missing-body", PROVIDER_NAME, extra={"organization_id": organization.id}
             )
             return HttpResponse(status=400)
@@ -197,7 +197,7 @@ class BitbucketWebhookEndpoint(Endpoint):
         try:
             handler = self.get_handler(request.META["HTTP_X_EVENT_KEY"])
         except KeyError:
-            logger.exception(
+            logger.warning(
                 "%s.webhook.missing-event",
                 PROVIDER_NAME,
                 extra={"organization_id": organization.id},
@@ -216,7 +216,7 @@ class BitbucketWebhookEndpoint(Endpoint):
                 break
 
         if not valid_ip and address_string not in BITBUCKET_IPS:
-            logger.error(
+            logger.warning(
                 "%s.webhook.invalid-ip-range",
                 PROVIDER_NAME,
                 extra={"organization_id": organization.id},
@@ -226,7 +226,7 @@ class BitbucketWebhookEndpoint(Endpoint):
         try:
             event = orjson.loads(body)
         except orjson.JSONDecodeError:
-            logger.exception(
+            logger.warning(
                 "%s.webhook.invalid-json",
                 PROVIDER_NAME,
                 extra={"organization_id": organization.id},

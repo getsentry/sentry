@@ -13,13 +13,12 @@ import type {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
-import type useOverlay from 'sentry/utils/useOverlay';
+import type {useOverlay} from 'sentry/utils/useOverlay';
 
 import {DropdownMenu} from './index';
 import type {MenuItemProps} from './item';
-import DropdownMenuItem from './item';
-import DropdownMenuSection from './section';
+import {DropdownMenuItem} from './item';
+import {DropdownMenuSection} from './section';
 
 type OverlayState = ReturnType<typeof useOverlay>['state'];
 
@@ -39,7 +38,8 @@ interface DropdownMenuContextValue {
 export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
 
 export interface DropdownMenuListProps
-  extends Omit<
+  extends
+    Omit<
       AriaMenuOptions<MenuItemProps>,
       | 'selectionMode'
       | 'selectedKeys'
@@ -66,9 +66,15 @@ export interface DropdownMenuListProps
    */
   menuTitle?: React.ReactNode;
   size?: MenuItemProps['size'];
+  /**
+   * Style overrides applied to the position wrapper. Useful for overriding
+   * the default z-index (e.g. when the menu is inside a high z-index container
+   * like a sidebar).
+   */
+  zIndex?: number;
 }
 
-function DropdownMenuList({
+export function DropdownMenuList({
   closeOnSelect = true,
   onClose,
   size,
@@ -76,6 +82,7 @@ function DropdownMenuList({
   menuFooter,
   overlayState,
   overlayPositionProps,
+  zIndex,
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
@@ -228,7 +235,10 @@ function DropdownMenuList({
   );
   return (
     <FocusScope restoreFocus autoFocus>
-      <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
+      <PositionWrapper
+        zIndex={zIndex === undefined ? theme.zIndex.dropdown : Number(zIndex)}
+        {...overlayPositionProps}
+      >
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
@@ -250,8 +260,6 @@ function DropdownMenuList({
   );
 }
 
-export default DropdownMenuList;
-
 const StyledOverlay = styled(Overlay)`
   display: flex;
   flex-direction: column;
@@ -259,12 +267,12 @@ const StyledOverlay = styled(Overlay)`
 
 const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   margin: 0;
-  padding: ${space(0.5)} 0;
-  font-size: ${p => p.theme.fontSize.md};
+  padding: ${p => p.theme.space.xs} 0;
+  font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
 
-  ${p => p.hasTitle && `padding-top: calc(${space(0.5)} + 1px);`}
+  ${p => p.hasTitle && `padding-top: calc(${p.theme.space.xs} + 1px);`}
 
   &:focus {
     outline: none;
@@ -273,17 +281,18 @@ const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
 
 const MenuTitle = styled('div')`
   flex-shrink: 0;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
-  padding: ${space(0.75)} ${space(1.5)};
-  box-shadow: 0 1px 0 0 ${p => p.theme.translucentInnerBorder};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   z-index: 2;
 `;
 
 const Separator = styled('li')`
   list-style-type: none;
-  border-top: solid 1px ${p => p.theme.innerBorder};
-  margin: ${space(0.5)} ${space(1.5)};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
+  margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 `;

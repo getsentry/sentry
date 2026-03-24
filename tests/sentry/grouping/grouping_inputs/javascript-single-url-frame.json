@@ -1,0 +1,11 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "https://sentry.io/dogs/are/great.js",
+        "filename": "great.js"
+      }
+    ]
+  },
+  "platform": "javascript"
+}

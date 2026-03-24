@@ -5,18 +5,19 @@ import type {LocationDescriptor} from 'history';
 import invariant from 'invariant';
 import {PlatformIcon} from 'platformicons';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Duration from 'sentry/components/duration/duration';
+import {LinkButton} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Duration} from 'sentry/components/duration/duration';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
-import ReplayBadge from 'sentry/components/replays/replayBadge';
-import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
-import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
-import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
-import ScoreBar from 'sentry/components/scoreBar';
+import {ReplayBadge} from 'sentry/components/replays/replayBadge';
+import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
+import {NumericDropdownFilter} from 'sentry/components/replays/table/filters/numericDropdownFilter';
+import {OSBrowserDropdownFilter} from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
+import {ScoreBar} from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
@@ -24,17 +25,16 @@ import {IconFire} from 'sentry/icons/iconFire';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {
@@ -144,7 +144,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
         <DropdownContainer>
           <Tooltip title={t('N/A')}>
             <Flex justify="center" width="20px">
-              <IconNot size="xs" color="gray300" />
+              <IconNot size="xs" variant="muted" />
             </Flex>
           </Tooltip>
         </DropdownContainer>
@@ -198,7 +198,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_dead_clicks ? (
             <Flex gap="xs">
-              <IconCursorArrow size="sm" color="yellow300" />
+              <IconCursorArrow size="sm" variant="warning" />
               {replay.count_dead_clicks}
             </Flex>
           ) : (
@@ -252,7 +252,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_errors ? (
             <Flex gap="xs">
-              <IconFire color="red300" />
+              <IconFire variant="danger" />
               {replay.count_errors}
             </Flex>
           ) : (
@@ -293,7 +293,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
         <TabularNumber>
           {replay.count_rage_clicks ? (
             <Flex gap="xs">
-              <IconCursorArrow size="sm" color="red300" />
+              <IconCursorArrow size="sm" variant="danger" />
               {replay.count_rage_clicks}
             </Flex>
           ) : (
@@ -401,12 +401,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
     if (rowIndex === selectedReplayIndex) {
       return (
         <PlayPauseButtonContainer>
-          <ReplayPlayPauseButton
-            key="playPause-play"
-            borderless
-            priority="default"
-            size="sm"
-          />
+          <ReplayPlayPauseButton key="playPause-play" priority="transparent" size="sm" />
         </PlayPauseButtonContainer>
       );
     }
@@ -415,7 +410,6 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
         <LinkButton
           key="playPause-select"
           aria-label={t('Play')}
-          borderless
           data-test-id="replay-table-play-button"
           icon={<IconPlay />}
           to={{
@@ -424,7 +418,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
           }}
           priority="default"
           size="sm"
-          title={t('Play')}
+          tooltipProps={{title: t('Play')}}
         />
       </PlayPauseButtonContainer>
     );
@@ -597,8 +591,6 @@ const PlayPauseButtonContainer = styled(Flex)`
   z-index: 1; /* Raise above any ReplaySessionColumn in the row */
   flex-direction: column;
   justify-content: center;
-
-  margin: 0 -${p => p.theme.space.xl} 0 -${p => p.theme.space.md};
 `;
 
 const CheckboxHeaderContainer = styled(Flex)`
@@ -607,15 +599,15 @@ const CheckboxHeaderContainer = styled(Flex)`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
-  margin: 0 -${space(1)} 0 -${space(0.5)};
+  margin: 0 -${p => p.theme.space.md} 0 -${p => p.theme.space.xs};
 `;
 
 const CheckboxClickCapture = styled('div')`
   z-index: 1; /* Raise above any ReplaySessionColumn in the row */
-  padding: ${space(2)};
-  margin: -${space(2)};
+  padding: ${p => p.theme.space.xl};
+  margin: -${p => p.theme.space.xl};
 `;
 
 const CheckboxCellContainer = styled('div')`
@@ -624,10 +616,10 @@ const CheckboxCellContainer = styled('div')`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
-  padding: ${space(0.5)} 0 0 0;
-  margin: 0 -${space(1)} 0 -${space(0.5)};
+  padding: ${p => p.theme.space.xs} 0 0 0;
+  margin: 0 -${p => p.theme.space.md} 0 -${p => p.theme.space.xs};
 `;
 
 const CheckboxClickTarget = styled('label')`
@@ -644,7 +636,7 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   border-radius: 50%;
 
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   &[data-has-viewed='true'] {
     background-color: transparent;
   }
@@ -654,8 +646,8 @@ const SpanOperationBreakdown = styled('div')`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
-  color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSize.md};
+  gap: ${p => p.theme.space.xs};
+  color: ${p => p.theme.colors.gray800};
+  font-size: ${p => p.theme.font.size.md};
   text-align: right;
 `;

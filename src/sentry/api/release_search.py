@@ -12,6 +12,7 @@ from sentry.search.events.constants import (
 
 RELEASE_FREE_TEXT_KEY = "release_free_text"
 FINALIZED_KEY = "finalized"
+RELEASE_CREATED_KEY = "release.created"
 INVALID_SEMVER_MESSAGE = (
     'Invalid format of semantic version. For searching non-semver releases, use "release:" instead.'
 )
@@ -25,7 +26,9 @@ release_search_config = SearchConfig.create_from(
         SEMVER_BUILD_ALIAS,
         SEMVER_PACKAGE_ALIAS,
         FINALIZED_KEY,
+        RELEASE_CREATED_KEY,
     },
+    date_keys={RELEASE_CREATED_KEY},
     allow_boolean=False,
     free_text_key=RELEASE_FREE_TEXT_KEY,
 )

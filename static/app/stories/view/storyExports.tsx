@@ -4,13 +4,16 @@ import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {InlineCode} from '@sentry/scraps/code';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
+import {useQuery} from 'sentry/utils/queryClient';
 
 import {StoryFooter} from './storyFooter';
 import {storyMdxComponents} from './storyMdxComponent';
@@ -24,6 +27,7 @@ import {
   isMDXStory,
   type MDXStoryDescriptor,
   type StoryDescriptor,
+  type StoryDocumentation,
 } from './useStoriesLoader';
 import type {StoryExports as StoryExportValues} from './useStory';
 import {StoryContextProvider, useStory} from './useStory';
@@ -42,15 +46,21 @@ function StoryLayout() {
     'tab',
     parseAsString.withOptions({history: 'push'}).withDefault('usage')
   );
+  const documentation = useStoryDocumentation(
+    (isMDXStory(story) ? story.exports.documentation : story.exports.documentation) as
+      | StoryDocumentation
+      | undefined,
+    story.filename
+  );
 
   return (
     <Tabs value={tab} onChange={setTab}>
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
-          <Flex flexGrow={1}>
-            <StoryTabPanels />
-          </Flex>
+          <Stack flexGrow={1} minWidth="0px">
+            <StoryTabPanels documentation={documentation} />
+          </Stack>
           <ErrorBoundary>
             <StorySourceLinks />
           </ErrorBoundary>
@@ -62,7 +72,7 @@ function StoryLayout() {
   );
 }
 
-export function makeStorybookDocumentTitle(title: string | undefined): string {
+function makeStorybookDocumentTitle(title: string | undefined): string {
   return title ? `${title} — Scraps` : 'Scraps';
 }
 
@@ -99,7 +109,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
               {props.story.exports.frontmatter?.status ? (
                 props.story.exports.frontmatter.status === 'stable' ? null : (
                   <Tag
-                    type={
+                    variant={
                       props.story.exports.frontmatter.status === 'in-progress'
                         ? 'warning'
                         : 'promotion'
@@ -147,11 +157,16 @@ function StoryTabList() {
   );
 }
 
-function StoryTabPanels() {
+function StoryTabPanels(props: {documentation: TypeLoader.TypeLoaderResult | undefined}) {
   const {story} = useStory();
 
   if (!isMDXStory(story)) {
-    return <StoryUsage />;
+    return (
+      <Fragment>
+        <StoryUsage />
+        {props.documentation && <StoryAPI documentation={props.documentation} />}
+      </Fragment>
+    );
   }
 
   // A document is just a single page
@@ -160,18 +175,18 @@ function StoryTabPanels() {
   }
 
   return (
-    <TabPanels>
+    <StyledTabPanels>
       <TabPanels.Item key="usage">
-        <StoryModuleExports exports={story.exports.documentation?.exports} />
+        <StoryModuleExports exports={props.documentation?.exports} />
         <StoryUsage />
       </TabPanels.Item>
       <TabPanels.Item key="api">
-        <StoryAPI />
+        <StoryAPI documentation={props.documentation} />
       </TabPanels.Item>
       <TabPanels.Item key="resources">
         <StoryResources />
       </TabPanels.Item>
-    </TabPanels>
+    </StyledTabPanels>
   );
 }
 const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>([
@@ -190,11 +205,11 @@ function StoryUsage() {
   return (
     <Fragment>
       {Story && (
-        <Storybook.Section>
+        <Storybook.Section flexGrow={1}>
           <ErrorBoundary
             fallback={
-              <Alert type="error" showIcon={false}>
-                Problem loading <code>{filename}</code>
+              <Alert variant="danger" showIcon={false}>
+                Problem loading <InlineCode>{filename}</InlineCode>
               </Alert>
             }
           >
@@ -227,22 +242,44 @@ function StoryUsage() {
   );
 }
 
-function StoryAPI() {
-  const {story} = useStory();
-
-  const documentation = story.exports.documentation as TypeLoader.TypeLoaderResult;
-
-  if (!documentation || !('props' in documentation)) {
+function StoryAPI(props: {documentation: TypeLoader.TypeLoaderResult | undefined}) {
+  if (!props.documentation || !('props' in props.documentation)) {
     return null;
   }
 
   return (
     <Fragment>
-      {Object.entries(documentation.props ?? {}).map(([key, value]) => {
+      {Object.entries(props.documentation.props ?? {}).map(([key, value]) => {
         return <Storybook.APIReference key={key} componentProps={value} />;
       })}
     </Fragment>
   );
+}
+
+/**
+ * Documentation modules are lazy-compiled in development mode so we have to fetch them.
+ */
+function useStoryDocumentation(
+  documentation: StoryDocumentation | undefined,
+  storyFilename: string
+): TypeLoader.TypeLoaderResult | undefined {
+  const query = useQuery({
+    queryKey: ['stories-documentation', storyFilename, documentation],
+    queryFn: async () => {
+      if (!documentation) {
+        throw new Error('Missing documentation');
+      }
+      const result = await documentation;
+      if (result && 'default' in result) {
+        return result.default;
+      }
+      return result;
+    },
+    enabled: !!documentation,
+    staleTime: 60_000,
+  });
+
+  return query.data;
 }
 
 function StoryGrid(props: React.ComponentProps<typeof Grid>) {
@@ -262,9 +299,15 @@ function StoryModuleExports(props: {
   return <Storybook.ModuleExports exports={props.exports} />;
 }
 
+const StyledTabPanels = styled(TabPanels)`
+  flex-grow: 1;
+  min-width: 0;
+`;
+
 const StoryContainer = styled('div')`
   max-width: 580px;
   width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space['3xl']};

@@ -1,11 +1,16 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {Tag as TagBadge} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
+import {Tag as TagBadge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {ValueType} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {IconAdd, IconArrow} from 'sentry/icons';
@@ -27,6 +32,7 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ERRORS, t('Errors')],
   [WidgetType.SPANS, t('Spans')],
   [WidgetType.LOGS, t('Logs')],
+  [WidgetType.TRACEMETRICS, t('Metrics')],
   [WidgetType.RELEASE, t('Releases')],
   [WidgetType.ISSUE, t('Issues')],
 ]);
@@ -45,7 +51,11 @@ type AddFilterProps = {
   onAddFilter: (filter: GlobalFilter) => void;
 };
 
-function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProps) {
+export function AddFilter({
+  globalFilters,
+  getSearchBarData,
+  onAddFilter,
+}: AddFilterProps) {
   const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
   const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
   const [isSelectingFilterKey, setIsSelectingFilterKey] = useState(false);
@@ -55,11 +65,11 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
     return Array.from(DATASET_CHOICES.entries()).map(([widgetType, label]) => ({
       label,
       value: widgetType,
-      trailingItems: <IconArrow direction="right" color="subText" size="xs" />,
+      trailingItems: <IconArrow direction="right" variant="muted" size="xs" />,
     }));
   }, []);
 
-  const filterKeys: Record<string, Tag> = selectedDataset
+  const filterKeys = selectedDataset
     ? Object.fromEntries(
         Object.entries(getSearchBarData(selectedDataset).getFilterKeys()).filter(
           ([key, value]) =>
@@ -86,7 +96,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
           value: tag.key,
           label: prettifyTagKey(tag.key),
           trailingItems: (
-            <TagBadge>
+            <TagBadge variant="muted">
               <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
             </TagBadge>
           ),
@@ -97,66 +107,10 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       })
     : [];
 
-  // Footer for filter key selection for adding filters and returning to dataset selection
-  const filterOptionsMenuFooter = ({
-    closeOverlay,
-    resetSearch,
-  }: {
-    closeOverlay: () => void;
-    resetSearch: () => void;
-  }) => (
-    <FooterWrap>
-      <Flex gap="md" justify="end">
-        <Button
-          size="xs"
-          borderless
-          icon={<IconArrow direction="left" />}
-          onClick={() => {
-            resetSearch();
-            setIsSelectingFilterKey(false);
-          }}
-        >
-          {t('Back')}
-        </Button>
-
-        <Button
-          size="xs"
-          priority="primary"
-          disabled={!selectedFilterKey}
-          onClick={() => {
-            if (!selectedFilterKey || !selectedDataset) return;
-
-            let defaultFilterValue = '';
-            const fieldDefinition = fieldDefinitionMap.get(selectedFilterKey.key) ?? null;
-            const valueType = fieldDefinition?.valueType;
-
-            if (valueType && !IGNORE_DEFAULT_VALUES.includes(valueType)) {
-              defaultFilterValue = getInitialFilterText(
-                selectedFilterKey.key,
-                fieldDefinition
-              );
-            }
-
-            const newFilter: GlobalFilter = {
-              dataset: selectedDataset,
-              tag: pick(selectedFilterKey, 'key', 'name', 'kind'),
-              value: defaultFilterValue,
-            };
-            onAddFilter(newFilter);
-            setIsSelectingFilterKey(false);
-            closeOverlay();
-          }}
-        >
-          {t('Add Filter')}
-        </Button>
-      </Flex>
-    </FooterWrap>
-  );
-
   return (
     <CompactSelect
       options={isSelectingFilterKey ? filterKeyOptions : datasetOptions}
-      searchable={isSelectingFilterKey}
+      search={isSelectingFilterKey}
       sizeLimit={50}
       closeOnSelect={false}
       onClose={() => {
@@ -186,9 +140,56 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
             : t('Select Filter Dataset')}
         </MenuTitleWrapper>
       }
-      menuFooter={isSelectingFilterKey && filterOptionsMenuFooter}
+      menuFooter={
+        isSelectingFilterKey
+          ? ({resetSearch}) => {
+              return (
+                <Flex gap="md" justify="end">
+                  <Button
+                    size="xs"
+                    priority="transparent"
+                    icon={<IconArrow direction="left" />}
+                    onClick={() => {
+                      resetSearch();
+                      setIsSelectingFilterKey(false);
+                    }}
+                  >
+                    {t('Back')}
+                  </Button>
+
+                  <MenuComponents.ApplyButton
+                    disabled={!selectedFilterKey}
+                    onClick={() => {
+                      if (!selectedFilterKey || !selectedDataset) return;
+
+                      let defaultFilterValue = '';
+                      const fieldDefinition =
+                        fieldDefinitionMap.get(selectedFilterKey.key) ?? null;
+                      const valueType = fieldDefinition?.valueType;
+
+                      if (valueType && !IGNORE_DEFAULT_VALUES.includes(valueType)) {
+                        defaultFilterValue = getInitialFilterText(
+                          selectedFilterKey.key,
+                          fieldDefinition
+                        );
+                      }
+
+                      const newFilter: GlobalFilter = {
+                        dataset: selectedDataset,
+                        tag: pick(selectedFilterKey, 'key', 'name', 'kind'),
+                        value: defaultFilterValue,
+                      };
+                      onAddFilter(newFilter);
+                      setIsSelectingFilterKey(false);
+                    }}
+                  />
+                </Flex>
+              );
+            }
+          : undefined
+      }
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('Add Global Filter')}
           icon={<IconAdd size="sm" />}
@@ -197,16 +198,3 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
     />
   );
 }
-
-export default AddFilter;
-
-const FooterWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
- gap:${p => p.theme.space.xl}
-
-  /* If there's FooterMessage above */
-  &:not(:first-child) {
-    margin-top: ${p => p.theme.space.md};
-  }
-`;

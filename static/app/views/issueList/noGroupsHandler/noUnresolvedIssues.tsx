@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import zeroInboxIssuesImg from 'sentry-images/spot/zero-inbox-issues.svg';
 
-import {space} from 'sentry/styles/space';
-
 function Message({title, subtitle}: {subtitle: React.ReactNode; title: React.ReactNode}) {
   return (
     <Fragment>
@@ -19,7 +17,7 @@ type Props = {
   title: React.ReactNode;
 };
 
-function NoUnresolvedIssues({title, subtitle}: Props) {
+export function NoUnresolvedIssues({title, subtitle}: Props) {
   return (
     <Wrapper>
       <img src={zeroInboxIssuesImg} alt="No issues found spot illustration" />
@@ -30,23 +28,21 @@ function NoUnresolvedIssues({title, subtitle}: Props) {
 
 const Wrapper = styled('div')`
   display: flex;
-  padding: ${space(4)} ${space(4)};
+  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']};
   flex-direction: column;
   align-items: center;
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 
 const EmptyMessage = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
 `;
-
-export default NoUnresolvedIssues;

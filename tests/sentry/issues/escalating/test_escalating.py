@@ -10,8 +10,11 @@ import pytest
 
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
+    _query_groups_past_counts_eap,
+    _query_groups_past_counts_snuba,
     _start_and_end_dates,
-    get_group_hourly_count,
+    get_group_hourly_count_eap,
+    get_group_hourly_count_snuba,
     is_escalating,
     query_groups_past_counts,
 )
@@ -19,11 +22,13 @@ from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupFo
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
-from sentry.sentry_metrics.client.snuba import build_mri
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.cases import (
+    PerformanceIssueTestCase,
+    SnubaTestCase,
+    TestCase,
+)
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -34,7 +39,7 @@ pytestmark = pytest.mark.sentry_metrics
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
-class BaseGroupCounts(BaseMetricsTestCase, TestCase):
+class BaseGroupCounts(TestCase):
     def _create_events_for_group(
         self,
         project_id: int | None = None,
@@ -61,15 +66,6 @@ class BaseGroupCounts(BaseMetricsTestCase, TestCase):
             # assert_no_errors is necessary because of SDK and server time differences due to freeze gun
             last_event = self.store_event(data=data, project_id=proj_id, assert_no_errors=False)
 
-            self.store_metric(
-                org_id=last_event.project.organization_id,
-                project_id=last_event.project.id,
-                mri=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
-                value=1,
-                tags={"group": str(last_event.group_id)},
-                timestamp=data["timestamp"],
-            )
-
         return last_event
 
 
@@ -90,6 +86,7 @@ class HistoricGroupCounts(
             "project_id": event.project_id,
         }
 
+    @freeze_time(TIME_YESTERDAY)
     def test_query_single_group(self) -> None:
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
@@ -109,15 +106,6 @@ class HistoricGroupCounts(
             fingerprints=[f"{ProfileFileIOGroupType.type_id}-group1"],
             insert_time=timestamp,
         )
-        self.store_metric(
-            org_id=profile_error_event.project.organization_id,
-            project_id=profile_error_event.project.id,
-            mri=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
-            value=1,
-            tags={"group": str(profile_error_event.group_id)},
-            timestamp=profile_error_event.data["timestamp"],
-        )
-
         assert profile_error_event.group is not None
         assert profile_issue_occurrence is not None
         assert len(Group.objects.all()) == 2
@@ -306,7 +294,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert group is not None
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
-        assert get_group_hourly_count(group) == 1
+        assert get_group_hourly_count_snuba(group) == (1, False)
 
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:
@@ -354,3 +342,99 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
         # Test cache
         assert cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}") == 6
+
+
+class TestEAPIsEscalating(TestCase, SnubaTestCase):
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=30, second=0)
+
+    def _event_timestamp(self, hours_ago: int = 0) -> float:
+        return (
+            self.FROZEN_TIME.replace(minute=0, second=0, microsecond=0) - timedelta(hours=hours_ago)
+        ).timestamp()
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_hourly_counts_match(self) -> None:
+        group = self.store_events_to_snuba_and_eap(
+            "hourly-count-match", count=6, timestamp=self._event_timestamp()
+        )[0].group
+        assert group is not None
+
+        snuba_count, snuba_cached = get_group_hourly_count_snuba(group)
+        eap_count, eap_cached = get_group_hourly_count_eap(group)
+
+        assert snuba_count == eap_count == 6
+        assert snuba_cached is False
+        assert eap_cached is False
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_hourly_count_excludes_old_events(self) -> None:
+        self.store_events_to_snuba_and_eap(
+            "time-window-test", count=2, timestamp=self._event_timestamp(hours_ago=1)
+        )
+        group = self.store_events_to_snuba_and_eap(
+            "time-window-test", count=1, timestamp=self._event_timestamp()
+        )[0].group
+        assert group is not None
+
+        snuba_count, snuba_cached = get_group_hourly_count_snuba(group)
+        eap_count, eap_cached = get_group_hourly_count_eap(group)
+
+        assert snuba_count == eap_count == 1
+        assert snuba_cached is False
+        assert eap_cached is False
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_past_counts_match_single_group(self) -> None:
+        group = self.store_events_to_snuba_and_eap(
+            "past-counts-single", count=3, timestamp=self._event_timestamp()
+        )[0].group
+        assert group is not None
+
+        snuba_results = _query_groups_past_counts_snuba([group])
+        eap_results = _query_groups_past_counts_eap([group])
+
+        assert len(snuba_results) == len(eap_results) == 1
+        assert snuba_results[0]["group_id"] == eap_results[0]["group_id"] == group.id
+        assert snuba_results[0]["project_id"] == eap_results[0]["project_id"] == self.project.id
+        assert snuba_results[0]["count()"] == eap_results[0]["count()"] == 3
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_past_counts_match_multiple_groups(self) -> None:
+        group_a = self.store_events_to_snuba_and_eap(
+            "past-counts-a", count=2, timestamp=self._event_timestamp()
+        )[0].group
+        group_b = self.store_events_to_snuba_and_eap(
+            "past-counts-b", count=4, timestamp=self._event_timestamp()
+        )[0].group
+        group_c = self.store_events_to_snuba_and_eap(
+            "past-counts-c", count=6, timestamp=self._event_timestamp()
+        )[0].group
+        assert group_a is not None
+        assert group_b is not None
+        assert group_c is not None
+
+        snuba_results = _query_groups_past_counts_snuba([group_a, group_b, group_c])
+        eap_results = _query_groups_past_counts_eap([group_a, group_b, group_c])
+
+        snuba_counts = {r["group_id"]: r["count()"] for r in snuba_results}
+        eap_counts = {r["group_id"]: r["count()"] for r in eap_results}
+
+        assert snuba_counts == eap_counts
+        assert eap_counts[group_a.id] == 2
+        assert eap_counts[group_b.id] == 4
+        assert eap_counts[group_c.id] == 6
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_past_counts_aggregate_same_hour(self) -> None:
+        group = self.store_events_to_snuba_and_eap(
+            "zero-filter-test", count=2, timestamp=self._event_timestamp()
+        )[0].group
+        assert group is not None
+
+        snuba_results = _query_groups_past_counts_snuba([group])
+        eap_results = _query_groups_past_counts_eap([group])
+
+        # Events were all stored in the same hour, so both backends should
+        # return exactly one bucket with count 2.
+        assert len(snuba_results) == len(eap_results) == 1
+        assert snuba_results[0]["count()"] == eap_results[0]["count()"] == 2

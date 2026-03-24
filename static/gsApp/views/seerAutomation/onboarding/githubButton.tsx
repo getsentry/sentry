@@ -1,10 +1,10 @@
-import Access from 'sentry/components/acl/access';
-import Placeholder from 'sentry/components/placeholder';
+import {Access} from 'sentry/components/acl/access';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
-import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
@@ -26,8 +26,11 @@ export function GithubButton({
   const {provider, isProviderPending, installationData, isInstallationPending} =
     useSeerOnboardingContext();
   const organization = useOrganization();
-  const hasInstallation = installationData?.find(
-    installation => installation.provider.key === 'github'
+  const githubInstallation = installationData?.find(
+    installation =>
+      installation.provider.key === 'github' &&
+      installation.organizationIntegrationStatus === 'active' &&
+      installation.status === 'active'
   );
 
   if (!provider || isProviderPending || isInstallationPending) {
@@ -39,10 +42,10 @@ export function GithubButton({
       value={{
         provider,
         type: 'first_party',
-        installStatus: hasInstallation ? 'Installed' : 'Not Installed', // `AddIntegrationButton` only handles `Disabled`
+        installStatus: githubInstallation ? 'Installed' : 'Not Installed', // `AddIntegrationButton` only handles `Disabled`
         analyticsParams: {
           view: analyticsView,
-          already_installed: Boolean(hasInstallation),
+          already_installed: Boolean(githubInstallation),
         },
       }}
     >
@@ -54,8 +57,8 @@ export function GithubButton({
             onExternalClick={() => {}}
             buttonProps={
               buttonProps ?? {
-                icon: hasInstallation ? <IconSettings /> : <IconAdd />,
-                buttonText: hasInstallation
+                icon: githubInstallation ? <IconSettings /> : <IconAdd />,
+                buttonText: githubInstallation
                   ? t('Manage GitHub Integration')
                   : t('Connect GitHub'),
                 priority: 'primary',

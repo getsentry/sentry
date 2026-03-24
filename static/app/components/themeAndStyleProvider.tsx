@@ -1,12 +1,13 @@
-import {Fragment, lazy, useMemo} from 'react';
+import {Fragment, lazy, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
+import {printConsoleBanner} from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import GlobalStyles from 'sentry/styles/global';
+import {GlobalStyles} from 'sentry/styles/global';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
@@ -15,7 +16,7 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 const SentryComponentInspector =
   NODE_ENV === 'development'
     ? lazy(() =>
-        import('sentry/components/core/inspector').then(module => ({
+        import('@sentry/scraps/inspector').then(module => ({
           default: module.SentryComponentInspector,
         }))
       )
@@ -61,9 +62,15 @@ export function ThemeAndStyleProvider({children}: Props) {
 
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
 
+  const didPrintBanner = useRef(false);
+  if (!didPrintBanner.current && NODE_ENV !== 'development' && NODE_ENV !== 'test') {
+    didPrintBanner.current = true;
+    printConsoleBanner(theme.tokens.content.accent, theme.font.family.mono);
+  }
+
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
+      <GlobalStyles theme={theme} />
       <CacheProvider value={cache}>{children}</CacheProvider>
       {createPortal(
         <Fragment>

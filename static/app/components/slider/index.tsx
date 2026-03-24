@@ -6,13 +6,14 @@ import type {AriaSliderProps, AriaSliderThumbOptions} from '@react-aria/slider';
 import {useSlider} from '@react-aria/slider';
 import {useSliderState} from '@react-stately/slider';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {space} from 'sentry/styles/space';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SliderThumb} from './thumb';
 
 export interface SliderProps
-  extends Omit<AriaSliderProps, 'minValue' | 'maxValue' | 'isDisabled'>,
+  extends
+    Omit<AriaSliderProps, 'minValue' | 'maxValue' | 'isDisabled'>,
     Pick<AriaSliderThumbOptions, 'autoFocus' | 'onFocus' | 'onBlur' | 'onFocusChange'> {
   /**
    * (This prop is now deprecated - slider ranges need to have consistent, evenly
@@ -208,7 +209,7 @@ export function Slider({
     >
       <SliderGroup {...groupProps} className={className}>
         {label && (
-          <SliderLabelWrapper className="label-container">
+          <Flex justify="between" marginBottom="lg" className="label-container">
             <SliderLabel {...labelProps}>{label}</SliderLabel>
             <SliderLabelOutput {...outputProps}>
               {nThumbs > 1 ? (
@@ -221,7 +222,7 @@ export function Slider({
                 getFormattedValue(selectedRange[1]!)
               )}
             </SliderLabelOutput>
-          </SliderLabelWrapper>
+          </Flex>
         )}
 
         <SliderTrack
@@ -307,14 +308,8 @@ const SliderGroup = styled('div')`
   white-space: nowrap;
 `;
 
-const SliderLabelWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1.5)};
-`;
-
 const SliderLabel = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
@@ -322,7 +317,7 @@ const SliderLabelOutput = styled('output')`
   margin: 0;
   padding: 0;
   font-variant-numeric: tabular-nums;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SliderTrack = styled('div', {
@@ -337,7 +332,8 @@ const SliderTrack = styled('div', {
   width: calc(100% - 2px);
   height: 3px;
   border-radius: 3px;
-  background: ${p => p.theme.border};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.primary};
   margin-left: 1px; /* to better align track with label */
 
   margin-bottom: ${p => (p.hasTickLabels ? '2em' : '0.5rem')};
@@ -363,11 +359,11 @@ const SliderLowerTrack = styled('div')<{disabled: boolean; error: boolean}>`
   position: absolute;
   height: inherit;
   border-radius: inherit;
-  background: ${p => p.theme.active};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
   pointer-events: none;
 
-  ${p => p.error && `background: ${p.theme.error};`}
-  ${p => p.disabled && `background: ${p.theme.subText};`}
+  ${p => p.error && `background: ${p.theme.tokens.background.danger.vibrant};`}
+  ${p => p.disabled && `background: ${p.theme.tokens.background.secondary};`}
 `;
 
 const SliderTick = styled('div')<{
@@ -384,21 +380,26 @@ const SliderTick = styled('div')<{
   width: 2px;
   height: 6px;
   border-radius: 2px;
-  background: ${p => p.theme.translucentBorder};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   ${p =>
     p.inSelection &&
     `background: ${
-      p.disabled ? p.theme.subText : p.error ? p.theme.error : p.theme.active
+      p.disabled
+        ? p.theme.tokens.content.disabled
+        : p.error
+          ? p.theme.tokens.content.danger
+          : p.theme.tokens.interactive.link.accent.active
     };`}
 `;
 
 const SliderTickLabel = styled('small')`
   display: inline-block;
   position: absolute;
-  top: calc(100% + ${space(1)});
+  top: calc(100% + ${p => p.theme.space.md});
   margin: 0 -1px;
 
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;

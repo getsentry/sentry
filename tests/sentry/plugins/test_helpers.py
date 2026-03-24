@@ -6,7 +6,6 @@ from sentry.testutils.cases import TestCase
 
 class SentryPluginTest(TestCase):
     def test_set_option_with_project(self) -> None:
-
         with mock.patch("sentry.models.ProjectOption.objects.set_value") as set_value:
             project = mock.Mock()
             set_option("key", "value", project)

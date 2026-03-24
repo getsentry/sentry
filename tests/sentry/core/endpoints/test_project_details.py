@@ -13,7 +13,7 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.types import DynamicSamplingMode
@@ -1407,9 +1407,9 @@ class CopyProjectSettingsTest(APITestCase):
             project=self.other_project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
 
-        Rule.objects.create(project=self.other_project, label="rule1")
-        Rule.objects.create(project=self.other_project, label="rule2")
-        Rule.objects.create(project=self.other_project, label="rule3")
+        self.create_project_rule(project=self.other_project, name="rule1")
+        self.create_project_rule(project=self.other_project, name="rule2")
+        self.create_project_rule(project=self.other_project, name="rule3")
         # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 
@@ -1591,7 +1591,7 @@ class ProjectDeleteTest(APITestCase):
                 self.project.organization.slug, self.project.slug, status_code=204
             )
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 
@@ -1626,7 +1626,7 @@ class ProjectDeleteTest(APITestCase):
                 self.project.organization.slug, self.project.slug, status_code=403
             )
 
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 
@@ -1654,7 +1654,7 @@ class ProjectDeleteTest(APITestCase):
                 )
 
         # Should go ahead with deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 
@@ -1673,7 +1673,7 @@ class ProjectDeleteTest(APITestCase):
 
         # Should raise sudo-required and not schedule deletion
         assert resp.data["detail"]["code"] == "sudo-required"
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 
