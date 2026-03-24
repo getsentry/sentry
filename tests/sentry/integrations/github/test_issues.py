@@ -95,7 +95,7 @@ class GitHubIssueBasicAllSiloTest(TestCase):
 
         install = self.install
         config = install.get_create_issue_config(None, self.user, params={})
-        [repo_field, assignee_field, label_field] = config
+        repo_field, assignee_field, label_field = config[:3]
         assert repo_field["name"] == "repo"
         assert repo_field["type"] == "select"
         assert repo_field["label"] == "GitHub Repository"
