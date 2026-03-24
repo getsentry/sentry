@@ -86,7 +86,7 @@ describe('SamplingModeSwitchModal', () => {
     });
 
     it('closes the modal on successful submit', async () => {
-      MockApiClient.addMockResponse({
+      const putMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
         method: 'PUT',
         body: OrganizationFixture({samplingMode: 'organization'}),
@@ -98,6 +98,14 @@ describe('SamplingModeSwitchModal', () => {
       await screen.findByText('Deactivate Advanced Mode');
       await userEvent.click(screen.getByRole('button', {name: 'Deactivate'}));
 
+      await waitFor(() => {
+        expect(putMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/',
+          expect.objectContaining({
+            data: {samplingMode: 'organization', targetSampleRate: 0.5},
+          })
+        );
+      });
       await waitFor(() => {
         expect(screen.queryByText('Deactivate Advanced Mode')).not.toBeInTheDocument();
       });
