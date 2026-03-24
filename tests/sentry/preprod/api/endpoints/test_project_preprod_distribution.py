@@ -31,28 +31,36 @@ class ProjectPreprodDistributionEndpointTest(TestCase):
         )
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
-    @patch("sentry.preprod.build_distribution_webhooks.send_build_distribution_webhook")
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_distribution.send_build_distribution_webhook"
+    )
     def test_bad_auth(self, mock_send_webhook) -> None:
         response = self._put(b"{}", secret="wrong secret")
         assert response.status_code == 401
         mock_send_webhook.assert_not_called()
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
-    @patch("sentry.preprod.build_distribution_webhooks.send_build_distribution_webhook")
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_distribution.send_build_distribution_webhook"
+    )
     def test_missing_fields(self, mock_send_webhook) -> None:
         response = self._put(b"{}")
         assert response.status_code == 400
         mock_send_webhook.assert_not_called()
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
-    @patch("sentry.preprod.build_distribution_webhooks.send_build_distribution_webhook")
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_distribution.send_build_distribution_webhook"
+    )
     def test_bad_json(self, mock_send_webhook) -> None:
         response = self._put(b"{")
         assert response.status_code == 400
         mock_send_webhook.assert_not_called()
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
-    @patch("sentry.preprod.build_distribution_webhooks.send_build_distribution_webhook")
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_distribution.send_build_distribution_webhook"
+    )
     def test_set_error(self, mock_send_webhook) -> None:
         response = self._put(
             orjson.dumps({"error_code": 3, "error_message": "Unsupported artifact type"})
