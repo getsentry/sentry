@@ -429,11 +429,19 @@ class DashboardDetail extends Component<Props, State> {
 
   onEdit = () => {
     const {dashboard, organization} = this.props;
+    const start = performance.now();
     trackAnalytics('dashboards2.edit.start', {organization});
 
     this.setState({
       dashboardState: DashboardState.EDIT,
       modifiedDashboard: cloneDashboard(dashboard),
+    });
+
+    scheduleMicroTask(() => {
+      const duration = performance.now() - start;
+      Sentry.metrics.distribution('dashboards.dashboard.onEdit', duration, {
+        unit: 'millisecond',
+      });
     });
   };
 
