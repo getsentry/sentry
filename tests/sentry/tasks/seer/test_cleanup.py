@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.seer.models import SeerApiError
-from sentry.tasks.seer import cleanup_seer_repository_preferences
+from sentry.tasks.seer.cleanup import cleanup_seer_repository_preferences
 from sentry.testutils.cases import TestCase
 
 
@@ -16,7 +16,7 @@ class TestSeerRepositoryCleanup(TestCase):
         self.repo_external_id = "12345"
         self.repo_provider = "github"
 
-    @patch("sentry.tasks.seer.make_remove_repository_request")
+    @patch("sentry.tasks.seer.cleanup.make_remove_repository_request")
     def test_cleanup_seer_repository_preferences_success(self, mock_request: MagicMock) -> None:
         """Test successful cleanup of Seer repository preferences."""
         mock_request.return_value.status = 200
@@ -35,7 +35,7 @@ class TestSeerRepositoryCleanup(TestCase):
             "repo_external_id": self.repo_external_id,
         }
 
-    @patch("sentry.tasks.seer.make_remove_repository_request")
+    @patch("sentry.tasks.seer.cleanup.make_remove_repository_request")
     def test_cleanup_seer_repository_preferences_api_error(self, mock_request: MagicMock) -> None:
         """Test handling of Seer API errors."""
         mock_request.return_value.status = 500
@@ -47,7 +47,7 @@ class TestSeerRepositoryCleanup(TestCase):
                 repo_provider=self.repo_provider,
             )
 
-    @patch("sentry.tasks.seer.make_remove_repository_request")
+    @patch("sentry.tasks.seer.cleanup.make_remove_repository_request")
     def test_cleanup_seer_repository_preferences_organization_not_found(
         self, mock_request: MagicMock
     ) -> None:
