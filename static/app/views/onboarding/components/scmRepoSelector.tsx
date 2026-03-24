@@ -1,11 +1,8 @@
-import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
+import {useCallback} from 'react';
+
+import {Select} from '@sentry/scraps/select';
 
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -45,51 +42,44 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     reposByIdentifier,
   });
 
+  const selectedValue = selectedRepository
+    ? {value: selectedRepository.externalSlug ?? '', label: selectedRepository.name}
+    : null;
+
+  const handleChange = useCallback(
+    (option: {value: string} | null) => {
+      if (option === null) {
+        handleRemove();
+      } else {
+        handleSelect(option);
+      }
+    },
+    [handleSelect, handleRemove]
+  );
+
+  const noOptionsMessage = useCallback(() => {
+    if (isError) {
+      return t('Failed to search repositories. Please try again.');
+    }
+    if (debouncedSearch) {
+      return t('No repositories found.');
+    }
+    return t('Type to search repositories');
+  }, [isError, debouncedSearch]);
+
   return (
-    <Stack gap="md">
-      <CompactSelect
-        menuWidth="100%"
-        disabled={busy}
-        options={dropdownItems}
-        onChange={handleSelect}
-        value={undefined}
-        menuTitle={t('Repositories')}
-        emptyMessage={
-          isError
-            ? t('Failed to search repositories. Please try again.')
-            : isFetching
-              ? t('Searching\u2026')
-              : debouncedSearch
-                ? t('No repositories found.')
-                : t('Type to search repositories')
-        }
-        search={{
-          placeholder: t('Search repositories'),
-          filter: false,
-          onChange: setSearch,
-        }}
-        loading={isFetching}
-        trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} busy={busy}>
-            {selectedRepository ? selectedRepository.name : t('Search repositories')}
-          </OverlayTrigger.Button>
-        )}
-      />
-      {selectedRepository && (
-        <Flex align="center" gap="sm">
-          <Flex flexGrow={1}>
-            <Text size="sm">{selectedRepository.name}</Text>
-          </Flex>
-          <Button
-            size="zero"
-            priority="link"
-            icon={<IconClose size="xs" />}
-            aria-label={t('Remove %s', selectedRepository.name)}
-            onClick={handleRemove}
-            disabled={busy}
-          />
-        </Flex>
-      )}
-    </Stack>
+    <Select
+      placeholder={t('Search repositories')}
+      options={dropdownItems}
+      value={selectedValue?.value}
+      onChange={handleChange}
+      onInputChange={setSearch}
+      filterOption={() => true}
+      noOptionsMessage={noOptionsMessage}
+      isLoading={isFetching}
+      isDisabled={busy}
+      clearable={!!selectedRepository}
+      searchable
+    />
   );
 }
