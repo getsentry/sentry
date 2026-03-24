@@ -11,7 +11,6 @@ import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScmBenefitsCard} from './components/scmBenefitsCard';
@@ -22,6 +21,7 @@ import {ScmStepFooter} from './components/scmStepFooter';
 import {ScmStepHeader} from './components/scmStepHeader';
 import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import {useScmProviders} from './components/useScmProviders';
+import {SCM_STEP_FADE_IN, scmStepFadeIn} from './consts';
 import type {StepProps} from './types';
 
 export function ScmConnect({onComplete}: StepProps) {
@@ -88,11 +88,7 @@ export function ScmConnect({onComplete}: StepProps) {
       <ScmStepContent>
         {effectiveIntegration ? (
           <Stack gap="xl">
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              animate={{opacity: 1, y: 0}}
-              transition={testableTransition({duration: 0.4})}
-            >
+            <motion.div {...SCM_STEP_FADE_IN}>
               <Tag variant="success" icon={<IconCheckmark />}>
                 {t(
                   'Connected to %s',
@@ -100,37 +96,21 @@ export function ScmConnect({onComplete}: StepProps) {
                 )}
               </Tag>
             </motion.div>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              animate={{opacity: 1, y: 0}}
-              transition={testableTransition({duration: 0.4, delay: 0.1})}
-            >
+            <motion.div {...scmStepFadeIn(0.1)}>
               <ScmRepoSelector integration={effectiveIntegration} />
             </motion.div>
             {selectedRepository && (
-              <motion.div
-                initial={{opacity: 0, y: 20}}
-                animate={{opacity: 1, y: 0}}
-                transition={testableTransition({duration: 0.4})}
-              >
+              <motion.div {...SCM_STEP_FADE_IN}>
                 <ScmBenefitsCard />
               </motion.div>
             )}
           </Stack>
         ) : (
           <Stack gap="2xl">
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              animate={{opacity: 1, y: 0}}
-              transition={testableTransition({duration: 0.4})}
-            >
+            <motion.div {...SCM_STEP_FADE_IN}>
               <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
             </motion.div>
-            <motion.div
-              initial={{opacity: 0, y: 20}}
-              animate={{opacity: 1, y: 0}}
-              transition={testableTransition({duration: 0.4, delay: 0.15})}
-            >
+            <motion.div {...scmStepFadeIn(0.15)}>
               <ScmBenefitsCard showTitle />
             </motion.div>
           </Stack>

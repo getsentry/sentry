@@ -152,7 +152,7 @@ describe('useScmRepoSelection', () => {
     );
   });
 
-  it('keeps optimistic selection on addRepository failure', async () => {
+  it('reverts onSelect on addRepository failure', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       method: 'POST',
@@ -173,12 +173,11 @@ describe('useScmRepoSelection', () => {
       await result.current.handleSelect({value: 'getsentry/sentry'});
     });
 
-    // Optimistic value is kept — don't revert on error since the user
-    // selected a valid repo (may already exist in Sentry as hidden)
+    // Optimistic, then revert
     expect(onSelect).toHaveBeenCalledWith(
       expect.objectContaining({id: '', name: 'sentry'})
     );
-    expect(onSelect).not.toHaveBeenCalledWith(undefined);
+    expect(onSelect).toHaveBeenCalledWith(undefined);
   });
 
   it('cleans up previously added repo when selecting a new one', async () => {

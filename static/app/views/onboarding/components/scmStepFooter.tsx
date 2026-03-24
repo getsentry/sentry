@@ -1,5 +1,7 @@
 import {Flex} from '@sentry/scraps/layout';
 
+import {SCM_STEP_CONTENT_WIDTH} from './scmStepLayout';
+
 interface ScmStepFooterProps {
   children: React.ReactNode;
 }
@@ -11,7 +13,7 @@ export function ScmStepFooter({children}: ScmStepFooterProps) {
       align="center"
       justify="end"
       width="100%"
-      maxWidth="506px"
+      maxWidth={SCM_STEP_CONTENT_WIDTH}
       paddingTop="3xl"
     >
       {children}
