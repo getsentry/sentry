@@ -268,13 +268,8 @@ export function SpansTabSeerComboBox() {
     [askSeerSuggestedQueryRef, navigate, organization, pageFilters.selection]
   );
 
-  const areAiFeaturesAllowed =
-    enableAISearch &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
-
   useTraceExploreAiQuerySetup({
-    enableAISearch: areAiFeaturesAllowed && !useTranslateEndpoint,
+    enableAISearch: enableAISearch && !useTranslateEndpoint,
   });
 
   // Get selected project IDs for the polling variant
