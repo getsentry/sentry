@@ -91,7 +91,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_TOOL_NAME],
-          fieldAliases: [WIDGET_COLUMN_LABELS.tool, WIDGET_COLUMN_LABELS.count],
+          fieldAliases: [t('Tool'), WIDGET_COLUMN_LABELS.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
@@ -190,10 +190,10 @@ const OVERVIEW_TABLE = {
       ],
       columns: [SpanFields.SPAN_DESCRIPTION],
       fieldAliases: [
-        WIDGET_COLUMN_LABELS.spanDescription,
-        WIDGET_COLUMN_LABELS.requests,
-        WIDGET_COLUMN_LABELS.errorRate,
-        WIDGET_COLUMN_LABELS.errors,
+        t('Span Description'),
+        t('Requests'),
+        t('Error Rate'),
+        t('Errors'),
         WIDGET_COLUMN_LABELS.avg,
         WIDGET_COLUMN_LABELS.p95,
       ],

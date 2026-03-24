@@ -81,7 +81,7 @@ const TRANSACTION_TABLE: Widget = {
       columns: [SpanFields.TRANSACTION, SpanFields.PROJECT],
       fieldAliases: [
         WIDGET_COLUMN_LABELS.transaction,
-        WIDGET_COLUMN_LABELS.project,
+        t('Project'),
         t('Avg Value Size'),
         t('Requests Per Minute'),
         t('Miss Rate'),

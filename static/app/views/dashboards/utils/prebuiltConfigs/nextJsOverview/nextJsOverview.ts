@@ -164,9 +164,9 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
       fieldAliases: [
         WIDGET_COLUMN_LABELS.transaction,
         '',
-        WIDGET_COLUMN_LABELS.operation,
-        WIDGET_COLUMN_LABELS.views,
-        WIDGET_COLUMN_LABELS.errorRate,
+        t('Operation'),
+        t('Views'),
+        t('Error Rate'),
         WIDGET_COLUMN_LABELS.avg,
         WIDGET_COLUMN_LABELS.p95,
         t('Perf Score'),
@@ -216,8 +216,8 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
       fieldAliases: [
         WIDGET_COLUMN_LABELS.transaction,
         '',
-        WIDGET_COLUMN_LABELS.views,
-        WIDGET_COLUMN_LABELS.errorRate,
+        t('Views'),
+        t('Error Rate'),
         WIDGET_COLUMN_LABELS.avg,
         WIDGET_COLUMN_LABELS.p95,
         WIDGET_COLUMN_LABELS.timeSpent,

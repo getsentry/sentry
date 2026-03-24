@@ -16,10 +16,7 @@ import {
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
-import {
-  WIDGET_COLUMN_LABELS,
-  TABLE_MIN_HEIGHT,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -112,7 +109,7 @@ const DOMAIN_TABLE: Widget = {
       ],
       fieldAliases: [
         t('Domain'),
-        WIDGET_COLUMN_LABELS.project,
+        t('Project'),
         `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
         t('3XXs'),
         t('4XXs'),
