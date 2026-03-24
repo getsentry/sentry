@@ -6,6 +6,7 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -14,7 +15,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import {
+  OnboardingContextProvider,
+  useOnboardingContext,
+} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import {OnboardingDrawerStore} from 'sentry/stores/onboardingDrawerStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -869,6 +873,66 @@ describe('Onboarding', () => {
       expect(stored.selectedFeatures).toBeDefined();
       // createdProjectSlug should be cleared so the user can re-create
       expect(stored.createdProjectSlug).toBeUndefined();
+    });
+
+    it('clears derived state but preserves integration and repo on repo change', () => {
+      const initialContext = {
+        selectedIntegration: OrganizationIntegrationsFixture({
+          id: '1',
+          provider: {
+            key: 'github',
+            slug: 'github',
+            name: 'GitHub',
+            canAdd: true,
+            canDisable: false,
+            features: ['commits'],
+            aspects: {},
+          },
+        }),
+        selectedRepository: {
+          id: '42',
+          name: 'getsentry/sentry',
+          externalSlug: 'getsentry/sentry',
+        } as any,
+        selectedPlatform: {
+          key: 'javascript-nextjs' as PlatformKey,
+          type: 'framework' as const,
+          language: 'javascript' as const,
+          category: 'browser' as const,
+          name: 'Next.js',
+          link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+        },
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        createdProjectSlug: 'javascript-nextjs',
+      };
+
+      sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
+
+      let contextValue: ReturnType<typeof useOnboardingContext>;
+      function ContextReader() {
+        contextValue = useOnboardingContext();
+        return null;
+      }
+
+      render(
+        <OnboardingContextProvider initialValue={initialContext}>
+          <ContextReader />
+        </OnboardingContextProvider>,
+        {organization: scmOrganization}
+      );
+
+      act(() => {
+        contextValue!.clearDerivedState();
+      });
+
+      const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+      // Derived state should be cleared
+      expect(stored.selectedPlatform).toBeUndefined();
+      expect(stored.selectedFeatures).toBeUndefined();
+      expect(stored.createdProjectSlug).toBeUndefined();
+      // Integration and repo should be preserved
+      expect(stored.selectedIntegration).toBeDefined();
+      expect(stored.selectedRepository).toBeDefined();
     });
 
     it('navigates back from scm-connect to welcome', async () => {
