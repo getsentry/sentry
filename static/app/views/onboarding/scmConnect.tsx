@@ -4,7 +4,6 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -18,6 +17,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ScmBenefitsCard} from './components/scmBenefitsCard';
 import {ScmProviderPills} from './components/scmProviderPills';
 import {ScmRepoSelector} from './components/scmRepoSelector';
+import {ScmStepContent} from './components/scmStepContent';
+import {ScmStepFooter} from './components/scmStepFooter';
+import {ScmStepHeader} from './components/scmStepHeader';
 import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import {useScmProviders} from './components/useScmProviders';
 import type {StepProps} from './types';
@@ -69,7 +71,6 @@ export function ScmConnect({onComplete}: StepProps) {
   if (isError) {
     return (
       <Flex direction="column" align="center" gap="lg" flexGrow={1}>
-        <Text variant="muted">{t('Failed to load integrations.')}</Text>
         <Button onClick={() => refetch()}>{t('Retry')}</Button>
       </Flex>
     );
@@ -77,24 +78,14 @@ export function ScmConnect({onComplete}: StepProps) {
 
   return (
     <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
-      <Stack align="center" gap="md">
-        <Flex align="center" gap="lg">
-          <Text variant="muted" size="lg" bold>
-            {t('Step 1 of 3')}
-          </Text>
-          <Tag variant="muted">{t('Optional')}</Tag>
-        </Flex>
-        <Stack align="center" gap="sm">
-          <Heading as="h2" size="3xl">
-            {t('Connect a repository')}
-          </Heading>
-          <Text variant="muted" size="lg" bold>
-            {t('Link your source control for enhanced debugging features')}
-          </Text>
-        </Stack>
-      </Stack>
+      <ScmStepHeader
+        stepNumber={1}
+        heading={t('Connect a repository')}
+        subtitle={t('Link your source control for enhanced debugging features')}
+        tag={t('Optional')}
+      />
 
-      <Stack gap="lg" width="100%" maxWidth="506px">
+      <ScmStepContent>
         {effectiveIntegration ? (
           <Stack gap="xl">
             <Flex align="center" justify="between">
@@ -117,16 +108,9 @@ export function ScmConnect({onComplete}: StepProps) {
             <ScmBenefitsCard showTitle />
           </Stack>
         )}
-      </Stack>
+      </ScmStepContent>
 
-      <Flex
-        gap="lg"
-        align="center"
-        justify="end"
-        width="100%"
-        maxWidth="506px"
-        paddingTop="3xl"
-      >
+      <ScmStepFooter>
         {!selectedRepository && (
           <Button
             analyticsEventKey="onboarding.scm_connect_skip_clicked"
@@ -158,7 +142,7 @@ export function ScmConnect({onComplete}: StepProps) {
         >
           {t('Continue')}
         </Button>
-      </Flex>
+      </ScmStepFooter>
     </Flex>
   );
 }
