@@ -71,3 +71,16 @@ class TestTriggerCodingAgentLaunch(TestCase):
 
         assert result["success"] is False
         assert result["error"] == error_msg
+
+    def test_trigger_coding_agent_launch_invalid_trigger_source(self):
+        from sentry.seer.endpoints.seer_rpc import trigger_coding_agent_launch
+
+        result = trigger_coding_agent_launch(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            run_id=self.run_id,
+            trigger_source="invalid_source",
+        )
+
+        assert result["success"] is False
+        assert "invalid_source" in result["error"].lower()

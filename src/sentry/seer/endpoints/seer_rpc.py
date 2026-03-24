@@ -589,7 +589,7 @@ def trigger_coding_agent_launch(
             trigger_source=AutofixTriggerSource(trigger_source),
         )
         return {"success": True, "error": None}
-    except (NotFound, PermissionDenied, ValidationError, APIException) as e:
+    except (NotFound, PermissionDenied, ValidationError, APIException, ValueError) as e:
         logger.exception(
             "coding_agent.rpc_launch_error",
             extra={
