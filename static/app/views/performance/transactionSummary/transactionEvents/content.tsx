@@ -39,7 +39,6 @@ import {
   Filter,
   filterToSearchConditions,
 } from 'sentry/views/performance/transactionSummary/filter';
-import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 import {
   platformToPerformanceType,
@@ -240,7 +239,6 @@ function Search(props: Props) {
     eventsDisplayFilterName,
     onChangeEventsDisplayFilter,
     percentileValues,
-    transactionName,
   } = props;
 
   const navigate = useNavigate();
@@ -282,10 +280,8 @@ function Search(props: Props) {
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
-    <FilterActions>
-      {shouldUseEAP ? (
-        <SpanCategoryFilter segmentSpanName={transactionName} />
-      ) : (
+    <FilterActions eap={shouldUseEAP}>
+      {!shouldUseEAP && (
         <Filter
           organization={organization}
           currentFilter={spanOperationBreakdownFilter}
@@ -296,7 +292,7 @@ function Search(props: Props) {
         <EnvironmentPageFilter />
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
-      <StyledSearchBarWrapper>
+      <StyledSearchBarWrapper eap={shouldUseEAP}>
         {shouldUseEAP ? (
           <EAPSearchBar
             projects={projectIds ?? []}
@@ -341,24 +337,29 @@ function Search(props: Props) {
   );
 }
 
-const FilterActions = styled('div')`
+const FilterActions = styled('div')<{eap: boolean}>`
   display: grid;
   gap: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: repeat(4, min-content);
+    grid-template-columns: ${p => (p.eap ? 'auto 1fr' : 'repeat(4, min-content)')};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    grid-template-columns: auto auto 1fr auto auto;
+    grid-template-columns: ${p => (p.eap ? 'auto 1fr' : 'auto auto 1fr auto auto')};
   }
 `;
 
-const StyledSearchBarWrapper = styled('div')`
+const StyledSearchBarWrapper = styled('div')<{eap: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    order: 1;
-    grid-column: 1/6;
+    ${p =>
+      p.eap
+        ? ''
+        : `
+      order: 1;
+      grid-column: 1/6;
+    `}
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
