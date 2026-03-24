@@ -36,6 +36,7 @@ import {
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
 import {stripMetricParamsFromLocation} from 'sentry/views/explore/metrics/metricQuery';
+import {useMetricsFrozenTracePeriod} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
@@ -117,6 +118,7 @@ export function SampleTableRow({
 }: SampleTableRowProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const frozenTracePeriod = useMetricsFrozenTracePeriod();
   const location = useLocation();
   const theme = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -151,15 +153,22 @@ export function SampleTableRow({
 
     const hasSpans = (telemetry?.spansCount ?? 0) > 0;
     const shouldGoToSpans = spanIdToUse && hasSpans;
+    const dateSelection = frozenTracePeriod
+      ? {
+          start: frozenTracePeriod.start ?? null,
+          end: frozenTracePeriod.end ?? null,
+          statsPeriod: frozenTracePeriod.period ?? null,
+        }
+      : {
+          start: selection.datetime.start,
+          end: selection.datetime.end,
+          statsPeriod: selection.datetime.period,
+        };
 
     const target = getTraceDetailsUrl({
       organization,
       traceSlug: traceId,
-      dateSelection: {
-        start: selection.datetime.start,
-        end: selection.datetime.end,
-        statsPeriod: selection.datetime.period,
-      },
+      dateSelection,
       timestamp,
       location: strippedLocation,
       source: TraceViewSources.TRACE_METRICS,

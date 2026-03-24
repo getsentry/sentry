@@ -1,8 +1,10 @@
 import qs from 'query-string';
 
+import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getUtcDateString} from 'sentry/utils/dates';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
@@ -24,6 +26,7 @@ import {
   encodeMetricQueryParams,
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
+import type {TracePeriod} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
@@ -199,6 +202,19 @@ export function makeMetricsAggregate({
     traceMetric.unit ?? '-',
   ];
   return `${aggregate}(${args.join(',')})`;
+}
+
+export function getTracePeriodFromSelection(selection: Selection): TracePeriod {
+  let startTimestamp = Math.floor(selection.range[0] / 60_000) * 60_000;
+  const endTimestamp = Math.ceil(selection.range[1] / 60_000) * 60_000;
+
+  startTimestamp = Math.min(startTimestamp, endTimestamp - 60_000);
+
+  return {
+    start: getUtcDateString(startTimestamp),
+    end: getUtcDateString(endTimestamp),
+    period: null,
+  };
 }
 
 export function updateVisualizeYAxis(

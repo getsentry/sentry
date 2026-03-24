@@ -6,6 +6,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
+import {MetricsFrozenContextProvider} from 'sentry/views/explore/metrics/metricsFrozenContext';
 
 jest.mock('sentry/components/pageFilters/usePageFilters');
 
@@ -150,6 +151,62 @@ describe('useMetricSamplesTable', () => {
           referrer: 'api.explore.metric-samples-table',
           sampling: SAMPLING_MODE.NORMAL,
           sort: '-timestamp',
+        }),
+      })
+    );
+  });
+
+  it('uses the frozen trace period when present', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+        meta: {
+          fields: {},
+        },
+      },
+      method: 'GET',
+    });
+
+    renderHookWithProviders(
+      () =>
+        useMetricSamplesTable({
+          traceMetric: {
+            name: 'test.metric',
+            type: 'counter',
+          },
+          fields: ['trace', 'timestamp'],
+          limit: 50,
+          ingestionDelaySeconds: 0,
+        }),
+      {
+        additionalWrapper: ({children}) => (
+          <MockMetricQueryParamsContext>
+            <MetricsFrozenContextProvider
+              traceIds={[]}
+              tracePeriod={{
+                start: '2025-03-24T18:31:00',
+                end: '2025-03-24T18:35:00',
+                period: null,
+              }}
+            >
+              {children}
+            </MetricsFrozenContextProvider>
+          </MockMetricQueryParamsContext>
+        ),
+      }
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          start: '2025-03-24T18:31:00.000',
+          end: '2025-03-24T18:35:00.000',
         }),
       })
     );

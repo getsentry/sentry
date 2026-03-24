@@ -11,6 +11,7 @@ import {
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {useMetricsFrozenTracePeriod} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {useMetricVisualizes} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
@@ -81,6 +82,7 @@ function useMetricAggregatesTableImp({
   queryExtras,
 }: UseMetricAggregatesTableOptions): MetricAggregatesTableResult {
   const {selection} = usePageFilters();
+  const frozenTracePeriod = useMetricsFrozenTracePeriod();
   const visualizes = useMetricVisualizes();
 
   const groupBys = useQueryParamsGroupBys();
@@ -107,6 +109,22 @@ function useMetricAggregatesTableImp({
     return allFields.filter(Boolean);
   }, [groupBys, visualizes]);
 
+  const pageFilters = useMemo(() => {
+    if (frozenTracePeriod) {
+      return {
+        ...selection,
+        datetime: {
+          start: frozenTracePeriod.start ?? null,
+          end: frozenTracePeriod.end ?? null,
+          period: frozenTracePeriod.period ?? null,
+          utc: selection.datetime.utc,
+        },
+      };
+    }
+
+    return selection;
+  }, [selection, frozenTracePeriod]);
+
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
       id: undefined,
@@ -118,8 +136,8 @@ function useMetricAggregatesTableImp({
       dataset: DiscoverDatasets.TRACEMETRICS,
     };
 
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [fields, query, selection, sortBys, traceMetric]);
+    return EventView.fromNewQueryWithPageFilters(discoverQuery, pageFilters);
+  }, [fields, pageFilters, query, sortBys, traceMetric]);
 
   const result = useSpansQuery({
     enabled: enabled && Boolean(traceMetric.name) && fields.length > 0,

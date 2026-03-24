@@ -48,6 +48,13 @@ export function MetricsFrozenContextProvider(props: MetricsFrozenForTracesProvid
       };
     }
 
+    if (props.tracePeriod) {
+      return {
+        frozen: true,
+        tracePeriod: props.tracePeriod,
+      };
+    }
+
     return {frozen: false};
   }, [props]);
 

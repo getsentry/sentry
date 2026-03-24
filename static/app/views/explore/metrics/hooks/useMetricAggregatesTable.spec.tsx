@@ -7,6 +7,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
+import {MetricsFrozenContextProvider} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -203,6 +204,53 @@ describe('useMetricAggregatesTable', () => {
             // The count aggregate includes metric details: count(metric.name,<name>,<type>,-)
             expect.stringMatching(/^count\(metric\.name,test-metric,distribution,-\)$/),
           ]),
+        }),
+      })
+    );
+  });
+
+  it('uses the frozen trace period when present', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{id: '1'}],
+        meta: {fields: {}},
+      },
+      method: 'GET',
+    });
+
+    renderHookWithProviders(useMetricAggregatesTable, {
+      initialProps: {
+        traceMetric: {name: 'test.metric', type: 'counter'},
+        limit: 50,
+        enabled: true,
+      },
+      additionalWrapper: ({children}) => (
+        <MockMetricQueryParamsContext>
+          <MetricsFrozenContextProvider
+            traceIds={[]}
+            tracePeriod={{
+              start: '2025-03-24T18:31:00',
+              end: '2025-03-24T18:35:00',
+              period: null,
+            }}
+          >
+            {children}
+          </MetricsFrozenContextProvider>
+        </MockMetricQueryParamsContext>
+      ),
+    });
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          start: '2025-03-24T18:31:00.000',
+          end: '2025-03-24T18:35:00.000',
         }),
       })
     );
