@@ -206,7 +206,11 @@ export function MetricSelector({
   // avoid duplication.
   const metricOptions = useMemo((): MetricSelectOption[] => {
     const selectedMetricValue = traceMetric.name
-      ? makeMetricSelectValue(traceMetric)
+      ? makeMetricSelectValue(
+          hasMetricUnitsUI
+            ? traceMetric
+            : {name: traceMetric.name, type: traceMetric.type}
+        )
       : null;
 
     const apiOptions =
