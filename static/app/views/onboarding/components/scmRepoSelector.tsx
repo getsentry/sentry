@@ -89,8 +89,6 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     }
   }
 
-  const customComponents = useMemo(() => ({Control: SearchControl}), []);
-
   function noOptionsMessage() {
     if (isError) {
       return t('Failed to search repositories. Please try again.');
@@ -118,7 +116,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
       isDisabled={busy}
       clearable
       searchable
-      components={customComponents}
+      components={{Control: SearchControl}}
     />
   );
 }
