@@ -2453,11 +2453,17 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: TabPaths[Tab.DISTRIBUTIONS],
-      component: make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab')),
+      component: make(
+        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+        <GroupEventDetailsLoading />
+      ),
     },
     {
       path: `${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`,
-      component: make(() => import('sentry/views/issueDetails/groupTags/groupTagValues')),
+      component: make(
+        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+        <GroupEventDetailsLoading />
+      ),
     },
     {
       path: TabPaths[Tab.USER_FEEDBACK],
@@ -2470,13 +2476,15 @@ function buildRoutes(): RouteObject[] {
     {
       path: TabPaths[Tab.SIMILAR_ISSUES],
       component: make(
-        () => import('sentry/views/issueDetails/groupSimilarIssues/groupSimilarIssuesTab')
+        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+        <GroupEventDetailsLoading />
       ),
     },
     {
       path: TabPaths[Tab.MERGED],
       component: make(
-        () => import('sentry/views/issueDetails/groupMerged/groupMergedTab')
+        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+        <GroupEventDetailsLoading />
       ),
     },
   ];

@@ -1529,7 +1529,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         is_seer_scanner_rate_limited,
         is_seer_seat_based_tier_enabled,
     )
-    from sentry.tasks.autofix import (
+    from sentry.tasks.seer.autofix import (
         generate_issue_summary_only,
         generate_summary_and_run_automation,
         run_automation_only_task,

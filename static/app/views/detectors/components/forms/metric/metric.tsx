@@ -44,6 +44,7 @@ import {
   metricSavedDetectorToFormData,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {MetricIssuePreview} from 'sentry/views/detectors/components/forms/metric/metricIssuePreview';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
@@ -77,6 +78,7 @@ function MetricDetectorForm() {
       <DetectSection />
       <AssignSection />
       <DescribeSection />
+      <MetricIssuePreview />
       <AutomateSection />
     </Stack>
   );

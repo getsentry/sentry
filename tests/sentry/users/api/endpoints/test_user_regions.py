@@ -8,10 +8,17 @@ de = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
 st = Cell("acme", 3, "https://acme.testserver", RegionCategory.SINGLE_TENANT)
 region_config = (us, de, st)
 
-us_locality = Locality(name="us", cells=frozenset(["us"]), category=RegionCategory.MULTI_TENANT)
-de_locality = Locality(name="de", cells=frozenset(["de"]), category=RegionCategory.MULTI_TENANT)
+us_locality = Locality(
+    name="us", cells=frozenset(["us"]), category=RegionCategory.MULTI_TENANT, new_org_cell="us"
+)
+de_locality = Locality(
+    name="de", cells=frozenset(["de"]), category=RegionCategory.MULTI_TENANT, new_org_cell="de"
+)
 st_locality = Locality(
-    name="acme", cells=frozenset(["acme"]), category=RegionCategory.SINGLE_TENANT
+    name="acme",
+    cells=frozenset(["acme"]),
+    category=RegionCategory.SINGLE_TENANT,
+    new_org_cell="acme",
 )
 
 

@@ -1,6 +1,5 @@
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
 import {DEFAULT_TRACES_TABLE_WIDTHS} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsOverview';
-import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
 
 interface AgentsTracesTableWidgetVisualizationProps {
@@ -16,15 +15,13 @@ export function AgentsTracesTableWidgetVisualization({
   dashboardFilters,
   frameless,
 }: AgentsTracesTableWidgetVisualizationProps) {
-  const {openTraceViewDrawer} = useTraceViewDrawer();
-
   return (
     <TracesTable
-      openTraceViewDrawer={openTraceViewDrawer}
       limit={limit}
       tableWidths={tableWidths}
       dashboardFilters={dashboardFilters}
       frameless={frameless}
+      linkToTraceView
     />
   );
 }
