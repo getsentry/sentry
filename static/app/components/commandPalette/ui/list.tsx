@@ -130,10 +130,11 @@ export function CommandPaletteList({
                   )}
                 </InputGroup.LeadingItems>
                 <InputGroup.Input
+                  autoFocus
                   ref={inputRef}
                   value={query}
                   placeholder={placeholder}
-                  autoFocus
+                  aria-label={t('Search for commands…')}
                   {...inputProps}
                 />
               </InputGroup>
