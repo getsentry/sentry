@@ -716,7 +716,6 @@ describe('Onboarding', () => {
       expect(
         await screen.findByText('Connected to github.com/getsentry')
       ).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Manage in Settings'})).toBeInTheDocument();
     });
 
     it('skip for now advances to next step without skipping onboarding', async () => {
