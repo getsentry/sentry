@@ -108,7 +108,7 @@ describe('IssueStackTrace', () => {
       />
     );
 
-    expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(8);
+    expect(await screen.findAllByTestId('core-stacktrace-frame-row')).toHaveLength(8);
 
     await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Full Stack Trace'}));
@@ -499,7 +499,7 @@ describe('IssueStackTrace', () => {
         />
       );
 
-      expect(screen.getByText('Stack Trace')).toBeInTheDocument();
+      expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
       await waitFor(() => {
         expect(screen.getAllByTestId('core-stacktrace-frame-row').length).toBeGreaterThan(
           0

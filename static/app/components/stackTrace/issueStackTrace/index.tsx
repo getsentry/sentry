@@ -7,7 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {
   LineCoverageProvider,
