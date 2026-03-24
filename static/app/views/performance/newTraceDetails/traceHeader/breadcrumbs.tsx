@@ -13,7 +13,7 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
-import type {PrebuiltDashboardURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import type {PrebuiltDashboardOrModuleURLBuilder} from 'sentry/views/insights/common/utils/usePrebuiltDashboardUrl';
 import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
@@ -232,7 +232,7 @@ function getDashboardsBreadCrumbs(
 function getInsightsModuleBreadcrumbs(
   location: Location,
   organization: Organization,
-  prebuiltDashboardUrlBuilder: PrebuiltDashboardURLBuilder,
+  prebuiltDashboardUrlBuilder: PrebuiltDashboardOrModuleURLBuilder,
   leafBreadcrumb: Crumb,
   view?: DomainView
 ) {
@@ -431,7 +431,7 @@ export function getTraceViewBreadcrumbs({
 }: {
   location: Location;
   organization: Organization;
-  prebuiltDashboardUrlBuilder: PrebuiltDashboardURLBuilder;
+  prebuiltDashboardUrlBuilder: PrebuiltDashboardOrModuleURLBuilder;
   traceSlug: string;
   project?: Project;
   view?: DomainView;

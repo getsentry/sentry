@@ -2,17 +2,18 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {FieldKind} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {hasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
-import {usePrebuiltDashboardUrlOrModuleUrl} from 'sentry/views/insights/common/utils/useModuleURL';
-import {ModuleName} from 'sentry/views/insights/types';
+import {usePrebuiltDashboardUrl} from 'sentry/views/insights/common/utils/usePrebuiltDashboardUrl';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
@@ -28,22 +29,29 @@ interface Props {
 
 export function SpanSummaryLink(props: Props) {
   const location = useLocation();
-  const {selection} = usePageFilters();
   const isPlatformized = hasPlatformizedInsights(props.organization);
-  const pageFilters = {
-    project: selection.projects,
-    environment: selection.environments,
-    statsPeriod: selection.datetime.period ?? undefined,
-    start: selection.datetime.start?.toString() ?? undefined,
-    end: selection.datetime.end?.toString() ?? undefined,
-  };
-  const resourceBaseUrl = usePrebuiltDashboardUrlOrModuleUrl(
+  const spanGroupFilter = props.group
+    ? {
+        globalFilter: [
+          {
+            dataset: WidgetType.SPANS,
+            tag: {
+              key: SpanFields.SPAN_GROUP,
+              name: SpanFields.SPAN_GROUP,
+              kind: FieldKind.TAG,
+            },
+            value: `${SpanFields.SPAN_GROUP}:[${props.group}]`,
+          },
+        ],
+      }
+    : undefined;
+  const platformizedResourceUrl = usePrebuiltDashboardUrl(
     PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
-    {pageFilters}
+    {filters: spanGroupFilter}
   );
-  const queryBaseUrl = usePrebuiltDashboardUrlOrModuleUrl(
+  const platformizedQueryUrl = usePrebuiltDashboardUrl(
     PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
-    {pageFilters}
+    {filters: spanGroupFilter}
   );
 
   if (!props.group) {
@@ -57,9 +65,9 @@ export function SpanSummaryLink(props: Props) {
     resolvedModule === ModuleName.DB
   ) {
     const target = isPlatformized
-      ? queryBaseUrl
+      ? platformizedQueryUrl
       : querySummaryRouteWithQuery({
-          base: queryBaseUrl,
+          base: platformizedQueryUrl,
           query: location.query,
           group: props.group,
           projectID: props.project_id,
@@ -87,9 +95,9 @@ export function SpanSummaryLink(props: Props) {
     resourceSummaryAvailable(props.op)
   ) {
     const target = isPlatformized
-      ? resourceBaseUrl
+      ? platformizedResourceUrl
       : resourceSummaryRouteWithQuery({
-          baseUrl: resourceBaseUrl,
+          baseUrl: platformizedResourceUrl,
           query: location.query,
           group: props.group,
           projectID: props.project_id,

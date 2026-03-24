@@ -2,12 +2,11 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import {usePrebuiltDashboardUrlOrModuleUrlBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {usePrebuiltDashboardUrlOrModuleUrlBuilder} from 'sentry/views/insights/common/utils/usePrebuiltDashboardUrl';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
@@ -23,16 +22,8 @@ export function PlaceHolder({
   project?: Project;
 }) {
   const {view} = useDomainViewFilters();
-  const {selection} = usePageFilters();
   const prebuiltDashboardUrlBuilder = usePrebuiltDashboardUrlOrModuleUrlBuilder({
     bare: true,
-    pageFilters: {
-      project: selection.projects,
-      environment: selection.environments,
-      statsPeriod: selection.datetime.period ?? undefined,
-      start: selection.datetime.start?.toString() ?? undefined,
-      end: selection.datetime.end?.toString() ?? undefined,
-    },
   });
   const location = useLocation();
 
