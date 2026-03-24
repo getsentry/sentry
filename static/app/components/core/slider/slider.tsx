@@ -64,7 +64,7 @@ export function Slider({
   const trackRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const {value, onChange} = props as ControlledProps;
+  const {value, onChange, ...restProps} = props as ControlledProps;
   const effectiveValue = value === '' ? undefined : value;
 
   const numberFormatter = useNumberFormatter(formatOptions ?? {});
@@ -74,8 +74,8 @@ export function Slider({
     maxValue: max,
     step,
     isDisabled: disabled,
-    'aria-label': props['aria-label'],
-    'aria-labelledby': props['aria-labelledby'],
+    'aria-label': restProps['aria-label'],
+    'aria-labelledby': restProps['aria-labelledby'],
     ...(effectiveValue !== undefined && {value: [effectiveValue]}),
     ...(props.defaultValue !== undefined &&
       effectiveValue === undefined && {defaultValue: [props.defaultValue]}),
@@ -120,6 +120,10 @@ export function Slider({
     return [];
   }, [ticks, min, max]);
 
+  const intermediateTickValues = useMemo<number[]>(() => {
+    return allTickValues.filter(tickValue => tickValue !== min && tickValue !== max);
+  }, [allTickValues, min, max]);
+
   const getFormattedValue = useCallback(
     (val: number | '') => {
       if (val === '') {
@@ -132,11 +136,12 @@ export function Slider({
 
   const hasTicks = allTickValues.length > 0;
   const tickAnimationDuration = hasTicks ? 160 : 60;
-  const tickDelay = hasTicks ? tickAnimationDuration / allTickValues.length : 0;
+  const tickDelay = hasTicks ? tickAnimationDuration / intermediateTickValues.length : 0;
 
   return (
     <SliderWrapper
       {...groupProps}
+      {...restProps}
       className={className}
       aria-disabled={disabled || undefined}
     >
@@ -145,7 +150,7 @@ export function Slider({
           <ActiveTrack style={{width: `${thumbPercent * 100}%`}} />
           <InactiveTrack style={{width: `${(1 - thumbPercent) * 100}%`}} />
 
-          {allTickValues.slice(1, -1).map(tickValue => (
+          {intermediateTickValues.map(tickValue => (
             <SliderTick
               key={tickValue}
               aria-hidden
@@ -167,7 +172,7 @@ export function Slider({
               {...inputProps}
               name={name}
               id={id ?? inputProps.id}
-              aria-invalid={props['aria-invalid'] ?? undefined}
+              aria-invalid={restProps['aria-invalid'] ?? undefined}
             />
           </VisuallyHidden>
         </SliderThumbHitbox>
@@ -190,7 +195,7 @@ export function Slider({
           {getFormattedValue(min)}
         </TrackLabel>
         {hasTicks &&
-          allTickValues.slice(1, -1).map((tickValue, index) => (
+          intermediateTickValues.map((tickValue, index) => (
             <TrackLabel
               key={tickValue}
               data-intermediate
