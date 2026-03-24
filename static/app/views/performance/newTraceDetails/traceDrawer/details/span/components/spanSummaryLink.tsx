@@ -73,7 +73,7 @@ export function SpanSummaryLink(props: Props) {
     }
 
     const target = isPlatformized
-      ? platformizedQueryUrl
+      ? platformizedQueryUrl!
       : querySummaryRouteWithQuery({
           base: queryBaseUrl,
           query: location.query,
@@ -107,7 +107,7 @@ export function SpanSummaryLink(props: Props) {
     }
 
     const target = isPlatformized
-      ? platformizedResourceUrl
+      ? platformizedResourceUrl!
       : resourceSummaryRouteWithQuery({
           baseUrl: resourceBaseUrl,
           query: location.query,

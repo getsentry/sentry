@@ -36,7 +36,7 @@ function applyDashboardFilters(
 export function usePrebuiltDashboardUrl(
   prebuiltId: PrebuiltDashboardId,
   options: PrebuiltDashboardUrlOptions = {}
-): string {
+): string | undefined {
   const {bare = false, filters} = options;
   const organization = useOrganization({allowNull: true});
   const {selection} = usePageFilters();
@@ -48,7 +48,7 @@ export function usePrebuiltDashboardUrl(
   const queryParams = pageFiltersToQueryParams(selection);
 
   if (!organization) {
-    return '';
+    return undefined;
   }
 
   const {slug} = organization;
@@ -61,5 +61,5 @@ export function usePrebuiltDashboardUrl(
       : normalizeUrl(`/organizations/${slug}/dashboard/${prebuiltDashboard.id}/${query}`);
   }
 
-  return '';
+  return undefined;
 }
