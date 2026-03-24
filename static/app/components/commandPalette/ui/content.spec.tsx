@@ -126,57 +126,165 @@ describe('CommandPaletteContent', () => {
   });
 
   describe('search', () => {
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('typing a query filters results to matching items only', async () => {
-      // Type "route" and expect "Go to route" to be visible but "Other" and "Parent action" to be hidden
+    it('typing a query filters results to matching items only', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'route');
+
+      expect(
+        await screen.findByRole('option', {name: 'Go to route'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Other'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Parent action'})
+      ).not.toBeInTheDocument();
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('non-matching items are not shown', async () => {
-      // Type a query that matches nothing and expect no options to be in the document
+    it('non-matching items are not shown', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'xyzzy');
+
+      expect(screen.queryAllByRole('option')).toHaveLength(0);
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('clearing the query restores all top-level items', async () => {
-      // Type a query, then clear it — all top-level actions should reappear
+    it('clearing the query restores all top-level items', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'route');
+      expect(
+        await screen.findByRole('option', {name: 'Go to route'})
+      ).toBeInTheDocument();
+
+      await userEvent.clear(input);
+
+      expect(
+        await screen.findByRole('option', {name: 'Go to route'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Other'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Parent action'})).toBeInTheDocument();
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('child actions are hidden when query is empty', async () => {
-      // Without typing anything, child actions of group actions should not be visible
+    it('child actions are hidden when query is empty', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      await screen.findByRole('option', {name: 'Parent action'});
+
+      expect(
+        screen.queryByRole('option', {name: 'Child action'})
+      ).not.toBeInTheDocument();
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('child actions are directly searchable without drilling into the group', async () => {
-      // Type "child" and expect "Parent action → Child action" to appear in the flat results
+    it('child actions are directly searchable without drilling into the group', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'child');
+
+      expect(
+        await screen.findByRole('option', {name: 'Parent action → Child action'})
+      ).toBeInTheDocument();
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('search is case-insensitive', async () => {
-      // Type "ROUTE" (uppercase) and expect "Go to route" to still match
+    it('search is case-insensitive', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'ROUTE');
+
+      expect(
+        await screen.findByRole('option', {name: 'Go to route'})
+      ).toBeInTheDocument();
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('actions are ranked by match quality — better matches appear first', async () => {
-      // Given actions where one label starts with the query and another contains it later,
-      // the one with the earlier / stronger match should rank first
+    it('actions are ranked by match quality — better matches appear first', async () => {
+      const actions: CommandPaletteAction[] = [
+        {
+          type: 'navigate',
+          to: '/a/',
+          display: {label: 'Something with issues buried'},
+          groupingKey: 'navigate',
+        },
+        {
+          type: 'navigate',
+          to: '/b/',
+          display: {label: 'Issues'},
+          groupingKey: 'navigate',
+        },
+      ];
+      render(<GlobalActionsComponent actions={actions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'issues');
+
+      const options = await screen.findAllByRole('option');
+      expect(options[0]).toHaveAccessibleName('Issues');
+      expect(options[1]).toHaveAccessibleName('Something with issues buried');
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('top-level actions rank before child actions when both match the query', async () => {
-      // Given a query that matches both a top-level action label and a child action label,
-      // the top-level action should appear before the child action in the results
+    it('top-level actions rank before child actions when both match the query', async () => {
+      const actions: CommandPaletteAction[] = [
+        {
+          type: 'group',
+          display: {label: 'Group'},
+          groupingKey: 'navigate',
+          actions: [{type: 'navigate', to: '/child/', display: {label: 'Issues'}}],
+        },
+        {
+          type: 'navigate',
+          to: '/top/',
+          display: {label: 'Issues'},
+          groupingKey: 'navigate',
+        },
+      ];
+      render(<GlobalActionsComponent actions={actions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'issues');
+
+      const options = await screen.findAllByRole('option');
+      expect(options[0]).toHaveAccessibleName('Issues');
+      expect(options[1]).toHaveAccessibleName('Group → Issues');
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('actions with matching keywords are included in results', async () => {
-      // Register an action whose label does not contain the query but whose keywords[] do,
-      // and expect it to appear in the filtered results
+    it('actions with matching keywords are included in results', async () => {
+      const actions: CommandPaletteAction[] = [
+        {
+          type: 'navigate',
+          to: '/shortcuts/',
+          display: {label: 'Keyboard shortcuts'},
+          keywords: ['hotkeys', 'keybindings'],
+          groupingKey: 'help',
+        },
+      ];
+      render(<GlobalActionsComponent actions={actions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'hotkeys');
+
+      expect(
+        await screen.findByRole('option', {name: 'Keyboard shortcuts'})
+      ).toBeInTheDocument();
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip("searching within a drilled-in group filters that group's children", async () => {
-      // Drill into a group, then type a query — only matching children should be visible
+    it("searching within a drilled-in group filters that group's children", async () => {
+      const actions: CommandPaletteAction[] = [
+        {
+          type: 'group',
+          display: {label: 'Theme'},
+          groupingKey: 'navigate',
+          actions: [
+            {type: 'callback', onAction: jest.fn(), display: {label: 'Light'}},
+            {type: 'callback', onAction: jest.fn(), display: {label: 'Dark'}},
+          ],
+        },
+      ];
+      render(<GlobalActionsComponent actions={actions} />);
+
+      // Drill into the group
+      await userEvent.click(await screen.findByRole('option', {name: 'Theme'}));
+      await screen.findByRole('option', {name: 'Light'});
+
+      // Now type a query that only matches one child
+      const input = screen.getByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'dark');
+
+      expect(await screen.findByRole('option', {name: 'Dark'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Light'})).not.toBeInTheDocument();
     });
   });
 });
