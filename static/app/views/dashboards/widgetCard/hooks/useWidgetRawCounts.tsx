@@ -20,7 +20,6 @@ type RawCountConfig = {
   dataset: DiscoverDatasets;
   enabled: boolean;
   supported: boolean;
-  aggregate?: string;
 };
 
 export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): string {
