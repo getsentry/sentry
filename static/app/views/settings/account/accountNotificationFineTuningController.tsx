@@ -1,16 +1,11 @@
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {Organization} from 'sentry/types/organization';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useParams} from 'sentry/utils/useParams';
-import withOrganizations from 'sentry/utils/withOrganizations';
 import {NotificationSettingsByType} from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {getNotificationTypeFromPathname} from 'sentry/views/settings/account/notifications/utils';
 
-import AccountNotificationFineTuning from './accountNotificationFineTuning';
-
-interface AccountNotificationFineTuningControllerProps {
-  organizations: Organization[];
-  organizationsLoading?: boolean;
-}
+import {AccountNotificationFineTuning} from './accountNotificationFineTuning';
 
 const accountNotifications = [
   'alerts',
@@ -23,15 +18,12 @@ const accountNotifications = [
   'brokenMonitors',
 ];
 
-function AccountNotificationFineTuningController({
-  organizationsLoading,
-  ...props
-}: AccountNotificationFineTuningControllerProps) {
-  const params = useParams<{fineTuneType: string}>();
-  const {fineTuneType: pathnameType} = params;
+export default function AccountNotificationFineTuningController() {
+  const {loaded} = useLegacyStore(OrganizationsStore);
+  const {fineTuneType: pathnameType} = useParams<{fineTuneType: string}>();
   const fineTuneType = getNotificationTypeFromPathname(pathnameType);
 
-  if (organizationsLoading) {
+  if (!loaded) {
     return <LoadingIndicator />;
   }
 
@@ -39,7 +31,5 @@ function AccountNotificationFineTuningController({
     return <NotificationSettingsByType notificationType={fineTuneType} />;
   }
 
-  return <AccountNotificationFineTuning {...props} />;
+  return <AccountNotificationFineTuning />;
 }
-
-export default withOrganizations(AccountNotificationFineTuningController);

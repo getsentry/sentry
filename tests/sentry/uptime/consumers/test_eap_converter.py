@@ -323,7 +323,6 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
 
 class TestFullDenormalizedConversion(SentryTestCase):
-
     def _create_base_result(self, **overrides):
         """Create a base CheckResult for testing."""
         base = {

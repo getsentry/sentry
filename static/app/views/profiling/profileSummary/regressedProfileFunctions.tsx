@@ -7,12 +7,11 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import PerformanceDuration from 'sentry/components/performanceDuration';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -30,7 +29,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ProfilingSparklineChart} from './profilingSparklineChart';
 
@@ -58,7 +57,7 @@ function findBreakPointIndex(
   let low = 0;
   let high = examples.length - 1;
   let mid = 0;
-  let bestMatch: number = examples.length;
+  let bestMatch = examples.length;
 
   while (low <= high) {
     mid = Math.floor((low + high) / 2);
@@ -425,7 +424,7 @@ const RegressedFunctionSparklineContainer = styled('div')``;
 
 const RegressedFunctionRow = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const RegressedFunctionMainRow = styled('div')`
@@ -446,12 +445,12 @@ const RegressedFunctionMetricsRow = styled('div')`
   justify-content: space-between;
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const RegressedFunctionsContainer = styled('div')`
   flex-basis: 80px;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
@@ -475,13 +474,13 @@ const RegressedFunctionsTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
-  margin-top: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const RegressedFunctionsQueryState = styled('div')`
   text-align: center;
-  padding: ${space(2)} ${space(0.5)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

@@ -1,4 +1,5 @@
 from dataclasses import replace
+from typing import Any, Mapping
 
 import pytest
 from jsonschema import ValidationError
@@ -13,7 +14,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestExistingHighPriorityIssueCondition(ConditionTestCase):
     condition = Condition.EXISTING_HIGH_PRIORITY_ISSUE
-    payload = {"id": ExistingHighPriorityIssueCondition.id}
+    payload: Mapping[str, Any] = {"id": ExistingHighPriorityIssueCondition.id}
 
     def setUp(self) -> None:
         super().setUp()
@@ -28,7 +29,6 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
                     "is_new_group_environment": False,
                 }
             ),
-            has_reappeared=True,
             has_escalated=True,
         )
         self.dc = self.create_data_condition(
@@ -74,16 +74,10 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
         self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_is_escalating(self) -> None:
-        self.event_data = replace(self.event_data, has_reappeared=False, has_escalated=True)
+        self.event_data = replace(self.event_data, has_escalated=True)
         self.assert_passes(self.dc, self.event_data)
 
-        self.event_data = replace(self.event_data, has_reappeared=True, has_escalated=True)
-        self.assert_passes(self.dc, self.event_data)
-
-        self.event_data = replace(self.event_data, has_reappeared=False, has_escalated=False)
-        self.assert_does_not_pass(self.dc, self.event_data)
-
-        self.event_data = replace(self.event_data, has_reappeared=True, has_escalated=False)
+        self.event_data = replace(self.event_data, has_escalated=False)
         self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_priority(self) -> None:

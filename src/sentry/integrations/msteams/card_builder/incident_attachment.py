@@ -21,7 +21,6 @@ def build_incident_attachment(
     date_started: datetime,
     notification_uuid: str | None = None,
 ) -> AdaptiveCard:
-
     data = incident_attachment_info(
         alert_context=alert_context,
         metric_issue_context=metric_issue_context,

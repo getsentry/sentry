@@ -7,9 +7,9 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
-import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
+import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
@@ -18,9 +18,9 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import ScreenshotPagination from './screenshotPagination';
+import {ScreenshotPagination} from './screenshotPagination';
 
 interface ScreenshotModalProps extends ModalRenderProps {
   downloadUrl: string;
@@ -42,7 +42,7 @@ interface ScreenshotModalProps extends ModalRenderProps {
   onDownload?: () => void;
 }
 
-export default function ScreenshotModal({
+export function ScreenshotModal({
   eventAttachment,
   attachments = [],
   projectSlug,

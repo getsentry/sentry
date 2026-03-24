@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.utils import json
@@ -49,7 +49,7 @@ class WorkflowData:
                 )
             # Sort trigger conditions and action groups for consistent hashing
             trigger_conditions.sort(
-                key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))  # type: ignore[arg-type]
+                key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))
             )
 
             trigger_group = {
@@ -81,9 +81,9 @@ class WorkflowData:
 
             # Sort conditions and actions for consistent hashing
             group_conditions.sort(
-                key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))  # type: ignore[arg-type]
+                key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))
             )
-            group_actions.sort(key=lambda a: (a["type"], json.dumps(a["config"], sort_keys=True)))  # type: ignore[arg-type]
+            group_actions.sort(key=lambda a: (a["type"], json.dumps(a["config"], sort_keys=True)))
 
             action_groups.append(
                 {
@@ -93,7 +93,7 @@ class WorkflowData:
                 }
             )
 
-        action_groups.sort(key=lambda g: json.dumps(g, sort_keys=True))  # type: ignore[arg-type]
+        action_groups.sort(key=lambda g: json.dumps(g, sort_keys=True))
 
         workflow_data = {
             "action_groups": action_groups,
@@ -104,7 +104,7 @@ class WorkflowData:
             "trigger_group": trigger_group,
         }
 
-        return json.dumps(workflow_data, sort_keys=True)  # type: ignore[arg-type]
+        return json.dumps(workflow_data, sort_keys=True)
 
 
 def deduplicate_workflows(organization: Organization) -> None:
@@ -194,7 +194,7 @@ def deduplicate_workflows(organization: Organization) -> None:
             Workflow.objects.filter(id__in=workflow_ids).delete()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDeduplicateWorkflowsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDeduplicateWorkflowsPermission,)
     publish_status = {

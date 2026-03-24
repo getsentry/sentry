@@ -16,12 +16,12 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
-import GroupEventAttachments from './groupEventAttachments';
+import {GroupEventAttachments} from './groupEventAttachments';
 
 describe('GroupEventAttachments', () => {
   const groupId = 'group-id';
@@ -178,7 +178,7 @@ describe('GroupEventAttachments', () => {
         },
         route: `/organizations/:orgId/issues/:groupId/attachments/`,
       },
-      organization: {...organization, features: ['issue-details-streamline-enforce']},
+      organization,
     });
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',

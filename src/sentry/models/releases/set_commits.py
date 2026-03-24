@@ -67,7 +67,6 @@ def set_commits(release, commit_list):
             atomic_transaction(using=router.db_for_write(type(release))),
             in_test_hide_transaction_boundary(),
         ):
-
             head_commit_by_repo, commit_author_by_commit = set_commits_on_release(
                 release, commit_list
             )
@@ -195,7 +194,8 @@ def update_group_resolutions(release, commit_author_by_commit):
     )
 
     commit_group_authors = [
-        (cr[0], commit_author_by_commit.get(cr[1])) for cr in commit_resolutions  # group_id
+        (cr[0], commit_author_by_commit.get(cr[1]))
+        for cr in commit_resolutions  # group_id
     ]
 
     pr_ids_by_merge_commit = list(

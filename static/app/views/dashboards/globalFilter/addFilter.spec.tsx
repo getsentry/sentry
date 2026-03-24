@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import AddFilter, {DATASET_CHOICES} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {AddFilter, DATASET_CHOICES} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 describe('AddFilter', () => {
@@ -107,13 +107,55 @@ describe('AddFilter', () => {
     await userEvent.click(
       screen.getByRole('option', {name: mockFilterKeys['browser.name']!.key})
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
     // Verify onAddFilter was called with the added global filter object
     expect(onAddFilter).toHaveBeenCalledTimes(1);
     expect(onAddFilter).toHaveBeenCalledWith({
       dataset: WidgetType.ERRORS,
       tag: mockFilterKeys['browser.name'],
+      value: '',
+    });
+  });
+
+  it('retrieves filter keys for the metrics dataset', async () => {
+    render(
+      <AddFilter
+        globalFilters={[]}
+        getSearchBarData={getSearchBarData}
+        onAddFilter={() => {}}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
+    await userEvent.click(screen.getByText('Metrics'));
+
+    expect(screen.getByText('Select Metrics Tag')).toBeInTheDocument();
+    expect(screen.getByText(mockFilterKeys['browser.name']!.key)).toBeInTheDocument();
+    expect(screen.getByText(mockFilterKeys.environment!.key)).toBeInTheDocument();
+  });
+
+  it('calls onAddFilter with trace metrics dataset', async () => {
+    const onAddFilter = jest.fn();
+    render(
+      <AddFilter
+        globalFilters={[]}
+        getSearchBarData={getSearchBarData}
+        onAddFilter={onAddFilter}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
+    await userEvent.click(screen.getByText('Metrics'));
+    await userEvent.click(
+      screen.getByRole('option', {name: mockFilterKeys.environment!.key})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(onAddFilter).toHaveBeenCalledTimes(1);
+    expect(onAddFilter).toHaveBeenCalledWith({
+      dataset: WidgetType.TRACEMETRICS,
+      tag: mockFilterKeys.environment,
       value: '',
     });
   });

@@ -118,6 +118,12 @@ def test_internal_relays_should_receive_full_configs(
     else:
         assert safe.get_path(cfg, "config", "retentions") is None
 
+    trimming_configs = quotas.backend.get_trimming_configs(default_project.organization)
+    if trimming_configs:
+        assert safe.get_path(cfg, "config", "trimming") == trimming_configs
+    else:
+        assert safe.get_path(cfg, "config", "trimming") is None
+
 
 @django_db_all
 def test_relays_dyamic_sampling(call_endpoint, default_projectkey) -> None:
@@ -138,17 +144,20 @@ def test_relays_dyamic_sampling(call_endpoint, default_projectkey) -> None:
             "config",
             "sampling",
         )
-        assert dynamic_sampling == {
-            "version": 2,
-            "rules": [
-                {
-                    "samplingValue": {"type": "sampleRate", "value": 1.0},
-                    "type": "trace",
-                    "condition": {"op": "and", "inner": []},
-                    "id": 1000,  # this is reserved id for RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE which is being created
-                }
-            ],
-        }
+        assert (
+            dynamic_sampling
+            == {
+                "version": 2,
+                "rules": [
+                    {
+                        "samplingValue": {"type": "sampleRate", "value": 1.0},
+                        "type": "trace",
+                        "condition": {"op": "and", "inner": []},
+                        "id": 1000,  # this is reserved id for RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE which is being created
+                    }
+                ],
+            }
+        )
 
 
 @django_db_all

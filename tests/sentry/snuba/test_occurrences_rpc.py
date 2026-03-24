@@ -196,6 +196,35 @@ class OccurrencesRPCTest(TestCase):
         assert resolved_column.public_alias == "min(timestamp)"
         assert resolved_column.search_type == "string"  # timestamp is processed as string
 
+    def test_type_attribute(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("type")
+        assert resolved_column.proto_definition == AttributeKey(
+            name="type", type=AttributeKey.Type.TYPE_STRING
+        )
+        assert virtual_context is None
+
+    def test_type_filter_query(self) -> None:
+        where, having, _ = self.resolver.resolve_query("type:error")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="type", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="error"),
+            )
+        )
+        assert having is None
+
+    def test_type_negation_filter_query(self) -> None:
+        where, having, _ = self.resolver.resolve_query("!type:generic")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="type", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_NOT_EQUALS,
+                value=AttributeValue(val_str="generic"),
+            )
+        )
+        assert having is None
+
 
 class OccurrencesTimeseriesTest(TestCase):
     def setUp(self) -> None:

@@ -11,7 +11,6 @@ import styled from '@emotion/styled';
 
 import type {InputProps} from '@sentry/scraps/input';
 
-import {space} from 'sentry/styles/space';
 import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 // There is a cycle here if we import textarea from scraps.
@@ -32,7 +31,7 @@ const InputItemsWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   /* Do not use transform here to do alignment as it will create a new stacking
    * context, breaking things like dropdown menus */

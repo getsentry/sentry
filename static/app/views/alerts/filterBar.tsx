@@ -1,18 +1,16 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {LinkButton} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
-import TeamFilter from './list/rules/teamFilter';
+import {TeamFilter} from './list/rules/teamFilter';
 import {CombinedAlertType} from './types';
 import {getQueryAlertType, getQueryStatus, getTeamParams} from './utils';
 
@@ -26,7 +24,7 @@ interface Props {
   onChangeStatus?: (status: string) => void;
 }
 
-function FilterBar({
+export function FilterBar({
   location,
   onChangeSearch,
   onChangeFilter,
@@ -53,14 +51,14 @@ function FilterBar({
               </OverlayTrigger.Button>
             )}
             menuFooter={
-              <Grid flow="column" align="center" gap="md">
-                <LinkButton size="xs" icon={<IconOpen />} to="/insights/crons/">
+              <Flex gap="md" align="center" justify="end">
+                <MenuComponents.CTALinkButton icon={<IconOpen />} to="/insights/crons/">
                   {t('Crons Overview')}
-                </LinkButton>
-                <LinkButton size="xs" icon={<IconOpen />} to="/insights/uptime/">
+                </MenuComponents.CTALinkButton>
+                <MenuComponents.CTALinkButton icon={<IconOpen />} to="/insights/uptime/">
                   {t('Uptime Overview')}
-                </LinkButton>
-              </Grid>
+                </MenuComponents.CTALinkButton>
+              </Flex>
             }
             options={[
               {
@@ -117,12 +115,10 @@ function FilterBar({
   );
 }
 
-export default FilterBar;
-
 const Wrapper = styled('div')`
   display: grid;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: min-content 1fr;
@@ -136,7 +132,7 @@ const FilterButtons = styled((props: GridProps) => (
     display: flex;
     align-items: flex-start;
     flex-wrap: wrap;
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space.lg};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {

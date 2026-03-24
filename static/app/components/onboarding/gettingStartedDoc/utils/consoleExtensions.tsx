@@ -15,7 +15,7 @@ import {
   CONSOLE_PLATFORM_METADATA,
   ConsolePlatform,
 } from 'sentry/constants/consolePlatforms';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 
 function getPlayStationRequestButtonAccessDescription(platform?: string) {

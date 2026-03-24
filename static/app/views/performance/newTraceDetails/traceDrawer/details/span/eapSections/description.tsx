@@ -9,18 +9,17 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
-import LinkHint from 'sentry/components/structuredEventData/linkHint';
+import {LinkHint} from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
+import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
   DisabledImages,
   LOCAL_STORAGE_SHOW_LINKS,
@@ -40,7 +39,7 @@ import {
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
-import SpanSummaryLink from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
+import {SpanSummaryLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   findSpanAttributeValue,
@@ -49,7 +48,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
@@ -78,14 +76,13 @@ export function SpanDescription({
   });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   const category = findSpanAttributeValue(attributes, 'span.category');
   const dbSystem = findSpanAttributeValue(attributes, 'db.system');
   const dbQueryText = findSpanAttributeValue(attributes, 'db.query.text');
   const group = findSpanAttributeValue(attributes, 'span.group');
 
-  const resolvedModule: ModuleName = resolveSpanModule(span.op, category);
+  const resolvedModule = resolveSpanModule(span.op, category);
 
   const formattedDescription = useMemo(() => {
     if (resolvedModule !== ModuleName.DB) {
@@ -103,19 +100,14 @@ export function SpanDescription({
     return formatter.toString(dbQueryText ?? span.description ?? '');
   }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
-  const exploreUsingName =
-    shouldUseOTelFriendlyUI && !span.description && span.name !== span.op;
+  const exploreUsingName = !span.description && span.name !== span.op;
   const exploreAttributeName = exploreUsingName
     ? SpanFields.NAME
     : SpanFields.SPAN_DESCRIPTION;
   const exploreAttributeValue = exploreUsingName ? span.name : span.description;
 
   const actions = exploreAttributeValue ? (
-    <BodyContentWrapper
-      padding={
-        resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
-      }
-    >
+    <BodyContentWrapper padding={resolvedModule === ModuleName.DB ? '8px 16px' : '8px'}>
       {node.value.is_transaction ? (
         <StyledLink
           to={transactionSummaryRouteWithQuery({
@@ -236,10 +228,7 @@ export function SpanDescription({
         node={node}
         attributes={attributes}
       />
-    ) : shouldUseOTelFriendlyUI &&
-      !span.description &&
-      span.name &&
-      span.name !== span.op ? (
+    ) : !span.description && span.name && span.name !== span.op ? (
       <DescriptionWrapper>
         <Flex align="center" minHeight="24px">
           {span.name}
@@ -370,7 +359,7 @@ function ResourceImage(props: {
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}
-          title={t('Copy file name')}
+          tooltipProps={{title: t('Copy file name')}}
         />
       </Flex>
       {showImage && !hasError ? (
@@ -403,12 +392,12 @@ const ImageWrapper = styled('div')`
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const BodyContentWrapper = styled('div')<{padding: string}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: ${p => p.padding};
 `;
 
@@ -425,12 +414,12 @@ const DescriptionWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   word-break: break-word;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const StyledDescriptionWrapper = styled(DescriptionWrapper)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   justify-content: center;
 `;

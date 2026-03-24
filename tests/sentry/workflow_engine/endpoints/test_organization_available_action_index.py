@@ -13,7 +13,7 @@ from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.types import ActionHandler
@@ -22,7 +22,7 @@ from sentry_plugins.slack.plugin import SlackPlugin
 from sentry_plugins.trello.plugin import TrelloPlugin
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationAvailableActionAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-available-action-index"
 
@@ -459,7 +459,6 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_actions_sorting(self, mock_sentry_app_component_preparer: MagicMock) -> None:
-
         self.setup_sentry_apps()
         self.setup_integrations()
         self.setup_integrations_with_services()

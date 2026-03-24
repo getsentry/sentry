@@ -8,13 +8,13 @@ from sentry.snuba.metrics import SpanMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 pytestmark = [pytest.mark.sentry_metrics]
 
 
 @freeze_time(MetricsEnhancedPerformanceTestCase.MOCK_DATETIME)
-@region_silo_test
+@cell_silo_test
 class OrganizationSamplingAdminMetricsTest(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-sampling-admin-metrics"
 

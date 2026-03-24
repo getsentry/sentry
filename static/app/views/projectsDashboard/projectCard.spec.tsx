@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import ProjectCard from 'sentry/views/projectsDashboard/projectCard';
+import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
 
 // NOTE: Unmocking debounce so that the actionCreator never fires
 jest.unmock('lodash/debounce');
@@ -80,8 +80,6 @@ describe('ProjectCard', () => {
   it('renders with platform', () => {
     createWrapper();
 
-    // @TODO(jonasbadalic): is testing for image and the platform icon both required?
-    expect(screen.getAllByRole('img')).toHaveLength(3);
     expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
   });
 

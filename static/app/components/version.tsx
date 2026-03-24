@@ -6,10 +6,10 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
@@ -53,7 +53,7 @@ type Props = {
   withPackage?: boolean;
 };
 
-function Version({
+export function Version({
   version,
   anchor = true,
   preservePageFilters,
@@ -80,26 +80,23 @@ function Version({
 
   const renderVersion = () => {
     if (anchor && organization?.slug) {
-      const props = {
-        to: makeReleaseDrawerPathname({
-          location,
-          release: version,
-          projectId: releaseDetailProjectId,
-          source: 'release-version-link',
-        }),
-        className,
-      };
-      if (preservePageFilters) {
-        return (
-          <GlobalSelectionLink {...props}>
-            <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
-              {versionToDisplay}
-            </VersionText>
-          </GlobalSelectionLink>
-        );
-      }
+      const pathname = makeReleaseDrawerPathname({
+        location,
+        release: version,
+        projectId: releaseDetailProjectId,
+        source: 'release-version-link',
+      });
+      const to = preservePageFilters
+        ? typeof pathname === 'string'
+          ? {pathname, query: extractSelectionParameters(location.query)}
+          : {
+              ...pathname,
+              query: {...extractSelectionParameters(location.query), ...pathname.query},
+            }
+        : pathname;
+
       return (
-        <Link {...props}>
+        <Link to={to} className={className}>
           <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
             {versionToDisplay}
           </VersionText>
@@ -172,5 +169,3 @@ const TooltipVersionWrapper = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default Version;

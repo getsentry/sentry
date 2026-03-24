@@ -293,12 +293,12 @@ class DedupeCronWorkflowsTest(TestMigrations):
         # Verify both detectors point to the same workflow
         detector1_wf = DetectorWorkflow.objects.get(detector=self.detector1)
         detector2_wf = DetectorWorkflow.objects.get(detector=self.detector2)
-        assert (
-            detector1_wf.workflow_id == detector2_wf.workflow_id
-        ), "Detectors from deduplicated rules should point to same workflow"
-        assert (
-            detector1_wf.workflow_id == basic_duplicates[0]
-        ), "Detectors should point to the surviving workflow"
+        assert detector1_wf.workflow_id == detector2_wf.workflow_id, (
+            "Detectors from deduplicated rules should point to same workflow"
+        )
+        assert detector1_wf.workflow_id == basic_duplicates[0], (
+            "Detectors should point to the surviving workflow"
+        )
 
         # Test Case 2: Same user owner duplicates should be deduplicated
         self._verify_workflow_deduplication(
@@ -308,9 +308,9 @@ class DedupeCronWorkflowsTest(TestMigrations):
         )
         detector_same_user1_wf = DetectorWorkflow.objects.get(detector=self.detector_same_user1)
         detector_same_user2_wf = DetectorWorkflow.objects.get(detector=self.detector_same_user2)
-        assert (
-            detector_same_user1_wf.workflow_id == detector_same_user2_wf.workflow_id
-        ), "Detectors from rules with same user owner should point to same workflow"
+        assert detector_same_user1_wf.workflow_id == detector_same_user2_wf.workflow_id, (
+            "Detectors from rules with same user owner should point to same workflow"
+        )
 
         # Test Case 3: Different frequency should NOT deduplicate
         self._verify_workflow_deduplication(
@@ -327,9 +327,9 @@ class DedupeCronWorkflowsTest(TestMigrations):
         )
         detector_user1_wf = DetectorWorkflow.objects.get(detector=self.detector_user1)
         detector_user2_wf = DetectorWorkflow.objects.get(detector=self.detector_user2)
-        assert (
-            detector_user1_wf.workflow_id != detector_user2_wf.workflow_id
-        ), "Detectors from rules with different users should have different workflows"
+        assert detector_user1_wf.workflow_id != detector_user2_wf.workflow_id, (
+            "Detectors from rules with different users should have different workflows"
+        )
 
         # Test Case 5: Different teams should NOT deduplicate
         self._verify_workflow_deduplication(
@@ -339,9 +339,9 @@ class DedupeCronWorkflowsTest(TestMigrations):
         )
         detector_team1_wf = DetectorWorkflow.objects.get(detector=self.detector_team1)
         detector_team2_wf = DetectorWorkflow.objects.get(detector=self.detector_team2)
-        assert (
-            detector_team1_wf.workflow_id != detector_team2_wf.workflow_id
-        ), "Detectors from rules with different teams should have different workflows"
+        assert detector_team1_wf.workflow_id != detector_team2_wf.workflow_id, (
+            "Detectors from rules with different teams should have different workflows"
+        )
 
         # Test Case 6: Different environments should NOT deduplicate
         self._verify_workflow_deduplication(
@@ -351,9 +351,9 @@ class DedupeCronWorkflowsTest(TestMigrations):
         )
         detector_env1_wf = DetectorWorkflow.objects.get(detector=self.detector_env1)
         detector_env2_wf = DetectorWorkflow.objects.get(detector=self.detector_env2)
-        assert (
-            detector_env1_wf.workflow_id != detector_env2_wf.workflow_id
-        ), "Detectors from rules with different environments should have different workflows"
+        assert detector_env1_wf.workflow_id != detector_env2_wf.workflow_id, (
+            "Detectors from rules with different environments should have different workflows"
+        )
 
         # Test Case 7: Cross-org isolation
         self._verify_workflow_deduplication(
@@ -368,11 +368,11 @@ class DedupeCronWorkflowsTest(TestMigrations):
         # Verify AlertRuleWorkflow links are maintained
         # The basic duplicates should still have AlertRuleWorkflow pointing to first rule
         alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id=basic_duplicates[0])
-        assert (
-            alert_rule_workflows.exists()
-        ), "AlertRuleWorkflow should exist for surviving workflow"
+        assert alert_rule_workflows.exists(), (
+            "AlertRuleWorkflow should exist for surviving workflow"
+        )
         first_workflow = alert_rule_workflows.first()
         assert first_workflow
-        assert (
-            first_workflow.rule_id == self.org1_cron_rule1.id
-        ), "AlertRuleWorkflow should point to first rule in deduplication group"
+        assert first_workflow.rule_id == self.org1_cron_rule1.id, (
+            "AlertRuleWorkflow should point to first rule in deduplication group"
+        )

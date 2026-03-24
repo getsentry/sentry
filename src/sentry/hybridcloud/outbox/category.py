@@ -4,12 +4,12 @@ from collections.abc import Collection, Mapping, Sequence
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, cast
 
-from sentry.hybridcloud.outbox.signals import process_control_outbox, process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
 
 if TYPE_CHECKING:
     from sentry.db.models import BaseModel
-    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
-    from sentry.hybridcloud.outbox.base import HasControlReplicationHandlers, ReplicatedRegionModel
+    from sentry.hybridcloud.models.outbox import CellOutboxBase, ControlOutboxBase
+    from sentry.hybridcloud.outbox.base import HasControlReplicationHandlers, ReplicatedCellModel
 
 _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
 _used_categories: set[OutboxCategory] = set()
@@ -70,7 +70,7 @@ class OutboxCategory(IntEnum):
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
 
-    def connect_region_model_updates(self, model: type[ReplicatedRegionModel]) -> None:
+    def connect_cell_model_updates(self, model: type[ReplicatedCellModel]) -> None:
         def receiver(
             object_identifier: int,
             payload: Mapping[str, Any] | None,
@@ -80,8 +80,8 @@ class OutboxCategory(IntEnum):
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: ReplicatedRegionModel | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, region_name=None
+            maybe_instance: ReplicatedCellModel | None = maybe_process_tombstone(
+                cast(Any, model), object_identifier, cell_name=None
             )
             if maybe_instance is None:
                 model.handle_async_deletion(
@@ -90,7 +90,7 @@ class OutboxCategory(IntEnum):
             else:
                 maybe_instance.handle_async_replication(shard_identifier=shard_identifier)
 
-        process_region_outbox.connect(receiver, weak=False, sender=self)
+        process_cell_outbox.connect(receiver, weak=False, sender=self)
 
     def connect_control_model_updates(self, model: type[HasControlReplicationHandlers]) -> None:
         def receiver(
@@ -104,18 +104,18 @@ class OutboxCategory(IntEnum):
             from sentry.receivers.outbox import maybe_process_tombstone
 
             maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, region_name=region_name
+                cast(Any, model), object_identifier, cell_name=region_name
             )
             if maybe_instance is None:
                 model.handle_async_deletion(
                     identifier=object_identifier,
-                    region_name=region_name,
+                    cell_name=region_name,
                     shard_identifier=shard_identifier,
                     payload=payload,
                 )
             else:
                 maybe_instance.handle_async_replication(
-                    shard_identifier=shard_identifier, region_name=region_name
+                    shard_identifier=shard_identifier, cell_name=region_name
                 )
 
         process_control_outbox.connect(receiver, weak=False, sender=self)
@@ -135,9 +135,9 @@ class OutboxCategory(IntEnum):
         payload: dict[str, Any] | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
-        outbox: type[RegionOutboxBase] | None = None,
-    ) -> RegionOutboxBase:
-        from sentry.hybridcloud.models.outbox import RegionOutbox
+        outbox: type[CellOutboxBase] | None = None,
+    ) -> CellOutboxBase:
+        from sentry.hybridcloud.models.outbox import CellOutbox
 
         scope = self.get_scope()
 
@@ -145,7 +145,7 @@ class OutboxCategory(IntEnum):
             scope, model, object_identifier=object_identifier, shard_identifier=shard_identifier
         )
 
-        Outbox = outbox or RegionOutbox
+        Outbox = outbox or CellOutbox
 
         return Outbox(
             shard_scope=scope,
@@ -157,7 +157,7 @@ class OutboxCategory(IntEnum):
 
     def as_control_outboxes(
         self,
-        region_names: Collection[str],
+        cell_names: Collection[str],
         model: Any | None = None,
         payload: dict[str, Any] | None = None,
         shard_identifier: int | None = None,
@@ -180,10 +180,10 @@ class OutboxCategory(IntEnum):
                 shard_identifier=shard_identifier,
                 category=self,
                 object_identifier=object_identifier,
-                region_name=region_name,
+                cell_name=cell_name,
                 payload=payload,
             )
-            for region_name in region_names
+            for cell_name in cell_names
         ]
 
     def infer_identifiers(
@@ -200,9 +200,9 @@ class OutboxCategory(IntEnum):
         from sentry.models.organization import Organization
         from sentry.users.models.user import User
 
-        assert (model is not None) ^ (
-            object_identifier is not None
-        ), "Either model or object_identifier must be specified"
+        assert (model is not None) ^ (object_identifier is not None), (
+            "Either model or object_identifier must be specified"
+        )
 
         if model is not None and hasattr(model, "id"):
             object_identifier = model.id
@@ -236,9 +236,9 @@ class OutboxCategory(IntEnum):
                 elif hasattr(model, "api_token_id"):
                     shard_identifier = model.api_token_id
 
-        assert (
-            model is not None
-        ) or shard_identifier is not None, "Either model or shard_identifier must be specified"
+        assert (model is not None) or shard_identifier is not None, (
+            "Either model or shard_identifier must be specified"
+        )
 
         assert object_identifier is not None
         assert shard_identifier is not None
@@ -358,9 +358,9 @@ class OutboxScope(IntEnum):
 
 
 _missing_categories = set(OutboxCategory) - _used_categories
-assert (
-    not _missing_categories
-), f"OutboxCategories {_missing_categories} not registered to an OutboxScope"
+assert not _missing_categories, (
+    f"OutboxCategories {_missing_categories} not registered to an OutboxScope"
+)
 
 
 class WebhookProviderIdentifier(IntEnum):

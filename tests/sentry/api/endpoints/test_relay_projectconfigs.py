@@ -162,20 +162,27 @@ def test_internal_relays_should_receive_full_configs(
     else:
         assert safe.get_path(cfg, "config", "retentions") is None
 
+    trimming_configs = quotas.backend.get_trimming_configs(default_project.organization)
+    if trimming_configs:
+        assert safe.get_path(cfg, "config", "trimming") == trimming_configs
+    else:
+        assert safe.get_path(cfg, "config", "trimming") is None
+
 
 @django_db_all
 def test_parse_retentions(call_endpoint, default_project):
-    with patch("sentry.quotas.backend") as quotas_mock:
-        quotas_mock.get_retentions = lambda x: {
+    with patch.multiple(
+        "sentry.quotas.backend",
+        get_retentions=lambda x: {
             DataCategory.ERROR: {"standard": 10, "downsampled": 20},
             DataCategory.REPLAY: {"standard": 11, "downsampled": 21},
             DataCategory.SPAN: {"standard": 12, "downsampled": 22},
             DataCategory.LOG_BYTE: {"standard": 13, "downsampled": 23},
             DataCategory.TRACE_METRIC: {"standard": 14, "downsampled": 24},
-        }
-        quotas_mock.get_event_retention = lambda x: 45
-        quotas_mock.get_downsampled_event_retention = lambda x: 90
-
+        },
+        get_event_retention=lambda x: 45,
+        get_downsampled_event_retention=lambda x: 90,
+    ):
         result, status_code = call_endpoint()
         assert status_code < 400
         assert_no_snakecase_key(result)
@@ -192,16 +199,17 @@ def test_parse_retentions(call_endpoint, default_project):
 
 @django_db_all
 def test_parse_retentions_with_transactions(call_endpoint, default_project):
-    with patch("sentry.quotas.backend") as quotas_mock:
-        quotas_mock.get_retentions = lambda x: {
+    with patch(
+        "sentry.quotas.backend",
+        get_retentions=lambda x: {
             DataCategory.ERROR: {"standard": 10, "downsampled": 20},
             DataCategory.REPLAY: {"standard": 11, "downsampled": 21},
             DataCategory.TRANSACTION: {"standard": 12, "downsampled": 22},
             DataCategory.LOG_BYTE: {"standard": 13, "downsampled": 23},
-        }
-        quotas_mock.get_event_retention = lambda x: 45
-        quotas_mock.get_downsampled_event_retention = lambda x: 90
-
+        },
+        get_event_retention=lambda x: 45,
+        get_downsampled_event_retention=lambda x: 90,
+    ):
         result, status_code = call_endpoint()
         assert status_code < 400
         assert_no_snakecase_key(result)
@@ -212,6 +220,22 @@ def test_parse_retentions_with_transactions(call_endpoint, default_project):
         assert safe.get_path(cfg, "config", "retentions") == {
             "span": {"standard": 12, "downsampled": 22},
             "log": {"standard": 13, "downsampled": 23},
+        }
+
+
+@django_db_all
+def test_parse_trimming(call_endpoint, default_project):
+    with patch.object(
+        quotas.backend,
+        "get_trimming_configs",
+        return_value={"span": {"maxSize": 17}},
+    ):
+        result, status_code = call_endpoint()
+        assert status_code < 400
+        assert_no_snakecase_key(result)
+        cfg = safe.get_path(result, "configs", str(default_project.id))
+        assert safe.get_path(cfg, "config", "trimming") == {
+            "span": {"maxSize": 17},
         }
 
 
@@ -230,17 +254,20 @@ def test_relays_dyamic_sampling(call_endpoint, default_project) -> None:
         dynamic_sampling = safe.get_path(
             result, "configs", str(default_project.id), "config", "sampling"
         )
-        assert dynamic_sampling == {
-            "version": 2,
-            "rules": [
-                {
-                    "samplingValue": {"type": "sampleRate", "value": 1.0},
-                    "type": "trace",
-                    "condition": {"op": "and", "inner": []},
-                    "id": 1000,  # this is reserved id for RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE which is being created
-                }
-            ],
-        }
+        assert (
+            dynamic_sampling
+            == {
+                "version": 2,
+                "rules": [
+                    {
+                        "samplingValue": {"type": "sampleRate", "value": 1.0},
+                        "type": "trace",
+                        "condition": {"op": "and", "inner": []},
+                        "id": 1000,  # this is reserved id for RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE which is being created
+                    }
+                ],
+            }
+        )
 
 
 @django_db_all

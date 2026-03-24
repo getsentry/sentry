@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
@@ -30,6 +30,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "span.op",
     "span.status",
     "span.description",
+    "span.name",
     "span.duration",
     "transaction",
     "is_transaction",
@@ -45,6 +46,9 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.response.text",
     "gen_ai.tool.name",
     "gen_ai.usage.total_tokens",
+    "gen_ai.request.model",
+    "gen_ai.response.model",
+    "gen_ai.agent.name",
     "user.id",
     "user.email",
     "user.username",
@@ -52,7 +56,7 @@ AI_CONVERSATION_ATTRIBUTES = [
 ]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.TELEMETRY_EXPERIENCE

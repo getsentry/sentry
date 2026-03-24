@@ -55,7 +55,6 @@ class SeerActionType(SentryAppActionType):
 
 
 class SentryAppResourceType(StrEnum):
-
     @staticmethod
     def map_sentry_app_webhook_events(
         resource: str, action_type: type[SentryAppActionType]

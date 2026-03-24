@@ -2,13 +2,13 @@ import invariant from 'invariant';
 
 import {t} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import isValidDate from 'sentry/utils/date/isValidDate';
+import {isValidDate} from 'sentry/utils/date/isValidDate';
 import {defaultTitle} from 'sentry/utils/replays/getFrameDetails';
 import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/types';
 import {isBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
-export default function hydrateBreadcrumbs(
+export function hydrateBreadcrumbs(
   replayRecord: HydratedReplayRecord,
   breadcrumbFrames: RawBreadcrumbFrame[]
 ): BreadcrumbFrame[] {

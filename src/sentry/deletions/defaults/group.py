@@ -252,9 +252,8 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         from sentry import similarity
 
         # Don't do MinHash work if we use embeddings-based similarity.
-        if not self.skip_models or similarity not in self.skip_models:
-            if not instance.project.get_option("sentry:similarity_backfill_completed"):
-                similarity.delete(None, instance)
+        if not instance.project.get_option("sentry:similarity_backfill_completed"):
+            similarity.delete(None, instance)
 
         return super().delete_instance(instance)
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import re
-import warnings
 from collections import defaultdict, namedtuple
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
@@ -30,11 +29,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
@@ -96,23 +96,30 @@ def looks_like_short_id(value):
     return _short_id_re.match((value or "").strip()) is not None
 
 
-def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organization=None):
+def get_group_with_redirect(
+    id_or_qualified_short_id: int | str,
+    queryset: BaseQuerySet[Group, Group] | None = None,
+    organization: Organization | None = None,
+) -> tuple[Group, bool]:
     """
     Retrieve a group by ID, checking the redirect table if the requested group
     does not exist. Returns a two-tuple of ``(object, redirected)``.
     """
     if queryset is None:
         if organization:
-            queryset = Group.objects.filter(project__organization=organization)
-            getter = queryset.get
+            updated_qs = Group.objects.filter(project__organization=organization)
+            getter = updated_qs.get
         else:
-            queryset = Group.objects.all()
+            updated_qs = Group.objects.all()
             # When not passing a queryset, we want to read from cache
             getter = Group.objects.get_from_cache
     else:
         if organization:
-            queryset = queryset.filter(project__organization=organization)
-        getter = queryset.get
+            updated_qs = queryset.filter(project__organization=organization)
+        else:
+            # No updates!
+            updated_qs = queryset
+        getter = updated_qs.get
 
     if not (isinstance(id_or_qualified_short_id, int) or id_or_qualified_short_id.isdigit()):
         short_id = parse_short_id(id_or_qualified_short_id)
@@ -125,6 +132,11 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         }
     else:
         short_id = None
+        # Validate that the numeric ID doesn't exceed the max value for the
+        # bounded field, otherwise the ORM will raise an AssertionError.
+        max_id = Group._meta.get_field("id").MAX_VALUE
+        if int(id_or_qualified_short_id) > max_id:
+            raise Group.DoesNotExist()
         params = {"id": id_or_qualified_short_id}
 
     try:
@@ -133,6 +145,8 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         from sentry.models.groupredirect import GroupRedirect
 
         if short_id:
+            # Known because we only set short_id in a path that raises if org is None
+            assert organization is not None
             params = {
                 "id__in": GroupRedirect.objects.filter(
                     organization_id=organization.id,
@@ -148,7 +162,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
             }
 
         try:
-            return queryset.get(**params), True
+            return updated_qs.get(**params), True
         except Group.DoesNotExist:
             raise error  # raise original `DoesNotExist`
 
@@ -220,15 +234,15 @@ STATUS_UPDATE_CHOICES = {
 
 
 class EventOrdering(Enum):
-    LATEST = ["project_id", "-timestamp", "-event_id"]
-    OLDEST = ["project_id", "timestamp", "event_id"]
+    LATEST = ["project_id", "-timestamp", "-id"]
+    OLDEST = ["project_id", "timestamp", "id"]
     RECOMMENDED = [
         "-replay.id",
         "-trace.sampled",
         "num_processing_errors",
         "-profile.id",
         "-timestamp",
-        "-event_id",
+        "-id",
     ]
 
 
@@ -608,7 +622,7 @@ class GroupManager(BaseManager["Group"]):
         }
 
 
-@region_silo_model
+@cell_silo_model
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
@@ -1040,11 +1054,6 @@ class Group(Model):
         return et.get_location(self.get_event_metadata())
 
     @property
-    def message_short(self):
-        warnings.warn("Group.message_short is deprecated, use Group.title", DeprecationWarning)
-        return self.title
-
-    @property
     def organization(self):
         return self.project.organization
 
@@ -1056,11 +1065,6 @@ class Group(Model):
             return self.get_event_metadata()["sdk"]["name_normalized"]
         except KeyError:
             return None
-
-    @property
-    def checksum(self):
-        warnings.warn("Group.checksum is no longer used", DeprecationWarning)
-        return ""
 
     def get_email_subject(self) -> str:
         return f"{self.qualified_short_id} - {self.title}"

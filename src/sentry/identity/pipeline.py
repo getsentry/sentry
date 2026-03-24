@@ -8,7 +8,7 @@ from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from sentry import features, options
+from sentry import options
 from sentry.identity.base import Provider
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import IntegrationProviderSlug
@@ -32,13 +32,9 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
     pipeline_name = "identity_provider"
     provider_model_cls = IdentityProvider
 
-    # TODO(ecosystem): Delete this after Azure DevOps migration is complete
     def _get_provider(self, provider_key: str, organization: RpcOrganization | None) -> Provider:
-        if provider_key == IntegrationProviderSlug.AZURE_DEVOPS.value and features.has(
-            "organizations:migrate-azure-devops-integration", organization
-        ):
+        if provider_key == IntegrationProviderSlug.AZURE_DEVOPS.value:
             provider_key = "vsts_new"
-        # TODO(ecosystem): Delete this after Azure DevOps migration is complete
         if provider_key == "vsts_login" and options.get("vsts.social-auth-migration"):
             provider_key = "vsts_login_new"
 

@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import timedelta
 
-from sentry import options
+from taskbroker_client.retry import Retry
+
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgsVolumes,
@@ -21,14 +22,6 @@ from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
-from sentry.taskworker.retry import Retry
-
-
-def _get_segments_org_ids() -> set[int]:
-    """
-    Returns the set of organization IDs that should use SEGMENTS measure.
-    """
-    return set(options.get("dynamic-sampling.sliding_window_org.segment-metric-orgs") or [])
 
 
 @instrumented_task(
@@ -36,7 +29,7 @@ def _get_segments_org_ids() -> set[int]:
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=15 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def sliding_window_org() -> None:
@@ -45,28 +38,13 @@ def sliding_window_org() -> None:
     if window_size is None:
         return
 
-    segments_org_ids = _get_segments_org_ids()
-
-    # Process orgs using segment metrics (opted-in via option)
-    if segments_org_ids:
-        for segment_volumes in GetActiveOrgsVolumes(
-            max_orgs=CHUNK_SIZE,
-            time_interval=timedelta(hours=window_size),
-            include_keep=False,
-            measure=SamplingMeasure.SEGMENTS,
-            orgs=list(segments_org_ids),
-        ):
-            _process_org_volumes(segment_volumes, window_size)
-
-    # Process orgs using transaction metrics (default)
-    for transaction_volumes in GetActiveOrgsVolumes(
+    for segment_volumes in GetActiveOrgsVolumes(
         max_orgs=CHUNK_SIZE,
         time_interval=timedelta(hours=window_size),
         include_keep=False,
-        measure=SamplingMeasure.TRANSACTIONS,
+        measure=SamplingMeasure.SEGMENTS,
     ):
-        filtered_volumes = [v for v in transaction_volumes if v.org_id not in segments_org_ids]
-        _process_org_volumes(filtered_volumes, window_size)
+        _process_org_volumes(segment_volumes, window_size)
 
     # Due to the synchronous nature of the sliding window org, when we arrived here, we can confidently say
     # that the execution of the sliding window org was successful. We will keep this state for 1 hour.

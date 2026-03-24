@@ -7,7 +7,7 @@ import {IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
 import {
   ProviderLabels,
@@ -54,7 +54,7 @@ export function DataForwarderRow({
           </LinkButton>
           <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
             <Button
-              title={t('Delete Data Forwarder')}
+              tooltipProps={{title: t('Delete Data Forwarder')}}
               aria-label={t('Delete Data Forwarder')}
               icon={<IconDelete />}
               // Deletions are always permitted, even if you lose the feature.

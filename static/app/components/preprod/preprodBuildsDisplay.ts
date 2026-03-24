@@ -4,13 +4,8 @@ export enum PreprodBuildsDisplay {
 }
 
 export function getPreprodBuildsDisplay(
-  display: string | string[] | null | undefined,
-  isDistributionEnabled: boolean
+  display: string | string[] | null | undefined
 ): PreprodBuildsDisplay {
-  if (!isDistributionEnabled) {
-    return PreprodBuildsDisplay.SIZE;
-  }
-
   if (typeof display !== 'string') {
     return PreprodBuildsDisplay.SIZE;
   }

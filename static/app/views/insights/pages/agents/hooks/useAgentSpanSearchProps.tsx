@@ -5,7 +5,8 @@ import {
   useSpanSearchQueryBuilderProps,
   type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
-import useOrganization from 'sentry/utils/useOrganization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
 export function useAgentSpanSearchProps() {
@@ -26,16 +27,22 @@ export function useAgentSpanSearchProps() {
       onSearch: (newQuery: string) => {
         setSearchQuery(newQuery);
         unsetCursor();
+        trackAnalytics('agent-monitoring.page-filter-change', {
+          organization,
+          filter: 'search',
+        });
       },
       searchSource: 'agent-monitoring',
 
-      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      replaceRawSearchKeys: hasRawSearchReplacement
+        ? ['span.description', 'span.name']
+        : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
       ],
     }),
-    [hasRawSearchReplacement, searchQuery, setSearchQuery, unsetCursor]
+    [hasRawSearchReplacement, organization, searchQuery, setSearchQuery, unsetCursor]
   );
 
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =

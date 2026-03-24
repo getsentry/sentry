@@ -5,6 +5,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import AccountEmails from 'sentry/views/settings/account/accountEmails';
@@ -135,20 +136,26 @@ describe('AccountEmails', () => {
       AccountEmailsFixture().filter(email => !email.isPrimary).length
     );
 
-    await userEvent.type(textbox, 'test@example.com{enter}');
-    expect(screen.getAllByLabelText('Remove email')).toHaveLength(
-      mockGetResponseBody.filter(email => !email.isPrimary).length
-    );
+    await userEvent.type(textbox, 'test@example.com');
+    await userEvent.click(screen.getByRole('button', {name: 'Add email'}));
 
-    expect(mock).toHaveBeenCalledWith(
-      ENDPOINT,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          email: 'test@example.com',
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            email: 'test@example.com',
+          },
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('Remove email')).toHaveLength(
+        mockGetResponseBody.filter(email => !email.isPrimary).length
+      );
+    });
 
     expect(mockGet).toHaveBeenCalledWith(
       ENDPOINT,

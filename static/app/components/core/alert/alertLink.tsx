@@ -6,7 +6,6 @@ import {Alert, type AlertProps} from '@sentry/scraps/alert';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 interface BaseAlertLinkProps extends Pick<
   AlertProps,
@@ -142,7 +141,7 @@ function textDecorationStyles({
  */
 const Container = styled('div')`
   > a {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 

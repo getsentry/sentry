@@ -17,9 +17,15 @@ from sentry.search.events.builder.errors import (
 )
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.discover import OTHER_KEY, TOP_KEYS_DEFAULT_LIMIT, FacetResult, create_result_key
+from sentry.snuba.discover import (
+    OTHER_KEY,
+    TOP_KEYS_DEFAULT_LIMIT,
+    FacetResult,
+    create_result_key,
+    transform_tips,
+    zerofill,
+)
 from sentry.snuba.discover import get_facets as get_discover_facets
-from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
@@ -50,7 +56,6 @@ def query(
     transform_alias_to_input_format: bool = False,
     sample: float | None = None,
     has_metrics: bool = False,
-    use_metrics_layer: bool = False,
     skip_tag_resolution: bool = False,
     extra_columns: list[Column] | None = None,
     on_demand_metrics_enabled: bool = False,
@@ -106,7 +111,6 @@ def timeseries_query(
     functions_acl: list[str] | None = None,
     allow_metric_aggregates=False,
     has_metrics=False,
-    use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
@@ -115,7 +119,6 @@ def timeseries_query(
     *,
     referrer: str,
 ):
-
     with sentry_sdk.start_span(op="errors", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = ErrorsTimeseriesQueryBuilder(

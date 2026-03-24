@@ -7,7 +7,6 @@ import {Button} from '@sentry/scraps/button';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -19,7 +18,7 @@ import {
   hasPerformance,
   isBizPlanFamily,
 } from 'getsentry/utils/billing';
-import TrialBadge from 'getsentry/views/subscriptionPage/trial/badge';
+import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
 const getSubscriptionBannerText = (
   organization: Organization,
@@ -185,7 +184,7 @@ const BusinessTrialBannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   background: linear-gradient(
     90deg,
     color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
@@ -198,22 +197,22 @@ const BusinessTrialBannerWrapper = styled('div')`
 const IntegationBannerTitle = styled('div')`
   display: flex;
   align-items: baseline;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: 600;
 `;
 
 const IntegationBannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
   max-width: 440px;
 `;
 
 const CloseBannerButton = styled(Button)`
   position: absolute;
   display: block;
-  top: ${space(2)};
-  right: ${space(2)};
+  top: ${p => p.theme.space.xl};
+  right: ${p => p.theme.space.xl};
   color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;

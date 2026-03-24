@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
+from django.utils import timezone
+
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class BaseFetchProjectsWithRecentSessionsTest(TestCase, BaseMetricsTestCase):
@@ -80,7 +85,13 @@ class BaseFetchProjectReleaseHealthTotalsTest(TestCase, BaseMetricsTestCase):
 
     backend_class: type[BaseReleaseMonitorBackend]
 
+    # Freeze time to ensure build_session's time.time() and the query's
+    # datetime.utcnow() use the same clock, avoiding flakiness from timestamp
+    # drift or minute-boundary crossings.
+    MOCK_DATETIME = (timezone.now() - timedelta(hours=1)).replace(second=30, microsecond=0)
+
     def setUp(self) -> None:
+        super().setUp()
         self.project1 = self.create_project()
         self.project2 = self.create_project()
         self.environment1 = self.create_environment(project=self.project1)
@@ -89,6 +100,7 @@ class BaseFetchProjectReleaseHealthTotalsTest(TestCase, BaseMetricsTestCase):
         self.release2 = self.create_release(project=self.project2)
         self.backend = self.backend_class()
 
+    @freeze_time(MOCK_DATETIME)
     def test(self) -> None:
         self.bulk_store_sessions(
             [

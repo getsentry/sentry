@@ -4,9 +4,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.test import TestCase
 
+from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import AutofixState, get_seer_seat_based_tier_cache_key
 from sentry.seer.models import SeerApiError, SummarizeIssueResponse, SummarizeIssueScores
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.autofix import (
     check_autofix_status,
     configure_seer_for_existing_org,
@@ -109,10 +111,10 @@ class TestCheckAutofixStatus(TestCase):
 class TestGenerateIssueSummaryOnly(SentryTestCase):
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
-    def test_generates_fixability_score_with_summary(
+    def test_generates_fixability_score_after_summary(
         self, mock_get_issue_summary: MagicMock, mock_generate_fixability: MagicMock
     ) -> None:
-        """Test that fixability score is generated with summary passed to Seer."""
+        """Test that fixability score is generated after issue summary is fetched."""
         group = self.create_group(project=self.project)
 
         mock_get_issue_summary.return_value = (
@@ -140,48 +142,9 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
             group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
         )
         mock_generate_fixability.assert_called_once()
-        call_args = mock_generate_fixability.call_args
-        assert call_args[0][0] == group
-        summary_arg = call_args[1]["summary"]
-        assert isinstance(summary_arg, dict)
-        assert summary_arg["headline"] == "Test Headline"
 
         group.refresh_from_db()
         assert group.seer_fixability_score == 0.75
-
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
-    def test_does_not_pass_summary_when_fields_are_none(
-        self, mock_get_issue_summary: MagicMock, mock_generate_fixability: MagicMock
-    ) -> None:
-        """Test that summary is not passed when required fields are None."""
-        group = self.create_group(project=self.project)
-
-        mock_get_issue_summary.return_value = (
-            {
-                "groupId": str(group.id),
-                "headline": "Test Headline",
-                "whatsWrong": None,
-                "trace": "Test trace",
-                "possibleCause": None,
-            },
-            200,
-        )
-        mock_generate_fixability.return_value = SummarizeIssueResponse(
-            group_id=str(group.id),
-            headline="Test",
-            whats_wrong="Test",
-            trace="Test",
-            possible_cause="Test",
-            scores=SummarizeIssueScores(fixability_score=0.80),
-        )
-
-        generate_issue_summary_only(group.id)
-
-        mock_generate_fixability.assert_called_once_with(group, summary=None)
-
-        group.refresh_from_db()
-        assert group.seer_fixability_score == 0.80
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):
@@ -338,3 +301,37 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         mock_get_code_mappings.assert_not_called()
         preferences = mock_bulk_set.call_args[0][1]
         assert preferences[0]["repositories"] == existing_repos
+
+    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    def test_creates_seer_project_repository(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """Test that SeerProjectRepository is created when feature flag is enabled."""
+        project = self.create_project(organization=self.organization)
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
+            provider="github",
+            external_id="ext123",
+        )
+
+        mock_bulk_get.return_value = {
+            str(project.id): {
+                "repositories": [
+                    {
+                        "provider": "github",
+                        "owner": "test-org",
+                        "name": "test-repo",
+                        "external_id": "ext123",
+                    }
+                ],
+                "automated_run_stopping_point": None,
+            }
+        }
+
+        with self.feature("organizations:seer-project-settings-dual-write"):
+            configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        seer_repo = SeerProjectRepository.objects.get(project=project)
+        assert seer_repo.repository_id == repo.id

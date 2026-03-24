@@ -6,10 +6,8 @@ import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import type {Organization} from 'sentry/types/organization';
 import {ELLIPSIS} from 'sentry/utils/string/unicode';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
+import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
@@ -44,9 +42,7 @@ describe('WidgetBuilderSortBySelector', () => {
   it('renders for spans', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -63,9 +59,7 @@ describe('WidgetBuilderSortBySelector', () => {
   it('renders for logs', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -82,9 +76,7 @@ describe('WidgetBuilderSortBySelector', () => {
   it('renders correct fields for table widgets', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -112,9 +104,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -150,9 +140,7 @@ describe('WidgetBuilderSortBySelector', () => {
   it('renders the correct limit options', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -165,9 +153,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -194,9 +180,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -231,9 +215,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -271,18 +253,12 @@ describe('WidgetBuilderSortBySelector', () => {
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     const organizationWithFlag = OrganizationFixture({
-      features: [
-        'open-membership',
-        'visibility-explore-view',
-        'visibility-explore-equations',
-      ],
+      features: ['open-membership', 'visibility-explore-view'],
     });
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization: organizationWithFlag,
@@ -325,23 +301,103 @@ describe('WidgetBuilderSortBySelector', () => {
       expect.anything()
     );
   });
+  it('renders a limit selector for categorical bar widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSortBySelector />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          ...defaultRouterConfig,
+          location: {
+            pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
+            query: {
+              displayType: 'categorical_bar',
+              fields: ['transaction.duration', 'count()'],
+              limit: 20,
+              dataset: 'spans',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('Limit to 20 results')).toBeInTheDocument();
+  });
+
+  it('does not render a limit selector for table widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSortBySelector />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          ...defaultRouterConfig,
+          location: {
+            pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
+            query: {
+              ...defaultRouterConfig.location?.query,
+              displayType: 'table',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('Sort by')).toBeInTheDocument();
+    expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument();
+  });
+
+  it('correctly handles categorical bar limit changes', async () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSortBySelector />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          ...defaultRouterConfig,
+          location: {
+            pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
+            query: {
+              displayType: 'categorical_bar',
+              fields: ['transaction.duration', 'count()'],
+              limit: 20,
+              dataset: 'spans',
+            },
+          },
+        },
+      }
+    );
+
+    const limitSelector = await screen.findByText('Limit to 20 results');
+    await userEvent.click(limitSelector);
+    await userEvent.click(await screen.findByText('Limit to 15 results'));
+
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({limit: 15}),
+      }),
+      expect.anything()
+    );
+  });
+
   it('sorts by equations table', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     const organizationWithFlag = OrganizationFixture({
-      features: [
-        'open-membership',
-        'visibility-explore-view',
-        'visibility-explore-equations',
-      ],
+      features: ['open-membership', 'visibility-explore-view'],
     });
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization: organizationWithFlag,

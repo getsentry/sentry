@@ -23,7 +23,7 @@ const getRow = (row: any) => [
         priority="link"
         href={`mailto:${row.email}`}
         icon={<IconMail size="xs" />}
-        title="Send email"
+        tooltipProps={{title: 'Send email'}}
         aria-label="Send email"
       />
       {row.user ? (
@@ -48,7 +48,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function CustomerMembers({orgId}: Props) {
+export function CustomerMembers({orgId}: Props) {
   return (
     <ResultGrid
       inPanel
@@ -77,5 +77,3 @@ function CustomerMembers({orgId}: Props) {
     />
   );
 }
-
-export default CustomerMembers;

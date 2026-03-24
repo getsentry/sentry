@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {AutofixInsightCard} from './autofixInsightCard';
 import {CollapsibleChainLink} from './collapsibleChainLink';
@@ -124,7 +123,7 @@ function AutofixInsightCardsDisplay({
   );
 }
 
-export default function AutofixInsightCards(props: AutofixInsightCardsProps) {
+export function AutofixInsightCards(props: AutofixInsightCardsProps) {
   return <AutofixInsightCardsDisplay {...props} />;
 }
 
@@ -175,5 +174,5 @@ const InsightsCardContainer = styled('div')`
 `;
 
 const Content = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;

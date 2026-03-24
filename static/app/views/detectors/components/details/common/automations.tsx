@@ -8,21 +8,21 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import useDrawer from 'sentry/components/globalDrawer';
-import LoadingError from 'sentry/components/loadingError';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Pagination} from 'sentry/components/pagination';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
-import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
@@ -282,7 +282,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
           size="xs"
           onClick={toggleDrawer}
           disabled={!canEditWorkflowConnections}
-          title={permissionTooltipText}
+          tooltipProps={{title: permissionTooltipText}}
         >
           {t('Edit Connected Alerts')}
         </Button>
@@ -299,7 +299,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
                   size="sm"
                   onClick={toggleDrawer}
                   disabled={!canEditWorkflowConnections}
-                  title={permissionTooltipText}
+                  tooltipProps={{title: permissionTooltipText}}
                 >
                   {t('Connect Existing Alerts')}
                 </Button>
@@ -311,7 +311,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
                   size="sm"
                   icon={<IconAdd />}
                   disabled={!canEditWorkflowConnections}
-                  title={permissionTooltipText}
+                  tooltipProps={{title: permissionTooltipText}}
                 >
                   {t('Create a New Alert')}
                 </LinkButton>

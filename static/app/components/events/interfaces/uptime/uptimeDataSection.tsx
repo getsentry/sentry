@@ -16,13 +16,12 @@ import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import Panel from 'sentry/components/panels/panel';
+import {Duration} from 'sentry/components/duration';
+import {Panel} from 'sentry/components/panels/panel';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {GroupActivityType, GroupStatus, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -30,7 +29,7 @@ import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {ResolutionSelector} from 'sentry/views/insights/crons/components/overviewTimeline/resolutionSelector';
 import {
@@ -189,7 +188,7 @@ export function UptimeDataSection({group, event, project}: Props) {
 
 const DowntimeTooltipTitle = styled('div')`
   display: grid;
-  column-gap: ${space(1)};
+  column-gap: ${p => p.theme.space.md};
   grid-template-columns: max-content 1fr;
   justify-items: start;
 `;
@@ -199,7 +198,7 @@ const DowntimeLabel = styled('div')`
 `;
 
 const Text = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const TimelineContainer = styled(Panel)`

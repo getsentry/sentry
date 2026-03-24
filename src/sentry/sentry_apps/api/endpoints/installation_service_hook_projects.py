@@ -10,7 +10,7 @@ from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.serializers.servicehookproject import ServiceHookProjectSerializer
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
-from sentry.sentry_apps.services.region import sentry_app_region_service
+from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.users.services.user.serial import serialize_generic_user
 
 
@@ -62,7 +62,7 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         )
 
     def get(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
-        result = sentry_app_region_service.get_service_hook_projects(
+        result = sentry_app_cell_service.get_service_hook_projects(
             organization_id=installation.organization_id,
             installation=installation,
             auth_context=self._get_auth_context(request),
@@ -84,13 +84,12 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
     """
 
     def post(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
-
         serializer = ServiceHookProjectsInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         projects = serializer.validated_data["projects"]
-        result = sentry_app_region_service.set_service_hook_projects(
+        result = sentry_app_cell_service.set_service_hook_projects(
             organization_id=installation.organization_id,
             installation=installation,
             project_identifiers=projects,
@@ -110,7 +109,7 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         )
 
     def delete(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
-        result = sentry_app_region_service.delete_service_hook_projects(
+        result = sentry_app_cell_service.delete_service_hook_projects(
             organization_id=installation.organization_id,
             installation=installation,
             auth_context=self._get_auth_context(request),

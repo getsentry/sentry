@@ -5,10 +5,11 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {
   useSpanSearchQueryBuilderProps,
   type UseSpanSearchQueryBuilderProps,
@@ -17,13 +18,11 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import useOrganization from 'sentry/utils/useOrganization';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -35,12 +34,13 @@ import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams
 import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
 import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useShowConversationOnboarding} from 'sentry/views/insights/pages/conversations/hooks/useShowConversationOnboarding';
+import {ConversationOnboarding} from 'sentry/views/insights/pages/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/insights/pages/conversations/settings';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
-const DEFAULT_QUERY = 'has:user.email';
 
 interface ConversationsOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
@@ -71,6 +71,11 @@ function ConversationsOverviewPage({
 function ConversationsContent({datePageFilterProps}: ConversationsOverviewPageProps) {
   const organization = useOrganization();
   useDefaultToAllProjects();
+  const {
+    showOnboarding,
+    isLoading: isOnboardingLoading,
+    refetch: refetchOnboarding,
+  } = useShowConversationOnboarding();
 
   const [urlState] = useConversationDrawerQueryState();
   // Start fetching data and open drawer without
@@ -90,19 +95,12 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
     });
   }, [organization]);
 
-  useEffect(() => {
-    if (searchQuery === null) {
-      setSearchQuery(DEFAULT_QUERY);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const {tags: numberTags = [], isLoading: numberTagsLoading} =
-    useTraceItemTags('number');
-  const {tags: stringTags = [], isLoading: stringTagsLoading} =
-    useTraceItemTags('string');
-  const {tags: booleanTags = [], isLoading: booleanTagsLoading} =
-    useTraceItemTags('boolean');
+  const {attributes: numberTags = [], isLoading: numberTagsLoading} =
+    useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags = [], isLoading: stringTagsLoading} =
+    useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags = [], isLoading: booleanTagsLoading} =
+    useSpanItemAttributes({}, 'boolean');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
@@ -116,7 +114,9 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
         unsetCursor();
       },
       searchSource: 'conversations',
-      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      replaceRawSearchKeys: hasRawSearchReplacement
+        ? ['span.description', 'span.name']
+        : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
@@ -152,26 +152,38 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
                     storageKeyPrefix="conversations:agent-filter"
                     referrer="api.insights.conversations.get-agent-names"
                   />
-                  <Flex flex={2}>
-                    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
-                  </Flex>
+                  {!showOnboarding && !isOnboardingLoading && (
+                    <Flex flex={2}>
+                      <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+                    </Flex>
+                  )}
                 </ToolRibbon>
-                <SchemaHintsList
-                  supportedAggregates={DISABLE_AGGREGATES}
-                  booleanTags={booleanTags as TagCollection}
-                  numberTags={numberTags as TagCollection}
-                  stringTags={stringTags as TagCollection}
-                  isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
-                  exploreQuery={searchQuery ?? ''}
-                  source={SchemaHintsSources.CONVERSATIONS}
-                />
+                {!showOnboarding && !isOnboardingLoading && (
+                  <SchemaHintsList
+                    supportedAggregates={DISABLE_AGGREGATES}
+                    booleanTags={booleanTags as TagCollection}
+                    numberTags={numberTags as TagCollection}
+                    stringTags={stringTags as TagCollection}
+                    isLoading={
+                      numberTagsLoading || stringTagsLoading || booleanTagsLoading
+                    }
+                    exploreQuery={searchQuery ?? ''}
+                    source={SchemaHintsSources.CONVERSATIONS}
+                  />
+                )}
               </Stack>
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <ConversationsTable
-                openConversationViewDrawer={openConversationViewDrawer}
-              />
+              {isOnboardingLoading ? (
+                <LoadingIndicator />
+              ) : showOnboarding ? (
+                <ConversationOnboarding onDismiss={refetchOnboarding} />
+              ) : (
+                <ConversationsTable
+                  openConversationViewDrawer={openConversationViewDrawer}
+                />
+              )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
@@ -190,9 +202,7 @@ function PageWithProviders() {
 
   return (
     <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <ConversationsOverviewPage datePageFilterProps={datePageFilterProps} />
-      </TraceItemAttributeProvider>
+      <ConversationsOverviewPage datePageFilterProps={datePageFilterProps} />
     </DomainOverviewPageProviders>
   );
 }

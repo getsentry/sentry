@@ -35,8 +35,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         DetectorGroup.objects.create(detector=self.detector, group=self.group)
 
         self.group_open_period = GroupOpenPeriod.objects.get(group=self.group)
-        self.group_open_period.event_id = "a" * 32
-        self.group_open_period.save()
 
         self.opened_gopa = GroupOpenPeriodActivity.objects.create(
             date_added=self.group_open_period.date_added,
@@ -67,7 +65,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["start"] == self.group.first_seen
         assert open_period["end"] is None
         assert open_period["isOpen"] is True
-        assert open_period["eventId"] == self.group_open_period.event_id
+
         assert len(open_period["activities"]) == 1
         assert open_period["activities"][0] == {
             "id": str(self.opened_gopa.id),
@@ -117,7 +115,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["start"] == self.group.first_seen
         assert resp["end"] == resolved_time
         assert resp["isOpen"] is False
-        assert resp["eventId"] == open_period.event_id
+
         assert len(resp["activities"]) == 2
         assert resp["activities"][0] == {
             "id": str(self.opened_gopa.id),
@@ -205,7 +203,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["start"] == unresolved_time
         assert resp["end"] == second_resolved_time
         assert resp["isOpen"] is False
-        assert resp["eventId"] == open_period2.event_id
+
         assert len(resp["activities"]) == 2
         assert resp["activities"][0] == {
             "id": str(opened_gopa2.id),
@@ -226,7 +224,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp2["start"] == self.group.first_seen
         assert resp2["end"] == resolved_time
         assert resp2["isOpen"] is False
-        assert resp2["eventId"] == open_period.event_id
+
         assert len(resp2["activities"]) == 2
         assert resp2["activities"][0] == {
             "id": str(self.opened_gopa.id),
@@ -301,7 +299,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["start"] == unresolved_time
         assert resp["end"] == second_resolved_time
         assert resp["isOpen"] is False
-        assert resp["eventId"] == open_period.event_id
 
     def test_get_open_periods_time_range_starts_after_query_start(self) -> None:
         """Test that open periods starting after query_start and ending after query_end are included."""
@@ -461,7 +458,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["start"] == self.group_open_period.date_started
         assert open_period["end"] is None
         assert open_period["isOpen"] is True
-        assert open_period["eventId"] == self.group_open_period.event_id
+
         assert (
             len(open_period["activities"]) == 1
         )  # don't include the opened GOPA, whose date_added doesn't overlap
@@ -490,14 +487,12 @@ class OrganizationOpenPeriodsTest(APITestCase):
             project=self.group.project,
             date_started=base_time,
             date_ended=base_time + timedelta(minutes=5),
-            event_id="c" * 32,
         )
         open_period_2 = GroupOpenPeriod.objects.create(
             group=self.group,
             project=self.group.project,
             date_started=base_time + timedelta(minutes=6),
             date_ended=base_time + timedelta(minutes=10),
-            event_id="d" * 32,
         )
         GroupOpenPeriodActivity.objects.create(
             date_added=base_time,

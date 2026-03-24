@@ -84,7 +84,6 @@ def test_keep_after_pattern(patterns, path, expected_path) -> None:
     ids=["one_field", "no_fields", "not_matching_field", "multiple_matching_fields", "empty_paths"],
 )
 def test_keep_field_path_replacer(fields, path_field, path_value, expected_path) -> None:
-
     path_replacer = KeepFieldPathReplacer(fields=fields)
 
     assert path_replacer.replace_path(path_field, path_value) == expected_path

@@ -82,6 +82,12 @@ class GroupCategory(IntEnum):
     """
     INSTRUMENTATION = 18
 
+    """
+    Issues detected from SDK/tooling configuration problems,
+    such as missing or broken source maps.
+    """
+    CONFIGURATION = 19
+
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
     GroupCategory.ERROR,
@@ -240,7 +246,8 @@ class GroupType:
     noise_config: NoiseConfig | None = None
     default_priority: int = PriorityLevel.MEDIUM
     # If True this group type should be released everywhere. If False, fall back to features to
-    # decide if this is released.
+    # decide if this is released. Add to HIDDEN_ISSUE_TYPES as well to prevent Events from this Group
+    # being displayed on frontend.
     released: bool = False
     # If False this group is excluded from default searches, when there are no filters on issue.category or issue.type.
     in_default_search: bool = True
@@ -662,6 +669,19 @@ class ProfileFunctionRegressionType(GroupType):
 class LLMDetectedExperimentalGroupType(GroupType):
     type_id = 3501
     slug = "llm_detected_experimental"
+    description = "LLM Detected Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.AI_DETECTED.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class LLMDetectedExperimentalGroupTypeV2(GroupType):
+    type_id = 3502
+    slug = "llm_detected_experimental_v2"
     description = "LLM Detected Issue"
     category = GroupCategory.AI_DETECTED.value
     category_v2 = GroupCategory.AI_DETECTED.value

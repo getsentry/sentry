@@ -4,30 +4,31 @@ import invariant from 'invariant';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import FullViewport from 'sentry/components/layouts/fullViewport';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {FullViewport} from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   ReplayAccess,
   ReplayAccessFallbackAlert,
 } from 'sentry/components/replays/replayAccess';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useReplayPageview} from 'sentry/utils/replays/hooks/useReplayPageview';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
-import ReplayDetailsHeaderActions from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
-import ReplayDetailsMetadata from 'sentry/views/replays/detail/header/replayDetailsMetadata';
-import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
-import ReplayDetailsUserBadge from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
-import ReplayDetailsPage from 'sentry/views/replays/detail/page';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {ReplayDetailsProviders} from 'sentry/views/replays/detail/body/replayDetailsProviders';
+import {ReplayDetailsHeaderActions} from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
+import {ReplayDetailsMetadata} from 'sentry/views/replays/detail/header/replayDetailsMetadata';
+import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
+import {ReplayDetailsUserBadge} from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
+import {ReplayDetailsPage} from 'sentry/views/replays/detail/page';
 
 export default function ReplayDetails() {
   return (
@@ -81,9 +82,11 @@ function ReplayDetailsContent() {
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
+  const hasPageFrame = useHasPageFrameFeature();
+
   const content = (
     <Fragment>
-      <Flex direction="column">
+      <Flex direction="column" background={hasPageFrame ? 'primary' : undefined}>
         <TopHeader justify="between" align="center" gap="md">
           <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
           <ReplayDetailsHeaderActions readerResult={readerResult} />
@@ -99,15 +102,20 @@ function ReplayDetailsContent() {
 
   return (
     <SentryDocumentTitle title={title}>
-      <FullViewport>
-        {replay ? (
-          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
-            {content}
-          </ReplayDetailsProviders>
-        ) : (
-          content
-        )}
-      </FullViewport>
+      <Layout.Page>
+        <FullViewport>
+          {replay ? (
+            <ReplayDetailsProviders
+              replay={replay}
+              projectSlug={readerResult.projectSlug}
+            >
+              {content}
+            </ReplayDetailsProviders>
+          ) : (
+            content
+          )}
+        </FullViewport>
+      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

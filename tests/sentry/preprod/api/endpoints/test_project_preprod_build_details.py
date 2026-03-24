@@ -1,4 +1,8 @@
+from datetime import timedelta
+from unittest.mock import patch
+
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import APITestCase
@@ -10,9 +14,10 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
         self.user = self.create_user(email="test@example.com")
         self.org = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.org)
+        self.team = self.create_team(organization=self.org, members=[self.user])
+        self.project = self.create_project(organization=self.org, teams=[self.team])
         self.api_token = self.create_user_auth_token(
-            user=self.user, scope_list=["org:admin", "project:admin"]
+            user=self.user, scope_list=["org:admin", "project:admin", "event:read"]
         )
 
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
@@ -56,8 +61,8 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
     def _get_url(self, artifact_id=None):
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
-            "sentry-api-0-project-preprod-artifact-build-details",
-            args=[self.org.slug, self.project.slug, artifact_id],
+            "sentry-api-0-organization-preprod-artifact-build-details",
+            args=[self.org.slug, artifact_id],
         )
 
     def test_get_build_details_success(self) -> None:
@@ -96,6 +101,23 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert distribution_info["is_installable"] is True
         assert distribution_info["download_count"] == 5
         assert distribution_info["release_notes"] == "Build notes"
+
+    def test_get_build_details_distribution_error_fields(self) -> None:
+        self.preprod_artifact.installable_app_error_code = (
+            PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
+        )
+        self.preprod_artifact.installable_app_error_message = "quota"
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        distribution_info = response.json()["distribution_info"]
+        assert distribution_info["error_code"] == "no_quota"
+        assert distribution_info["error_message"] == "quota"
 
     def test_get_build_details_not_found(self) -> None:
         url = self._get_url(artifact_id=999999)
@@ -528,3 +550,16 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         resp_data = response.json()
         assert resp_data["base_artifact_id"] is None
         assert resp_data["base_build_info"] is None
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_build_details.get_size_retention_cutoff")
+    def test_returns_404_for_expired_artifact(self, mock_cutoff) -> None:
+        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
+        self.preprod_artifact.date_added = timezone.now() - timedelta(days=60)
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+        assert response.status_code == 404
+        assert response.json()["detail"] == "This build's size data has expired."

@@ -5,12 +5,11 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Confirm from 'sentry/components/confirm';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import ToolbarHeader from 'sentry/components/toolbarHeader';
+import {Confirm} from 'sentry/components/confirm';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
-import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
+import {GroupingStore} from 'sentry/stores/groupingStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -90,7 +89,7 @@ class SimilarToolbar extends Component<Props, State> {
             message={t('Are you sure you want to merge these issues?')}
             onConfirm={onMerge}
           >
-            <Button size="xs" title={t('Merging %s issues', mergeCount)}>
+            <Button size="xs" tooltipProps={{title: t('Merging %s issues', mergeCount)}}>
               {t('Merge %s', `(${mergeCount || 0})`)}
             </Button>
           </Confirm>
@@ -114,5 +113,5 @@ const StyledToolbarHeader = styled(ToolbarHeader)`
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} 0;
 `;

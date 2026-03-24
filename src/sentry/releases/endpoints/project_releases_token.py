@@ -7,15 +7,15 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.models.options.project_option import ProjectOption
-from sentry.types.region import get_local_region
+from sentry.types.cell import get_local_locality
 
 
 def _get_webhook_url(project, plugin_id, token):
-    region = get_local_region()
-    return region.to_url(
+    return get_local_locality().to_url(
         reverse(
             "sentry-release-hook",
             kwargs={
@@ -35,13 +35,13 @@ def _get_signature(project_id, plugin_id, token):
     ).hexdigest()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    permission_classes = (StrictProjectPermission,)
+    permission_classes = (StrictProjectPermission, DisallowImpersonatedTokenCreation)
 
     def _regenerate_token(self, project):
         token = uuid1().hex
@@ -52,6 +52,9 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
         token = ProjectOption.objects.get_value(project, "sentry:release-token")
 
         if token is None:
+            # Block implicit token creation during impersonation. Return 404 not found instead of regenerating.
+            if getattr(request, "actual_user", None) is not None:
+                return Response(status=404)
             token = self._regenerate_token(project)
 
         return Response({"token": token, "webhookUrl": _get_webhook_url(project, "builtin", token)})

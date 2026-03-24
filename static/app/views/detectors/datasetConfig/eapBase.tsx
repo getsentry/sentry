@@ -25,7 +25,7 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 
 import type {DetectorDatasetConfig} from './base';
 
-export type EapSeriesResponse = EventsStats;
+type EapSeriesResponse = EventsStats;
 
 interface EapDatasetOptions {
   defaultEventTypes: EventTypes[];
@@ -38,6 +38,7 @@ interface EapDatasetOptions {
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   name: string;
+  SearchBar?: DetectorDatasetConfig<EventsStats>['SearchBar'];
 }
 
 /**
@@ -54,11 +55,12 @@ export function createEapDetectorConfig(
     getAggregateOptions,
     discoverDataset,
     formatAggregateForTitle,
+    SearchBar: CustomSearchBar,
   } = options;
 
   const config: DetectorDatasetConfig<EapSeriesResponse> = {
     name,
-    SearchBar: TraceSearchBar,
+    SearchBar: CustomSearchBar ?? TraceSearchBar,
     defaultEventTypes,
     defaultField,
     getAggregateOptions,

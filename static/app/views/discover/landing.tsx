@@ -10,24 +10,23 @@ import {Switch} from '@sentry/scraps/switch';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
@@ -132,6 +131,7 @@ const useDiscoverLandingQuery = (renderPrebuilt: boolean) => {
 const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
 
 function DiscoverLanding() {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
   const activeSort = useActiveSort();
@@ -159,7 +159,7 @@ function DiscoverLanding() {
 
   const handleSortChange = (value: string) => {
     trackAnalytics('discover_v2.change_sort', {organization, sort: value});
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -170,7 +170,7 @@ function DiscoverLanding() {
   };
 
   const handleSearchQuery = (searchQuery: string) => {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -284,7 +284,7 @@ function DiscoverLanding() {
 const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
@@ -295,10 +295,10 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   grid-template-columns: auto max-content min-content;
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;

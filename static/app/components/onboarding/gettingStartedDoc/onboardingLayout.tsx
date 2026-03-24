@@ -4,10 +4,15 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   ProductSolution,
@@ -23,13 +28,12 @@ import {
 } from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
   hookName: 'component:product-selection-availability',
@@ -61,6 +65,7 @@ export function OnboardingLayout({
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
+  const copyEnabled = useCopySetupInstructionsEnabled('project_creation');
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
@@ -154,64 +159,97 @@ export function OnboardingLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const hideInstructionsCopy = (docsConfig[configType] ?? docsConfig.onboarding)
+    ?.hideInstructionsCopy;
+
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
-      <Wrapper>
-        <Stack gap="xl">
-          {introduction && <Introduction>{introduction}</Introduction>}
-          {configType === 'onboarding' && (
-            <ProductSelectionAvailabilityHook
-              organization={organization}
-              platform={platformKey}
-              onChange={onProductSelectionChange}
-              onLoad={onProductSelectionLoad}
-            />
+      <TabSelectionScope>
+        <Wrapper>
+          <Stack gap="xl">
+            {introduction && <Introduction>{introduction}</Introduction>}
+            {configType === 'onboarding' && (
+              <ProductSelectionAvailabilityHook
+                organization={organization}
+                platform={platformKey}
+                onChange={onProductSelectionChange}
+                onLoad={onProductSelectionLoad}
+              />
+            )}
+            {platformOptions ? (
+              <PlatformOptionsControl
+                platformOptions={platformOptions}
+                onChange={onPlatformOptionsChange}
+              />
+            ) : null}
+          </Stack>
+          <Divider withBottomMargin />
+          <div>
+            {steps.map((step, index) => {
+              const showCopy = copyEnabled && index === 0 && !hideInstructionsCopy;
+              const copyButton = showCopy ? (
+                <OnboardingCopyMarkdownButton
+                  steps={steps}
+                  source={newOrg ? 'first_time_setup' : 'project_getting_started'}
+                />
+              ) : null;
+
+              const trailingItems = copyButton ? (
+                step.trailingItems ? (
+                  <Fragment>
+                    {step.trailingItems}
+                    {copyButton}
+                  </Fragment>
+                ) : (
+                  copyButton
+                )
+              ) : (
+                step.trailingItems
+              );
+
+              return (
+                <StyledStep
+                  key={step.title ?? step.type}
+                  stepIndex={index}
+                  {...step}
+                  trailingItems={trailingItems}
+                />
+              );
+            })}
+          </div>
+          {nextSteps.length > 0 && (
+            <Fragment>
+              <Divider />
+              <h4>{t('Additional Information')}</h4>
+              <List symbol="bullet">
+                {nextSteps
+                  .filter((step): step is Exclude<typeof step, null> => step !== null)
+                  .map(step => (
+                    <ListItem key={step.name}>
+                      <ExternalLink
+                        href={step.link}
+                        onClick={() =>
+                          trackAnalytics('onboarding.next_step_clicked', {
+                            organization,
+                            platform: platformKey,
+                            project_id: project.id,
+                            products: activeProductSelection,
+                            step: step.name,
+                            newOrg: newOrg ?? false,
+                          })
+                        }
+                      >
+                        {step.name}
+                      </ExternalLink>
+                      {': '}
+                      {step.description}
+                    </ListItem>
+                  ))}
+              </List>
+            </Fragment>
           )}
-          {platformOptions ? (
-            <PlatformOptionsControl
-              platformOptions={platformOptions}
-              onChange={onPlatformOptionsChange}
-            />
-          ) : null}
-        </Stack>
-        <Divider withBottomMargin />
-        <div>
-          {steps.map(step => (
-            <StyledStep key={step.title ?? step.type} {...step} />
-          ))}
-        </div>
-        {nextSteps.length > 0 && (
-          <Fragment>
-            <Divider />
-            <h4>{t('Additional Information')}</h4>
-            <List symbol="bullet">
-              {nextSteps
-                .filter((step): step is Exclude<typeof step, null> => step !== null)
-                .map(step => (
-                  <ListItem key={step.name}>
-                    <ExternalLink
-                      href={step.link}
-                      onClick={() =>
-                        trackAnalytics('onboarding.next_step_clicked', {
-                          organization,
-                          platform: platformKey,
-                          project_id: project.id,
-                          products: activeProductSelection,
-                          step: step.name,
-                          newOrg: newOrg ?? false,
-                        })
-                      }
-                    >
-                      {step.name}
-                    </ExternalLink>
-                    {': '}
-                    {step.description}
-                  </ListItem>
-                ))}
-            </List>
-          </Fragment>
-        )}
-      </Wrapper>
+        </Wrapper>
+      </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }
@@ -222,7 +260,7 @@ const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
-  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
+  ${p => p.withBottomMargin && `margin-bottom: ${p.theme.space['2xl']}`}
 `;
 
 const StyledStep = styled(Step)`
@@ -247,6 +285,6 @@ const Wrapper = styled('div')`
 
 const Introduction = styled('div')`
   & > p:not(:last-child) {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;

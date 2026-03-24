@@ -1,7 +1,7 @@
 import type {Request} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {defined} from 'sentry/utils';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 type Options = {
   linkPreviousHref: string;

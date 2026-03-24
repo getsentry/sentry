@@ -1,9 +1,8 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, DefaultDict
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Subquery
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
@@ -20,10 +19,10 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataCondition,
     DataConditionAlertRuleTrigger,
-    DataConditionGroup,
     DataConditionGroupAction,
     Detector,
     DetectorWorkflow,
+    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -36,62 +35,109 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> defaultdict[DataCondition, dict[str, list[str]]]:
-        detector_triggers = {item.id: item for item in item_list}
-        detector_trigger_ids = [dc.id for dc in item_list]
+        # Build the chain: trigger → detector → workflows → workflow DCGs,
+        # keeping per-detector scoping so actions don't bleed across detectors.
 
-        # In practice, we only ever serialize one detector trigger at a time.
-        detector_trigger = item_list[0]
+        # trigger.condition_group → detector
+        condition_group_ids = {t.condition_group_id for t in item_list}
+        cg_to_detector_id: dict[int, int] = {
+            d.workflow_condition_group_id: d.id
+            for d in Detector.objects.filter(workflow_condition_group__in=condition_group_ids)
+        }
 
-        # below, we go from detector trigger to action filter
-        detector_ids = Subquery(
-            Detector.objects.filter(
-                workflow_condition_group__in=[
-                    detector_trigger.condition_group
-                    for detector_trigger in detector_triggers.values()
-                ]
-            ).values_list("id", flat=True)
-        )
-        workflow_dcg_ids = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow__in=Subquery(
-                DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
-                    "workflow_id", flat=True
-                )
+        # detector → workflow IDs
+        detector_ids = set(cg_to_detector_id.values())
+        detector_to_workflow_ids: dict[int, set[int]] = defaultdict(set)
+        for det_id, wf_id in DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
+            "detector_id", "workflow_id"
+        ):
+            detector_to_workflow_ids[det_id].add(wf_id)
+
+        # workflow → workflow DCG IDs
+        all_workflow_ids: set[int] = set()
+        for wf_ids in detector_to_workflow_ids.values():
+            all_workflow_ids.update(wf_ids)
+
+        workflow_to_dcg_ids: dict[int, set[int]] = defaultdict(set)
+        for wf_id, dcg_id in WorkflowDataConditionGroup.objects.filter(
+            workflow_id__in=all_workflow_ids
+        ).values_list("workflow_id", "condition_group_id"):
+            workflow_to_dcg_ids[wf_id].add(dcg_id)
+
+        # detector → workflow DCG IDs
+        detector_to_dcg_ids: dict[int, set[int]] = {}
+        for det_id, wf_ids in detector_to_workflow_ids.items():
+            dcg_ids: set[int] = set()
+            for wf_id in wf_ids:
+                dcg_ids.update(workflow_to_dcg_ids.get(wf_id, set()))
+            detector_to_dcg_ids[det_id] = dcg_ids
+
+        # Bulk-fetch action-filter DataConditions across all workflow DCGs
+        all_dcg_ids: set[int] = set()
+        for dcg_ids in detector_to_dcg_ids.values():
+            all_dcg_ids.update(dcg_ids)
+
+        # Map (condition_group_id, comparison) → action-filter DC exists in that DCG
+        # We need: for a given detector's DCGs + priority level → matching DCG IDs
+        # NOTE: Assumes DataConditions are limited to what would be dual written.
+        dcg_comparison_pairs: dict[int, set[int]] = defaultdict(set)
+        for dc in DataCondition.objects.filter(condition_group__in=all_dcg_ids):
+            # Map comparison value → set of DCG IDs that have an action filter at that level
+            dcg_comparison_pairs[dc.condition_group_id].add(dc.comparison)
+
+        # Bulk-fetch all DCG → action mappings
+        dcg_to_action_ids: dict[int, list[int]] = defaultdict(list)
+        for dcga in DataConditionGroupAction.objects.filter(condition_group_id__in=all_dcg_ids):
+            dcg_to_action_ids[dcga.condition_group_id].append(dcga.action_id)
+
+        # Bulk-fetch all actions
+        all_action_ids: set[int] = set()
+        for action_ids in dcg_to_action_ids.values():
+            all_action_ids.update(action_ids)
+        actions_by_id = {a.id: a for a in Action.objects.filter(id__in=all_action_ids)}
+
+        # Bulk-fetch alert_rule_trigger_id mappings
+        trigger_id_map: dict[int, int | None] = dict(
+            DataConditionAlertRuleTrigger.objects.filter(data_condition__in=item_list).values_list(
+                "data_condition_id", "alert_rule_trigger_id"
             )
-        ).values_list("id", flat=True)
-        action_filter_data_condition_groups = DataCondition.objects.filter(
-            comparison__in=[item.condition_result for item in item_list],
-            condition_group__in=Subquery(workflow_dcg_ids),
-        ).values_list("condition_group", flat=True)
-
-        action_filter_data_condition_group_action_ids = DataConditionGroupAction.objects.filter(
-            condition_group_id__in=Subquery(action_filter_data_condition_groups)
-        ).values_list("action_id", flat=True)
-
-        actions = Action.objects.filter(
-            id__in=Subquery(action_filter_data_condition_group_action_ids)
-        ).order_by("id")
-
-        try:
-            alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
-                "alert_rule_trigger_id", flat=True
-            ).get(data_condition=detector_trigger)
-        except DataConditionAlertRuleTrigger.DoesNotExist:
-            # this data condition does not have an analog in the old system,
-            # but we need to return *something*
-            alert_rule_trigger_id = get_fake_id_from_object_id(detector_trigger.id)
-
-        serialized_actions = serialize(
-            list(actions),
-            user,
-            WorkflowEngineActionSerializer(),
-            alert_rule_trigger_id=alert_rule_trigger_id,
         )
-        result: DefaultDict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
-        for data_condition in detector_triggers:
-            result[detector_triggers[data_condition]]["actions"] = []
 
-        for action in serialized_actions:
-            result[detector_triggers[detector_trigger_ids[0]]]["actions"].append(action)
+        result: defaultdict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
+
+        for trigger in item_list:
+            detector_id = cg_to_detector_id.get(trigger.condition_group_id)
+            trigger_dcg_ids = detector_to_dcg_ids.get(detector_id, set()) if detector_id else set()
+
+            # Find DCGs in this detector's workflows that match the trigger's priority level
+            matching_dcg_ids = [
+                dcg_id
+                for dcg_id in trigger_dcg_ids
+                if trigger.condition_result in dcg_comparison_pairs.get(dcg_id, set())
+            ]
+
+            # Collect actions from those DCGs
+            actions = sorted(
+                [
+                    actions_by_id[action_id]
+                    for dcg_id in matching_dcg_ids
+                    for action_id in dcg_to_action_ids.get(dcg_id, [])
+                    if action_id in actions_by_id
+                ],
+                key=lambda a: a.id,
+            )
+
+            alert_rule_trigger_id = trigger_id_map.get(
+                trigger.id, get_fake_id_from_object_id(trigger.id)
+            )
+
+            serialized_actions = serialize(
+                actions,
+                user,
+                WorkflowEngineActionSerializer(),
+                alert_rule_trigger_id=alert_rule_trigger_id,
+            )
+            result[trigger]["actions"] = serialized_actions
 
         return result
 
@@ -129,6 +175,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 if obj.type == Condition.GREATER
                 else AlertRuleThresholdType.BELOW.value
             )
+            # For static/metric rules, calculate resolve threshold from the resolve condition
             resolve_threshold = translate_data_condition_type(
                 detector.config.get("comparison_delta"),
                 obj.type,

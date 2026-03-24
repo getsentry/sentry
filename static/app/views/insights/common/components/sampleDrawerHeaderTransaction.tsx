@@ -4,9 +4,8 @@ import * as qs from 'query-string';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -71,7 +70,7 @@ const DELIMITER = ':';
 const Bar = styled('h4')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: 0;
   margin: 0;
   line-height: ${p => p.theme.font.lineHeight.comfortable};

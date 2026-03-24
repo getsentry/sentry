@@ -1,12 +1,12 @@
 import {useMemo, useRef} from 'react';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {CHARTS_PER_PAGE} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 
 type AttributeDistributionData = Record<string, Array<{label: string; value: number}>>;
@@ -22,7 +22,7 @@ type AttributeBreakdowns = {
 // The /trace-items/stats/ endpoint returns a paginated response, but recommends fetching
 //  more data than we need to display the current page. Hence we accumulate the
 // data across paginated requests.
-function useAttributeBreakdowns({
+export function useAttributeBreakdowns({
   cursor,
   substringMatch,
 }: {
@@ -99,5 +99,3 @@ function useAttributeBreakdowns({
     data,
   };
 }
-
-export default useAttributeBreakdowns;

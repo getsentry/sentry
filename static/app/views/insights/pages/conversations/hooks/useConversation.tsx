@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanOp} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -34,15 +34,19 @@ interface ConversationApiSpan {
   'span.status': string;
   span_id: string;
   trace: string;
+  'gen_ai.agent.name'?: string;
   'gen_ai.cost.total_tokens'?: number;
   'gen_ai.input.messages'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
   'gen_ai.request.messages'?: string;
+  'gen_ai.request.model'?: string;
+  'gen_ai.response.model'?: string;
   'gen_ai.response.object'?: string;
   'gen_ai.response.text'?: string;
   'gen_ai.tool.name'?: string;
   'gen_ai.usage.total_tokens'?: number;
+  'span.name'?: string;
   'user.email'?: string;
   'user.id'?: string;
   'user.ip'?: string;
@@ -83,7 +87,7 @@ function createNodeFromApiSpan(
     event_type: 'span',
     is_transaction: false,
     op: apiSpan['span.op'],
-    description: apiSpan['span.description'],
+    description: apiSpan['span.description'] || apiSpan['span.name'],
     start_timestamp: apiSpan['precise.start_ts'],
     end_timestamp: apiSpan['precise.finish_ts'],
     project_id: apiSpan['project.id'],
@@ -94,7 +98,7 @@ function createNodeFromApiSpan(
     sdk_name: '',
     transaction: '',
     transaction_id: '',
-    name: apiSpan['span.description'],
+    name: apiSpan['span.description'] || apiSpan['span.name'] || '',
     errors: [],
     occurrences: [],
     additional_attributes: {
@@ -105,6 +109,9 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_REQUEST_MESSAGES]: apiSpan['gen_ai.request.messages'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_TEXT]: apiSpan['gen_ai.response.text'] ?? '',
+      [SpanFields.GEN_AI_REQUEST_MODEL]: apiSpan['gen_ai.request.model'] ?? '',
+      [SpanFields.GEN_AI_RESPONSE_MODEL]: apiSpan['gen_ai.response.model'] ?? '',
+      [SpanFields.GEN_AI_AGENT_NAME]: apiSpan['gen_ai.agent.name'] ?? '',
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
       [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,

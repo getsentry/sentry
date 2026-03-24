@@ -7,7 +7,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {
   getAgentIntegration,
   getInstallStep,
@@ -116,7 +116,7 @@ Sentry.init({
             language: 'javascript',
             code: `${sentryImport}
 import { ChatOpenAI } from "@langchain/openai";
-import { createReactAgent } from "@langchain/langgraph/prebuilt";
+import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
 const llm = new ChatOpenAI({
@@ -125,12 +125,20 @@ const llm = new ChatOpenAI({
   apiKey: "OPENAI_API_KEY",
 });
 
-const agent = createReactAgent({ llm, tools: [] });
+const graph = new StateGraph(MessagesAnnotation)
+  .addNode("agent", async (state) => {
+    const response = await llm.invoke(state.messages);
+    return { messages: [response] };
+  })
+  .addEdge("__start__", "agent")
+  .addEdge("agent", "__end__");
 
-Sentry.instrumentLangGraph(agent, {
+Sentry.instrumentLangGraph(graph, {
   recordInputs: true,
   recordOutputs: true,
 });
+
+const agent = graph.compile();
 
 const result = await agent.invoke({
   messages: [
@@ -373,7 +381,11 @@ export function agentMonitoring({
 } = {}): OnboardingConfig {
   return {
     introduction: params => (
-      <SdkUpdateAlert projectId={params.project.id} minVersion={minVersion} />
+      <SdkUpdateAlert
+        projectId={params.project.id}
+        minVersion={minVersion}
+        packageName={packageName}
+      />
     ),
     install: params =>
       getInstallStep(params, {

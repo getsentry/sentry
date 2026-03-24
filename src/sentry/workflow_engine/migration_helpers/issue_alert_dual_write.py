@@ -21,10 +21,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.workflow import (
-    WorkflowDataConditionGroupType,
-    delete_workflow,
-)
+from sentry.workflow_engine.processors.workflow import WorkflowDataConditionGroupType
 
 logger = logging.getLogger(__name__)
 
@@ -184,26 +181,6 @@ def update_dcg(
         bulk_create_data_conditions(conditions=conditions, filters=filters, dcg=dcg)
 
     return dcg
-
-
-def delete_migrated_issue_alert(rule: Rule) -> int | None:
-    try:
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-    except AlertRuleWorkflow.DoesNotExist:
-        # OK state, rule may not have been migrated
-        logger.info(
-            "rule was not dual written or objects were already deleted, returning early",
-            extra={"rule_id": rule.id},
-        )
-        return None
-
-    workflow: Workflow = alert_rule_workflow.workflow
-    workflow_id = workflow.id
-
-    delete_workflow(workflow)
-    alert_rule_workflow.delete()
-
-    return workflow_id
 
 
 def delete_workflow_actions(if_dcg: DataConditionGroup) -> None:

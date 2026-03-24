@@ -2,12 +2,12 @@ import {useRef} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import SplitPanel from 'sentry/components/splitPanel';
+import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import type {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
-import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
+import {MetricInfoTabs} from 'sentry/views/explore/metrics/metricInfoTabs';
 import {
   SAMPLES_PANEL_MIN_WIDTH,
   WIDTH_WITH_TELEMETRY_ICONS_VISIBLE,

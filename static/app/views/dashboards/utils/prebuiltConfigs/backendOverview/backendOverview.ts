@@ -4,6 +4,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
@@ -32,7 +33,7 @@ TABLE_QUERY.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
 TABLE_QUERY.addOp(')');
 TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
-const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'requests-widget',
@@ -52,7 +53,6 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
             `count(${SpanFields.SPAN_DURATION})`,
             `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
           ],
-          fieldMeta: [null, {valueType: 'percentage', valueUnit: null}],
           columns: [],
           fieldAliases: [],
           conditions: `${SpanFields.SPAN_OP}:http.server`,
@@ -108,7 +108,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   0
 );
 
-const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'jobs-chart',
@@ -130,7 +130,6 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
             `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
-          fieldMeta: [null, {valueType: 'percentage', valueUnit: null}],
           fieldAliases: [],
           conditions: `${SpanFields.SPAN_OP}:queue.process`,
           orderby: `count(${SpanFields.SPAN_DURATION})`,
@@ -149,15 +148,12 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [
-            SpanFields.NORMALIZED_DESCRIPTION,
-            `p75(${SpanFields.SPAN_SELF_TIME})`,
-          ],
-          aggregates: [`p75(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [SpanFields.NORMALIZED_DESCRIPTION, `p75(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`p75(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
           fieldAliases: [''],
           conditions: `${SpanFields.DB_SYSTEM}:[${Object.values(SupportedDatabaseSystem).join(',')}]`,
-          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `-sum(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
@@ -188,13 +184,12 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
             `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [SpanFields.TRANSACTION],
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
           fieldAliases: [''],
           conditions: `${SpanFields.SPAN_OP}:[cache.get,cache.get_item]`,
           orderby: `-equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
         },
       ],
-      limit: 4,
+      limit: 3,
       widgetType: WidgetType.SPANS,
     },
   ],
@@ -252,17 +247,6 @@ const TRANSACTIONS_TABLE: Widget = {
         t('Users'),
         t('Time Spent'),
       ],
-      fieldMeta: [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        {valueType: 'percentage', valueUnit: null},
-      ],
       conditions: TABLE_QUERY.formatString(),
       orderby: '-sum(span.duration)',
       linkedDashboards: [],
@@ -273,7 +257,7 @@ const TRANSACTIONS_TABLE: Widget = {
     x: 0,
     w: 6,
     h: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
     y: 7,
   },
 };
@@ -295,5 +279,14 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
-  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  widgets: [
+    ...BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
+    ...BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
+    TRANSACTIONS_TABLE,
+  ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['firstTransactionEvent'],
+    description: 'Get started with backend tracing',
+  },
 };

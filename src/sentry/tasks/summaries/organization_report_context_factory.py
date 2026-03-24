@@ -56,9 +56,9 @@ class OrganizationReportContextFactory:
                     continue
                 project_ctx = ctx.projects_context_map[project_id]
 
-                assert isinstance(
-                    project_ctx, ProjectContext
-                ), f"Expected a ProjectContext, received {type(project_ctx)}"
+                assert isinstance(project_ctx, ProjectContext), (
+                    f"Expected a ProjectContext, received {type(project_ctx)}"
+                )
                 total = data["total"]
                 timestamp = int(parse_snuba_datetime(data["time"]).timestamp())
                 if data["category"] == DataCategory.TRANSACTION:
@@ -114,9 +114,9 @@ class OrganizationReportContextFactory:
                     continue
 
                 project_ctx = ctx.projects_context_map[project.id]
-                assert isinstance(
-                    project_ctx, ProjectContext
-                ), f"Expected a ProjectContext, received {type(project_ctx)}"
+                assert isinstance(project_ctx, ProjectContext), (
+                    f"Expected a ProjectContext, received {type(project_ctx)}"
+                )
 
                 if key_errors:
                     project_ctx.key_errors_by_id = [
@@ -147,9 +147,9 @@ class OrganizationReportContextFactory:
                     ctx, project, referrer=Referrer.REPORTS_KEY_PERFORMANCE_ISSUES.value
                 )
                 if key_performance_issues:
-                    ctx.projects_context_map[project.id].key_performance_issues = (
-                        key_performance_issues
-                    )
+                    ctx.projects_context_map[
+                        project.id
+                    ].key_performance_issues = key_performance_issues
 
     def _hydrate_key_error_groups(self, ctx: OrganizationReportContext) -> None:
         with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):

@@ -106,7 +106,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
                 "type": "string",
                 "required": False,
                 "help": (
-                    "Only include these tags (comma separated list). " "Leave empty to include all."
+                    "Only include these tags (comma separated list). Leave empty to include all."
                 ),
             },
             {

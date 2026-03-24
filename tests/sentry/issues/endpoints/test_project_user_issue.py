@@ -8,10 +8,10 @@ from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.producer import PayloadType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class ProjectUserIssueEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-user-issue"
     method = "post"

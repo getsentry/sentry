@@ -10,34 +10,33 @@ import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
-import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
+import {ReplayCurrentScreen} from 'sentry/components/replays/replayCurrentScreen';
+import {ReplayCurrentUrl} from 'sentry/components/replays/replayCurrentUrl';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
+import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
+import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
-import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
+import {TimeAndScrubberGrid} from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import {useMarkReplayViewed} from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import useFullscreen from 'sentry/utils/window/useFullscreen';
-import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
-import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
-import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {useFullscreen} from 'sentry/utils/window/useFullscreen';
+import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
+import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
+import {BrowserOSIcons} from 'sentry/views/replays/detail/browserOSIcons';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
-export default function ReplayPreviewPlayer({
+export function ReplayPreviewPlayer({
   query,
   errorBeforeReplayStart,
   replayId,
@@ -156,7 +155,7 @@ export default function ReplayPreviewPlayer({
               {showNextAndPrevious && (
                 <Button
                   size="sm"
-                  title={t('Previous Clip')}
+                  tooltipProps={{title: t('Previous Clip')}}
                   icon={<IconPrevious />}
                   onClick={() => handleBackClick?.()}
                   aria-label={t('Previous Clip')}
@@ -175,7 +174,7 @@ export default function ReplayPreviewPlayer({
               {showNextAndPrevious && (
                 <Button
                   size="sm"
-                  title={t('Next Clip')}
+                  tooltipProps={{title: t('Next Clip')}}
                   icon={<IconNext />}
                   onClick={() => handleForwardClick?.()}
                   aria-label={t('Next Clip')}
@@ -203,19 +202,19 @@ const PlayerBreadcrumbContainer = styled(FluidHeight)`
 `;
 
 const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.primary};
   height: unset;
   overflow: unset;
 
   :fullscreen {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
 
     ${PlayerBreadcrumbContainer} {
       display: grid;
       grid-template-columns: ${p => (p.isSidebarOpen ? '1fr 25%' : '1fr')};
       height: 100%;
-      gap: ${space(1)};
+      gap: ${p => p.theme.space.md};
     }
   }
 `;
@@ -223,7 +222,7 @@ const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
 const PlayerContextContainer = styled(FluidHeight)`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StaticPanel = styled(FluidHeight)`
@@ -235,11 +234,11 @@ const ContextContainer = styled('div')`
   grid-auto-flow: column;
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledAlert = styled(Alert)`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const ContainedLinkButton = styled(LinkButton)`

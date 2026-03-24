@@ -138,7 +138,7 @@
       "timestamp": 1668493710.303,
       "start_timestamp": 1668493709.905,
       "exclusive_time": 398.000002,
-      "description": "GET /api/0/subscriptions/sentry/",
+      "description": "GET /api/0/customers/sentry/",
       "op": "http.client",
       "span_id": "902e507b27ba76ef",
       "parent_span_id": "9e4e36110481b5b5",
@@ -148,7 +148,7 @@
       "data": {
         "http.method": "GET",
         "type": "fetch",
-        "url": "/api/0/subscriptions/sentry/"
+        "url": "/api/0/customers/sentry/"
       },
       "hash": "d09dea4693554039"
     },

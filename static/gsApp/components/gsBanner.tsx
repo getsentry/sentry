@@ -1,5 +1,5 @@
 import React, {Component, Fragment} from 'react';
-import {ThemeProvider} from '@emotion/react';
+import {ThemeProvider, useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import snakeCase from 'lodash/snakeCase';
@@ -21,17 +21,16 @@ import {
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import GuideStore from 'sentry/stores/guideStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GuideStore} from 'sentry/stores/guideStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 import {
   openForcedTrialModal,
@@ -40,13 +39,13 @@ import {
 } from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
-import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
+import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialAlert';
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   type BilledDataCategoryInfo,
   type Promotion,
@@ -66,9 +65,9 @@ import {
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {getPendoAccountFields} from 'getsentry/utils/pendo';
 import {claimAvailablePromotion} from 'getsentry/utils/promotionUtils';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
-import withPromotions from 'getsentry/utils/withPromotions';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
+import {withPromotions} from 'getsentry/utils/withPromotions';
 
 enum ModalType {
   USAGE_EXCEEDED = 'usage-exceeded',
@@ -94,7 +93,7 @@ function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any
   );
 }
 
-const ALERTS_OFF: Record<EventType, boolean> = objectFromBilledCategories(() => false);
+const ALERTS_OFF = objectFromBilledCategories(() => false);
 
 type SuspensionModalProps = ModalRenderProps & {
   subscription: Subscription;
@@ -150,6 +149,7 @@ function NoticeModal({
   whichModal,
   billingPermissions,
 }: NoticeModalProps) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const closeModalAndContinue = (link: string) => {
     closeModal();
@@ -274,7 +274,7 @@ function NoticeModal({
         <Button
           priority="primary"
           onClick={() => closeModalAndContinue(link)}
-          style={{marginLeft: space(2)}}
+          style={{marginLeft: theme.space.xl}}
           data-test-id="modal-continue-button"
         >
           {primaryButtonMessage}
@@ -759,9 +759,7 @@ class GSBanner extends Component<Props, State> {
     const {subscription, organization} = this.props;
 
     // can't use as const with ternary
-    const notificationType: 'overage_warning' | 'overage_critical' = isWarning
-      ? 'overage_warning'
-      : 'overage_critical';
+    const notificationType = isWarning ? 'overage_warning' : 'overage_critical';
 
     const props = {
       organization,
@@ -771,14 +769,14 @@ class GSBanner extends Component<Props, State> {
       referrer: `overage-alert-${eventTypes.join('-')}`,
       source: isWarning ? 'quota-warning' : 'quota-overage',
       handleRequestSent: () => this.handleOverageSnooze(eventTypes, isWarning),
-    };
+    } as const;
 
     return <AddEventsCTA {...props} />;
   }
 
   handleOverageSnooze(eventTypes: EventType[], isWarning: boolean) {
     const {organization, api} = this.props;
-    const dismissState: Record<EventType, boolean> = isWarning
+    const dismissState = isWarning
       ? this.state.overageWarningDismissed
       : this.state.overageAlertDismissed;
 
@@ -800,9 +798,7 @@ class GSBanner extends Component<Props, State> {
       });
     }
 
-    const dismissedState: Record<EventType, boolean> = objectFromBilledCategories(
-      () => true
-    );
+    const dismissedState = objectFromBilledCategories(() => true);
     // Suppress all warnings and alerts
     this.setState({
       overageAlertDismissed: dismissedState,
@@ -1034,9 +1030,11 @@ class GSBanner extends Component<Props, State> {
                     onClick={this.handleSnoozeMemberDeactivatedAlert}
                     size="xs"
                     priority="default"
-                    title={t(
-                      'You can also resolve this warning by removing the deactivated members from your organization'
-                    )}
+                    tooltipProps={{
+                      title: t(
+                        'You can also resolve this warning by removing the deactivated members from your organization'
+                      ),
+                    }}
                   >
                     {t('Snooze')}
                   </Button>

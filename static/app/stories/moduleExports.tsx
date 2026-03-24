@@ -5,7 +5,7 @@ import {Heading} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 
 export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['exports']}) {
-  if (!props.exports?.exports) return null;
+  if (!props.exports?.exports || !props.exports.module) return null;
 
   const lines = [];
   // canonical source: @sentry/scraps/<component> (no deep imports)

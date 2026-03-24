@@ -1,6 +1,6 @@
 import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import {scheduleMicroTask} from './scheduleMicroTask';
 

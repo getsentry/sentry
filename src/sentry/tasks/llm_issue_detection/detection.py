@@ -3,24 +3,26 @@ from __future__ import annotations
 import logging
 import random
 from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel, Field
+from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
+from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.sentry_data_models import TraceMetadata
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.explorer.utils import normalize_description
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.utils import json
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
@@ -75,21 +77,24 @@ def mark_traces_as_processed(trace_ids: list[str]) -> None:
 
 class DetectedIssue(BaseModel):
     # LLM generated fields
+    title: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     explanation: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     impact: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     evidence: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     missing_telemetry: str | None = Field(None, max_length=MAX_LLM_FIELD_LENGTH)
     offender_span_ids: list[str]
-    title: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    transaction_name: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     category: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     verification_reason: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    # context fields, not LLM generated
+    group_for_fingerprint: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    project_id: int | None = None
+    # context field, not LLM generated
     trace_id: str
-    transaction_name: str
 
 
-class TraceMetadataWithSpanCount(TraceMetadata):
+class TraceMetadataWithSpanCount(BaseModel):
+    trace_id: str
     span_count: int
 
 
@@ -98,6 +103,26 @@ class IssueDetectionRequest(BaseModel):
     organization_id: int
     project_id: int
     org_slug: str
+
+
+def make_issue_detection_request(
+    request: IssueDetectionRequest,
+    timeout: int | float | None = None,
+    retries: int | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    extra_kwargs: dict[str, Any] = {}
+    if timeout is not None:
+        extra_kwargs["timeout"] = timeout
+    if retries is not None:
+        extra_kwargs["retries"] = retries
+    return make_signed_seer_api_request(
+        seer_issue_detection_connection_pool,
+        SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
+        body=orjson.dumps(request.dict()),
+        viewer_context=viewer_context,
+        **extra_kwargs,
+    )
 
 
 def get_base_platform(platform: str | None) -> str | None:
@@ -135,9 +160,10 @@ def create_issue_occurrence_from_detection(
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
     trace_id = detected_issue.trace_id
-    transaction_name = detected_issue.transaction_name
-    title = detected_issue.title.lower().replace(" ", "-")
-    fingerprint = [f"llm-detected-{title}-{transaction_name}"]
+    transaction_name = normalize_description(detected_issue.transaction_name)
+    group_for_fingerprint = detected_issue.group_for_fingerprint
+
+    fingerprint = [f"llm-detected-{group_for_fingerprint.strip().lower().replace(' ', '-')}"]
 
     evidence_data = {
         "trace_id": trace_id,
@@ -165,7 +191,7 @@ def create_issue_occurrence_from_detection(
         resource_id=None,
         evidence_data=evidence_data,
         evidence_display=evidence_display,
-        type=LLMDetectedExperimentalGroupType,
+        type=LLMDetectedExperimentalGroupTypeV2,
         detection_time=detection_time,
         culprit=transaction_name,
         level="warning",
@@ -295,12 +321,12 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         org_slug=organization_slug,
     )
 
-    response = make_signed_seer_api_request(
-        connection_pool=seer_issue_detection_connection_pool,
-        path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
-        body=json.dumps(seer_request.dict()).encode("utf-8"),
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    response = make_issue_detection_request(
+        seer_request,
         timeout=SEER_TIMEOUT_S,
         retries=0,
+        viewer_context=viewer_context,
     )
 
     if response.status == 202:

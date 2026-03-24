@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationIntegrationsLoosePermission,
@@ -152,7 +152,7 @@ class OrganizationIntegrationMixin:
             raise Http404
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -176,8 +176,13 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
 
         integration_id = request.GET.get("integrationId")
 
-        # Always filter by projects the user can access
-        projects = self.get_projects(request, organization)
+        # When no explicit project IDs are in the request, include all projects the user can
+        # access so open team membership is respected. When explicit IDs are present, get_projects
+        # already uses has_project_access and validates the requested projects.
+        has_explicit_projects = bool(request.GET.getlist("project"))
+        projects = self.get_projects(
+            request, organization, include_all_accessible=not has_explicit_projects
+        )
         queryset = RepositoryProjectPathConfig.objects.filter(project__in=projects).select_related(
             "project", "repository"
         )

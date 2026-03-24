@@ -9,7 +9,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -20,11 +20,11 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {IssueDetailsJumpTo} from 'sentry/views/issueDetails/streamline/issueDetailsJumpTo';
@@ -89,7 +89,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             </span>
             <Button
               aria-label={t('Copy Event ID')}
-              title={t('Copy Event ID')}
+              tooltipProps={{title: t('Copy Event ID')}}
               onClick={handleCopyEventId}
               size="zero"
               priority="transparent"
@@ -122,9 +122,11 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             <Fragment>
               <Divider />
               <ProcessingErrorButton
-                title={t(
-                  'Sentry has detected configuration issues with this event. Click for more info.'
-                )}
+                tooltipProps={{
+                  title: t(
+                    'Sentry has detected configuration issues with this event. Click for more info.'
+                  ),
+                }}
                 priority="transparent"
                 size="zero"
                 icon={<IconWarning variant="danger" />}

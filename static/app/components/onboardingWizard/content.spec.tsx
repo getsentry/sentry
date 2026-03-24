@@ -10,8 +10,8 @@ import {
 
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
-import {NavContextProvider} from 'sentry/views/nav/context';
-import {NavigationTourProvider} from 'sentry/views/nav/tour/tour';
+import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
+import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 
 const DEFAULT_GETTING_STARTED_TASKS = [
   {task: OnboardingTaskKey.FIRST_PROJECT, title: 'Create your first project'},
@@ -56,11 +56,11 @@ describe('OnboardingSidebarContent', () => {
 
   it('should render the sidebar with the correct groups and tasks', async () => {
     render(
-      <NavContextProvider>
+      <PrimaryNavigationContextProvider>
         <NavigationTourProvider>
           <OnboardingSidebarContent onClose={jest.fn()} />
         </NavigationTourProvider>
-      </NavContextProvider>,
+      </PrimaryNavigationContextProvider>,
       {organization}
     );
     expect(await screen.findByText('Getting Started')).toBeInTheDocument();
@@ -111,11 +111,11 @@ describe('OnboardingSidebarContent', () => {
     });
 
     render(
-      <NavContextProvider>
+      <PrimaryNavigationContextProvider>
         <NavigationTourProvider>
           <OnboardingSidebarContent onClose={jest.fn()} />
         </NavigationTourProvider>
-      </NavContextProvider>,
+      </PrimaryNavigationContextProvider>,
       {organization}
     );
 
@@ -125,11 +125,11 @@ describe('OnboardingSidebarContent', () => {
 
   it('if first group completed, second group should be expanded by default', async () => {
     render(
-      <NavContextProvider>
+      <PrimaryNavigationContextProvider>
         <NavigationTourProvider>
           <OnboardingSidebarContent onClose={jest.fn()} />
         </NavigationTourProvider>
-      </NavContextProvider>,
+      </PrimaryNavigationContextProvider>,
       {
         organization: OrganizationFixture({
           onboardingTasks: DEFAULT_GETTING_STARTED_TASKS.map(task => ({
@@ -153,11 +153,11 @@ describe('OnboardingSidebarContent', () => {
     });
 
     render(
-      <NavContextProvider>
+      <PrimaryNavigationContextProvider>
         <NavigationTourProvider>
           <OnboardingSidebarContent onClose={jest.fn()} />
         </NavigationTourProvider>
-      </NavContextProvider>,
+      </PrimaryNavigationContextProvider>,
       {organization}
     );
 

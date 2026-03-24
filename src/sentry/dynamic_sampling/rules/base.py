@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
@@ -112,9 +112,7 @@ def _get_rules_of_enabled_biases(
             try:
                 generated_rules = bias.generate_rules(project, base_sample_rate)
                 rules += generated_rules
-                if generated_rules and features.has(
-                    "organizations:dynamic-sampling-count-biases", project.organization
-                ):
+                if generated_rules:
                     metrics.incr(
                         "dynamic_sampling.rule_emitted",
                         tags={"bias": bias.__class__.__name__},

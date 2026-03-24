@@ -18,6 +18,7 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.seer.code_review.utils import SeerEndpoint
 
 from ..metrics import (
     CodeReviewErrorType,
@@ -70,7 +71,7 @@ def handle_check_run_event(
     *,
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
-    extra: Mapping[str, str | None],
+    tags: Mapping[str, Any],
     **kwargs: Any,
 ) -> None:
     """
@@ -81,7 +82,7 @@ def handle_check_run_event(
     Args:
         github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run")
         event: The webhook event payload
-        organization: The Sentry organization that the webhook event belongs to
+        tags: Sentry SDK tags from the handler (from get_tags); merged with check_run-specific overrides
         **kwargs: Additional keyword arguments
     """
     if github_event != GithubWebhookType.CHECK_RUN:
@@ -90,7 +91,7 @@ def handle_check_run_event(
     action = event.get("action")
 
     if action is None:
-        logger.error(Log.MISSING_ACTION.value, extra=extra)
+        logger.error(Log.MISSING_ACTION.value)
         record_webhook_handler_error(
             github_event,
             action or "",
@@ -108,7 +109,7 @@ def handle_check_run_event(
         validated_event = _validate_github_check_run_event(event)
     except (ValidationError, ValueError):
         # Prevent sending a 500 error to GitHub which would trigger a retry
-        logger.exception(Log.INVALID_PAYLOAD.value, extra=extra)
+        logger.exception(Log.INVALID_PAYLOAD.value)
         record_webhook_handler_error(
             github_event,
             action,
@@ -122,12 +123,11 @@ def handle_check_run_event(
     # Scheduling the work as a task allows us to retry the request if it fails.
     # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
-        github_event=github_event.value,
+        seer_path=SeerEndpoint.PR_REVIEW_RERUN.value,
         # A reduced payload is enough for the task to process.
         event_payload={"original_run_id": validated_event.check_run.external_id},
-        action=validated_event.action,
-        html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        tags=tags,
     )
     record_webhook_enqueued(github_event, action)
 

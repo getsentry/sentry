@@ -6,7 +6,7 @@ import {
   updatePersistence,
   updateProjects,
 } from 'sentry/components/pageFilters/actions';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
 jest.mock('sentry/utils/localStorage', () => ({
   getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),
@@ -25,7 +25,6 @@ describe('PageFiltersStore', () => {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: false,
       shouldPersist: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
         projects: [],

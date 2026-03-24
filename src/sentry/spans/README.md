@@ -29,6 +29,87 @@ The pipeline follows the following steps:
 4.  Segments are exploded into enriched spans again and sent to EAP via another
     Kafka topic.
 
+## Corner cases and rate limiters
+
+This is a summary of all the scenarios where we drop data and the consequences
+on the trace.
+
+### Spans per second rate limiter
+
+We cannot ingest unlimited events per second in any ingestion pipeline. All
+event types are limited in terms of frequency.
+
+- This is applied in Relay and the appropriate outcome is produced. Users are
+  not charged for dropped spans
+
+- This would generate incomplete traces and segments as any spans can be dropped
+  no matter on the trace structure.
+
+### Spans per second per trace rate limiter
+
+- The buffer needs to group spans into segment in a single thread, this
+  has a throughput limit. The good news is that we do not drop spans here,
+  we just reshuffle them. The resulting segment is incomplete though,
+  spans may be dangling.
+
+- This is applied per trace in Relay. The user cannot send more than X spans per minute
+  per trace. It is configured in [relay config](https://github.com/getsentry/ops/blob/a117ee546b130def3eb39ccdbf252229daafac1c/k8s/services/relay/_values.yaml#L61-L70).
+
+### Maximum segment size
+
+- We cannot have unlimited segments in size for four reasons:
+  - Generally an extremely large segment would take an extremely long time to
+    accumulate (unless spans payloads were huge). This would compromise data
+    freshness.
+
+  - Segments are accumulated in Redis. Redis does not have infinite size nor it
+    can scale indefinitely. Moreover the user does not pay by size but we would
+    pay Redis by memory.
+
+  - Several features in the segment consumers, like issue detection, are not
+    viable in huge segments.
+
+  - Every kafka topic has a maximum message size, so we cannot send arbitrarily
+    large segments between buffer and segmented consumer. Large segments could be
+    offloaded in Object Store though or broken into smaller ones.
+
+- The maximum segment size is configured via the `spans.buffer.max-segment-bytes`
+  option.
+
+- This limit is enforced in two places: while accumulating the segment in the
+  buffer and when about to flush it to the segment consumer.
+  - As we add spans to subsegments in Redis we prune sets that become too large.
+    This is done by dropping spans until they stay in the max size. This, obviously
+    breaks the structure of the trace as the missing spans may be anywhere in
+    the tree.
+
+  - As we extract the subsegments and reassemble them, if the segment is too big
+    we drop it entirely and record an `invalid` outcome.
+
+### Flushing segments
+
+- The spans buffer cannot know when a segment is complete as there is no such
+  a signal.
+
+- There are competing requirements between data freshness and data completeness.
+  On one hand we want to flush segments as soon as possible to make them available
+  to the user. On the other hand, flushing too early yields incomplete segments
+  as more spans may arrive after the segment is closed.
+
+- The spans buffer flushes a segment when one of these two conditions is reached:
+  - A root span for the segment has been ingested and `spans.buffer.root-timeout`
+    seconds have passed without observing new spans for the segment.
+
+  - A root span for the segment has not been ingested and `spans.buffer.timeout`
+    seconds have passed without observing new spans for the segment.
+
+- There are some consequence on data integrity:
+  - Incomplete segments may be flushed if more spans arrive after the timeout.
+    This would generate broken traces.
+
+  - Some segment may accumulate forever and eventually pruned and dropped if the
+    user keeps sending spans within the timeout.
+
 # Assembling Segments
 
 The Spans Buffer consumer receives spans in any order and assembles them into
@@ -131,7 +212,7 @@ erDiagram
   belong to the same segment in a batch and process them together.
 - Spans in a subsegment are guaranteed to belong to the same segment. On the contrary
   it is not guaranteed that two subsegments belong to different segments. Subsegments
-  are asembled without knowledge of the whole Segment tree, so the common parent
+  are assembled without knowledge of the whole Segment tree, so the common parent
   between two subsegments may have not been received at the time of assembling them.
 
 ## Redis data model
@@ -153,11 +234,10 @@ the python code and:
 **Spans payload**
 
 ```
-span-buf:z:{PROJECT_AND_TRACE}:{PARENT_SPAN_ID}
+span-buf:s:{PROJECT_AND_TRACE}:{PARENT_SPAN_ID}
 ```
 
-This is a sorted set that contains the spans payload corresponding to a segment
-sorted by span timestamp.
+This is an unsorted set that contains the spans payload corresponding to a segment.
 
 - The python code stores the subsegments, while the LUA code merges subsegments
   along the way.
@@ -172,7 +252,7 @@ sorted by span timestamp.
 **Redirect set**
 
 ```
-span-buf:sr:{PROJECT_AND_TRACE}
+span-buf:ssr:{PROJECT_AND_TRACE}
 
 Example:
 - 3 segments a,b,c
@@ -215,3 +295,130 @@ span-buf:q:{SHARD} or span-buf:q:{SLICE_ID}-{SHARD}
 - The elements are the redis keys of the segments payload after being merged by
   the LUA scripts.
 - This is used as a queue by the Flusher to find the oldest segment to be flushed.
+
+## Flushing
+
+The flusher runs as subprocesses within each consumer. Each shard maps to exactly one
+subprocess and is flushed by exactly one subprocess. Since each partition/shard is owned
+by at most one consumer, no two consumers can flush from the same queue.
+
+Flushing happens in two steps:
+
+1. `flush_segments`: reads segment keys from the queue via `ZRANGEBYSCORE`
+   (segments past their flush deadline), loads their span payloads via `SSCAN`,
+   and produces them to the `buffered-segments` Kafka topic.
+2. `done_flush_segments`: cleans up Redis keys (`UNLINK` the segment data,
+   `DELETE` metadata keys, `HDEL` redirect entries, `ZREM` the queue entry).
+
+### Rebalancing
+
+The consumer routes each span to a queue based on its trace ID and the
+consumer's currently assigned partitions:
+
+```python
+shard = self.assigned_shards[
+    int(trace_id, 16) % len(self.assigned_shards)
+]
+```
+
+This means the queue a segment lands in depends on both the trace ID and the
+current set of assigned partitions. On a Kafka rebalance (triggered by
+consumer deployment, scaling, or crashes), `assigned_shards` changes, possibly
+in length or in values. Then, the same trace ID may route to a different queue.
+
+As a consequence, during every rebalance:
+
+1. In-flight segments may have their key present in two different queues
+   (the old queue from before the rebalance and the new queue after).
+2. Whichever flusher processes the segment first gets the data and deletes the
+   Redis key via `done_flush_segments`.
+3. `done_flush_segments` only removes the queue entry from its own queue
+   (`ZREM` on `flushed_segment.queue_key`). It does not know about the stale
+   entry in the other queue.
+4. When the other flusher later picks up the stale entry, `SSCAN` returns
+   nothing (the key was already deleted), resulting in an empty segment
+   (`spans.buffer.empty_segments` metric).
+
+This is expected on every deployment. The typical consequence (and is a confirmed bug)
+is that a segment gets broken up: spans that arrived before the rebalance are in one
+queue, and spans that arrived after are in another. Each queue's flusher produces an
+incomplete segment independently — one with the earlier spans, the others with
+the later spans. In the worst case, if both flushers race and read the same segment
+before either deletes it, the result is a duplicated segment.
+
+# GCP Log Analyzer Tool
+
+The `gcp_log_analyzer.py` script queries and analyzes slow EVALSHA operations logged by the span buffer system. These logs are generated by [`buffer_logger.py`](buffer_logger.py) and track Redis operations that take longer than expected.
+
+## Usage
+
+### Basic Usage
+
+Fetch logs from the last 60 minutes:
+
+```bash
+python -m sentry.spans.gcp_log_analyzer fetch --last-minutes 60
+```
+
+## Output Format
+
+The tool outputs a table showing the top traces by cumulative latency:
+
+```
+Top Traces by Cumulative Latency
+
+Project ID           Trace ID                            Total Latency   Operations  Log Entries   Duration
+------------------------------------------------------------------------------------------------------------------------
+1231231231231231     6a499a5de1f6e3b412adb0ef12345678      26,557 ms        2,303            1   0:00:00
+2342344              fc8dc7a8bee64349960bbc9489876543           6 ms            6            1   0:00:00
+
+Summary:
+- Total traces: 2
+- Total operations: 2,309
+- Time range: 2026-02-03 18:54:36 to 2026-02-03 18:54:37
+- Consumers: process-spans-6 (20 log entries)
+```
+
+## Log Format
+
+The tool parses log entries with the following structure:
+
+```json
+{
+  "timestamp": "2026-02-03T18:54:36.806983608Z",
+  "jsonPayload": {
+    "event": "spans.buffer.slow_evalsha_operations",
+    "top_slow_operations": [
+      "1231231231231231:6a499a5de1f6e3b412adb0ef12345678:2303:26557"
+    ]
+  },
+  "labels": {
+    "k8s-pod/consumer": "process-spans-6"
+  }
+}
+```
+
+Each entry in `top_slow_operations` follows the format:
+
+```
+{project_id}:{trace_id}:{count}:{cumulative_latency_ms}
+```
+
+## Authentication
+
+The tool uses Google Cloud credentials. Ensure you have authenticated:
+
+```bash
+gcloud auth application-default login
+```
+
+Or set the credentials file path:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/credentials.json"
+```
+
+## Environment Variables
+
+- `GCP_PROJECT`: Default GCP project ID
+- `GOOGLE_APPLICATION_CREDENTIALS`: Path to GCP credentials file

@@ -9,13 +9,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
-import LastCommit from 'sentry/components/lastCommit';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {LastCommit} from 'sentry/components/lastCommit';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -75,14 +74,12 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
 
   const authors = useMemo(
     () =>
-      release?.authors.map<Actor | User>(author =>
-        // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
-      ),
+      release?.authors.map<Actor | User>(author => // Add a unique id if missing
+      ({
+        ...author,
+        type: 'user',
+        id: 'id' in author ? author.id : uniqueId(),
+      })),
     [release?.authors]
   );
 
@@ -177,7 +174,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
 
 interface Props extends React.ComponentProps<typeof Hovercard>, BodyProps {}
 
-function VersionHoverCard({
+export function VersionHoverCard({
   organization,
   projectSlug,
   releaseVersion,
@@ -219,10 +216,8 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
   );
 }
 
-export default VersionHoverCard;
-
 const ConnectRepo = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   text-align: center;
 `;
 

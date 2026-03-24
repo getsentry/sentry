@@ -7,7 +7,7 @@ from django.db import models
 from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
 from sentry.utils import metrics, registry
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import ConditionError, DataConditionResult, DetectorPriorityLevel
@@ -69,6 +69,13 @@ class Condition(StrEnum):
     EVERY_EVENT = "every_event"
 
 
+TRIGGER_CONDITIONS = [
+    Condition.FIRST_SEEN_EVENT,
+    Condition.ISSUE_RESOLVED_TRIGGER,
+    Condition.REAPPEARED_EVENT,
+    Condition.REGRESSION_EVENT,
+]
+
 CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
     Condition.GREATER_OR_EQUAL: operator.ge,
@@ -111,7 +118,7 @@ class DataConditionSnapshot(TypedDict):
     condition_result: DataConditionResult
 
 
-@region_silo_model
+@cell_silo_model
 class DataCondition(DefaultFieldsModel):
     """
     A data condition is a way to specify a logic condition, if the condition is met, the condition_result is returned.

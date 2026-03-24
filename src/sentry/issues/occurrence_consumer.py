@@ -16,6 +16,7 @@ from arroyo.types import BrokerValue, Message
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
+from rest_framework import serializers
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry import nodestore, options
@@ -200,6 +201,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     assignee = parse_and_validate_actor(payload_assignee, project.organization_id)
                     if assignee:
                         assignee_identifier = assignee.identifier
+                except serializers.ValidationError as e:
+                    logger.warning(
+                        "Failed to validate assignee for occurrence: %s",
+                        e.detail,
+                    )
                 except Exception:
                     logger.exception("Failed to validate assignee for occurrence")
 

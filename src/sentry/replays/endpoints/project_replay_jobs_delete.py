@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -56,9 +56,9 @@ class ReplayDeletionJobCreateSerializer(serializers.Serializer):
     data = ReplayDeletionJobCreateDataSerializer(required=True)  # type: ignore[assignment]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
-    owner = ApiOwner.REPLAY
+    owner = ApiOwner.DATA_BROWSING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
@@ -131,9 +131,8 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         return Response(response, status=201)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -147,7 +146,9 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
 
         try:
             job = ReplayDeletionJobModel.objects.get(
-                id=job_id, organization_id=project.organization_id, project_id=project.id
+                id=job_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
             )
         except ReplayDeletionJobModel.DoesNotExist:
             raise ResourceDoesNotExist

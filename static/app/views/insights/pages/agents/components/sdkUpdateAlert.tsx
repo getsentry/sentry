@@ -1,8 +1,13 @@
 import {Alert} from '@sentry/scraps/alert';
 
 import {t, tct} from 'sentry/locale';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
+/**
+ * Maps an SDK name to its installable package name.
+ * Returns null for SDKs not supported by agent monitoring.
+ */
 function getPackageNameFromSdkName(sdkName?: string): string | null {
   if (!sdkName) {
     return null;
@@ -29,41 +34,48 @@ function getPackageNameFromSdkName(sdkName?: string): string | null {
 export function SdkUpdateAlert({
   projectId,
   minVersion,
+  packageName,
 }: {
   minVersion: string;
+  packageName: string;
   projectId: string;
 }) {
-  const {needsUpdate, isFetching, isError, data} = useProjectSdkNeedsUpdate({
+  const {isFetching, isError, data} = useProjectSdkNeedsUpdate({
     minVersion,
     projectId: [projectId],
   });
 
-  if (!needsUpdate || isFetching || isError) {
+  if (isFetching || isError) {
     return null;
   }
 
-  const sdkUpdate = data?.[0];
-  const packageName = getPackageNameFromSdkName(sdkUpdate?.sdkName);
+  const validSdkUpdate = data?.find(
+    update =>
+      getPackageNameFromSdkName(update.sdkName) === packageName &&
+      semverCompare(update.sdkVersion || '', minVersion) === -1
+  );
 
-  const suggestedVersion = sdkUpdate?.suggestions?.find(
+  if (!validSdkUpdate) {
+    return null;
+  }
+
+  const suggestedVersion = validSdkUpdate.suggestions?.find(
     suggestion => suggestion.type === 'updateSdk'
   )?.newSdkVersion;
 
-  const firstSentence = packageName
-    ? tct('Your [sdkName] version is below the minimum required for agent monitoring.', {
-        sdkName: <code>{packageName}</code>,
-      })
-    : t('Your SDK version is below the minimum required for agent monitoring.');
-
-  const secondSentence = suggestedVersion
-    ? tct('Update to [latestVersion] or later.', {
-        latestVersion: <code>{suggestedVersion}</code>,
-      })
-    : t('Update to the latest version.');
-
   return (
     <Alert variant="warning">
-      {firstSentence} {secondSentence}
+      {tct(
+        'Your [packageName] version is below the minimum required for agent monitoring.',
+        {
+          packageName: <code>{packageName}</code>,
+        }
+      )}{' '}
+      {suggestedVersion
+        ? tct('Update to [latestVersion] or later.', {
+            latestVersion: <code>{suggestedVersion}</code>,
+          })
+        : t('Update to the latest version.')}
     </Alert>
   );
 }

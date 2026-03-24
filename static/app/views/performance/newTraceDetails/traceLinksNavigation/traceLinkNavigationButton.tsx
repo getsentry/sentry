@@ -7,7 +7,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFindAdjacentTrace} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindLinkedTraces';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -105,8 +105,8 @@ export function TraceLinkNavigationButton({
         position: 'top',
         delay: 400,
         isHoverable: true,
+        title,
       }}
-      title={title}
       onClick={closeSpanDetailsDrawer}
       disabled={!traceId || isTraceLoading || !isTraceAvailable}
       to={getTraceDetailsUrl({

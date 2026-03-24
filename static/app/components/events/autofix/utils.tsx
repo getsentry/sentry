@@ -250,7 +250,7 @@ export function isIssueQuickFixable(group: Group) {
 }
 
 export function getAutofixRunErrorMessage(autofixData: AutofixData | undefined) {
-  if (!autofixData || autofixData.status !== AutofixStatus.ERROR) {
+  if (autofixData?.status !== AutofixStatus.ERROR) {
     return null;
   }
 

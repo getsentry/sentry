@@ -1,11 +1,11 @@
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {platforms} from 'sentry/data/platforms';
 import {IconOpen} from 'sentry/icons';
@@ -16,11 +16,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -64,19 +63,17 @@ export default function LogsContent() {
         >
           <Layout.Page>
             <LogsHeader />
-            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-              <LogsPageDataProvider allowHighFidelity>
-                {defined(onboardingProject) ? (
-                  <LogsTabOnboarding
-                    organization={organization}
-                    project={onboardingProject}
-                    datePageFilterProps={datePageFilterProps}
-                  />
-                ) : (
-                  <LogsTabContent datePageFilterProps={datePageFilterProps} />
-                )}
-              </LogsPageDataProvider>
-            </TraceItemAttributeProvider>
+            <LogsPageDataProvider allowHighFidelity>
+              {defined(onboardingProject) ? (
+                <LogsTabOnboarding
+                  organization={organization}
+                  project={onboardingProject}
+                  datePageFilterProps={datePageFilterProps}
+                />
+              ) : (
+                <LogsTabContent datePageFilterProps={datePageFilterProps} />
+              )}
+            </LogsPageDataProvider>
           </Layout.Page>
         </LogsQueryParamsProvider>
       </PageFiltersContainer>
@@ -89,6 +86,7 @@ function LogsHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
+  const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
@@ -111,7 +109,6 @@ function LogsHeader() {
       <Layout.HeaderActions>
         <Grid flow="column" align="center" gap="md">
           <FeedbackButton
-            size="xs"
             feedbackOptions={{
               messagePlaceholder: t('How can we make logs work better for you?'),
               tags: {
@@ -120,7 +117,7 @@ function LogsHeader() {
               },
             }}
           />
-          <SetupLogsButton />
+          {defined(onboardingProject) && <SetupLogsButton />}
         </Grid>
       </Layout.HeaderActions>
     </Layout.Header>

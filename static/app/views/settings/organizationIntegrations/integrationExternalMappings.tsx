@@ -3,30 +3,29 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import Confirm from 'sentry/components/confirm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {Confirm} from 'sentry/components/confirm';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   ExternalActorSuggestion,
   Integration,
 } from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 
 type CodeOwnersAssociationMappings = Record<
   string,
@@ -37,18 +36,15 @@ type CodeOwnersAssociationMappings = Record<
 >;
 
 type Props = Pick<
-  IntegrationExternalMappingForm['props'],
-  | 'dataEndpoint'
-  | 'getBaseFormEndpoint'
-  | 'sentryNamesMapper'
-  | 'onResults'
-  | 'defaultOptions'
+  React.ComponentProps<typeof IntegrationExternalMappingForm>,
+  'getBaseFormEndpoint' | 'defaultOptions'
 > & {
   integration: Integration;
   mappings: ExternalActorMapping[];
   onCreate: (mapping?: ExternalActorMappingOrSuggestion) => void;
   onDelete: (mapping: ExternalActorMapping) => void;
   type: 'team' | 'user';
+  onSubmitSuccess?: () => Promise<void>;
   pageLinks?: string;
 };
 
@@ -56,19 +52,17 @@ type LocationQuery = {
   cursor?: string;
 };
 
-function IntegrationExternalMappings(props: Props) {
+export function IntegrationExternalMappings(props: Props) {
   const {
     integration,
     type,
     mappings,
     pageLinks,
-    dataEndpoint,
     defaultOptions,
     onCreate,
-    onResults,
     onDelete,
+    onSubmitSuccess,
     getBaseFormEndpoint,
-    sentryNamesMapper,
   } = props;
 
   const [newlyAssociatedMappings, setNewlyAssociatedMappings] = useState<
@@ -135,18 +129,16 @@ function IntegrationExternalMappings(props: Props) {
       <IntegrationExternalMappingForm
         type={type}
         integration={integration}
-        dataEndpoint={dataEndpoint}
         getBaseFormEndpoint={getBaseFormEndpoint}
         mapping={mapping}
-        sentryNamesMapper={sentryNamesMapper}
-        onResults={onResults}
-        onSubmitSuccess={(newMapping: ExternalActorMapping) => {
+        onSubmitSuccess={async (newMapping: ExternalActorMapping) => {
           setNewlyAssociatedMappings([
             ...newlyAssociatedMappings.filter(
               map => map.externalName !== newMapping.externalName
             ),
             newMapping,
           ]);
+          await onSubmitSuccess?.();
         }}
         isInline
         defaultOptions={defaultOptions}
@@ -167,13 +159,13 @@ function IntegrationExternalMappings(props: Props) {
           size="sm"
           icon={<IconDelete size="sm" />}
           aria-label={t('Remove user mapping')}
-          title={
-            canDelete
+          tooltipProps={{
+            title: canDelete
               ? t('Remove user mapping')
               : t(
                   'You must be an organization owner, manager or admin to delete an external user mapping.'
-                )
-          }
+                ),
+          }}
         />
       </Confirm>
     ) : (
@@ -224,8 +216,6 @@ function IntegrationExternalMappings(props: Props) {
   );
 }
 
-export default IntegrationExternalMappings;
-
 const MappingTable = styled(PanelTable)`
   overflow: visible;
   grid-template-columns: 1fr max-content 1fr 66px;
@@ -234,29 +224,29 @@ const MappingTable = styled(PanelTable)`
     p.isEmpty
       ? `
   > :not(:nth-child(n + 5)) {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p.theme.space.md} ${p.theme.space.xl};
   }`
       : `
   > :nth-child(n + 5) {
     display: flex;
     align-items: center;
-    padding: ${space(1.5)} ${space(2)};
+    padding: ${p.theme.space.lg} ${p.theme.space.xl};
   }
 
   > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p.theme.space.md} ${p.theme.space.xl};
   }
 `}
 
   > :nth-child(4n) {
-    padding-right: ${space(1)};
+    padding-right: ${p => p.theme.space.md};
     justify-content: end;
   }
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
   min-width: ${p => p.size}px;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 const ExternalNameColumn = styled('div')`

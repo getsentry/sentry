@@ -9,7 +9,7 @@ app:
     app*
       threads*
         stacktrace*
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "__main__"
             filename (ignored because module takes precedence)
@@ -18,7 +18,7 @@ app:
               "<module>"
             context_line*
               "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=<int>, pipe_handle=<int>)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "multiprocessing.spawn"
             filename (ignored because module takes precedence)
@@ -27,7 +27,7 @@ app:
               "spawn_main"
             context_line*
               "exitcode = _main(fd, parent_sentinel)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "multiprocessing.spawn"
             filename (ignored because module takes precedence)
@@ -36,7 +36,7 @@ app:
               "_main"
             context_line*
               "return self._bootstrap(parent_sentinel)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "multiprocessing.process"
             filename (ignored because module takes precedence)
@@ -45,7 +45,7 @@ app:
               "_bootstrap"
             context_line*
               "self.run()"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "multiprocessing.process"
             filename (ignored because module takes precedence)
@@ -54,7 +54,7 @@ app:
               "run"
             context_line*
               "self._target(*self._args, **self._kwargs)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "uvicorn._subprocess"
             filename (ignored because module takes precedence)
@@ -63,7 +63,7 @@ app:
               "subprocess_started"
             context_line*
               "target(sockets=sockets)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "uvicorn.server"
             filename (ignored because module takes precedence)
@@ -72,7 +72,7 @@ app:
               "run"
             context_line*
               "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "asyncio.runners"
             filename (ignored because module takes precedence)
@@ -81,7 +81,7 @@ app:
               "run"
             context_line*
               "return runner.run(main)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "asyncio.runners"
             filename (ignored because module takes precedence)
@@ -90,7 +90,7 @@ app:
               "run"
             context_line*
               "return self._loop.run_until_complete(task)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "asyncio.base_events"
             filename (ignored because module takes precedence)
@@ -99,7 +99,7 @@ app:
               "run_until_complete"
             context_line*
               "self.run_forever()"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "asyncio.base_events"
             filename (ignored because module takes precedence)
@@ -108,7 +108,7 @@ app:
               "run_forever"
             context_line*
               "self._run_once()"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "asyncio.base_events"
             filename (ignored because module takes precedence)
@@ -117,7 +117,7 @@ app:
               "_run_once"
             context_line*
               "handle._run()"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "asyncio.events"
             filename (ignored because module takes precedence)
@@ -126,7 +126,7 @@ app:
               "_run"
             context_line*
               "self._context.run(self._callback, *self._args)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "uvicorn.lifespan.on"
             filename (ignored because module takes precedence)
@@ -135,7 +135,7 @@ app:
               "main"
             context_line*
               "await app(scope, self.receive, self.send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "uvicorn.middleware.proxy_headers"
             filename (ignored because module takes precedence)
@@ -144,7 +144,7 @@ app:
               "__call__"
             context_line*
               "return await self.app(scope, receive, send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "fastapi.applications"
             filename (ignored because module takes precedence)
@@ -153,7 +153,7 @@ app:
               "__call__"
             context_line*
               "await super().__call__(scope, receive, send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "starlette.applications"
             filename (ignored because module takes precedence)
@@ -162,7 +162,7 @@ app:
               "__call__"
             context_line*
               "await self.middleware_stack(scope, receive, send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "starlette.middleware.errors"
             filename (ignored because module takes precedence)
@@ -171,7 +171,7 @@ app:
               "__call__"
             context_line*
               "await self.app(scope, receive, send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "starlette.middleware.base"
             filename (ignored because module takes precedence)
@@ -180,7 +180,7 @@ app:
               "__call__"
             context_line*
               "await self.app(scope, receive, send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "starlette.middleware.cors"
             filename (ignored because module takes precedence)
@@ -189,7 +189,7 @@ app:
               "__call__"
             context_line*
               "await self.app(scope, receive, send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "starlette.middleware.exceptions"
             filename (ignored because module takes precedence)
@@ -198,7 +198,7 @@ app:
               "__call__"
             context_line*
               "await self.app(scope, receive, send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "fastapi.middleware.asyncexitstack"
             filename (ignored because module takes precedence)
@@ -207,7 +207,7 @@ app:
               "__call__"
             context_line*
               "await self.app(scope, receive, send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "starlette.routing"
             filename (ignored because module takes precedence)
@@ -216,7 +216,7 @@ app:
               "__call__"
             context_line*
               "await self.middleware_stack(scope, receive, send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "starlette.routing"
             filename (ignored because module takes precedence)
@@ -225,7 +225,7 @@ app:
               "app"
             context_line*
               "await self.lifespan(scope, receive, send)"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "starlette.routing"
             filename (ignored because module takes precedence)
@@ -234,7 +234,7 @@ app:
               "lifespan"
             context_line*
               "async with self.lifespan_context(app) as maybe_state:"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -243,7 +243,7 @@ app:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -252,7 +252,7 @@ app:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -261,7 +261,7 @@ app:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -270,7 +270,7 @@ app:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -279,7 +279,7 @@ app:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -288,7 +288,7 @@ app:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -297,7 +297,7 @@ app:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -306,7 +306,7 @@ app:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
             module*
               "app.main"
             filename (ignored because module takes precedence)
@@ -387,7 +387,7 @@ system:
     system*
       threads*
         stacktrace*
-          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "__main__"
             filename (ignored because module takes precedence)
@@ -459,7 +459,7 @@ system:
               "run"
             context_line*
               "return runner.run(main)"
-          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "asyncio.runners"
             filename (ignored because module takes precedence)
@@ -621,7 +621,7 @@ system:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -630,7 +630,7 @@ system:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -639,7 +639,7 @@ system:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -648,7 +648,7 @@ system:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -657,7 +657,7 @@ system:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -666,7 +666,7 @@ system:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)
@@ -675,7 +675,7 @@ system:
               "merged_lifespan"
             context_line*
               "async with original_context(app) as maybe_original_state:"
-          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+          frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
             module*
               "fastapi.routing"
             filename (ignored because module takes precedence)

@@ -5,7 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 
 interface InstallAppButtonProps {
@@ -35,7 +35,7 @@ export function InstallAppButton({
       project_slug: projectId,
       source,
     });
-    openInstallModal(projectId, artifactId);
+    openInstallModal(artifactId);
   };
 
   if (variant === 'icon') {
@@ -46,7 +46,7 @@ export function InstallAppButton({
         onClick={handleClick}
         priority="transparent"
         size="zero"
-        title={t('Install')}
+        tooltipProps={{title: t('Install')}}
       />
     );
   }

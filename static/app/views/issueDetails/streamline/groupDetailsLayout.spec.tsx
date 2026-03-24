@@ -9,7 +9,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {GroupDetailsLayout} from './groupDetailsLayout';
 
@@ -90,10 +90,6 @@ describe('GroupDetailsLayout', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),

@@ -59,8 +59,8 @@ from sentry.snuba.metrics.query import (
     MetricConditionField,
     MetricField,
     MetricGroupByField,
+    MetricOrderByField,
 )
-from sentry.snuba.metrics.query import MetricOrderByField
 from sentry.snuba.metrics.query import MetricOrderByField as MetricsOrderBy
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
@@ -898,7 +898,7 @@ class SnubaQueryBuilder:
                 raise InvalidParams(f"Cannot resolve {metric_action_by_field.field} into SnQL")
         else:
             raise NotImplementedError(
-                f"Unsupported {"group by" if is_group_by else "order by" if is_order_by else "None"} field: {metric_action_by_field.field} needs to be either a MetricField or a string"
+                f"Unsupported {'group by' if is_group_by else 'order by' if is_order_by else 'None'} field: {metric_action_by_field.field} needs to be either a MetricField or a string"
             )
 
     def _build_where(self) -> list[BooleanCondition | Condition]:

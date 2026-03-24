@@ -6,12 +6,12 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/components/pageFilters/actions';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import localStorage from 'sentry/utils/localStorage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 describe('PageFiltersContainer', () => {
   const organization = OrganizationFixture();
@@ -118,7 +118,6 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
-        desyncedFilters: new Set(),
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -150,7 +149,6 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
-        desyncedFilters: new Set(),
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -185,7 +183,6 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
-        desyncedFilters: new Set(),
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -231,7 +228,6 @@ describe('PageFiltersContainer', () => {
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       shouldPersist: true,
       selection: {
@@ -279,7 +275,7 @@ describe('PageFiltersContainer', () => {
 
   it('does not load from local storage when there are URL params', () => {
     jest
-      .spyOn(localStorage, 'getItem')
+      .spyOn(localStorageWrapper, 'getItem')
       .mockImplementation(() =>
         JSON.stringify({projects: [3], environments: ['staging']})
       );
@@ -332,37 +328,6 @@ describe('PageFiltersContainer', () => {
 
     // Router does not update because params have not changed
     expect(router.location.query).toEqual({});
-  });
-
-  it('updates store with desynced values when url params do not match local storage', async () => {
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
-      JSON.stringify({
-        projects: [1],
-        pinnedFilters: ['projects'],
-      })
-    );
-
-    const testOrg = OrganizationFixture();
-    OrganizationStore.onUpdate(testOrg);
-
-    render(<PageFiltersContainer />, {
-      organization: testOrg,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/test/',
-          query: {project: ['2']},
-        },
-        route: '/organizations/:orgId/test/',
-      },
-    });
-
-    // reflux tick
-    expect(PageFiltersStore.getState().selection.projects).toEqual([2]);
-
-    // Wait for desynced filters to update
-    await waitFor(() =>
-      expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']))
-    );
   });
 
   it('does not update local storage when disablePersistence is true', async () => {

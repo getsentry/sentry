@@ -136,9 +136,7 @@ class BitbucketPlugin(CorePluginMixin, IssuePlugin2):
                     group.get_absolute_url(params={"referrer": "bitbucket_plugin"})
                 ),
                 "type": "textarea",
-                "help": (
-                    "Leave blank if you don't want to " "add a comment to the Bitbucket issue."
-                ),
+                "help": ("Leave blank if you don't want to add a comment to the Bitbucket issue."),
                 "required": False,
             },
         ]

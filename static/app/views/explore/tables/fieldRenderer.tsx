@@ -8,10 +8,9 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import TimeSince from 'sentry/components/timeSince';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -21,13 +20,12 @@ import {getFieldRenderer, nullableValue} from 'sentry/utils/discover/fieldRender
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
@@ -144,14 +142,14 @@ function BaseExploreFieldRenderer({
 
   const field = String(column.key);
 
-  const otelFriendlyUI = organization?.features.includes('performance-otel-friendly-ui');
-  const renderer = getExploreFieldRenderer(field, meta, projectsMap, otelFriendlyUI);
+  const renderer = getExploreFieldRenderer(field, meta, projectsMap);
 
   let rendered = renderer(data, {
     location,
     organization,
     theme,
     unit,
+    projects,
   });
 
   if (field === 'timestamp') {
@@ -281,18 +279,9 @@ function BaseExploreFieldRenderer({
       rendered = <Link to={target}>{rendered}</Link>;
     }
 
-    if (organization.features.includes('discover-cell-actions-v2') && field === 'id') {
+    if (field === 'id') {
       return rendered;
     }
-  }
-
-  if (field === 'profile.id') {
-    const target = generateProfileFlamechartRouteWithQuery({
-      organization,
-      projectSlug: data.project,
-      profileId: data['profile.id'],
-    });
-    rendered = <Link to={target}>{rendered}</Link>;
   }
 
   return (
@@ -314,16 +303,12 @@ function BaseExploreFieldRenderer({
 function getExploreFieldRenderer(
   field: string,
   meta: MetaType,
-  projects: Record<string, Project>,
-  otelFriendlyUI: boolean
+  projects: Record<string, Project>
 ): ReturnType<typeof getFieldRenderer> {
   if (field === 'id' || field === 'span_id') {
     return eventIdRenderFunc(field);
   }
-  if (field === 'span.description' && !otelFriendlyUI) {
-    return spanDescriptionRenderFunc('span.description', projects);
-  }
-  if (field === SpanFields.NAME && otelFriendlyUI) {
+  if (field === SpanFields.NAME) {
     return spanDescriptionRenderFunc(SpanFields.NAME, projects);
   }
   return getFieldRenderer(field, meta, false);
@@ -392,7 +377,7 @@ const Description = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const WrappingText = styled('div')`

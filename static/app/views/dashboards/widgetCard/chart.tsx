@@ -9,18 +9,17 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -54,12 +53,12 @@ import {
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -71,8 +70,10 @@ import {
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
@@ -90,12 +91,14 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
+import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
+import {WidgetCardConfidenceFooter} from './confidenceFooter';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 const OTHER = 'Other';
@@ -119,6 +122,7 @@ type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
     confidence?: Confidence;
+    dataScanned?: 'full' | 'partial';
     disableZoom?: boolean;
     isMobile?: boolean;
     isSampled?: boolean | null;
@@ -152,6 +156,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     timeseriesResultsTypes,
     shouldResize,
     confidence,
+    dataScanned,
     showConfidenceWarning,
     sampleCount,
     isSampled,
@@ -253,9 +258,34 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     );
   }
 
+  if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
+    return (
+      <TableWrapper>
+        <AgentsTracesTableWidgetVisualization
+          limit={widget.limit}
+          tableWidths={widget.tableWidths}
+          dashboardFilters={props.dashboardFilters}
+          frameless
+        />
+      </TableWrapper>
+    );
+  }
+
+  if (widget.displayType === DisplayType.TEXT) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <TextComponent {...props} />
+      </TransitionChart>
+    );
+  }
+
   const {start, end, period, utc} = selection.datetime;
   const {projects, environments} = selection;
 
+  // TODO(JoshuaKGoldberg):
+  //   Unexpected unnecessary non-capturing group. This group can be removed without changing the behaviour of the regex  regexp/no-useless-non-capturing-group
+  // eslint-disable-next-line regexp/no-useless-non-capturing-group
   const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
   const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
     seriesName?.match(otherRegex)
@@ -458,20 +488,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     }
   };
 
-  // Excluding Other uses a slightly altered regex to match the Other series name
-  // because the series names are formatted with widget IDs to avoid conflicts
-  // when deactivating them across widgets
-  const topEventsCountExcludingOther =
-    timeseriesResults?.length && widget.queries[0]?.columns.length
-      ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
-        (timeseriesResults?.some(
-          ({seriesName}) =>
-            shouldColorOther ||
-            seriesName?.match(new RegExp(`(?:.* : ${OTHER};)|^${OTHER};`))
-        )
-          ? 1
-          : 0)
-      : undefined;
   return (
     <ChartZoom period={period} start={start} end={end} utc={utc} disabled={disableZoom}>
       {zoomRenderProps => {
@@ -517,6 +533,17 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                               ...(series?.length > 0
                                 ? (modifiedReleaseSeriesResults ?? [])
                                 : []),
+                              ...(defined(widget.thresholds?.max_values.max1) ||
+                              defined(widget.thresholds?.max_values.max2)
+                                ? new ThresholdsPlottable({
+                                    thresholds: {
+                                      ...widget.thresholds,
+                                      preferredPolarity:
+                                        widget.thresholds?.preferredPolarity ?? '-',
+                                    },
+                                    dataType: outputType,
+                                  }).toSeries({theme})
+                                : []),
                             ],
                             onLegendSelectChanged: handleLegendSelectChange,
                             onChartReady: handleChartReady,
@@ -527,15 +554,20 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                         fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                       })}
                     </RenderedChartContainer>
-
-                    {showConfidenceWarning && confidence && (
-                      <ConfidenceFooter
+                    {showConfidenceWarning ? (
+                      <WidgetCardConfidenceFooter
                         confidence={confidence}
-                        sampleCount={sampleCount}
-                        topEvents={topEventsCountExcludingOther}
+                        dataScanned={dataScanned}
                         isSampled={isSampled}
+                        loading={loading}
+                        sampleCount={sampleCount}
+                        selection={selection}
+                        series={series}
+                        timeseriesResults={timeseriesResults}
+                        widget={widget}
+                        yAxis={axisLabel}
                       />
-                    )}
+                    ) : null}
                   </ChartWrapper>
                 </TransitionChart>
               );
@@ -606,9 +638,8 @@ function TableComponent({
       }
     }
 
-    const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
     let cellActions = ALLOWED_CELL_ACTIONS;
-    if (disableTableActions || !useCellActionsV2) {
+    if (disableTableActions) {
       cellActions = [];
     } else if (widget.widgetType === WidgetType.SPANS) {
       cellActions = [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE];
@@ -730,14 +761,6 @@ function BigNumberComponent({
 function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {widget, tableResults, loading} = props;
 
-  const hasCategoricalBarCharts = useOrganization().features.includes(
-    'dashboards-categorical-bar-charts'
-  );
-
-  if (!hasCategoricalBarCharts) {
-    return null;
-  }
-
   if (loading || !tableResults?.[0]) {
     return <LoadingPlaceholder />;
   }
@@ -753,7 +776,20 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     );
   }
 
-  const categoricalSeriesData = transformTableToCategoricalSeries(query, {
+  // When multiple aggregates exist, only plot the selected one (radio selection).
+  // This mirrors Big Number behavior — all aggregates are queried, but only
+  // one is rendered at a time.
+  const selectedIndex = getSelectedAggregateIndex(
+    query.selectedAggregate,
+    query.aggregates.length
+  );
+  const selectedAggregate = query.aggregates[selectedIndex];
+  // Filter query to only the selected aggregate.
+  const filteredQuery = selectedAggregate
+    ? {...query, aggregates: [selectedAggregate]}
+    : query;
+
+  const categoricalSeriesData = transformTableToCategoricalSeries(filteredQuery, {
     data: tableData.data,
     meta: {
       fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],
@@ -816,13 +852,17 @@ function ServerTreeComponent({
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
-  return (
-    <WheelWidgetVisualization
-      tableResults={props.tableResults}
-      loading={props.loading}
-      selection={props.selection}
-    />
-  );
+  return <WheelWidgetVisualization tableResults={props.tableResults} />;
+}
+
+function TextComponent(props: TableComponentProps): React.ReactNode {
+  const hasTextWidgets = useOrganization().features.includes('dashboards-text-widgets');
+
+  if (!hasTextWidgets) {
+    return null;
+  }
+
+  return <TextWidgetVisualization text={props.widget.description} />;
 }
 
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
@@ -879,7 +919,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
 ))`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   justify-content: center;
   align-items: center;
   pointer-events: none;
@@ -917,7 +957,9 @@ const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
   overflow: hidden;
   position: relative;
   padding: ${p =>
-    p.noPadding ? `0` : `0${space(1)} ${space(3)} ${space(3)} ${space(3)}`};
+    p.noPadding
+      ? `0`
+      : `${p.theme.space.md} ${p.theme.space['2xl']} ${p.theme.space['2xl']} ${p.theme.space['2xl']}`};
 `;
 
 const BigNumber = styled('div')`
@@ -937,21 +979,21 @@ const BigNumber = styled('div')`
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
   width: 100%;
-  padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
+  padding: ${p => (p.noPadding ? `0` : `0 ${p.theme.space.xl} ${p.theme.space.xl}`)};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TableWrapper = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.radius.md};
   border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const RenderedChartContainer = styled('div')`

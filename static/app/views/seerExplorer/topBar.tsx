@@ -3,6 +3,9 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   IconAdd,
@@ -30,13 +33,16 @@ interface TopBarProps {
   onCopySessionClick: () => void;
   onFeedbackClick: () => void;
   onNewChatClick: () => void;
+  onOverrideCtxEngEnableToggle: () => void;
   onSessionHistoryClick: (buttonRef: React.RefObject<HTMLElement | null>) => void;
   onSizeToggleClick: () => void;
+  overrideCtxEngEnable: boolean;
   panelSize: 'max' | 'med';
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
+  showContextEngineToggle: boolean;
 }
 
-function TopBar({
+export function TopBar({
   isPolling,
   isEmptyState,
   isSeerDrawerOpen,
@@ -48,6 +54,9 @@ function TopBar({
   onCopySessionClick,
   onCopyLinkClick,
   onSizeToggleClick,
+  onOverrideCtxEngEnableToggle,
+  overrideCtxEngEnable,
+  showContextEngineToggle,
   panelSize,
   isCopySessionEnabled,
   isCopyLinkEnabled,
@@ -71,7 +80,7 @@ function TopBar({
           priority="transparent"
           size="sm"
           aria-label={t('Start a new chat (/new)')}
-          title={t('Start a new chat (/new)')}
+          tooltipProps={{title: t('Start a new chat (/new)')}}
         />
         <SessionHistoryButtonWrapper isSelected={isSessionHistoryOpen}>
           <Button
@@ -81,7 +90,7 @@ function TopBar({
             priority="transparent"
             size="sm"
             aria-label={t('Resume a previous chat (/resume)')}
-            title={t('Resume a previous chat (/resume)')}
+            tooltipProps={{title: t('Resume a previous chat (/resume)')}}
             aria-expanded={isSessionHistoryOpen}
           />
         </SessionHistoryButtonWrapper>
@@ -91,7 +100,7 @@ function TopBar({
           priority="transparent"
           size="sm"
           aria-label={t('Copy conversation to clipboard')}
-          title={t('Copy conversation to clipboard')}
+          tooltipProps={{title: t('Copy conversation to clipboard')}}
           disabled={!isCopySessionEnabled}
         />
         <Button
@@ -100,9 +109,30 @@ function TopBar({
           priority="transparent"
           size="sm"
           aria-label={t('Copy link to current chat and web page')}
-          title={t('Copy link to current chat and web page')}
+          tooltipProps={{title: t('Copy link to current chat and web page')}}
           disabled={!isCopyLinkEnabled}
         />
+        {showContextEngineToggle && (
+          <Tooltip
+            title={
+              overrideCtxEngEnable
+                ? t('Context engine enabled (click to disable)')
+                : t('Context engine disabled (click to enable)')
+            }
+          >
+            <Flex align="center" gap="xs" padding="xs sm" height="100%">
+              <Switch
+                size="sm"
+                checked={overrideCtxEngEnable}
+                onChange={onOverrideCtxEngEnableToggle}
+                aria-label={t('Toggle context engine')}
+              />
+              <Text size="sm" variant="muted">
+                {t('CE')}
+              </Text>
+            </Flex>
+          </Tooltip>
+        )}
       </Flex>
       <AnimatePresence initial={false}>
         {!isEmptyState && (
@@ -124,7 +154,7 @@ function TopBar({
           priority="transparent"
           size="sm"
           aria-label={t('Give the devs feedback (/feedback)')}
-          title={t('Give the devs feedback (/feedback)')}
+          tooltipProps={{title: t('Give the devs feedback (/feedback)')}}
         />
         <Button
           icon={panelSize === 'max' ? <IconContract /> : <IconExpand />}
@@ -137,11 +167,12 @@ function TopBar({
               ? t('Shrink to medium size (/med-size)')
               : t('Expand to full screen (/max-size)')
           }
-          title={
-            panelSize === 'max'
-              ? t('Shrink to medium size (/med-size)')
-              : t('Expand to full screen (/max-size)')
-          }
+          tooltipProps={{
+            title:
+              panelSize === 'max'
+                ? t('Shrink to medium size (/med-size)')
+                : t('Expand to full screen (/max-size)'),
+          }}
         />
         <Button
           icon={<IconClose />}
@@ -149,14 +180,12 @@ function TopBar({
           priority="transparent"
           size="sm"
           aria-label={t('Close panel')}
-          title={t('Close panel')}
+          tooltipProps={{title: t('Close panel')}}
         />
       </Flex>
     </Flex>
   );
 }
-
-export default TopBar;
 
 const CenterSection = styled(motion.div)`
   position: absolute;

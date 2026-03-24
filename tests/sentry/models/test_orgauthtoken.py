@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import ValidationError
 
-from sentry.hybridcloud.models.outbox import RegionOutbox
+from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken, update_org_auth_token_last_used
@@ -47,7 +47,7 @@ class UpdateOrgAuthTokenLastUsed(TestCase):
                 scope_list=["org:ci"],
             )
         update_org_auth_token_last_used(token, [])
-        outbox = RegionOutbox.objects.first()
+        outbox = CellOutbox.objects.first()
         assert outbox
         assert outbox.category == OutboxCategory.ORGAUTHTOKEN_UPDATE_USED
         assert outbox.object_identifier == token.id
@@ -67,7 +67,7 @@ class UpdateOrgAuthTokenLastUsed(TestCase):
             )
         update_org_auth_token_last_used(token, [])
         update_org_auth_token_last_used(token, [])
-        assert RegionOutbox.objects.count() == 1, "Should be debounced"
+        assert CellOutbox.objects.count() == 1, "Should be debounced"
 
         update_org_auth_token_last_used(token, [123])
-        assert RegionOutbox.objects.count() == 2, "Different project ids create new outboxes"
+        assert CellOutbox.objects.count() == 2, "Different project ids create new outboxes"

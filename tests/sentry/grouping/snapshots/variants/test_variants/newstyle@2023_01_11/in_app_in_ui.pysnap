@@ -12,7 +12,7 @@ app:
           frame (marked out of app by the client)
             function*
               "start"
-          frame (marked in-app by the client but ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (marked in-app by the client but ignored by built-in stacktrace rule (category:threadbase -group v-group))
             filename*
               "main.m"
             function*
@@ -88,7 +88,7 @@ app:
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
-          frame (marked in-app by the client but ignored by built-in stack trace rule (category:internals -group))
+          frame (marked in-app by the client but ignored by built-in stacktrace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -113,7 +113,7 @@ app:
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
-          frame (marked in-app by the client but ignored by built-in stack trace rule (category:internals -group))
+          frame (marked in-app by the client but ignored by built-in stacktrace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -156,54 +156,54 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             filename*
               "main.m"
             function*
               "main"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
           frame*
             function*
               "-[UIApplication _run]"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "GSEventRunModal"
-          frame (ignored by built-in stack trace rule (category:indirection -group))
+          frame (ignored by built-in stacktrace rule (category:indirection -group))
             function*
               "CFRunLoopRunSpecific"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "__CFRunLoopRun"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "__CFRunLoopDoObservers"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "CA::Transaction::observer_callback"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "CA::Transaction::commit"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "CA::Context::commit_transaction"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "CA::Layer::layout_and_display_if_needed"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "CA::Layer::layout_if_needed"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "-[CALayer layoutSublayers]"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
           frame*
@@ -214,10 +214,10 @@ system:
           frame*
             function*
               "-[UITableView layoutSubviews]"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "-[UITableView _updateVisibleCellsNow:]"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
           frame*
@@ -235,7 +235,7 @@ system:
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -260,7 +260,7 @@ system:
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*

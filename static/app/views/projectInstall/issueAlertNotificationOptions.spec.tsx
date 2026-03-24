@@ -5,7 +5,8 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import IssueAlertNotificationOptions, {
+import {
+  IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
@@ -42,15 +43,17 @@ describe('MessagingIntegrationAlertRule', () => {
     providerKeys.forEach(providerKey => {
       mockResponses.push(
         MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
+          url: `/organizations/${organization.slug}/config/integrations/`,
           body: {providers: providers(providerKey)},
+          match: [MockApiClient.matchQuery({provider_key: providerKey})],
         })
       );
     });
     mockResponses.push(
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        url: `/organizations/${organization.slug}/integrations/`,
         body: [],
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
       })
     );
     render(

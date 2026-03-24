@@ -16,13 +16,14 @@ import {
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
-const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-chart',
@@ -51,10 +52,10 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
         {
           name: AVERAGE_DURATION_TEXT,
           conditions: FILTER_STRING,
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -66,31 +67,12 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       interval: '5m',
       queries: [
         {
-          name: '3XX',
+          name: '',
           conditions: FILTER_STRING,
-          fields: [PERCENTAGE_3XX],
-          aggregates: [PERCENTAGE_3XX],
+          fields: [PERCENTAGE_3XX, PERCENTAGE_4XX, PERCENTAGE_5XX],
+          aggregates: [PERCENTAGE_3XX, PERCENTAGE_4XX, PERCENTAGE_5XX],
           columns: [],
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
           orderby: PERCENTAGE_3XX,
-        },
-        {
-          name: '4XX',
-          conditions: FILTER_STRING,
-          fields: [PERCENTAGE_4XX],
-          aggregates: [PERCENTAGE_4XX],
-          columns: [],
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
-          orderby: PERCENTAGE_4XX,
-        },
-        {
-          name: '5XX',
-          conditions: FILTER_STRING,
-          fields: [PERCENTAGE_5XX],
-          aggregates: [PERCENTAGE_5XX],
-          columns: [],
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
-          orderby: PERCENTAGE_5XX,
         },
       ],
     },
@@ -111,8 +93,8 @@ const DOMAIN_TABLE: Widget = {
         PERCENTAGE_3XX,
         PERCENTAGE_4XX,
         PERCENTAGE_5XX,
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.SPAN_DOMAIN, SpanFields.PROJECT],
       fields: [
@@ -122,8 +104,8 @@ const DOMAIN_TABLE: Widget = {
         PERCENTAGE_3XX,
         PERCENTAGE_4XX,
         PERCENTAGE_5XX,
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
       ],
       fieldAliases: [
         t('Domain'),
@@ -142,23 +124,15 @@ const DOMAIN_TABLE: Widget = {
           staticDashboardId: 5,
         },
       ],
-      fieldMeta: [
-        null,
-        null,
-        null,
-        {valueType: 'percentage', valueUnit: null},
-        {valueType: 'percentage', valueUnit: null},
-        {valueType: 'percentage', valueUnit: null},
-      ],
       conditions: FILTER_STRING,
       name: '',
-      orderby: '-sum(span.self_time)',
+      orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
   layout: {
     x: 0,
     y: 2,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
     h: 4,
     w: 6,
   },
@@ -191,4 +165,5 @@ export const HTTP_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   widgets: [...FIRST_ROW_WIDGETS, DOMAIN_TABLE],
+  onboarding: {type: 'module', moduleName: ModuleName.HTTP},
 };

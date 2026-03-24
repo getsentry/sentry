@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
-import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
+import {ServiceHookSettingsForm} from 'sentry/views/settings/project/serviceHookSettingsForm';
 
 export default function ProjectCreateServiceHook() {
   const organization = useOrganization();

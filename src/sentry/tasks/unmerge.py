@@ -500,7 +500,7 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
     name="sentry.tasks.unmerge",
     namespace=issues_tasks,
     processing_deadline_duration=300,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
     args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)

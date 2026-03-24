@@ -1311,7 +1311,6 @@ class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
 
 
 class CompareInsightsTest(TestCase):
-
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)

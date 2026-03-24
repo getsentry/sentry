@@ -5,11 +5,11 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
-    RegionOrganizationIntegrationBaseEndpoint,
+    CellOrganizationIntegrationBaseEndpoint,
 )
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.organization import Organization
@@ -24,8 +24,8 @@ class IntegrationRepository(TypedDict):
     defaultBranch: str | None
 
 
-@region_silo_endpoint
-class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
+@cell_silo_endpoint
+class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

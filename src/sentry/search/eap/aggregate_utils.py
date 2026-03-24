@@ -9,7 +9,9 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
-from sentry.search.eap.columns import ResolvedArguments
+from sentry.search.eap.columns import (
+    ResolvedArguments,
+)
 from sentry.search.eap.normalizer import unquote_literal
 
 
@@ -69,9 +71,9 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     operator = cast(str, args[2])
 
     value = args[3]
-    assert isinstance(
-        value, str
-    ), "Value must be a String"  # This should always be a string. Assertion to deal with typing errors.
+    assert isinstance(value, str), (
+        "Value must be a String"
+    )  # This should always be a string. Assertion to deal with typing errors.
 
     attr_value = resolve_attribute_value(key, value, f"Invalid third parameter {value}")
 
@@ -122,4 +124,4 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
                 value=attr_value,
             )
         )
-    return (aggregate_key, trace_filter)
+    return aggregate_key, trace_filter

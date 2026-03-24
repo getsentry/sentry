@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
-import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useReplayCount} from 'sentry/utils/replayCount/useReplayCount';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   bufferLimit?: number;
@@ -11,7 +11,7 @@ interface Props {
 /**
  * Query results for whether a Transaction has replays associated.
  */
-export default function useReplayCountForTransactions({
+export function useReplayCountForTransactions({
   bufferLimit = 25,
   statsPeriod = '14d',
 }: Props = {}) {

@@ -5,6 +5,7 @@ from typing import Any, cast
 
 import sentry_sdk
 from django.utils import timezone
+from taskbroker_client.retry import Retry
 
 from sentry import analytics
 from sentry.analytics.events.groupowner_assignment import GroupOwnerAssignment
@@ -16,7 +17,6 @@ from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -188,7 +188,7 @@ def _process_suspect_commits(
     namespace=issues_tasks,
     processing_deadline_duration=TASK_DURATION_S,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def process_suspect_commits(

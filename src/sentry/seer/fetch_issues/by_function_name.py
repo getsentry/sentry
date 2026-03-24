@@ -11,6 +11,7 @@ from snuba_sdk import Request as SnubaRequest
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.fetch_issues import utils
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -263,7 +264,7 @@ def _fetch_issues_from_repo_projects(
 @utils.handle_fetch_issues_exceptions
 def fetch_issues(
     organization_id: int,
-    provider: str,
+    provider: SeerSCMProvider,
     external_id: str,
     filename: str,
     function_name: str,

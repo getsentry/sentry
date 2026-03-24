@@ -305,7 +305,6 @@ class RecordErrorTest(TestCase):
             (CircuitBreakerState.OK, breaker.primary_quota, breaker.error_limit),
             (CircuitBreakerState.RECOVERY, breaker.recovery_quota, breaker.recovery_error_limit),
         ]:
-
             breaker._set_breaker_state(state)
             breaker._add_quota_usage(quota, limit - 1)
             assert breaker._get_remaining_error_quota(quota) == 1
@@ -367,7 +366,6 @@ class RecordErrorTest(TestCase):
                 1231,
             ),
         ]:
-
             breaker._set_breaker_state(current_state, seconds_left)
             breaker._add_quota_usage(quota, limit - 1)
             assert breaker._get_remaining_error_quota(quota) == 1

@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
@@ -30,7 +30,6 @@ describe('useMultiQueryTable', () => {
 
     jest.mocked(usePageFilters).mockReturnValue({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       shouldPersist: true,
       selection: {

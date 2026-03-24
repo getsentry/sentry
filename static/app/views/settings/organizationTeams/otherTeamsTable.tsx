@@ -10,14 +10,13 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useJoinTeam} from 'sentry/views/settings/organizationTeams/hooks/useJoinTeam';
 import {useRequestTeamAccess} from 'sentry/views/settings/organizationTeams/hooks/useRequestTeamAccess';
 import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
@@ -214,7 +213,7 @@ function TeamAction({
         size={actionSize}
         onClick={onJoinTeam}
         disabled={isIdpProvisioned}
-        title={buttonHelpText}
+        tooltipProps={{title: buttonHelpText}}
       >
         {t('Join Team')}
       </Button>
@@ -227,7 +226,7 @@ function TeamAction({
       size={actionSize}
       onClick={onRequestAccess}
       disabled={isIdpProvisioned}
-      title={buttonHelpText}
+      tooltipProps={{title: buttonHelpText}}
     >
       {t('Request Access')}
     </Button>
@@ -236,7 +235,7 @@ function TeamAction({
 
 const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr 125px 150px 130px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='actions'] {
     padding-left: 0;

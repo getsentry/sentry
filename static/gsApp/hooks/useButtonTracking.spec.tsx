@@ -1,6 +1,5 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {createMemoryRouter, RouterProvider} from 'react-router-dom';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
@@ -8,10 +7,9 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import type {ButtonProps} from '@sentry/scraps/button';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import {TestRouteContext} from 'sentry/views/routeContext';
 
-import useButtonTracking from 'getsentry/hooks/useButtonTracking';
-import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
+import {useButtonTracking} from 'getsentry/hooks/useButtonTracking';
+import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 
 jest.mock('getsentry/utils/rawTrackAnalyticsEvent');
 
@@ -20,23 +18,39 @@ describe('buttonTracking', () => {
 
   const project = ProjectFixture({organization});
 
-  const router = {
-    location: LocationFixture({
-      pathname: `/settings/${organization.slug}/${project.slug}/`,
-    }),
-    params: {orgId: organization.slug},
-    routes: [
-      {path: '/'},
-      {path: '/settings/'},
-      {path: ':orgId/'},
-      {path: 'projects/:projectId/'},
-    ],
-    router: RouterFixture(),
-  };
-
   const wrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={organization}>
-      <TestRouteContext value={router}>{children}</TestRouteContext>
+      <RouterProvider
+        router={createMemoryRouter(
+          [
+            {
+              path: '/',
+              handle: {path: '/'},
+              children: [
+                {
+                  path: 'settings/',
+                  handle: {path: '/settings/'},
+                  children: [
+                    {
+                      path: ':orgId/',
+                      handle: {path: ':orgId/'},
+                      children: [
+                        {
+                          path: ':projectId/',
+                          handle: {path: 'projects/:projectId/'},
+                          element: children,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          {initialEntries: [`/settings/${organization.slug}/${project.slug}/`]}
+        )}
+        future={{v7_startTransition: true}}
+      />
     </OrganizationContext>
   );
 

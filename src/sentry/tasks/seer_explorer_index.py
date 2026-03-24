@@ -4,18 +4,20 @@ import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
 
-import orjson
-import requests
 import sentry_sdk
-from django.conf import settings
 from django.utils import timezone as django_timezone
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    ExplorerIndexProject,
+    ExplorerIndexRequest,
+    SeerViewerContext,
+    make_explorer_index_request,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.statistical_detectors import compute_delay
 from sentry.taskworker.namespaces import seer_tasks
@@ -108,9 +110,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
                     if in_rollout_group("seer.explorer-index.rollout", project.organization_id):
                         is_eligible = True
 
-            has_feature = is_eligible and get_seer_org_acknowledgement(project.organization)
-
-        if not has_feature:
+        if not is_eligible:
             continue
 
         yield project.id, project.organization_id
@@ -123,7 +123,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
 )
 def schedule_explorer_index() -> None:
     """
-    Main periodic task that runs daily to schedule explorer indexing for active projects
+    Main periodic task that runs every hour to schedule explorer indexing for active projects
     in seer-enabled organizations. Spreads the load throughout the day.
     """
     logger.info("Started schedule_explorer_index task")
@@ -224,23 +224,25 @@ def run_explorer_index_for_projects(
     if not projects:
         return
 
-    project_list = [{"org_id": org_id, "project_id": project_id} for project_id, org_id in projects]
-    payload = {"projects": project_list}
-    body = orjson.dumps(payload)
-    path = "/v1/automation/explorer/index"
+    project_list = [
+        ExplorerIndexProject(org_id=org_id, project_id=project_id)
+        for project_id, org_id in projects
+    ]
+    payload = ExplorerIndexRequest(projects=project_list)
+
+    # Only set viewer_context when all projects in the batch share the same org
+    org_ids = {org_id for _, org_id in projects}
+    viewer_context = SeerViewerContext(organization_id=org_ids.pop()) if len(org_ids) == 1 else None
 
     try:
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_explorer_index_request(
+            payload,
             timeout=30,
+            viewer_context=viewer_context,
         )
-        response.raise_for_status()
-    except requests.RequestException as e:
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+    except Exception as e:
         logger.exception(
             "Failed to schedule explorer index tasks in seer",
             extra={

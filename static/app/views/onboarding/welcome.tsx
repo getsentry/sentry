@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
@@ -9,10 +10,9 @@ import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
-import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
+import {WelcomeBackground} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
 import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
@@ -48,7 +48,8 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function TargetedOnboardingWelcome(props: StepProps) {
+export function TargetedOnboardingWelcome(props: StepProps) {
+  const theme = useTheme();
   useWelcomeAnalyticsEffect();
 
   const handleComplete = useWelcomeHandleComplete(props.onComplete);
@@ -58,10 +59,10 @@ function TargetedOnboardingWelcome(props: StepProps) {
       {({fallingError, fallCount, isFalling}) => (
         <Wrapper>
           <WelcomeBackground />
-          <motion.h1 {...fadeAway} style={{marginBottom: space(0.5)}}>
+          <motion.h1 {...fadeAway} style={{marginBottom: theme.space.xs}}>
             {t('Welcome to Sentry')}
           </motion.h1>
-          <SubHeaderText style={{marginBottom: space(4)}} {...fadeAway}>
+          <SubHeaderText style={{marginBottom: theme.space['3xl']}} {...fadeAway}>
             {t(
               'Your code is probably broken. Maybe not. Find out for sure. Get started below.'
             )}
@@ -100,8 +101,6 @@ function TargetedOnboardingWelcome(props: StepProps) {
   );
 }
 
-export default TargetedOnboardingWelcome;
-
 const PositionedFallingError = styled('span')`
   display: block;
   position: absolute;
@@ -128,9 +127,9 @@ const Wrapper = styled(motion.div)`
 
 const ActionItem = styled(motion.div)`
   min-height: 120px;
-  border-radius: ${space(0.5)};
-  padding: ${space(2)};
-  margin-bottom: ${space(2)};
+  border-radius: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
   justify-content: space-around;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -147,18 +146,18 @@ const ActionItem = styled(motion.div)`
 
 const TextWrapper = styled('div')`
   text-align: left;
-  margin: auto ${space(3)};
+  margin: auto ${p => p.theme.space['2xl']};
   min-height: 70px;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     text-align: center;
-    margin: ${space(1)} ${space(1)};
-    margin-top: ${space(3)};
+    margin: ${p => p.theme.space.md} ${p => p.theme.space.md};
+    margin-top: ${p => p.theme.space['2xl']};
   }
 `;
 
 const ActionTitle = styled('h5')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin: 0 0 ${space(0.5)};
+  margin: 0 0 ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
@@ -167,7 +166,7 @@ const SubHeaderText = styled(motion.h6)`
 `;
 
 const ButtonWrapper = styled('div')`
-  margin: ${space(1)};
+  margin: ${p => p.theme.space.md};
   position: relative;
 `;
 

@@ -5,8 +5,6 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {space} from 'sentry/styles/space';
-
 import ResultGrid from 'admin/components/resultGrid';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
@@ -39,11 +37,12 @@ const getRow = ({row, policy, onUpdate}: RowProps) => {
     </td>,
     <td key="actions" data-test-id="revision-actions">
       <Button
-        title={
-          policy.version === row.version
-            ? 'This is already the current version'
-            : 'Make this the active version of this policy.'
-        }
+        tooltipProps={{
+          title:
+            policy.version === row.version
+              ? 'This is already the current version'
+              : 'Make this the active version of this policy.',
+        }}
         disabled={policy.version === row.version}
         onClick={() => onUpdate({current: true}, row.version)}
       >
@@ -53,7 +52,7 @@ const getRow = ({row, policy, onUpdate}: RowProps) => {
   ];
 };
 
-function PolicyRevisions({policy, onUpdate}: Props) {
+export function PolicyRevisions({policy, onUpdate}: Props) {
   return (
     <ResultGrid
       inPanel
@@ -78,12 +77,10 @@ function PolicyRevisions({policy, onUpdate}: Props) {
 }
 
 const CurrentTag = styled(Tag)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const FileName = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
 `;
-
-export default PolicyRevisions;

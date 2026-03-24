@@ -25,13 +25,14 @@ typecheckable_rules_changed: &typecheckable_rules_changed
   - added|modified: '.github/file-filters.yml'
   - added|deleted|modified: '**/tsconfig*.json'
   - added|deleted|modified: 'static/**/*.{ts,tsx,js,jsx,mjs}'
+  - added|deleted|modified: 'static/**/*.mdx'
 
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
   - *sentry_frontend_workflow_file
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
-  - added|modified: '{.volta,vercel,tsconfig,biome,package}.json'
+  - added|modified: '{vercel,tsconfig,biome,package}.json'
 
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
@@ -77,16 +78,24 @@ backend_src: &backend_src
   # needs to trigger the backend tests.
   - '.github/CODEOWNERS'
 
-backend_all: &backend_all
+backend_common: &backend_common
   - *backend_src
+  - 'devservices/**'
+  - '.github/actions/setup-sentry/action.yml'
+
+backend_all: &backend_all
+  - *backend_common
   - '**/*.py'
   - '**/*.pyi'
-  - 'devservices/**'
-  # If action.yaml is changed, all workflows that call file-filters.yml and expect
-  # the backend_all output should be triggered.
-  # For instance, acceptance.yml expects steps.changes.outputs.backend_all for the
-  # dorny/paths-filter step and it runs the setup-sentry action.
-  - '.github/actions/setup-sentry/action.yml'
+
+# Like backend_all, but excludes tests/acceptance/ since those have their own
+# dedicated workflow (acceptance.yml) and are already --ignored by test-python-ci.
+# Used by backend.yml to avoid triggering the full backend suite unnecessarily.
+backend_all_without_acceptance: &backend_all_without_acceptance
+  - *backend_common
+  - 'tests/!(acceptance)/**/*.{py,pyi}'
+  - 'tests/*.py'
+  - '!(tests)/**/*.pyi'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance

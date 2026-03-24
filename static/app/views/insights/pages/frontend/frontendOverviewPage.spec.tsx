@@ -4,8 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import FrontendOverviewPage from 'sentry/views/insights/pages/frontend/frontendOverviewPage';
 

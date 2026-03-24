@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 
+import {getStringAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsExecuteToolSpan} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -34,12 +35,8 @@ export function useFocusedToolSpan({
     }
 
     const toolSpan = nodes.find(node => {
-      const opType = node.attributes?.[SpanFields.GEN_AI_OPERATION_TYPE] as
-        | string
-        | undefined;
-      const toolName = node.attributes?.[SpanFields.GEN_AI_TOOL_NAME] as
-        | string
-        | undefined;
+      const opType = getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
+      const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       return getIsExecuteToolSpan(opType) && toolName === focusedTool;
     });
 

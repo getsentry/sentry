@@ -29,7 +29,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import DEFAULT_2XX_STATUS_ASSERTION, UptimeMonitorMode
 from sentry.uptime.utils import get_cluster
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
@@ -255,6 +255,7 @@ def monitor_url_for_project(project: Project, url: str) -> Detector:
         timeout_ms=ONBOARDING_SUBSCRIPTION_TIMEOUT_MS,
         name=f"Uptime Monitoring for {url}",
         mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
+        assertion=DEFAULT_2XX_STATUS_ASSERTION,
     )
 
 

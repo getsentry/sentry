@@ -6,7 +6,6 @@ import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   DEFAULT_YAXIS_BY_TYPE,
   OPTIONS_BY_TYPE,
@@ -48,22 +47,14 @@ export function MultiMetricsQueryParamsProvider({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const hasMultiVisualize = useOrganization().features.includes(
-    'tracemetrics-overlay-charts-ui'
-  );
-
-  const value: MultiMetricsQueryParamsContextValue = useMemo(() => {
-    const metricQueries = getMultiMetricsQueryParamsFromLocation(
-      location,
-      allowUpTo,
-      hasMultiVisualize
-    );
+  const value = useMemo(() => {
+    const metricQueries = getMultiMetricsQueryParamsFromLocation(location, allowUpTo);
 
     function setQueryParamsForIndex(i: number) {
       return function (newQueryParams: ReadableQueryParams) {
         const target = {...location, query: {...location.query}};
 
-        const newMetricQueries: string[] = metricQueries
+        const newMetricQueries = metricQueries
           .map((metricQuery: BaseMetricQuery, j: number) => {
             if (i !== j) {
               return metricQuery;
@@ -141,7 +132,7 @@ export function MultiMetricsQueryParamsProvider({
 
         const target = {...location, query: {...location.query}};
 
-        const newMetricQueries: string[] = metricQueries
+        const newMetricQueries = metricQueries
           .filter((_, j) => i !== j)
           .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
           .filter(defined)
@@ -162,7 +153,7 @@ export function MultiMetricsQueryParamsProvider({
         };
       }),
     };
-  }, [allowUpTo, hasMultiVisualize, location, navigate]);
+  }, [allowUpTo, location, navigate]);
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -173,13 +164,12 @@ export function MultiMetricsQueryParamsProvider({
 
 function getMultiMetricsQueryParamsFromLocation(
   location: Location,
-  limit?: number,
-  multiVisualize = false
+  limit?: number
 ): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
   const metricQueries = rawQueryParams
-    .map(value => decodeMetricsQueryParams(value, multiVisualize))
+    .map(value => decodeMetricsQueryParams(value))
     .filter(defined);
 
   const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
@@ -200,7 +190,7 @@ export function useAddMetricQuery() {
   return function () {
     const target = {...location, query: {...location.query}};
 
-    const newMetricQueries: string[] = [
+    const newMetricQueries = [
       ...metricQueries,
       metricQueries[metricQueries.length - 1] ?? defaultMetricQuery(),
     ]

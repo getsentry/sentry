@@ -7,10 +7,10 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import hookIntegrationFeatures from 'getsentry/hooks/integrationFeatures';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
 describe('hookIntegrationFeatures', () => {

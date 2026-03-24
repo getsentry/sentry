@@ -16,7 +16,6 @@ logger = logging.getLogger("sentry.snuba.trace_metrics")
 
 
 class TraceMetrics(rpc_dataset_common.RPCBase):
-
     DEFINITIONS = TRACE_METRICS_DEFINITIONS
 
     @classmethod

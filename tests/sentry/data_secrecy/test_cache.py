@@ -96,7 +96,9 @@ class EffectiveGrantStatusCacheTest(TestCase):
             EffectiveGrantStatusCache.set(self.organization_id, grant_status, self.current_time)
 
             mock_cache_set.assert_called_once_with(
-                self.cache_key, grant_status, timeout=120  # NEGATIVE_CACHE_TTL
+                self.cache_key,
+                grant_status,
+                timeout=120,  # NEGATIVE_CACHE_TTL
             )
 
     @freeze_time("2025-01-01 12:00:00")

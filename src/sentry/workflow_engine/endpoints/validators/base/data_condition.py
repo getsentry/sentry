@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, NotRequired, TypedDict, TypeVar
 
 from jsonschema import ValidationError as JsonValidationError
 from rest_framework import serializers
@@ -18,6 +18,13 @@ ComparisonType = TypeVar("ComparisonType")
 ConditionResult = TypeVar("ConditionResult")
 
 
+class DataConditionInput(TypedDict):
+    id: NotRequired[int]
+    type: str
+    comparison: Any
+    conditionResult: Any
+
+
 class AbstractDataConditionValidator(
     CamelSnakeSerializer[Any],
     Generic[ComparisonType, ConditionResult],
@@ -26,7 +33,6 @@ class AbstractDataConditionValidator(
     type = serializers.ChoiceField(choices=[(t.value, t.value) for t in Condition])
     comparison = serializers.JSONField(required=True)
     condition_result = serializers.JSONField(required=True)
-    condition_group_id = serializers.IntegerField(required=False)
 
     @abstractmethod
     def validate_comparison(self, value: Any) -> ComparisonType:
@@ -40,7 +46,6 @@ class AbstractDataConditionValidator(
 class BaseDataConditionValidator(
     AbstractDataConditionValidator[Any, Any],
 ):
-
     @property
     def condition_type(self) -> Condition:
         if isinstance(self.initial_data, list) and self.initial_data:

@@ -28,9 +28,9 @@ class GroupHashMetadataTest(TestCase):
         assert grouphash and grouphash.metadata
 
         for value_name, value in values.items():
-            assert (
-                getattr(grouphash.metadata, value_name) == value
-            ), f"Incorrect value for {value_name}"
+            assert getattr(grouphash.metadata, value_name) == value, (
+                f"Incorrect value for {value_name}"
+            )
 
     def test_creates_grouphash_metadata_when_appropriate(self) -> None:
         # The killswitch is obeyed
@@ -200,7 +200,6 @@ class GroupHashMetadataTest(TestCase):
                 return_value={"something": "different"},
             ),
         ):
-
             event2 = save_new_event({"message": "Dogs are great!"}, self.project)
             grouphash2 = GroupHash.objects.filter(
                 project=self.project, hash=event2.get_primary_hash()
@@ -264,7 +263,6 @@ class GroupHashMetadataTest(TestCase):
                 return_value={"something": "different"},
             ),
         ):
-
             event2 = save_new_event({"message": "Dogs are great!"}, self.project)
             grouphash2 = GroupHash.objects.filter(
                 project=self.project, hash=event2.get_primary_hash()

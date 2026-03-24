@@ -1,10 +1,12 @@
 from unittest.mock import Mock, patch
 
+from django.test import override_settings
 from slack_sdk.models.blocks import (
     ActionsBlock,
     ButtonElement,
     ContextBlock,
     LinkButtonElement,
+    MarkdownBlock,
     PlainTextObject,
     SectionBlock,
 )
@@ -15,6 +17,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixCodeChange,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
+    SeerExplorerError,
+    SeerExplorerResponse,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
@@ -24,7 +28,6 @@ class SeerSlackRendererTest(TestCase):
     def _create_update(
         self,
         current_point: AutofixStoppingPoint,
-        has_progressed: bool = False,
         summary: str | None = None,
         steps: list[str] | None = None,
         changes: list[SeerAutofixCodeChange] | None = None,
@@ -37,39 +40,31 @@ class SeerSlackRendererTest(TestCase):
             group_id=MOCK_GROUP_ID,
             current_point=current_point,
             group_link=f"https://sentry.io/issues/{MOCK_GROUP_ID}?seerDrawer=true",
-            has_progressed=has_progressed,
             summary=summary,
             steps=steps or [],
             changes=changes or [],
             pull_requests=pull_requests or [],
         )
 
-    def test_render_footer_blocks_with_stage_completed(self) -> None:
+    def test_render_footer_blocks_with_has_complete_stage(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        blocks = SeerSlackRenderer.render_footer_blocks(data=data, stage_completed=True)
-        assert len(blocks) == 2
-        # The first block has the next stages working text and a link
-        config = AUTOFIX_CONFIG[AutofixStoppingPoint.SOLUTION]
-        working_text = config["working_text"]
-        assert working_text is not None
+        blocks = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=True)
+        assert len(blocks) == 1
+        config = AUTOFIX_CONFIG[AutofixStoppingPoint.ROOT_CAUSE]
+        completed_text = config["completed_text"]
+        assert completed_text is not None
         section_block = blocks[0]
         assert isinstance(section_block, SectionBlock)
         assert section_block.text is not None
-        assert working_text in section_block.text.text
+        assert completed_text in section_block.text.text
         assert section_block.accessory is not None
         assert isinstance(section_block.accessory, LinkButtonElement)
         assert section_block.accessory.url == data.group_link
-        # The second block should be a context block with run_id
-        assert isinstance(blocks[1], ContextBlock)
-        context_element = blocks[1].elements[0]
-        assert isinstance(context_element, PlainTextObject)
-        assert f"Run ID: {MOCK_RUN_ID}" in context_element.text
 
     def test_render_footer_blocks_with_stage_not_completed(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        blocks = SeerSlackRenderer.render_footer_blocks(data=data, stage_completed=False)
-        assert len(blocks) == 2
-        # The first block should contain the working text for the CURRENT stage
+        blocks = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=False)
+        assert len(blocks) == 1
         config = AUTOFIX_CONFIG[AutofixStoppingPoint.ROOT_CAUSE]
         working_text = config["working_text"]
         assert working_text is not None
@@ -82,16 +77,21 @@ class SeerSlackRendererTest(TestCase):
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         extra_text = "(ty <@U12345>)"
         blocks = SeerSlackRenderer.render_footer_blocks(data=data, extra_text=extra_text)
-        assert len(blocks) == 2
+        assert len(blocks) == 1
         section_block = blocks[0]
         assert isinstance(section_block, SectionBlock)
         assert section_block.text is not None
         assert extra_text in section_block.text.text
 
-    def test_render_footer_blocks_returns_empty_for_open_pr_completed(self) -> None:
-        data = self._create_update(AutofixStoppingPoint.OPEN_PR)
-        blocks = SeerSlackRenderer.render_footer_blocks(data=data, stage_completed=True)
-        assert len(blocks) == 0
+    @override_settings(DEBUG=True)
+    def test_render_footer_debug_block(self) -> None:
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
+        blocks = SeerSlackRenderer.render_footer_blocks(data=data)
+        assert len(blocks) == 2
+        assert isinstance(blocks[1], ContextBlock)
+        context_element = blocks[1].elements[0]
+        assert isinstance(context_element, PlainTextObject)
+        assert f"Run ID: {MOCK_RUN_ID}" in context_element.text
 
     def test_render_autofix_button(self) -> None:
         element = SeerSlackRenderer.render_autofix_button(group=self.group)
@@ -99,13 +99,6 @@ class SeerSlackRendererTest(TestCase):
         assert element.text is not None
         assert element.text.text == "Fix with Seer"
         assert element.value == AutofixStoppingPoint.ROOT_CAUSE.value
-
-    def test_render_status_text(self) -> None:
-        text = SeerSlackRenderer.render_status_text(group=self.group)
-        assert ":hourglass: Seer is running a root cause analysis..." in text
-        assert "seerDrawer=true" in text
-        assert text.startswith("<")
-        assert text.endswith(">")
 
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",
@@ -116,7 +109,6 @@ class SeerSlackRendererTest(TestCase):
     ) -> None:
         data = self._create_update(
             current_point=AutofixStoppingPoint.ROOT_CAUSE,
-            has_progressed=False,
             summary="Test summary",
         )
         renderable = SeerSlackRenderer._render_autofix_update(data)
@@ -138,40 +130,9 @@ class SeerSlackRendererTest(TestCase):
         "sentry.notifications.platform.templates.seer.organization_service.get_option",
         return_value=True,
     )
-    def test_render_autofix_update_with_progress_shows_footer(self, _mock_get_option: Mock) -> None:
-        data = self._create_update(
-            current_point=AutofixStoppingPoint.ROOT_CAUSE,
-            has_progressed=True,
-        )
-        renderable = SeerSlackRenderer._render_autofix_update(data)
-        # Should have footer blocks (section + context)
-        has_context_block = any(isinstance(b, ContextBlock) for b in renderable["blocks"])
-        assert has_context_block
-
-    @patch(
-        "sentry.notifications.platform.templates.seer.organization_service.get_option",
-        return_value=True,
-    )
-    def test_render_autofix_update_with_progress_no_action_buttons(
-        self, _mock_get_option: Mock
-    ) -> None:
-        data = self._create_update(
-            current_point=AutofixStoppingPoint.ROOT_CAUSE,
-            has_progressed=True,
-        )
-        renderable = SeerSlackRenderer._render_autofix_update(data)
-        # Should NOT have actions block (no buttons for progressed updates)
-        has_actions = any(isinstance(b, ActionsBlock) for b in renderable["blocks"])
-        assert not has_actions
-
-    @patch(
-        "sentry.notifications.platform.templates.seer.organization_service.get_option",
-        return_value=True,
-    )
     def test_render_autofix_update_open_pr_no_footer(self, _mock_get_option: Mock) -> None:
         data = self._create_update(
             current_point=AutofixStoppingPoint.OPEN_PR,
-            has_progressed=True,
             pull_requests=[{"pr_number": 123, "pr_url": "https://github.com/org/repo/pull/123"}],
         )
         renderable = SeerSlackRenderer._render_autofix_update(data)
@@ -186,7 +147,6 @@ class SeerSlackRendererTest(TestCase):
     def test_render_autofix_update_with_pull_requests(self, _mock_get_option: Mock) -> None:
         data = self._create_update(
             current_point=AutofixStoppingPoint.OPEN_PR,
-            has_progressed=False,
             pull_requests=[
                 {"pr_number": 123, "pr_url": "https://github.com/org/repo/pull/123"},
                 {"pr_number": 456, "pr_url": "https://github.com/org/repo/pull/456"},
@@ -214,10 +174,7 @@ class SeerSlackRendererTest(TestCase):
     def test_render_autofix_update_solution_no_next_trigger_when_coding_disabled(
         self, _mock_get_option: Mock
     ) -> None:
-        data = self._create_update(
-            current_point=AutofixStoppingPoint.SOLUTION,
-            has_progressed=False,
-        )
+        data = self._create_update(current_point=AutofixStoppingPoint.SOLUTION)
         renderable = SeerSlackRenderer._render_autofix_update(data)
         actions_block = None
         for block in renderable["blocks"]:
@@ -228,3 +185,78 @@ class SeerSlackRendererTest(TestCase):
         # Should only have link button, no next trigger button
         assert len(actions_block.elements) == 1
         assert isinstance(actions_block.elements[0], LinkButtonElement)
+
+
+class SeerSlackRendererExplorerErrorTest(TestCase):
+    def test_render_explorer_error(self) -> None:
+        data = SeerExplorerError(error_message="Seer could not explore your organization.")
+        renderable = SeerSlackRenderer._render_explorer_error(data)
+
+        assert renderable["text"] == "Seer stumbled: Seer had some trouble..."
+        blocks = renderable["blocks"]
+        assert len(blocks) == 2
+        assert isinstance(blocks[0], SectionBlock)
+        assert blocks[0].text is not None
+        assert blocks[0].text.text == "Seer had some trouble..."
+        assert isinstance(blocks[1], SectionBlock)
+        assert blocks[1].text is not None
+        assert ">Seer could not explore your organization." in blocks[1].text.text
+
+    def test_render_explorer_error_custom_title(self) -> None:
+        data = SeerExplorerError(
+            error_message="Timeout.",
+            error_title="Explorer failed",
+        )
+        renderable = SeerSlackRenderer._render_explorer_error(data)
+
+        assert renderable["text"] == "Seer stumbled: Explorer failed"
+        title_block = renderable["blocks"][0]
+        assert isinstance(title_block, SectionBlock)
+        assert title_block.text is not None
+        assert title_block.text.text == "Explorer failed"
+        body_block = renderable["blocks"][1]
+        assert isinstance(body_block, SectionBlock)
+        assert body_block.text is not None
+        assert ">Timeout." in body_block.text.text
+
+    def test_render_dispatches_to_explorer_error(self) -> None:
+        from sentry.notifications.platform.types import NotificationRenderedTemplate
+
+        data = SeerExplorerError(error_message="Something went wrong.")
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
+        assert renderable["text"] == "Seer stumbled: Seer had some trouble..."
+
+
+class SeerSlackRendererExplorerTest(TestCase):
+    def _create_explorer_response(self, summary: str = "") -> SeerExplorerResponse:
+        return SeerExplorerResponse(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            summary=summary,
+        )
+
+    def test_render_explorer_response_with_summary(self) -> None:
+        data = self._create_explorer_response(
+            summary="Found a spike in 500 errors from the auth service."
+        )
+        renderable = SeerSlackRenderer._render_explorer_response(data)
+
+        assert renderable["text"] == "Seer Explorer has finished"
+        blocks = renderable["blocks"]
+        assert len(blocks) == 1
+
+        assert isinstance(blocks[0], MarkdownBlock)
+        assert "Found a spike in 500 errors from the auth service." in blocks[0].text
+
+    def test_render_dispatches_to_explorer_response(self) -> None:
+        data = self._create_explorer_response(summary="Test")
+        from sentry.notifications.platform.types import NotificationRenderedTemplate
+
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
+        assert renderable["text"] == "Seer Explorer has finished"
