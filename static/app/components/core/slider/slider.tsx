@@ -23,15 +23,12 @@ interface BaseProps extends Omit<
   /** Name for the hidden input element (for form submissions) */
   name?: string;
   ref?: React.Ref<HTMLInputElement>;
-  /** Whether to show labels below track ticks */
-  showTickLabels?: boolean;
   step?: number;
-  /** Explicit array of values at which to render tick marks */
-  tickValues?: number[];
-  /** Number of tick marks (including min/max endpoints) */
-  ticks?: number;
-  /** Interval between tick marks */
-  ticksInterval?: number;
+  /** Tick mark configuration. Use `count` for evenly spaced ticks, `interval` for fixed spacing, or `values` for explicit positions. Set `labels` to show value labels below ticks. */
+  ticks?:
+    | {count: number; labels?: boolean}
+    | {interval: number; labels?: boolean}
+    | {values: number[]; labels?: boolean};
 }
 
 interface ControlledProps extends BaseProps {
@@ -54,9 +51,6 @@ export function Slider({
   step = 1,
   disabled = false,
   ticks,
-  ticksInterval,
-  tickValues,
-  showTickLabels = false,
   formatLabel,
   formatOptions,
   name,
@@ -99,16 +93,20 @@ export function Slider({
   const thumbValue = state.values[0] ?? min;
 
   const allTickValues = useMemo<number[]>(() => {
-    if (tickValues) {
-      return tickValues;
+    if (!ticks) {
+      return [];
     }
 
-    if (ticksInterval) {
+    if ('values' in ticks) {
+      return ticks.values;
+    }
+
+    if ('interval' in ticks) {
       const result: number[] = [];
       let current = min;
       while (current <= max) {
         result.push(current);
-        current = parseFloat((current + ticksInterval).toFixed(10));
+        current = parseFloat((current + ticks.interval).toFixed(10));
       }
       if (result[result.length - 1] !== max) {
         result.push(max);
@@ -116,13 +114,16 @@ export function Slider({
       return result;
     }
 
-    if (ticks && ticks >= 2) {
+    if (ticks.count >= 2) {
       const range = max - min;
-      return Array.from({length: ticks}, (_, i) => min + i * (range / (ticks - 1)));
+      return Array.from(
+        {length: ticks.count},
+        (_, i) => min + i * (range / (ticks.count - 1))
+      );
     }
 
     return [];
-  }, [ticks, ticksInterval, tickValues, min, max]);
+  }, [ticks, min, max]);
 
   const getFormattedValue = useCallback(
     (val: number | '') => {
@@ -191,7 +192,7 @@ export function Slider({
             <TrackLabel
               key={tickValue}
               data-intermediate
-              data-show={showTickLabels || undefined}
+              data-show={ticks?.labels || undefined}
               style={{
                 left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`,
               }}

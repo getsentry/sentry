@@ -112,7 +112,7 @@ export function StepDemo() {
 
 ## Tick Marks
 
-Tick marks are purely visual indicators — they are independent from `step`. Use `ticks` for a count, `ticksInterval` for spacing, or `tickValues` for explicit positions.
+Tick marks are purely visual indicators — they are independent from `step`. The `ticks` prop accepts an object with `count` for evenly spaced ticks, `interval` for fixed spacing, or `values` for explicit positions.
 
 export function TicksDemo() {
   const [value1, setValue1] = useState(50);
@@ -127,7 +127,7 @@ export function TicksDemo() {
         <Slider
           value={value1}
           onChange={setValue1}
-          ticks={11}
+          ticks={{count: 11}}
           aria-label="Slider with tick count"
         />
       </Stack>
@@ -138,7 +138,7 @@ export function TicksDemo() {
         <Slider
           value={value2}
           onChange={setValue2}
-          ticksInterval={25}
+          ticks={{interval: 25}}
           aria-label="Slider with tick interval"
         />
       </Stack>
@@ -149,7 +149,7 @@ export function TicksDemo() {
         <Slider
           value={value3}
           onChange={setValue3}
-          tickValues={[0, 10, 25, 50, 75, 100]}
+          ticks={{values: [0, 10, 25, 50, 75, 100]}}
           aria-label="Slider with tick values"
         />
       </Stack>
@@ -163,20 +163,20 @@ export function TicksDemo() {
 
 ```jsx
 // 11 evenly spaced tick marks
-<Slider ticks={11} />
+<Slider ticks={{count: 11}} />
 
 // Tick marks every 25 units
-<Slider ticksInterval={25} />
+<Slider ticks={{interval: 25}} />
 
 // Tick marks at specific values
-<Slider tickValues={[0, 10, 25, 50, 75, 100]} />
+<Slider ticks={{values: [0, 10, 25, 50, 75, 100]}} />
 ```
 
-Note: ticks and step are decoupled. A slider with `step={1}` (smooth dragging) can display `ticks={5}` as visual markers.
+Note: ticks and step are decoupled. A slider with `step={1}` (smooth dragging) can display `ticks={{count: 5}}` as visual markers.
 
 ## Tick Labels
 
-Add `showTickLabels` to display value labels below each tick mark:
+Set `labels: true` in the `ticks` object to display value labels below each tick mark:
 
 export function TickLabelsDemo() {
   const [value, setValue] = useState(50);
@@ -188,8 +188,7 @@ export function TickLabelsDemo() {
       <Slider
         value={value}
         onChange={setValue}
-        ticks={5}
-        showTickLabels
+        ticks={{count: 5, labels: true}}
         aria-label="Slider with tick labels"
       />
     </Stack>
@@ -201,7 +200,7 @@ export function TickLabelsDemo() {
 </Storybook.Demo>
 
 ```jsx
-<Slider ticks={5} showTickLabels />
+<Slider ticks={{count: 5, labels: true}} />
 ```
 
 ## Label Formatting

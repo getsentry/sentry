@@ -106,18 +106,19 @@ describe('Slider', () => {
   });
 
   describe('ticks', () => {
-    it('renders tick labels when showTickLabels is true', () => {
-      render(<Slider defaultValue={30} ticks={3} showTickLabels aria-label="Test" />);
-      // ticks={3} at 0, 50, 100. Value is 30, so "50" is unique to tick labels.
+    it('renders tick labels with count', () => {
+      render(
+        <Slider defaultValue={30} ticks={{count: 3, labels: true}} aria-label="Test" />
+      );
+      // count: 3 at 0, 50, 100. Value is 30, so "50" is unique to tick labels.
       expect(screen.getByText('50')).toBeInTheDocument();
     });
 
-    it('renders correct number of tick labels with tickValues', () => {
+    it('renders tick labels with values', () => {
       render(
         <Slider
           defaultValue={50}
-          tickValues={[0, 25, 75, 100]}
-          showTickLabels
+          ticks={{values: [0, 25, 75, 100], labels: true}}
           aria-label="Test"
         />
       );
@@ -126,9 +127,13 @@ describe('Slider', () => {
       expect(screen.getByText('75')).toBeInTheDocument();
     });
 
-    it('renders tick labels with ticksInterval', () => {
+    it('renders tick labels with interval', () => {
       render(
-        <Slider defaultValue={25} ticksInterval={50} showTickLabels aria-label="Test" />
+        <Slider
+          defaultValue={25}
+          ticks={{interval: 50, labels: true}}
+          aria-label="Test"
+        />
       );
       // Tick at 50 is unique (value is 25, edges are 0/100)
       expect(screen.getByText('50')).toBeInTheDocument();
@@ -146,8 +151,7 @@ describe('Slider', () => {
       render(
         <Slider
           defaultValue={25}
-          ticks={3}
-          showTickLabels
+          ticks={{count: 3, labels: true}}
           formatLabel={v => `$${v}`}
           aria-label="Test"
         />
