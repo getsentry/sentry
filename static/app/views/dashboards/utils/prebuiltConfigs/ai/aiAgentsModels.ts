@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -29,7 +29,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           ],
           aggregates: [`sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`],
           columns: [SpanFields.GEN_AI_REQUEST_MODEL],
-          fieldAliases: [FIELD_ALIASES.model, t('Total Cost')],
+          fieldAliases: [WIDGET_COLUMN_LABELS.model, t('Total Cost')],
           orderby: `-sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
         },
       ],
@@ -52,7 +52,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           ],
           aggregates: [`sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`],
           columns: [SpanFields.GEN_AI_REQUEST_MODEL],
-          fieldAliases: [FIELD_ALIASES.model, t('Total Tokens')],
+          fieldAliases: [WIDGET_COLUMN_LABELS.model, t('Total Tokens')],
           orderby: `-sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
         },
       ],
@@ -133,11 +133,11 @@ const MODELS_TABLE = {
       ],
       columns: [SpanFields.GEN_AI_REQUEST_MODEL],
       fieldAliases: [
-        FIELD_ALIASES.model,
-        FIELD_ALIASES.requests,
-        FIELD_ALIASES.errors,
-        FIELD_ALIASES.avg,
-        FIELD_ALIASES.p95,
+        WIDGET_COLUMN_LABELS.model,
+        WIDGET_COLUMN_LABELS.requests,
+        WIDGET_COLUMN_LABELS.errors,
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
         t('Cost'),
         t('Input Tokens'),
         t('Cached Tokens'),

@@ -8,7 +8,7 @@ import {
   FRONTEND_SDK_NAMES,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
 import {
-  FIELD_ALIASES,
+  WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -212,15 +212,15 @@ const TRANSACTIONS_TABLE: Widget = {
       fields: TABLE_FIELDS,
       fieldAliases: [
         '',
-        FIELD_ALIASES.transaction,
-        FIELD_ALIASES.project,
+        WIDGET_COLUMN_LABELS.transaction,
+        WIDGET_COLUMN_LABELS.project,
         t('TPM'),
-        FIELD_ALIASES.p50,
-        FIELD_ALIASES.p75,
-        FIELD_ALIASES.p95,
+        WIDGET_COLUMN_LABELS.p50,
+        WIDGET_COLUMN_LABELS.p75,
+        WIDGET_COLUMN_LABELS.p95,
         t('Failure Rate'),
-        FIELD_ALIASES.users,
-        FIELD_ALIASES.timeSpent,
+        WIDGET_COLUMN_LABELS.users,
+        WIDGET_COLUMN_LABELS.timeSpent,
         t('Performance Score'),
       ],
       columns: [

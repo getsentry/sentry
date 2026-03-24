@@ -5,7 +5,7 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
 import {
-  FIELD_ALIASES,
+  WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -162,13 +162,13 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
       columns: [SpanFields.TRANSACTION, SpanFields.SPAN_OP, SpanFields.PROJECT],
       fields: CLIENT_TRANSACTIONS_TABLE_FIELDS,
       fieldAliases: [
-        FIELD_ALIASES.transaction,
+        WIDGET_COLUMN_LABELS.transaction,
         '',
-        FIELD_ALIASES.operation,
-        FIELD_ALIASES.views,
-        FIELD_ALIASES.errorRate,
-        FIELD_ALIASES.avgDuration,
-        FIELD_ALIASES.p95Duration,
+        WIDGET_COLUMN_LABELS.operation,
+        WIDGET_COLUMN_LABELS.views,
+        WIDGET_COLUMN_LABELS.errorRate,
+        WIDGET_COLUMN_LABELS.avgDuration,
+        WIDGET_COLUMN_LABELS.p95Duration,
         t('Perf Score'),
       ],
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
@@ -214,13 +214,13 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
       columns: [SpanFields.TRANSACTION, SpanFields.PROJECT],
       fields: SERVER_TRANSACTIONS_TABLE_FIELDS,
       fieldAliases: [
-        FIELD_ALIASES.transaction,
+        WIDGET_COLUMN_LABELS.transaction,
         '',
-        FIELD_ALIASES.views,
-        FIELD_ALIASES.errorRate,
-        FIELD_ALIASES.avgDuration,
-        FIELD_ALIASES.p95Duration,
-        FIELD_ALIASES.timeSpent,
+        WIDGET_COLUMN_LABELS.views,
+        WIDGET_COLUMN_LABELS.errorRate,
+        WIDGET_COLUMN_LABELS.avgDuration,
+        WIDGET_COLUMN_LABELS.p95Duration,
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
     },

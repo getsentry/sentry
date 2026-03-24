@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -24,7 +24,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_RESOURCE_URI, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_RESOURCE_URI],
-          fieldAliases: [t('Resource'), FIELD_ALIASES.calls],
+          fieldAliases: [t('Resource'), WIDGET_COLUMN_LABELS.calls],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -44,7 +44,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_RESOURCE_URI, `avg(${SpanFields.SPAN_DURATION})`],
           aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_RESOURCE_URI],
-          fieldAliases: [t('Resource'), FIELD_ALIASES.avgDuration],
+          fieldAliases: [t('Resource'), WIDGET_COLUMN_LABELS.avgDuration],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -64,7 +64,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_RESOURCE_URI, `${SpanFunction.FAILURE_RATE}()`],
           aggregates: [`${SpanFunction.FAILURE_RATE}()`],
           columns: [SpanFields.MCP_RESOURCE_URI],
-          fieldAliases: [t('Resource'), FIELD_ALIASES.errorRate],
+          fieldAliases: [t('Resource'), WIDGET_COLUMN_LABELS.errorRate],
           orderby: `-${SpanFunction.FAILURE_RATE}()`,
         },
       ],
@@ -103,11 +103,11 @@ const RESOURCES_TABLE = {
       columns: [SpanFields.MCP_RESOURCE_URI],
       fieldAliases: [
         t('Resource URI'),
-        FIELD_ALIASES.requests,
-        FIELD_ALIASES.errorRate,
-        FIELD_ALIASES.errors,
-        FIELD_ALIASES.avg,
-        FIELD_ALIASES.p95,
+        WIDGET_COLUMN_LABELS.requests,
+        WIDGET_COLUMN_LABELS.errorRate,
+        WIDGET_COLUMN_LABELS.errors,
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
       ],
       orderby: '-count()',
     },

@@ -5,7 +5,7 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
 import {
-  FIELD_ALIASES,
+  WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -84,8 +84,8 @@ const ASSETS_TABLE: Widget = {
       fieldAliases: [
         t('Asset description'),
         t('Requests per Minute'),
-        FIELD_ALIASES.avgDuration,
-        FIELD_ALIASES.timeSpent,
+        WIDGET_COLUMN_LABELS.avgDuration,
+        WIDGET_COLUMN_LABELS.timeSpent,
         t('Avg Encoded Size'),
       ],
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,

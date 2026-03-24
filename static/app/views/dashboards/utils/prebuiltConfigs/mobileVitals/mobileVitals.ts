@@ -4,7 +4,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  FIELD_ALIASES,
+  WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -344,7 +344,7 @@ const SCREEN_RENDERING_TABLE: Widget = {
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [
-        FIELD_ALIASES.transaction,
+        WIDGET_COLUMN_LABELS.transaction,
         'Slow Frame %',
         'Frozen Frame %',
         'Screen Loads',

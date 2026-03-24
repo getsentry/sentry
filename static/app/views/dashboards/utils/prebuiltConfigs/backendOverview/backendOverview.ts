@@ -6,7 +6,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
 import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
 import {
-  FIELD_ALIASES,
+  WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -240,15 +240,15 @@ const TRANSACTIONS_TABLE: Widget = {
       fieldAliases: [
         '',
         t('HTTP Method'),
-        FIELD_ALIASES.transaction,
-        FIELD_ALIASES.operation,
-        FIELD_ALIASES.project,
+        WIDGET_COLUMN_LABELS.transaction,
+        WIDGET_COLUMN_LABELS.operation,
+        WIDGET_COLUMN_LABELS.project,
         t('TPM'),
-        FIELD_ALIASES.p50,
-        FIELD_ALIASES.p95,
+        WIDGET_COLUMN_LABELS.p50,
+        WIDGET_COLUMN_LABELS.p95,
         t('Failure rate'),
-        FIELD_ALIASES.users,
-        FIELD_ALIASES.timeSpent,
+        WIDGET_COLUMN_LABELS.users,
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       conditions: TABLE_QUERY.formatString(),
       orderby: '-sum(span.duration)',

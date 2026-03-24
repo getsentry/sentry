@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -24,7 +24,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.GEN_AI_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.GEN_AI_TOOL_NAME],
-          fieldAliases: [FIELD_ALIASES.tool, FIELD_ALIASES.calls],
+          fieldAliases: [WIDGET_COLUMN_LABELS.tool, WIDGET_COLUMN_LABELS.calls],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -44,7 +44,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.GEN_AI_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.GEN_AI_TOOL_NAME],
-          fieldAliases: [FIELD_ALIASES.tool, FIELD_ALIASES.errors],
+          fieldAliases: [WIDGET_COLUMN_LABELS.tool, WIDGET_COLUMN_LABELS.errors],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -80,11 +80,11 @@ const TOOLS_TABLE = {
       ],
       columns: [SpanFields.GEN_AI_TOOL_NAME],
       fieldAliases: [
-        FIELD_ALIASES.tool,
-        FIELD_ALIASES.requests,
-        FIELD_ALIASES.errors,
-        FIELD_ALIASES.avg,
-        FIELD_ALIASES.p95,
+        WIDGET_COLUMN_LABELS.tool,
+        WIDGET_COLUMN_LABELS.requests,
+        WIDGET_COLUMN_LABELS.errors,
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
       ],
       orderby: '-count()',
     },

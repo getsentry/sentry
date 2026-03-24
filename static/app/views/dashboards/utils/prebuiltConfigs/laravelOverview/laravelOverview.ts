@@ -8,7 +8,7 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/settings';
 import {
-  FIELD_ALIASES,
+  WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -45,12 +45,12 @@ const PATHS_TABLE: Widget = {
       fieldAliases: [
         t('Method'),
         t('Path'),
-        FIELD_ALIASES.requests,
-        FIELD_ALIASES.errorRate,
-        FIELD_ALIASES.avg,
-        FIELD_ALIASES.p95,
-        FIELD_ALIASES.timeSpent,
-        FIELD_ALIASES.users,
+        WIDGET_COLUMN_LABELS.requests,
+        WIDGET_COLUMN_LABELS.errorRate,
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
+        WIDGET_COLUMN_LABELS.timeSpent,
+        WIDGET_COLUMN_LABELS.users,
       ],
       orderby: '-count()',
     },
@@ -93,10 +93,10 @@ const COMMANDS_TABLE: Widget = {
       fieldAliases: [
         t('Command'),
         t('Invocations'),
-        FIELD_ALIASES.errorRate,
-        FIELD_ALIASES.avg,
-        FIELD_ALIASES.p95,
-        FIELD_ALIASES.timeSpent,
+        WIDGET_COLUMN_LABELS.errorRate,
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       orderby: '-count()',
     },
@@ -141,10 +141,10 @@ const JOBS_TABLE: Widget = {
         t('Job'),
         t('Queue Name'),
         t('Processed'),
-        FIELD_ALIASES.errorRate,
+        WIDGET_COLUMN_LABELS.errorRate,
         t('Avg Time in Queue'),
         t('Avg Processing Time'),
-        FIELD_ALIASES.timeSpent,
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       orderby: '-count()',
     },

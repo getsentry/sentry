@@ -9,7 +9,7 @@ export const TABLE_MIN_HEIGHT = 2;
  * Common field alias labels used across prebuilt dashboards.
  * Keeps column headings consistent and avoids duplicated strings.
  */
-export const FIELD_ALIASES = {
+export const WIDGET_COLUMN_LABELS = {
   avg: t('Avg'),
   avgDuration: t('Avg Duration'),
   calls: t('Calls'),

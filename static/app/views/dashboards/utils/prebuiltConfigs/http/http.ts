@@ -17,7 +17,7 @@ import {
   THROUGHPUT_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
 import {
-  FIELD_ALIASES,
+  WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -112,7 +112,7 @@ const DOMAIN_TABLE: Widget = {
       ],
       fieldAliases: [
         t('Domain'),
-        FIELD_ALIASES.project,
+        WIDGET_COLUMN_LABELS.project,
         `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
         t('3XXs'),
         t('4XXs'),

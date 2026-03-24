@@ -3,7 +3,7 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
 import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
-import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
@@ -150,7 +150,7 @@ const PRODUCER_TABLE: Widget = {
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [
-        FIELD_ALIASES.transaction,
+        WIDGET_COLUMN_LABELS.transaction,
         t('Error rate'),
         t('Published'),
         t('Time spent'),
@@ -194,7 +194,7 @@ const CONSUMER_TABLE: Widget = {
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [
-        FIELD_ALIASES.transaction,
+        WIDGET_COLUMN_LABELS.transaction,
         t('Avg time in queue'),
         t('Avg processing time'),
         t('Error rate'),

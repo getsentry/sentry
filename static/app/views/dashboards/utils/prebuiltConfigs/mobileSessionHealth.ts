@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {FIELD_ALIASES} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -158,7 +158,7 @@ const CRASH_RATE_TABLE: Widget = {
       aggregates: ['crash_free_rate(session)'],
       columns: ['project'],
       orderby: 'crash_free_rate(session)',
-      fieldAliases: [FIELD_ALIASES.project, t('Crash Free Rate')],
+      fieldAliases: [WIDGET_COLUMN_LABELS.project, t('Crash Free Rate')],
     },
   ],
   layout: {x: 0, y: 6, w: 6, h: 2, minH: 2},
@@ -179,7 +179,7 @@ const RELEASE_TABLE: Widget = {
       columns: ['project', 'release'],
       orderby: '-release',
       fieldAliases: [
-        FIELD_ALIASES.project,
+        WIDGET_COLUMN_LABELS.project,
         t('Release'),
         t('Crash Free Rate'),
         t('Total Sessions'),
