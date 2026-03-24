@@ -13,15 +13,15 @@ from rest_framework.views import APIView
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
-from sentry.apidocs.parameters import GlobalParams
-from sentry.integrations.api.serializers.models.data_forwarder import (
-    DataForwarderSerializer as DataForwarderModelSerializer,
-)
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
+from sentry.apidocs.parameters import DataForwarderParams, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.integrations.api.serializers.models.data_forwarder import DataForwarderResponse
 from sentry.integrations.api.serializers.rest_framework.data_forwarder import (
     DataForwarderProjectSerializer,
     DataForwarderSerializer,
@@ -59,13 +59,13 @@ class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
         return False
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
 
@@ -78,9 +78,6 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         **kwargs,
     ):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
-
-        if not features.has("organizations:data-forwarding-revamp-access", kwargs["organization"]):
-            raise PermissionDenied
 
         if request.method == "PUT" and not features.has(
             "organizations:data-forwarding", kwargs["organization"]
@@ -289,18 +286,32 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
     @extend_schema(
-        operation_id="Update a Data Forwarding Configuration for an Organization",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        operation_id="Update a Data Forwarder for an Organization",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DataForwarderParams.DATA_FORWARDER_ID],
         request=DataForwarderSerializer,
         responses={
-            200: DataForwarderModelSerializer,
+            200: inline_sentry_response_serializer("DataForwarderResponse", DataForwarderResponse),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
+        examples=IntegrationExamples.SINGLE_DATA_FORWARDER,
     )
     def put(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
+        """
+        Updates a data forwarder for an organization or update a project-specific override.
+        Updates to the data forwarder's configuration require `org:write` permissions, and the entire
+        configuration to be provided, including the `project_ids` field.
+
+        To configure project-specific overrides, specify only the following fields:
+
+          - 'project_id': The ID of the project to create/modify the override for.
+          - 'overrides': Follows the same format as `config` but all provider fields are optional, since only specified fields are overridden.
+          - 'is_enabled': To enable/disable the forwarder for events on the specific project.
+
+        Overrides can be performed with `project:write` permissions on the project being modified.
+        """
         # Determine operation type based on request body
         has_project_ids = "project_ids" in request.data
         has_project_id = "project_id" in request.data
@@ -331,8 +342,8 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
             )
 
     @extend_schema(
-        operation_id="Delete a Data Forwarding Configuration for an Organization",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        operation_id="Delete a Data Forwarder for an Organization",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DataForwarderParams.DATA_FORWARDER_ID],
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,
@@ -341,5 +352,8 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def delete(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
+        """
+        Deletes a data forwarder for an organization. All project-specific overrides will be deleted as well.
+        """
         data_forwarder.delete()
         return self.respond(status=status.HTTP_204_NO_CONTENT)

@@ -1,29 +1,30 @@
 import {useContext} from 'react';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {IconOpen} from 'sentry/icons';
 import type {Integration} from 'sentry/types/integrations';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
-import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
+import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 type Props = {
-  buttonProps: ButtonProps;
+  /**
+   * This could accept most props from AddIntegrationButton, but we are
+   * selectively picking the ones that we are actively using
+   */
+  buttonProps: Pick<
+    React.ComponentProps<typeof AddIntegrationButton>,
+    'size' | 'priority' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
+  >;
   onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;
   userHasAccess: boolean;
   externalInstallText?: string;
 };
 
-type ButtonProps = {
-  disabled?: any;
-  priority?: any;
-  size?: any;
-  style?: any;
-} | null;
-
-function IntegrationButton({
+export function IntegrationButton({
   userHasAccess,
   onAddIntegration,
   onExternalClick,
@@ -51,8 +52,8 @@ function IntegrationButton({
         installStatus={installStatus}
         analyticsParams={analyticsParams}
         modalParams={modalParams}
-        organization={organization}
         {...buttonProps}
+        organization={organization}
       />
     );
   }
@@ -73,5 +74,3 @@ function IntegrationButton({
   }
   return null;
 }
-
-export default IntegrationButton;

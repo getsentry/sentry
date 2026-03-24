@@ -106,13 +106,13 @@ export interface DeprecatedDropdownMenuProps {
  * - For an action menu (where there's no selection state, clicking on a menu
  * item will trigger an action): use `DropdownMenuControl`.
  *
- * - For for other menus/overlays: use a combination of `Overlay` and the
+ * - For other menus/overlays: use a combination of `Overlay` and the
  * `useOverlay` hook.
  * https://storybook.sentry.dev/?path=/story/components-buttons-dropdowns-overlay--overlay
  *
  * @deprecated
  */
-function DropdownMenu({
+export function DropdownMenu({
   closeOnEscape = true,
   children,
   alwaysRenderMenu,
@@ -405,5 +405,3 @@ function DropdownMenu({
     },
   });
 }
-
-export default DropdownMenu;

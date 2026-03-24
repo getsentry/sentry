@@ -285,9 +285,9 @@ def test_range_funtions(field, expected) -> None:
 def test_combinator_names_are_reserved(combinator) -> None:
     fields = UnresolvedQuery(dataset=Dataset.Discover, params={})
     for function in fields.function_converter:
-        assert not function.endswith(
-            combinator.kind
-        ), f"Cannot name function `{function}` because `-{combinator.kind}` suffix is reserved for combinators"
+        assert not function.endswith(combinator.kind), (
+            f"Cannot name function `{function}` because `-{combinator.kind}` suffix is reserved for combinators"
+        )
 
 
 @pytest.mark.parametrize(

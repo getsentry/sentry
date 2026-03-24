@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 export default Storybook.story('ClippedBox', story => {
   story('Default', () => (
@@ -34,8 +33,8 @@ export default Storybook.story('ClippedBox', story => {
     left: 0;
     right: 0;
     bottom: 0;
-    padding: ${space(1)};
-    background: ${p => p.theme.background};
+    padding: ${p => p.theme.space.md};
+    background: ${p => p.theme.tokens.background.primary};
     text-align: center;
     pointer-events: none;
   `;

@@ -2,10 +2,12 @@ import {useState} from 'react';
 
 import type {OnDemandBudgets} from 'getsentry/types';
 import type {SpendLimitSettingsProps} from 'getsentry/views/spendLimits/spendLimitSettings';
-import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
+import {SpendLimitSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
 
-interface EmbeddedSpendLimitSettingsProps
-  extends Omit<SpendLimitSettingsProps, 'isOpen' | 'onDemandBudgets'> {
+interface EmbeddedSpendLimitSettingsProps extends Omit<
+  SpendLimitSettingsProps,
+  'isOpen' | 'onDemandBudgets'
+> {
   initialOnDemandBudgets: OnDemandBudgets;
 }
 
@@ -13,7 +15,7 @@ interface EmbeddedSpendLimitSettingsProps
  * A wrapper for the SpendLimitSettings component that allows for embedded use in other components,
  * without controlling state or mutations directly.
  */
-function EmbeddedSpendLimitSettings(props: EmbeddedSpendLimitSettingsProps) {
+export function EmbeddedSpendLimitSettings(props: EmbeddedSpendLimitSettingsProps) {
   const {initialOnDemandBudgets, onUpdate} = props;
   const [currentOnDemandBudgets, setCurrentOnDemandBudgets] =
     useState<OnDemandBudgets>(initialOnDemandBudgets);
@@ -26,11 +28,8 @@ function EmbeddedSpendLimitSettings(props: EmbeddedSpendLimitSettingsProps) {
   return (
     <SpendLimitSettings
       {...props}
-      isOpen
       onDemandBudgets={currentOnDemandBudgets}
       onUpdate={handleUpdate}
     />
   );
 }
-
-export default EmbeddedSpendLimitSettings;

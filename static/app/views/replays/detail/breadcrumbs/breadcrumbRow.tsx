@@ -1,11 +1,10 @@
-import type {CSSProperties} from 'react';
 import {useCallback} from 'react';
 import classNames from 'classnames';
 
-import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
+import {BreadcrumbItem} from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 
 interface Props {
@@ -21,7 +20,6 @@ interface Props {
   onShowSnippet: (index: number) => void;
   showSnippet: boolean;
   startTimestampMs: number;
-  style: CSSProperties;
   breadcrumbIndex?: number[][];
   className?: string;
   expandPaths?: string[];
@@ -29,7 +27,7 @@ interface Props {
   updateDimensions?: () => void;
 }
 
-function BreadcrumbRow({
+export function BreadcrumbRow({
   className,
   expandPaths,
   frame,
@@ -38,7 +36,6 @@ function BreadcrumbRow({
   onInspectorExpanded,
   showSnippet,
   startTimestampMs,
-  style,
   ref,
   onShowSnippet,
   updateDimensions,
@@ -65,13 +62,13 @@ function BreadcrumbRow({
   return (
     <BreadcrumbItem
       ref={ref}
+      index={index}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
         beforeHoverTime: currentHoverTime === undefined ? undefined : isBeforeHover,
         afterHoverTime: currentHoverTime === undefined ? undefined : !isBeforeHover,
       })}
-      style={style}
       frame={frame}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
@@ -86,5 +83,3 @@ function BreadcrumbRow({
     />
   );
 }
-
-export default BreadcrumbRow;

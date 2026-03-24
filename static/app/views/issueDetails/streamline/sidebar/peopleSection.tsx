@@ -1,14 +1,15 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
+import {ParticipantList} from 'sentry/views/issueDetails/streamline/sidebar/participantList';
 
-export default function PeopleSection({
+export function PeopleSection({
   userParticipants,
   teamParticipants,
   viewers,
@@ -46,5 +47,5 @@ export default function PeopleSection({
 }
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

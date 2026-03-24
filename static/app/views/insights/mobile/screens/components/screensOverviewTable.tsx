@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -41,7 +42,7 @@ type Props = {
   pageLinks: string | undefined;
 };
 
-function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
+export function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
 
   const location = useLocation();
@@ -152,5 +153,3 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
     />
   );
 }
-
-export default ScreensOverviewTable;

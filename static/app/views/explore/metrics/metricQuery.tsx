@@ -17,6 +17,7 @@ import {
 export interface TraceMetric {
   name: string;
   type: string;
+  unit?: string;
 }
 
 function isTraceMetric(value: unknown): value is TraceMetric {
@@ -107,7 +108,7 @@ export function defaultMetricQuery(): BaseMetricQuery {
     metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
-      mode: Mode.AGGREGATE,
+      mode: Mode.SAMPLES,
       query: defaultQuery(),
 
       cursor: '',
@@ -191,8 +192,7 @@ function parseVisualizes(value: unknown): Visualize[] {
     return [];
   }
 
-  const baseVisualize = value.find(isBaseVisualize);
-  return baseVisualize ? Visualize.fromJSON(baseVisualize) : [];
+  return value.filter(isBaseVisualize).flatMap(Visualize.fromJSON);
 }
 
 function parseGroupBys(value: unknown): GroupBy[] {

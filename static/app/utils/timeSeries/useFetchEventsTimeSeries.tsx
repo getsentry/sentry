@@ -1,13 +1,15 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {formatSearchStringForQueryParam} from 'sentry/utils/url/formatSearchStringForQueryParam';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';
@@ -50,6 +52,14 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   interval?: string;
   /**
+   * Query to apply in addition to the base `query` to the log data set, used for cross-event querying. Can be either an array of `MutableSearch` objects (preferred) or plain strings.
+   */
+  logQuery?: Array<MutableSearch | string>;
+  /**
+   * Query to apply in addition to the base `query` to the metric data set, used for cross-event querying. Can be either an array of `MutableSearch` objects (preferred) or plain strings.
+   */
+  metricQuery?: Array<MutableSearch | string>;
+  /**
    * Page filters to apply to the request. This applies the date selection, projects, and environments. By default uses the currently applied filters after waiting for them to become available. If `pageFilters` are passed as a prop, does not wait for readiness.
    */
   pageFilters?: PageFilters;
@@ -69,6 +79,10 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    * Sort order for the results, only applies if `groupBy` is provided.
    */
   sort?: Sort;
+  /**
+   * Query to apply in addition to the base `query` to the span data set, used for cross-event querying. Can be either an array of `MutableSearch` objects (preferred) or plain strings.
+   */
+  spanQuery?: Array<MutableSearch | string>;
   /**
    * Number of groups for a `groupBy` request. e.g., if `topEvents` is `5` and `groupBy` is `["transaction"]` this will group the results by `transaction` and fetch the top 5 results
    */
@@ -106,6 +120,9 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     pageFilters,
     sort,
     topEvents,
+    logQuery,
+    metricQuery,
+    spanQuery,
   } = options;
 
   const organization = useOrganization();
@@ -124,9 +141,16 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     );
   }
 
+  const queryParam = formatSearchStringForQueryParam(query);
+  const logQueryParams = logQuery?.map(formatSearchStringForQueryParam);
+  const metricQueryParams = metricQuery?.map(formatSearchStringForQueryParam);
+  const spanQueryParams = spanQuery?.map(formatSearchStringForQueryParam);
+
   return useApiQuery<EventsTimeSeriesResponse>(
     [
-      `/organizations/${organization.slug}/events-timeseries/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events-timeseries/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           partial: 1,
@@ -138,11 +162,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           project: selection.projects,
           environment: selection.environments,
           interval,
-          query: query
-            ? typeof query === 'string'
-              ? query
-              : query.formatString()
-            : undefined,
+          query: queryParam,
           sampling: sampling ?? DEFAULT_SAMPLING_MODE,
           topEvents,
           groupBy,
@@ -152,7 +172,10 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
               ? '0'
               : '1'
             : undefined,
-          caseInsensitive: caseInsensitive ? 1 : 0,
+          caseInsensitive: caseInsensitive ? 1 : undefined,
+          logQuery: logQueryParams,
+          metricQuery: metricQueryParams,
+          spanQuery: spanQueryParams,
         },
       },
     ],
@@ -167,7 +190,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   );
 }
 
-type EventsTimeSeriesResponse = {
+export type EventsTimeSeriesResponse = {
   timeSeries: TimeSeries[];
   meta?: {
     dataset: DiscoverDatasets;

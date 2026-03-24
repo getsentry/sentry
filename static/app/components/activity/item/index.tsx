@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
-import TimeSince from 'sentry/components/timeSince';
-import {space} from 'sentry/styles/space';
-import textStyles from 'sentry/styles/text';
+import {TimeSince} from 'sentry/components/timeSince';
+import {textStyles} from 'sentry/styles/text';
 import type {AvatarUser} from 'sentry/types/user';
 
 import {ActivityAvatar} from './avatar';
@@ -83,7 +84,7 @@ function ActivityItem({
   );
 
   return (
-    <ActivityItemWrapper data-test-id="activity-item" className={className}>
+    <Flex marginBottom="xl" data-test-id="activity-item" className={className}>
       {id && <a id={id} />}
 
       {author && (
@@ -109,21 +110,16 @@ function ActivityItem({
 
         {children && (noPadding ? children : <ActivityBody>{children}</ActivityBody>)}
       </StyledActivityBubble>
-    </ActivityItemWrapper>
+    </Flex>
   );
 }
-
-const ActivityItemWrapper = styled('div')`
-  display: flex;
-  margin-bottom: ${space(2)};
-`;
 
 const ActivityHeader = styled('div')`
   display: flex;
   align-items: center;
-  padding: 6px ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  font-size: ${p => p.theme.fontSize.md};
+  padding: 6px ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  font-size: ${p => p.theme.font.size.md};
 
   &:last-child {
     border-bottom: none;
@@ -135,24 +131,24 @@ const ActivityHeaderContent = styled('div')`
 `;
 
 const ActivityBody = styled('div')`
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   ${textStyles}
 `;
 
 const StyledActivityAvatar = styled(ActivityAvatar)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledDateTimeWindow = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledActivityBubble = styled(ActivityBubble)`

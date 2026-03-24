@@ -9,9 +9,9 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {DataCategory} from 'sentry/types/core';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
-import UsageCharts from 'getsentry/views/subscriptionPage/usageOverview/components/charts';
+import {UsageCharts} from 'getsentry/views/subscriptionPage/usageOverview/components/charts';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
 describe('UsageCharts', () => {
@@ -26,7 +26,7 @@ describe('UsageCharts', () => {
   const stats = [BillingStatFixture()];
 
   beforeEach(() => {
-    organization.features.push('subscriptions-v3');
+    organization.features = [];
   });
 
   function renderComponent(props: Omit<BreakdownPanelProps, 'organization'>) {

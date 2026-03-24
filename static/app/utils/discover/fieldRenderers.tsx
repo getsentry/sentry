@@ -3,28 +3,26 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
-import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Count} from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
-import FileSize from 'sentry/components/fileSize';
-import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
+import {FileSize} from 'sentry/components/fileSize';
+import {BadgeDisplayName} from 'sentry/components/idBadge/badgeDisplayName';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import UserMisery from 'sentry/components/userMisery';
-import Version from 'sentry/components/version';
+import {UserMisery} from 'sentry/components/userMisery';
+import {Version} from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -32,12 +30,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
+  ABYTE_UNITS,
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
@@ -46,26 +45,26 @@ import {
   parseFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
-import {FieldKind} from 'sentry/utils/fields';
 import {formatRate} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import toPercent from 'sentry/utils/number/toPercent';
-import Projects from 'sentry/utils/projects';
+import {toPercent} from 'sentry/utils/number/toPercent';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {Projects} from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import {hasDrillDownFlowsFeature} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
+import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
 import {
-  DashboardFilterKeys,
-  type DashboardFilters,
-  type GlobalFilter,
-  type Widget,
-} from 'sentry/views/dashboards/types';
+  findLinkedDashboardForField,
+  getLinkedDashboardUrl,
+} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
+import {NUMBER_MAX_FRACTION_DIGITS} from 'sentry/views/dashboards/widgets/common/settings';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -87,7 +86,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
-import ArrayValue from './arrayValue';
+import {ArrayValue} from './arrayValue';
 import {
   BarContainer,
   Container,
@@ -101,7 +100,7 @@ import {
   UserIcon,
   VersionContainer,
 } from './styles';
-import TeamKeyTransactionField from './teamKeyTransactionField';
+import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamKeyTransactionField';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.
@@ -119,6 +118,7 @@ export type RenderFunctionBaggage = {
   disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
+  projects?: Project[];
   /**
    * The trace item meta data for the trace item, which includes information needed to render annotated tooltip (eg. scrubbing reasons)
    */
@@ -163,7 +163,7 @@ type FieldFormatters = {
 };
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 export const emptyStringValue = (
@@ -209,16 +209,6 @@ export const SIZE_UNITS = {
   petabyte: 1000 ** 5,
   exabyte: 1000 ** 6,
 };
-
-export const ABYTE_UNITS = [
-  'byte',
-  'kilobyte',
-  'megabyte',
-  'gigabyte',
-  'terabyte',
-  'petabyte',
-  'exabyte',
-];
 
 // TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
 export const DURATION_UNITS = {
@@ -315,7 +305,14 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? formatFloat(data[field], 4) : emptyValue}
+        {typeof data[field] === 'number'
+          ? formatFloat(data[field], NUMBER_MAX_FRACTION_DIGITS).toLocaleString(
+              undefined,
+              {
+                maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
+              }
+            )
+          : emptyValue}
       </NumberContainer>
     ),
   },
@@ -399,7 +396,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => {
       if (typeof data[field] !== 'number') {
-        return <Container>{emptyValue}</Container>;
+        return <NumberContainer>{emptyValue}</NumberContainer>;
       }
       return <CurrencyCell value={data[field]} />;
     },
@@ -423,6 +420,8 @@ const DownloadCount = styled('span')`
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
+  display: block;
+  text-align: right;
 `;
 
 /**
@@ -469,7 +468,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               showChevron: false,
               icon: (
                 <Fragment>
-                  <IconDownload color="gray500" size="sm" />
+                  <IconDownload variant="primary" size="sm" />
                   <DownloadCount>{items.length}</DownloadCount>
                 </Fragment>
               ),
@@ -504,7 +503,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
                 : undefined
             }
           >
-            <IconDownload color="gray500" size="sm" />
+            <IconDownload variant="primary" size="sm" />
             <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
         </RightAlignedContainer>
@@ -546,7 +545,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       if (op === ModuleName.DB || op === ModuleName.RESOURCE) {
         return (
           <SpanDescriptionCell
-            description={value}
+            description={value ?? ''}
             moduleName={op}
             projectId={projectId}
             group={spanGroup}
@@ -601,35 +600,52 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   replayId: {
     sortField: 'replayId',
-    renderFunc: (data, {organization}) => {
+    renderFunc: (data, baggage) => {
       const replayId = data?.replayId;
       if (typeof replayId !== 'string' || !replayId) {
         return emptyValue;
       }
-
-      const target = makeReplaysPathname({
-        path: `/${replayId}/`,
-        organization,
-      });
-
-      return (
-        <Container>
-          <ViewReplayLink replayId={replayId} to={target}>
-            {getShortEventId(replayId)}
-          </ViewReplayLink>
-        </Container>
-      );
+      return renderReplayIdAsLink(replayId, baggage);
+    },
+  },
+  'replay.id': {
+    sortField: 'replay.id',
+    renderFunc: (data, baggage) => {
+      const replayId = data?.['replay.id'];
+      if (typeof replayId !== 'string' || !replayId) {
+        return emptyValue;
+      }
+      return renderReplayIdAsLink(replayId, baggage);
     },
   },
   'profile.id': {
     sortField: 'profile.id',
-    renderFunc: data => {
-      const id: string | unknown = data?.['profile.id'];
-      if (typeof id !== 'string' || id === '') {
+    renderFunc: (data, {organization, projects}) => {
+      const profileId: string | unknown = data?.['profile.id'];
+      if (typeof profileId !== 'string' || profileId === '') {
         return emptyValue;
       }
 
-      return <Container>{getShortEventId(id)}</Container>;
+      const projectSlug = data.project ?? data['project.name'];
+      const projectMatch = projects?.find(p => p.slug === projectSlug);
+
+      if (!projectMatch) {
+        return <Container>{getShortEventId(profileId)}</Container>;
+      }
+
+      const target = generateProfileFlamechartRouteWithQuery({
+        organization,
+        projectSlug: projectMatch.slug,
+        profileId,
+      });
+
+      return (
+        <Link to={target}>
+          <StyledTooltip title={t('View Profile')}>
+            <Container>{getShortEventId(profileId)}</Container>
+          </StyledTooltip>
+        </Link>
+      );
     },
   },
   issue: {
@@ -784,7 +800,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
       return data.adoption_stage && label ? (
         <Tooltip title={label.tooltipTitle} isHoverable>
-          <Tag type={label.type}>{label.name}</Tag>
+          <Tag variant={label.variant}>{label.name}</Tag>
         </Tooltip>
       ) : (
         <Container>{emptyValue}</Container>
@@ -828,9 +844,10 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: null,
     renderFunc: data => (
       <StarredSegmentCell
-        projectSlug={data.project}
-        segmentName={data.transaction}
-        isStarred={data.is_starred_transaction}
+        projectSlug={data[SpanFields.PROJECT]}
+        projectId={data[SpanFields.PROJECT_ID]?.toString()}
+        segmentName={data[SpanFields.TRANSACTION]}
+        isStarred={data[SpanFields.IS_STARRED_TRANSACTION]}
       />
     ),
   },
@@ -911,12 +928,24 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => {
       const score = data['performance_score(measurements.score.total)'];
       if (typeof score !== 'number') {
-        return <Container>{emptyValue}</Container>;
+        return <RightAlignedContainer>{emptyValue}</RightAlignedContainer>;
       }
       return (
         <RightAlignedContainer>
           <PerformanceBadge score={Math.round(score * 100)} />
         </RightAlignedContainer>
+      );
+    },
+  },
+  'opportunity_score(measurements.score.total)': {
+    sortField: 'opportunity_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['opportunity_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
       );
     },
   },
@@ -1322,7 +1351,7 @@ const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
 `;
 
 const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
 `;
 
 const StyledLink = styled(Link)`
@@ -1336,8 +1365,27 @@ const StyledProjectBadge = styled(ProjectBadge)`
 `;
 
 const StyledTooltip = styled(Tooltip)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
+
+function renderReplayIdAsLink(replayId: string, {organization}: RenderFunctionBaggage) {
+  const target = makeReplaysPathname({
+    path: `/${replayId}/`,
+    organization,
+  });
+
+  return (
+    <Container>
+      <ViewReplayLink replayId={replayId} to={target}>
+        {getShortEventId(replayId)}
+      </ViewReplayLink>
+    </Container>
+  );
+}
 
 export function getFieldRenderer(
   field: string,
@@ -1366,6 +1414,16 @@ function getFieldRendererBase(
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
+  }
+
+  if (isEquation(field)) {
+    const strippedField = stripEquationPrefix(field);
+    if (SPECIAL_FIELDS.hasOwnProperty(strippedField)) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      const specialRenderer = SPECIAL_FIELDS[strippedField].renderFunc;
+      return (data: EventData, baggage: RenderFunctionBaggage) =>
+        specialRenderer({...data, [strippedField]: data[field]}, baggage);
+    }
   }
 
   if (isRelativeSpanOperationBreakdownField(field)) {
@@ -1397,17 +1455,8 @@ function wrapFieldRendererInDashboardLink(
   dashboardFilters: DashboardFilters | undefined = undefined
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
-    const {organization, location} = baggage;
-    const value = data[field];
-    const dashboardUrl = getDashboardUrl(
-      field,
-      value,
-      organization,
-      location,
-      widget,
-      dashboardFilters
-    );
-    if (hasDrillDownFlowsFeature(organization) && dashboardUrl) {
+    const dashboardUrl = getDashboardUrl(data, field, baggage, widget, dashboardFilters);
+    if (dashboardUrl) {
       return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
     }
     return renderer(data, baggage);
@@ -1415,53 +1464,39 @@ function wrapFieldRendererInDashboardLink(
 }
 
 function getDashboardUrl(
+  data: EventData,
   field: string,
-  value: any,
-  organization: Organization,
-  location: Location,
+  baggage: RenderFunctionBaggage,
   widget: Widget | undefined = undefined,
   dashboardFilters: DashboardFilters | undefined = undefined
 ) {
-  if (widget?.widgetType && dashboardFilters) {
-    // Table widget only has one query
-    const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
-      linkedDashboard => linkedDashboard.field === field
-    );
-    if (dashboardLink && dashboardLink.dashboardId !== '-1') {
-      const newTemporaryFilters: GlobalFilter[] = [
-        ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
-      ].filter(filter => Boolean(filter.value));
+  const {organization, location, projects} = baggage;
+  if (!widget?.widgetType || !dashboardFilters) {
+    return undefined;
+  }
 
-      // Format the value as a proper filter condition string
-      const mutableSearch = new MutableSearch('');
-      const formattedValue = mutableSearch.addFilterValueList(field, [value]).toString();
+  const linkedDashboard = findLinkedDashboardForField(widget.queries[0], field);
+  if (!linkedDashboard) {
+    return undefined;
+  }
 
-      newTemporaryFilters.push({
-        dataset: widget.widgetType,
-        tag: {key: field, name: field, kind: FieldKind.TAG},
-        value: formattedValue,
-      });
-
-      // Preserve project, environment, and time range query params
-      const filterParams = pick(location.query, [
-        'release',
-        'environment',
-        'project',
-        'statsPeriod',
-        'start',
-        'end',
-      ]);
-
-      const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
-        {
-          ...filterParams,
-          [DashboardFilterKeys.TEMPORARY_FILTERS]: newTemporaryFilters.map(filter =>
-            JSON.stringify(filter)
-          ),
-        }
-      )}`;
-      return url;
+  // Get project ID override from data if available
+  let projectIdOverride: string | number | undefined;
+  if ('project' in data) {
+    const projectId = projects?.find(project => project.slug === data.project)?.id;
+    if (projectId) {
+      projectIdOverride = projectId;
     }
   }
-  return undefined;
+
+  return getLinkedDashboardUrl({
+    linkedDashboard,
+    organizationSlug: organization.slug,
+    field,
+    value: data[field],
+    widgetType: widget.widgetType,
+    dashboardFilters,
+    locationQuery: location.query,
+    projectIdOverride,
+  });
 }

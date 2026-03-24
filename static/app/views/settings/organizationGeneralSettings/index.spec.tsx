@@ -12,9 +12,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -30,6 +31,7 @@ describe('OrganizationGeneralSettings', () => {
   beforeEach(() => {
     configState = ConfigStore.getState();
     OrganizationsStore.addOrReplace(organization);
+    OrganizationStore.onUpdate(organization, {replace: true});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
@@ -73,6 +75,7 @@ describe('OrganizationGeneralSettings', () => {
       features: ['codecov-integration'],
       codecovAccess: false,
     });
+    OrganizationStore.onUpdate(organizationWithCodecovFeature, {replace: true});
     render(<OrganizationGeneralSettings />, {
       organization: organizationWithCodecovFeature,
     });
@@ -135,6 +138,7 @@ describe('OrganizationGeneralSettings', () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
 
     const org = OrganizationFixture();
+    OrganizationStore.onUpdate(org, {replace: true});
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -169,6 +173,7 @@ describe('OrganizationGeneralSettings', () => {
 
   it('disables the entire form if user does not have write access', () => {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
+    OrganizationStore.onUpdate(readOnlyOrg, {replace: true});
 
     render(<OrganizationGeneralSettings />, {
       organization: readOnlyOrg,
@@ -181,7 +186,11 @@ describe('OrganizationGeneralSettings', () => {
     ];
 
     for (const formElement of formElements) {
-      expect(formElement).toBeDisabled();
+      // New form system uses aria-disabled + readOnly instead of native disabled attribute
+      const isDisabled =
+        formElement.hasAttribute('disabled') ||
+        formElement.getAttribute('aria-disabled') === 'true';
+      expect(isDisabled).toBe(true);
     }
 
     expect(
@@ -192,10 +201,11 @@ describe('OrganizationGeneralSettings', () => {
   });
 
   it('does not have remove organization button without org:admin permission', () => {
+    const orgWithWriteAccess = OrganizationFixture({access: ['org:write']});
+    OrganizationStore.onUpdate(orgWithWriteAccess, {replace: true});
+
     render(<OrganizationGeneralSettings />, {
-      organization: OrganizationFixture({
-        access: ['org:write'],
-      }),
+      organization: orgWithWriteAccess,
     });
 
     expect(
@@ -204,10 +214,12 @@ describe('OrganizationGeneralSettings', () => {
   });
 
   it('can remove organization when org admin', async () => {
+    const orgWithAdminAccess = OrganizationFixture({access: ['org:admin']});
+    OrganizationStore.onUpdate(orgWithAdminAccess, {replace: true});
     act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
     render(<OrganizationGeneralSettings />, {
-      organization: OrganizationFixture({access: ['org:admin']}),
+      organization: orgWithAdminAccess,
     });
     renderGlobalModal();
 

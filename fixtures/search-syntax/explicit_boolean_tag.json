@@ -1,0 +1,55 @@
+[
+  {
+    "query": "tags[foo,boolean]:true release:1.2.1 tags[project_id,boolean]:false",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {
+          "type": "keyExplicitBooleanTag",
+          "prefix": "tags",
+          "key": {"type": "keySimple", "value": "foo", "quoted": false}
+        },
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "true",
+          "quoted": false
+        }
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "1.2.1",
+          "quoted": false
+        }
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {
+          "type": "keyExplicitBooleanTag",
+          "prefix": "tags",
+          "key": {"type": "keySimple", "value": "project_id", "quoted": false}
+        },
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "false",
+          "quoted": false
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

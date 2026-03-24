@@ -2,23 +2,26 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
   CodingAgentStatus,
+  getCodingAgentName,
+  getResultButtonLabel,
   type CodingAgentState,
   type SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import testableTransition from 'sentry/utils/testableTransition';
+import {sanitizedMarkedNoHeadings} from 'sentry/utils/marked/marked';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
@@ -29,16 +32,17 @@ const animationProps: MotionNodeAnimationOptions = {
 
 interface CodingAgentCardProps {
   codingAgentState: CodingAgentState;
+  groupId?: string;
   repo?: SeerRepoDefinition;
 }
 
-function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
-  const getTagType = (status: CodingAgentStatus): TagProps['type'] => {
+export function CodingAgentCard({codingAgentState, groupId, repo}: CodingAgentCardProps) {
+  const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
         return 'success';
       case CodingAgentStatus.FAILED:
-        return 'error';
+        return 'danger';
       case CodingAgentStatus.PENDING:
       case CodingAgentStatus.RUNNING:
       default:
@@ -65,15 +69,6 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     return status === CodingAgentStatus.PENDING || status === CodingAgentStatus.RUNNING;
   };
 
-  const getProviderName = (provider: CodingAgentProvider) => {
-    switch (provider) {
-      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
-        return t('Cursor Cloud Agent');
-      default:
-        return t('Coding Agent');
-    }
-  };
-
   const hasButtons = Boolean(
     codingAgentState.agent_url || codingAgentState.results?.some(result => result.pr_url)
   );
@@ -91,23 +86,23 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                     {shouldShowSpinner(codingAgentState.status) ? (
                       <StyledLoadingIndicator size={16} />
                     ) : (
-                      <IconCode size="md" color="purple400" />
+                      <IconCode size="md" variant="accent" />
                     )}
-                    {getProviderName(codingAgentState.provider)}
+                    {getCodingAgentName(codingAgentState.provider)}
                   </HeaderText>
                 </HeaderWrapper>
 
                 <Content>
-                  <CardHeader>
+                  <Stack marginBottom="md" gap="xs">
                     <AgentTitle>{codingAgentState.name}</AgentTitle>
                     <div>
-                      <Tag type={getTagType(codingAgentState.status)}>
+                      <Tag variant={getTagVariant(codingAgentState.status)}>
                         {getStatusText(codingAgentState.status)}
                       </Tag>
                     </div>
-                  </CardHeader>
+                  </Stack>
 
-                  <CardContent>
+                  <Stack gap="sm">
                     {/* Show results for completed or failed agents */}
                     {codingAgentState.results && codingAgentState.results.length > 0 && (
                       <ResultsSection>
@@ -120,16 +115,10 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               <ResultDescription
                                 status={codingAgentState.status}
                                 dangerouslySetInnerHTML={{
-                                  __html: singleLineRenderer(result.description),
+                                  __html: sanitizedMarkedNoHeadings(result.description),
                                 }}
                               />
                             </Text>
-                            {result.branch_name && (
-                              <DetailRow>
-                                <Label>{t('Branch')}:</Label>
-                                <Value>{result.branch_name}</Value>
-                              </DetailRow>
-                            )}
                           </ResultItem>
                         ))}
                       </ResultsSection>
@@ -148,13 +137,13 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                       {t('Started')}
                       <DateTime date={codingAgentState.started_at} />
                     </DetailRow>
-                  </CardContent>
+                  </Stack>
                 </Content>
                 {hasButtons && (
                   <React.Fragment>
                     <BottomDivider />
                     <BottomButtonContainer>
-                      <ButtonBar>
+                      <Grid flow="column" align="center" gap="md">
                         {codingAgentState.agent_url && (
                           <ExternalLink href={codingAgentState.agent_url}>
                             <Button
@@ -162,8 +151,15 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               icon={<IconOpen />}
                               analyticsEventName="Autofix: Open Coding Agent"
                               analyticsEventKey="autofix.coding_agent.open"
+                              analyticsParams={{group_id: groupId}}
                             >
-                              {t('Open in Cursor')}
+                              {codingAgentState.provider ===
+                              CodingAgentProvider.CURSOR_BACKGROUND_AGENT
+                                ? t('Open in Cursor')
+                                : codingAgentState.provider ===
+                                    CodingAgentProvider.CLAUDE_CODE_AGENT
+                                  ? t('Open in Claude')
+                                  : t('View Agent')}
                             </Button>
                           </ExternalLink>
                         )}
@@ -176,13 +172,14 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                                 icon={<IconOpen />}
                                 analyticsEventName="Autofix: Open Coding Agent PR"
                                 analyticsEventKey="autofix.coding_agent.open_pr"
+                                analyticsParams={{group_id: groupId}}
                                 priority="primary"
                               >
-                                {t('View Pull Request')}
+                                {getResultButtonLabel(pr_url)}
                               </Button>
                             </ExternalLink>
                           ))}
-                      </ButtonBar>
+                      </Grid>
                     </BottomButtonContainer>
                   </React.Fragment>
                 )}
@@ -195,12 +192,10 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
   );
 }
 
-export default CodingAgentCard;
-
 const VerticalLine = styled('div')`
   width: 0;
   height: ${p => p.theme.space.xl};
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   margin-left: 16px;
   margin-bottom: -1px;
 `;
@@ -227,13 +222,13 @@ const ContentWrapper = styled(motion.div)`
 `;
 
 const StyledCard = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding-left: ${p => p.theme.space.xl};
   padding-right: ${p => p.theme.space.xl};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderWrapper = styled('div')`
@@ -247,7 +242,7 @@ const HeaderWrapper = styled('div')`
 
 const HeaderText = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
@@ -257,43 +252,30 @@ const Content = styled('div')`
   padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.xl} 0;
 `;
 
-const CardHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const AgentTitle = styled('h4')`
   margin: 0 0 ${p => p.theme.space.xs} 0;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.textColor};
-`;
-
-const CardContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const DetailRow = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Label = styled('span')`
   font-weight: 600;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   min-width: 80px;
 `;
 
 const Value = styled('span')`
-  color: ${p => p.theme.textColor};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.primary};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const ResultsSection = styled('div')`
@@ -309,13 +291,15 @@ const ResultItem = styled('div')`
   gap: ${p => p.theme.space.xs};
   padding: ${p => p.theme.space.md} 0;
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
   color: ${p =>
-    p.status === CodingAgentStatus.FAILED ? p.theme.errorText : p.theme.textColor};
+    p.status === CodingAgentStatus.FAILED
+      ? p.theme.tokens.content.danger
+      : p.theme.tokens.content.primary};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -326,7 +310,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const BottomButtonContainer = styled('div')`

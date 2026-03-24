@@ -42,6 +42,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TIMESTAMP_FIELDS,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
@@ -544,7 +545,38 @@ def convert_search_filter_to_snuba_query(
         return None
     elif name in key_conversion_map:
         return key_conversion_map[name](search_filter, name, params)
-    elif (
+
+    # Split wildcard IN filters (e.g. key:["*foo*", "*bar*"]) into individual
+    # filters and recurse. Must run before ARRAY_FIELDS handling so that each
+    # wildcard value is processed through the correct LIKE/match branch.
+    strs = search_filter.value.split_wildcards()
+    if strs is not None and len(strs[1]) > 0:
+        (non_wildcards, wildcards) = strs
+        # TODO: For NOT IN, these individual conditions are OR'd by the legacy
+        # snuba format, but strict NOT IN semantics require AND. This matches
+        # pre-existing behavior in both this path and the QueryBuilder path
+        # (base.py:1311).
+        wc_operator = "="
+        if search_filter.operator == "NOT IN":
+            wc_operator = "!="
+        conditions = [
+            convert_search_filter_to_snuba_query(
+                SearchFilter(search_filter.key, wc_operator, SearchValue(wc)),
+                key=key,
+                params=params,
+            )
+            for wc in wildcards
+        ]
+        if len(non_wildcards) > 0:
+            non_wc_condition = convert_search_filter_to_snuba_query(
+                SearchFilter(search_filter.key, search_filter.operator, SearchValue(non_wildcards)),
+                key=key,
+                params=params,
+            )
+            conditions.append(non_wc_condition)
+        return _flatten_conditions(conditions)
+
+    if (
         name in ARRAY_FIELDS
         and search_filter.value.is_wildcard()
         and not search_filter.value.is_str_sequence()
@@ -578,13 +610,9 @@ def convert_search_filter_to_snuba_query(
     elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
         return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
-        # timestamp{,.to_{hour,day}} need a datetime string
+        # TIMESTAMP_FIELDS need a datetime string
         # last_seen needs an integer
-        if isinstance(value, datetime) and name not in {
-            "timestamp",
-            "timestamp.to_hour",
-            "timestamp.to_day",
-        }:
+        if isinstance(value, datetime) and name not in TIMESTAMP_FIELDS:
             value = int(value.timestamp()) * 1000
 
         if name in {"trace.span", "trace.parent_span"}:
@@ -635,29 +663,7 @@ def convert_search_filter_to_snuba_query(
             # they'll always be an empty string.
             is_null_condition = [["isNull", [name]], "=", 1]
 
-        # If we have a mixture of wildcards and non-wildcards in a [] set, we must
-        # group them into their own sets to apply the appropriate operators, and
-        # then 'OR' them together.
-        strs = search_filter.value.split_wildcards()
-        if strs is not None and len(strs[1]) > 0:
-            (non_wildcards, wildcards) = strs
-            operator = "="
-            if search_filter.operator == "NOT IN":
-                operator = "!="
-            condition = [
-                convert_search_filter_to_snuba_query(
-                    SearchFilter(search_filter.key, operator, SearchValue(wc))
-                )
-                for wc in wildcards
-            ]
-            if len(non_wildcards) > 0:
-                non_wcs = convert_search_filter_to_snuba_query(
-                    SearchFilter(
-                        search_filter.key, search_filter.operator, SearchValue(non_wildcards)
-                    )
-                )
-                condition.append(non_wcs)
-        elif search_filter.value.is_wildcard():
+        if search_filter.value.is_wildcard():
             # mypy complains if you just use the literal; int isn't an Any, somehow?
             match_val: Any = 1
             condition = [["match", [name, f"'(?i){value}'"]], search_filter.operator, match_val]
@@ -669,9 +675,19 @@ def convert_search_filter_to_snuba_query(
         # together. Otherwise just return the raw condition, so that it can be
         # used correctly in aggregates.
         if is_null_condition:
-            return [is_null_condition, condition]
-        else:
-            return condition
+            return [is_null_condition, *_flatten_conditions(condition)]
+        return condition
+
+
+def _flatten_conditions(cond: list[Any]) -> list[Any]:
+    """
+    Flatten nested legacy conditions into a flat list. A legacy condition is
+    [lhs, op_string, rhs]. Wildcard processing can create nested lists that
+    snuba_sdk.legacy.parse_condition cannot handle.
+    """
+    if len(cond) == 3 and isinstance(cond[1], str):
+        return [cond]
+    return [c for item in cond if isinstance(item, list) for c in _flatten_conditions(item)]
 
 
 def format_search_filter(term, params):

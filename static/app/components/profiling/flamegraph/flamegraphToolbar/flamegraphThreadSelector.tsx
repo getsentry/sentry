@@ -2,18 +2,20 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface FlamegraphThreadSelectorProps {
   onThreadIdChange: (threadId: Profile['threadId']) => void;
@@ -106,10 +108,9 @@ function FlamegraphThreadSelector({
 
   return (
     <StyledCompactSelect
-      triggerProps={{
-        icon: <IconList />,
-        size: 'xs',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} icon={<IconList />} size="xs" />
+      )}
       options={[
         {key: 'profiles', label: t('Profiles'), options: profileOptions},
         {
@@ -120,7 +121,7 @@ function FlamegraphThreadSelector({
       ]}
       value={threadId ?? 0}
       onChange={handleChange}
-      searchable
+      search
     />
   );
 }
@@ -132,10 +133,10 @@ interface ThreadLabelDetailsProps {
 
 function ThreadLabelDetails(props: ThreadLabelDetailsProps) {
   return (
-    <DetailsContainer>
+    <Flex justify="between" gap="md">
       <div>{props.duration}</div>
       <div>{tn('%s sample', '%s samples', props.samples)}</div>
-    </DetailsContainer>
+    </Flex>
   );
 }
 
@@ -173,13 +174,6 @@ export function compareProfiles(activeThreadId?: number) {
     return a.name > b.name ? 1 : -1;
   };
 }
-
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;
 
 const StyledCompactSelect = styled(CompactSelect)`
   width: 14ch;

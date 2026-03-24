@@ -13,9 +13,15 @@ from sentry.analytics.events.codeowners_assignment import CodeOwnersAssignment
 from sentry.analytics.events.issueowners_assignment import IssueOwnersAssignment
 from sentry.analytics.events.suspectcommit_assignment import SuspectCommitAssignment
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model, sane_repr
+from sentry.db.models import Model, cell_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey
-from sentry.issues.ownership.grammar import Matcher, Rule, load_schema, resolve_actors
+from sentry.issues.ownership.grammar import (
+    Matcher,
+    OwnershipSchema,
+    Rule,
+    load_schema,
+    resolve_actors,
+)
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
@@ -36,7 +42,7 @@ logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
-@region_silo_model
+@cell_silo_model
 class ProjectOwnership(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -63,7 +69,9 @@ class ProjectOwnership(Model):
         return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
-    def get_combined_schema(self, ownership, codeowners):
+    def get_combined_schema(
+        self, ownership: ProjectOwnership, codeowners: ProjectCodeOwners | None
+    ) -> OwnershipSchema | None:
         if codeowners and codeowners.schema:
             ownership.schema = (
                 codeowners.schema
@@ -269,7 +277,6 @@ class ProjectOwnership(Model):
             return
 
         with metrics.timer("projectownership.get_autoassign_owners"):
-
             ownership = cls.get_ownership_cached(project_id)
             if not ownership:
                 ownership = cls(project_id=project_id)
@@ -422,8 +429,7 @@ def process_resource_change(instance, change, **kwargs):
         instance if change == "updated" else None,
         READ_CACHE_DURATION,
     )
-    GroupOwner.invalidate_assignee_exists_cache(instance.project.id)
-    GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
+    GroupOwner.set_project_ownership_version(instance.project_id)
 
 
 # Signals update the cached reads used in post_processing

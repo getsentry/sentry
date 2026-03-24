@@ -381,9 +381,9 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         done_states = self._get_done_statuses(data["project"])
         return ResolveSyncAction.from_resolve_unresolve(
             should_resolve=(
-                not data["old_state"] in done_states and data["new_state"] in done_states
+                data["old_state"] not in done_states and data["new_state"] in done_states
             ),
-            should_unresolve=(not data["new_state"] in done_states or data["old_state"] is None),
+            should_unresolve=(data["new_state"] not in done_states or data["old_state"] is None),
         )
 
     def _get_done_statuses(self, project: str) -> set[str]:

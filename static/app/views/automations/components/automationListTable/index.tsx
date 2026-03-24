@@ -1,18 +1,18 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Flex} from 'sentry/components/core/layout';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationsTableActions} from 'sentry/views/automations/components/automationListTable/actions';
 import {
   AutomationListRow,
@@ -74,7 +74,7 @@ function HeaderCell({
   );
 }
 
-function AutomationListTable({
+export function AutomationListTable({
   automations,
   isPending,
   isError,
@@ -193,7 +193,7 @@ function AutomationListTable({
 const AutomationsSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
 
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='last-triggered'],
   [data-column-name='action'],
@@ -234,5 +234,3 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 `;
-
-export default AutomationListTable;

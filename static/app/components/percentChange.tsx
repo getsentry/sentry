@@ -70,8 +70,8 @@ export const ColorizedRating = styled('div')<{
 }>`
   color: ${p =>
     p.rating === 'good'
-      ? p.theme.successText
+      ? p.theme.tokens.content.success
       : p.rating === 'bad'
-        ? p.theme.errorText
-        : p.theme.subText};
+        ? p.theme.tokens.content.danger
+        : p.theme.tokens.content.secondary};
 `;

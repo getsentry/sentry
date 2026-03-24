@@ -5,7 +5,7 @@ import responses
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.auditlogentry import AuditLogEntry
@@ -13,7 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
     Action,
@@ -24,12 +24,8 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.typings.notification_action import (
-    ActionTarget,
-    ActionType,
-    SentryAppIdentifier,
-)
-from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, ProjectAccessTestMixin
 
 
 class OrganizationWorkflowDetailsBaseTest(APITestCase):
@@ -40,7 +36,7 @@ class OrganizationWorkflowDetailsBaseTest(APITestCase):
         self.login_as(user=self.user)
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
     def test_simple(self) -> None:
         workflow = self.create_workflow(organization_id=self.organization.id)
@@ -57,7 +53,7 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
         self.get_error_response(self.organization.slug, workflow.id, status_code=404)
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "PUT"
 
@@ -96,6 +92,62 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update_owner(self) -> None:
+        assert self.workflow.owner_team_id is None
+        assert self.workflow.owner_user_id is None
+
+        # update owner to user
+        self.valid_workflow["owner"] = f"user:{self.user.id}"
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+        assert response.status_code == 200
+        assert response.data == serialize(updated_workflow)
+        assert response.data["owner"] == f"user:{self.user.id}"
+        assert updated_workflow.owner_user_id == self.user.id
+
+        # update owner to team
+        self.valid_workflow["owner"] = f"team:{self.team.id}"
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+        assert response.status_code == 200
+        assert response.data == serialize(updated_workflow)
+        assert response.data["owner"] == f"team:{self.team.id}"
+        assert updated_workflow.owner_team_id == self.team.id
+
+    def test_update_add_environment(self) -> None:
+        assert self.workflow.environment_id is None
+
+        self.valid_workflow["environment"] = self.environment.name
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+
+        assert response.status_code == 200
+        assert response.data["environment"] == self.environment.name
+        assert updated_workflow.environment_id == self.environment.id
+
+    def test_update_environment(self) -> None:
+        self.workflow.environment_id = self.environment.id
+        self.workflow.save()
+        self.workflow.refresh_from_db()
+        assert self.workflow.environment_id == self.environment.id
+
+        test_environment = self.create_environment(name="test", project=self.project)
+        self.valid_workflow["environment"] = test_environment.name
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+
+        assert response.status_code == 200
+        assert response.data["environment"] == test_environment.name
+        assert updated_workflow.environment_id == test_environment.id
+
     @responses.activate
     def test_update_add_sentry_app_action(self) -> None:
         """
@@ -119,7 +171,6 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(self.sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },
@@ -140,71 +191,10 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert action.type == Action.Type.SENTRY_APP
         assert action.config == {
-            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             "target_identifier": str(self.sentry_app.id),
             "target_type": ActionTarget.SENTRY_APP.value,
         }
         assert action.data["settings"] == self.sentry_app_settings
-
-    @responses.activate
-    def test_update_add_sentry_app_installation_uuid_action(self) -> None:
-        """
-        Test that adding a sentry app action to a workflow works as expected when we pass the installation UUID instead of the sentry app id.
-        We do not create new actions like this today, but we have data like this in the DB and need to make sure it still works until we can migrate away from it
-        to use the sentry app id
-        """
-        responses.add(
-            method=responses.POST,
-            url="https://example.com/sentry/alert-rule",
-            status=200,
-        )
-        # update the settings
-        updated_sentry_app_settings = [
-            {"name": "alert_prefix", "value": "[Very Good]"},
-            {"name": "channel", "value": "#pay-attention-to-errors"},
-            {"name": "best_emoji", "value": ":ice:"},
-            {"name": "teamId", "value": "1"},
-            {"name": "assigneeId", "value": "3"},
-        ]
-        self.valid_workflow["actionFilters"] = [
-            {
-                "logicType": "any",
-                "conditions": [
-                    {
-                        "type": Condition.EQUAL.value,
-                        "comparison": 1,
-                        "conditionResult": True,
-                    }
-                ],
-                "actions": [
-                    {
-                        "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-                            "targetIdentifier": self.sentry_app_installation.uuid,
-                            "targetType": ActionType.SENTRY_APP,
-                        },
-                        "data": {"settings": updated_sentry_app_settings},
-                        "type": Action.Type.SENTRY_APP,
-                    },
-                ],
-            }
-        ]
-        response = self.get_success_response(
-            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
-        )
-        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
-        action_filter = WorkflowDataConditionGroup.objects.get(workflow=updated_workflow)
-        dcga = DataConditionGroupAction.objects.get(condition_group=action_filter.condition_group)
-        action = dcga.action
-
-        assert response.status_code == 200
-        assert action.type == Action.Type.SENTRY_APP
-        assert action.config == {
-            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
-            "target_identifier": str(self.sentry_app.id),
-            "target_type": ActionTarget.SENTRY_APP.value,
-        }
-        assert action.data["settings"] == updated_sentry_app_settings
 
     def test_update_triggers_with_empty_conditions(self) -> None:
         """Test that passing an empty list to triggers.conditions clears all conditions"""
@@ -214,7 +204,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             "enabled": True,
             "config": {},
             "triggers": {
-                "logicType": "any",
+                "logicType": "any-short",
                 "conditions": [
                     {"type": "first_seen_event", "comparison": True, "conditionResult": True},
                 ],
@@ -409,6 +399,119 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert "Some detectors do not exist" in str(response.data)
 
+    def test_update_detectors_permission_denied_cross_project_idor(self) -> None:
+        """
+        Test that a user cannot connect a detector from a project they don't have access to.
+        This is a regression test for an IDOR vulnerability where users with alerts:write scope
+        in one project could manipulate detector-workflow connections for detectors in other
+        projects they don't have access to.
+        """
+        # Disable Open Membership - this is the key condition
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create two teams: one for Alice, one for Bob
+        team_alice = self.create_team(organization=self.organization, name="team-alice")
+        team_bob = self.create_team(organization=self.organization, name="team-bob")
+
+        # Create two projects, each owned by a different team
+        self.create_project(organization=self.organization, teams=[team_alice], name="proj-alice")
+        project_bob = self.create_project(
+            organization=self.organization, teams=[team_bob], name="proj-bob"
+        )
+
+        # Create user Alice - member of team_alice only (has access to project_alice)
+        alice = self.create_user(is_superuser=False)
+        self.create_member(
+            user=alice,
+            organization=self.organization,
+            role="member",
+            teams=[team_alice],
+        )
+
+        # Create a detector in Bob's project (Alice should NOT have access to this)
+        bob_detector = self.create_detector(project=project_bob, name="Bob's Detector")
+
+        # Create Alice's workflow
+        alice_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        # Login as Alice
+        self.login_as(alice)
+
+        # Alice attempts to connect Bob's detector to her workflow
+        # This should fail because Alice doesn't have access to project_bob
+        data = {
+            **self.valid_workflow,
+            "detectorIds": [bob_detector.id],
+        }
+
+        self.get_error_response(
+            self.organization.slug,
+            alice_workflow.id,
+            raw_data=data,
+            status_code=403,  # Should be permission denied
+        )
+
+        # Verify the detector-workflow connection was NOT created
+        assert (
+            DetectorWorkflow.objects.filter(workflow=alice_workflow, detector=bob_detector).count()
+            == 0
+        )
+
+    def test_update_detectors_permission_allowed_when_user_has_project_access(self) -> None:
+        """
+        Test that a user CAN connect a detector from a project they have access to.
+        Companion test to test_update_detectors_permission_denied_cross_project_idor.
+        """
+        # Disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create a team and project for the user
+        user_team = self.create_team(organization=self.organization, name="user-team")
+        user_project = self.create_project(
+            organization=self.organization, teams=[user_team], name="user-proj"
+        )
+
+        # Create user with team access
+        user_with_access = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_access,
+            organization=self.organization,
+            role="member",
+            teams=[user_team],
+        )
+
+        # Create a detector in the user's project
+        user_detector = self.create_detector(project=user_project, name="User's Detector")
+
+        # Create the user's workflow
+        user_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        # Login as the user
+        self.login_as(user_with_access)
+
+        # User connects their own detector - this SHOULD succeed
+        data = {
+            **self.valid_workflow,
+            "detectorIds": [user_detector.id],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                user_workflow.id,
+                raw_data=data,
+            )
+
+        assert response.status_code == 200
+
+        # Verify the detector-workflow connection WAS created
+        assert (
+            DetectorWorkflow.objects.filter(workflow=user_workflow, detector=user_detector).count()
+            == 1
+        )
+
     def test_update_detectors_transaction_rollback_on_validation_failure(self) -> None:
         """Test that workflow updates are rolled back when detector validation fails"""
         existing_detector = self.create_detector(project=self.project)
@@ -518,8 +621,170 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 == 0
             )
 
+    def test_update_action_filter_from_different_organization(self) -> None:
+        """Test validation failure when action filter belongs to different organization"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
 
-@region_silo_test
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "id": str(other_dcg.id),
+                    "logicType": "none",
+                    "conditions": [],
+                    "actions": [],
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        assert "does not belong to this workflow" in str(response.data)
+
+        other_dcg.refresh_from_db()
+        assert other_dcg.logic_type == DataConditionGroup.Type.ALL
+
+    def test_update_action_from_different_organization(self) -> None:
+        """Test validation failure when action belongs to different organization"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        other_action = Action.objects.create(
+            type=Action.Type.EMAIL,
+            config={"target_type": ActionTarget.TEAM, "target_identifier": "1"},
+            data={},
+        )
+        DataConditionGroupAction.objects.create(
+            action=other_action,
+            condition_group=other_dcg,
+        )
+        original_config = other_action.config.copy()
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "logicType": "any",
+                    "conditions": [],
+                    "actions": [
+                        {
+                            "id": str(other_action.id),
+                            "type": "email",
+                            "config": {"targetType": "team", "targetIdentifier": "999"},
+                            "data": {},
+                        }
+                    ],
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        assert "does not belong to this workflow" in str(response.data)
+
+        other_action.refresh_from_db()
+        assert other_action.config == original_config
+
+    def test_update_trigger_condition_from_different_organization(self) -> None:
+        """Test that conditionGroupId in trigger conditions cannot reference another org's group"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        original_condition_count = other_dcg.conditions.count()
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "conditionGroupId": other_dcg.id,
+                        "type": "first_seen_event",
+                        "comparison": True,
+                        "conditionResult": True,
+                    }
+                ],
+            },
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+        )
+
+        # Workflow should be updated successfully, but the conditionGroupId should be ignored
+        self.workflow.refresh_from_db()
+        assert self.workflow.when_condition_group is not None
+        assert self.workflow.when_condition_group.organization_id == self.organization.id
+
+        # Verify the other org's condition group was not modified
+        other_dcg.refresh_from_db()
+        assert other_dcg.conditions.count() == original_condition_count
+
+    def test_update_action_filter_condition_from_different_organization(self) -> None:
+        """Test that conditionGroupId in action filter conditions cannot reference another org's group"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        original_condition_count = other_dcg.conditions.count()
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "logicType": "any-short",
+                    "conditions": [
+                        {
+                            "conditionGroupId": other_dcg.id,
+                            "type": "first_seen_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        }
+                    ],
+                    "actions": [],
+                }
+            ],
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+        )
+
+        # Workflow should be updated successfully, but the conditionGroupId should be ignored
+        self.workflow.refresh_from_db()
+        action_filter_dcgs = self.workflow.workflowdataconditiongroup_set.all()
+        for dcg_wrapper in action_filter_dcgs:
+            assert dcg_wrapper.condition_group.organization_id == self.organization.id
+
+        # Verify the other org's condition group was not modified
+        other_dcg.refresh_from_db()
+        assert other_dcg.conditions.count() == original_condition_count
+
+
+@cell_silo_test
 class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "DELETE"
 
@@ -534,7 +799,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.workflow.id)
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -558,7 +823,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             assert response.status_code == 404
 
         # Ensure it wasn't deleted
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -570,7 +835,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             self.get_success_response(self.organization.slug, self.workflow.id)
 
         # Ensure the workflow is scheduled for deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -589,7 +854,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             self.get_success_response(self.organization.slug, self.workflow.id)
 
         # Ensure the workflow is scheduled for deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -608,3 +873,131 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         with outbox_runner():
             response = self.get_error_response(self.organization.slug, workflow.id)
             assert response.status_code == 404
+
+
+@cell_silo_test
+class OrganizationWorkflowDetailsProjectAccessTest(APITestCase, ProjectAccessTestMixin):
+    """
+    Security tests to verify that project-level access is enforced when
+    accessing individual workflows via the details endpoint.
+
+    These tests ensure that users cannot access workflows connected to projects
+    they don't have access to, even when specifying the workflow ID directly.
+    This is a regression test for an IDOR vulnerability.
+    """
+
+    endpoint = "sentry-api-0-organization-workflow-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+
+    def test_get_cannot_access_workflow_from_inaccessible_project(self) -> None:
+        """
+        Test that users cannot GET workflows connected only to projects they don't have access to.
+        This is a regression test for an IDOR vulnerability.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to get the other workflow
+        self.get_error_response(
+            self.organization.slug,
+            self.other_workflow.id,
+            status_code=403,
+        )
+
+    def test_get_can_access_workflow_from_accessible_project(self) -> None:
+        """
+        Test that users CAN GET workflows connected to projects they have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to get their own workflow
+        response = self.get_success_response(
+            self.organization.slug,
+            self.user_workflow.id,
+        )
+        assert response.data["id"] == str(self.user_workflow.id)
+
+    def test_get_can_access_unattached_workflow(self) -> None:
+        """
+        Test that users can access workflows with no detector connections (org-level workflows).
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to get unattached workflows
+        response = self.get_success_response(
+            self.organization.slug,
+            self.unattached_workflow.id,
+        )
+        assert response.data["id"] == str(self.unattached_workflow.id)
+
+    def test_put_cannot_modify_workflow_from_inaccessible_project(self) -> None:
+        """
+        Test that users cannot PUT (modify) workflows connected only to projects
+        they don't have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to modify the other workflow
+        self.get_error_response(
+            self.organization.slug,
+            self.other_workflow.id,
+            method="PUT",
+            raw_data={
+                "name": "Hacked Workflow",
+                "enabled": True,
+                "config": {},
+                "triggers": {"logicType": "any", "conditions": []},
+                "actionFilters": [],
+            },
+            status_code=403,
+        )
+
+        # Verify the workflow was NOT modified
+        self.other_workflow.refresh_from_db()
+        assert self.other_workflow.name == "Other's Workflow"
+
+    def test_delete_cannot_delete_workflow_from_inaccessible_project(self) -> None:
+        """
+        Test that users cannot DELETE workflows connected only to projects
+        they don't have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to delete the other workflow
+        self.get_error_response(
+            self.organization.slug,
+            self.other_workflow.id,
+            method="DELETE",
+            status_code=403,
+        )
+
+        # Verify the workflow was NOT deleted
+        self.other_workflow.refresh_from_db()
+        assert self.other_workflow.status != ObjectStatus.PENDING_DELETION
+
+    def test_access_workflow_connected_to_multiple_projects_with_partial_access(self) -> None:
+        """
+        Test that users CAN access a workflow if they have access to at least one
+        of its connected projects, even if they don't have access to all of them.
+        """
+        self.login_as(self.limited_user)
+
+        # Create a workflow connected to BOTH projects
+        multi_project_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Multi-Project Workflow"
+        )
+        DetectorWorkflow.objects.create(
+            workflow=multi_project_workflow, detector=self.user_detector
+        )
+        DetectorWorkflow.objects.create(
+            workflow=multi_project_workflow, detector=self.other_detector
+        )
+
+        # User has access to one of the projects, so should be able to access the workflow
+        response = self.get_success_response(
+            self.organization.slug,
+            multi_project_workflow.id,
+        )
+        assert response.data["id"] == str(multi_project_workflow.id)

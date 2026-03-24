@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {space} from 'sentry/styles/space';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useChartPlacementContext} from 'sentry/views/insights/sessions/components/chartPlacement';
 
@@ -13,7 +14,7 @@ interface Props {
   title: string;
 }
 
-export default function ChartSelectionTitle({title}: Props) {
+export function ChartSelectionTitle({title}: Props) {
   const {chartName, chartOptions, onChange} = useChartPlacementContext();
 
   if (!chartName) {
@@ -21,7 +22,9 @@ export default function ChartSelectionTitle({title}: Props) {
   }
   return (
     <StyledCompactSelect
-      triggerProps={{borderless: true, size: 'zero'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
+      )}
       offset={4}
       options={chartOptions}
       value={chartName}
@@ -35,12 +38,13 @@ export default function ChartSelectionTitle({title}: Props) {
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menus */
-  font-weight: ${p => p.theme.fontWeight.normal};
-  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.md} -${p =>
+      p.theme.space['2xs']};
   min-width: 0;
 
   button {
-    padding: ${space(0.5)} ${space(1)};
-    font-size: ${p => p.theme.fontSize.lg};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+    font-size: ${p => p.theme.font.size.lg};
   }
 `;

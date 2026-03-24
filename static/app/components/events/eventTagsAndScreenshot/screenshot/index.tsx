@@ -3,25 +3,25 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import {useRole} from 'sentry/components/acl/useRole';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
+import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {
   getImageAttachmentRenderer,
   imageMimeTypes,
   webmMimeTypes,
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -42,7 +42,7 @@ type Props = {
   onlyRenderScreenshot?: boolean;
 };
 
-function Screenshot({
+export function Screenshot({
   eventId,
   organization,
   screenshot,
@@ -101,9 +101,9 @@ function Screenshot({
       )}
       <StyledPanelBody hasHeader={totalScreenshots > 1}>
         {loadingImage && (
-          <StyledLoadingIndicator>
+          <Flex justify="center" align="center" height="100%" position="absolute">
             <LoadingIndicator mini />
-          </StyledLoadingIndicator>
+          </Flex>
         )}
         <AttachmentComponentWrapper
           onClick={() => openVisualizationModal(screenshot, `${downloadUrl}?download=1`)}
@@ -122,7 +122,7 @@ function Screenshot({
       </StyledPanelBody>
       {!onlyRenderScreenshot && (
         <StyledPanelFooter>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               size="xs"
               onClick={() =>
@@ -166,14 +166,12 @@ function Screenshot({
                 },
               ]}
             />
-          </ButtonBar>
+          </Grid>
         </StyledPanelFooter>
       )}
     </StyledPanel>
   );
 }
-
-export default Screenshot;
 
 const StyledPanel = styled(Panel)`
   display: flex;
@@ -191,20 +189,20 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   width: 100%;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: 0;
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  border-top-left-radius: ${p => p.theme.radius.md};
+  border-top-right-radius: ${p => p.theme.radius.md};
   display: flex;
   justify-content: space-between;
   text-transform: none;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   width: 100%;
   min-height: 48px;
   overflow: hidden;
@@ -218,26 +216,18 @@ const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
   ${p =>
     !p.hasHeader &&
     css`
-      border-top-left-radius: ${p.theme.borderRadius};
-      border-top-right-radius: ${p.theme.borderRadius};
+      border-top-left-radius: ${p.theme.radius.md};
+      border-top-right-radius: ${p.theme.radius.md};
     `}
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   width: 100%;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-top: 0;
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-`;
-
-const StyledLoadingIndicator = styled('div')`
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+  border-bottom-left-radius: ${p => p.theme.radius.md};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const AttachmentComponentWrapper = styled('div')`

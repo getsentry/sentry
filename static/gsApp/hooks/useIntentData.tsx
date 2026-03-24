@@ -1,12 +1,14 @@
 import {useEffect, useState} from 'react';
 
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {
+  fetchMutation,
+  useApiQuery,
+  useMutation,
+  type ApiQueryKey,
+} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
-
-interface HookProps {
-  endpoint: string;
-}
 
 interface HookResult {
   error: string | undefined;
@@ -18,20 +20,27 @@ interface HookResult {
 /**
  * Get payment method setup intent data.
  */
-function useSetupIntentData({endpoint}: HookProps): HookResult {
+export function useSetupIntentData({endpoint}: {endpoint: string}): HookResult {
   const [setupIntentData, setSetupIntentData] = useState<
     PaymentSetupCreateResponse | undefined
   >(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  const {mutate: loadSetupIntentData} = useMutation<PaymentSetupCreateResponse>({
+  const {mutate: loadSetupIntentData} = useMutation<
+    PaymentSetupCreateResponse,
+    RequestError
+  >({
     mutationFn: () => fetchMutation({url: endpoint, method: 'POST'}),
     onSuccess: data => {
       setSetupIntentData(data);
       setIsLoading(false);
     },
     onError: err => {
-      setError(err.message);
+      const errorMessage =
+        typeof err?.responseJSON?.detail === 'string'
+          ? err?.responseJSON?.detail
+          : (err?.responseJSON?.detail?.message ?? err?.message);
+      setError(errorMessage);
       setIsLoading(false);
     },
   });
@@ -52,23 +61,26 @@ function useSetupIntentData({endpoint}: HookProps): HookResult {
 /**
  * Get payment intent data.
  */
-function usePaymentIntentData({endpoint}: HookProps): HookResult {
+export function usePaymentIntentData({queryKey}: {queryKey: ApiQueryKey}): HookResult {
   const {
     isLoading,
     isPending,
     data: paymentIntentData,
     error,
     isError,
-  } = useApiQuery<PaymentCreateResponse>([endpoint], {
+  } = useApiQuery<PaymentCreateResponse>(queryKey, {
     staleTime: Infinity,
   });
+
+  const errorMessage =
+    typeof error?.responseJSON?.detail === 'string'
+      ? error?.responseJSON?.detail
+      : (error?.responseJSON?.detail?.message ?? error?.message);
 
   return {
     intentData: paymentIntentData,
     isLoading: isLoading || isPending,
     isError,
-    error: error?.message,
+    error: errorMessage,
   };
 }
-
-export {useSetupIntentData, usePaymentIntentData};

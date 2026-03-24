@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import IntegrationRow from 'sentry/views/settings/organizationIntegrations/integrationRow';
+import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 
 describe('IntegrationRow', () => {
   const {organization: org} = initializeOrg();
@@ -95,7 +95,7 @@ describe('IntegrationRow', () => {
           organization={org}
           type="firstParty"
           slug="github"
-          displayName="Github"
+          displayName="GitHub"
           status="Not Installed"
           publishStatus="published"
           configurations={0}
@@ -103,7 +103,7 @@ describe('IntegrationRow', () => {
         />
       );
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
-      expect(screen.getByText('Github')).toHaveAttribute(
+      expect(screen.getByText('GitHub')).toHaveAttribute(
         'href',
         `/settings/${org.slug}/integrations/github/`
       );

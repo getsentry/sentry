@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from '.';
+import {docs} from '.';
 
 describe('apple-ios onboarding docs', () => {
   it('renders docs correctly', async () => {
@@ -23,5 +23,12 @@ describe('apple-ios onboarding docs', () => {
     expect(
       screen.getByRole('heading', {name: /manual configuration/i})
     ).toBeInTheDocument();
+  });
+
+  it('has metrics onboarding configuration', () => {
+    expect(docs.metricsOnboarding).toBeDefined();
+    expect(docs.metricsOnboarding?.install).toBeDefined();
+    expect(docs.metricsOnboarding?.configure).toBeDefined();
+    expect(docs.metricsOnboarding?.verify).toBeDefined();
   });
 });

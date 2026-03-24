@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
@@ -66,7 +66,7 @@ function EndPeriodEarlyModal({
           cancelLabel="Cancel"
         >
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               Ending the current billing period will immediately start the next billing
               cycle and may impact invoicing and usage proration.
             </Alert>
@@ -80,7 +80,5 @@ function EndPeriodEarlyModal({
 
 type Options = Omit<EndPeriodEarlyModalProps, keyof ModalRenderProps>;
 
-const triggerEndPeriodEarlyModal = (opts: Options) =>
+export const triggerEndPeriodEarlyModal = (opts: Options) =>
   openModal(deps => <EndPeriodEarlyModal {...deps} {...opts} />);
-
-export default triggerEndPeriodEarlyModal;

@@ -1,12 +1,14 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Container} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import toPercent from 'sentry/utils/number/toPercent';
+import {toPercent} from 'sentry/utils/number/toPercent';
 import type {VideoEvent} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   durationMs: number;
@@ -14,7 +16,7 @@ interface Props {
   videoEvents: VideoEvent[];
 }
 
-export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}: Props) {
+export function TimelineGaps({durationMs, startTimestampMs, videoEvents}: Props) {
   const organization = useOrganization();
 
   const gaps = useMemo(() => {
@@ -57,7 +59,11 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
     <Fragment>
       {gaps.map(rangeCss => {
         return (
-          <Range key={`${rangeCss.left}-${rangeCss.width}`} style={rangeCss}>
+          <Container
+            position="absolute"
+            key={`${rangeCss.left}-${rangeCss.width}`}
+            style={rangeCss}
+          >
             <Tooltip
               title={t('Video Unavailable')}
               isHoverable
@@ -66,19 +72,15 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
             >
               <Gap />
             </Tooltip>
-          </Range>
+          </Container>
         );
       })}
     </Fragment>
   );
 }
 
-const Range = styled('div')`
-  position: absolute;
-`;
-
 const Gap = styled('div')`
-  background: ${p => p.theme.gray400};
+  background: ${p => p.theme.colors.gray500};
   opacity: 16%;
   height: 20px;
   width: 100%;

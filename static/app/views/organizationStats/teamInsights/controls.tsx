@@ -4,27 +4,30 @@ import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import {TeamSelector} from 'sentry/components/teamSelector';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {TeamWithProjects} from 'sentry/types/project';
 import {uniq} from 'sentry/utils/array/uniq';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import localStorage from 'sentry/utils/localStorage';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {dataDatetime} from './utils';
 
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
 
-const relativeOptions = {
+const relativeOptions: Record<string, string> = {
   '2w': t('Last 2 weeks'),
   '4w': t('Last 4 weeks'),
   [INSIGHTS_DEFAULT_STATS_PERIOD]: t('Last 8 weeks'),
@@ -51,7 +54,7 @@ type Props = Pick<RouteComponentProps, 'router' | 'location'> & {
   showEnvironment?: boolean;
 };
 
-function TeamStatsControls({
+export function TeamStatsControls({
   location,
   router,
   currentTeam,
@@ -69,7 +72,7 @@ function TeamStatsControls({
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
   function handleChangeTeam(teamId: string) {
-    localStorage.setItem(localStorageKey, teamId);
+    localStorageWrapper.setItem(localStorageKey, teamId);
     // TODO(workflow): Preserve environment if it exists for the new team
     setStateOnUrl({team: teamId, environment: undefined});
   }
@@ -151,24 +154,24 @@ function TeamStatsControls({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              fontSize: theme.fontSize.md,
+              fontSize: theme.font.size.md,
               ':before': {
                 ...provided[':before'],
-                color: theme.textColor,
-                marginRight: space(1.5),
-                marginLeft: space(0.5),
+                color: theme.tokens.content.primary,
+                marginRight: theme.space.lg,
+                marginLeft: theme.space.xs,
               },
             };
             return {...provided, ...custom};
           },
-          input: (provided: any, state: any) => ({
+          input: (provided: any) => ({
             ...provided,
             display: 'grid',
             gridTemplateColumns: 'max-content 1fr',
             alignItems: 'center',
-            gridGap: space(1),
+            gridGap: theme.space.md,
             ':before': {
-              backgroundColor: state.theme.backgroundSecondary,
+              backgroundColor: theme.tokens.background.secondary,
               height: 24,
               width: 38,
               borderRadius: 3,
@@ -203,25 +206,25 @@ function TeamStatsControls({
           ...relativeOptions,
           ...props.arbitraryOptions,
         })}
-        triggerProps={{
-          prefix: t('Date Range'),
-          children:
-            period &&
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            (relativeOptions[period] || getArbitraryRelativePeriod(period)[period]),
-        }}
+        trigger={triggerProps => (
+          <TimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
+            {period
+              ? relativeOptions[period] ||
+                getArbitraryRelativePeriod(period)[period] ||
+                triggerProps.children
+              : triggerProps.children}
+          </TimeRangeSelectTrigger>
+        )}
       />
     </ControlsWrapper>
   );
 }
 
-export default TeamStatsControls;
-
 const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
   display: grid;
   align-items: center;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 246px ${p => (p.showEnvironment ? '246px' : '')} 1fr;

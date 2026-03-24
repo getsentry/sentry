@@ -4,7 +4,6 @@ from typing import Any
 
 from django.conf import settings
 
-from sentry import options
 from sentry.http import safe_urlopen
 from sentry.relay.config.ai_model_costs import (
     AI_MODEL_COSTS_CACHE_KEY,
@@ -102,7 +101,7 @@ def _add_glob_model_names(models_dict: dict[ModelId, AIModelCostV2]) -> None:
     namespace=ai_agent_monitoring_tasks,
     processing_deadline_duration=35,
     expires=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def fetch_ai_model_costs() -> None:
     """
@@ -145,17 +144,6 @@ def fetch_ai_model_costs() -> None:
         # re-raise to fail the task
         raise
 
-    # Custom model mapping for models pricing - often times the same models are named differently
-    # in different hosting providers. This allows us to map the alternative model id to the existing model id.
-    for model_mapping in options.get("ai-agent-monitoring.custom-model-mapping"):
-        alternative_model_id = model_mapping.get("alternative_model_id")
-        existing_model_id = model_mapping.get("existing_model_id")
-
-        if existing_model_id not in models_dict or alternative_model_id in models_dict:
-            continue
-
-        models_dict[alternative_model_id] = models_dict[existing_model_id]
-
     # Add glob versions of model names for flexible matching
     _add_glob_model_names(models_dict)
 
@@ -177,6 +165,7 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
                     "completion": "0.00000165",
                     "internal_reasoning": "0.0000003",
                     "input_cache_read": "0.0000003",
+                    "input_cache_write": "0.00000125",
                 },
             },
         ]
@@ -222,6 +211,7 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
                 outputPerToken=safe_float_conversion(pricing.get("completion")),
                 outputReasoningPerToken=safe_float_conversion(pricing.get("internal_reasoning")),
                 inputCachedPerToken=safe_float_conversion(pricing.get("input_cache_read")),
+                inputCacheWritePerToken=safe_float_conversion(pricing.get("input_cache_write")),
             )
 
             models_dict[model_id] = ai_model_cost
@@ -247,6 +237,7 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
                         "input": 0.0000003,
                         "output": 0.00000165,
                         "cache_read": 0.0000003,
+                        "cache_write": 0.00000125,
                     }
                 }
             }
@@ -298,6 +289,8 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
                     / 1000000,  # models.dev have price per 1M tokens
                     outputReasoningPerToken=0.0,  # models.dev doesn't provide reasoning costs
                     inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read"))
+                    / 1000000,  # models.dev have price per 1M tokens
+                    inputCacheWritePerToken=safe_float_conversion(cost_data.get("cache_write"))
                     / 1000000,  # models.dev have price per 1M tokens
                 )
 

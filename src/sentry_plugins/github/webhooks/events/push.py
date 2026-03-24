@@ -81,7 +81,7 @@ class PushEventWebhook(Webhook):
                                 with GithubPluginClient() as client:
                                     gh_user = client.request_no_auth("GET", f"/users/{gh_username}")
                             except ApiError as exc:
-                                logger.exception(str(exc))
+                                logger.warning(str(exc))
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query

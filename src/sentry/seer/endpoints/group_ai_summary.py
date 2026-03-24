@@ -8,7 +8,9 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
@@ -19,7 +21,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupAiSummaryEndpoint(GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -36,6 +38,7 @@ class GroupAiSummaryEndpoint(GroupAiEndpoint):
         }
     )
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-ai-summary"])
     def post(self, request: Request, group: Group) -> Response:
         data = orjson.loads(request.body) if request.body else {}
         force_event_id = data.get("event_id", None)

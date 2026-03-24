@@ -1,4 +1,5 @@
-import {Input} from 'sentry/components/core/input';
+import {Input} from '@sentry/scraps/input';
+
 import {t} from 'sentry/locale';
 import type {Action} from 'sentry/views/alerts/rules/metric/types';
 import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';
@@ -9,7 +10,7 @@ type Props = {
   onChange: (value: string) => void;
 };
 
-function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
+export function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
   const handleChangeSpecificTargetIdentifier = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -33,5 +34,3 @@ function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
     />
   );
 }
-
-export default ActionSpecificTargetSelector;

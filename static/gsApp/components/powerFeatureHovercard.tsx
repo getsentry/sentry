@@ -1,21 +1,21 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import PlanFeature from 'getsentry/components/features/planFeature';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 interface PowerFeatureHovercardProps {
   /**
@@ -134,12 +134,12 @@ function PowerFeatureHovercard({
 }
 
 const LearnMoreTextBody = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const StyledHovercard = styled(Hovercard)`
   width: auto;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   .power-icon {
     padding: 0;
     align-items: center;

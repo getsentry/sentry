@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
+import {OnboardingAdditionalFeatures} from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOtherPlatformOnboardingProps {
   integration: string;
@@ -29,7 +30,7 @@ export function FeatureFlagOtherPlatformOnboarding({
         {
           <Alert.Container>
             <Alert
-              type="info"
+              variant="info"
               trailingItems={
                 <LinkButton href={docsUrl} size="xs" external>
                   {t('Read the docs')}

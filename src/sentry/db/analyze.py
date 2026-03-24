@@ -9,10 +9,8 @@ class AnalyzeQuery:
         self.using = router.db_for_write(model)
 
     def execute(self):
-        query = """
-            analyze {table};
-        """.format(
-            table=self.model._meta.db_table,
-        )
+        query = f"""
+            analyze {self.model._meta.db_table};
+        """
 
         return connections[self.using].cursor().execute(query)

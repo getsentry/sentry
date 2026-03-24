@@ -1,21 +1,30 @@
 ---
 title: Grid
 description: A flexible layout component that provides CSS grid functionality with responsive props and spacing controls.
-source: 'sentry/components/core/layout/grid'
+category: layout
+source: '@sentry/scraps/layout'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/grid.tsx
 ---
 
-import {Container, Grid} from 'sentry/components/core/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
+
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/layout/grid';
+export const documentation = import('!!type-loader!@sentry/scraps/layout/grid');
 
-export {documentation};
-
-export function CustomComponent(props) {
+export function CustomComponent(/** @type {Record<string, any>} */ props) {
   return <div {...props} />;
 }
+
+export const ALIGNMENT_OPTIONS = /** @type {const} */ ([
+  {justify: 'start', align: 'start', label: 'start'},
+  {justify: 'center', align: 'center', label: 'center'},
+  {justify: 'end', align: 'end', label: 'end'},
+  {justify: 'between', align: 'stretch', label: 'between'},
+  {justify: 'around', align: 'stretch', label: 'around'},
+  {justify: 'evenly', align: 'stretch', label: 'evenly'},
+]);
 
 The `Grid` component is a layout component that extends the `Container` component with CSS grid properties.
 
@@ -194,14 +203,7 @@ Grid provides fine-grained control over alignment using `justify`, `align`, `jus
 
 <Storybook.Demo>
   <Grid columns="repeat(1, 1fr)" gap="md" padding="md" width="100%">
-    {[
-      {justify: 'start', align: 'start', label: 'start'},
-      {justify: 'center', align: 'center', label: 'center'},
-      {justify: 'end', align: 'end', label: 'end'},
-      {justify: 'between', align: 'between', label: 'between'},
-      {justify: 'around', align: 'around', label: 'around'},
-      {justify: 'evenly', align: 'evenly', label: 'evenly'},
-    ].map(({justify, align, label}) => (
+    {ALIGNMENT_OPTIONS.map(({justify, align, label}) => (
       <Grid key={label} columns="repeat(2, 25%)" gap="sm" justify={justify} align={align}>
         <Container padding="md" background="primary" radius="md" border="primary">
           {label}
@@ -227,7 +229,11 @@ All props support responsive values using breakpoint objects. Breakpoints are: `
 Example of a responsive grid container that changes from single column on small screens to multiple columns on larger screens.
 
 <Storybook.Demo>
-  <Grid columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}} gap="md" p="md">
+  <Grid
+    columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}}
+    gap="md"
+    padding="md"
+  >
     <Container padding="md" border="primary" radius="md" background="primary">
       Responsive
     </Container>

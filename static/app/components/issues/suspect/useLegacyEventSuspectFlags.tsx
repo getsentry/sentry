@@ -9,9 +9,11 @@ import {
 } from 'sentry/components/featureFlags/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
  * Legacy suspect flags implementation.
@@ -19,7 +21,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
  * Returns up to 3 recently changed flags from the intersection of A) the flags on one EVENT (rawFlagData) and
  * B) organization audit logs (queried from /logs/).
  */
-export default function useLegacyEventSuspectFlags({
+export function useLegacyEventSuspectFlags({
   enabled,
   event,
   firstSeen,
@@ -36,7 +38,9 @@ export default function useLegacyEventSuspectFlags({
 
   // map flag data to arrays of flag names
   const auditLogFlagNames = hydratedFlagData.map(f => f.name);
-  const evaluatedFlagNames = event?.contexts?.flags?.values?.map(f => f.flag);
+  const evaluatedFlagNames = event?.contexts?.flags?.values
+    ?.map(f => f?.flag)
+    .filter(defined);
   const intersectionFlags = useMemo(
     () => intersection(auditLogFlagNames, evaluatedFlagNames),
     [auditLogFlagNames, evaluatedFlagNames]
@@ -46,7 +50,9 @@ export default function useLegacyEventSuspectFlags({
   const start = moment(firstSeen).subtract(1, 'year').format('YYYY-MM-DD HH:mm:ss');
   const apiQueryResponse = useApiQuery<RawFlagData>(
     [
-      `/organizations/${organization.slug}/flags/logs/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/flags/logs/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           flag: intersectionFlags,
@@ -98,8 +104,8 @@ export default function useLegacyEventSuspectFlags({
       ? data.data
           .toReversed()
           .filter(
-            (rawFlag: any, idx: any, rawFlagArray: any) =>
-              idx === rawFlagArray.findIndex((f: any) => f.flag === rawFlag.flag)
+            (rawFlag, idx, rawFlagArray) =>
+              idx === rawFlagArray.findIndex(f => f.flag === rawFlag.flag)
           )
           .slice(0, 3)
       : [];

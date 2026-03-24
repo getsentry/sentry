@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Flex} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
@@ -26,14 +26,23 @@ function Placeholder() {
       minHeight={`${CONTAINER_MIN_HEIGHT}px`}
     >
       <Flex align="center" gap="md">
-        <StyledPlaceholder _width={75} _height={CONTAINER_MIN_HEIGHT} />
-        <StyledPlaceholder _width={75} _height={CONTAINER_MIN_HEIGHT} />
-        <StyledPlaceholder _width={75} _height={CONTAINER_MIN_HEIGHT} />
+        <TraceHeaderComponents.StyledPlaceholder
+          _width={75}
+          _height={CONTAINER_MIN_HEIGHT}
+        />
+        <TraceHeaderComponents.StyledPlaceholder
+          _width={75}
+          _height={CONTAINER_MIN_HEIGHT}
+        />
+        <TraceHeaderComponents.StyledPlaceholder
+          _width={75}
+          _height={CONTAINER_MIN_HEIGHT}
+        />
       </Flex>
       <Flex align="center" gap="md">
-        <StyledPlaceholder _width={100} _height={24} />
-        <StyledPlaceholder _width={100} _height={24} />
-        <StyledPlaceholder _width={100} _height={24} />
+        <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
+        <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
+        <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
       </Flex>
     </Flex>
   );
@@ -98,7 +107,7 @@ export function TraceTabsAndVitals({
   return (
     <Flex ref={setRef} justify="between" minHeight={`${CONTAINER_MIN_HEIGHT}px`}>
       <Tabs value={currentTab} onChange={onTabChange}>
-        <TabList hideBorder variant="floating">
+        <TabList variant="floating">
           {tabOptions.map(tab => (
             <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
           ))}
@@ -112,7 +121,3 @@ export function TraceTabsAndVitals({
     </Flex>
   );
 }
-
-const StyledPlaceholder = styled(TraceHeaderComponents.StyledPlaceholder)`
-  background-color: ${p => p.theme.purple100};
-`;

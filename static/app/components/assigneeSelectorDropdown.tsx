@@ -2,27 +2,28 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Button} from 'sentry/components/core/button';
+import {ActorAvatar} from '@sentry/scraps/avatar';
 import {
   CompactSelect,
+  MenuComponents,
   type SelectOption,
   type SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import DropdownButton from 'sentry/components/dropdownButton';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import UserBadge from 'sentry/components/idBadge/userBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
@@ -106,10 +107,7 @@ interface AssigneeSelectorDropdownProps {
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
    */
-  trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
-    isOpen: boolean
-  ) => React.ReactNode;
+  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
 }
 
 function AssigneeAvatar({
@@ -197,12 +195,12 @@ function AssigneeAvatar({
         </TooltipWrapper>
       }
     >
-      <StyledIconUser data-test-id="unassigned" size="md" color="gray400" />
+      <StyledIconUser data-test-id="unassigned" size="md" variant="primary" />
     </Tooltip>
   );
 }
 
-export default function AssigneeSelectorDropdown({
+export function AssigneeSelectorDropdown({
   className,
   group,
   loading,
@@ -508,10 +506,7 @@ export default function AssigneeSelectorDropdown({
     return options;
   };
 
-  const makeTrigger = (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
-    isOpen: boolean
-  ) => {
+  const makeTrigger = (props: TriggerProps) => {
     const avatarElement = (
       <AssigneeAvatar
         assignedTo={group.assignedTo}
@@ -524,43 +519,23 @@ export default function AssigneeSelectorDropdown({
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
         {!loading && !noDropdown && (
-          <AssigneeDropdownButton
-            borderless
-            size="sm"
-            isOpen={isOpen}
+          <AssigneeTrigger
+            priority="transparent"
             data-test-id="assignee-selector"
             {...props}
           >
             {avatarElement}
-          </AssigneeDropdownButton>
+          </AssigneeTrigger>
         )}
         {!loading && noDropdown && avatarElement}
       </Fragment>
     );
   };
 
-  const footerInviteButton = (
-    <FooterWrapper>
-      <Button
-        size="xs"
-        aria-label={t('Invite Member')}
-        disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-          event.preventDefault();
-          openInviteMembersModal({source: 'assignee_selector'});
-        }}
-        icon={<IconAdd />}
-      >
-        {t('Invite Member')}
-      </Button>
-      {additionalMenuFooterItems}
-    </FooterWrapper>
-  );
-
   return (
     <AssigneeWrapper>
       <CompactSelect
-        searchable
+        search={{placeholder: 'Search users or teams...'}}
         clearable
         className={className}
         menuWidth={275}
@@ -572,12 +547,25 @@ export default function AssigneeSelectorDropdown({
             : ''
         }
         menuTitle={t('Assignee')}
-        searchPlaceholder="Search users or teams..."
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
         trigger={trigger ?? makeTrigger}
-        menuFooter={footerInviteButton}
+        menuFooter={
+          <Flex gap="md">
+            <MenuComponents.CTAButton
+              disabled={loading}
+              onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+                event.preventDefault();
+                openInviteMembersModal({source: 'assignee_selector'});
+              }}
+              icon={<IconAdd />}
+            >
+              {t('Invite Member')}
+            </MenuComponents.CTAButton>
+            {additionalMenuFooterItems}
+          </Flex>
+        }
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
         strategy="fixed"
@@ -592,10 +580,10 @@ const AssigneeWrapper = styled('div')`
   text-align: left;
 `;
 
-const AssigneeDropdownButton = styled(DropdownButton)`
+const AssigneeTrigger = styled(OverlayTrigger.Button)`
   z-index: 0;
-  padding-left: ${space(0.5)};
-  padding-right: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
+  padding-right: ${p => p.theme.space.xs};
 `;
 
 const StyledIconUser = styled(IconUser)`
@@ -607,20 +595,14 @@ const TooltipWrapper = styled('div')`
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const TooltipSubtext = styled('div')`
-  color: ${p => p.theme.subText};
-`;
-
-const FooterWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
 `;

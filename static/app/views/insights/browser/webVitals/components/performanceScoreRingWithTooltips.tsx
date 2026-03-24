@@ -3,14 +3,15 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Link} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMouseTracking from 'sentry/utils/useMouseTracking';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMouseTracking} from 'sentry/utils/useMouseTracking';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import PerformanceScoreRing from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
+import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
 import type {
   ProjectScore,
   WebVitals,
@@ -36,14 +37,14 @@ type ProjectData = {
 };
 
 type Props = {
-  height: number;
   projectScore: ProjectScore;
   ringBackgroundColors: readonly string[];
   ringSegmentColors: readonly string[];
   text: React.ReactNode;
-  width: number;
+  autoSize?: boolean;
   barWidth?: number;
   differenceToPreviousPeriod?: ProjectScore;
+  height?: number;
   hideWebVitalLabels?: boolean;
   inPerformanceWidget?: boolean;
   labelHeightPadding?: number;
@@ -51,6 +52,7 @@ type Props = {
   radiusPadding?: number;
   size?: number;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
+  width?: number;
   x?: number;
   y?: number;
 };
@@ -132,25 +134,27 @@ function WebVitalLabel({
   );
 }
 
-function PerformanceScoreRingWithTooltips({
+export function PerformanceScoreRingWithTooltips({
   projectScore,
   projectData,
   ringBackgroundColors,
   ringSegmentColors,
-  width,
-  height,
   text,
   differenceToPreviousPeriod,
   webVitalLabelCoordinates,
+  autoSize = false,
+  width = 220,
+  height = 200,
   barWidth = 16,
   hideWebVitalLabels = false,
   inPerformanceWidget = false,
   size = 140,
   x = 40,
-  y = 25,
+  y: yProp,
   labelHeightPadding = 14,
   radiusPadding = 4,
 }: Props) {
+  const y = yProp ?? (autoSize ? (height - size) / 2 : 25);
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -173,10 +177,10 @@ function PerformanceScoreRingWithTooltips({
   if (labelHovered && inPerformanceWidget) {
     const index = ringSegmentOrder.indexOf(labelHovered);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
-      return i === index ? color : theme.gray200;
+      return i === index ? color : theme.colors.gray200;
     });
     ringBackgroundColors = ringBackgroundColors.map((color, i) => {
-      return i === index ? color : `${theme.gray200}33`;
+      return i === index ? color : `${theme.colors.gray200}33`;
     });
   }
 
@@ -204,10 +208,14 @@ function PerformanceScoreRingWithTooltips({
   );
 
   return (
-    <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
+    <ProgressRingContainer
+      ref={elem}
+      {...mouseTrackingProps}
+      style={autoSize ? {width: '100%', height: '100%'} : undefined}
+    >
       {webVitalTooltip && (
         <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
-          <TooltipRow>
+          <Flex justify="between" align="center">
             <span>
               <Dot
                 color={ringBackgroundColors[ringSegmentOrder.indexOf(webVitalTooltip)]!}
@@ -217,8 +225,8 @@ function PerformanceScoreRingWithTooltips({
             <TooltipValue>
               {100 - (projectScore[`${webVitalTooltip}Score`] ?? 0)}
             </TooltipValue>
-          </TooltipRow>
-          <TooltipRow>
+          </Flex>
+          <Flex justify="between" align="center">
             <span>
               <Dot
                 color={ringSegmentColors[ringSegmentOrder.indexOf(webVitalTooltip)]!}
@@ -226,11 +234,15 @@ function PerformanceScoreRingWithTooltips({
               {webVitalTooltip.toUpperCase()} {t('Score')}
             </span>
             <TooltipValue>{projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
-          </TooltipRow>
+          </Flex>
           <PerformanceScoreRingTooltipArrow />
         </PerformanceScoreRingTooltip>
       )}
-      <svg height={height} width={width}>
+      <svg
+        height={autoSize ? '100%' : height}
+        width={autoSize ? '100%' : width}
+        viewBox={`0 0 ${width} ${height}`}
+      >
         {!hideWebVitalLabels && (
           <Fragment>
             {Object.keys(weights).map((key, index) => {
@@ -288,8 +300,8 @@ function PerformanceScoreRingWithTooltips({
           barWidth={barWidth}
           textCss={() => css`
             font-size: 32px;
-            font-weight: ${theme.fontWeight.bold};
-            color: ${theme.textColor};
+            font-weight: ${theme.font.weight.sans.medium};
+            color: ${theme.tokens.content.primary};
           `}
           segmentColors={ringSegmentColors}
           backgroundColors={ringBackgroundColors}
@@ -345,32 +357,37 @@ function calculateLabelCoordinates(
 const ProgressRingContainer = styled('div')``;
 
 const ProgressRingText = styled('text')<{isLink?: boolean}>`
-  font-size: ${p => p.theme.fontSize.md};
-  fill: ${p => (p.isLink ? p.theme.blue300 : p.theme.textColor)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  fill: ${p =>
+    p.isLink ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   text-anchor: middle;
 `;
 
 const ProgressRingSubText = styled('text')`
-  font-size: ${p => p.theme.fontSize.sm};
-  fill: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  fill: ${p => p.theme.tokens.content.secondary};
   text-anchor: middle;
 `;
 
 const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
   fill: ${p =>
-    p.value < 0 ? p.theme.green300 : p.value > 0 ? p.theme.red300 : p.theme.subText};
+    p.value < 0
+      ? p.theme.colors.green400
+      : p.value > 0
+        ? p.theme.colors.red400
+        : p.theme.tokens.content.secondary};
 `;
 
 // Hover element on mouse
 const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   position: absolute;
-  background: ${p => p.theme.backgroundElevated};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translate3d(${p => p.x - 100}px, ${p => p.y - 74}px, 0px);
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   width: 200px;
   height: 60px;
   display: flex;
@@ -385,12 +402,13 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
   pointer-events: none;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-top: 8px solid ${p => p.theme.backgroundElevated};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  border-top: 8px solid ${p => p.theme.tokens.background.primary};
   margin-left: -8px;
   &:before {
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p => p.theme.translucentBorder};
+    border-top: 8px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
     content: '';
     display: block;
     position: absolute;
@@ -402,21 +420,13 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
 
 const Dot = styled('span')<{color: string}>`
   display: inline-block;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
   border-radius: 10px;
   width: 10px;
   height: 10px;
   background-color: ${p => p.color};
 `;
 
-const TooltipRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const TooltipValue = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default PerformanceScoreRingWithTooltips;

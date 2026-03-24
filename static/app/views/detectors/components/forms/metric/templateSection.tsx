@@ -1,11 +1,12 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
-import DropdownButton from 'sentry/components/dropdownButton';
-import FormContext from 'sentry/components/forms/formContext';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading} from '@sentry/scraps/text';
+
+import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -14,6 +15,7 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {METRIC_TEMPLATE_OPTIONS} from 'sentry/views/detectors/components/forms/metric/metricTemplateOptions';
+import {sanitizeDetectorQuery} from 'sentry/views/detectors/components/forms/metric/sanitizeDetectorQuery';
 import {useDatasetChoices} from 'sentry/views/detectors/components/forms/metric/useDatasetChoices';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -24,6 +26,7 @@ const DATASET_LABELS: Record<DetectorDataset, string> = {
   [DetectorDataset.LOGS]: t('Logs'),
   [DetectorDataset.RELEASES]: t('Releases'),
   [DetectorDataset.TRANSACTIONS]: t('Transactions'),
+  [DetectorDataset.METRICS]: t('Metrics'),
 };
 
 /**
@@ -82,9 +85,14 @@ export function TemplateSection() {
 
     // Find first matching template
     const matchingTemplate = Object.entries(templateMetaByKey).find(([, meta]) => {
-      // Match dataset
       if (meta.detectorDataset !== currentDataset) {
         return false;
+      }
+
+      // Metrics has a single template; the specific metric/operation is chosen
+      // via the dedicated metric picker, so match on dataset alone.
+      if (currentDataset === DetectorDataset.METRICS) {
+        return true;
       }
 
       // Match aggregate - convert template's API aggregate to UI format for comparison
@@ -120,10 +128,9 @@ export function TemplateSection() {
         <CompactSelect
           options={templateOptions}
           value={currentTemplateValue}
-          trigger={(triggerProps, isOpen) => {
+          trigger={triggerProps => {
             return (
               <StyledTriggerButton
-                isOpen={isOpen}
                 {...triggerProps}
                 data-test-id="template-selector"
                 aria-label={selectedOptionLabel || t('Choose a template (optional)')}
@@ -151,10 +158,13 @@ export function TemplateSection() {
               METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
               uiAggregate
             );
-            // Only set query if template has one and user hasn't customized the filter
-            if (meta.query !== undefined && !currentQuery) {
-              formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, meta.query);
-            }
+            const newQuery = currentQuery
+              ? sanitizeDetectorQuery({
+                  dataset: meta.detectorDataset,
+                  query: currentQuery,
+                })
+              : (meta.query ?? '');
+            formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, newQuery);
           }}
         />
       </Flex>
@@ -162,6 +172,6 @@ export function TemplateSection() {
   );
 }
 
-const StyledTriggerButton = styled(DropdownButton)`
+const StyledTriggerButton = styled(OverlayTrigger.Button)`
   min-width: 425px;
 `;

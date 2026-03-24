@@ -1,7 +1,8 @@
 import {useTheme} from '@emotion/react';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import ScoreBar from 'sentry/components/scoreBar';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {ScoreBar} from 'sentry/components/scoreBar';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
@@ -14,7 +15,7 @@ type Props = {
   userMisery: number;
 };
 
-function UserMisery(props: Props) {
+export function UserMisery(props: Props) {
   const theme = useTheme();
   const colors = theme.chart.getColorPalette(0);
   const {bars, barHeight, userMisery, miseryLimit, totalUsers, miserableUsers} = props;
@@ -24,7 +25,7 @@ function UserMisery(props: Props) {
   // 0 User Misery while still preserving the actual value for sorting purposes.
   const adjustedMisery = userMisery > 0.05 ? userMisery : 0;
 
-  const palette = new Array(bars).fill(colors[0][0]);
+  const palette = new Array(bars).fill(colors[0]);
   const score = Math.round(adjustedMisery * palette.length);
 
   let title: React.ReactNode;
@@ -72,5 +73,3 @@ function UserMisery(props: Props) {
     </Tooltip>
   );
 }
-
-export default UserMisery;

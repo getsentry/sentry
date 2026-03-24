@@ -6,7 +6,8 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from django.db import connections, router
-from django.db.models import QuerySet
+from django.db.models import F, Func, QuerySet, Value
+from django.db.models.fields import IntegerField
 from django.utils import timezone
 
 from sentry.utils.query import RangeQuerySetWrapper
@@ -24,6 +25,7 @@ class BulkDeleteQuery:
         dtfield: str | None = None,
         days: int | None = None,
         order_by: str | None = None,
+        partition: tuple[int, int, str] | None = None,
     ):
         self.model = model
         self.project_id = int(project_id) if project_id else None
@@ -31,6 +33,7 @@ class BulkDeleteQuery:
         self.dtfield = dtfield
         self.days = int(days) if days is not None else None
         self.order_by = order_by
+        self.partition = partition
         self.using = router.db_for_write(model)
 
     def execute(self, chunk_size: int = 10000) -> None:
@@ -39,15 +42,15 @@ class BulkDeleteQuery:
         where = []
         if self.dtfield and self.days is not None:
             where.append(
-                "{} < '{}'::timestamptz".format(
-                    quote_name(self.dtfield),
-                    (timezone.now() - timedelta(days=self.days)).isoformat(),
-                )
+                f"{quote_name(self.dtfield)} < '{(timezone.now() - timedelta(days=self.days)).isoformat()}'::timestamptz"
             )
         if self.project_id:
             where.append(f"project_id = {self.project_id}")
         if self.organization_id:
             where.append(f"organization_id = {self.organization_id}")
+        if self.partition:
+            bucket, total, key = self.partition
+            where.append(f"{quote_name(key)} % {total} = {bucket}")
 
         if where:
             where_clause = "where {}".format(" and ".join(where))
@@ -65,21 +68,16 @@ class BulkDeleteQuery:
         else:
             order_clause = ""
 
-        query = """
-            delete from {table}
+        query = f"""
+            delete from {self.model._meta.db_table}
             where id = any(array(
                 select id
-                from {table}
-                {where}
-                {order}
+                from {self.model._meta.db_table}
+                {where_clause}
+                {order_clause}
                 limit {chunk_size}
             ));
-        """.format(
-            table=self.model._meta.db_table,
-            chunk_size=chunk_size,
-            where=where_clause,
-            order=order_clause,
-        )
+        """
 
         return self._continuous_query(query)
 
@@ -103,25 +101,39 @@ class BulkDeleteQuery:
             queryset = queryset.filter(project_id=self.project_id)  # type: ignore[misc]
         if self.organization_id:
             queryset = queryset.filter(organization_id=self.organization_id)  # type: ignore[misc]
+        if self.partition:
+            bucket, total, key = self.partition
+            queryset = queryset.annotate(
+                _partition_bucket=Func(
+                    F(key), Value(total), function="MOD", output_field=IntegerField()
+                )
+            ).filter(_partition_bucket=bucket)
 
-        step = batch_size
         order_field = "id"
+        descending = False
         if self.order_by:
-            if self.order_by[0] == "-":
-                step = -batch_size
+            if self.order_by.startswith("-"):
+                descending = True
                 order_field = self.order_by[1:]
             else:
                 order_field = self.order_by
 
-        # values_list returns tuples of (id, order_field_value)
-        queryset_values: QuerySet[Any, tuple[Any, Any]] = queryset.values_list("id", order_field)
+        step = -batch_size if descending else batch_size
+        use_keyset = order_field not in ("id", "pk")
+        order_by_fields = [order_field, "id"] if use_keyset else ["id"]
 
+        def result_value_getter(item: tuple[Any, ...]) -> dict[str, Any]:
+            if use_keyset:
+                return {"id": item[0], order_field: item[1]}
+            return {"id": item[0]}
+
+        values_qs: QuerySet[Any, tuple[Any, ...]] = queryset.values_list("id", order_field)
         wrapper = RangeQuerySetWrapper(
-            queryset_values,
+            values_qs,
             step=step,
-            order_by=order_field,
-            override_unique_safety_check=True,
-            result_value_getter=lambda item: item[1],
+            order_by=order_by_fields,
+            use_compound_keyset_pagination=use_keyset,
+            result_value_getter=result_value_getter,
             query_timeout_retries=10,
         )
 

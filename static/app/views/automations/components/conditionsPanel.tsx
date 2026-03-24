@@ -2,13 +2,12 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   ActionType,
-  SentryAppIdentifier,
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
@@ -27,24 +26,31 @@ type ConditionsPanelProps = {
   triggers: DataConditionGroup | null;
 };
 
-function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
+export function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
       <ConditionGroupWrapper>
         <ConditionGroupHeader>
-          {tct('[when:When] [logicType] of the following occur', {
-            when: <ConditionBadge />,
-            logicType:
-              TRIGGER_MATCH_OPTIONS.find(choice => choice.value === triggers?.logicType)
-                ?.label || t('any'),
-          })}
+          {triggers?.conditions && triggers.conditions.length > 0
+            ? tct(
+                '[when:When] an issue event is captured and [logicType] of the following occur',
+                {
+                  when: <ConditionBadge />,
+                  logicType:
+                    TRIGGER_MATCH_OPTIONS.find(
+                      choice => choice.value === triggers?.logicType
+                    )?.label || t('any'),
+                }
+              )
+            : tct('[when:When] an issue event is captured', {
+                when: <ConditionBadge />,
+              })}
         </ConditionGroupHeader>
         {triggers?.conditions?.map((trigger, index) => (
           <div key={index}>
             <DataConditionDetails condition={trigger} />
           </div>
         ))}
-        {(!triggers || triggers.conditions.length === 0) && t('An event is captured')}
       </ConditionGroupWrapper>
       {actionFilters.map((actionFilter, index) => (
         <div key={index}>
@@ -63,13 +69,8 @@ function findActionHandler(
   availableActions: ActionHandler[]
 ): ActionHandler | undefined {
   if (action.type === ActionType.SENTRY_APP) {
-    if (action.config.sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_ID) {
-      return availableActions.find(
-        handler => handler.sentryApp?.id === action.config.targetIdentifier
-      );
-    }
     return availableActions.find(
-      handler => handler.sentryApp?.installationUuid === action.config.targetIdentifier
+      handler => handler.sentryApp?.id === action.config.targetIdentifier
     );
   }
   return availableActions.find(handler => handler.type === action.type);
@@ -89,8 +90,11 @@ function ActionFilter({actionFilter, showDivider}: ActionFilterProps) {
         {tct('[if:If] [logicType] of these filters match', {
           if: <ConditionBadge />,
           logicType:
-            FILTER_MATCH_OPTIONS.find(choice => choice.value === actionFilter.logicType)
-              ?.label || actionFilter.logicType,
+            FILTER_MATCH_OPTIONS.find(
+              choice =>
+                choice.value === actionFilter.logicType ||
+                choice.alias === actionFilter.logicType
+            )?.label || actionFilter.logicType,
         })}
       </ConditionGroupHeader>
       {actionFilter.conditions.length > 0
@@ -145,7 +149,7 @@ function ActionDetails({action, handler}: ActionDetailsProps) {
     <Fragment>
       {action.status === 'disabled' && (
         <IconPadding>
-          <IconWarning color="danger" />
+          <IconWarning variant="danger" />
         </IconPadding>
       )}
       {!Component || !handler ? (
@@ -161,28 +165,28 @@ const Panel = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.translucentBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
   word-break: break-word;
 `;
 
 const ConditionGroupHeader = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ConditionGroupWrapper = styled('div')<{showDivider?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
     p.showDivider &&
     css`
       padding-top: ${p.theme.space.lg};
-      border-top: 1px solid ${p.theme.translucentBorder};
+      border-top: 1px solid ${p.theme.tokens.border.transparent.neutral.muted};
     `}
 `;
 
@@ -191,5 +195,3 @@ const IconPadding = styled('span')`
   height: 100%;
   vertical-align: middle;
 `;
-
-export default ConditionsPanel;

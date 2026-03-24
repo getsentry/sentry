@@ -63,8 +63,9 @@ describe('Event View Hierarchy', () => {
       body: [mockAttachment],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${mockProject.slug}/events/${mockAttachment.event_id}/attachments/${mockAttachment.id}/?download`,
+      url: `/projects/${organization.slug}/${mockProject.slug}/events/${mockAttachment.event_id}/attachments/${mockAttachment.id}/`,
       body: MOCK_DATA,
+      match: [MockApiClient.matchQuery({download: true})],
     });
   });
 

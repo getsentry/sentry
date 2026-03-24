@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import * as Storybook from 'sentry/stories';
 import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -12,9 +12,10 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 
 import {Widget} from './widget';
 
-export default Storybook.story('Widget', (story, APIReference) => {
-  APIReference(documentation.props.Widget);
+export const documentation =
+  import('!!type-loader!sentry/views/dashboards/widgets/widget/widget');
 
+export default Storybook.story('Widget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -27,7 +28,11 @@ export default Storybook.story('Widget', (story, APIReference) => {
         <SmallStorybookSizingWindow>
           <Widget
             Title={<Widget.WidgetTitle title="epm() : /insights/frontend/assets" />}
-            TitleBadges={[<Tag key="frontend">frontend</Tag>]}
+            TitleBadges={[
+              <Tag key="frontend" variant="muted">
+                frontend
+              </Tag>,
+            ]}
             Actions={
               <Widget.WidgetToolbar>
                 <Button size="xs">Say More</Button>
@@ -241,7 +246,11 @@ function InsightsLineChart() {
             </Button>
           </Widget.WidgetToolbar>
         }
-        Visualization={<Widget.WidgetError error={error} />}
+        Visualization={
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError error={error} />
+          </Container>
+        }
       />
     );
   }
@@ -255,9 +264,11 @@ function InsightsLineChart() {
       <Widget
         Title={Title}
         Visualization={
-          <Widget.WidgetError
-            error={'No data! This is unusual, consider contacting support'}
-          />
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError
+              error={'No data! This is unusual, consider contacting support'}
+            />
+          </Container>
         }
       />
     );

@@ -1,4 +1,5 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logs} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metrics} from 'sentry/gettingStartedDocs/javascript/metrics';
@@ -10,7 +11,7 @@ import {onboarding} from './onboarding';
 import {replay} from './replay';
 import {installSnippetBlock, platformOptions, type PlatformOptions} from './utils';
 
-const docs: Docs<PlatformOptions> = {
+export const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingNpm: feedback,
   replayOnboarding: replay,
@@ -32,6 +33,7 @@ const docs: Docs<PlatformOptions> = {
     docsPlatform: 'angular',
     packageName: '@sentry/angular',
   }),
+  agentMonitoringOnboarding: agentMonitoring({
+    packageName: '@sentry/angular',
+  }),
 };
-
-export default docs;

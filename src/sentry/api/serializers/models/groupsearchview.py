@@ -12,7 +12,7 @@ from sentry.users.services.user.service import user_service
 
 class GroupSearchViewSerializerResponse(TypedDict):
     id: str
-    createdBy: UserSerializerResponse
+    createdBy: UserSerializerResponse | None
     name: str
     query: str
     querySort: SORT_LITERALS

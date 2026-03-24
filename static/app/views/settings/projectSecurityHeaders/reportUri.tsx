@@ -1,10 +1,11 @@
-import {Link} from 'sentry/components/core/link';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {Link} from '@sentry/scraps/link';
+
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 
@@ -21,12 +22,12 @@ type Props = {
   projectId: string;
 };
 
-export default function ReportUri({keyList, orgId, projectId}: Props) {
+export function ReportUri({keyList, orgId, projectId}: Props) {
   return (
     <Panel>
       <PanelHeader>{t('Report URI')}</PanelHeader>
       <PanelBody>
-        <PanelAlert type="info">
+        <PanelAlert variant="info">
           {tct(
             "We've automatically pulled these credentials from your available [link:Client Keys]",
             {

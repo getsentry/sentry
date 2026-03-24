@@ -4,9 +4,10 @@ import {usePopper} from 'react-popper';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   ProfilingContextMenu,
   ProfilingContextMenuGroup,
@@ -39,8 +40,8 @@ import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useSourceCodeLink} from 'sentry/utils/profiling/hooks/useSourceLink';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
   'by system vs application frame',
@@ -556,8 +557,8 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   transform: translateX(-2px);
 
   > div {
-    border: 2px solid ${p => p.theme.gray100} !important;
-    border-left-color: ${p => p.theme.gray200} !important;
+    border: 2px solid ${p => p.theme.colors.gray100} !important;
+    border-left-color: ${p => p.theme.colors.gray200} !important;
   }
 `;
 

@@ -2,23 +2,22 @@ import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {AlertBadge} from '@sentry/scraps/badge';
+
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {Duration} from 'sentry/components/duration';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -130,18 +129,11 @@ function TriggerDescription({
 }
 
 function getColor(theme: Theme, type: 'critical' | 'warning' | 'success') {
-  if (isChonkTheme(theme)) {
-    return type === 'critical'
-      ? theme.colors.chonk.red400
-      : type === 'warning'
-        ? theme.colors.chonk.yellow400
-        : theme.colors.chonk.green400;
-  }
   return type === 'critical'
-    ? theme.errorText
+    ? theme.tokens.background.danger.vibrant
     : type === 'warning'
-      ? theme.warningText
-      : theme.successText;
+      ? theme.tokens.background.warning.vibrant
+      : theme.tokens.background.success.vibrant;
 }
 const StyledIconDiamond = styled(IconDiamond)<{type: 'critical' | 'warning' | 'success'}>`
   fill: ${p => getColor(p.theme, p.type)};
@@ -340,16 +332,16 @@ function FilterKeyValueTableRow({
 
 const KeyWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 
   > span {
-    margin-top: ${space(0.25)};
-    height: ${space(2)};
+    margin-top: ${p => p.theme.space['2xs']};
+    height: ${p => p.theme.space.xl};
   }
 `;
 
 const SidebarGroup = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const HeaderItem = styled('div')`
@@ -368,14 +360,14 @@ const Status = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto auto auto;
-  gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.lg};
+  gap: ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const StatusContainer = styled('div')`
   height: 60px;
   display: flex;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   h4 {
     margin-top: 0;
@@ -383,14 +375,18 @@ const StatusContainer = styled('div')`
 `;
 
 const OverflowTableValue = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TriggerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
-  gap: ${space(1)};
-  margin-top: ${space(4)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const TriggerTitle = styled('div')`
@@ -400,8 +396,8 @@ const TriggerTitle = styled('div')`
 `;
 
 const TriggerTitleText = styled('h4')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   line-height: 24px;
   min-width: 40px;
@@ -416,17 +412,17 @@ const TriggerStep = styled('div')`
 const TriggerActions = styled('div')`
   display: grid;
   grid-template-columns: repeat(1fr);
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   align-items: center;
 `;
 
 const TriggerText = styled('span')`
   display: block;
-  background-color: ${p => p.theme.surface200};
-  padding: ${space(0.25)} ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.sm};
+  background-color: ${p => p.theme.tokens.background.tertiary};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
   width: 100%;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

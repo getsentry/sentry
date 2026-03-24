@@ -1,18 +1,19 @@
 import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TextCopyInput from 'sentry/components/textCopyInput';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-function NewSecretHandler({
+import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {t, tct} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export function NewSecretHandler({
   secret,
   provider,
   onGoBack,
@@ -25,12 +26,12 @@ function NewSecretHandler({
 
   return (
     <div>
-      <Alert type="success" system>
+      <Alert variant="success" system>
         {t('The secret has been posted.')}
       </Alert>
 
       <StyledPanelItem>
-        <InputWrapper>
+        <Container flex="1">
           <StyledFieldGroup
             label={t('Webhook URL')}
             help={tct(
@@ -64,7 +65,7 @@ function NewSecretHandler({
           >
             <TextCopyInput aria-label={t('Secret')}>{secret}</TextCopyInput>
           </StyledFieldGroup>
-        </InputWrapper>
+        </Container>
       </StyledPanelItem>
 
       <StyledPanelItem>
@@ -78,12 +79,8 @@ function NewSecretHandler({
   );
 }
 
-const InputWrapper = styled('div')`
-  flex: 1;
-`;
-
 const StyledFieldGroup = styled(FieldGroup)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const ButtonWrapper = styled('div')`
@@ -91,12 +88,10 @@ const ButtonWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  font-size: ${p => p.theme.fontSize.sm};
-  gap: ${space(1)};
+  font-size: ${p => p.theme.font.size.sm};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;
-
-export default NewSecretHandler;

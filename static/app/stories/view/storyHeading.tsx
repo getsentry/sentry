@@ -1,16 +1,18 @@
-import type {ComponentProps, ReactElement, ReactNode} from 'react';
+import type {ReactElement, ReactNode} from 'react';
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+import type {HeadingProps} from '@sentry/scraps/text';
+
 import {IconLink} from 'sentry/icons';
 import {useStory} from 'sentry/stories/view/useStory';
-import slugify from 'sentry/utils/slugify';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {slugify} from 'sentry/utils/slugify';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-export function StoryHeading(props: ComponentProps<typeof Heading>) {
+export function StoryHeading(props: HeadingProps) {
   const {story} = useStory();
 
   const storyTitle = (story.exports.frontmatter as any)?.title;

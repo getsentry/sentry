@@ -4,6 +4,12 @@ import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 
+export type ChartSelectionQueryParam = {
+  chartIndex: number;
+  panelId: string;
+  range: [number, number];
+};
+
 type ChartSelectionState = {
   chartIndex: number;
   selection: Selection;
@@ -27,11 +33,13 @@ function serializeChartSelection(state: ChartSelectionState): string {
     return '';
   }
 
-  return JSON.stringify({
+  const chartSelection: ChartSelectionQueryParam = {
     chartIndex: state.chartIndex,
     range: state.selection.range,
     panelId: state.selection.panelId,
-  });
+  };
+
+  return JSON.stringify(chartSelection);
 }
 
 function deserializeChartSelection(value: string | undefined): ChartSelectionState {
@@ -71,6 +79,7 @@ function ChartSelectionStateProvider({children}: ChartSelectionProviderProps) {
     fieldName: 'chartSelection',
     deserializer: deserializeChartSelection,
     serializer: serializeChartSelection,
+    syncStateWithUrl: true,
   });
 
   const value = useMemo<ChartSelectionContextValue>(

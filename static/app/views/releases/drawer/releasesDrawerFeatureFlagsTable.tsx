@@ -1,17 +1,18 @@
 import {useMemo} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {useFlagsInEventPaginated} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import Placeholder from 'sentry/components/placeholder';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 
 const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
@@ -64,7 +65,7 @@ export function ReleasesDrawerFeatureFlagsTable({
 
   if (error) {
     return (
-      <Alert type="error" showIcon={false}>
+      <Alert variant="danger" showIcon={false}>
         {t('Error fetching feature flags')}
       </Alert>
     );

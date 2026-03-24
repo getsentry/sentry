@@ -3,7 +3,7 @@ import uuid
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
-class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
+class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBase):
     def test_cross_trace_query_with_logs(self) -> None:
         trace_id = uuid.uuid4().hex
         excluded_trace_id = uuid.uuid4().hex
@@ -17,7 +17,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         self.store_spans(
             [
                 # only this event should show up since we'll filtered to trace_id
@@ -40,7 +40,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(
@@ -92,7 +91,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(
@@ -124,7 +122,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         self.store_spans(
             [
                 # only this event should show up since we'll filtered to trace_id
@@ -157,7 +155,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(
@@ -220,7 +217,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(
@@ -255,7 +251,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         self.store_spans(
             [
                 # only this event should show up since we'll filtered to trace_id
@@ -278,7 +274,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(

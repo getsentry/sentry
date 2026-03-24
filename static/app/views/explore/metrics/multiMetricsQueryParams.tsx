@@ -47,14 +47,14 @@ export function MultiMetricsQueryParamsProvider({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const value: MultiMetricsQueryParamsContextValue = useMemo(() => {
+  const value = useMemo(() => {
     const metricQueries = getMultiMetricsQueryParamsFromLocation(location, allowUpTo);
 
     function setQueryParamsForIndex(i: number) {
       return function (newQueryParams: ReadableQueryParams) {
         const target = {...location, query: {...location.query}};
 
-        const newMetricQueries: string[] = metricQueries
+        const newMetricQueries = metricQueries
           .map((metricQuery: BaseMetricQuery, j: number) => {
             if (i !== j) {
               return metricQuery;
@@ -132,7 +132,7 @@ export function MultiMetricsQueryParamsProvider({
 
         const target = {...location, query: {...location.query}};
 
-        const newMetricQueries: string[] = metricQueries
+        const newMetricQueries = metricQueries
           .filter((_, j) => i !== j)
           .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
           .filter(defined)
@@ -153,7 +153,7 @@ export function MultiMetricsQueryParamsProvider({
         };
       }),
     };
-  }, [location, navigate, allowUpTo]);
+  }, [allowUpTo, location, navigate]);
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -168,7 +168,9 @@ function getMultiMetricsQueryParamsFromLocation(
 ): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
-  const metricQueries = rawQueryParams.map(decodeMetricsQueryParams).filter(defined);
+  const metricQueries = rawQueryParams
+    .map(value => decodeMetricsQueryParams(value))
+    .filter(defined);
 
   const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
 
@@ -188,7 +190,7 @@ export function useAddMetricQuery() {
   return function () {
     const target = {...location, query: {...location.query}};
 
-    const newMetricQueries: string[] = [
+    const newMetricQueries = [
       ...metricQueries,
       metricQueries[metricQueries.length - 1] ?? defaultMetricQuery(),
     ]

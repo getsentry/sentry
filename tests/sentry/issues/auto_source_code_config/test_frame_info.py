@@ -21,14 +21,6 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
-    "O$t",
-    "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    # Top level files
-    "README",  # top level file
-    "/gtm.js",  # Rejected because it's a top level file and not because it has a backslash
-    "ssl.py",
-    "initialization.dart",
-    "backburner.js",
 ]
 
 # Files with "http" substring that should be ACCEPTED
@@ -42,7 +34,9 @@ LEGITIMATE_HTTP_FILENAMES = [
 ]
 
 NO_EXTENSION_FRAME_FILENAMES = [
-    "/foo/bar/baz",  # no extension
+    "/foo/bar/baz",
+    "README",
+    "O$t",
 ]
 
 
@@ -168,3 +162,8 @@ class TestFrameInfo:
         frame_info = create_frame_info({"filename": frame_filename})
         assert frame_info.normalized_path == normalized_path
         assert frame_info.stack_root == stack_root
+
+    def test_unsupported_platform_returns_path_based_frame_info(self) -> None:
+        frame_info = create_frame_info({"filename": "Sources/App/AppDelegate.swift"}, "cocoa")
+        assert frame_info.normalized_path == "Sources/App/AppDelegate.swift"
+        assert frame_info.stack_root == "Sources"

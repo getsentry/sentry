@@ -1,11 +1,12 @@
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
+import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {
@@ -14,7 +15,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/filter';
 import type {ViewProps} from 'sentry/views/performance/types';
 
-import Chart from './chart';
+import {Chart} from './chart';
 import {transformData} from './utils';
 
 type ApiResult = Record<string, number>;
@@ -35,7 +36,7 @@ interface Props extends ViewProps {
  * This graph visualizes how many transactions were recorded
  * at each duration bucket, showing the modality of the transaction.
  */
-function Content({
+export function Content({
   currentFilter,
   fields,
   location,
@@ -74,7 +75,12 @@ function Content({
     isPending,
     isError,
   } = useApiQuery<{data: ApiResult[]}>(
-    [`/organizations/${organization.slug}/events/`, {query: apiPayload}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: apiPayload},
+    ],
     {
       staleTime: 0,
     }
@@ -83,7 +89,7 @@ function Content({
   if (isError) {
     return (
       <ErrorPanel>
-        <IconWarning color="gray300" size="lg" />
+        <IconWarning variant="muted" size="lg" />
       </ErrorPanel>
     );
   }
@@ -103,5 +109,3 @@ function Content({
 
   return <Chart series={transformData(chartData.data, false)} colors={colors} />;
 }
-
-export default Content;

@@ -1,22 +1,20 @@
 import styled from '@emotion/styled';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
+import {ClippedBox} from 'sentry/components/clippedBox';
+import {Confirm} from 'sentry/components/confirm';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import recreateRoute from 'sentry/utils/recreateRoute';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
-import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/credentials';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 
 type Props = {
@@ -29,7 +27,7 @@ type Props = {
   projectId: string;
 } & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
 
-function KeyRow({
+export function KeyRow({
   data,
   onRemove,
   onToggle,
@@ -47,8 +45,7 @@ function KeyRow({
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');
-  const showOtlpTraces =
-    useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
+  const showOtlpTraces = organization.features.includes('relay-otlp-traces-endpoint');
   const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
 
   return (
@@ -122,30 +119,28 @@ function KeyRow({
   );
 }
 
-export default KeyRow;
-
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
   margin: 0;
   > *:last-child {
-    padding-bottom: ${space(3)};
+    padding-bottom: ${p => p.theme.space['2xl']};
   }
 `;
 
 const PanelHeaderLink = styled(Link)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Title = styled('div')<{disabled: boolean}>`
   flex: 1;
   ${p => (p.disabled ? 'opacity: 0.5;' : '')};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Controls = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: column;
 `;
 

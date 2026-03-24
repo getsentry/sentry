@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
@@ -238,42 +238,12 @@ def issues_by_tag_validate(query_info: dict[str, Any]) -> None:
             raise serializers.ValidationError("Invalid group ID")
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationDataExportPermission,)
-
-    def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
-        feature_names = [
-            "organizations:dashboards-mep",
-            "organizations:mep-rollout-flag",
-            "organizations:performance-use-metrics",
-            "organizations:profiling",
-            "organizations:dynamic-sampling",
-            "organizations:use-metrics-layer",
-            "organizations:starfish-view",
-        ]
-        batch_features = features.batch_has(
-            feature_names,
-            organization=organization,
-            actor=request.user,
-        )
-
-        all_features = (
-            batch_features.get(f"organization:{organization.id}", {})
-            if batch_features is not None
-            else {}
-        )
-
-        for feature_name in feature_names:
-            if feature_name not in all_features:
-                all_features[feature_name] = features.has(
-                    feature_name, organization=organization, actor=request.user
-                )
-
-        return all_features
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
@@ -311,17 +281,6 @@ class DataExportEndpoint(OrganizationEndpoint):
         if request.data and hasattr(request.data, "get"):
             limit = request.data.get("limit")
 
-        batch_features = self.get_features(organization, request)
-
-        use_metrics = (
-            (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and batch_features.get("organizations:dynamic-sampling", False)
-            )
-            or batch_features.get("organizations:performance-use-metrics", False)
-            or batch_features.get("organizations:dashboards-mep", False)
-        )
-
         # Validate the data export payload
         serializer = DataExportQuerySerializer(
             data=request.data,
@@ -331,7 +290,7 @@ class DataExportEndpoint(OrganizationEndpoint):
                     request=request, organization=organization, project_ids=project_query
                 ),
                 "get_projects": lambda: self.get_projects(request, organization),
-                "has_metrics": use_metrics,
+                "has_metrics": True,
             },
         )
         if not serializer.is_valid():

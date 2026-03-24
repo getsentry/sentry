@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock, patch
 
 import orjson
@@ -9,12 +10,30 @@ from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
     CodingAgentStatus,
+    bulk_write_preferences_to_sentry_db,
+    deduplicate_repositories,
     get_autofix_prompt,
     get_coding_agent_prompt,
+    has_project_connected_repos,
     is_issue_eligible_for_seer_automation,
+    is_seer_seat_based_tier_enabled,
+    resolve_repository_ids,
+    set_project_seer_preference,
+    write_preference_to_sentry_db,
 )
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import (
+    BranchOverride,
+    SeerApiError,
+    SeerAutomationHandoffConfiguration,
+    SeerProjectPreference,
+    SeerRepoDefinition,
+)
+from sentry.seer.models.project_repository import (
+    SeerProjectRepository,
+    SeerProjectRepositoryBranchOverride,
+)
 from sentry.testutils.cases import TestCase
+from sentry.utils.cache import cache
 
 
 class TestGetAutofixPrompt(TestCase):
@@ -174,6 +193,58 @@ class TestGetCodingAgentPrompt(TestCase):
         assert result == expected
         mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
 
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt includes Fixes line when short_id is provided."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(
+            12345, AutofixTriggerSource.SOLUTION, None, short_id="AIML-2301"
+        )
+
+        assert "Fixes AIML-2301" in result
+        assert "Include 'Fixes AIML-2301' in the commit message" in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_without_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt does not include Fixes line when short_id is None."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id=None)
+
+        assert "Fixes" not in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_short_id_and_instruction(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt includes both Fixes line and instruction."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(
+            12345,
+            AutofixTriggerSource.SOLUTION,
+            "Be careful with backwards compatibility",
+            short_id="PROJ-1234",
+        )
+
+        assert "Fixes PROJ-1234" in result
+        assert "Be careful with backwards compatibility" in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_empty_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt does not include Fixes line when short_id is empty string."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id="")
+
+        assert "Fixes" not in result
+        assert "Please fix the following issue" in result
+
 
 class TestAutofixStateParsing(TestCase):
     def test_autofix_state_validate_parses_nested_structures(self):
@@ -251,18 +322,14 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
     def test_returns_true_for_supported_issue_categories(self):
         """Test returns True for supported issue categories when all conditions are met."""
         with self.feature("organizations:gen-ai-features"):
-            with patch(
-                "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner"
-            ) as mock_ack:
-                with patch("sentry.quotas.backend.has_available_reserved_budget") as mock_budget:
-                    mock_ack.return_value = True
-                    mock_budget.return_value = True
-                    self.project.update_option("sentry:seer_scanner_automation", True)
+            with patch("sentry.quotas.backend.check_seer_quota") as mock_budget:
+                mock_budget.return_value = True
+                self.project.update_option("sentry:seer_scanner_automation", True)
 
-                    # Test supported categories - using default error group
-                    result = is_issue_eligible_for_seer_automation(self.group)
+                # Test supported categories - using default error group
+                result = is_issue_eligible_for_seer_automation(self.group)
 
-                    assert result is True
+                assert result is True
 
     def test_returns_false_when_gen_ai_features_not_enabled(self):
         """Test returns False when organizations:gen-ai-features feature flag is not enabled."""
@@ -283,27 +350,11 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
             result = is_issue_eligible_for_seer_automation(self.group)
             assert result is False
 
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
-    def test_returns_false_when_org_not_acknowledged(self, mock_get_acknowledgement):
-        """Test returns False when organization has not acknowledged Seer for scanner."""
-        with self.feature("organizations:gen-ai-features"):
-            self.project.update_option("sentry:seer_scanner_automation", True)
-            mock_get_acknowledgement.return_value = False
-
-            result = is_issue_eligible_for_seer_automation(self.group)
-
-            assert result is False
-            mock_get_acknowledgement.assert_called_once_with(self.organization)
-
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
-    def test_returns_false_when_no_budget_available(
-        self, mock_has_budget, mock_get_acknowledgement
-    ):
+    @patch("sentry.quotas.backend.check_seer_quota")
+    def test_returns_false_when_no_budget_available(self, mock_has_budget):
         """Test returns False when organization has no available budget for scanner."""
         with self.feature("organizations:gen-ai-features"):
             self.project.update_option("sentry:seer_scanner_automation", True)
-            mock_get_acknowledgement.return_value = True
             mock_has_budget.return_value = False
 
             result = is_issue_eligible_for_seer_automation(self.group)
@@ -313,33 +364,31 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
                 org_id=self.organization.id, data_category=DataCategory.SEER_SCANNER
             )
 
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
-    def test_returns_true_when_all_conditions_met(self, mock_has_budget, mock_get_acknowledgement):
+    @patch("sentry.quotas.backend.check_seer_quota")
+    def test_returns_true_when_all_conditions_met(self, mock_has_budget):
         """Test returns True when all eligibility conditions are met."""
         with self.feature("organizations:gen-ai-features"):
             self.project.update_option("sentry:seer_scanner_automation", True)
-            mock_get_acknowledgement.return_value = True
+
             mock_has_budget.return_value = True
 
             result = is_issue_eligible_for_seer_automation(self.group)
 
             assert result is True
-            mock_get_acknowledgement.assert_called_once_with(self.organization)
             mock_has_budget.assert_called_once_with(
                 org_id=self.organization.id, data_category=DataCategory.SEER_SCANNER
             )
 
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_returns_true_when_issue_type_always_triggers(
-        self, mock_has_budget, mock_get_acknowledgement
+        self,
+        mock_has_budget,
     ):
         """Test returns True when issue type has always_trigger_seer_automation even if scanner automation is disabled."""
         with self.feature("organizations:gen-ai-features"):
             # Disable scanner automation
             self.project.update_option("sentry:seer_scanner_automation", False)
-            mock_get_acknowledgement.return_value = True
+
             mock_has_budget.return_value = True
 
             # Mock the group's issue_type to always trigger
@@ -347,3 +396,825 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
                 result = is_issue_eligible_for_seer_automation(self.group)
 
                 assert result is True
+
+
+class TestIsSeerSeatBasedTierEnabled(TestCase):
+    """Test the is_seer_seat_based_tier_enabled function."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization(name="test-org")
+
+    def tearDown(self):
+        super().tearDown()
+        cache.delete(f"seer:seat-based-tier:{self.organization.id}")
+
+    @patch("sentry.seer.autofix.utils.features.has")
+    def test_returns_true_when_seat_based_seer_enabled(self, mock_features_has):
+        """Test returns True when seat-based-seer-enabled feature flag is enabled and caches the result."""
+
+        def features_side_effect(flag, org):
+            if flag == "organizations:seat-based-seer-enabled":
+                return True
+            return False
+
+        mock_features_has.side_effect = features_side_effect
+
+        result = is_seer_seat_based_tier_enabled(self.organization)
+        assert result is True
+
+        # Verify it was cached
+        cache_key = f"seer:seat-based-tier:{self.organization.id}"
+        assert cache.get(cache_key) is True
+
+    def test_returns_false_when_no_flags_enabled(self):
+        """Test returns False when neither feature flag is enabled and caches the result."""
+        result = is_seer_seat_based_tier_enabled(self.organization)
+        assert result is False
+
+        # Verify False was cached
+        cache_key = f"seer:seat-based-tier:{self.organization.id}"
+        assert cache.get(cache_key) is False
+
+    def test_returns_cached_value(self):
+        """Test returns cached value without checking feature flags."""
+        cache_key = f"seer:seat-based-tier:{self.organization.id}"
+        cache.set(cache_key, True, timeout=60)
+
+        # Even without feature flags enabled, should return cached True
+        result = is_seer_seat_based_tier_enabled(self.organization)
+        assert result is True
+
+
+class TestHasProjectConnectedRepos(TestCase):
+    """Test the has_project_connected_repos function."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_true_when_repos_exist(self, mock_get_preferences, mock_cache):
+        """Test returns True when project has connected repositories."""
+        mock_cache.get.return_value = None
+        mock_preference = Mock()
+        mock_preference.repositories = [{"provider": "github", "owner": "test", "name": "repo"}]
+        mock_response = Mock()
+        mock_response.preference = mock_preference
+        mock_get_preferences.return_value = mock_response
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is True
+        mock_cache.set.assert_called_once_with(
+            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
+            True,
+            timeout=60 * 15,
+        )
+
+    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_false_when_no_repos(
+        self, mock_get_preferences, mock_cache, mock_get_code_mappings
+    ):
+        """Test returns False when project has no connected repositories."""
+        mock_cache.get.return_value = None
+        mock_preference = Mock()
+        mock_preference.repositories = []
+        mock_response = Mock()
+        mock_response.preference = mock_preference
+        mock_get_preferences.return_value = mock_response
+        mock_get_code_mappings.return_value = []
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is False
+        mock_cache.set.assert_called_once_with(
+            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
+            False,
+            timeout=60 * 15,
+        )
+
+    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_false_when_preference_is_none_and_no_code_mappings(
+        self, mock_get_preferences, mock_cache, mock_get_code_mappings
+    ):
+        """Test returns False when preference is None and no code mappings exist."""
+        mock_cache.get.return_value = None
+        mock_response = Mock()
+        mock_response.preference = None
+        mock_get_preferences.return_value = mock_response
+        mock_get_code_mappings.return_value = []
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is False
+        mock_cache.set.assert_called_once_with(
+            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
+            False,
+            timeout=60 * 15,
+        )
+
+    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_falls_back_to_code_mappings_when_no_seer_preference(
+        self, mock_get_preferences, mock_cache, mock_get_code_mappings
+    ):
+        """Test falls back to code mappings when Seer has no preference."""
+        mock_cache.get.return_value = None
+        mock_response = Mock()
+        mock_response.preference = None
+        mock_get_preferences.return_value = mock_response
+        mock_get_code_mappings.return_value = [
+            {"provider": "github", "owner": "test", "name": "repo"}
+        ]
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is True
+        mock_get_code_mappings.assert_called_once()
+        mock_cache.set.assert_called_once_with(
+            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
+            True,
+            timeout=60 * 15,
+        )
+
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_cached_value_true(self, mock_get_preferences, mock_cache):
+        """Test returns cached True value without calling API."""
+        mock_cache.get.return_value = True
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is True
+        mock_get_preferences.assert_not_called()
+        mock_cache.set.assert_not_called()
+
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_cached_value_false(self, mock_get_preferences, mock_cache):
+        """Test returns cached False value without calling API."""
+        mock_cache.get.return_value = False
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is False
+        mock_get_preferences.assert_not_called()
+        mock_cache.set.assert_not_called()
+
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_skip_cache_bypasses_cached_value(self, mock_get_preferences, mock_cache):
+        """Test skip_cache=True bypasses cache and calls API."""
+        mock_cache.get.return_value = False  # Cache has False
+        mock_preference = Mock()
+        mock_preference.repositories = [{"provider": "github", "owner": "test", "name": "repo"}]
+        mock_response = Mock()
+        mock_response.preference = mock_preference
+        mock_get_preferences.return_value = mock_response
+
+        result = has_project_connected_repos(self.organization.id, self.project.id, skip_cache=True)
+
+        assert result is True  # Fresh value from API, not cached False
+        mock_cache.get.assert_not_called()  # Cache not checked
+        mock_get_preferences.assert_called_once()  # API was called
+        mock_cache.set.assert_called_once()  # Cache still updated
+
+    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_falls_back_to_code_mappings_on_api_error(
+        self, mock_get_preferences, mock_cache, mock_get_code_mappings
+    ):
+        """Test falls back to code mappings when Seer API fails."""
+        mock_cache.get.return_value = None
+        mock_get_preferences.side_effect = SeerApiError("API Error", 500)
+        mock_get_code_mappings.return_value = [
+            {"provider": "github", "owner": "test", "name": "repo"}
+        ]
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is True
+        mock_get_code_mappings.assert_called_once()
+
+
+class TestSetProjectSeerPreference(TestCase):
+    """Test the set_project_seer_preference function."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_set_project_seer_preference_success(self, mock_make_request):
+        """Test set_project_seer_preference sends correct request."""
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_make_request.return_value = mock_response
+
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            automated_run_stopping_point="code_changes",
+        )
+
+        set_project_seer_preference(preference)
+
+        mock_make_request.assert_called_once()
+        call = mock_make_request.call_args
+        assert call.args[1] == "/v1/project-preference/set"
+
+        actual_body = orjson.loads(call.kwargs["body"])
+        assert actual_body["preference"]["organization_id"] == self.organization.id
+        assert actual_body["preference"]["project_id"] == self.project.id
+        assert actual_body["preference"]["repositories"] == []
+        assert actual_body["preference"]["automated_run_stopping_point"] == "code_changes"
+        assert call.kwargs["timeout"] == 15
+
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_set_project_seer_preference_with_open_pr_stopping_point(self, mock_make_request):
+        """Test set_project_seer_preference with open_pr stopping point."""
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_make_request.return_value = mock_response
+
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            automated_run_stopping_point="open_pr",
+        )
+
+        set_project_seer_preference(preference)
+
+        call = mock_make_request.call_args
+        actual_body = orjson.loads(call.kwargs["body"])
+        assert actual_body["preference"]["automated_run_stopping_point"] == "open_pr"
+
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_set_project_seer_preference_http_error_raises(self, mock_make_request):
+        """Test set_project_seer_preference raises on HTTP error status."""
+        mock_response = Mock()
+        mock_response.status = 500
+        mock_response.data = b"Internal Server Error"
+        mock_make_request.return_value = mock_response
+
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+        )
+
+        with pytest.raises(SeerApiError):
+            set_project_seer_preference(preference)
+
+
+class TestResolveRepositoryIds(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.repo_bare_provider = self.create_repo(
+            project=self.project,
+            provider="github",
+            external_id="ext123",
+            name="test-org/test-repo",
+        )
+        self.repo_prefixed_provider = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/test-repo-2",
+        )
+
+    def test_resolves_when_input_and_stored_providers_are_bare(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github", external_id="ext123", owner="test-org", name="test-repo"
+                    )
+                ],
+            )
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_bare_provider.id
+
+    def test_resolves_when_input_and_stored_providers_are_prefixed(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="integrations:github",
+                        external_id="ext456",
+                        owner="test-org",
+                        name="test-repo-2",
+                    )
+                ],
+            )
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_prefixed_provider.id
+
+    def test_resolves_when_input_provider_is_bare_and_stored_provider_is_prefixed(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github",
+                        external_id="ext456",
+                        owner="test-org",
+                        name="test-repo-2",
+                    )
+                ],
+            )
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_prefixed_provider.id
+
+    def test_resolves_when_input_provider_is_prefixed_and_stored_provider_is_bare(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="integrations:github",
+                        external_id="ext123",
+                        owner="test-org",
+                        name="test-repo",
+                    )
+                ],
+            ),
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_bare_provider.id
+
+    def test_skips_unresolvable_repos(self):
+        """Repos with empty provider, empty external_id, existing repository_id, or inactive status are skipped."""
+        from sentry.constants import ObjectStatus
+
+        inactive_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext_inactive",
+            name="test-org/inactive-repo",
+        )
+        inactive_repo.status = ObjectStatus.HIDDEN
+        inactive_repo.save()
+
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github",
+                        external_id="ext123",
+                        owner="test-org",
+                        name="test-repo",
+                        repository_id=999,
+                    ),
+                    SeerRepoDefinition(
+                        provider="github",
+                        external_id="ext_inactive",
+                        owner="test-org",
+                        name="inactive-repo",
+                    ),
+                    SeerRepoDefinition(
+                        provider="github", external_id="nonexistent", owner="test-org", name="nope"
+                    ),
+                ],
+            )
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        repos = result[0].repositories
+        assert repos[0].repository_id == 999  # existing id preserved
+        assert repos[1].repository_id is None  # inactive repo
+        assert repos[2].repository_id is None  # nonexistent external_id
+
+
+class TestDeduplicateRepositories(TestCase):
+    def test_keys_by_provider_and_external_id(self):
+        repositories: list[dict[str, Any]] = [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            },
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": 42,
+            },
+        ]
+
+        result = deduplicate_repositories(repositories)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            }
+        ]
+
+    def test_also_keys_by_org_id(self):
+        repositories: list[dict[str, Any]] = [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            },
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": 42,
+            },
+        ]
+
+        result = deduplicate_repositories(repositories, key_by_org_id=True)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            },
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": 42,
+            },
+        ]
+
+    def test_normalizes_provider_alias_in_key(self):
+        repositories: list[dict[str, Any]] = [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+            },
+            {
+                "provider": "integrations:github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+            },
+        ]
+
+        result = deduplicate_repositories(repositories)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+            }
+        ]
+
+
+class TestWritePreferencesToSentryDb(TestCase):
+    """Tests for _write_preferences_to_sentry_db via write_preference_to_sentry_db
+    and bulk_write_preferences_to_sentry_db."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext123",
+            name="test-org/test-repo",
+        )
+
+    def test_writes_project_options(self):
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            automated_run_stopping_point="open_pr",
+            automation_handoff=SeerAutomationHandoffConfiguration(
+                handoff_point="root_cause",
+                target="cursor_background_agent",
+                integration_id=42,
+                auto_create_pr=True,
+            ),
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        assert self.project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
+        assert (
+            self.project.get_option("sentry:seer_automation_handoff_target")
+            == "cursor_background_agent"
+        )
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") == 42
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+
+    def test_writes_project_options_defaults(self):
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id, project_id=self.project.id, repositories=[]
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
+        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
+
+    def test_creates_seer_project_repository_with_branch_overrides(self):
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="develop",
+                    instructions="Use conventional commits",
+                    branch_overrides=[
+                        BranchOverride(
+                            tag_name="environment",
+                            tag_value="production",
+                            branch_name="main",
+                        ),
+                        BranchOverride(
+                            tag_name="environment",
+                            tag_value="staging",
+                            branch_name="staging",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        seer_repo = SeerProjectRepository.objects.get(project=self.project)
+        assert seer_repo.repository_id == self.repo.id
+        assert seer_repo.branch_name == "develop"
+        assert seer_repo.instructions == "Use conventional commits"
+
+        overrides = SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository=seer_repo
+        ).order_by("tag_value")
+        assert len(overrides) == 2
+        assert overrides[0].tag_name == "environment"
+        assert overrides[0].tag_value == "production"
+        assert overrides[0].branch_name == "main"
+        assert overrides[1].tag_name == "environment"
+        assert overrides[1].tag_value == "staging"
+        assert overrides[1].branch_name == "staging"
+
+    def test_replaces_existing_preference_on_write(self):
+        preference_to_replace = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_overrides=[
+                        BranchOverride(
+                            tag_name="environment",
+                            tag_value="production",
+                            branch_name="main",
+                        ),
+                    ],
+                ),
+            ],
+        )
+        write_preference_to_sentry_db(self.project, preference_to_replace)
+
+        assert SeerProjectRepository.objects.filter(project=self.project).count() == 1
+        assert (
+            SeerProjectRepositoryBranchOverride.objects.filter(
+                seer_project_repository__project=self.project
+            ).count()
+            == 1
+        )
+
+        # Replace with a different repo, no overrides
+        repo2 = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/other-repo",
+        )
+        new_preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=repo2.id,
+                    provider="github",
+                    owner="test-org",
+                    name="other-repo",
+                    external_id="ext456",
+                ),
+            ],
+        )
+        write_preference_to_sentry_db(self.project, new_preference)
+
+        repos = SeerProjectRepository.objects.filter(project=self.project)
+        assert len(repos) == 1
+        assert repos[0].repository_id == repo2.id
+        assert (
+            SeerProjectRepositoryBranchOverride.objects.filter(
+                seer_project_repository__project=self.project
+            ).count()
+            == 0
+        )
+
+    def test_multiple_repos_for_one_project(self):
+        repo2 = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/other-repo",
+        )
+
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="develop",
+                ),
+                SeerRepoDefinition(
+                    repository_id=repo2.id,
+                    provider="github",
+                    owner="test-org",
+                    name="other-repo",
+                    external_id="ext456",
+                    instructions="Deploy carefully",
+                ),
+            ],
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        repos = SeerProjectRepository.objects.filter(project=self.project).order_by("repository_id")
+        assert len(repos) == 2
+        assert repos[0].repository_id == self.repo.id
+        assert repos[0].branch_name == "develop"
+        assert repos[1].repository_id == repo2.id
+        assert repos[1].instructions == "Deploy carefully"
+
+    def test_bulk_write_multiple_projects(self):
+        project2 = self.create_project(organization=self.organization)
+        repo2 = self.create_repo(
+            project=project2,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/other-repo",
+        )
+
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        repository_id=self.repo.id,
+                        provider="github",
+                        owner="test-org",
+                        name="test-repo",
+                        external_id="ext123",
+                        branch_name="develop",
+                    ),
+                ],
+                automated_run_stopping_point="open_pr",
+            ),
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=project2.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        repository_id=repo2.id,
+                        provider="github",
+                        owner="test-org",
+                        name="other-repo",
+                        external_id="ext456",
+                        instructions="Be careful",
+                    ),
+                ],
+                automated_run_stopping_point="code_changes",
+            ),
+        ]
+
+        bulk_write_preferences_to_sentry_db([self.project, project2], preferences)
+
+        p1_repos = SeerProjectRepository.objects.filter(project=self.project)
+        assert len(p1_repos) == 1
+        assert p1_repos[0].repository_id == self.repo.id
+        assert p1_repos[0].branch_name == "develop"
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+
+        p2_repos = SeerProjectRepository.objects.filter(project=project2)
+        assert len(p2_repos) == 1
+        assert p2_repos[0].repository_id == repo2.id
+        assert p2_repos[0].instructions == "Be careful"
+        assert project2.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
+
+    def test_bulk_write_replaces_per_project(self):
+        project2 = self.create_project(organization=self.organization)
+        repo2 = self.create_repo(
+            project=project2,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/other-repo",
+        )
+
+        SeerProjectRepository.objects.create(
+            project=self.project, repository_id=self.repo.id, branch_name="project-1-branch"
+        )
+        SeerProjectRepository.objects.create(
+            project=project2, repository_id=repo2.id, branch_name="project-2-branch"
+        )
+
+        bulk_write_preferences_to_sentry_db(
+            [self.project, project2],
+            [
+                SeerProjectPreference(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    repositories=[
+                        SeerRepoDefinition(
+                            repository_id=self.repo.id,
+                            provider="github",
+                            owner="test-org",
+                            name="test-repo",
+                            external_id="ext123",
+                            branch_name="new-branch",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        # When bulk writing, existing repos for included projects are replaced,
+        # but repos for projects NOT in the preferences list are untouched.
+        p1_repo = SeerProjectRepository.objects.get(project=self.project)
+        assert p1_repo.branch_name == "new-branch"
+        p2_repo = SeerProjectRepository.objects.get(project=project2)
+        assert p2_repo.branch_name == "project-2-branch"

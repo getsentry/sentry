@@ -88,7 +88,7 @@ const getDynamicParts = (params: Params): string[] => {
   if (params.isProfilingSelected) {
     dynamicParts.push(`
       // Profiling
-      profilesSampleRate: 1.0 // Profile 100% of the transactions. This value is relative to tracesSampleRate`);
+      profileSessionSampleRate: 1.0 // Profile 100% of user sessions`);
   }
 
   return dynamicParts;
@@ -147,7 +147,7 @@ function getSentryInitLayout(params: Params, siblingOption: string): string {
   const config = buildSdkConfig({
     params,
     staticParts: [
-      `${siblingOption === VueVersion.VUE2 ? 'Vue' : 'app'}`,
+      siblingOption === VueVersion.VUE2 ? 'Vue' : 'app',
       `dsn: "${params.dsn.public}"`,
       `// Setting this option to true will send default PII data to Sentry.
       // For example, automatic IP address collection on events

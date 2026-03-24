@@ -5,12 +5,11 @@ import type {Location} from 'history';
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {Content} from 'sentry/components/keyValueData';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import getDuration from 'sentry/utils/duration/getDuration';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
@@ -22,21 +21,22 @@ import {
   type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 
 import {useSpanAncestryAndGroupingItems} from './ancestry';
 
 type GeneralnfoProps = {
   location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  node: SpanNode;
+  onParentClick: (node: BaseNode) => void;
   organization: Organization;
 };
 
-function SpanDuration({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+function SpanDuration({node}: {node: SpanNode}) {
   const span = node.value;
-  const startTimestamp: number = span.start_timestamp;
-  const endTimestamp: number = span.timestamp;
+  const startTimestamp = span.start_timestamp;
+  const endTimestamp = span.timestamp;
   const duration = endTimestamp - startTimestamp;
 
   return (
@@ -51,10 +51,10 @@ function SpanDuration({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   );
 }
 
-function SpanSelfTime({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+function SpanSelfTime({node}: {node: SpanNode}) {
   const span = node.value;
-  const startTimestamp: number = span.start_timestamp;
-  const endTimestamp: number = span.timestamp;
+  const startTimestamp = span.start_timestamp;
+  const endTimestamp = span.timestamp;
   const duration = endTimestamp - startTimestamp;
 
   if (
@@ -81,7 +81,7 @@ function SpanSelfTime({node}: {node: TraceTreeNode<TraceTree.Span>}) {
 export function GeneralInfo(props: GeneralnfoProps) {
   const span = props.node.value;
 
-  const resolvedModule: ModuleName = resolveSpanModule(
+  const resolvedModule = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
   );
@@ -242,9 +242,9 @@ export function GeneralInfo(props: GeneralnfoProps) {
 
 const ContentWrapper = styled('div')`
   display: grid;
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space.lg};
   grid-template-columns: fit-content(50%) 1fr;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 function getFormattedSpanDescription(span: TraceTree.Span) {
@@ -254,7 +254,7 @@ function getFormattedSpanDescription(span: TraceTree.Span) {
   }
 
   const formatter = new SQLishFormatter();
-  const resolvedModule: ModuleName = resolveSpanModule(
+  const resolvedModule = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
   );
@@ -273,5 +273,5 @@ const DescriptionWrapper = styled('div')`
 `;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

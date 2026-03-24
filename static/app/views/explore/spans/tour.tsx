@@ -8,7 +8,7 @@ import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTo
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
-import {useIsNavTourActive} from 'sentry/views/nav/tour/tour';
+import {useIsNavigationTourActive} from 'sentry/views/navigation/navigationTour';
 
 export const enum ExploreSpansTour {
   // Specify keywords to narrow down search
@@ -51,7 +51,7 @@ export function useExploreSpansTourModal() {
     assistantData?.find(item => item.guide === EXPLORE_SPANS_TOUR_GUIDE_KEY)?.seen ===
     false;
 
-  const isNavTourActive = useIsNavTourActive();
+  const isNavTourActive = useIsNavigationTourActive();
 
   useEffect(() => {
     if (
@@ -113,6 +113,6 @@ export function useExploreSpansTourModal() {
 
 const Title = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

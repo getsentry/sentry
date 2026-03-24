@@ -3,31 +3,33 @@ import {Fragment} from 'react';
 import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import McpPromptDurationWidget from 'sentry/views/insights/pages/mcp/components/mcpPromptDurationWidget';
-import McpPromptErrorRateWidget from 'sentry/views/insights/pages/mcp/components/mcpPromptErrorRateWidget';
+import {McpPromptDurationWidget} from 'sentry/views/insights/pages/mcp/components/mcpPromptDurationWidget';
+import {McpPromptErrorRateWidget} from 'sentry/views/insights/pages/mcp/components/mcpPromptErrorRateWidget';
 import {McpPromptsTable} from 'sentry/views/insights/pages/mcp/components/mcpPromptsTable';
-import McpPromptTrafficWidget from 'sentry/views/insights/pages/mcp/components/mcpPromptTrafficWidget';
+import {McpPromptTrafficWidget} from 'sentry/views/insights/pages/mcp/components/mcpPromptTrafficWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/mcp/components/styles';
 import {useMcpSpanSearchProps} from 'sentry/views/insights/pages/mcp/hooks/useMcpSpanSearchProps';
 import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useShowMCPOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/mcp/onboarding';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 interface McpPromptsLandingPageProps {
@@ -37,6 +39,17 @@ interface McpPromptsLandingPageProps {
 function McpPromptsLandingPage({datePageFilterProps}: McpPromptsLandingPageProps) {
   const showOnboarding = useShowMCPOnboarding();
   const mcpSpanSearchProps = useMcpSpanSearchProps();
+
+  const {view} = useDomainViewFilters();
+  const hasPlatformized = useHasPlatformizedInsights();
+  if (hasPlatformized) {
+    return (
+      <PrebuiltDashboardRenderer
+        prebuiltId={PrebuiltDashboardId.MCP_PROMPTS}
+        storageNamespace={view}
+      />
+    );
+  }
 
   return (
     <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>
@@ -57,7 +70,7 @@ function McpPromptsLandingPage({datePageFilterProps}: McpPromptsLandingPageProps
                   </PageFilterBar>
                   {!showOnboarding && (
                     <Flex flex={2}>
-                      <EAPSpanSearchQueryBuilder {...mcpSpanSearchProps.queryBuilder} />
+                      <TraceItemSearchQueryBuilder {...mcpSpanSearchProps.queryBuilder} />
                     </Flex>
                   )}
                 </ToolRibbon>
@@ -103,9 +116,7 @@ function PageWithProviders() {
       analyticEventName="insight.page_loads.mcp_prompts"
       maxPickableDays={datePageFilterProps.maxPickableDays}
     >
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <McpPromptsLandingPage datePageFilterProps={datePageFilterProps} />
-      </TraceItemAttributeProvider>
+      <McpPromptsLandingPage datePageFilterProps={datePageFilterProps} />
     </ModulePageProviders>
   );
 }

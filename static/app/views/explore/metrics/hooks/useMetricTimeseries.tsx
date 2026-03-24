@@ -1,8 +1,8 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {shouldTriggerHighAccuracy} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {
   useProgressiveQuery,
@@ -10,7 +10,7 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {useMetricVisualizes} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -24,13 +24,14 @@ interface UseMetricTimeseriesOptions {
 }
 
 export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesOptions) {
-  const visualize = useMetricVisualize();
+  const visualizes = useMetricVisualizes();
+
   const topEvents = useTopEvents();
   const canTriggerHighAccuracy = useCallback(
     (result: ReturnType<typeof useMetricTimeseriesImpl>['result']) => {
-      return shouldTriggerHighAccuracy(result.data, [visualize], !!topEvents);
+      return shouldTriggerHighAccuracy(result.data, visualizes, !!topEvents);
     },
-    [visualize, topEvents]
+    [topEvents, visualizes]
   );
   return useProgressiveQuery<typeof useMetricTimeseriesImpl>({
     queryHookImplementation: useMetricTimeseriesImpl,
@@ -50,25 +51,29 @@ function useMetricTimeseriesImpl({
   queryExtras,
   enabled,
 }: UseMetricTimeseriesImplOptions) {
-  const visualize = useMetricVisualize();
+  const visualizes = useMetricVisualizes();
   const groupBys = useQueryParamsGroupBys();
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
   const search = useQueryParamsSearch();
   const sortBys = useQueryParamsAggregateSortBys();
 
+  const yAxis = useMemo(() => {
+    return visualizes.map(v => v.yAxis);
+  }, [visualizes]);
+
   const timeseriesResult = useSortedTimeSeries(
     {
       search,
-      yAxis: [visualize.yAxis],
+      yAxis,
       interval,
-      fields: [...groupBys, visualize.yAxis],
+      fields: [...groupBys, ...yAxis],
       enabled: enabled && Boolean(traceMetric.name),
       topEvents,
       orderby: sortBys.map(formatSort),
       ...queryExtras,
     },
-    'api.explore.metrics-stats',
+    'api.explore.tracemetrics-timeseries',
     DiscoverDatasets.TRACEMETRICS
   );
 

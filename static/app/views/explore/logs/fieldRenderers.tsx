@@ -2,15 +2,16 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration/duration';
-import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
-import Version from 'sentry/components/version';
+import {Duration} from 'sentry/components/duration/duration';
+import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import {Version} from 'sentry/components/version';
 import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -20,9 +21,9 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {type ColumnValueType} from 'sentry/utils/discover/fields';
 import {VersionContainer} from 'sentry/utils/discover/styles';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
@@ -34,7 +35,7 @@ import type {
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
-import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
+import {LogsTimestampTooltip} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
   ColoredLogCircle,
@@ -564,7 +565,7 @@ function FieldReplacementHelper(
  * Only formats the field the same as discover does, does not apply any additional rendering, but has a container to fix styling.
  */
 function BasicDiscoverRenderer(props: LogFieldRendererProps) {
-  const logMeta: EventsMetaType =
+  const logMeta =
     Object.keys(props.meta ?? {}).length > 0 ? props.meta! : logFieldBasicMetas;
   const basicRenderer = getFieldRenderer(props.item.fieldKey, logMeta, false);
   const attributeType = props.extra.attributeTypes[props.item.fieldKey];
@@ -607,9 +608,7 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
 function ReplayIDRenderer(props: LogFieldRendererProps) {
   const replayId = props.item.value;
 
-  const hasFeature = props.extra.organization.features.includes('ourlogs-replay-ui');
-
-  if (typeof replayId !== 'string' || !replayId || !hasFeature) {
+  if (typeof replayId !== 'string' || !replayId) {
     return props.basicRendered;
   }
 
@@ -619,7 +618,7 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
   });
 
   return (
-    <Container>
+    <Flex align="center">
       <ViewReplayLink
         replayId={replayId}
         to={target}
@@ -628,7 +627,7 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
       >
         {getShortEventId(replayId)}
       </ViewReplayLink>
-    </Container>
+    </Flex>
   );
 }
 
@@ -673,12 +672,7 @@ const ClickableTimestamp = styled('span')`
   display: flex;
   align-items: flex-start;
   align-self: baseline;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   font-variant-numeric: tabular-nums;
   line-height: 1em;
-`;
-
-const Container = styled('div')`
-  display: flex;
-  align-items: center;
 `;

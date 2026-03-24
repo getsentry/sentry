@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
-import Thresholds from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
+import {ThresholdsSection as Thresholds} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
@@ -142,6 +142,40 @@ describe('Thresholds', () => {
       }),
       expect.anything()
     );
+  });
+
+  it('preserves preferred polarity when thresholds are cleared', async () => {
+    let capturedState: any = null;
+
+    function StateCapture() {
+      const {state} = useWidgetBuilderContext();
+      capturedState = state;
+      return null;
+    }
+
+    render(
+      <WidgetBuilderProvider>
+        <StateCapture />
+        <Thresholds dataType="duration" dataUnit="millisecond" />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              thresholds:
+                '{"max_values":{"max1":100},"unit":"millisecond","preferredPolarity":"+"}',
+            },
+          },
+        },
+      }
+    );
+
+    expect(capturedState.thresholds?.preferredPolarity).toBe('+');
+
+    await userEvent.clear(screen.getByLabelText('First Maximum'));
+
+    expect(capturedState.thresholds?.preferredPolarity).toBe('+');
   });
 
   it('sets internal state to null (not undefined) when thresholds are fully wiped', async () => {

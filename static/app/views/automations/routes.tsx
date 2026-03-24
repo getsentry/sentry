@@ -1,8 +1,9 @@
-import Redirect from 'sentry/components/redirect';
+import {Outlet} from 'react-router-dom';
+
+import {Redirect} from 'sentry/components/redirect';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import type {SentryRouteObject} from 'sentry/router/types';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 export const automationRoutes: SentryRouteObject = {
@@ -10,7 +11,6 @@ export const automationRoutes: SentryRouteObject = {
   children: [
     {
       component: RedirectToRuleList,
-      deprecatedRouteProps: true,
       children: [
         {index: true, component: make(() => import('sentry/views/automations/list'))},
       ],
@@ -18,7 +18,6 @@ export const automationRoutes: SentryRouteObject = {
     {
       path: 'new',
       component: RedirectToNewRule,
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -29,7 +28,6 @@ export const automationRoutes: SentryRouteObject = {
     {
       path: ':automationId/',
       component: RedirectToRuleList,
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -44,12 +42,14 @@ export const automationRoutes: SentryRouteObject = {
   ],
 };
 
-function RedirectToRuleList({children}: {children: React.ReactNode}) {
-  const user = useUser();
+function RedirectToRuleList() {
   const organization = useOrganization();
 
+  const hasRedirectOptOut = organization.features.includes(
+    'workflow-engine-redirect-opt-out'
+  );
   const shouldRedirect =
-    !user.isStaff && !organization.features.includes('workflow-engine-ui');
+    !hasRedirectOptOut && !organization.features.includes('workflow-engine-ui');
 
   if (shouldRedirect) {
     return (
@@ -62,15 +62,17 @@ function RedirectToRuleList({children}: {children: React.ReactNode}) {
     );
   }
 
-  return children;
+  return <Outlet />;
 }
 
-function RedirectToNewRule({children}: {children: React.ReactNode}) {
-  const user = useUser();
+function RedirectToNewRule() {
   const organization = useOrganization();
 
+  const hasRedirectOptOut = organization.features.includes(
+    'workflow-engine-redirect-opt-out'
+  );
   const shouldRedirect =
-    !user.isStaff && !organization.features.includes('workflow-engine-ui');
+    !hasRedirectOptOut && !organization.features.includes('workflow-engine-ui');
 
   if (shouldRedirect) {
     return (
@@ -83,5 +85,5 @@ function RedirectToNewRule({children}: {children: React.ReactNode}) {
     );
   }
 
-  return children;
+  return <Outlet />;
 }

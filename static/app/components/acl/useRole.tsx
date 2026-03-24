@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function hasOrganizationRole(organization: Organization, roleRequired: string): boolean {
   if (!Array.isArray(organization.orgRoleList)) {
@@ -46,8 +46,7 @@ interface UseRoleOptions {
    * The required role ('member', 'admin') are stored in the organization object.
    * eg: Organization.debugFilesRole = 'member'
    */
-  role: // Extract keys to enforce that they are available on the Organization type
-  Extract<keyof Organization, 'debugFilesRole' | 'attachmentsRole'>;
+  role: Extract<keyof Organization, 'debugFilesRole' | 'attachmentsRole'>; // Extract keys to enforce that they are available on the Organization type
   /**
    * Project.
    * If not provided, the role will be checked against the organization.

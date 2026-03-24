@@ -1,17 +1,18 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 const ERROR_NAME = 'Permission Denied';
 
-function PermissionDenied() {
+export function PermissionDenied() {
   const routes = useRoutes();
   useEffect(() => {
     const route = getRouteStringFromRoutes(routes);
@@ -41,5 +42,3 @@ function PermissionDenied() {
     </SentryDocumentTitle>
   );
 }
-
-export default PermissionDenied;

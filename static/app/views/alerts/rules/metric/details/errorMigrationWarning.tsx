@@ -1,22 +1,22 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import type {PromptResponse} from 'sentry/actionCreators/prompts';
 import {
   makePromptsCheckQueryKey,
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 
@@ -100,9 +100,9 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
   return (
     <Alert.Container>
       <Alert
-        type="warning"
+        variant="warning"
         trailingItems={
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <LinkButton
               to={{
                 pathname: `/organizations/${organization.slug}/alerts/metric-rules/${
@@ -120,9 +120,9 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
               icon={<IconClose />}
               onClick={dismissPrompt}
               aria-label={t('Dismiss Alert')}
-              title={t('Dismiss Alert')}
+              tooltipProps={{title: t('Dismiss Alert')}}
             />
-          </ButtonBar>
+          </Grid>
         }
       >
         {t(
@@ -134,7 +134,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
 }
 
 const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.warning.color};
+  color: ${p => p.theme.colors.yellow500};
   pointer-events: all;
   &:hover {
     opacity: 0.5;

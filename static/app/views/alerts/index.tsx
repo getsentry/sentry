@@ -1,31 +1,14 @@
-import {cloneElement, isValidElement} from 'react';
+import {Outlet} from 'react-router-dom';
 
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import Redirect from 'sentry/components/redirect';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {Redirect} from 'sentry/components/redirect';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 
-type Props = {
-  children: React.ReactNode;
-};
-
-function AlertsContainer({children}: Props) {
+export default function AlertsContainer() {
   const organization = useOrganization();
-  const hasMetricAlerts = organization.features.includes('incidents');
 
-  // Uptime alerts are not behind a feature flag at the moment
-  const hasUptimeAlerts = true;
-
-  const content =
-    children && isValidElement(children)
-      ? cloneElement<any>(children, {
-          organization,
-          hasMetricAlerts,
-          hasUptimeAlerts,
-        })
-      : children;
-
-  const redirectPath = useRedirectNavV2Routes({
+  const redirectPath = useRedirectNavigationV2Routes({
     oldPathPrefix: '/alerts/',
     newPathPrefix: '/issues/alerts/',
   });
@@ -34,7 +17,9 @@ function AlertsContainer({children}: Props) {
     return <Redirect to={redirectPath} />;
   }
 
-  return <NoProjectMessage organization={organization}>{content}</NoProjectMessage>;
+  return (
+    <NoProjectMessage organization={organization}>
+      <Outlet />
+    </NoProjectMessage>
+  );
 }
-
-export default AlertsContainer;

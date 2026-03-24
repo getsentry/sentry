@@ -1,15 +1,16 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MONTHLY} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier, type Subscription} from 'getsentry/types';
-import ReserveAdditionalVolume from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
+import {ReserveAdditionalVolume} from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
 
 type SliderInfo = {
   billingInterval: string;
@@ -74,8 +75,8 @@ describe('ReserveAdditionalVolume', () => {
 
     const billingConfig = BillingConfigFixture(PlanTier.AM2);
     billingConfig.planList = billingConfig.planList.filter(plan => plan.userSelectable);
-    const am2BizPlanMonthly = PlanDetailsLookupFixture('am2_business')!;
-    const am2TeamPlanAnnual = PlanDetailsLookupFixture('am2_team_auf')!;
+    const am2BizPlanMonthly = PlanDetailsLookupFixture('am2_business');
+    const am2TeamPlanAnnual = PlanDetailsLookupFixture('am2_team_auf');
 
     const stepProps = {
       checkoutTier: PlanTier.AM2,
@@ -104,7 +105,7 @@ describe('ReserveAdditionalVolume', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
+        url: `/customers/${organization.slug}/`,
         method: 'GET',
         body: {},
       });
@@ -209,7 +210,7 @@ describe('ReserveAdditionalVolume', () => {
     let subscription: Subscription;
 
     const billingConfig = BillingConfigFixture(PlanTier.AM3);
-    const bizPlanMonthly = PlanDetailsLookupFixture('am3_business')!;
+    const bizPlanMonthly = PlanDetailsLookupFixture('am3_business');
 
     const stepProps: any = {
       checkoutTier: PlanTier.AM3,
@@ -239,7 +240,7 @@ describe('ReserveAdditionalVolume', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
+        url: `/customers/${organization.slug}/`,
         method: 'GET',
         body: {},
       });
@@ -304,6 +305,27 @@ describe('ReserveAdditionalVolume', () => {
       paidSub.categories.errors!.reserved = 100_000;
       render(<ReserveAdditionalVolume {...stepProps} subscription={paidSub} />);
       expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
+    });
+
+    it('does not auto-show sliders if customer is on a trial subscription', () => {
+      const trialSub = SubscriptionFixture({
+        organization,
+        plan: 'am3_t',
+        planTier: PlanTier.AM3,
+        isTrial: true, // This is true for both subscription trials and plan trials
+        categories: {
+          // These are high trial volumes that should NOT be used in checkout
+          errors: MetricHistoryFixture({reserved: 750_000}), // High trial volume
+          attachments: MetricHistoryFixture({reserved: 200}), // High trial volume
+          replays: MetricHistoryFixture({reserved: 50_000}), // High trial volume
+          spans: MetricHistoryFixture({reserved: 100_000_000}), // High trial volume
+          monitorSeats: MetricHistoryFixture({reserved: 20}),
+          profileDuration: MetricHistoryFixture({reserved: 20}),
+        },
+        isFree: false,
+      });
+      render(<ReserveAdditionalVolume {...stepProps} subscription={trialSub} />);
+      expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
     });
   });
 });

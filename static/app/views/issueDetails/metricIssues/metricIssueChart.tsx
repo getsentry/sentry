@@ -1,23 +1,27 @@
+import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import Placeholder from 'sentry/components/placeholder';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {limitDateTimeParamsToMaxPoints} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
-import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {
+  useEventOpenPeriod,
+  useOpenPeriods,
+} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {GraphAlert} from 'sentry/views/issueDetails/streamline/eventGraph';
 
 interface MetricIssueChartProps {
+  event: Event | undefined;
   group: Group;
-  project: Project;
 }
 
 const CHART_HEIGHT = 180;
@@ -35,7 +39,7 @@ function getDetectorErrorMessage(detectorError: RequestError): string {
   return t('The metric monitor could not be loaded.');
 }
 
-export function MetricIssueChart({group, project: _project}: MetricIssueChartProps) {
+export function MetricIssueChart({group, event}: MetricIssueChartProps) {
   const {detectorDetails} = useIssueDetails();
   const detectorId = detectorDetails?.detectorId;
 
@@ -53,7 +57,7 @@ export function MetricIssueChart({group, project: _project}: MetricIssueChartPro
   if (isDetectorError) {
     return (
       <Container width="100%">
-        <GraphAlert type="error">{getDetectorErrorMessage(detectorError)}</GraphAlert>
+        <Alert variant="danger">{getDetectorErrorMessage(detectorError)}</Alert>
       </Container>
     );
   }
@@ -62,17 +66,39 @@ export function MetricIssueChart({group, project: _project}: MetricIssueChartPro
     return <MetricIssueChartPlaceholder />;
   }
 
-  return <MetricIssueChartContent detector={detector} openPeriods={openPeriods} />;
+  return (
+    <MetricIssueChartContent
+      detector={detector}
+      openPeriods={openPeriods}
+      group={group}
+      event={event}
+    />
+  );
 }
 
 function MetricIssueChartContent({
   detector,
   openPeriods,
+  group,
+  event,
 }: {
   detector: MetricDetector;
+  event: Event | undefined;
+  group: Group;
   openPeriods: GroupOpenPeriod[];
 }) {
   const {selection} = usePageFilters();
+  const {openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
+    groupId: group.id,
+    eventId: event?.id,
+  });
+  const dateTimeParams = normalizeDateTimeParams(selection.datetime);
+  const intervalSeconds = detector.dataSources[0]?.queryObj?.snubaQuery?.timeWindow;
+  const {dateTimeParams: cappedDateTimeParams, isRangeLimited} =
+    limitDateTimeParamsToMaxPoints({
+      ...dateTimeParams,
+      intervalSeconds,
+    });
 
   const {
     chartProps,
@@ -81,27 +107,38 @@ function MetricIssueChartContent({
   } = useMetricDetectorChart({
     detector,
     openPeriods,
+    highlightedOpenPeriodId: openPeriod?.id,
     height: CHART_HEIGHT,
-    ...normalizeDateTimeParams(selection.datetime),
+    enabled: !isOpenPeriodPending,
+    ...cappedDateTimeParams,
   });
 
-  if (isLoading) {
+  if (isOpenPeriodPending || isLoading) {
     return <MetricIssueChartPlaceholder />;
   }
 
   if (chartError) {
     return (
       <Container width="100%">
-        <GraphAlert type="error">
+        <Alert variant="danger">
           {t('Error loading metric monitor: %s', chartError?.message)}
-        </GraphAlert>
+        </Alert>
       </Container>
     );
   }
 
   return (
     <MetricChartSection>
-      <AreaChart {...chartProps} />
+      <Flex direction="column" paddingTop="md">
+        {isRangeLimited ? (
+          <Alert variant="warning">
+            {t(
+              'The selected time range contains too many data points. Narrow the range to view all data.'
+            )}
+          </Alert>
+        ) : null}
+        <AreaChart {...chartProps} />
+      </Flex>
     </MetricChartSection>
   );
 }

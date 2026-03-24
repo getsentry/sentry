@@ -1,7 +1,5 @@
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-
-import {space} from 'sentry/styles/space';
 
 type Props = {
   /**
@@ -20,11 +18,12 @@ type Props = {
   lightText?: boolean;
 };
 
-const getPadding = ({disablePadding, hasButtons}: Props) => css`
-  padding: ${hasButtons ? space(1) : space(2)} ${disablePadding ? 0 : space(2)};
+const getPadding = ({disablePadding, hasButtons, theme}: Props & {theme: Theme}) => css`
+  padding: ${hasButtons ? theme.space.md : theme.space.xl}
+    ${disablePadding ? 0 : theme.space.xl};
 `;
 
-const PanelHeader = styled('div')<Props>`
+export const PanelHeader = styled('div')<Props>`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -32,19 +31,18 @@ const PanelHeader = styled('div')<Props>`
   /* Do not apply text styles to overlay elements such as dropdowns */
   > *:not(:has([data-overlay], button, a[role='button']), button, a[role='button']),
   &:not(:has(> *)) {
-    color: ${p => (p.lightText ? p.theme.subText : p.theme.textColor)};
-    font-size: ${p => p.theme.fontSize.sm};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    color: ${p =>
+      p.lightText ? p.theme.tokens.content.secondary : p.theme.tokens.content.primary};
+    font-size: ${p => p.theme.font.size.sm};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     text-transform: uppercase;
     line-height: 1;
   }
 
-  border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: calc(${p => p.theme.borderRadius} + 1px)
-    calc(${p => p.theme.borderRadius} + 1px) 0 0;
-  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: calc(${p => p.theme.radius.md} + 1px)
+    calc(${p => p.theme.radius.md} + 1px) 0 0;
+  background: ${p => p.theme.tokens.background.secondary};
   position: relative;
   ${getPadding};
 `;
-
-export default PanelHeader;

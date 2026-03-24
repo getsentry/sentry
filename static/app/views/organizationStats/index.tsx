@@ -5,39 +5,41 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory, type DataCategoryInfo, type PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate, type ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {canUseMetricsStatsUI} from 'sentry/views/explore/metrics/metricsFlags';
-import HeaderTabs from 'sentry/views/organizationStats/header';
+import {StatsHeader as HeaderTabs} from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
-import UsageStatsOrg from './usageStatsOrg';
+import {UsageStatsOrganization as UsageStatsOrg} from './usageStatsOrg';
 import {UsageStatsProjects} from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
@@ -261,7 +263,10 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return !organization.features.includes('spans-usage-tracking');
       }
       if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
-        return organization.features.includes('seer-billing');
+        return (
+          organization.features.includes('seer-billing') &&
+          organization.features.includes('seer-added')
+        );
       }
       if ([DataCategory.LOG_BYTE].includes(opt.value)) {
         return organization.features.includes('ourlogs-enabled');
@@ -282,6 +287,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
       if (opt.value === DataCategory.PROFILES) {
         return !hasProfilingStats;
       }
+      if (opt.value === DataCategory.INSTALLABLE_BUILD) {
+        return organization.features.includes('expose-category-installable-build');
+      }
       return true;
     }).map(opt => {
       if ((hasProfiling || hasProfilingStats) && opt.value === DataCategory.PROFILES) {
@@ -295,7 +303,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         <PageFilterBar>
           <ProjectPageFilter />
           <DropdownDataCategory
-            triggerProps={{prefix: t('Category')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
+            )}
             value={this.dataCategory}
             options={options}
             onChange={opt =>
@@ -354,7 +364,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
             <div>
               <Layout.Main width="full">
                 <HookHeader organization={organization} />
-                <ControlsWrapper>{this.renderProjectPageControl()}</ControlsWrapper>
+                <Flex justify="between" align="center" marginBottom="xl" gap="xs">
+                  {this.renderProjectPageControl()}
+                </Flex>
                 {showProfilingBanner && <HookOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
@@ -418,14 +430,6 @@ const DropdownDataCategory = styled(CompactSelect)`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-column: auto / span 1;
   }
-`;
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  margin-bottom: ${space(2)};
-  justify-content: space-between;
 `;
 
 const PageControl = styled('div')`

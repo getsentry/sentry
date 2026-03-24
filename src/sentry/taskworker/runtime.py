@@ -1,10 +1,21 @@
 from django.conf import settings
 from django.core.cache import cache
+from taskbroker_client.app import TaskbrokerApp
 
-from sentry.taskworker.app import TaskworkerApp
-from sentry.taskworker.registry import taskregistry
+from sentry.taskworker.adapters import (
+    DjangoCacheAtMostOnceStore,
+    SentryMetricsBackend,
+    SentryRouter,
+    make_producer,
+)
 
-app = TaskworkerApp(taskregistry=taskregistry)
+app = TaskbrokerApp(
+    name="sentry",
+    producer_factory=make_producer,
+    metrics_class=SentryMetricsBackend(),
+    router_class=SentryRouter(),
+    at_most_once_store=DjangoCacheAtMostOnceStore(cache),
+)
 app.set_config(
     {
         "rpc_secret": settings.TASKWORKER_SHARED_SECRET,
@@ -12,4 +23,3 @@ app.set_config(
     }
 )
 app.set_modules(settings.TASKWORKER_IMPORTS)
-app.at_most_once_store(cache)

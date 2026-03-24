@@ -59,6 +59,10 @@ class SupportedTraceItemType(str, Enum):
     UPTIME_RESULTS = "uptime_results"
     TRACEMETRICS = "tracemetrics"
     PROFILE_FUNCTIONS = "profile_functions"
+    PREPROD = "preprod"
+    ATTACHMENTS = "attachments"
+    PROCESSING_ERRORS = "processing_errors"
+    OCCURRENCES = "occurrences"
 
 
 class AttributeSourceType(str, Enum):
@@ -73,8 +77,8 @@ class AttributeSource(TypedDict):
 
 class TraceItemAttribute(TypedDict):
     name: str
-    type: Literal["string", "number"]
-    value: str | int | float
+    type: Literal["string", "number", "boolean"]
+    value: str | int | float | bool
 
 
 class EAPResponse(EventsResponse):

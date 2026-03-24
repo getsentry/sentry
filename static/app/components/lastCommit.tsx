@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import CommitLink from 'sentry/components/commitLink';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import TimeSince from 'sentry/components/timeSince';
+import {UserAvatar} from '@sentry/scraps/avatar';
+
+import {CommitLink} from 'sentry/components/commitLink';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarUser} from 'sentry/types/user';
 
@@ -25,7 +25,7 @@ const unknownUser: AvatarUser = {
   ip_address: '',
 };
 
-function LastCommit({commit}: Props) {
+export function LastCommit({commit}: Props) {
   function renderMessage(message: Commit['message']) {
     if (!message) {
       return (
@@ -77,25 +77,27 @@ function LastCommit({commit}: Props) {
   );
 }
 
-export default LastCommit;
-
 const Message = styled('div')`
-  ${p => p.theme.overflowEllipsis}
-  margin-bottom: ${space(0.5)};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const Meta = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  gap: ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledCommitLink = styled(CommitLink)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   &:hover {
-    color: ${p => p.theme.textColor};
-    text-decoration: underline dotted ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
+    text-decoration: underline dotted ${p => p.theme.tokens.content.primary};
   }
 `;

@@ -17,7 +17,6 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
     FEATURES = [
         "organizations:visibility-explore-view",
         "organizations:performance-view",
-        "organizations:trace-spans-format",
     ]
 
     def setUp(self) -> None:
@@ -70,7 +69,6 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
                 parent_span_id=None,
                 project_id=self.project.id,
                 milliseconds=3000,
-                is_eap=True,
             )
 
             # Visit explore spans table

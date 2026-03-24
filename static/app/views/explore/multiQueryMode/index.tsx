@@ -1,14 +1,15 @@
+import {Grid} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -54,11 +55,11 @@ export default function MultiQueryMode() {
             <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <StarSavedQueryButton />
               {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
               <FeedbackButton />
-            </ButtonBar>
+            </Grid>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Page>

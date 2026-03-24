@@ -1,17 +1,18 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
-import NotFound from 'sentry/components/errors/notFound';
+import {NotFound} from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
@@ -28,9 +29,15 @@ type OrgDashboardsChildrenProps = {
 
 interface OrgDashboardsProps {
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
+  /**
+   * Initial dashboard state to use for optimistic updates.
+   * This is used when navigating from widget builder to show the new widget immediately
+   * since there are scenarios where the component fully remounts and loses its modified state.
+   */
+  initialDashboard?: DashboardDetails;
 }
 
-function OrgDashboards({children}: OrgDashboardsProps) {
+export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -38,11 +45,14 @@ function OrgDashboards({children}: OrgDashboardsProps) {
   const dashboardRedirectRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
 
-  const ENDPOINT = `/organizations/${organization.slug}/dashboards/`;
+  const ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 
-  // The currently selected dashboard
+  // The currently selected dashboard. Use initialDashboard for optimistic updates
+  // when navigating from widget builder (passed via location.state).
   const [selectedDashboardState, setSelectedDashboardState] =
-    useState<DashboardDetails | null>(null);
+    useState<DashboardDetails | null>(initialDashboard ?? null);
 
   const {
     data: dashboards,
@@ -56,22 +66,38 @@ function OrgDashboards({children}: OrgDashboardsProps) {
     isLoading: isSelectedDashboardLoading,
     isError: isSelectedDashboardError,
     error: selectedDashboardError,
-  } = useApiQuery<DashboardDetails>([`${ENDPOINT}${dashboardId}/`], {
-    staleTime: 0,
-    enabled: !!dashboardId,
-    retry: false,
-  });
+  } = useApiQuery<DashboardDetails>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+        path: {organizationIdOrSlug: organization.slug, dashboardId},
+      }),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!dashboardId,
+      retry: false,
+    }
+  );
 
   let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 
   const {dashboard: prebuiltDashboard, isLoading: isPrebuiltDashboardLoading} =
     useGetPrebuiltDashboard(selectedDashboard?.prebuiltId);
 
-  // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard
+  // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard.
+  // Preserve user-saved state (filters and page filters) from the DB record so changes persist.
   if (selectedDashboard?.prebuiltId) {
     selectedDashboard = {
       ...selectedDashboard,
       ...prebuiltDashboard,
+      id: selectedDashboard.id,
+      filters: selectedDashboard.filters,
+      projects: selectedDashboard.projects,
+      environment: selectedDashboard.environment,
+      period: selectedDashboard.period,
+      start: selectedDashboard.start,
+      end: selectedDashboard.end,
+      utc: selectedDashboard.utc,
     };
   }
 
@@ -215,5 +241,3 @@ function OrgDashboards({children}: OrgDashboardsProps) {
     </SentryDocumentTitle>
   );
 }
-
-export default OrgDashboards;

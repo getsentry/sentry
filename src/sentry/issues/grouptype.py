@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.apps import apps
+from django.db.models import Q
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
@@ -68,6 +69,25 @@ class GroupCategory(IntEnum):
 
     AI_DETECTED = 16
 
+    """
+    Issues detected from analysis of uploaded artifacts. This covers
+    both issues detected in a single build (e.g. not 16kb page ready)
+    and those detected between builds (e.g. binary size regression).
+    """
+    PREPROD = 17
+
+    """
+    Issues detected by autopilot instrumentation analysis suggesting
+    improvements to product usage and observability coverage.
+    """
+    INSTRUMENTATION = 18
+
+    """
+    Issues detected from SDK/tooling configuration problems,
+    such as missing or broken source maps.
+    """
+    CONFIGURATION = 19
+
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
     GroupCategory.ERROR,
@@ -110,20 +130,24 @@ class GroupTypeRegistry:
     ) -> list[type[GroupType]]:
         with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
             released = [gt for gt in self.all() if gt.released]
-            feature_to_grouptype = {
-                gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
-            }
+            feature_to_grouptype: dict[str, type[GroupType]] = {}
+            for gt in self.all():
+                if not gt.released:
+                    for fname in gt.build_visible_feature_name():
+                        feature_to_grouptype[fname] = gt
             batch_features = features.batch_has(
                 list(feature_to_grouptype.keys()), actor=actor, organization=organization
             )
-            enabled = []
+            enabled: list[type[GroupType]] = []
             if batch_features:
                 feature_results = batch_features.get(f"organization:{organization.id}", {})
-                enabled = [
-                    feature_to_grouptype[feature]
-                    for feature, active in feature_results.items()
-                    if active
-                ]
+                seen: set[int] = set()
+                for feature, active in feature_results.items():
+                    if active:
+                        gt = feature_to_grouptype[feature]
+                        if gt.type_id not in seen:
+                            seen.add(gt.type_id)
+                            enabled.append(gt)
             span.set_tag("organization_id", organization.id)
             span.set_tag("has_batch_features", batch_features is not None)
             span.set_tag("released", released)
@@ -146,6 +170,28 @@ class GroupTypeRegistry:
         if id_ not in self._registry:
             raise InvalidGroupTypeError(id_)
         return self._registry[id_]
+
+    def get_detector_type_filters(self) -> Q:
+        """
+        Build a Q object that combines all detector type-specific filters.
+
+        For detector types without filters, they're included by default via a NOT IN clause.
+        For detector types with filters, we apply the specific filter condition.
+
+        This optimizes the query since most detector types won't have filters.
+        """
+        types_with_filters = []
+        filtered_type_conditions = Q()
+
+        for group_type in self.all():
+            if group_type.detector_settings and group_type.detector_settings.filter is not None:
+                filter = group_type.detector_settings.filter
+                types_with_filters.append(group_type.slug)
+                filtered_type_conditions |= Q(type=group_type.slug) & filter
+
+        # Include all types that don't have filters (type NOT IN types_with_filters)
+        # OR match the specific filter conditions for types that do have filters
+        return ~Q(type__in=types_with_filters) | filtered_type_conditions
 
 
 registry = GroupTypeRegistry()
@@ -200,7 +246,8 @@ class GroupType:
     noise_config: NoiseConfig | None = None
     default_priority: int = PriorityLevel.MEDIUM
     # If True this group type should be released everywhere. If False, fall back to features to
-    # decide if this is released.
+    # decide if this is released. Add to HIDDEN_ISSUE_TYPES as well to prevent Events from this Group
+    # being displayed on frontend.
     released: bool = False
     # If False this group is excluded from default searches, when there are no filters on issue.category or issue.type.
     in_default_search: bool = True
@@ -231,9 +278,8 @@ class GroupType:
         registry.add(cls)
 
         if not cls.released:
-            features.add(
-                cls.build_visible_feature_name(), OrganizationFeature, True, api_expose=True
-            )
+            for fname in cls.build_visible_feature_name():
+                features.add(fname, OrganizationFeature, True, api_expose=True)
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
 
@@ -272,8 +318,8 @@ class GroupType:
         return f"organizations:issue-{cls.build_feature_name_slug()}"
 
     @classmethod
-    def build_visible_feature_name(cls) -> str:
-        return f"{cls.build_base_feature_name()}-visible"
+    def build_visible_feature_name(cls) -> list[str]:
+        return [f"{cls.build_base_feature_name()}-visible"]
 
     @classmethod
     def build_ingest_feature_name(cls) -> str:
@@ -633,6 +679,19 @@ class LLMDetectedExperimentalGroupType(GroupType):
 
 
 @dataclass(frozen=True)
+class LLMDetectedExperimentalGroupTypeV2(GroupType):
+    type_id = 3502
+    slug = "llm_detected_experimental_v2"
+    description = "LLM Detected Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.AI_DETECTED.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
 class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"
@@ -683,8 +742,9 @@ class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
-    # Web Vital issues are always manually created by the user for the purpose of using autofix
+    # Web Vital issues are always triggered for the purpose of using autofix
     always_trigger_seer_automation = True
+    released = True
 
 
 def should_create_group(

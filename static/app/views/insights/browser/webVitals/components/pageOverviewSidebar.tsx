@@ -2,12 +2,13 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {
   getRootCauseCopyText,
@@ -17,17 +18,17 @@ import {
   getSolutionIsLoading,
 } from 'sentry/components/events/autofix/utils';
 import {AutofixSummary} from 'sentry/components/group/groupSummaryWithAutofix';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
@@ -119,15 +120,15 @@ export function PageOverviewSidebar({
     }
     if (diff > 1) {
       if (reverse) {
-        return theme.red300;
+        return theme.colors.red400;
       }
-      return theme.green300;
+      return theme.colors.green400;
     }
     if (diff < 1) {
       if (reverse) {
-        return theme.green300;
+        return theme.colors.green400;
       }
-      return theme.red300;
+      return theme.colors.red400;
     }
     return undefined;
   };
@@ -161,7 +162,7 @@ export function PageOverviewSidebar({
           }
         />
       </SectionHeading>
-      <SidebarPerformanceScoreRingContainer>
+      <Flex justify="center" align="center" marginBottom="md">
         {!projectScoreIsLoading && projectScore && (
           <PerformanceScoreRingWithTooltips
             projectScore={projectScore}
@@ -173,7 +174,7 @@ export function PageOverviewSidebar({
           />
         )}
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
-      </SidebarPerformanceScoreRingContainer>
+      </Flex>
       <SidebarSpacer />
       {hasSeerWebVitalsSuggestions && (
         <SeerSuggestionsSection
@@ -286,7 +287,7 @@ function SeerSuggestionsSection({
       <Fragment>
         <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
         <Content>
-          <SeerSuggestionGrid>
+          <Stack gap="xs" width="100%" minHeight="40px">
             {autofix &&
               issues?.map((issue, index) => (
                 <SeerSuggestion
@@ -296,7 +297,7 @@ function SeerSuggestionsSection({
                   isLoading={isLoading}
                 />
               ))}
-          </SeerSuggestionGrid>
+          </Stack>
         </Content>
       </Fragment>
     )
@@ -347,7 +348,7 @@ function SeerSuggestion({
         </CardTitleIcon>
         <SpanOp>{issue.title}</SpanOp>
       </CardTitle>
-      <CardContentContainer>
+      <Flex align="center" gap="xs">
         <CardContent>
           {isLoading || autofix === undefined || rootCauseDescription === null ? (
             <Placeholder height="1.5rem" width="100%" />
@@ -372,7 +373,7 @@ function SeerSuggestion({
             </LinkButton>
           </ViewIssueButtonContainer>
         </CardContent>
-      </CardContentContainer>
+      </Flex>
     </SeerSuggestionCard>
   );
 }
@@ -436,20 +437,13 @@ const processSeriesData = (
   return {countDiff, currentSeries, currentCount, initialCount};
 };
 
-const SidebarPerformanceScoreRingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const ChartSubText = styled('div')<{color?: string}>`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.color ?? p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.color ?? p.theme.tokens.content.secondary};
 `;
 
 const SectionHeading = styled('h4')`
@@ -457,8 +451,8 @@ const SectionHeading = styled('h4')`
   grid-auto-flow: column;
   gap: ${p => p.theme.space.md};
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
 `;
 
@@ -473,18 +467,10 @@ const Content = styled(Flex)`
   margin: ${p => p.theme.space.md} 0;
 `;
 
-const SeerSuggestionGrid = styled('div')`
-  min-height: 40px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-`;
-
 const SeerSuggestionCard = styled('div')`
   display: flex;
   flex-direction: column;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: 100%;
   min-height: 0;
 `;
@@ -498,21 +484,15 @@ const CardTitle = styled('div')`
 
 const SpanOp = styled('p')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: block;
 `;
 
 const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const CardContentContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const CardContent = styled('div')`
@@ -529,7 +509,7 @@ const CardContent = styled('div')`
 `;
 
 const StyledIconSeer = styled(IconSeer)`
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.tokens.content.accent};
 `;
 
 const ViewIssueButtonContainer = styled('div')`

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Button} from '@sentry/scraps/button';
+
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -14,7 +15,7 @@ type Props = {
   headerText?: React.ReactNode;
 };
 
-function ScreenshotPagination({
+export function ScreenshotPagination({
   className,
   previousDisabled,
   nextDisabled,
@@ -51,7 +52,5 @@ const Wrapper = styled(PanelHeader)`
   align-items: center;
   justify-content: space-between;
   text-transform: none;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
-
-export default ScreenshotPagination;

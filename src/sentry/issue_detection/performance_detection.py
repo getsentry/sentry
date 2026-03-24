@@ -4,17 +4,14 @@ import hashlib
 import logging
 import random
 from collections.abc import Sequence
+from dataclasses import dataclass
+from enum import IntEnum
 from typing import Any
 
 import sentry_sdk
+from django.db import router, transaction
 
 from sentry import features, nodestore, options, projectoptions
-from sentry.issue_detection.detectors.experiments.mn_plus_one_db_span_detector import (
-    MNPlusOneDBSpanExperimentalDetector,
-)
-from sentry.issue_detection.detectors.experiments.n_plus_one_db_span_detector import (
-    NPlusOneDBSpanExperimentalDetector,
-)
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -24,13 +21,11 @@ from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
+from sentry.workflow_engine.models import Detector
 
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
 from .detectors.consecutive_http_detector import ConsecutiveHTTPSpanDetector
-from .detectors.experiments.n_plus_one_api_calls_detector import (
-    NPlusOneAPICallsExperimentalDetector,
-)
 from .detectors.http_overhead_detector import HTTPOverheadDetector
 from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainThreadDetector
 from .detectors.large_http_payload_detector import LargeHTTPPayloadDetector
@@ -43,6 +38,8 @@ from .detectors.slow_db_query_detector import SlowDBQueryDetector
 from .detectors.sql_injection_detector import SQLInjectionDetector
 from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
+
+logger = logging.getLogger(__name__)
 
 INTEGRATIONS_OF_INTEREST = [
     "django",
@@ -57,6 +54,74 @@ INTEGRATIONS_OF_INTEREST = [
 SDKS_OF_INTEREST = [
     "sentry.javascript.node",
 ]
+
+
+@dataclass(frozen=True)
+class PerformanceDetectorConfigMapping:
+    """
+    Maps a PerformanceDetector's config to WFE Detector config and ProjectOptions.
+
+    The keys in option_keys are PerformanceDetector setting names (as used in
+    get_detection_settings) which also appear in WFE Detector.config. The values
+    are the corresponding ProjectOption keys for legacy/fallback settings.
+    """
+
+    settings_key: DetectorType
+    wfe_detector_type: (
+        str  # Name of the WFE Detector (should be the GroupType slug associated with it)
+    )
+    detection_enabled_key: str  # ProjectOption key for detection_enabled
+    option_keys: dict[str, str]  # detector setting name -> ProjectOption key
+
+
+# Mapping from DetectorType to WFE Detector configuration.
+#
+# Membership in this mapping means the detector is:
+#   - Sentry-managed: created automatically on project creation
+#   - Backed by the (soon to be removed) per-project performance detector config UI (ProjectOption-based)
+#   - GroupCategory.PERFORMANCE (for category, not category_v2)
+#
+# All but web_vitals, performance_p95_endpoint_regression and profile_function_regression
+# have corresponding DetectorTypes and are span-based.
+#
+# TODO: Complete this mapping.
+PERFORMANCE_DETECTOR_CONFIG_MAPPINGS: dict[DetectorType, PerformanceDetectorConfigMapping] = {
+    DetectorType.SLOW_DB_QUERY: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.SLOW_DB_QUERY,
+        wfe_detector_type="performance_slow_db_query",
+        detection_enabled_key="slow_db_queries_detection_enabled",
+        option_keys={
+            "duration_threshold": "slow_db_query_duration_threshold",
+        },
+    ),
+    DetectorType.LARGE_HTTP_PAYLOAD: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.LARGE_HTTP_PAYLOAD,
+        wfe_detector_type="performance_large_http_payload",
+        detection_enabled_key="large_http_payload_detection_enabled",
+        option_keys={
+            "payload_size_threshold": "large_http_payload_size_threshold",
+            "filtered_paths": "large_http_payload_filtered_paths",
+        },
+    ),
+    DetectorType.QUERY_INJECTION: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.QUERY_INJECTION,
+        wfe_detector_type="query_injection_vulnerability",
+        detection_enabled_key="db_query_injection_detection_enabled",
+        option_keys={},
+    ),
+}
+
+# Reverse lookup: WFE detector type -> DetectorType
+WFE_DETECTOR_TYPE_TO_CONFIG_MAPPING: dict[str, DetectorType] = {
+    mapping.wfe_detector_type: mapping.settings_key
+    for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()
+}
+
+# WFE detector type slugs for all performance detectors. These are created automatically
+# by Sentry, not by users.
+PERFORMANCE_WFE_DETECTOR_TYPES: frozenset[str] = frozenset(
+    mapping.wfe_detector_type for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()
+)
 
 
 class EventPerformanceProblem:
@@ -139,8 +204,35 @@ def detect_performance_problems(
     return []
 
 
-# Merges system defaults, with default project settings and saved project settings.
-def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
+class SettingsMode(IntEnum):
+    """
+    Performance detection settings modes for gradual migration from ProjectOptions to WFE Detectors.
+
+    LEGACY: Use system defaults + well-known defaults + ProjectOption values.
+            Traditional behavior, no WFE Detector involvement.
+
+    COMPARE: Generate both legacy and WFE settings, log differences for monitoring,
+             return legacy settings. Used to detect config drift during migration.
+
+    WFE: Hybrid mode combining WFE Detector configs with ProjectOptions.
+         For detectors with WFE Detector objects: use WFE config (falls back to system defaults).
+         For detectors without WFE Detector objects: use ProjectOptions.
+    """
+
+    LEGACY = 0
+    COMPARE = 1
+    WFE = 2
+
+
+def get_merged_settings(
+    project: Project | None = None,
+    settings_mode: SettingsMode = SettingsMode.LEGACY,
+) -> dict[str | Any, Any]:
+    """
+    Get performance detection settings based on the specified mode.
+
+    Returns a dict with all performance detection settings.
+    """
     system_settings = {
         "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
         "n_plus_one_db_duration_threshold": options.get(
@@ -209,35 +301,325 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
     default_project_settings = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
-            project=project_id,
+            project=project,
         )
-        if project_id
+        if project
         else {}
     )
 
     project_option_settings = (
         ProjectOption.objects.get_value(
-            project_id, "sentry:performance_issue_settings", default_project_settings
+            project.id, "sentry:performance_issue_settings", default_project_settings
         )
-        if project_id
+        if project
         else DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
     )
 
-    project_settings = {
+    legacy_settings = {
+        **system_settings,
         **default_project_settings,
         **project_option_settings,
-    }  # Merge saved project settings into default so updating the default to add new settings works in the future.
+    }
 
-    return {**system_settings, **project_settings}
+    # If feature flag is disabled, always use LEGACY mode because we can't decide check the feature
+    # flag without a Project.
+    # TODO: WFE config should fall back to DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS without a Project.
+    if not project or not features.has("projects:workflow-engine-performance-detectors", project):
+        settings_mode = SettingsMode.LEGACY
+
+    if settings_mode == SettingsMode.LEGACY:
+        return legacy_settings
+
+    assert project is not None
+
+    # Get WFE-specific settings (analogous to project_option_settings)
+    wfe_option_settings, wfe_managed_keys = _build_wfe_settings(project)
+
+    # Build complete WFE settings by merging in order
+    wfe_settings = {**system_settings, **default_project_settings, **wfe_option_settings}
+
+    if settings_mode == SettingsMode.COMPARE:
+        # Compare and log differences, but return legacy settings
+        _log_settings_diff(project, wfe_managed_keys, legacy=legacy_settings, wfe=wfe_settings)
+        return legacy_settings
+    elif settings_mode == SettingsMode.WFE:
+        # Build hybrid settings with clear priority:
+        # 1. Base: system + well-known defaults
+        # 2. For unmanaged keys: use project_option_settings
+        # 3. For managed keys: use wfe_option_settings (if specified, else base)
+        hybrid_settings = {**system_settings, **default_project_settings}
+
+        # Apply project options only for keys NOT managed by WFE
+        for key, value in project_option_settings.items():
+            if key not in wfe_managed_keys:
+                hybrid_settings[key] = value
+
+        # Apply WFE options for managed keys (overwrites base if specified)
+        hybrid_settings.update(wfe_option_settings)
+
+        return hybrid_settings
+
+    # Unreachable: all modes should be handled above
+    raise ValueError(f"Unknown settings_mode: {settings_mode}")
+
+
+def _build_wfe_settings(
+    project: Project,
+) -> tuple[dict[str, Any], set[str]]:
+    """
+    Build WFE-specific settings (Detector.config-derived version of sentry:performance_issue_settings).
+    The returned settings dict will only contain keys that are managed by WFE Detectors.
+
+    Returns:
+        - wfe_option_settings: Dict with only WFE-specified config values
+        - wfe_managed_keys: Set of all setting keys managed by WFE; wfe_option_setings keys are a subset of this
+    """
+    wfe_option_settings: dict[str, Any] = {}
+    wfe_managed_keys: set[str] = set()
+    wfe_configs = _get_wfe_detector_configs(project)
+
+    # Generate settings only for detectors that have WFE Detector objects
+    for detector_type, wfe_config in wfe_configs.items():
+        mapping = PERFORMANCE_DETECTOR_CONFIG_MAPPINGS[detector_type]
+
+        # All Detectors provide a detection_enabled key.
+        wfe_managed_keys.add(mapping.detection_enabled_key)
+        wfe_option_settings[mapping.detection_enabled_key] = wfe_config["detection_enabled"]
+
+        # For each config field: only set if present in WFE config
+        for field_name, option_key in mapping.option_keys.items():
+            wfe_managed_keys.add(option_key)
+
+            if field_name in wfe_config:
+                # TODO: Consider using None so we don't have to track managed keys.
+                wfe_option_settings[option_key] = wfe_config[field_name]
+
+    return wfe_option_settings, wfe_managed_keys
+
+
+def _log_settings_diff(
+    project: Project,
+    wfe_managed_keys: set[str],
+    *,
+    legacy: dict[str, Any],
+    wfe: dict[str, Any],
+) -> None:
+    """
+    Compare legacy and WFE settings and log any differences.
+
+    Only compares keys that are managed by WFE Detectors (detectors that have
+    WFE Detector objects). This avoids noise from detectors that haven't been
+    migrated yet.
+
+    This is used in COMPARE mode to monitor config drift between
+    ProjectOption-based settings and WFE Detector-based settings.
+    """
+    differences: dict[str, dict[str, Any]] = {}
+
+    # Only compare keys that are managed by WFE Detectors
+    for key in wfe_managed_keys:
+        legacy_value = legacy.get(key)
+        wfe_value = wfe.get(key)
+
+        if legacy_value != wfe_value:
+            differences[key] = {
+                "legacy": legacy_value,
+                "wfe": wfe_value,
+            }
+
+    if differences:
+        logger.info(
+            "performance_detector.settings_diff",
+            extra={
+                "project_id": project.id,
+                "organization_id": project.organization_id,
+                "differences": differences,
+                "diff_count": len(differences),
+            },
+        )
+
+
+def _get_wfe_detector_configs(project: Project) -> dict[DetectorType, dict[str, Any]]:
+    """
+    Fetch WFE Detector configs for performance detectors.
+
+    Returns a dict mapping DetectorType to config values from Detector.config
+    that should be used INSTEAD OF ProjectOption values for that detector.
+
+    When a WFE Detector exists, its config is always used (regardless of enabled state).
+    The Detector.enabled field controls detection_enabled, not whether we use WFE config.
+    """
+    # Get all WFE detector types we can map.
+    wfe_types = [
+        mapping.wfe_detector_type for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()
+    ]
+
+    # Per DetectorType configs
+    wfe_configs: dict[DetectorType, dict[str, Any]] = {}
+    for detector in Detector.objects.filter(
+        project=project,
+        type__in=wfe_types,
+    ):
+        # Map WFE detector type to our DetectorType enum
+        detector_type = WFE_DETECTOR_TYPE_TO_CONFIG_MAPPING.get(detector.type)
+        if not detector_type:
+            continue
+
+        # Store raw Detector.config plus detection_enabled from Detector.enabled
+        wfe_configs[detector_type] = {
+            "detection_enabled": detector.enabled,
+            **detector.config,  # Include all fields from Detector.config
+        }
+
+    return wfe_configs
+
+
+def _get_wfe_detectors_by_type(project: Project) -> dict[str, Detector]:
+    """Fetch all performance WFE detectors for a project, keyed by detector type."""
+    return {
+        d.type: d
+        for d in Detector.objects.filter(project=project, type__in=PERFORMANCE_WFE_DETECTOR_TYPES)
+    }
+
+
+def sync_project_options_to_wfe_detectors(
+    project: Project, settings_data: dict[str, Any]
+) -> dict[DetectorType, bool]:
+    """
+    Sync ProjectOption settings to WFE Detector configs.
+
+    For each detector type with WFE mapping, updates an existing Detector with:
+    - Detector.enabled from detection_enabled setting
+    - Detector.config from mapped config fields
+
+    Returns dict of DetectorType -> bool indicating which detectors were updated.
+    """
+    updated: dict[DetectorType, bool] = {}
+    existing_detectors = _get_wfe_detectors_by_type(project)
+
+    for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
+        detector = existing_detectors.get(mapping.wfe_detector_type)
+        if not detector:
+            continue
+
+        # Extract config fields (option_keys maps: wfe_field -> project_option_key)
+        new_config: dict[str, Any] = {}
+        for wfe_field, project_option_key in mapping.option_keys.items():
+            if project_option_key in settings_data:
+                new_config[wfe_field] = settings_data[project_option_key]
+
+        new_enabled: bool | None = None
+        if mapping.detection_enabled_key in settings_data:
+            new_enabled = settings_data[mapping.detection_enabled_key]
+
+        if new_enabled is None and not new_config:
+            continue
+
+        if new_enabled is not None and detector.enabled != new_enabled:
+            detector.toggle(new_enabled)
+            updated[detector_type] = True
+
+        if new_config:
+            merged_config = {**detector.config, **new_config}
+            if detector.config != merged_config:
+                detector.config = merged_config
+                detector.save(update_fields=["config"])
+                updated[detector_type] = True
+
+    return updated
+
+
+def reset_wfe_detector_configs(project: Project) -> dict[DetectorType, bool]:
+    """
+    Reset WFE Detector configs to defaults by clearing config on enabled detectors.
+
+    Used when DELETE is called on performance settings. For enabled detectors, clears
+    custom config values (falls back to system defaults). For disabled detectors,
+    leaves config unchanged (assumes already in sync with ProjectOption).
+
+    Returns dict of DetectorType -> bool indicating which detectors were updated.
+    """
+    updated: dict[DetectorType, bool] = {}
+    existing_detectors = _get_wfe_detectors_by_type(project)
+
+    for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
+        detector = existing_detectors.get(mapping.wfe_detector_type)
+        if not detector:
+            continue
+
+        # Clear config on enabled detectors (reset to defaults)
+        if detector.enabled and detector.config:
+            detector.config = {}
+            detector.save(update_fields=["config"])
+            updated[detector_type] = True
+
+    return updated
+
+
+SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
+
+
+@transaction.atomic(using=router.db_for_write(Detector))
+def update_performance_settings(
+    project: Project,
+    settings: dict[str, Any],
+    sync_detectors: bool = False,
+) -> dict[DetectorType, bool]:
+    """
+    Write performance issue settings to ProjectOption and optionally sync to WFE Detectors.
+
+    Args:
+        project: The project to update settings for
+        settings: The full settings dict to store
+        sync_detectors: Whether to sync settings to WFE Detectors
+
+    Returns:
+        Dict of DetectorType -> bool indicating which detectors were updated
+        (empty if sync_detectors is False)
+    """
+    # TODO: Fix potential cache inconsistency here. See ISWF-2156.
+    project.update_option(SETTINGS_PROJECT_OPTION_KEY, settings)
+
+    if sync_detectors:
+        return sync_project_options_to_wfe_detectors(project, settings)
+
+    return {}
+
+
+@transaction.atomic(using=router.db_for_write(Detector))
+def reset_performance_settings(
+    project: Project,
+    unchanged_options: dict[str, Any],
+    sync_detectors: bool = False,
+) -> dict[DetectorType, bool]:
+    """
+    Atomically reset ProjectOption and optionally reset WFE Detector configs.
+
+    Args:
+        project: The project to reset settings for
+        unchanged_options: Settings that should be preserved (not reset)
+        sync_detectors: Whether to reset WFE Detector configs
+
+    Returns:
+        Dict of DetectorType -> bool indicating which detectors were updated
+        (empty if sync_detectors is False)
+    """
+    project.update_option(SETTINGS_PROJECT_OPTION_KEY, unchanged_options)
+
+    if sync_detectors:
+        return reset_wfe_detector_configs(project)
+
+    return {}
 
 
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
 def get_detection_settings(
-    project_id: int | None = None, organization: Organization | None = None
+    project: Project | None = None,
+    settings_mode: SettingsMode = SettingsMode.LEGACY,
 ) -> dict[DetectorType, dict[str, Any]]:
-    settings = get_merged_settings(project_id)
+    settings = get_merged_settings(project, settings_mode)
 
     return {
         DetectorType.SLOW_DB_QUERY: {
@@ -254,11 +636,6 @@ def get_detection_settings(
             "detection_enabled": settings["large_render_blocking_asset_detection_enabled"],
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
-            "count": settings["n_plus_one_db_count"],
-            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
-            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
-        },
-        DetectorType.EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
@@ -285,25 +662,12 @@ def get_detection_settings(
         },
         DetectorType.N_PLUS_ONE_API_CALLS: {
             "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
-            "concurrency_threshold": 5,  # ms
-            "count": 10,
-            "allowed_span_ops": ["http.client"],
-            "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
-        },
-        DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS: {
-            "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
             "concurrency_threshold": 15,  # ms
             "count": 5,
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
         DetectorType.M_N_PLUS_ONE_DB: {
-            "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
-            "minimum_occurrences_of_pattern": 3,
-            "max_sequence_length": 5,
-            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
-        },
-        DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: {
             "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 8,
@@ -332,7 +696,6 @@ def get_detection_settings(
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
             "detection_enabled": settings["large_http_payload_detection_enabled"],
             "minimum_span_duration": 100,  # ms
-            "organization": organization,
             "filtered_paths": settings["large_http_payload_filtered_paths"],
         },
         DetectorType.HTTP_OVERHEAD: {
@@ -356,12 +719,9 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     SlowDBQueryDetector,
     RenderBlockingAssetSpanDetector,
     NPlusOneDBSpanDetector,
-    NPlusOneDBSpanExperimentalDetector,
     FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
-    NPlusOneAPICallsExperimentalDetector,
     MNPlusOneDBSpanDetector,
-    MNPlusOneDBSpanExperimentalDetector,
     UncompressedAssetSpanDetector,
     LargeHTTPPayloadDetector,
     HTTPOverheadDetector,
@@ -377,21 +737,20 @@ def _detect_performance_problems(
     organization = project.organization
 
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
-        detection_settings = get_detection_settings(project.id, organization)
+        detection_settings = get_detection_settings(project)
 
-    if standalone or features.has("organizations:issue-detection-sort-spans", organization):
-        # The performance detectors expect the span list to be ordered/flattened in the way they
-        # are structured in the tree. This is an implicit assumption in the performance detectors.
-        # So we build a tree and flatten it depth first.
-        # TODO: See if we can update the detectors to work without this assumption so we can
-        # just pass it a list of spans.
-        with sentry_sdk.start_span(op="performance_detection", name="sort_spans"):
-            tree, segment_id = build_tree(data.get("spans", []))
-            data = {**data, "spans": flatten_tree(tree, segment_id)}
+    # The performance detectors expect the span list to be ordered/flattened in the way they
+    # are structured in the tree. This is an implicit assumption in the performance detectors.
+    # So we build a tree and flatten it depth first.
+    # TODO: See if we can update the detectors to work without this assumption so we can
+    # just pass it a list of spans.
+    with sentry_sdk.start_span(op="performance_detection", name="sort_spans"):
+        tree, segment_id = build_tree(data.get("spans", []))
+        data = {**data, "spans": flatten_tree(tree, segment_id)}
 
     with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
-            detector_class(detection_settings, data)
+            detector_class(detection_settings[detector_class.settings_key], data, organization)
             for detector_class in DETECTOR_CLASSES
             if detector_class.is_detection_allowed_for_system()
         ]

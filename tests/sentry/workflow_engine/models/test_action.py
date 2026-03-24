@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -7,7 +8,7 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, ActionInvocation, WorkflowEventData
 
 
 class TestAction(TestCase):
@@ -70,19 +71,24 @@ class TestAction(TestCase):
             # Verify the registry was queried with the correct action type
             mock_get.assert_called_once_with(Action.Type.SLACK)
 
-    @patch("sentry.workflow_engine.processors.detector.get_detector_from_event_data")
+    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
     def test_trigger_calls_handler_execute(self, mock_get_detector: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
-        mock_get_detector.return_value = Mock(spec=Detector, type="error")
+        mock_detector = Mock(spec=Detector, type="error")
+        mock_get_detector.return_value = mock_detector
 
+        notification_uuid = str(uuid.uuid4())
         with patch.object(self.action, "get_handler", return_value=mock_handler):
-            self.action.trigger(self.mock_event)
+            self.action.trigger(self.mock_event, notification_uuid=notification_uuid)
 
-            mock_handler.execute.assert_called_once_with(
-                self.mock_event, self.action, mock_get_detector.return_value
-            )
+            assert mock_handler.execute.call_count == 1
+            invocation = mock_handler.execute.call_args[0][0]
+            assert isinstance(invocation, ActionInvocation)
+            assert invocation.event_data == self.mock_event
+            assert invocation.action == self.action
+            assert invocation.detector == mock_detector
 
-    @patch("sentry.workflow_engine.processors.detector.get_detector_from_event_data")
+    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
     def test_trigger_with_failing_handler(self, mock_get_detector: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.execute.side_effect = Exception("Handler failed")
@@ -90,16 +96,16 @@ class TestAction(TestCase):
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             with pytest.raises(Exception, match="Handler failed"):
-                self.action.trigger(self.mock_event)
+                self.action.trigger(self.mock_event, notification_uuid=str(uuid.uuid4()))
 
     @patch("sentry.utils.metrics.incr")
-    @patch("sentry.workflow_engine.processors.detector.get_detector_from_event_data")
+    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
     def test_trigger_metrics(self, mock_get_detector: MagicMock, mock_incr: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_get_detector.return_value = Mock(spec=Detector, type="error")
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
-            self.action.trigger(self.mock_event)
+            self.action.trigger(self.mock_event, notification_uuid=str(uuid.uuid4()))
 
             mock_handler.execute.assert_called_once()
             mock_incr.assert_called_once_with(

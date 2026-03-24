@@ -1,14 +1,14 @@
 import type {ComponentProps, ReactNode} from 'react';
-import {ClassNames} from '@emotion/react';
+import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
+import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function Resource({
   title,
@@ -23,7 +23,7 @@ function Resource({
   return (
     <StyledLinkButton
       icon={<IconOpen />}
-      borderless
+      priority="transparent"
       external
       href={link}
       analyticsEventKey="learn-more-resource.clicked"
@@ -40,7 +40,7 @@ function Resource({
 
 function Buttons() {
   return (
-    <ButtonContainer>
+    <Stack align="start" gap="md">
       <Resource
         title={t('Debugging Hydration Errors')}
         subtitle={t(
@@ -55,13 +55,14 @@ function Buttons() {
         )}
         link="https://sentry.io/answers/hydration-error-nextjs/"
       />
-    </ButtonContainer>
+    </Stack>
   );
 }
 
-export default function LearnMoreButton(
+export function LearnMoreButton(
   hoverCardProps: Partial<ComponentProps<typeof Hovercard>>
 ) {
+  const theme = useTheme();
   return (
     <ClassNames>
       {({css}) => (
@@ -70,7 +71,7 @@ export default function LearnMoreButton(
             {...hoverCardProps}
             body={<Buttons />}
             bodyClassName={css`
-              padding: ${space(1)};
+              padding: ${theme.space.md};
             `}
           >
             <Button
@@ -87,32 +88,25 @@ export default function LearnMoreButton(
   );
 }
 
-const ButtonContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  align-items: flex-start;
-`;
-
 const ButtonContent = styled('div')`
   display: flex;
   flex-direction: column;
   text-align: left;
   white-space: pre-line;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const ButtonTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const ButtonSubtitle = styled('div')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   height: auto;
 `;

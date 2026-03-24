@@ -2,16 +2,17 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import type {BarSeriesOption} from 'echarts';
 
-import BaseChart from 'sentry/components/charts/baseChart';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {BaseChart} from 'sentry/components/charts/baseChart';
+import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const ERRORS_BASIC_CHART_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
 
@@ -20,7 +21,7 @@ type Props = {
   projectId?: string;
 };
 
-function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
+export function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
   const organization = useOrganization();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -36,7 +37,9 @@ function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
     isSuccess,
   } = useApiQuery<Project[]>(
     [
-      `/organizations/${organization.slug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           statsPeriod,
@@ -95,11 +98,12 @@ function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
         series={series}
         isGroupedByDate
         showTimeInTooltip
-        colors={theme => [theme.purple300, theme.purple200]}
+        colors={theme => [
+          theme.tokens.dataviz.semantic.accent,
+          theme.tokens.dataviz.semantic.neutral,
+        ]}
         grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
       />
     </Fragment>
   );
 }
-
-export default ProjectErrorsBasicChart;

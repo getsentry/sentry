@@ -1,14 +1,16 @@
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import SearchBar from 'sentry/components/searchBar';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import type useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
-import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
+import {type useBreadcrumbFilters} from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
+import {FiltersGrid} from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {
   frames: undefined | unknown[];
 } & ReturnType<typeof useBreadcrumbFilters>;
 
-function BreadcrumbFilters({
+export function BreadcrumbFilters({
   frames,
   getBreadcrumbTypes,
   searchTerm,
@@ -20,7 +22,11 @@ function BreadcrumbFilters({
   return (
     <FiltersGrid>
       <CompactSelect
-        triggerProps={{prefix: t('Type'), children: type.length === 0 ? t('Any') : null}}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Type')}>
+            {type.length === 0 ? t('Any') : triggerProps.children}
+          </OverlayTrigger.Button>
+        )}
         multiple
         options={breadcrumbTypes}
         size="sm"
@@ -38,5 +44,3 @@ function BreadcrumbFilters({
     </FiltersGrid>
   );
 }
-
-export default BreadcrumbFilters;

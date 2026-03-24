@@ -1,15 +1,13 @@
-import styled from '@emotion/styled';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -18,10 +16,9 @@ import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleU
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import Highlights from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
+import {Highlights} from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
 import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/placeholder';
-import Projects from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
+import {Projects} from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
@@ -68,12 +65,12 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 
-  const rep = getRepresentativeTraceEvent(props.tree, props.logs);
+  const rep = props.tree.findRepresentativeTraceNode({logs: props.logs});
   const project = projects.find(p => {
     const id =
-      rep.event && OurLogKnownFieldKey.PROJECT_ID in rep.event
+      rep?.event && OurLogKnownFieldKey.PROJECT_ID in rep.event
         ? rep.event[OurLogKnownFieldKey.PROJECT_ID]
-        : rep.event?.project_id;
+        : rep?.event?.projectId;
     return p.id === String(id);
   });
 
@@ -91,7 +88,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
               view,
             })}
           />
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <FeedbackButton
               size="xs"
               feedbackOptions={{
@@ -102,7 +99,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
                 },
               }}
             />
-          </ButtonBar>
+          </Grid>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
           <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
@@ -122,7 +119,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             project={project}
             organization={props.organization}
           />
-          <Flex>
+          <Flex align="center" gap="md">
             <Projects projects={projects} logs={props.logs} tree={props.tree} />
           </Flex>
         </TraceHeaderComponents.HeaderRow>
@@ -130,10 +127,3 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     </TraceHeaderComponents.HeaderLayout>
   );
 }
-
-const Flex = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: row;
-  align-items: center;
-`;

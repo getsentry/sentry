@@ -9,14 +9,14 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {HTTPDomainSummaryPage} from 'sentry/views/insights/http/views/httpDomainSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 jest.mock('sentry/utils/useReleaseStats');
 
@@ -207,7 +207,7 @@ describe('HTTPDomainSummaryPage', () => {
             referrer: 'api.insights.http.domain-summary-throughput-chart',
             statsPeriod: '10d',
             yAxis: ['epm()'],
-            caseInsensitive: 0,
+            caseInsensitive: undefined,
           },
         })
       );
@@ -231,7 +231,7 @@ describe('HTTPDomainSummaryPage', () => {
           referrer: 'api.insights.http.domain-summary-duration-chart',
           statsPeriod: '10d',
           yAxis: ['avg(span.self_time)'],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );
@@ -258,7 +258,7 @@ describe('HTTPDomainSummaryPage', () => {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
         },
       })
     );

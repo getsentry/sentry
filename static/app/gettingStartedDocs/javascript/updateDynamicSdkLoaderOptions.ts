@@ -5,8 +5,11 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
+// Note: LOGS and METRICS are intentionally omitted because they share a single
+// `hasLogsAndMetrics` backend flag. Showing individual messages would be misleading
+// (e.g., "Disabled Logs" when Metrics keeps the flag true).
 const PRODUCT_MESSAGES = {
   [ProductSolution.PERFORMANCE_MONITORING]: {
     enabled: t('Enabled Tracing in the Loader Script Config'),
@@ -85,6 +88,10 @@ export async function updateDynamicSdkLoaderOptions({
           hasPerformance: products.includes(ProductSolution.PERFORMANCE_MONITORING),
           hasReplay: products.includes(ProductSolution.SESSION_REPLAY),
           hasDebug: false,
+          hasFeedback: false,
+          hasLogsAndMetrics:
+            products.includes(ProductSolution.LOGS) ||
+            products.includes(ProductSolution.METRICS),
         },
       },
     });

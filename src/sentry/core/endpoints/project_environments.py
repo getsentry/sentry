@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
@@ -16,7 +16,7 @@ from sentry.models.environment import EnvironmentProject
 
 
 @extend_schema(tags=["Environments"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectEnvironmentsEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -69,9 +69,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         if visibility not in environment_visibility_filter_options:
             return Response(
                 {
-                    "detail": "Invalid value for 'visibility', valid values are: {!r}".format(
-                        sorted(environment_visibility_filter_options.keys())
-                    )
+                    "detail": f"Invalid value for 'visibility', valid values are: {sorted(environment_visibility_filter_options.keys())!r}"
                 },
                 status=400,
             )

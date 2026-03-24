@@ -1,16 +1,17 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import {CodeBlock} from 'sentry/components/core/code';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+
+import {ClippedBox} from 'sentry/components/clippedBox';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useRelease} from 'sentry/utils/useRelease';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
@@ -136,9 +137,9 @@ export function DatabaseSpanDescription({
   return (
     <Frame showBorder={showBorder}>
       {areIndexedSpansLoading ? (
-        <WithPadding>
+        <Flex padding="md xl">
           <LoadingIndicator mini />
-        </WithPadding>
+        </Flex>
       ) : (
         <QueryWrapper
           clipHeight={500}
@@ -189,14 +190,9 @@ const Frame = styled('div')<{showBorder: boolean}>`
   display: flex;
   flex-direction: column;
   height: 100%;
-  border: ${p => (p.showBorder ? `solid 1px ${p.theme.border}` : 'none')};
-  border-radius: ${p => (p.showBorder ? p.theme.borderRadius : '0')};
+  border: ${p => (p.showBorder ? `solid 1px ${p.theme.tokens.border.primary}` : 'none')};
+  border-radius: ${p => (p.showBorder ? p.theme.radius.md : '0')};
   overflow: hidden;
-`;
-
-const WithPadding = styled('div')`
-  display: flex;
-  padding: ${space(1)} ${space(2)};
 `;
 
 const StyledClippedBox = styled(ClippedBox)`

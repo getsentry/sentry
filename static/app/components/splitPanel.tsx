@@ -1,8 +1,9 @@
 import {createContext, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {IconGrabbable} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 type DividerProps = {
@@ -24,23 +25,23 @@ const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   user-select: inherit;
   background: inherit;
 
-  &:hover,
-  &[data-is-held='true'] {
-    background: ${p => p.theme.hover};
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
   &[data-is-held='true'] {
     user-select: none;
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   &[data-slide-direction='leftright'] {
     cursor: ew-resize;
     height: 100%;
-    width: ${space(2)};
+    width: ${p => p.theme.space.xl};
   }
   &[data-slide-direction='updown'] {
     cursor: ns-resize;
     width: 100%;
-    height: ${space(2)};
+    height: ${p => p.theme.space.xl};
 
     & > svg {
       transform: rotate(90deg);
@@ -97,7 +98,7 @@ export type SplitPanelProps = CommonProps &
       }
   );
 
-function SplitPanel(props: SplitPanelProps) {
+export function SplitPanel(props: SplitPanelProps) {
   const {
     availableSize,
     SplitDivider = BaseSplitDivider,
@@ -158,14 +159,18 @@ function SplitPanel(props: SplitPanelProps) {
           orientation="columns"
           size={sizePct}
         >
-          <Panel>{a.content}</Panel>
+          <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
+            {a.content}
+          </Stack>
           <SplitDivider
             data-is-held={isHeld}
             data-slide-direction="leftright"
             onDoubleClick={onDoubleClick}
             onMouseDown={handleMouseDown}
           />
-          <Panel>{b}</Panel>
+          <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
+            {b}
+          </Stack>
         </SplitPanelContainer>
       </SplitPanelContext>
     );
@@ -179,14 +184,18 @@ function SplitPanel(props: SplitPanelProps) {
         size={sizePct}
         className={isHeld ? 'disable-iframe-pointer' : undefined}
       >
-        <Panel>{a.content}</Panel>
+        <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
+          {a.content}
+        </Stack>
         <SplitDivider
           data-is-held={isHeld}
           data-slide-direction="updown"
           onDoubleClick={onDoubleClick}
           onMouseDown={handleMouseDown}
         />
-        <Panel>{b}</Panel>
+        <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
+          {b}
+        </Stack>
       </SplitPanelContainer>
     </SplitPanelContext>
   );
@@ -212,14 +221,3 @@ const SplitPanelContainer = styled('div')<{
     pointer-events: none !important;
   }
 `;
-
-const Panel = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-  min-height: 0;
-  min-width: 0;
-`;
-
-export default SplitPanel;

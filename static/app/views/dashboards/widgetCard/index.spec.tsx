@@ -13,12 +13,18 @@ import {
 
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {FieldKind} from 'sentry/utils/fields';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
@@ -132,6 +138,8 @@ describe('Dashboards > WidgetCard', () => {
   });
 
   beforeEach(() => {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(selection);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {meta: {isMetricsData: false}},
@@ -164,7 +172,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -190,7 +197,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -214,7 +220,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -249,7 +254,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -284,7 +288,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -292,9 +295,10 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
+    // TOP_N is converted to AREA, so the discover URL no longer has display=top5
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/explore/discover/results/?environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
@@ -320,7 +324,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -349,7 +352,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -376,7 +378,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLegendState={widgetLegendState}
         widgetLimitReached
@@ -403,7 +404,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={mock}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -430,7 +430,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -464,7 +463,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -499,7 +497,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -545,7 +542,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -589,7 +585,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -627,7 +622,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         index="10"
@@ -697,7 +691,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -797,7 +790,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -825,7 +817,7 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         organization={{
           ...organization,
-          features: [...organization.features, 'dashboards-mep'],
+          features: [...organization.features],
         }}
         widget={multipleQueryWidget}
         selection={selection}
@@ -833,7 +825,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         isPreview
@@ -842,6 +833,31 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
+  });
+
+  it('does not render description for text display type widgets', async () => {
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TEXT,
+          description: 'Valid widget description',
+        }}
+        selection={selection}
+        isEditingDashboard={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />
+    );
+
+    // Wait for the widget to render by checking for the actions button
+    await screen.findByLabelText('Widget actions');
+    expect(screen.queryByLabelText('Widget description')).not.toBeInTheDocument();
   });
 
   it('displays the transaction deprecation warning and explore links for transaction widgets', async () => {
@@ -861,7 +877,6 @@ describe('Dashboards > WidgetCard', () => {
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
         isPreview
@@ -872,5 +887,87 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();
+  });
+
+  describe('conflicting filter warning', () => {
+    const spanWidget: Widget = {
+      title: 'Span Operations',
+      description: '',
+      interval: '5m',
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          conditions: 'span.op:[http.client,db]',
+          fields: ['span.op', 'count()'],
+          aggregates: ['count()'],
+          columns: ['span.op'],
+          name: '',
+          orderby: '',
+        },
+      ],
+    };
+
+    function renderWithDashboardFilters(dashboardFilters: DashboardFilters) {
+      renderWithProviders(
+        <WidgetCard
+          api={api}
+          widget={spanWidget}
+          selection={selection}
+          isEditingDashboard={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          showContextMenu
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+          dashboardFilters={dashboardFilters}
+        />
+      );
+    }
+
+    it('does not show conflict warning when global filter has empty value', async () => {
+      renderWithDashboardFilters({
+        [DashboardFilterKeys.GLOBAL_FILTER]: [
+          {
+            dataset: WidgetType.SPANS,
+            tag: {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
+            value: '',
+          },
+        ],
+      });
+
+      await screen.findByLabelText('Widget actions');
+      expect(screen.queryByLabelText('Widget warnings')).not.toBeInTheDocument();
+    });
+
+    it('shows conflict warning when global filter has non-empty value overlapping widget condition', async () => {
+      renderWithDashboardFilters({
+        [DashboardFilterKeys.GLOBAL_FILTER]: [
+          {
+            dataset: WidgetType.SPANS,
+            tag: {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
+            value: 'span.op:http.client',
+          },
+        ],
+      });
+
+      expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();
+    });
+
+    it('does not show conflict warning when global filter key does not overlap widget conditions', async () => {
+      renderWithDashboardFilters({
+        [DashboardFilterKeys.GLOBAL_FILTER]: [
+          {
+            dataset: WidgetType.SPANS,
+            tag: {key: 'os.name', name: 'os.name', kind: FieldKind.TAG},
+            value: 'os.name:android',
+          },
+        ],
+      });
+
+      await screen.findByLabelText('Widget actions');
+      expect(screen.queryByLabelText('Widget warnings')).not.toBeInTheDocument();
+    });
   });
 });

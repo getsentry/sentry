@@ -169,8 +169,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                 {
                     "matcher": {"type": "path", "pattern": "*.js"},
                     "owners": [
-                        {"type": "user", "identifier": "admin@localhost", "id": self.user.id},
-                        {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                        {"type": "user", "identifier": "admin@localhost", "id": str(self.user.id)},
+                        {"type": "team", "identifier": "tiger-team", "id": str(self.team.id)},
                     ],
                 }
             ],
@@ -186,8 +186,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                 {
                     "matcher": {"type": "path", "pattern": "*.js"},
                     "owners": [
-                        {"type": "user", "id": self.user.id, "name": "admin@localhost"},
-                        {"type": "team", "id": self.team.id, "name": "tiger-team"},
+                        {"type": "user", "id": str(self.user.id), "name": "admin@localhost"},
+                        {"type": "team", "id": str(self.team.id), "name": "tiger-team"},
                     ],
                 }
             ],
@@ -258,7 +258,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "rules": [
                 {
                     "matcher": {"type": "path", "pattern": "*.js"},
-                    "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
+                    "owners": [{"type": "team", "name": "tiger-team", "id": str(self.team.id)}],
                 }
             ],
         }
@@ -311,12 +311,12 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "rules": [
                 {
                     "matcher": {"pattern": "*.py", "type": "path"},
-                    "owners": [{"id": self.team.id, "name": "tiger-team", "type": "team"}],
+                    "owners": [{"id": str(self.team.id), "name": "tiger-team", "type": "team"}],
                 },
                 {
                     "matcher": {"pattern": "*.rb", "type": "path"},
                     "owners": [
-                        {"id": self.member_user.id, "name": "member@localhost", "type": "user"}
+                        {"id": str(self.member_user.id), "name": "member@localhost", "type": "user"}
                     ],
                 },
             ],
@@ -331,6 +331,12 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.put(self.path, {"raw": "*.js admin@localhost #faketeam"})
         assert resp.status_code == 400
         assert resp.data == {"raw": ["Invalid rule owners: #faketeam"]}
+
+    def test_team_not_on_project(self) -> None:
+        self.create_team(organization=self.organization, slug="other-team", members=[self.user])
+        resp = self.client.put(self.path, {"raw": "*.js #other-team"})
+        assert resp.status_code == 400
+        assert resp.data == {"raw": ["Invalid rule owners: #other-team"]}
 
     def test_invalid_mixed(self) -> None:
         resp = self.client.put(
@@ -393,3 +399,97 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
         resp = self.client.put(self.path, {"fallthrough": False})
         assert resp.status_code == 403
+
+    def test_closed_membership_org_member_cannot_assign_team_not_member_of(self) -> None:
+        """
+        Test that a member cannot add an ownership rule assigning issues to a team they are not a
+        member of if the org has open team membership off. This is a regression test for an
+        authorization bypass vulnerability.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, slug="other-team", members=[])
+        self.project.add_team(other_team)
+
+        self.login_as(user=self.member_user)
+
+        resp = self.client.put(self.path, {"raw": "*.js #other-team"})
+        assert resp.status_code == 400
+        assert "do not have permission" in str(resp.data["raw"][0])
+
+        ownership = ProjectOwnership.objects.filter(project=self.project).first()
+        assert ownership is None or ownership.raw is None
+
+    def test_member_can_assign_own_team(self) -> None:
+        """
+        Test that a member CAN add an ownership rule for a team they are a member of.
+        """
+        self.login_as(user=self.member_user)
+
+        resp = self.client.put(self.path, {"raw": "*.js #tiger-team"})
+        assert resp.status_code == 200
+        assert resp.data["raw"] == "*.js #tiger-team"
+
+    def test_admin_can_assign_any_team(self) -> None:
+        """
+        Test that a user with team:admin scope CAN add ownership rules for any team.
+        """
+        other_team = self.create_team(organization=self.organization, slug="other-team", members=[])
+        self.project.add_team(other_team)
+
+        self.login_as(user=self.user)
+
+        resp = self.client.put(self.path, {"raw": "*.js #other-team"})
+        assert resp.status_code == 200
+        assert resp.data["raw"] == "*.js #other-team"
+
+    def test_open_membership_org_member_can_assign_any_team(self) -> None:
+        """
+        Test that a user in an org with open membership CAN add ownership rules for any team.
+        """
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, slug="other-team", members=[])
+        self.project.add_team(other_team)
+
+        self.login_as(user=self.member_user)
+
+        resp = self.client.put(self.path, {"raw": "*.js #other-team"})
+        assert resp.status_code == 200
+        assert resp.data["raw"] == "*.js #other-team"
+
+    def test_closed_membership_org_member_mixed_teams_denied(self) -> None:
+        """
+        Test that in an org with closed team membership, if a member tries to add rules with
+        multiple teams, and they're not a member of one of them, the request is denied.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, slug="other-team", members=[])
+        self.project.add_team(other_team)
+
+        self.login_as(user=self.member_user)
+
+        resp = self.client.put(self.path, {"raw": "*.js #tiger-team #other-team"})
+        assert resp.status_code == 400
+        assert "do not have permission" in str(resp.data["raw"][0])
+
+    def test_open_membership_org_member_mixed_teams_allowed(self) -> None:
+        """
+        Test that in an org with open team membership, if a member tries to add rules with multiple
+        teams, and they're not a member of one of them, the request still goes through.
+        """
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, slug="other-team", members=[])
+        self.project.add_team(other_team)
+
+        self.login_as(user=self.member_user)
+
+        resp = self.client.put(self.path, {"raw": "*.js #tiger-team #other-team"})
+        assert resp.status_code == 200
+        assert resp.data["raw"] == "*.js #tiger-team #other-team"

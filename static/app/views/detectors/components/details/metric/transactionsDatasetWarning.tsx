@@ -1,8 +1,9 @@
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {tctCode} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
@@ -24,7 +25,7 @@ export function TransactionsDatasetWarning() {
     return null;
   }
 
-  return <Alert type="warning">{TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}</Alert>;
+  return <Alert variant="warning">{TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}</Alert>;
 }
 
 export function MigratedAlertWarning({detector}: {detector: MetricDetector}) {
@@ -38,7 +39,7 @@ export function MigratedAlertWarning({detector}: {detector: MetricDetector}) {
 
   return (
     <Alert.Container>
-      <Alert type="info">
+      <Alert variant="info">
         {tctCode(
           'To match the original behaviour, we’ve migrated this alert from a transaction-based alert to a span-based alert using a special compatibility mode. When you have a moment, please [editLink:edit] the alert updating its thresholds to account for [samplingLink:sampling].',
           {

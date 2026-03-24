@@ -1,11 +1,11 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import Panel from 'sentry/components/panels/panel';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextOverflow from 'sentry/components/textOverflow';
-import {space} from 'sentry/styles/space';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {defined} from 'sentry/utils';
 
 type ScoreCardProps = {
@@ -63,11 +63,11 @@ export function ScoreCard({
 function getTrendColor(p: TrendProps & {theme: Theme}) {
   switch (p.trendStatus) {
     case 'good':
-      return p.theme.successText;
+      return p.theme.tokens.content.success;
     case 'bad':
-      return p.theme.errorText;
+      return p.theme.tokens.content.danger;
     default:
-      return p.theme.subText;
+      return p.theme.tokens.content.secondary;
   }
 }
 
@@ -75,37 +75,38 @@ export const ScorePanel = styled(Panel)`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   min-height: 96px;
 `;
 
 const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   width: fit-content;
 `;
 
 export const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.headingColor};
-  ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-export const ScoreWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  max-width: 100%;
-`;
+export const ScoreWrapper = styled((props: FlexProps<'div'>) => {
+  return <Flex align="baseline" maxWidth="100%" {...props} />;
+})``;
 
 export const Score = styled('span')`
   flex-shrink: 1;
   font-size: 32px;
   line-height: 1;
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
 `;
 
@@ -113,7 +114,7 @@ type TrendProps = {trendStatus: ScoreCardProps['trendStatus']};
 
 export const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   line-height: 1;
   overflow: hidden;
 `;

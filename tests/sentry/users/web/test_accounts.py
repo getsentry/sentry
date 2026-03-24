@@ -22,15 +22,15 @@ class TestAccounts(TestCase):
     def path(self) -> str:
         return reverse("sentry-account-recover")
 
-    def password_recover_path(self, user_id, hash_) -> str:
+    def password_recover_path(self, user_id: int, hash_: str) -> str:
         return reverse("sentry-account-recover-confirm", kwargs={"user_id": user_id, "hash": hash_})
 
-    def relocation_recover_path(self, user_id, hash_) -> str:
+    def relocation_recover_path(self, user_id: int, hash_: str) -> str:
         return reverse(
             "sentry-account-relocate-confirm", kwargs={"user_id": user_id, "hash": hash_}
         )
 
-    def relocation_reclaim_path(self, user_id) -> str:
+    def relocation_reclaim_path(self, user_id: int) -> str:
         return reverse("sentry-account-relocate-reclaim", kwargs={"user_id": user_id})
 
     def test_get_renders_form(self) -> None:
@@ -212,7 +212,8 @@ class TestAccounts(TestCase):
                     ip_address="127.0.0.1",
                     sender=recover_confirm,
                 ),
-            ]
+            ],
+            any_order=True,
         )
 
         assert UserEmail.objects.get(email=user.email).is_verified

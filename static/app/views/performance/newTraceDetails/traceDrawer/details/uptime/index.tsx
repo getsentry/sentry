@@ -1,23 +1,24 @@
 import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   useTraceItemDetails,
   type TraceItemDetailsResponse,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 
 function UptimeNodeDetailsHeader({
   node,
@@ -25,8 +26,8 @@ function UptimeNodeDetailsHeader({
   onTabScrollToNode,
   hideNodeActions,
 }: {
-  node: TraceTreeNode<TraceTree.UptimeCheck>;
-  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
+  node: UptimeCheckNode;
+  onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
   hideNodeActions?: boolean;
 }) {
@@ -55,16 +56,14 @@ function UptimeNodeDetailsHeader({
   );
 }
 
-export function UptimeNodeDetails(
-  props: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.UptimeCheck>>
-) {
+export function UptimeNodeDetails(props: TraceTreeNodeDetailsProps<UptimeCheckNode>) {
   const {node} = props;
   const location = useLocation();
   const theme = useTheme();
   const {projects} = useProjects();
 
   const project = projects.find(
-    proj => proj.slug === (node.value.project_slug ?? node.event?.projectSlug)
+    proj => proj.slug === (node.value.project_slug ?? node.projectSlug)
   );
 
   return (
@@ -78,9 +77,7 @@ export function UptimeNodeDetails(
   );
 }
 
-type UptimeSpanNodeDetailsProps = TraceTreeNodeDetailsProps<
-  TraceTreeNode<TraceTree.UptimeCheck>
-> & {
+type UptimeSpanNodeDetailsProps = TraceTreeNodeDetailsProps<UptimeCheckNode> & {
   location: Location;
   project: Project | undefined;
   theme: Theme;
@@ -95,7 +92,7 @@ function UptimeSpanNodeDetails(props: UptimeSpanNodeDetailsProps) {
   } = useTraceItemDetails({
     traceItemId: node.value.event_id,
     projectId: node.value.project_id.toString(),
-    traceId: node.metadata.replayTraceSlug ?? traceId,
+    traceId: node.extra?.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.UPTIME_RESULTS,
     referrer: 'api.explore.log-item-details', // TODO: change to span details
     enabled: true,
@@ -127,6 +124,7 @@ function UptimeSpanNodeDetailsContent({
 }: UptimeSpanNodeDetailsContentProps) {
   const location = useLocation();
   const attributes = traceItemData.attributes;
+  const issues = node.uniqueIssues;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -137,6 +135,9 @@ function UptimeSpanNodeDetailsContent({
         hideNodeActions={hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
+        {issues.length > 0 ? (
+          <IssueList organization={organization} issues={issues} node={node} />
+        ) : null}
         <Attributes
           node={node}
           attributes={attributes}

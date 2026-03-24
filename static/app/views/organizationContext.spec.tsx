@@ -7,12 +7,12 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as orgsActionCreators from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {OrganizationContextProvider} from './organizationContext';
 
@@ -26,6 +26,13 @@ describe('OrganizationContext', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const team = TeamFixture();
+
+  const initialRouterConfig = {
+    route: '/organizations/:orgId/',
+    location: {
+      pathname: `/organizations/${organization.slug}/`,
+    },
+  };
 
   function setupOrgMocks(org: Organization) {
     const orgMock = MockApiClient.addMockResponse({
@@ -79,9 +86,7 @@ describe('OrganizationContext', () => {
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -96,14 +101,7 @@ describe('OrganizationContext', () => {
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        initialRouterConfig: {
-          route: '/organizations/:orgId/',
-          location: {
-            pathname: `/organizations/${organization.slug}/`,
-          },
-        },
-      }
+      {initialRouterConfig}
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -143,9 +141,7 @@ describe('OrganizationContext', () => {
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     await waitFor(() => !OrganizationStore.getState().loading);
@@ -165,9 +161,7 @@ describe('OrganizationContext', () => {
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     await waitFor(() => !OrganizationStore.getState().loading);

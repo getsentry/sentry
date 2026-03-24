@@ -124,13 +124,13 @@ def verify_signature(request) -> bool:
     # docs for jwt authentication here: https://docs.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-authentication?view=azure-bot-service-4.0#bot-to-connector
     token = request.META.get("HTTP_AUTHORIZATION", "").replace("Bearer ", "")
     if not token:
-        logger.error("msteams.webhook.no-auth-header")
+        logger.warning("msteams.webhook.no-auth-header")
         raise NotAuthenticated("Authorization header required")
 
     try:
         jwt.peek_claims(token)
     except jwt.DecodeError:
-        logger.exception("msteams.webhook.invalid-token-no-verify")
+        logger.warning("msteams.webhook.invalid-token-no-verify")
         raise AuthenticationFailed("Could not decode JWT token")
 
     # get the open id config and jwks
@@ -148,28 +148,33 @@ def verify_signature(request) -> bool:
     kid = jwt.peek_header(token)["kid"]
     key = public_keys[kid]
 
+    # OpenID standard for `id_token_signing_alg_values_supported` is a JSON Array.
+    # Please take a look at the OpenID Provider Metadata:
+    # https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+    algorithms: list[str] = open_id_config["id_token_signing_alg_values_supported"]
+
     try:
         decoded = jwt.decode(
             token,
             key,
             audience=options.get("msteams.client-id"),
-            algorithms=open_id_config["id_token_signing_alg_values_supported"],
+            algorithms=algorithms,
         )
     except Exception as err:
-        logger.exception("msteams.webhook.invalid-token-with-verify")
+        logger.warning("msteams.webhook.invalid-token-with-verify")
         raise AuthenticationFailed(f"Could not validate JWT. Got {err}")
 
     # now validate iss, service url, and expiration
     if decoded.get("iss") != "https://api.botframework.com":
-        logger.error("msteams.webhook.invalid-iss")
+        logger.warning("msteams.webhook.invalid-iss")
         raise AuthenticationFailed("The field iss does not match")
 
     if decoded.get("serviceurl") != request.data.get("serviceUrl"):
-        logger.error("msteams.webhook.invalid-service_url")
+        logger.warning("msteams.webhook.invalid-service_url")
         raise AuthenticationFailed("The field serviceUrl does not match")
 
     if int(time.time()) > decoded["exp"] + CLOCK_SKEW:
-        logger.error("msteams.webhook.expired-token")
+        logger.warning("msteams.webhook.expired-token")
         raise AuthenticationFailed("Token is expired")
 
     return True
@@ -301,7 +306,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         # are from a user submitting an option on a card, which
         # will always contain an "payload.actionType" in the data.
         if data.get("value", {}).get("payload", {}).get("actionType"):
-            # Processing card actions can only occur in the Region silo.
+            # Processing card actions can only occur in the Cell silo.
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 return self.respond(status=400)
             return self._handle_action_submitted(request)
@@ -733,7 +738,6 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[AdaptiveCard]]]:
-
         yield commands.HELP, self.help_handler
         yield commands.LINK_IDENTITY, self.link_user_handler
         yield commands.UNLINK_IDENTITY, self.unlink_user_handler

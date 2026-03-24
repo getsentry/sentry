@@ -1,7 +1,7 @@
 import type {HTMLAttributes} from 'react';
 import styled from '@emotion/styled';
 
-import formatDuration, {type Format} from 'sentry/utils/duration/formatDuration';
+import {formatDuration, type Format} from 'sentry/utils/duration/formatDuration';
 import type {Duration as TDuration, Unit} from 'sentry/utils/duration/types';
 
 interface Props extends HTMLAttributes<HTMLTimeElement> {
@@ -24,7 +24,7 @@ interface Props extends HTMLAttributes<HTMLTimeElement> {
   format?: Format;
 }
 
-const Duration = styled(({duration, format, precision, ...props}: Props) => {
+export const Duration = styled(({duration, format, precision, ...props}: Props) => {
   // Style and precision should match, otherwise style will pad out missing or
   // truncated values which we don't want in this component.
   const style = format ?? (precision === 'ms' ? 'hh:mm:ss.sss' : 'hh:mm:ss');
@@ -41,5 +41,3 @@ const Duration = styled(({duration, format, precision, ...props}: Props) => {
 })`
   font-variant-numeric: tabular-nums;
 `;
-
-export default Duration;

@@ -12,7 +12,8 @@ from snuba_sdk import Column, Condition, Op, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.validators import ValidationError
@@ -27,6 +28,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.endpoints.project_event_details import (
@@ -117,7 +119,7 @@ def issue_search_query_to_conditions(
 
 
 @extend_schema(tags=["Events"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupEventDetailsEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -153,6 +155,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         },
         examples=EventExamples.GROUP_EVENT_DETAILS,
     )
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-event-details"])
     def get(self, request: Request, group: Group, event_id: str) -> Response:
         """
         Retrieves the details of an issue event.
@@ -243,4 +246,6 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             start=start,
             end=end,
         )
+        if data is None:
+            return Response({"detail": "Failed to load event"}, status=500)
         return Response(data)

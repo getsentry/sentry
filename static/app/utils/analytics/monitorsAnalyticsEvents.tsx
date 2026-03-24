@@ -6,18 +6,27 @@ type DetectorAnalyticsEventPayload = ReturnType<typeof getDetectorAnalyticsPaylo
 
 type AutomationAnalyticsEventPayload = ReturnType<typeof getAutomationAnalyticsPayload>;
 
+type DetectorCreateAnalyticsEventPayload =
+  | (DetectorAnalyticsEventPayload & {
+      success: true;
+    })
+  | {detector_type: string; success: false};
+
 export type MonitorsEventParameters = {
   'automation.created': AutomationAnalyticsEventPayload & {
     organization: Organization;
+    source: 'drawer' | 'full';
+    success: boolean;
   };
   'automation.updated': AutomationAnalyticsEventPayload & {
     organization: Organization;
+    success: boolean;
   };
   'landing_page.platform_guide.viewed': {
     guide: string;
     platform: string;
   };
-  'monitor.created': DetectorAnalyticsEventPayload;
+  'monitor.created': DetectorCreateAnalyticsEventPayload;
   'monitor.updated': DetectorAnalyticsEventPayload;
 };
 

@@ -8,7 +8,7 @@ from typing import Any
 
 from django.utils.datastructures import OrderedSet
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.analytics.events.integration_commit_context_all_frames import (
     IntegrationsFailedToFetchCommitContextAllFrames,
     IntegrationsSuccessfullyFetchedCommitContextAllFrames,
@@ -83,23 +83,28 @@ def find_commit_context_for_event_all_frames(
         extra=extra,
     )
 
-    # We want the most recent commit that is within MAX_COMMIT_AGE_DAYS of group_first_seen
-    earliest_valid_date = group_first_seen - timedelta(days=MAX_COMMIT_AGE_DAYS)
-    selected_blame = None
-    selected_date = earliest_valid_date
-    has_too_old_blames = False
-    has_too_recent_blames = False
-    for blame in file_blames:
-        commit_date = blame.commit.committedDate
-        # Track outside-of-window commits for analytics
-        if commit_date < earliest_valid_date:
-            has_too_old_blames = True
-        elif commit_date > group_first_seen:
-            has_too_recent_blames = True
-        # Select best valid commit
-        if selected_date < commit_date < group_first_seen:
-            selected_blame = blame
-            selected_date = commit_date
+    if organization_id in options.get("demo-org-ids") and file_blames:
+        selected_blame = max(file_blames, key=lambda blame: blame.commit.committedDate)
+        has_too_old_blames = False
+        has_too_recent_blames = False
+    else:
+        # We want the most recent commit that is within MAX_COMMIT_AGE_DAYS of group_first_seen
+        earliest_valid_date = group_first_seen - timedelta(days=MAX_COMMIT_AGE_DAYS)
+        selected_blame = None
+        selected_date = earliest_valid_date
+        has_too_old_blames = False
+        has_too_recent_blames = False
+        for blame in file_blames:
+            commit_date = blame.commit.committedDate
+            # Track outside-of-window commits for analytics
+            if commit_date < earliest_valid_date:
+                has_too_old_blames = True
+            elif commit_date > group_first_seen:
+                has_too_recent_blames = True
+            # Select best valid commit
+            if selected_date < commit_date < group_first_seen:
+                selected_blame = blame
+                selected_date = commit_date
 
     selected_install, selected_provider = (
         integration_to_install_mapping[selected_blame.code_mapping.organization_integration_id]
@@ -315,19 +320,19 @@ def _get_blames_from_all_integrations(
                     )
                 else:
                     if e.code == 429:
-                        logger.exception(
+                        logger.warning(
                             "process_commit_context_all_frames.get_commit_context_all_frames.rate_limit",
                             extra={**log_info, "error_message": e.text},
                         )
                     else:
-                        logger.exception(
+                        logger.warning(
                             "process_commit_context_all_frames.get_commit_context_all_frames.api_error",
                             extra={**log_info, "code": e.code, "error_message": e.text},
                         )
                     # Rate limit and other API errors should be raised to the task to trigger a retry
                     raise
             except Exception:
-                logger.exception(
+                logger.warning(
                     "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
                     extra=log_info,
                 )

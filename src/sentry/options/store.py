@@ -13,6 +13,7 @@ from sentry_sdk.integrations.logging import ignore_logger
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.options.manager import UpdateChannel
+from sentry.utils.types import Type
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
@@ -37,7 +38,7 @@ class GroupingInfo:
 class Key:
     name: str
     default: Any
-    type: type
+    type: Type[Any]
     flags: int
     ttl: int
     grace: int
@@ -125,9 +126,9 @@ class OptionsStore:
         First check against our local in-process cache, falling
         back to the network cache.
         """
-        assert (
-            self.cache is not None
-        ), f"Option '{key.name}' requested before cache initialization, which could result in excessive store queries"
+        assert self.cache is not None, (
+            f"Option '{key.name}' requested before cache initialization, which could result in excessive store queries"
+        )
 
         value = self.get_local_cache(key)
         if value is not None:

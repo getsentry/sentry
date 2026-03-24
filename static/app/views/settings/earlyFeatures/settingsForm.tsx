@@ -1,36 +1,40 @@
 import {Fragment} from 'react';
-import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Scope} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface Props extends RouteComponentProps {
+interface Props {
   access: Set<Scope>;
-  location: Location;
 }
 
 type FeatureFlags = Record<string, {description: string; value: boolean}>;
 
-export default function EarlyFeaturesSettingsForm({access, location}: Props) {
+export function EarlyFeaturesSettingsForm({access}: Props) {
+  const location = useLocation();
   const organization = useOrganization();
 
   const {data: authProvider, isPending: authProviderIsLoading} =
     useApiQuery<OrganizationAuthProvider>(
-      [`/organizations/${organization.slug}/auth-provider/`],
+      [
+        getApiUrl(`/organizations/$organizationIdOrSlug/auth-provider/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
       {staleTime: 0}
     );
 
   const {data: featureFlags, isPending: featureFlagsIsLoading} =
-    useApiQuery<FeatureFlags>(['/internal/feature-flags/'], {staleTime: 0});
+    useApiQuery<FeatureFlags>([getApiUrl('/internal/feature-flags/')], {staleTime: 0});
 
   if (authProviderIsLoading || featureFlagsIsLoading) {
     return <LoadingIndicator />;

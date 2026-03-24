@@ -1,17 +1,13 @@
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {PolicyRevisionsFixture} from 'getsentry-test/fixtures/policyRevisions';
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import PolicyDetails from 'admin/views/policyDetails';
+import {PolicyDetails} from 'admin/views/policyDetails';
 
 describe('PolicyDetails', () => {
   const revisions = PolicyRevisionsFixture();
   const policies = PoliciesFixture();
   const policy = policies.terms!;
-  const {routerProps} = initializeOrg({
-    router: {params: {policySlug: policy.slug}},
-  });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -31,7 +27,14 @@ describe('PolicyDetails', () => {
       method: 'PUT',
     });
 
-    render(<PolicyDetails {...routerProps} />);
+    render(<PolicyDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/_admin/policies/${policy.slug}/`,
+        },
+        route: '/_admin/policies/:policySlug/',
+      },
+    });
 
     const buttons = await screen.findAllByText('Make current');
     // Update current version

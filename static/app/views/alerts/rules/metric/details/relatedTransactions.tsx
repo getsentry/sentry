@@ -2,14 +2,15 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Link} from 'sentry/components/core/link';
-import GridEditable from 'sentry/components/tables/gridEditable';
+import {Link} from '@sentry/scraps/link';
+
+import {GridEditable} from 'sentry/components/tables/gridEditable';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -29,7 +30,7 @@ interface RelatedTransactionsProps {
   timePeriod: TimePeriodType;
 }
 
-function RelatedTransactions({
+export function RelatedTransactions({
   organization,
   projects,
   timePeriod,
@@ -138,8 +139,6 @@ function RelatedTransactions({
     </DiscoverQuery>
   );
 }
-
-export default RelatedTransactions;
 
 const HeaderCell = styled('div')<{align: Alignments}>`
   display: block;

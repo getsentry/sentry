@@ -1,21 +1,21 @@
 import {Fragment, useState, type Dispatch, type SetStateAction} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {Form} from 'sentry/components/forms/form';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   CodeOwner,
   CodeownersFile,
@@ -24,6 +24,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {
   fetchMutation,
@@ -31,7 +32,7 @@ import {
   useMutation,
   type UseMutationResult,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
   organization: Organization;
@@ -45,7 +46,7 @@ type TCodeownersError = RequestError;
 type TCodeownersVariables = [TCodeownersPayload];
 type TCodeownersContext = unknown;
 
-export default function AddCodeOwnerModal({
+export function AddCodeOwnerModal({
   organization,
   Header,
   Body,
@@ -60,7 +61,9 @@ export default function AddCodeOwnerModal({
     isError: isCodeMappingsError,
   } = useApiQuery<RepositoryProjectPathConfig[]>(
     [
-      `/organizations/${organization.slug}/code-mappings/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {project: project.id}},
     ],
     {staleTime: Infinity}
@@ -72,7 +75,9 @@ export default function AddCodeOwnerModal({
     isError: isIntegrationsError,
   } = useApiQuery<Integration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {features: ['codeowners']}},
     ],
     {staleTime: Infinity}
@@ -81,7 +86,17 @@ export default function AddCodeOwnerModal({
   const [codeMappingId, setCodeMappingId] = useState<string | null>(null);
 
   const {data: codeownersFile} = useApiQuery<CodeownersFile>(
-    [`/organizations/${organization.slug}/code-mappings/${codeMappingId}/codeowners/`],
+    [
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            configId: codeMappingId!,
+          },
+        }
+      ),
+    ],
     {staleTime: Infinity, enabled: Boolean(codeMappingId)}
   );
 
@@ -246,11 +261,11 @@ function LinkCodeOwners({
   return (
     <Fragment>
       <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
-      <Container style={{paddingTop: space(2)}}>
+      <Flex justify="center" paddingTop="xl">
         <LinkButton priority="primary" size="sm" to={baseUrl}>
           Setup Integration
         </LinkButton>
-      </Container>
+      </Flex>
     </Fragment>
   );
 }
@@ -259,7 +274,7 @@ function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
   return (
     <Panel>
       <SourceFileBody>
-        <IconCheckmark size="md" color="green200" />
+        <IconCheckmark size="md" variant="success" />
         {codeownersFile.filepath}
         <LinkButton size="sm" href={codeownersFile.html_url} external>
           {t('Preview File')}
@@ -273,7 +288,7 @@ function NoSourceFile() {
   return (
     <Panel>
       <NoSourceFileBody>
-        <IconNot size="md" color="red200" />
+        <IconNot size="md" variant="danger" />
         {t('No codeowner file found.')}
       </NoSourceFileBody>
     </Panel>
@@ -295,7 +310,7 @@ function ErrorMessage({
   const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => <p key={i}>{el}</p>);
   return (
     <Alert.Container>
-      <Alert type="error">
+      <Alert variant="danger">
         {errActors}
         {codeMapping && (
           <p>
@@ -341,22 +356,17 @@ const NoSourceFileBody = styled(PanelBody)`
 const SourceFileBody = styled(PanelBody)`
   display: grid;
   padding: 12px;
-  grid-template-columns: 30px 1fr 100px;
+  grid-template-columns: 30px 1fr auto;
   align-items: center;
 `;
 
 const IntegrationsList = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-items: center;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const IntegrationName = styled('p')`
   padding-left: 10px;
-`;
-
-const Container = styled('div')`
-  display: flex;
-  justify-content: center;
 `;

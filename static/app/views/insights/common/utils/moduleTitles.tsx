@@ -16,6 +16,7 @@ export const DOMAIN_VIEW_MODULE_TITLES: Record<
   'ai-agents': {},
   mcp: {},
   backend: {},
+  conversations: {},
   mobile: {
     [ModuleName.HTTP]: HTTP_MOBILE_MODULE_TITLE,
   },

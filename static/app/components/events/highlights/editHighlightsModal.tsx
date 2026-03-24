@@ -1,16 +1,19 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {DistributedOmit} from 'type-fest';
 
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+import type {InputProps} from '@sentry/scraps/input';
+import {InputGroup} from '@sentry/scraps/input';
+import {Grid, Stack} from '@sentry/scraps/layout';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import type {InputProps} from 'sentry/components/core/input';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
-import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import type {
   HighlightContext,
   HighlightTags,
@@ -20,14 +23,13 @@ import {
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMutateProject from 'sentry/utils/useMutateProject';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface EditHighlightsModalProps extends ModalRenderProps {
   event: Event;
@@ -74,7 +76,6 @@ function EditPreviewHighlightSection({
           <EditButton
             aria-label="Remove from highlights"
             icon={<IconSubtract />}
-            size="xs"
             onClick={() => onRemoveContextKey(alias, item.key)}
             data-test-id="highlights-remove-ctx"
           />
@@ -102,7 +103,6 @@ function EditPreviewHighlightSection({
       <EditButton
         aria-label="Remove from highlights"
         icon={<IconSubtract />}
-        size="xs"
         onClick={() => onRemoveTag(content.originalTag.key)}
         data-test-id="highlights-remove-tag"
       />
@@ -165,29 +165,32 @@ function EditTagHighlightSection({
   for (let i = 0; i < tagData.length; i += tagColumnSize) {
     tagColumns.push(
       <EditHighlightColumn key={`tag-column-${i}`}>
-        {tagData.slice(i, i + tagColumnSize).map((tagKey, j) => {
-          const isDisabled = highlightTagsSet.has(tagKey);
-          return (
-            <EditTagContainer key={`tag-${i}-${j}`}>
-              <EditButton
-                aria-label={`Add ${tagKey} tag to highlights`}
-                icon={<IconAdd />}
-                size="xs"
-                onClick={() => onAddTag(tagKey)}
-                disabled={isDisabled}
-                title={isDisabled && t('Already highlighted')}
-                tooltipProps={{delay: 500}}
-              />
-              <HighlightKey
-                disabled={isDisabled}
-                aria-disabled={isDisabled}
-                data-test-id="highlight-tag-option"
-              >
-                {tagKey}
-              </HighlightKey>
-            </EditTagContainer>
-          );
-        })}
+        <Stack gap="2xs">
+          {tagData.slice(i, i + tagColumnSize).map((tagKey, j) => {
+            const isDisabled = highlightTagsSet.has(tagKey);
+            return (
+              <EditTagContainer key={`tag-${i}-${j}`}>
+                <EditButton
+                  aria-label={`Add ${tagKey} tag to highlights`}
+                  icon={<IconAdd />}
+                  onClick={() => onAddTag(tagKey)}
+                  disabled={isDisabled}
+                  tooltipProps={{
+                    title: isDisabled && t('Already highlighted'),
+                    delay: 500,
+                  }}
+                />
+                <HighlightKey
+                  disabled={isDisabled}
+                  aria-disabled={isDisabled}
+                  data-test-id="highlight-tag-option"
+                >
+                  {tagKey}
+                </HighlightKey>
+              </EditTagContainer>
+            );
+          })}
+        </Stack>
       </EditHighlightColumn>
     );
   }
@@ -274,11 +277,12 @@ function EditContextHighlightSection({
                       <EditButton
                         aria-label={`Add ${contextKey} from ${contextType} context to highlights`}
                         icon={<IconAdd />}
-                        size="xs"
                         onClick={() => onAddContextKey(contextType, contextKey)}
                         disabled={isDisabled}
-                        title={isDisabled && t('Already highlighted')}
-                        tooltipProps={{delay: 500}}
+                        tooltipProps={{
+                          title: isDisabled && t('Already highlighted'),
+                          delay: 500,
+                        }}
                       />
                       <HighlightKey
                         disabled={isDisabled}
@@ -321,7 +325,7 @@ function EditContextHighlightSection({
   );
 }
 
-export default function EditHighlightsModal({
+export function EditHighlightsModal({
   Header,
   Body,
   Footer,
@@ -337,12 +341,9 @@ export default function EditHighlightsModal({
   const [highlightTags, setHighlightTags] = useState<HighlightTags>(prevHighlightTags);
 
   const organization = useOrganization();
+  const theme = useTheme();
 
-  const {mutate: saveHighlights, isPending} = useMutateProject({
-    organization,
-    project,
-    onSuccess: closeModal,
-  });
+  const {mutate: saveHighlights, isPending} = useUpdateProject(project);
 
   const columnCount = 3;
   return (
@@ -350,7 +351,7 @@ export default function EditHighlightsModal({
       <Header closeButton>
         <Title>{t('Edit Event Highlights')}</Title>
       </Header>
-      <Body css={modalBodyCss}>
+      <Body css={modalBodyCss(theme)}>
         <EditPreviewHighlightSection
           event={event}
           highlightTags={highlightTags}
@@ -407,7 +408,7 @@ export default function EditHighlightsModal({
           <IconInfo />
           <div>{t('Changes are applied to all issues for this project')}</div>
         </FooterInfo>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             onClick={() => {
               trackAnalytics('highlights.edit_modal.cancel_clicked', {organization});
@@ -435,14 +436,33 @@ export default function EditHighlightsModal({
             disabled={isPending}
             onClick={() => {
               trackAnalytics('highlights.edit_modal.save_clicked', {organization});
-              saveHighlights({highlightContext, highlightTags});
+              saveHighlights(
+                {highlightContext, highlightTags},
+                {
+                  onError: () => {
+                    addErrorMessage(
+                      tct(`Failed to update '[projectName]' project`, {
+                        projectName: project.name,
+                      })
+                    );
+                  },
+                  onSuccess: () => {
+                    addSuccessMessage(
+                      tct(`Successfully updated '[projectName]' project`, {
+                        projectName: project.name,
+                      })
+                    );
+                    closeModal();
+                  },
+                }
+              );
             }}
             priority="primary"
             size="sm"
           >
             {isPending ? t('Saving...') : t('Apply to Project')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );
@@ -452,36 +472,36 @@ function SectionFilterInput(props: InputProps) {
   return (
     <InputGroup>
       <InputGroup.LeadingItems disablePointerEvents>
-        <IconSearch color="subText" size="xs" />
+        <IconSearch variant="muted" size="xs" />
       </InputGroup.LeadingItems>
       <InputGroup.Input size="xs" autoComplete="off" {...props} />
     </InputGroup>
   );
 }
 
-const modalBodyCss = css`
-  margin: 0 -${space(4)};
-  padding: 0 ${space(4)};
+const modalBodyCss = (theme: Theme) => css`
+  margin: 0 -${theme.space['3xl']};
+  padding: 0 ${theme.space['3xl']};
   /* Full height minus enough buffer for header, footer and margins */
   max-height: calc(100vh - 275px);
   overflow-y: auto;
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const Subtitle = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
-  margin-bottom: ${space(1.5)};
-  padding-bottom: ${space(0.5)};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  margin-bottom: ${p => p.theme.space.lg};
+  padding-bottom: ${p => p.theme.space.xs};
   display: flex;
   align-items: center;
   justify-content: space-between;
 `;
 
 const SubtitleText = styled('h4')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: 0;
 `;
 
@@ -489,27 +509,27 @@ const FooterInfo = styled('div')`
   flex: 1;
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
-  gap: ${space(1)};
+  color: ${p => p.theme.tokens.content.secondary};
+  gap: ${p => p.theme.space.md};
 `;
 
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: 4px;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.md};
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
   align-items: start;
-  margin: 0 -${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  margin: 0 -${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   grid-column: 1 / -1;
   text-align: center;
-  margin: ${p => (p.extraMargin ? space(3) : 0)} 0;
+  margin: ${p => (p.extraMargin ? p.theme.space['2xl'] : 0)} 0;
 `;
 
 const EditHighlightSection = styled('div')`
@@ -524,73 +544,63 @@ const EditHighlightSectionContent = styled('div')<{columnCount: number}>`
 const EditHighlightColumn = styled('div')`
   grid-column: span 1;
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    padding-left: ${space(2)};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    padding-left: ${p => p.theme.space.xl};
     margin-left: -1px;
   }
   &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    padding-right: ${space(2)};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
+    padding-right: ${p => p.theme.space.xl};
   }
 `;
 
 const EditPreviewColumn = styled(EditHighlightColumn)`
   display: grid;
-  grid-template-columns: 22px minmax(auto, 175px) 1fr;
+  grid-template-columns: min-content minmax(auto, 175px) 1fr;
   column-gap: 0;
+  row-gap: ${p => p.theme.space['2xs']};
   button {
-    margin-right: ${space(0.25)};
+    margin-right: ${p => p.theme.space['2xs']};
   }
 `;
 
 const EditPreviewContextItem = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   grid-column: span 2;
   &:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 const EditPreviewTagItem = styled(EventTagsTreeRow)`
   &:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 const EditTagContainer = styled('div')`
   display: grid;
-  grid-template-columns: 26px 1fr;
-  font-size: ${p => p.theme.fontSize.sm};
+  grid-template-columns: min-content 1fr;
+  font-size: ${p => p.theme.font.size.sm};
   align-items: center;
+  gap: ${p => p.theme.space.sm};
 `;
 
 const EditContextContainer = styled(EditTagContainer)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space['2xs']};
+  column-gap: ${p => p.theme.space.sm};
 `;
 
-const EditButton = styled(Button)`
-  grid-column: span 1;
-  color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
-  border-color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.border)};
-  width: 18px;
-  height: 18px;
-  min-height: 18px;
-  border-radius: 4px;
-  margin: ${space(0.25)} 0;
-  align-self: start;
-  svg {
-    height: 10px;
-    width: 10px;
-  }
-  &:hover {
-    color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
-  }
-`;
+function EditButton(props: DistributedOmit<ButtonProps, 'size'>) {
+  return <Button size="xs" {...props} />;
+}
 
 const HighlightKey = styled('p')<{disabled?: boolean}>`
   grid-column: span 1;
-  color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
-  font-family: ${p => p.theme.text.familyMono};
+  color: ${p =>
+    p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
+  font-family: ${p => p.theme.font.family.mono};
   margin-bottom: 0;
   word-wrap: break-word;
   word-break: break-all;
@@ -599,7 +609,7 @@ const HighlightKey = styled('p')<{disabled?: boolean}>`
 
 const ContextType = styled('p')`
   grid-column: span 2;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: capitalize;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;

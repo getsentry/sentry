@@ -1,14 +1,15 @@
 import {useMemo} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
@@ -37,7 +38,10 @@ const TARGET_VIEW_PROPERTIES = {
   },
 };
 
-function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButtonProps) {
+export function StarFixabilityViewButton({
+  isCompleted,
+  project,
+}: StarFixabilityViewButtonProps) {
   const organization = useOrganization();
 
   const {mutate: createIssueView} = useCreateGroupSearchView({
@@ -142,5 +146,3 @@ function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButt
     </Button>
   );
 }
-
-export default StarFixabilityViewButton;

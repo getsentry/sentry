@@ -5,7 +5,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -69,15 +69,20 @@ export function BaseTrafficWidget({
       countSeries &&
         new Bars(countSeries, {
           alias: trafficSeriesName,
-          color: theme.chart.neutral,
+          color: theme.tokens.dataviz.semantic.neutral,
         }),
       errorRateSeries &&
         new Line(errorRateSeries, {
           alias: t('Error Rate'),
-          color: theme.error,
+          color: theme.tokens.content.danger,
         }),
     ].filter(defined);
-  }, [data, theme.error, theme.chart.neutral, trafficSeriesName]);
+  }, [
+    data,
+    theme.tokens.content.danger,
+    theme.tokens.dataviz.semantic.neutral,
+    trafficSeriesName,
+  ]);
 
   const isEmpty = useMemo(
     () =>

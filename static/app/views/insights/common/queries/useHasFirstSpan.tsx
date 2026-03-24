@@ -1,7 +1,7 @@
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Project} from 'sentry/types/project';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const excludedModuleNames = [
@@ -24,7 +24,6 @@ const modulePropertyMap: Record<
   [ModuleName.SCREEN_LOAD]: 'hasInsightsScreenLoad',
   [ModuleName.AGENT_MODELS]: 'hasInsightsAgentMonitoring',
   [ModuleName.AGENT_TOOLS]: 'hasInsightsAgentMonitoring',
-  [ModuleName.AI_GENERATIONS]: 'hasInsightsAgentMonitoring',
   [ModuleName.APP_START]: 'hasInsightsAppStart',
   [ModuleName.MCP_TOOLS]: 'hasInsightsMCP',
   [ModuleName.MCP_RESOURCES]: 'hasInsightsMCP',

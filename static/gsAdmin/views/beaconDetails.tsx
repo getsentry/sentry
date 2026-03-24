@@ -1,19 +1,23 @@
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useParams} from 'sentry/utils/useParams';
 
-import BeaconCheckins from 'admin/components/beacons/beaconCheckins';
+import {BeaconCheckins} from 'admin/components/beacons/beaconCheckins';
 import type {BeaconData} from 'admin/components/beacons/beaconOverview';
-import BeaconOverview from 'admin/components/beacons/beaconOverview';
-import RelatedBeacons from 'admin/components/beacons/relatedBeacons';
-import DetailsPage from 'admin/components/detailsPage';
+import {BeaconOverview} from 'admin/components/beacons/beaconOverview';
+import {RelatedBeacons} from 'admin/components/beacons/relatedBeacons';
+import {DetailsPage} from 'admin/components/detailsPage';
 
-type Props = RouteComponentProps<{beaconId: string}, unknown>;
-
-function BeaconDetails({params}: Props) {
+export function BeaconDetails() {
+  const params = useParams<{beaconId: string}>();
   const {data, isPending, isError} = useApiQuery<BeaconData>(
-    [`/beacons/${params.beaconId}/`],
+    [
+      getApiUrl(`/beacons/$beaconId/`, {
+        path: {beaconId: params.beaconId},
+      }),
+    ],
     {
       staleTime: 0,
     }
@@ -54,5 +58,3 @@ function BeaconDetails({params}: Props) {
     />
   );
 }
-
-export default BeaconDetails;

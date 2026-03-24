@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
@@ -32,10 +33,12 @@ function canComparePrices(subscription: Subscription, initialPlan: Plan) {
   );
 }
 
-function useUpgradeNowParams({organization, subscription, enabled = true}: Opts) {
+export function useUpgradeNowParams({organization, subscription, enabled = true}: Opts) {
   const {isPending, data: billingConfig} = useApiQuery<BillingConfig>(
     [
-      `/customers/${organization.slug}/billing-config/`,
+      getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           tier: PlanTier.AM2,
@@ -100,11 +103,14 @@ function useUpgradeNowParams({organization, subscription, enabled = true}: Opts)
         reservedProfileDuration: reserved.profileDuration,
         reservedProfileDurationUI: reserved.profileDurationUI,
         reservedLogBytes: reserved.logBytes,
+        reservedSpans: reserved.spans,
+        reservedSeerAutofix: reserved.seerAutofix,
+        reservedSeerScanner: reserved.seerScanner,
+        reservedSeerUsers: reserved.seerUsers,
+        reservedSizeAnalyses: reserved.sizeAnalyses,
       },
     };
   }, [billingConfig, isPending, subscription, enabled]);
 
   return result;
 }
-
-export default useUpgradeNowParams;

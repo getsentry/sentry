@@ -1,8 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
+import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {filterItems} from 'sentry/views/replays/detail/utils';
@@ -49,7 +50,7 @@ const FILTERS = {
     ),
 };
 
-export default function useErrorFilters({errorFrames}: Options): Return {
+export function useErrorFilters({errorFrames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   const level = useMemo(() => decodeList(query.f_e_level), [query.f_e_level]);

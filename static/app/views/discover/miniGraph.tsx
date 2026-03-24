@@ -13,8 +13,8 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {getInterval} from 'sentry/components/charts/utils';
-import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
@@ -25,7 +25,7 @@ import type {PlotType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
@@ -172,7 +172,7 @@ class MiniGraph extends Component<Props> {
           if (errored) {
             return (
               <StyledGraphContainer>
-                <IconWarning color="gray300" size="md" />
+                <IconWarning variant="muted" size="md" />
                 <StyledErrorMessage>{errorMessage}</StyledErrorMessage>
               </StyledGraphContainer>
             );
@@ -209,7 +209,7 @@ class MiniGraph extends Component<Props> {
             : undefined;
 
           if (chartColors?.length && hasOther) {
-            chartColors.push(theme.chartOther);
+            chartColors.push(theme.tokens.content.secondary);
           }
 
           const chartOptions = {
@@ -228,8 +228,8 @@ class MiniGraph extends Component<Props> {
                 show: false,
               },
               axisLabel: {
-                color: theme.chartLabel,
-                fontFamily: theme.text.family,
+                color: theme.tokens.content.secondary,
+                fontFamily: theme.font.family.sans,
                 fontSize: 12,
                 formatter: (value: number) =>
                   axisLabelFormatter(
@@ -284,7 +284,7 @@ const StyledGraphContainer = styled((props: any) => (
 `;
 
 const StyledErrorMessage = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: 4px;
 `;
 

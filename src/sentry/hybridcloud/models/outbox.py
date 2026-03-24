@@ -23,8 +23,8 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
+    cell_silo_model,
     control_silo_model,
-    region_silo_model,
     sane_repr,
 )
 from sentry.db.postgres.transactions import (
@@ -33,11 +33,12 @@ from sentry.db.postgres.transactions import (
     in_test_assert_no_transaction,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.hybridcloud.outbox.signals import process_control_outbox, process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
 from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import metrics
+from sentry.utils.env import in_test_environment
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 
@@ -311,10 +312,23 @@ class OutboxBase(Model):
                     try:
                         coalesced.send_signal()
                     except Exception as e:
-                        raise OutboxFlushError(
-                            f"Could not flush shard category={coalesced.category} ({OutboxCategory(coalesced.category).name})",
-                            coalesced,
-                        ) from e
+                        category_number = coalesced.category
+                        category_name = OutboxCategory(category_number).name
+                        error_message = (
+                            f"Could not flush shard category={category_number} ({category_name})"
+                        )
+
+                        if in_test_environment():
+                            orig_error = f"{type(e).__name__}: {e}"
+                            error_message += (
+                                "\n\nNOTE: This error is the last in a chain. If you are seeing "
+                                + "this while running tests, your real problem is likely the error "
+                                + "causing this flush error:"
+                                + f"\n\n\t{orig_error}\n\n"
+                                + "Scroll up to that error for details."
+                            )
+
+                        raise OutboxFlushError(error_message, coalesced) from e
 
                 return True
         return False
@@ -398,10 +412,10 @@ class OutboxBase(Model):
         return cls.objects.count()
 
 
-# Outboxes bound from region silo -> control silo
-class RegionOutboxBase(OutboxBase):
+# Outboxes bound from cell silo -> control silo
+class CellOutboxBase(OutboxBase):
     def send_signal(self) -> None:
-        process_region_outbox.send(
+        process_cell_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
             object_identifier=self.object_identifier,
@@ -418,8 +432,8 @@ class RegionOutboxBase(OutboxBase):
     __repr__ = sane_repr("payload", *coalesced_columns)
 
 
-@region_silo_model
-class RegionOutbox(RegionOutboxBase):
+@cell_silo_model
+class CellOutbox(CellOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -443,24 +457,24 @@ class RegionOutbox(RegionOutboxBase):
         )
 
 
-# Outboxes bound from control silo -> region silo
+# Outboxes bound from control silo -> cell silo
 class ControlOutboxBase(OutboxBase):
-    sharding_columns = ("region_name", "shard_scope", "shard_identifier")
+    sharding_columns = ("cell_name", "shard_scope", "shard_identifier")
     coalesced_columns = (
-        "region_name",
+        "cell_name",
         "shard_scope",
         "shard_identifier",
         "category",
         "object_identifier",
     )
 
-    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
+    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, db_column="region_name")
 
     def send_signal(self) -> None:
         process_control_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
-            region_name=self.region_name,
+            region_name=self.cell_name,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
             shard_scope=self.shard_scope,
@@ -482,7 +496,7 @@ class ControlOutbox(ControlOutboxBase):
         indexes = (
             models.Index(
                 fields=(
-                    "region_name",
+                    "cell_name",
                     "shard_scope",
                     "shard_identifier",
                     "category",
@@ -491,23 +505,23 @@ class ControlOutbox(ControlOutboxBase):
             ),
             models.Index(
                 fields=(
-                    "region_name",
+                    "cell_name",
                     "shard_scope",
                     "shard_identifier",
                     "scheduled_for",
                 )
             ),
-            models.Index(fields=("region_name", "shard_scope", "shard_identifier", "id")),
+            models.Index(fields=("cell_name", "shard_scope", "shard_identifier", "id")),
         )
 
 
 def outbox_silo_modes() -> list[SiloMode]:
     cur = SiloMode.get_current_mode()
     result: list[SiloMode] = []
-    if cur != SiloMode.REGION:
+    if cur != SiloMode.CELL:
         result.append(SiloMode.CONTROL)
     if cur != SiloMode.CONTROL:
-        result.append(SiloMode.REGION)
+        result.append(SiloMode.CELL)
     return result
 
 

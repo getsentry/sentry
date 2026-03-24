@@ -3,8 +3,10 @@ import styled from '@emotion/styled';
 import type {InfiniteData, UseInfiniteQueryResult} from '@tanstack/react-query';
 import {useVirtualizer, type VirtualItem} from '@tanstack/react-virtual';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import type {ApiResult} from 'sentry/api';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
@@ -41,10 +43,7 @@ interface Props<ListItem, Response = Array<ApiResult<ListItem[]>>> {
   overscan?: number;
 }
 
-export default function InfiniteListItems<
-  ListItem,
-  Response = Array<ApiResult<ListItem[]>>,
->({
+export function InfiniteListItems<ListItem, Response = Array<ApiResult<ListItem[]>>>({
   deduplicateItems,
   emptyMessage = EmptyMessage,
   estimateSize,
@@ -79,7 +78,11 @@ export default function InfiniteListItems<
 
   return (
     <FlexOverscroll ref={parentRef} data-scrollable>
-      <FlexListContainer style={{height: rowVirtualizer.getTotalSize()}}>
+      <Stack
+        width="100%"
+        position="absolute"
+        style={{height: rowVirtualizer.getTotalSize()}}
+      >
         <PositionedList style={{transform: `translateY(${items[0]?.start ?? 0}px)`}}>
           {items.length ? null : emptyMessage()}
           {items.map(virtualItem => {
@@ -101,7 +104,7 @@ export default function InfiniteListItems<
             );
           })}
         </PositionedList>
-      </FlexListContainer>
+      </Stack>
     </FlexOverscroll>
   );
 }
@@ -130,13 +133,6 @@ const FlexOverscroll = styled('div')`
   overflow: auto;
   overscroll-behavior: contain;
   contain: strict;
-`;
-
-const FlexListContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  width: 100%;
-  flex-direction: column;
 `;
 
 const PositionedList = styled('ul')`

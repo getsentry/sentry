@@ -33,6 +33,11 @@ class ApiApplicationsEndpoint(Endpoint):
         )
 
     def post(self, request: Request) -> Response:
-        app = ApiApplication.objects.create(owner_id=request.user.id)
+        is_public = request.data.get("isPublic", False)
+
+        if is_public:
+            app = ApiApplication.objects.create(owner_id=request.user.id, client_secret=None)
+        else:
+            app = ApiApplication.objects.create(owner_id=request.user.id)
 
         return Response(serialize(app, request.user), status=201)

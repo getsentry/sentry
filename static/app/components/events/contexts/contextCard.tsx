@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
@@ -20,7 +21,7 @@ import type {Group, KeyValueListDataItem} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ContextCardProps {
   alias: string;
@@ -75,13 +76,7 @@ export function ContextCardContent({
   );
 }
 
-export default function ContextCard({
-  alias,
-  event,
-  type,
-  project,
-  value = {},
-}: ContextCardProps) {
+export function ContextCard({alias, event, type, project, value = {}}: ContextCardProps) {
   const location = useLocation();
   const organization = useOrganization();
   const theme = useTheme();
@@ -114,7 +109,7 @@ export default function ContextCard({
     <KeyValueData.Card
       contentItems={contentItems}
       title={
-        <Title>
+        <Flex justify="between" align="center">
           <div>{getContextTitle({alias, type, value})}</div>
           <div style={{minWidth: 14}}>
             <ErrorBoundary customComponent={null}>
@@ -129,15 +124,9 @@ export default function ContextCard({
               })}
             </ErrorBoundary>
           </div>
-        </Title>
+        </Flex>
       }
       sortAlphabetically
     />
   );
 }
-
-const Title = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;

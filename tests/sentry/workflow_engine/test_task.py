@@ -9,9 +9,12 @@ from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow import workflow_status_update_handler
+from sentry.workflow_engine.processors.data_condition_group import TriggerResult
+from sentry.workflow_engine.processors.workflow import EvaluationStats
 from sentry.workflow_engine.tasks.utils import fetch_event
 from sentry.workflow_engine.tasks.workflows import process_workflow_activity
 from sentry.workflow_engine.types import WorkflowEventData
@@ -19,7 +22,6 @@ from sentry.workflow_engine.types import WorkflowEventData
 
 class FetchEventTests(TestCase):
     def test_fetch_event_retries_on_retry_error(self) -> None:
-        """Test that fetch_event retries when encountering RetryError."""
         event_id = "test_event_id"
         project_id = self.project.id
 
@@ -40,10 +42,6 @@ class FetchEventTests(TestCase):
 
 class WorkflowStatusUpdateHandlerTests(TestCase):
     def test__no_detector_id(self) -> None:
-        """
-        Test that the workflow_status_update_handler does not crash
-        when no detector_id is provided in the status change message.
-        """
         group = self.create_group(project=self.project)
         activity = Activity(
             project=self.project,
@@ -137,8 +135,9 @@ class TestProcessWorkflowActivity(TestCase):
         self.activity.save()
         self.detector = self.create_detector(type=MetricIssue.slug)
 
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
-    def test_process_workflow_activity__no_workflows(self, mock_logger) -> None:
+    def test_process_workflow_activity__no_workflows(self, mock_logger: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
             return_value=set(),
@@ -166,18 +165,22 @@ class TestProcessWorkflowActivity(TestCase):
                 },
             )
 
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
-        return_value=(set(), {}),
+        return_value=({}, {}, EvaluationStats()),
     )
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
-        return_value=set(),
+        return_value=(set(), {}, EvaluationStats()),
     )
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__workflows__no_actions(
-        self, mock_logger, mock_eval_actions, mock_evaluate
-    ):
+        self,
+        mock_logger: mock.MagicMock,
+        mock_eval_actions: mock.MagicMock,
+        mock_evaluate: mock.MagicMock,
+    ) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
         self.create_detector_workflow(
             detector=self.detector,
@@ -216,7 +219,7 @@ class TestProcessWorkflowActivity(TestCase):
     @mock.patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity(
-        self, mock_logger, mock_filter_actions: mock.MagicMock
+        self, mock_logger: mock.MagicMock, mock_filter_actions: mock.MagicMock
     ) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
@@ -246,10 +249,11 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__success_logs(
-        self, mock_logger, mock_evaluate_workflow_triggers
+        self, mock_logger: mock.MagicMock, mock_evaluate_workflow_triggers: mock.MagicMock
     ) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
@@ -271,7 +275,11 @@ class TestProcessWorkflowActivity(TestCase):
             workflow=self.workflow,
         )
 
-        mock_evaluate_workflow_triggers.return_value = ({self.workflow}, {})
+        mock_evaluate_workflow_triggers.return_value = (
+            {self.workflow: TriggerResult.TRUE},
+            {},
+            EvaluationStats(),
+        )
         process_workflow_activity(
             activity_id=self.activity.id,
             group_id=self.group.id,

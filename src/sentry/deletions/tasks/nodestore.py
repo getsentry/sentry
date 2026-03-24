@@ -5,6 +5,7 @@ from typing import Any
 
 import sentry_sdk
 from snuba_sdk import DeleteQuery, Request
+from taskbroker_client.retry import Retry
 
 from sentry import eventstream, nodestore, options
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
@@ -19,9 +20,10 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.namespaces import deletion_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import UnqualifiedQueryError, bulk_snuba_queries
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 EVENT_CHUNK_SIZE = 10000
 # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
@@ -41,7 +43,7 @@ class RetryTask(Exception):
         times=MAX_RETRIES,
         delay=60 * 5,
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
@@ -218,12 +220,20 @@ def delete_events_from_eap(
     if not options.get("eventstream.eap.deletion-enabled"):
         return
 
+    retry_policy = ConditionalRetryPolicy(
+        test_function=lambda attempt, exc: attempt < 5
+        and isinstance(exc, SnubaRPCRateLimitExceeded),
+        delay_function=exponential_delay(1.0),
+    )
+
     try:
-        delete_groups_from_eap_rpc(
-            organization_id=organization_id,
-            project_id=project_id,
-            group_ids=group_ids,
-            referrer="deletions.group.eap",
+        retry_policy(
+            lambda: delete_groups_from_eap_rpc(
+                organization_id=organization_id,
+                project_id=project_id,
+                group_ids=group_ids,
+                referrer="deletions.group.eap",
+            )
         )
         metrics.incr(
             "deletions.group.eap.success",

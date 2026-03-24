@@ -1,11 +1,12 @@
 import {useTheme} from '@emotion/react';
 
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BarChart} from 'sentry/components/charts/barChart';
-import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
@@ -19,10 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {
-  PRIMARY_RELEASE_COLOR,
-  SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/insights/colors';
+import {PRIMARY_RELEASE_COLOR} from 'sentry/views/insights/colors';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
 import {
@@ -34,7 +32,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
 import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
@@ -48,18 +46,14 @@ interface DeviceClassBreakdownBarChartProps {
   chartHeight?: number;
 }
 
-function DeviceClassBreakdownBarChart({
+export function DeviceClassBreakdownBarChart({
   chartHeight,
   additionalFilters,
 }: DeviceClassBreakdownBarChartProps) {
   const theme = useTheme();
   const location = useLocation();
   const {query: locationQuery} = location;
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, isLoading: isReleasesLoading} = useReleaseSelection();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const startType =
@@ -78,9 +72,7 @@ function DeviceClassBreakdownBarChart({
   }
   query.addFilterValue('is_transaction', 'true');
 
-  const search = new MutableSearch(
-    appendReleaseFilters(query, primaryRelease, secondaryRelease)
-  );
+  const search = new MutableSearch(appendReleaseFilters(query, primaryRelease));
   const referrer = Referrer.DEVICE_CLASS_BREAKDOWN_BAR_CHART;
   const appStartMetric: SpanProperty =
     startType === COLD_START_TYPE
@@ -88,7 +80,7 @@ function DeviceClassBreakdownBarChart({
       : 'avg(measurements.app_start_warm)';
 
   const groupBy: SpanProperty[] = [SpanFields.DEVICE_CLASS];
-  if (defined(primaryRelease) || defined(secondaryRelease)) {
+  if (defined(primaryRelease)) {
     groupBy.push(SpanFields.RELEASE);
   }
   groupBy.push(appStartMetric);
@@ -110,7 +102,6 @@ function DeviceClassBreakdownBarChart({
     data: startupDataByDeviceClass,
     yAxes: YAXES,
     primaryRelease,
-    secondaryRelease,
     theme,
   });
 
@@ -141,7 +132,14 @@ function DeviceClassBreakdownBarChart({
   if (error) {
     return (
       <ChartContainer height={chartHeight}>
-        <Widget Title={Title} Visualization={<Widget.WidgetError error={error} />} />
+        <Widget
+          Title={Title}
+          Visualization={
+            <Container position="absolute" inset={0}>
+              <Widget.WidgetError error={error} />
+            </Container>
+          }
+        />
       </ChartContainer>
     );
   }
@@ -153,7 +151,7 @@ function DeviceClassBreakdownBarChart({
         right: 12,
       }}
       autoHeightResize
-      colors={[PRIMARY_RELEASE_COLOR, SECONDARY_RELEASE_COLOR]}
+      colors={[PRIMARY_RELEASE_COLOR]}
       series={
         data.map(series => ({
           ...series,
@@ -163,10 +161,7 @@ function DeviceClassBreakdownBarChart({
               : {
                   ...datum,
                   itemStyle: {
-                    color:
-                      series.seriesName === 'all' || series.seriesName === primaryRelease
-                        ? PRIMARY_RELEASE_COLOR
-                        : SECONDARY_RELEASE_COLOR,
+                    color: PRIMARY_RELEASE_COLOR,
                   },
                 }
           ),
@@ -176,7 +171,7 @@ function DeviceClassBreakdownBarChart({
       grid={{
         left: '0',
         right: '0',
-        top: space(2),
+        top: theme.space.xl,
         bottom: '0',
         containLabel: true,
       }}
@@ -227,7 +222,7 @@ function DeviceClassBreakdownBarChart({
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}
-              borderless
+              priority="transparent"
               icon={<IconExpand />}
               onClick={() => {
                 openInsightChartModal({
@@ -242,5 +237,3 @@ function DeviceClassBreakdownBarChart({
     </ChartContainer>
   );
 }
-
-export default DeviceClassBreakdownBarChart;

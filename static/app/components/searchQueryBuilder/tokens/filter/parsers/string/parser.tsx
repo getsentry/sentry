@@ -5,7 +5,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 
-import grammar from './grammar.pegjs';
+import {parse} from './grammar.pegjs';
 
 /**
  * Parses the user input value of a multi select filter.
@@ -19,7 +19,7 @@ export function parseMultiSelectFilterValue(
   config?: Partial<SearchConfig>
 ): TokenResult<Token.VALUE_TEXT_LIST> | null {
   try {
-    return grammar.parse(value, {TokenConverter, config});
+    return parse(value, {TokenConverter, config});
   } catch (e) {
     return null;
   }

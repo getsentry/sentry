@@ -1,13 +1,15 @@
 import type {ReactNode} from 'react';
 import omit from 'lodash/omit';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -55,7 +57,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
     'api.starfish.get-span-actions'
   );
 
-  const options: Array<SelectOption<string>> = useHTTPActions
+  const options = useHTTPActions
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
@@ -86,7 +88,12 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
   return (
     <CompactSelect
       style={{maxWidth: '200px'}}
-      triggerProps={{prefix: LABEL_FOR_MODULE_NAME[moduleName]}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={LABEL_FOR_MODULE_NAME[moduleName]}
+        />
+      )}
       options={options}
       value={value ?? ''}
       onChange={newValue => {
@@ -134,6 +141,5 @@ const LABEL_FOR_MODULE_NAME: Record<ModuleName, ReactNode> = {
   'mcp-tools': t('Action'),
   'mcp-resources': t('Action'),
   'mcp-prompts': t('Action'),
-  'ai-generations': t('Action'),
   sessions: t('Action'),
 };

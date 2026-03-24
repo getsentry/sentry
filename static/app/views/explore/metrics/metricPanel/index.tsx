@@ -1,9 +1,12 @@
 import {useState} from 'react';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Stack} from '@sentry/scraps/layout';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {TraceSamplesTableColumns} from 'sentry/views/explore/metrics/constants';
@@ -11,9 +14,12 @@ import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMe
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {useTableOrientationControl} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
+import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
+import {MetricInfoTabs} from 'sentry/views/explore/metrics/metricInfoTabs';
 import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/sideBySideOrientation';
 import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -30,6 +36,7 @@ interface MetricPanelProps {
 }
 
 export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
+  const organization = useOrganization();
   const {
     orientation,
     setOrientation: setUserPreferenceOrientation,
@@ -44,6 +51,8 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
 
   const columns = TraceSamplesTableColumns;
   const fields = columns.filter(c => getMetricTableColumnType(c) !== 'stat');
+
+  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
 
   const metricSamplesTableResult = useMetricSamplesTable({
     disabled: !traceMetric?.name || isMetricOptionsEmpty,
@@ -72,11 +81,35 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     metricSamplesTableResult,
     metricTimeseriesResult: timeseriesResult,
     mode,
-    yAxis: traceMetric.name || '',
+    traceMetric,
     sortBys,
     aggregateSortBys,
     panelIndex: queryIndex,
   });
+
+  if (hasMetricsUIRefresh) {
+    return (
+      <Panel data-test-id="metric-panel">
+        <PanelBody>
+          <Stack gap="sm">
+            <MetricsGraph
+              timeseriesResult={timeseriesResult}
+              orientation={orientation}
+              isMetricOptionsEmpty={isMetricOptionsEmpty}
+              queryIndex={queryIndex}
+            />
+            <MetricInfoTabs
+              traceMetric={traceMetric}
+              additionalActions={undefined}
+              contentsHidden={infoContentHidden}
+              orientation={orientation}
+              isMetricOptionsEmpty={isMetricOptionsEmpty}
+            />
+          </Stack>
+        </PanelBody>
+      </Panel>
+    );
+  }
 
   return (
     <Panel data-test-id="metric-panel">
@@ -84,7 +117,6 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
         {orientation === 'right' ? (
           <SideBySideOrientation
             timeseriesResult={timeseriesResult}
-            queryIndex={queryIndex}
             traceMetric={traceMetric}
             setOrientation={setUserPreferenceOrientation}
             orientation={orientation}
@@ -95,7 +127,6 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
         ) : (
           <StackedOrientation
             timeseriesResult={timeseriesResult}
-            queryIndex={queryIndex}
             traceMetric={traceMetric}
             setOrientation={setUserPreferenceOrientation}
             orientation={orientation}

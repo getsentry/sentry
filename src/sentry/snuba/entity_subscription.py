@@ -20,6 +20,7 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -35,6 +36,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils import metrics
 
 # TODO: If we want to support security events here we'll need a way to
@@ -296,6 +298,10 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             params = {}
 
         params["project_id"] = project_ids
+        is_trace_metric = (
+            self.event_types
+            and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC
+        )
 
         query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
         if environment:
@@ -304,6 +310,8 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         dataset_module: type[RPCBase]
         if self.event_types and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_LOG:
             dataset_module = OurLogs
+        elif is_trace_metric:
+            dataset_module = TraceMetrics
         else:
             dataset_module = Spans
         now = datetime.now(tz=timezone.utc)
@@ -322,12 +330,24 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             model_mode = ExtrapolationMode(self.extrapolation_mode)
             proto_extrapolation_mode = MODEL_TO_PROTO_EXTRAPOLATION_MODE.get(model_mode)
 
-        search_resolver = dataset_module.get_resolver(
-            snuba_params,
-            SearchResolverConfig(
+        if is_trace_metric:
+            search_config: SearchResolverConfig = TraceMetricsSearchResolverConfig(
+                metric=None,
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=False,
+                extrapolation_mode=proto_extrapolation_mode,
+                stable_timestamp_quantization=False,
+            )
+        else:
+            search_config = SearchResolverConfig(
                 stable_timestamp_quantization=False,
                 extrapolation_mode=proto_extrapolation_mode,
-            ),
+            )
+
+        search_resolver = dataset_module.get_resolver(
+            snuba_params,
+            search_config,
         )
 
         rpc_request, _, _ = dataset_module.get_timeseries_query(
@@ -362,12 +382,10 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self.aggregate = aggregate
         if not extra_fields or "org_id" not in extra_fields:
             raise InvalidQuerySubscription(
-                "org_id is a required param when "
-                "building snuba filter for a metrics subscription"
+                "org_id is a required param when building snuba filter for a metrics subscription"
             )
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
-        self.use_metrics_layer = False
 
         self.on_demand_metrics_enabled = features.has(
             "organizations:on-demand-metrics-extraction",
@@ -399,15 +417,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             return UseCaseID.SESSIONS
 
     def resolve_tag_key_if_needed(self, string: str) -> str:
-        if self.use_metrics_layer:
-            return string
-
         return resolve_tag_key(self._get_use_case_id(), self.org_id, string)
 
     def resolve_tag_values_if_needed(self, strings: Sequence[str]) -> Sequence[str | int]:
-        if self.use_metrics_layer:
-            return strings
-
         return resolve_tag_values(self._get_use_case_id(), self.org_id, strings)
 
     def build_query_builder(
@@ -437,11 +449,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             time_range_window=self.time_window,
             config=QueryBuilderConfig(
                 skip_time_conditions=True,
-                use_metrics_layer=self.use_metrics_layer,
                 on_demand_metrics_enabled=self.on_demand_metrics_enabled,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
-                insights_metrics_override_metric_layer=True,
             ),
         )
 
@@ -527,17 +537,13 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         return aggregated_results
 
     def get_snql_extra_conditions(self) -> list[Condition]:
-        # If we don't use the metrics layer we need to filter by metric here. The metrics layer does this automatically.
-        if not self.use_metrics_layer:
-            return [
-                Condition(
-                    Column("metric_id"),
-                    Op.EQ,
-                    resolve(UseCaseID.SESSIONS, self.org_id, self.metric_key.value),
-                )
-            ]
-
-        return []
+        return [
+            Condition(
+                Column("metric_id"),
+                Op.EQ,
+                resolve(UseCaseID.SESSIONS, self.org_id, self.metric_key.value),
+            )
+        ]
 
 
 class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):

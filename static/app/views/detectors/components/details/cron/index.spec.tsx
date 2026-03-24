@@ -13,7 +13,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {CronDetectorDetails} from 'sentry/views/detectors/components/details/cron';
 
 describe('CronDetectorDetails - check-ins', () => {
@@ -73,6 +73,14 @@ describe('CronDetectorDetails - check-ins', () => {
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.id}/monitors/${cronDataSource.queryObj.slug}/processing-errors/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/detectors/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/workflows/`,
       body: [],
     });
   });

@@ -3,19 +3,20 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {StylesConfig} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
+import {Stack} from '@sentry/scraps/layout';
+import type {StylesConfig} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+
 import type {MultiValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import RoleSelectControl from 'sentry/components/roleSelectControl';
+import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization, OrgRole} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import EmailValue from './emailValue';
+import {EmailValue} from './emailValue';
 import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
@@ -39,7 +40,7 @@ function orgOnlyAllowsMemberInvitesWithinTeam(organization: Organization): boole
   return isMemberInvite && membersCanOnlyInviteMemberTeams;
 }
 
-function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
+export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   const organization = useOrganization();
   const filterByUserMembership = orgOnlyAllowsMemberInvitesWithinTeam(organization);
   const {
@@ -110,7 +111,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   }, [isOverMemberLimit, setRole, setTeams]);
 
   return (
-    <RowWrapper>
+    <Stack gap="lg">
       <div>
         <Heading htmlFor="email-addresses">{t('Email addresses')}</Heading>
         <Select
@@ -126,7 +127,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
             DropdownIndicator: () => null,
           }}
           options={mapToOptions(emails)}
-          onBlur={(e: React.ChangeEvent<HTMLInputElement>) => {
+          onBlur={(e: any) => {
             handleInput(e.target.value);
           }}
           styles={getStyles(theme, inviteStatus)}
@@ -174,7 +175,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           />
         </div>
       </RoleTeamWrapper>
-    </RowWrapper>
+    </Stack>
   );
 }
 
@@ -190,9 +191,9 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
         ...provided,
         ...(status?.error
           ? {
-              color: theme.red400,
-              border: `1px solid ${theme.red300}`,
-              backgroundColor: theme.red100,
+              color: theme.colors.red500,
+              border: `1px solid ${theme.colors.red400}`,
+              backgroundColor: theme.colors.red100,
             }
           : {}),
       };
@@ -202,7 +203,7 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
       return {
         ...provided,
         pointerEvents: 'all',
-        ...(status?.error ? {color: theme.red400} : {}),
+        ...(status?.error ? {color: theme.colors.red500} : {}),
       };
     },
     multiValueRemove: (provided, {data}: MultiValueProps<SelectOption>) => {
@@ -211,8 +212,11 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
         ...provided,
         ...(status?.error
           ? {
-              borderLeft: `1px solid ${theme.red300}`,
-              ':hover': {backgroundColor: theme.red100, color: theme.red400},
+              borderLeft: `1px solid ${theme.colors.red400}`,
+              ':hover': {
+                backgroundColor: theme.colors.red100,
+                color: theme.colors.red500,
+              },
             }
           : {}),
       };
@@ -221,23 +225,15 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
 }
 
 const Heading = styled('label')`
-  margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-bottom: ${p => p.theme.space.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const RowWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const RoleTeamWrapper = styled('div')`
   display: grid;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   grid-template-columns: 1fr 1fr;
   align-items: start;
 `;
-
-export default InviteRowControl;

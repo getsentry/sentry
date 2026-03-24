@@ -767,8 +767,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "count_infos:>1",
                 "count_infos:<3",
                 f"viewed_by_id:{self.user.id}",
-                f"!viewed_by_id:{self.user.id+1}",
-                f"viewed_by_id:[{self.user.id+3},{self.user.id}]",
+                f"!viewed_by_id:{self.user.id + 1}",
+                f"viewed_by_id:[{self.user.id + 3},{self.user.id}]",
                 f"seen_by_id:{self.user.id}",
                 f"!seen_by_id:{self.user.id + 1}",
                 f"seen_by_id:[{self.user.id + 3},{self.user.id}]",
@@ -830,8 +830,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!c:*st",
                 "!activity:8",
                 "activity:<2",
-                f"viewed_by_id:{self.user.id+1}",
-                f"seen_by_id:{self.user.id+1}",
+                f"viewed_by_id:{self.user.id + 1}",
+                f"seen_by_id:{self.user.id + 1}",
                 "viewed_by_me:false",
                 "seen_by_me:false",
                 "user.email:[user2@example.com]",
@@ -1540,9 +1540,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400, query
-                assert (
-                    response.content == b'{"detail":"Only the \'=\' operator is supported."}'
-                ), query
+                assert response.content == b'{"detail":"Only the \'=\' operator is supported."}', (
+                    query
+                )
 
     def test_get_replays_field_order(self) -> None:
         """Test replay response with fields requested in production."""

@@ -1,5 +1,6 @@
 import {createContext, useContext} from 'react';
 
+import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
 export interface MonitorListAdditionalColumn {
@@ -21,6 +22,9 @@ export interface MonitorViewContextValue {
    * These appear to the right of the default columns and to the left of the visualization.
    */
   additionalColumns?: MonitorListAdditionalColumn[];
+  renderTimelineOverlay?: (props: {
+    timeWindowConfig: TimeWindowConfig;
+  }) => React.ReactNode;
   renderVisualization?: (params: RenderVisualizationParams) => React.ReactNode;
 }
 

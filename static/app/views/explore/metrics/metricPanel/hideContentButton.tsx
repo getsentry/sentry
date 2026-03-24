@@ -21,11 +21,11 @@ export function HideContentButton({
   return (
     <Button
       size="zero"
-      borderless
+      priority="transparent"
       aria-label={infoContentHidden ? t('Show Table') : t('Hide Table')}
       icon={<Icon />}
       onClick={onToggle}
-      title={infoContentHidden ? t('Show Table') : t('Hide Table')}
+      tooltipProps={{title: infoContentHidden ? t('Show Table') : t('Hide Table')}}
     />
   );
 }

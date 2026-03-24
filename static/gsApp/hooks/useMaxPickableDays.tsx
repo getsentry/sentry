@@ -11,11 +11,11 @@ import {
   type MaxPickableDaysOptions,
   type UseMaxPickableDaysProps,
 } from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {Subscription} from 'getsentry/types';
 
-import useSubscription from './useSubscription';
+import {useSubscription} from './useSubscription';
 
 export function useDefaultMaxPickableDays() {
   const subscription = useSubscription();
@@ -30,11 +30,12 @@ export function useMaxPickableDays({
 
   return useMemo(() => {
     function getMaxPickableDaysFor(dataCategory: DataCategory) {
-      if (organization.features.includes('downsampled-date-page-filter')) {
-        const maxPickableDays = getMaxPickableDaysByScription(dataCategory, subscription);
-        if (defined(maxPickableDays)) {
-          return maxPickableDays;
-        }
+      const maxPickableDays = getMaxPickableDaysBySubscription(
+        dataCategory,
+        subscription
+      );
+      if (defined(maxPickableDays)) {
+        return maxPickableDays;
       }
       return getMaxPickableDays(dataCategory, organization);
     }
@@ -43,7 +44,7 @@ export function useMaxPickableDays({
   }, [dataCategories, organization, subscription]);
 }
 
-function getMaxPickableDaysByScription(
+function getMaxPickableDaysBySubscription(
   dataCategory: DataCategory,
   subscription: Subscription | null
 ): MaxPickableDaysOptions | undefined {
@@ -51,7 +52,7 @@ function getMaxPickableDaysByScription(
     case DataCategory.SPANS:
     case DataCategory.SPANS_INDEXED: {
       // first day we started 13 months downsampled retention
-      const firstAvailableDate = moment('2025-08-26');
+      const firstAvailableDate = moment('2025-09-01');
       const now = moment();
       const elapsedDays = Math.max(0, Math.round(now.diff(firstAvailableDate, 'days')));
 
@@ -73,16 +74,6 @@ function getMaxPickableDaysByScription(
           Math.min(maxPickableDays, elapsedDays)
         ),
         upsellFooter: SpansUpsellFooter,
-      };
-    }
-    case DataCategory.PROFILE_CHUNKS:
-    case DataCategory.PROFILE_CHUNKS_UI:
-    case DataCategory.PROFILE_DURATION:
-    case DataCategory.PROFILE_DURATION_UI: {
-      return {
-        maxPickableDays: 30,
-        maxUpgradableDays: 30,
-        defaultPeriod: '24h',
       };
     }
     case DataCategory.TRACE_METRICS: {
@@ -111,6 +102,21 @@ function getMaxPickableDaysByScription(
         defaultPeriod: '24h',
       };
     }
+    case DataCategory.PROFILE_CHUNKS:
+    case DataCategory.PROFILE_CHUNKS_UI:
+    case DataCategory.PROFILE_DURATION:
+    case DataCategory.PROFILE_DURATION_UI:
+      return {
+        maxPickableDays: 30,
+        maxUpgradableDays: 30,
+        defaultPeriod: '24h',
+      };
+    case DataCategory.TRANSACTIONS:
+    case DataCategory.REPLAYS:
+      return {
+        maxPickableDays: subscription?.planDetails?.retentionDays ?? MAX_PICKABLE_DAYS,
+        maxUpgradableDays: MAX_PICKABLE_DAYS,
+      };
     default:
       return undefined;
   }

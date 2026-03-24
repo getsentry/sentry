@@ -28,8 +28,7 @@ import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
-import {space} from 'sentry/styles/space';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -48,18 +47,17 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
-import Grid from './components/grid';
-import Legend from './components/legend';
+import {Grid} from './components/grid';
+import {Legend} from './components/legend';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,
   type TooltipSubLabel,
 } from './components/tooltip';
-import XAxis from './components/xAxis';
-import YAxis from './components/yAxis';
-import LineSeries from './series/lineSeries';
+import {XAxis} from './components/xAxis';
+import {YAxis} from './components/yAxis';
+import {LineSeries} from './series/lineSeries';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -99,8 +97,7 @@ type Truncateable = {
 };
 
 export interface TooltipOption
-  extends Omit<TooltipComponentOption, 'valueFormatter'>,
-    Truncateable {
+  extends Omit<TooltipComponentOption, 'valueFormatter'>, Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
   formatAxisLabel?: (
     value: number,
@@ -335,7 +332,7 @@ const DEFAULT_ADDITIONAL_SERIES: LineSeriesOption[] = [];
 const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
-function BaseChart({
+export function BaseChart({
   animation,
   brush,
   colors,
@@ -405,7 +402,7 @@ function BaseChart({
     resolveColors ||
     (series.length
       ? theme.chart.getColorPalette(series.length)
-      : theme.chart.getColorPalette(theme.chart.colors.length));
+      : theme.chart.getColorPalette('all'));
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
@@ -454,17 +451,13 @@ function BaseChart({
           lineStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : isChonkTheme(theme)
-                ? theme.colors.gray400
-                : theme.gray200,
+              : theme.tokens.dataviz.semantic.neutral,
             type: 'dotted',
           },
           itemStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : isChonkTheme(theme)
-                ? theme.colors.gray400
-                : theme.gray200,
+              : theme.tokens.dataviz.semantic.neutral,
           },
           stack: 'previous',
           animation: false,
@@ -707,46 +700,50 @@ function BaseChart({
 }
 
 // Tooltip styles shared for regular and portalled tooltips
-export const getTooltipStyles = (p: {theme: Theme}) => css`
+const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {
-    color: ${p.theme.subText};
-    font-family: ${p.theme.text.family};
+    color: ${p.theme.tokens.content.secondary};
+    font-family: ${p.theme.font.family.sans};
     font-variant-numeric: tabular-nums;
-    padding: ${space(1)} ${space(2)};
-    border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
+    padding: ${p.theme.space.md} ${p.theme.space.xl};
+    border-radius: ${p.theme.radius.md} ${p.theme.radius.md} 0 0;
     cursor: pointer;
-    font-size: ${p.theme.fontSize.sm};
+    font-size: ${p.theme.font.size.sm};
   }
   .tooltip-release.tooltip-series > div,
   .tooltip-release.tooltip-footer {
     justify-content: center;
   }
   .tooltip-release.tooltip-series {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-release-timerange {
-    font-size: ${p.theme.fontSize.xs};
-    color: ${p.theme.textColor};
+    font-size: ${p.theme.font.size.xs};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-series {
     border-bottom: none;
     max-width: calc(100vw - 2 * ${CHART_TOOLTIP_VIEWPORT_OFFSET}px);
   }
   .tooltip-series-solo {
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${p.theme.radius.md};
   }
   .tooltip-label {
-    margin-right: ${space(1)};
-    ${p.theme.overflowEllipsis};
+    margin-right: ${p.theme.space.md};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .tooltip-label strong {
-    font-weight: ${p.theme.fontWeight.normal};
-    color: ${p.theme.textColor};
+    font-weight: ${p.theme.font.weight.sans.regular};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-value {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-indent {
     margin-left: 18px;
@@ -764,17 +761,17 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
   .tooltip-code-no-margin {
     padding-left: 0;
     margin-left: 0;
-    color: ${p.theme.subText};
+    color: ${p.theme.tokens.content.secondary};
   }
   .tooltip-footer {
-    border-top: solid 1px ${p.theme.innerBorder};
+    border-top: solid 1px ${p.theme.tokens.border.secondary};
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius};
+    border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md};
     display: flex;
     justify-content: space-between;
-    gap: ${space(3)};
+    gap: ${p.theme.space['2xl']};
   }
 
   .tooltip-footer-centered {
@@ -786,11 +783,12 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     &.arrow-top {
       bottom: 100%;
       top: auto;
-      border-bottom: 8px solid ${p.theme.backgroundElevated};
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      border-bottom: 8px solid ${p.theme.tokens.background.primary};
       border-top: none;
       &:before {
         border-top: none;
-        border-bottom: 8px solid ${p.theme.translucentBorder};
+        border-bottom: 8px solid ${p.theme.tokens.border.transparent.neutral.muted};
         bottom: -7px;
         top: auto;
       }
@@ -802,12 +800,13 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p.theme.backgroundElevated};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    border-top: 8px solid ${p.theme.tokens.background.primary};
     margin-left: -8px;
     &:before {
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
-      border-top: 8px solid ${p.theme.translucentBorder};
+      border-top: 8px solid ${p.theme.tokens.border.transparent.neutral.muted};
       content: '';
       display: block;
       position: absolute;
@@ -819,16 +818,16 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
 
   /* Tooltip description styling */
   .tooltip-description {
-    color: ${p.theme.white};
-    border-radius: ${p.theme.borderRadius};
+    color: ${p.theme.colors.white};
+    border-radius: ${p.theme.radius.md};
     background: #000;
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
-    font-weight: ${p.theme.fontWeight.bold};
-    font-size: ${p.theme.fontSize.sm};
+    font-weight: ${p.theme.font.weight.sans.medium};
+    font-size: ${p.theme.font.size.sm};
     line-height: 1.4;
-    font-family: ${p.theme.text.family};
+    font-family: ${p.theme.font.family.sans};
     max-width: 230px;
     min-width: 230px;
     white-space: normal;
@@ -869,5 +868,3 @@ const getPortalledTooltipStyles = (p: {theme: Theme}) => css`
     ${getTooltipStyles(p)};
   }
 `;
-
-export default BaseChart;

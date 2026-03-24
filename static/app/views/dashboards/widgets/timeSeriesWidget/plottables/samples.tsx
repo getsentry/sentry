@@ -4,7 +4,7 @@ import type {EChartsType, ScatterSeriesOption, SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import isValidDate from 'sentry/utils/date/isValidDate';
+import {isValidDate} from 'sentry/utils/date/isValidDate';
 import type {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {scaleTabularDataColumn} from 'sentry/utils/tabularData/scaleTabularDataColumn';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
@@ -287,7 +287,7 @@ export class Samples implements Plottable {
 
           const {color} = config.baselineValue
             ? getSampleChartSymbol(value, config.baselineValue, theme)
-            : {color: theme.gray500};
+            : {color: theme.colors.gray800};
           return color;
         },
       },

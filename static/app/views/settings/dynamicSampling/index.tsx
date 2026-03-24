@@ -1,19 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Alert} from '@sentry/scraps/alert';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   hasDynamicSamplingCustomFeature,
   hasDynamicSamplingFeature,
 } from 'sentry/utils/dynamicSampling/features';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectSampling} from 'sentry/views/settings/dynamicSampling/projectSampling';
 import {useHasDynamicSamplingReadAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
@@ -29,7 +29,7 @@ export default function DynamicSamplingSettings() {
   ) {
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {tct(
             'Custom Sample Rates for Dynamic Sampling are not available on your current plan. Check our [documentation] for information about how to set Sampling Priorities.',
             {
@@ -48,7 +48,7 @@ export default function DynamicSamplingSettings() {
   if (!hasDynamicSamplingCustomFeature(organization)) {
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {tct(
             'Dynamic Sampling is not available on your current plan. Check our [documentation] for more information about Dynamic Sampling.',
             {
@@ -99,7 +99,7 @@ export default function DynamicSamplingSettings() {
         </Fragment>
       ) : (
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {t('You need at least member permissions to view these settings.')}
           </Alert>
         </Alert.Container>
@@ -109,5 +109,5 @@ export default function DynamicSamplingSettings() {
 }
 
 const Paragraph = styled('p')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;

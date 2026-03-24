@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {ActionType} from 'sentry/types/workflowEngine/actions';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation, StatusWarning} from 'sentry/types/workflowEngine/automations';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -154,6 +154,7 @@ export function findConflictingConditions(
 
 const conflictingTriggers = new Set<DataConditionType>([
   DataConditionType.FIRST_SEEN_EVENT,
+  DataConditionType.ISSUE_RESOLVED_TRIGGER,
   DataConditionType.REGRESSION_EVENT,
   DataConditionType.REAPPEARED_EVENT,
 ]);
@@ -168,7 +169,7 @@ const frequencyTypes = new Set<DataConditionType>([
 function findFirstSeenEventConflictingConditions(
   conditionGroup: DataConditionGroup
 ): Set<string> {
-  const conflictingConditions: Set<string> = new Set<string>();
+  const conflictingConditions = new Set<string>();
 
   // Find incompatible conditions for NONE logic type
   if (conditionGroup.logicType === DataConditionGroupLogicType.NONE) {
@@ -224,7 +225,7 @@ function findFirstSeenEventConflictingConditions(
 function findConflictingPriorityConditions(
   conditionGroup: DataConditionGroup
 ): Set<string> {
-  const conflictingConditions: Set<string> = new Set<string>();
+  const conflictingConditions = new Set<string>();
 
   const priorityGreaterOrEqualConditions: string[] = [];
   const priorityDeescalatingConditions: string[] = [];
@@ -262,7 +263,7 @@ function findConflictingPriorityConditions(
 
 function findDuplicateTriggerConditions(triggers: DataConditionGroup): Set<string> {
   const conditionCounts: Record<string, string[]> = {};
-  const duplicates: Set<string> = new Set();
+  const duplicates = new Set<string>();
 
   // Count the number of conditions for each type
   for (const condition of triggers.conditions) {

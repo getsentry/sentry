@@ -1,23 +1,23 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   getAutofixRunExists,
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IssueSeerBadgeProps {
   group: Group;
 }
 
-function IssueSeerBadge({group}: IssueSeerBadgeProps) {
+export function IssueSeerBadge({group}: IssueSeerBadgeProps) {
   const organization = useOrganization();
   const issuesPath = `/organizations/${organization.slug}/issues/`;
   const location = useLocation();
@@ -51,7 +51,7 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
         }}
       >
         <IconSeer size="xs" />
-        {seerFixable && <p>{t('Quick Fix')}</p>}
+        {seerFixable && <span>{t('Quick Fix')}</span>}
       </SeerLink>
     </Tooltip>
   );
@@ -59,11 +59,9 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
 
 const SeerLink = styled(Link)`
   display: inline-grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   grid-auto-flow: column;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   position: relative;
 `;
-
-export default IssueSeerBadge;

@@ -2,13 +2,13 @@ import type {Theme} from '@emotion/react';
 import type {Query} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import Placeholder from 'sentry/components/placeholder';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
@@ -17,7 +17,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 import {transformEventStatsSmoothed} from 'sentry/views/performance/trends/utils';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
@@ -38,7 +38,7 @@ type Props = {
 } & Omit<React.ComponentProps<typeof ReleaseSeries>, 'children' | 'queryExtra'> &
   Pick<LineChartProps, 'onLegendSelectChanged' | 'legend'>;
 
-function Content({
+export function Content({
   errored,
   theme,
   series: data,
@@ -60,7 +60,7 @@ function Content({
   if (errored) {
     return (
       <ErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </ErrorPanel>
     );
   }
@@ -70,7 +70,7 @@ function Content({
         .map(values => {
           return {
             ...values,
-            color: theme.purple300,
+            color: theme.tokens.background.accent.vibrant,
             lineStyle: {
               opacity: 0.75,
               width: 1,
@@ -110,7 +110,7 @@ function Content({
       min: 0,
       minInterval: durationUnit,
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.secondary,
         formatter: (value: number) =>
           axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
@@ -123,7 +123,7 @@ function Content({
     ? smoothedResults.map(values => {
         return {
           ...values,
-          color: theme.purple300,
+          color: theme.tokens.background.accent.vibrant,
           lineStyle: {
             opacity: 1,
           },
@@ -170,5 +170,3 @@ function Content({
     </ChartZoom>
   );
 }
-
-export default Content;

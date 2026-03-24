@@ -136,7 +136,6 @@ def test_bind_organization_context_with_callback(default_organization, scope: Sc
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
 def test_bind_organization_context_with_callback_error(default_organization, scope: Scope) -> None:
-
     def add_context(scope, organization, **kwargs):
         1 / 0
 

@@ -19,7 +19,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/tags/foo/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/foo/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["key"] == "foo"
@@ -40,7 +40,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event.group.id}/tags/foo/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/foo/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["key"] == "foo"
@@ -69,7 +69,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event.group.id}/tags/foo/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/foo/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content

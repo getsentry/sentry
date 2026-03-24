@@ -14,44 +14,37 @@ exclude: >
 
 repos:
   # Many of these hooks are local because people use a variety of IDEs
-  # with autoformatters that need to call out to things like `black` directly.
+  # with autoformatters that need to call out to things like `ruff` directly.
   # pre-commit run is not the same, and something like pre-commit exec does
   # not exist yet.
   - repo: local
     hooks:
-      - id: pyupgrade
-        name: pyupgrade
-        entry: pyupgrade
-        args: ['--py313-plus']
+      # Configuration for ruff exists in pyproject.toml.
+      - id: ruff-check
+        name: ruff check
+        entry: .venv/bin/ruff check --force-exclude --fix
         language: system
         types: [python]
-      # Configuration for black exists in pyproject.toml,
-      # but we let pre-commit take care of the file filtering.
-      - id: black
-        name: black
-        entry: black
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: .venv/bin/ruff format --force-exclude
         language: system
         types_or: [python, pyi]
         require_serial: true
-      # Configuration for isort exists in pyproject.toml,
-      # but we let pre-commit take care of the file filtering.
-      - id: isort
-        name: isort
-        entry: isort
-        language: system
-        types: [python]
-      # Configuration for flake8 exists in setup.cfg,
-      # but we let pre-commit take care of the file filtering.
-      - id: flake8
-        name: flake8
-        entry: flake8
+      # Keep flake8 ONLY for custom Sentry S* rules.
+      # Ruff doesn't support custom AST-based plugins.
+      # Configuration for flake8 S* rules exists in setup.cfg.
+      - id: flake8-sentry
+        name: flake8 (sentry rules)
+        entry: .venv/bin/flake8 --select=S
         language: system
         types: [python]
         log_file: '.artifacts/flake8.pycodestyle.log'
         require_serial: true
       - id: mypy
         name: mypy
-        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec mypy "$@"; fi' --
+        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec .venv/bin/mypy "$@"; fi' --
         language: system
         stages: [pre-push]
         types: [python]
@@ -104,28 +97,11 @@ repos:
         files: \.[jt]sx?$
         entry: ./node_modules/.bin/stylelint --quiet
 
-      - id: prettier
-        name: prettier
+      - id: format
+        name: format
         language: system
         types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown]
-        entry: ./node_modules/.bin/prettier --log-level=error --write --experimental-cli --no-cache
-        # https://pre-commit.com/#regular-expressions
-        exclude: |
-          (?x)^($^
-            # prettier crashes on some of these, by intent:
-            |fixtures/.*
-            # these have enormous diffs when formatted:
-            |api-docs/paths/events/issue-hashes\.json
-            |api-docs/paths/events/latest-event\.json
-            |api-docs/paths/events/oldest-event\.json
-            |api-docs/paths/events/project-event-details\.json
-            |src/sentry/issues/event\.schema\.json
-            |static/app/data/world\.json
-            |static/app/utils/profiling/profile/formats/android/trace\.json
-            |static/app/utils/profiling/profile/formats/ios/trace\.json
-            |static/app/utils/profiling/profile/formats/node/trace\.json
-            |static/app/utils/profiling/profile/formats/typescript/trace\.json
-          )$
+        entry: ./node_modules/.bin/oxfmt
 
       - id: knip
         name: knip

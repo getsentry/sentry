@@ -1,19 +1,17 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
-import type {Location} from 'history';
 
-import {Button} from 'sentry/components/core/button';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import SimilarSpectrum from 'sentry/components/similarSpectrum';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {SimilarSpectrum} from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SimilarStackTraceItem} from './item';
 import Toolbar from './toolbar';
@@ -26,9 +24,7 @@ type Props = {
   groupId: string;
   hasSimilarityEmbeddingsFeature: boolean;
   items: SimilarItem[];
-  location: Location;
   onMerge: () => void;
-  orgId: Organization['id'];
   pageLinks: string | null;
   project: Project;
 } & DefaultProps;
@@ -45,15 +41,13 @@ function Empty() {
   );
 }
 
-function List({
-  orgId,
+export function List({
   groupId,
   project,
   items,
   filteredItems = [],
   pageLinks,
   onMerge,
-  location,
   hasSimilarityEmbeddingsFeature,
 }: Props) {
   const [showAllItems, setShowAllItems] = useState(false);
@@ -75,7 +69,7 @@ function List({
 
   return (
     <Fragment>
-      <Header>
+      <Flex justify="end" marginBottom="md">
         {!hasSimilarityEmbeddingsFeature && (
           <SimilarSpectrum
             highSpectrumLabel={t('Similar')}
@@ -88,7 +82,7 @@ function List({
             lowSpectrumLabel={t('Less Similar')}
           />
         )}
-      </Header>
+      </Flex>
       <Panel>
         <Toolbar
           onMerge={onMerge}
@@ -103,21 +97,19 @@ function List({
           {itemsWithFiltered.map(item => (
             <SimilarStackTraceItem
               key={item.issue.id}
-              orgId={orgId}
               groupId={groupId}
               project={project}
-              location={location}
               hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
               {...item}
             />
           ))}
 
           {hasHiddenItems && !showAllItems && !hasSimilarityEmbeddingsFeature && (
-            <Footer>
+            <Flex justify="center" padding="lg">
               <Button onClick={() => setShowAllItems(true)}>
                 {t('Show %s issues below threshold', filteredItems.length)}
               </Button>
-            </Footer>
+            </Flex>
           )}
         </PanelBody>
       </Panel>
@@ -125,17 +117,3 @@ function List({
     </Fragment>
   );
 }
-
-export default List;
-
-const Header = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: ${space(1)};
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding: ${space(1.5)};
-`;

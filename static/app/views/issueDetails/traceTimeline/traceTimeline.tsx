@@ -2,11 +2,10 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 import {TraceTimelineEvents} from './traceTimelineEvents';
@@ -84,12 +83,12 @@ const TimelineWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: start;
-  gap: ${space(2)};
-  margin-top: ${space(0.25)};
+  gap: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const QuestionTooltipWrapper = styled('div')`
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 /**
@@ -101,9 +100,9 @@ const TimelineOutline = styled('div')`
   top: 3.5px;
   width: 100%;
   height: 10px;
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
+  border-radius: ${p => p.theme.radius.md};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const TimelineEventsContainer = styled('div')`

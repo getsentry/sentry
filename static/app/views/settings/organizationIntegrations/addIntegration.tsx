@@ -3,7 +3,7 @@ import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -23,13 +23,15 @@ type Props = {
       | 'integrations_directory'
       | 'onboarding'
       | 'project_creation'
+      | 'seer_onboarding_github'
+      | 'seer_onboarding_code_review'
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';
   };
   modalParams?: Record<string, string>;
 };
 
-export default class AddIntegration extends Component<Props> {
+export class AddIntegration extends Component<Props> {
   componentDidMount() {
     window.addEventListener('message', this.didReceiveMessage);
   }
@@ -75,7 +77,9 @@ export default class AddIntegration extends Component<Props> {
       organization,
       ...analyticsParams,
     });
-    const name = 'sentryAddIntegration';
+    const name = modalParams?.use_staging
+      ? 'sentryAddStagingIntegration'
+      : 'sentryAddIntegration';
     const {url, width, height} = provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
 

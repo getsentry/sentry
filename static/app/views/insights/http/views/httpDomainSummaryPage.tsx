@@ -1,15 +1,18 @@
 import React, {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useProjects from 'sentry/utils/useProjects';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {useProjects} from 'sentry/utils/useProjects';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
@@ -26,7 +29,7 @@ import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle'
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
   DataTitles,
   getThroughputTitle,
@@ -154,7 +157,7 @@ export function HTTPDomainSummaryPage() {
           <Layout.Main width="full">
             {domain === '' && (
               <Alert.Container>
-                <Alert type="info" showIcon={false}>
+                <Alert variant="info" showIcon={false}>
                   {tct(
                     '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
                     {
@@ -263,8 +266,16 @@ const DEFAULT_SORT = {
 const TRANSACTIONS_TABLE_ROW_COUNT = 20;
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   return (
-    <ModulePageProviders moduleName="http" pageTitle={t('Domain Summary')}>
+    <ModulePageProviders
+      moduleName="http"
+      pageTitle={t('Domain Summary')}
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <HTTPDomainSummaryPage />
     </ModulePageProviders>
   );

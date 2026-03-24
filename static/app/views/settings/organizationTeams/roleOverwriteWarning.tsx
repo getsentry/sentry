@@ -1,5 +1,6 @@
-import {Tooltip} from 'sentry/components/core/tooltip';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {IconInfo} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {OrgRole, TeamRole} from 'sentry/types/organization';
@@ -19,7 +20,7 @@ export function RoleOverwriteIcon(props: Props) {
 
   return (
     <Tooltip title={getOverwriteString(props)}>
-      <IconInfo size="sm" color="gray300" />
+      <IconInfo size="sm" variant="muted" />
     </Tooltip>
   );
 }
@@ -31,7 +32,7 @@ export function RoleOverwritePanelAlert(props: Props) {
   }
 
   return (
-    <PanelAlert data-test-id="alert-role-overwrite" type="info">
+    <PanelAlert data-test-id="alert-role-overwrite" variant="info">
       {getOverwriteString(props)}
     </PanelAlert>
   );

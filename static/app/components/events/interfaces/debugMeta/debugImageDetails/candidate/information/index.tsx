@@ -2,16 +2,16 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
-import ProcessingItem from 'sentry/components/events/interfaces/debugMeta/processing/item';
-import ProcessingList from 'sentry/components/events/interfaces/debugMeta/processing/list';
-import FileSize from 'sentry/components/fileSize';
-import TimeSince from 'sentry/components/timeSince';
+import {FileSize} from 'sentry/components/fileSize';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   ImageCandidate,
   ImageCandidateInternalOk,
@@ -21,9 +21,9 @@ import type {
 import {CandidateDownloadStatus, SymbolType} from 'sentry/types/debugImage';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-import Divider from './divider';
-import Features from './features';
-import ProcessingIcon from './processingIcon';
+import {Divider} from './divider';
+import {Features} from './features';
+import {getProcessingInfoTooltip, ProcessingIcon} from './processingIcon';
 
 type Props = {
   candidate: ImageCandidate;
@@ -32,7 +32,7 @@ type Props = {
   eventDateReceived?: string;
 };
 
-function Information({
+export function Information({
   candidate,
   isInternalSource,
   hasReprocessWarning,
@@ -154,37 +154,32 @@ function Information({
       return null;
     }
 
-    const items: React.ComponentProps<typeof ProcessingList>['items'] = [];
-
     const {debug, unwind} = candidate as ImageCandidateOk;
 
-    if (debug) {
-      items.push(
-        <ProcessingItem
-          key="symbolication"
-          type="symbolication"
-          icon={<ProcessingIcon processingInfo={debug} />}
-        />
-      );
-    }
-
-    if (unwind) {
-      items.push(
-        <ProcessingItem
-          key="stack_unwinding"
-          type="stack_unwinding"
-          icon={<ProcessingIcon processingInfo={unwind} />}
-        />
-      );
-    }
-
-    if (!items.length) {
+    if (!debug && !unwind) {
       return null;
     }
 
     return (
       <Fragment>
-        <StyledProcessingList items={items} />
+        <Flex gap="sm">
+          {debug && (
+            <Tooltip title={getProcessingInfoTooltip(debug)} skipWrapper>
+              <Flex align="center" gap="sm">
+                <ProcessingIcon processingInfo={debug} />
+                <Text size="sm">{t('Symbolication')}</Text>
+              </Flex>
+            </Tooltip>
+          )}
+          {unwind && (
+            <Tooltip title={getProcessingInfoTooltip(unwind)} skipWrapper>
+              <Flex align="center" gap="sm">
+                <ProcessingIcon processingInfo={unwind} />
+                <Text size="sm">{t('Stack Unwinding')}</Text>
+              </Flex>
+            </Tooltip>
+          )}
+        </Flex>
         <Divider />
       </Fragment>
     );
@@ -209,7 +204,7 @@ function Information({
       <Fragment>
         <Tooltip title={tooltipDesc}>
           <TimeSinceWrapper>
-            {displayIcon && <IconWarning color="errorText" size="xs" />}
+            {displayIcon && <IconWarning variant="danger" size="xs" />}
             {tct('Uploaded [timesince]', {
               timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
             })}
@@ -247,8 +242,6 @@ function Information({
   );
 }
 
-export default Information;
-
 const Wrapper = styled('div')`
   white-space: pre-wrap;
   word-break: break-all;
@@ -256,35 +249,28 @@ const Wrapper = styled('div')`
 `;
 
 const FilenameOrLocation = styled('span')`
-  padding-left: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  padding-left: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Details = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
-  gap: ${space(1)};
-  color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSize.sm};
+  gap: ${p => p.theme.space.md};
+  color: ${p => p.theme.colors.gray500};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TimeSinceWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   font-variant-numeric: tabular-nums;
 `;
 
 const DateTimeWrapper = styled('div')`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
   font-variant-numeric: tabular-nums;
-`;
-
-const StyledProcessingList = styled(ProcessingList)`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  gap: ${space(1)};
 `;

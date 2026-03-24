@@ -1,21 +1,15 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useNavContext} from 'sentry/views/nav/context';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/nav/primary/components';
-import {NavLayout} from 'sentry/views/nav/types';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import TrialStartedSidebarItem from 'getsentry/components/trialStartedSidebarItem';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {hasPerformance, isBizPlanFamily} from 'getsentry/utils/billing';
 
@@ -45,24 +39,22 @@ function TryBusinessNavigationItem({
 
   const isNew = !subscription.isTrial && subscription.canTrial;
   const showIsNew = isNew && !tryBusinessSeen;
-  const {layout} = useNavContext();
 
   return (
-    <StackedNavTrialStartedSidebarItem {...{organization, subscription}}>
-      <SidebarButton
+    <TrialStartedSidebarItem {...{organization, subscription}}>
+      <PrimaryNavigation.Button
         label={t('Try Business')}
-        onClick={() => {
-          setTryBusinessSeen(true);
-          onClick();
-        }}
         analyticsKey="try-business"
-      >
-        <IconBusiness size="md" />
-        {showIsNew && (
-          <SidebarItemUnreadIndicator isMobile={layout === NavLayout.MOBILE} />
-        )}
-      </SidebarButton>
-    </StackedNavTrialStartedSidebarItem>
+        indicator={showIsNew ? 'accent' : undefined}
+        buttonProps={{
+          icon: <IconBusiness size="md" />,
+          onClick: () => {
+            setTryBusinessSeen(true);
+            onClick();
+          },
+        }}
+      />
+    </TrialStartedSidebarItem>
   );
 }
 
@@ -127,11 +119,5 @@ function TryBusinessSidebarItem(props: Props) {
     />
   );
 }
-
-const StackedNavTrialStartedSidebarItem = styled(TrialStartedSidebarItem)`
-  margin: 0;
-  padding: 0;
-  border-radius: ${p => p.theme.borderRadius};
-`;
 
 export default withSubscription(TryBusinessSidebarItem, {noLoader: true});

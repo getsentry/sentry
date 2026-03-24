@@ -11,9 +11,9 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
     AggregationFilter,
+    TraceItemTableRequest,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
 from sentry_protos.snuba.v1.formula_pb2 import Literal
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta as EAPRequestMeta
@@ -239,9 +239,9 @@ def test_column_expressions(column, eap_type):  # type: ignore[no-untyped-def]
 
 
 def test_literal_expressions():  # type: ignore[no-untyped-def]
-    assert expression(1, SETTINGS) == EAPColumn(literal=Literal(val_double=float(1.0)))
-    assert expression(1.0, SETTINGS) == EAPColumn(literal=Literal(val_double=float(1.0)))
-    assert expression(True, SETTINGS) == EAPColumn(literal=Literal(val_double=float(1.0)))
+    assert expression(1, SETTINGS) == EAPColumn(literal=Literal(val_double=1.0))
+    assert expression(1.0, SETTINGS) == EAPColumn(literal=Literal(val_double=1.0))
+    assert expression(True, SETTINGS) == EAPColumn(literal=Literal(val_double=1.0))
     with pytest.raises(TypeError):
         expression("1", SETTINGS)
 

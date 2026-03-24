@@ -11,6 +11,8 @@ class TimeSeriesPoint(TypedDict):
     timestamp: float
     value: float
     anomaly: NotRequired[Anomaly]
+    yhat_lower: NotRequired[float]
+    yhat_upper: NotRequired[float]
 
 
 class DataSourceType(IntEnum):
@@ -31,6 +33,9 @@ class AnomalyDetectionConfig(TypedDict):
     sensitivity: str
     direction: str
     expected_seasonality: str
+    aggregate: NotRequired[
+        str
+    ]  # only "count" or "other" - for applying static threshold to count metrics
 
 
 class StoreDataRequest(TypedDict):
@@ -117,6 +122,12 @@ class AnomalyThresholdDataPoint(TypedDict):
     value: float
     yhat_lower: float
     yhat_upper: float
+
+
+class GetAnomalyThresholdDataRequest(TypedDict):
+    alert: AlertInSeer
+    start: float
+    end: float
 
 
 class SeerDetectorDataResponse(TypedDict):

@@ -1,16 +1,17 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {DowntimeDuration} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Event, EventEvidenceDisplay} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 
 enum KnownEvidence {
@@ -144,7 +145,11 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
   return items.length > 0 ? (
     <div>
-      <ScrollCarousel gap={3} aria-label={t('Occurrence summary')} className={className}>
+      <ScrollCarousel
+        gap="2xl"
+        aria-label={t('Occurrence summary')}
+        className={className}
+      >
         {items.map((item, i) => (
           <div key={i}>{item}</div>
         ))}
@@ -154,25 +159,25 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 }
 
 const ItemTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ItemValue = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   max-width: 400px;
 `;
 
 const ItemTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const ItemLink = styled(Link)`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.lg};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.lg};
   text-decoration: underline;
   text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.subText};
+  text-decoration-color: ${p => p.theme.tokens.content.secondary};
 `;

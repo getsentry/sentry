@@ -2,14 +2,16 @@ import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
@@ -135,7 +137,7 @@ export function DomainSelector({
     });
   }
 
-  const projectIds = pageFilters.selection.projects.sort();
+  const projectIds = [...pageFilters.selection.projects].sort();
   const cacheKey = [...additionalQuery, ...projectIds].join(' ');
 
   const {options: domainOptions} = useCompactSelectOptionsCache(
@@ -165,18 +167,18 @@ export function DomainSelector({
       options={options}
       emptyMessage={t('No results')}
       loading={isPending}
-      searchable
+      search={{
+        onChange: newValue => {
+          if (!wasSearchSpaceExhausted) {
+            debouncedSetSearch(newValue);
+          }
+        },
+      }}
       menuTitle={domainAlias}
-      maxMenuWidth="500px"
       data-test-id="domain-selector"
-      onSearch={newValue => {
-        if (!wasSearchSpaceExhausted) {
-          debouncedSetSearch(newValue);
-        }
-      }}
-      triggerProps={{
-        prefix: domainAlias,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={domainAlias} />
+      )}
       onChange={newValue => {
         trackAnalytics('insight.general.select_domain_value', {
           organization,

@@ -1,12 +1,13 @@
 import {useMemo} from 'react';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
+import {hasLogAlerts, hasTraceMetricsAlerts} from 'sentry/views/alerts/wizard/utils';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
@@ -50,6 +51,15 @@ export function useDatasetChoices(): Array<SelectValue<DetectorDataset>> {
               value: DetectorDataset.LOGS,
               label: t('Logs'),
               trailingItems: <FeatureBadge type="new" />,
+            },
+          ]
+        : []),
+      ...(hasTraceMetricsAlerts(organization)
+        ? [
+            {
+              value: DetectorDataset.METRICS,
+              label: t('Metrics'),
+              trailingItems: <FeatureBadge type="beta" />,
             },
           ]
         : []),

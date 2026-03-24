@@ -51,6 +51,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
             "alert_id": self.alert_rule.id,
             "data_packet_source_id": str(self.query_subscription.id),
             "conditions": conditions,
+            "config": self.detector.config,
             "data_sources": [
                 {
                     "id": str(self.data_source.id),
@@ -92,7 +93,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         assert occurrence.level == "error"
         assert occurrence.priority == detector_trigger.condition_result
         assert occurrence.assignee
-        assert occurrence.assignee.id == self.detector.created_by_id
+        assert occurrence.assignee.id == self.detector.owner_user_id
 
     def test_metric_issue_occurrence(self) -> None:
         value = self.critical_detector_trigger.comparison + 1
@@ -334,6 +335,21 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
         assert (
             get_alert_type_from_aggregate_dataset(
                 "count(span.duration)", Dataset.EventsAnalyticsPlatform
+            )
+            == "eap_metrics"
+        )
+
+    def test_extract_eap_metrics_alert_trace_metrics(self) -> None:
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "per_second(value,metric_name_one,counter,-)", Dataset.EventsAnalyticsPlatform
+            )
+            == "eap_metrics"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "count(metric.name,metric_name_two,distribution,-)",
+                Dataset.EventsAnalyticsPlatform,
             )
             == "eap_metrics"
         )

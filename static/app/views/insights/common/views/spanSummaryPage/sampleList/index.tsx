@@ -2,22 +2,23 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useRouter} from 'sentry/utils/useRouter';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
-import decodeSubregions from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
+import {decodeSubregions} from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
@@ -25,15 +26,38 @@ import type {
   NonDefaultSpanSampleFields,
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
-import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
-import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
-import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
-import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
+import {DurationChart} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
+import {SampleInfo} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
+import {SampleTable} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanFields;
+
+interface SampleListSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  moduleName: ModuleName;
+  query: string;
+  selection: PageFilters;
+}
+
+function SampleListSearchQueryBuilder({
+  query,
+  handleSearch,
+  selection,
+  moduleName,
+}: SampleListSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    searchSource: `${moduleName}-sample-panel`,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 type Props = {
   groupId: string;
@@ -145,68 +169,65 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   return (
     <PageAlertProvider>
-      <InsightsSpanTagProvider>
-        <EventDrawerHeader>
-          <SampleDrawerHeaderTransaction
-            project={project}
-            transaction={transactionName}
-            transactionMethod={transactionMethod}
-          />
-        </EventDrawerHeader>
+      <EventDrawerHeader>
+        <SampleDrawerHeaderTransaction
+          project={project}
+          transaction={transactionName}
+          transactionMethod={transactionMethod}
+        />
+      </EventDrawerHeader>
 
-        <SampleDrawerBody>
-          <PageAlert />
+      <SampleDrawerBody>
+        <PageAlert />
 
-          <SampleInfo
-            groupId={groupId}
-            transactionName={transactionName}
-            transactionMethod={transactionMethod}
-            subregions={subregions}
-          />
+        <SampleInfo
+          groupId={groupId}
+          transactionName={transactionName}
+          transactionMethod={transactionMethod}
+          subregions={subregions}
+        />
 
-          <DurationChart
-            groupId={groupId}
-            transactionName={transactionName}
-            transactionMethod={transactionMethod}
-            subregions={subregions}
-            additionalFields={additionalFields}
-            onClickSample={handleClickSample}
-            onMouseOverSample={handleMouseOverSample}
-            onMouseLeaveSample={handleMouseLeaveSample}
-            spanSearch={spanSearch}
-            highlightedSpanId={highlightedSpanId}
-          />
+        <DurationChart
+          groupId={groupId}
+          transactionName={transactionName}
+          transactionMethod={transactionMethod}
+          subregions={subregions}
+          additionalFields={additionalFields}
+          onClickSample={handleClickSample}
+          onMouseOverSample={handleMouseOverSample}
+          onMouseLeaveSample={handleMouseLeaveSample}
+          spanSearch={spanSearch}
+          highlightedSpanId={highlightedSpanId}
+        />
 
-          <StyledSearchBar>
-            <EapSpanSearchQueryBuilderWrapper
-              projects={selection.projects}
-              initialQuery={spanSearchQuery ?? ''}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              searchSource={`${moduleName}-sample-panel`}
-            />
-          </StyledSearchBar>
-
-          <SampleTable
-            highlightedSpanId={highlightedSpanId}
-            transactionMethod={transactionMethod}
-            onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
-            onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
-            groupId={groupId}
+        <StyledSearchBar>
+          <SampleListSearchQueryBuilder
+            query={spanSearchQuery ?? ''}
             moduleName={moduleName}
-            transactionName={transactionName}
-            subregions={subregions}
-            spanSearch={spanSearch}
-            columnOrder={columnOrder}
-            additionalFields={additionalFields}
-            referrer={referrer}
+            selection={selection}
+            handleSearch={handleSearch}
           />
-        </SampleDrawerBody>
-      </InsightsSpanTagProvider>
+        </StyledSearchBar>
+
+        <SampleTable
+          highlightedSpanId={highlightedSpanId}
+          transactionMethod={transactionMethod}
+          onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
+          onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
+          groupId={groupId}
+          moduleName={moduleName}
+          transactionName={transactionName}
+          subregions={subregions}
+          spanSearch={spanSearch}
+          columnOrder={columnOrder}
+          additionalFields={additionalFields}
+          referrer={referrer}
+        />
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }
 
 const StyledSearchBar = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space.xl} 0;
 `;

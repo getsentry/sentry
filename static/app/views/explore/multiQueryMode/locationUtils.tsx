@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
@@ -28,6 +28,7 @@ export type ReadableExploreQueryParts = {
   query: string;
   sortBys: Sort[];
   yAxes: string[];
+  caseInsensitive?: '1' | null;
   chartType?: ChartType;
 };
 
@@ -99,10 +100,12 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
     }
 
     const groupBys: string[] = parsed.groupBys ?? [];
-    const fields: string[] = getFieldsForConstructedQuery(yAxes);
+    const fields = getFieldsForConstructedQuery(yAxes);
 
     const parsedSortBys = decodeSorts(parsed.sortBys);
     const sortBys = validateSortBys(parsedSortBys, groupBys, fields, yAxes);
+
+    const caseInsensitive = parsed.caseInsensitive ?? undefined;
 
     return {
       yAxes,
@@ -111,6 +114,7 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
       query: parsed.query ?? '',
       groupBys,
       fields,
+      caseInsensitive,
     };
   } catch (error) {
     return DEFAULT_QUERY;
@@ -136,6 +140,7 @@ export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
 // Write utils begin
 
 type WritableExploreQueryParts = {
+  caseInsensitive?: '1' | null;
   chartType?: ChartType;
   fields?: string[];
   groupBys?: readonly string[];
@@ -148,6 +153,7 @@ function getQueriesAsUrlParam(queries: WritableExploreQueryParts[]): string[] {
   return queries.map(query =>
     JSON.stringify({
       chartType: query.chartType,
+      caseInsensitive: query.caseInsensitive,
       fields: query.fields,
       groupBys: query.groupBys,
       query: query.query,

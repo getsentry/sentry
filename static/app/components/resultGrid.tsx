@@ -1,16 +1,18 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {RequestOptions} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Option = [value: string, label: string];
 
@@ -24,6 +26,7 @@ type FilterProps = {
 
 function Filter({name, options, path, queryKey, value}: FilterProps) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const currentLabel = useMemo(() => {
     const selected = options.find(item => item[0] === (value ?? ''));
@@ -35,11 +38,11 @@ function Filter({name, options, path, queryKey, value}: FilterProps) {
 
   const selector = (
     <CompactSelect
-      triggerProps={{
-        size: 'sm',
-        borderless: true,
-        children: currentLabel,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} size="sm" priority="transparent">
+          {currentLabel}
+        </OverlayTrigger.Button>
+      )}
       options={[
         {
           value: 'any',
@@ -54,9 +57,9 @@ function Filter({name, options, path, queryKey, value}: FilterProps) {
       onChange={({value: selectedValue}) => {
         if (selectedValue === 'any') {
           const query = {...location.query, cursor: undefined, [queryKey]: undefined};
-          browserHistory.push({pathname: path, query});
+          navigate({pathname: path, query});
         } else {
-          browserHistory.push({
+          navigate({
             pathname: path,
             query: {
               ...location.query,
@@ -84,6 +87,7 @@ type SortByProps = {
 
 function SortBy({options, path, value}: SortByProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentSortLabel = useMemo(
     () => options.find(([optValue]) => optValue === value)?.[1],
     [options, value]
@@ -96,17 +100,17 @@ function SortBy({options, path, value}: SortByProps) {
   const sortBySelector = (
     <div className="sort-options">
       <CompactSelect
-        triggerProps={{
-          size: 'sm',
-          borderless: true,
-          children: currentSortLabel,
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} size="sm" priority="transparent">
+            {currentSortLabel ?? triggerProps.children}
+          </OverlayTrigger.Button>
+        )}
         options={options.map(option => ({
           value: option[0],
           label: option[1],
         }))}
         onChange={({value: selected}) => {
-          browserHistory.push({
+          navigate({
             pathname: path,
             query: {...location.query, sortBy: selected, cursor: undefined},
           });
@@ -163,9 +167,10 @@ type State = {
   sortBy: string;
 };
 
-function ResultGrid(props: Props) {
+export function ResultGrid(props: Props) {
   const api = useApi({persistInFlight: true});
   const location = useLocation();
+  const navigate = useNavigate();
 
   const {
     path = '',
@@ -245,7 +250,7 @@ function ResultGrid(props: Props) {
 
     e.preventDefault();
 
-    browserHistory.push({
+    navigate({
       pathname: path,
       query: targetQueryParams,
     });
@@ -269,7 +274,7 @@ function ResultGrid(props: Props) {
   const renderError = () => (
     <tr>
       <td colSpan={columns.length}>
-        <Alert type="error" showIcon={false}>
+        <Alert variant="danger" showIcon={false}>
           Something bad happened :(
         </Alert>
       </td>
@@ -343,8 +348,6 @@ function ResultGrid(props: Props) {
     </ResultGridContainer>
   );
 }
-
-export default ResultGrid;
 
 /**
  * Styles migrated from sentry/result-grid.less

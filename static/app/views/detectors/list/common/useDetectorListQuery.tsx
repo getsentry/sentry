@@ -1,7 +1,7 @@
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
 import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
@@ -19,7 +19,7 @@ export function useDetectorListQuery({
   const {selection, isReady} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query);
-  const sort = useDetectorListSort();
+  const [sort] = useDetectorListSort();
 
   // Build the query with detector type and assignee filters if provided
   // Map DetectorType values to query values (e.g., 'monitor_check_in_failure' -> 'cron')

@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!sentry/components/dropdownMenu';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconCopy, IconDelete, IconDownload, IconEdit} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-export default Storybook.story('DropdownMenu', (story, APIReference) => {
-  APIReference(documentation.props.DropdownMenu);
+export const documentation = import('!!type-loader!sentry/components/dropdownMenu');
 
+export default Storybook.story('DropdownMenu', story => {
   story('Default', () => {
     const items: MenuItemProps[] = [
       {

@@ -99,34 +99,27 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
 
   const module = extractRequest(this._module);
 
-  Promise.all([
-    extractComponentProps(this._module, this.resourcePath),
-    extractModuleExports(program, sourceFile),
-  ])
-    .then(([moduleProps, moduleExports]) => {
-      const typeLoaderResult: TypeLoader.TypeLoaderResult = {
-        props: moduleProps,
-        exports: {
-          module,
-          exports: moduleExports,
-        },
-      };
-      return callback(null, `export default ${JSON.stringify(typeLoaderResult)}`);
-    })
-    .catch(error => {
-      return callback(error);
-    });
+  const moduleProps = extractComponentProps(this._module, this.resourcePath);
+  const moduleExports = extractModuleExports(program, sourceFile);
+
+  const typeLoaderResult: TypeLoader.TypeLoaderResult = {
+    props: moduleProps,
+    exports: {
+      module,
+      exports: moduleExports,
+    },
+  };
+  return callback(null, `export default ${JSON.stringify(typeLoaderResult)}`);
 }
 
 function noopTypeLoader(this: LoaderContext<any>, _source: string) {
   const callback = this.async();
-  return callback(null, 'export default {}');
+  return callback(null, 'export default {props: {},exports: {}}');
 }
 
 export default function typeLoader(this: LoaderContext<any>, _source: string) {
-  const STORYBOOK_TYPES = process.env.STORYBOOK_TYPES
-    ? process.env.STORYBOOK_TYPES === '1'
-    : process.env.NODE_ENV === 'production';
+  // Allow acceptance tests to opt out of type-loader for performance reasons
+  const STORYBOOK_TYPES = process.env.IS_ACCEPTANCE_TEST !== '1';
 
   return STORYBOOK_TYPES
     ? prodTypeloader.call(this, _source)

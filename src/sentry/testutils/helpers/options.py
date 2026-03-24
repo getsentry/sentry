@@ -28,7 +28,7 @@ def override_options(options):
         except KeyError:
             return wrapped(key, **kwargs)
 
-    def new_lookup(self: OptionsManager, key):
+    def new_lookup(self: OptionsManager, key: str):
         # use the default key definition if available
         if key not in options or key in self.registry:
             return original_lookup(self, key)

@@ -9,14 +9,14 @@ import type {
 } from 'echarts';
 import moment from 'moment-timezone';
 
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
-import AreaSeries from 'sentry/components/charts/series/areaSeries';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {UsageChartProps} from 'sentry/views/organizationStats/usageChart';
-import UsageChart, {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
+import {ChartDataTransform, UsageChart} from 'sentry/views/organizationStats/usageChart';
 import {getDateFromMoment} from 'sentry/views/organizationStats/usageChart/utils';
 
 import type {SpikeDetails, SpikeThresholds} from 'getsentry/views/spikeProtection/types';
@@ -60,7 +60,7 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
     return LineSeries({
       name: t('Spike Protection Threshold'),
       lineStyle: {type: 'dotted'},
-      color: theme.gray300,
+      color: theme.colors.gray400,
       data: seriesData,
       legendHoverLink: false,
       zlevel: 2,
@@ -130,21 +130,21 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
       name: t('Spikes'),
       type: 'line',
       markArea: MarkArea({
-        emphasis: {itemStyle: {color: theme.red300}},
+        emphasis: {itemStyle: {color: theme.colors.red400}},
         data: spikeAreaData,
-        itemStyle: {color: theme.red200, opacity: 0.2},
+        itemStyle: {color: theme.colors.red200, opacity: 0.2},
         silent: true,
       }),
       markLine: MarkLine({
         label: {show: false},
         silent: true,
         data: spikeLineData,
-        itemStyle: {color: theme.red200},
+        itemStyle: {color: theme.colors.red200},
         lineStyle: {type: 'solid'},
       }),
       itemStyle: {
-        color: theme.red100,
-        borderColor: theme.red300,
+        color: theme.colors.red100,
+        borderColor: theme.colors.red400,
         borderWidth: 0.1,
       },
       zlevel: 0,

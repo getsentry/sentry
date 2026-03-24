@@ -4,15 +4,15 @@ import Jed from 'jed';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
 import {sprintf} from 'sprintf-js';
 
-import toArray from 'sentry/utils/array/toArray';
-import localStorage from 'sentry/utils/localStorage';
+import {toArray} from 'sentry/utils/array/toArray';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 const markerStyles = {
   background: '#ff801790',
   outline: '2px solid #ff801790',
 };
 
-const LOCALE_DEBUG = localStorage.getItem('localeDebug') === '1';
+const LOCALE_DEBUG = localStorageWrapper.getItem('localeDebug') === '1';
 
 export const DEFAULT_LOCALE_DATA = {
   '': {
@@ -23,7 +23,7 @@ export const DEFAULT_LOCALE_DATA = {
 };
 
 function setLocaleDebug(value: boolean) {
-  localStorage.setItem('localeDebug', value ? '1' : '0');
+  localStorageWrapper.setItem('localeDebug', value ? '1' : '0');
   // eslint-disable-next-line no-console
   console.log(`Locale debug is: ${value ? 'on' : 'off'}. Reload page to apply changes!`);
 }
@@ -33,7 +33,7 @@ function setLocaleDebug(value: boolean) {
  * page. The caller should do this.
  */
 export function toggleLocaleDebug() {
-  const currentValue = localStorage.getItem('localeDebug');
+  const currentValue = localStorageWrapper.getItem('localeDebug');
   setLocaleDebug(currentValue !== '1');
 }
 
@@ -70,10 +70,6 @@ type FormatArg = ComponentMap | React.ReactNode;
  */
 function getClient(): Jed | null {
   if (!i18n) {
-    // If this happens, it could mean that an import was added/changed where
-    // locale initialization does not happen soon enough.
-    // eslint-disable-next-line no-console
-    console.warn('Locale not set, defaulting to English');
     return setLocale(DEFAULT_LOCALE_DATA);
   }
 
@@ -419,6 +415,22 @@ export function tctCode(template: string, components: ComponentMap = {}) {
 }
 
 /**
+ * Translates a string without formatting support. Used for translating
+ * pre-extracted strings like attribute descriptions from @sentry/conventions.
+ * This function is intentionally not included in the gettext extraction script.
+ */
+function gettextDescription(string: string): string {
+  const val: string = getClient().gettext(string);
+  staticTranslations.add(val);
+  return mark(val);
+}
+
+/**
  * Shorthand versions should primarily be used.
  */
-export {gettext as t, gettextComponentTemplate as tct, ngettext as tn};
+export {
+  gettext as t,
+  gettextComponentTemplate as tct,
+  ngettext as tn,
+  gettextDescription as td,
+};

@@ -9,14 +9,14 @@ import React, {
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import {Disclosure} from 'sentry/components/core/disclosure';
-import {Separator, type SeparatorProps} from 'sentry/components/core/separator';
-import {Text} from 'sentry/components/core/text';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Separator, type SeparatorProps} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
@@ -229,10 +229,10 @@ export const SectionDivider = styled(
 `;
 
 export const SidebarFoldSection = styled(FoldSection)`
-  font-size: ${p => p.theme.fontSize.md};
-  margin: -${space(1)};
+  font-size: ${p => p.theme.font.size.md};
+  margin: -${p => p.theme.space.md};
 `;
 
 const DisclosureWithScrollMargin = styled(Disclosure)<{scrollMargin: number}>`
-  scroll-margin-top: calc(${space(1)} + ${p => p.scrollMargin ?? 0}px);
+  scroll-margin-top: calc(${p => p.theme.space.md} + ${p => p.scrollMargin ?? 0}px);
 `;

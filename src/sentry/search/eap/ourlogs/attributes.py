@@ -112,7 +112,9 @@ OURLOG_VIRTUAL_CONTEXTS = {
     for key in constants.PROJECT_FIELDS
 }
 
-LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
+LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
+    Literal["string", "number", "boolean"], dict[str, str]
+] = {
     "string": {
         definition.internal_name: definition.public_alias
         for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
@@ -122,9 +124,15 @@ LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[s
         # sentry.service is the project id as a string, but map to project for convenience
         "sentry.service": "project",
     },
+    "boolean": {
+        definition.internal_name: definition.public_alias
+        for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "boolean"
+    },
     "number": {
         definition.internal_name: definition.public_alias
         for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
+        # Include boolean attributes because they're stored as numbers (0 or 1)
         if not definition.secondary_alias and definition.search_type != "string"
     },
 }

@@ -4,11 +4,15 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
-from sentry_redis_tools.sliding_windows_rate_limiter import GrantedQuota, Quota
+from sentry_redis_tools.sliding_windows_rate_limiter import (
+    GrantedQuota,
+    Quota,
+    RequestedQuota,
+    Timestamp,
+)
 from sentry_redis_tools.sliding_windows_rate_limiter import (
     RedisSlidingWindowRateLimiter as RedisSlidingWindowRateLimiterImpl,
 )
-from sentry_redis_tools.sliding_windows_rate_limiter import RequestedQuota, Timestamp
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis

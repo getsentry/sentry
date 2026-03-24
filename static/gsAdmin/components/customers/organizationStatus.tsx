@@ -1,4 +1,4 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -6,7 +6,7 @@ type Props = {
   orgStatus: Subscription['orgStatus'];
 };
 
-function OrganizationStatus({orgStatus}: Props) {
+export function OrganizationStatus({orgStatus}: Props) {
   if (!orgStatus) {
     return null;
   }
@@ -34,11 +34,9 @@ function OrganizationStatus({orgStatus}: Props) {
 
   return (
     <Alert.Container>
-      <Alert data-test-id="deletion-status" type="error">
+      <Alert data-test-id="deletion-status" variant="danger">
         {message}
       </Alert>
     </Alert.Container>
   );
 }
-
-export default OrganizationStatus;

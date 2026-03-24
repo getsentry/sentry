@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from django.db.models import F
 from django.http.response import FileResponse, HttpResponse, HttpResponseBase
 from django.utils import timezone
@@ -8,15 +10,18 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
 from sentry.models.project import Project
+from sentry.preprod.eap.write import produce_preprod_build_distribution_to_eap
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
 
+logger = logging.getLogger(__name__)
 
-@region_silo_endpoint
+
+@cell_silo_endpoint
 class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -34,6 +39,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             installable = InstallablePreprodArtifact.objects.select_related(
                 "preprod_artifact",
                 "preprod_artifact__project",
+                "preprod_artifact__mobile_app_info",
             ).get(
                 url_path=url_path,
             )
@@ -60,8 +66,10 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
 
         if format_type == "plist":
             app_id = preprod_artifact.app_id
-            build_version = preprod_artifact.build_version
-            app_name = preprod_artifact.app_name
+
+            mobile_app_info = preprod_artifact.get_mobile_app_info()
+            build_version = mobile_app_info.build_version if mobile_app_info else None
+            app_name = mobile_app_info.app_name if mobile_app_info else None
             if not app_id or not build_version or not app_name:
                 return Response({"error": "App details not found"}, status=404)
 
@@ -106,12 +114,35 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             InstallablePreprodArtifact.objects.filter(pk=installable.pk).update(
                 download_count=F("download_count") + 1
             )
+
+            # Update build distribution data in EAP with new download count
+            try:
+                organization = project.organization
+                produce_preprod_build_distribution_to_eap(
+                    artifact=preprod_artifact,
+                    organization=organization,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to write preprod build distribution to EAP after download",
+                    extra={
+                        "preprod_artifact_id": preprod_artifact.id,
+                        "organization_id": project.organization_id,
+                        "project_id": project.id,
+                    },
+                )
+
             fp = file_obj.getfile()
             filename = preprod_artifact.app_id or "app"
-            if preprod_artifact.build_version:
-                filename += f"@{preprod_artifact.build_version}"
-            if preprod_artifact.build_number:
-                filename += f"+{preprod_artifact.build_number}"
+            mobile_app_info = preprod_artifact.get_mobile_app_info()
+            build_version = mobile_app_info.build_version if mobile_app_info else None
+            if build_version:
+                filename += f"@{build_version}"
+            build_number = mobile_app_info.build_number if mobile_app_info else None
+            if build_number:
+                filename += f"+{build_number}"
             ext = format_type if format_type else "bin"
             filename += f".{ext}"
             response = FileResponse(

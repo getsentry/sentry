@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import logging
 import re
+import time
 
 import orjson
 import sentry_sdk
@@ -20,16 +21,18 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
     GitHubWebhook,
     InstallationEventWebhook,
+    IssuesEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
     get_github_external_id,
 )
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
@@ -111,6 +114,10 @@ class GitHubEnterprisePullRequestEventWebhook(GitHubEnterpriseWebhook, PullReque
     pass
 
 
+class GitHubEnterpriseIssuesEventWebhook(GitHubEnterpriseWebhook, IssuesEventWebhook):
+    pass
+
+
 class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -159,7 +166,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             if not host:
                 raise MissingRequiredHeaderError()
         except MissingRequiredHeaderError as e:
-            logger.exception("github_enterprise.webhook.missing-enterprise-host")
+            logger.warning("github_enterprise.webhook.missing-enterprise-host")
             sentry_sdk.capture_exception(e)
             return HttpResponse(MISSING_GITHUB_ENTERPRISE_HOST_ERROR, status=400)
 
@@ -182,9 +189,8 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 raise MissingRequiredHeaderError()
 
             handler = self.get_handler(github_event)
-        except MissingRequiredHeaderError as e:
-            logger.exception("github_enterprise.webhook.missing-event", extra=extra)
-            sentry_sdk.capture_exception(e)
+        except MissingRequiredHeaderError:
+            logger.warning("github_enterprise.webhook.missing-event", extra=extra)
             return HttpResponse(MISSING_GITHUB_EVENT_HEADER_ERROR, status=400)
 
         if not handler:
@@ -200,13 +206,14 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 extra=extra,
                 exc_info=True,
             )
-            logger.exception("Invalid JSON.")
             return HttpResponse(status=400)
 
         secret = self.get_secret(event, host)
         if not secret:
             logger.warning("github_enterprise.webhook.missing-integration", extra=extra)
             return HttpResponse(status=400)
+
+        skipped_authentication = False
 
         try:
             sha256_signature = request.headers.get("x-hub-signature-256")
@@ -247,7 +254,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         except UnsupportedSignatureAlgorithmError as e:
             # we should never end up here with the regex checks above on the signature format,
             # but just in case
-            logger.exception(
+            logger.warning(
                 "github-enterprise-app.webhook.unsupported-signature-algorithm",
                 extra=extra,
             )
@@ -270,6 +277,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 sentry_sdk.capture_exception(e)
                 return HttpResponse(MISSING_SIGNATURE_HEADERS_ERROR, status=400)
             else:
+                skipped_authentication = True
                 # the host is allowed to skip signature verification
                 # log it, and continue on.
                 extra["github_enterprise_version"] = request.headers.get(
@@ -285,17 +293,52 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
         event_handler = handler()
-        with IntegrationWebhookEvent(
-            interaction_type=event_handler.event_type,
-            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key=event_handler.provider,
-        ).capture():
-            event_handler(event, host=host)
+
+        # Create a new transaction for each webhook event to ensure separate traces
+        transaction_name = f"github_enterprise.webhook.{github_event}"
+        with sentry_sdk.start_transaction(
+            op="webhook",
+            name=transaction_name,
+            source="component",
+        ) as transaction:
+            transaction.set_tag("github_event", github_event)
+
+            with IntegrationWebhookEvent(
+                interaction_type=event_handler.event_type,
+                domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                provider_key=event_handler.provider,
+            ).capture():
+                event_handler(event, host=host, github_event=github_event)
+
+        # Publish the request to the unified SCM (source control management) subscription's
+        # platform. This is a replacement for the handlers defined above. Handlers should be
+        # defined as consumers of the SCM subscriptions Kafka topic.
+        #
+        # NOTE: Publication of the event assumes the event has been properly authorized (as it has
+        #       been above).
+        # NOTE: We are in the correct cell silo at this stage. The IntegrationControlMiddleware
+        #       middleware has handled routing.
+        produce_event_to_scm_stream(
+            {
+                "event_type_hint": request.headers.get("X-GitHub-Event"),
+                "event": request.body.decode("utf-8"),
+                "extra": {
+                    "host": host,
+                    "skipped-authentication": skipped_authentication,
+                    "enterprise-version": request.headers.get("x-github-enterprise-version"),
+                    "ip-address": request.headers.get("x-real-ip"),
+                },
+                "received_at": int(time.time()),
+                "sentry_meta": None,
+                "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            },
+            silo="region",
+        )
 
         return HttpResponse(status=204)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
@@ -305,6 +348,7 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
         "push": GitHubEnterprisePushEventWebhook,
         "pull_request": GitHubEnterprisePullRequestEventWebhook,
         "installation": GitHubEnterpriseInstallationEventWebhook,
+        "issues": GitHubEnterpriseIssuesEventWebhook,
     }
 
     @method_decorator(csrf_exempt)

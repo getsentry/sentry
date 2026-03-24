@@ -3,28 +3,28 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import type {Tag, TagSegment} from 'sentry/actionCreators/events';
 import {fetchTagFacets} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import {deviceNameMapper} from 'sentry/components/deviceName';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {TagFacetsList} from 'sentry/components/group/tagFacets';
-import TagFacetsDistributionMeter from 'sentry/components/group/tagFacets/tagFacetsDistributionMeter';
-import Placeholder from 'sentry/components/placeholder';
+import {TagFacetsDistributionMeter} from 'sentry/components/group/tagFacets/tagFacetsDistributionMeter';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import withApi from 'sentry/utils/withApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
@@ -203,7 +203,7 @@ class Tags extends Component<Props, State> {
     if (error) {
       return (
         <ErrorPanel height="132px">
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </ErrorPanel>
       );
     }
@@ -263,15 +263,15 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: 16px;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const StyledPlaceholderTitle = styled(Placeholder)`
   width: 100px;
   height: 12px;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const StyledTagFacetList = styled(TagFacetsList)`

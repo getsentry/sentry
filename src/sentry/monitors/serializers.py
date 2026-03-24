@@ -109,20 +109,40 @@ class MonitorEnvironmentSerializer(Serializer):
             )
         }
 
+        # Build date_added mapping, starting with cached monitors
+        date_added_by_monitor_id = {}
+        uncached_monitor_ids = set[int]()
+
+        for monitor_env in item_list:
+            if monitor_env.is_field_cached("monitor"):
+                # Extract date_added from cached monitor
+                date_added_by_monitor_id[monitor_env.monitor_id] = monitor_env.monitor.date_added
+            else:
+                # Need to fetch this monitor
+                uncached_monitor_ids.add(monitor_env.monitor_id)
+
+        # Batch query for uncached monitors - only fetch date_added field
+        if uncached_monitor_ids:
+            date_added_by_monitor_id.update(
+                Monitor.objects.filter(id__in=uncached_monitor_ids).values_list("id", "date_added")
+            )
+
         return {
             monitor_env: {
-                "environment": environments[monitor_env.environment_id],
+                "environment": environments.get(monitor_env.environment_id),
                 "active_incident": serialized_incidents.get(monitor_env.id),
+                "date_added": date_added_by_monitor_id[monitor_env.monitor_id],
             }
             for monitor_env in item_list
         }
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorEnvironmentSerializerResponse:
+        environment = attrs["environment"]
         return {
-            "name": attrs["environment"].name,
+            "name": environment.name if environment else "[removed]",
             "status": obj.get_status_display(),
             "isMuted": obj.is_muted,
-            "dateCreated": obj.monitor.date_added,
+            "dateCreated": attrs["date_added"],
             "lastCheckIn": obj.last_checkin,
             "nextCheckIn": obj.next_checkin,
             "nextCheckInLatest": obj.next_checkin_latest,
@@ -238,6 +258,12 @@ class MonitorSerializer(Serializer):
             )
 
         monitor_environments = list(monitor_environments_qs)
+
+        # Pre-cache monitors on the environments to avoid queries in MonitorEnvironmentSerializer
+        monitors_by_id = {monitor.id: monitor for monitor in item_list}
+        for monitor_env in monitor_environments:
+            monitor_env.set_cached_field_value("monitor", monitors_by_id[monitor_env.monitor_id])
+
         serialized_monitor_environments = defaultdict(list)
 
         for monitor_env, serialized in zip(
@@ -339,7 +365,8 @@ class MonitorCheckInSerializer(Serializer):
         for checkin in item_list:
             env_name = None
             if checkin.monitor_environment:
-                env_name = envs[checkin.monitor_environment.environment_id].name
+                env = envs.get(checkin.monitor_environment.environment_id)
+                env_name = env.name if env else "[removed]"
 
             attrs[checkin]["environment_name"] = env_name
 

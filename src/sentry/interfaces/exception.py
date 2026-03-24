@@ -127,7 +127,7 @@ class Mechanism(Interface):
     """
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         for key in (
             "type",
             "synthetic",
@@ -143,7 +143,7 @@ class Mechanism(Interface):
         ):
             data.setdefault(key, None)
 
-        return super().to_python(data, **kwargs)
+        return super().to_python(data)
 
     def to_json(self):
         return prune_empty_keys(
@@ -236,22 +236,25 @@ class SingleException(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         if get_path(data, "stacktrace", "frames", filter=True):
-            stacktrace = Stacktrace.to_python(data["stacktrace"], **kwargs)
+            stacktrace = Stacktrace.to_python(data["stacktrace"])
         else:
             stacktrace = None
 
         if get_path(data, "raw_stacktrace", "frames", filter=True):
-            raw_stacktrace = Stacktrace.to_python(data["raw_stacktrace"], **kwargs)
+            raw_stacktrace = Stacktrace.to_python(data["raw_stacktrace"])
         else:
             raw_stacktrace = None
 
         type = data.get("type")
         value = data.get("value")
+        raw_value = data.get("raw_value")
+        raw_module = data.get("raw_module")
+        raw_type = data.get("raw_type")
 
         if data.get("mechanism"):
-            mechanism = Mechanism.to_python(data["mechanism"], **kwargs)
+            mechanism = Mechanism.to_python(data["mechanism"])
         else:
             mechanism = None
 
@@ -263,9 +266,12 @@ class SingleException(Interface):
             "stacktrace": stacktrace,
             "thread_id": data.get("thread_id"),
             "raw_stacktrace": raw_stacktrace,
+            "raw_value": raw_value,
+            "raw_module": raw_module,
+            "raw_type": raw_type,
         }
 
-        return super().to_python(new_data, **kwargs)
+        return super().to_python(new_data)
 
     def to_json(self):
         mechanism = (
@@ -294,6 +300,9 @@ class SingleException(Interface):
                 "stacktrace": stacktrace,
                 "thread_id": self.thread_id,
                 "raw_stacktrace": raw_stacktrace,
+                "raw_value": self.raw_value,
+                "raw_module": self.raw_module,
+                "raw_type": self.raw_type,
             }
         )
 
@@ -325,6 +334,9 @@ class SingleException(Interface):
             "module": self.module,
             "stacktrace": stacktrace,
             "rawStacktrace": raw_stacktrace,
+            "rawValue": str(self.raw_value) if self.raw_value else None,
+            "rawModule": self.raw_module,
+            "rawType": self.raw_type,
         }
 
     def get_api_meta(self, meta, is_public=False, platform=None):
@@ -406,18 +418,16 @@ class Exception(Interface):
         return len(self.exceptions())
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         values = []
         for i, v in enumerate(get_path(data, "values", default=[])):
             if not v:
                 # Cannot skip over None-values, need to preserve offsets
                 values.append(v)
             else:
-                values.append(SingleException.to_python(v, **kwargs))
+                values.append(SingleException.to_python(v))
 
-        return super().to_python(
-            {"values": values, "exc_omitted": data.get("exc_omitted")}, **kwargs
-        )
+        return super().to_python({"values": values, "exc_omitted": data.get("exc_omitted")})
 
     # TODO(ja): Fix all following methods when to_python is refactored. All
     # methods below might throw if None exceptions are in ``values``.

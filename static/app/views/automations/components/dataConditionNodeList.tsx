@@ -1,9 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Alert} from '@sentry/scraps/alert';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
@@ -15,7 +16,7 @@ import {
 import {useAutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
+import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {
   DataConditionNodeContext,
   dataConditionNodesMap,
@@ -40,7 +41,7 @@ interface Option {
   disabled?: boolean;
 }
 
-export default function DataConditionNodeList({
+export function DataConditionNodeList({
   handlerGroup,
   groupId,
   placeholder,
@@ -171,7 +172,9 @@ export default function DataConditionNodeList({
       {conflictingConditions &&
         ((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
           conflictingConditions.size > 0) ||
-          conflictingConditions.size > 1) && <Alert type="error">{conflictReason}</Alert>}
+          conflictingConditions.size > 1) && (
+          <Alert variant="danger">{conflictReason}</Alert>
+        )}
       {/* Only show dropdown if there are available options */}
       {options.length > 0 && (
         <StyledSelectControl

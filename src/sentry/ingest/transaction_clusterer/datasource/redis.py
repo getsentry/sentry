@@ -1,9 +1,10 @@
 """Write transactions into redis sets"""
 
 import logging
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from typing import Any
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from rediscluster import RedisCluster
@@ -133,6 +134,12 @@ def record_segment_name(project: Project, segment_span: CompatibleSpan) -> None:
             project,
             segment_name,
         )
+        if in_random_rollout("txnames.bump-lifetime-sample-rate"):
+            safe_execute(
+                _bump_rule_lifetime_for_segment,
+                project,
+                segment_span,
+            )
 
 
 def _should_store_transaction_name(event_data: Mapping[str, Any]) -> str | None:
@@ -170,8 +177,7 @@ def _should_store_segment_name_inner(
         # (see https://github.com/getsentry/relay/blob/2d07bef86415cc0ae8af01d16baecde10cdb23a6/relay-general/src/store/transactions/processor.rs#L369-L373).
         #
         # Our data shows that a majority of these `None` source transactions contain slashes, so treat them as URL transactions:
-        source is None
-        and "/" in name
+        source is None and "/" in name
     )
     if not source_matches:
         return None
@@ -181,9 +187,23 @@ def _should_store_segment_name_inner(
 
 
 def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None:
+    applied_rules = event_data.get("_meta", {}).get("transaction", {}).get("", {}).get("rem", [])
+    _bump_rule_lifetime_inner(project, applied_rules)
+
+
+def _bump_rule_lifetime_for_segment(project: Project, segment_span: CompatibleSpan) -> None:
+    meta_str: str | None = attribute_value(
+        segment_span, f"sentry._meta.fields.attributes.{ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME}"
+    )
+    if meta_str:
+        meta = orjson.loads(meta_str)
+        applied_rules = meta.get("meta", {}).get("", {}).get("rem", [])
+        _bump_rule_lifetime_inner(project, applied_rules)
+
+
+def _bump_rule_lifetime_inner(project: Project, applied_rules: Sequence):
     from sentry.ingest.transaction_clusterer import rules as clusterer_rules
 
-    applied_rules = event_data.get("_meta", {}).get("transaction", {}).get("", {}).get("rem", {})
     if not applied_rules:
         return
 

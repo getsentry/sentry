@@ -7,18 +7,17 @@ import type {
 } from '@stripe/stripe-js';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Flex} from 'sentry/components/core/layout';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
-import InnerIntentForm from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
-import type {StripeIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
+import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
+import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import {useSetupIntentData} from 'getsentry/hooks/useIntentData';
 import type {Subscription} from 'getsentry/types';
 
-function StripeSetupIntentForm(props: StripeIntentFormProps) {
+export function SetupIntentForm(props: IntentFormProps) {
   const {
     organization,
     location: ftcConsentLocation,
@@ -28,8 +27,9 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const {url} = parseQueryKey(props.intentDataQueryKey);
   const {intentData, isLoading, isError, error} = useSetupIntentData({
-    endpoint: props.intentDataEndpoint,
+    endpoint: url,
   });
 
   const {mutateAsync: updateSubscription} = useMutation({
@@ -109,19 +109,15 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
   };
 
   return (
-    <Flex direction="column" gap="xl">
-      {isError && <Alert type="error">{errorMessage}</Alert>}
-      <InnerIntentForm
-        {...props}
-        isSubmitting={isSubmitting}
-        busyButtonText={t('Saving Changes...')}
-        buttonText={props.buttonText}
-        intentData={intentData}
-        onError={setErrorMessage}
-        handleSubmit={handleSubmit}
-      />
-    </Flex>
+    <InnerIntentForm
+      {...props}
+      isSubmitting={isSubmitting}
+      busyButtonText={t('Saving Changes...')}
+      buttonText={props.buttonText}
+      intentData={intentData}
+      onError={setErrorMessage}
+      handleSubmit={handleSubmit}
+      errorMessage={errorMessage}
+    />
   );
 }
-
-export default StripeSetupIntentForm;

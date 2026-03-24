@@ -3,16 +3,18 @@ import {Outlet} from 'react-router-dom';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PickProjectToContinue} from 'sentry/components/pickProjectToContinue';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
@@ -22,24 +24,24 @@ import type {
   ReleaseProject,
   ReleaseWithHealth,
 } from 'sentry/types/release';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import routeTitleGen from 'sentry/utils/routeTitle';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {ReleaseBounds} from 'sentry/views/releases/utils';
 import {getReleaseBounds, searchReleaseVersion} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
 
-import ReleaseHeader from './header/releaseHeader';
+import {ReleaseHeader} from './header/releaseHeader';
 
 type ReleaseContextType = {
   deploys: Deploy[];
@@ -70,9 +72,18 @@ function ReleasesDetail({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
-    params.release
-  )}/`;
+  const releasePath = getApiUrl(
+    '/organizations/$organizationIdOrSlug/releases/$version/',
+    {
+      path: {organizationIdOrSlug: organization.slug, version: params.release},
+    }
+  );
+  const deploysPath = getApiUrl(
+    '/organizations/$organizationIdOrSlug/releases/$version/deploys/',
+    {
+      path: {organizationIdOrSlug: organization.slug, version: params.release},
+    }
+  );
 
   const {
     data: release,
@@ -97,10 +108,10 @@ function ReleasesDetail({
     refetch: refetchDeploys,
     isPending: isDeploysPending,
     error: deploysError,
-  } = useApiQuery<Deploy[]>(
-    [`${releasePath}deploys/`, {query: {project: location.query.project}}],
-    {staleTime: Infinity, enabled: isDeploysEnabled}
-  );
+  } = useApiQuery<Deploy[]>([deploysPath, {query: {project: location.query.project}}], {
+    staleTime: Infinity,
+    enabled: isDeploysEnabled,
+  });
 
   const {
     data: sessions = null,
@@ -109,7 +120,9 @@ function ReleasesDetail({
     error: sessionsError,
   } = useApiQuery<SessionApiResponse>(
     [
-      `/organizations/${organization.slug}/sessions/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: location.query.project,
@@ -149,7 +162,7 @@ function ReleasesDetail({
         <SentryDocumentTitle title={pageTitle}>
           <Layout.Page>
             <Alert.Container>
-              <Alert type="error">
+              <Alert variant="danger">
                 {possiblyWrongProject
                   ? t('This release may not be in your selected project.')
                   : t('There was an error loading the release details')}
@@ -265,7 +278,7 @@ function ReleasesDetailContainer() {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="error">{t('This release could not be found.')}</Alert>
+          <Alert variant="danger">{t('This release could not be found.')}</Alert>
         </Alert.Container>
       </Layout.Page>
     );

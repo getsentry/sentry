@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface WorkflowEngineFeatureGateOptions {
   /**

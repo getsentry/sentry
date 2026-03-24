@@ -4,9 +4,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
+import {AutofixInsightSources} from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import {type AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {
@@ -19,9 +21,7 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 function getEventIcon(eventType: string) {
   const iconProps = {
@@ -47,25 +47,18 @@ function getEventColor(
   isActive?: boolean,
   isSelected?: boolean
 ): TimelineItemProps['colorConfig'] {
-  if (isChonkTheme(theme)) {
-    return {
-      title: theme.colors.content.primary,
-      icon: isSelected
-        ? isActive
-          ? theme.green400
-          : theme.colors.content.primary
-        : theme.colors.content.muted,
-      iconBorder: isSelected
-        ? isActive
-          ? theme.green400
-          : theme.colors.content.primary
-        : theme.colors.content.muted,
-    };
-  }
   return {
-    title: theme.gray400,
-    icon: isSelected ? (isActive ? theme.green400 : theme.gray400) : theme.gray200,
-    iconBorder: isSelected ? (isActive ? theme.green400 : theme.gray400) : theme.gray200,
+    title: theme.tokens.content.primary,
+    icon: isSelected
+      ? isActive
+        ? theme.colors.green500
+        : theme.tokens.content.primary
+      : theme.tokens.content.secondary,
+    iconBorder: isSelected
+      ? isActive
+        ? theme.colors.green500
+        : theme.tokens.content.primary
+      : theme.tokens.content.secondary,
   };
 }
 
@@ -145,7 +138,7 @@ export function SolutionEventItem({
           >
             <StyledSpan text={event.title} inline />
           </AutofixHighlightWrapper>
-          <IconWrapper>
+          <Flex justify="center" align="center" flexShrink={0} gap="md">
             {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
               <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
             )}
@@ -169,7 +162,7 @@ export function SolutionEventItem({
                 </SelectionButton>
               </Tooltip>
             </SelectionButtonWrapper>
-          </IconWrapper>
+          </Flex>
         </StyledTimelineHeader>
       }
       isActive={isActive}
@@ -209,20 +202,12 @@ export function SolutionEventItem({
 }
 
 const SourcesWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   flex-shrink: 0;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  gap: ${space(1)};
 `;
 
 const SelectionButtonWrapper = styled('div')`
@@ -245,7 +230,7 @@ const SelectionButton = styled('button')<SelectionButtonProps>`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   transition:
     color 0.2s ease,
     background-color 0.2s ease;
@@ -255,8 +240,8 @@ const SelectionButton = styled('button')<SelectionButtonProps>`
   &:hover {
     color: ${p =>
       p.actionType === 'delete' || p.actionType === 'close'
-        ? p.theme.red400
-        : p.theme.green400};
+        ? p.theme.colors.red500
+        : p.theme.colors.green500};
   }
 `;
 
@@ -266,7 +251,7 @@ const AnimatedContent = styled(motion.div)`
 
 const StyledSpan = styled(MarkedText)`
   & code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     background-color: transparent;
     display: inline-block;
   }
@@ -277,16 +262,17 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space['2xs']};
   padding-right: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  gap: ${space(1)};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  gap: ${p => p.theme.space.md};
   opacity: ${p => (p.isSelected ? 1 : 0.6)};
   text-decoration: ${p =>
     p.isSelected ? (p.isActive ? 'underline dashed' : 'none') : 'line-through'};
-  text-decoration-color: ${p => (p.isSelected ? p.theme.green300 : p.theme.textColor)};
+  text-decoration-color: ${p =>
+    p.isSelected ? p.theme.colors.green400 : p.theme.tokens.content.primary};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
   transition: opacity 0.2s ease;
@@ -294,10 +280,16 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   & > div:first-of-type {
     flex: 1;
     min-width: 0;
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;

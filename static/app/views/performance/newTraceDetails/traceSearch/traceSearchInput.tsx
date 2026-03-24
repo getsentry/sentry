@@ -2,19 +2,18 @@ import type React from 'react';
 import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {InputGroup} from '@sentry/scraps/input';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceReducer} from 'sentry/views/performance/newTraceDetails/traceState';
 import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
 import {
@@ -26,7 +25,7 @@ import {
 interface TraceSearchInputProps {
   onTraceSearch: (
     query: string,
-    node: TraceTreeNode<TraceTree.NodeValue> | null,
+    node: BaseNode | null,
     behavior: 'track result' | 'persist'
   ) => void;
   organization: Organization;
@@ -219,7 +218,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         ) : (
           <StyledSearchIcon
             data-test-id="trace-search-success"
-            color="subText"
+            variant="muted"
             size="xs"
           />
         )}
@@ -238,22 +237,20 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       />
       <InputGroup.TrailingItems>
         <StyledTrailingText data-test-id="trace-search-result-iterator">
-          {`${
-            traceState.search.query && !traceState.search.results?.length
-              ? t('no results')
-              : traceState.search.query
-                ? (traceState.search.resultIteratorIndex === null
-                    ? '-'
-                    : traceState.search.resultIteratorIndex + 1) +
-                  `/${traceState.search.results?.length ?? 0}`
-                : ''
-          }`}
+          {traceState.search.query && !traceState.search.results?.length
+            ? t('no results')
+            : traceState.search.query
+              ? (traceState.search.resultIteratorIndex === null
+                  ? '-'
+                  : traceState.search.resultIteratorIndex + 1) +
+                `/${traceState.search.results?.length ?? 0}`
+              : ''}
         </StyledTrailingText>
         {traceState.search.query ? (
           <Fragment>
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron size="xs" />}
               aria-label={t('Next')}
               disabled={status?.[1] === 'loading'}
@@ -261,7 +258,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
             />
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron size="xs" direction="down" />}
               aria-label={t('Previous')}
               disabled={status?.[1] === 'loading'}
@@ -269,7 +266,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
             />
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               disabled={status?.[1] === 'loading'}
               onClick={onSearchClear}
               icon={<IconClose size="xs" />}
@@ -346,15 +343,15 @@ const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
 `;
 
 const StyledTrailingText = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledSearchBar = styled(InputGroup)`
   flex: 1 1 100%;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 
   > div > div:last-child {
-    gap: ${space(0.25)};
+    gap: ${p => p.theme.space['2xs']};
   }
 `;

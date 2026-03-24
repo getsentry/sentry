@@ -2,18 +2,19 @@ from __future__ import annotations
 
 import logging
 import sys
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING
+from typing import Any as TAny
 
 from django.conf import settings
 
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
-from sentry.utils.types import Any, type_from_value
+from sentry.utils.types import Any, Type, type_from_value
 
 if TYPE_CHECKING:
-    from sentry.options.store import Key, OptionsStore
+    from sentry.options.store import GroupingInfo, Key, OptionsStore
 
 # Prevent ourselves from clobbering the builtin
 _type = type
@@ -155,7 +156,7 @@ WRITE_REQUIRED_FLAGS = {
 }
 
 
-def _make_cache_key(key):
+def _make_cache_key(key: str) -> str:
     return "o:%s" % md5_text(key).hexdigest()
 
 
@@ -198,18 +199,16 @@ class OptionsManager:
         assert not_writable_reason not in [
             NotWritableReason.READONLY,
             NotWritableReason.CHANNEL_NOT_ALLOWED,
-        ], (
-            "%r cannot be changed at runtime" % key
-        )
+        ], "%r cannot be changed at runtime" % key
         # Enforce immutability if value is already set on disk
         assert not_writable_reason != NotWritableReason.OPTION_ON_DISK, (
             "%r cannot be changed at runtime because it is configured on disk" % key
         )
         # Enforce that the option has not been changed by a different UpdateChannel
         # that we cannot overwrite.
-        assert (
-            not_writable_reason != NotWritableReason.DRIFTED
-        ), f"Option {key} has drifted. Cannot overwrite"
+        assert not_writable_reason != NotWritableReason.DRIFTED, (
+            f"Option {key} has drifted. Cannot overwrite"
+        )
 
         opt = self.lookup_key(key)
         if coerce:
@@ -236,13 +235,13 @@ class OptionsManager:
     def make_key(
         self,
         name: str,
-        default,
-        type,
+        default: TAny,
+        type: Type[TAny],
         flags: int,
         ttl: int,
         grace: int,
-        grouping_info,
-    ):
+        grouping_info: GroupingInfo | None,
+    ) -> Key:
         from sentry.options.store import Key
 
         return Key(
@@ -449,7 +448,7 @@ class OptionsManager:
         if not opt.type.test(value):
             raise TypeError(f"{key!r}: got {_type(value)!r}, expected {opt.type!r}")
 
-    def all(self):
+    def all(self) -> Iterable[Key]:
         """
         Return an iterator for all keys in the registry.
         """

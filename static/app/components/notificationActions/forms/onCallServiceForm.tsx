@@ -1,13 +1,12 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AvailableNotificationAction,
   NotificationAction,
@@ -31,7 +30,7 @@ type OnCallServiceFormProps = {
   onSave: () => void;
 };
 
-function OnCallServiceForm({
+export function OnCallServiceForm({
   action,
   onCallService,
   onCancel,
@@ -46,7 +45,7 @@ function OnCallServiceForm({
   );
   const [selectedDisplay, setSelectedDisplay] = useState(action.targetDisplay ?? '');
 
-  const accountOptions: MenuItemProps[] = useMemo(() => {
+  const accountOptions = useMemo(() => {
     return Object.keys(Integrations).map<MenuItemProps>(integrationId => {
       // Get the name of the integration for the integrationId from the first
       // AvailableNotificationAction element in the array
@@ -91,8 +90,8 @@ function OnCallServiceForm({
     onCallService === 'pagerduty' ? t('Select Service') : t('Select Team');
 
   return (
-    <NotificationActionFormContainer>
-      <NotificationActionCell>
+    <Flex justify="between" width="100%">
+      <Flex align="center" wrap="wrap" gap="xs">
         <div>{t('Send a notification to the')}</div>
         <DropdownMenu
           items={accountOptions}
@@ -124,31 +123,16 @@ function OnCallServiceForm({
             </DropdownButton>
           )}
         />
-      </NotificationActionCell>
+      </Flex>
 
-      <ButtonBar gap="xs">
+      <Grid flow="column" align="center" gap="xs">
         <Button onClick={onCancel} size="xs">
           {t('Cancel')}
         </Button>
         <Button priority="primary" size="xs" onClick={onSave}>
           {t('Save')}
         </Button>
-      </ButtonBar>
-    </NotificationActionFormContainer>
+      </Grid>
+    </Flex>
   );
 }
-
-const NotificationActionCell = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-`;
-
-const NotificationActionFormContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-`;
-
-export default OnCallServiceForm;

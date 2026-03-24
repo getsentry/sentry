@@ -14,7 +14,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.base import DefaultFieldsModel
@@ -72,6 +72,10 @@ class DashboardWidgetTypes(TypesClass):
     These represent the tracemetrics item type on the EAP dataset.
     """
     TRACEMETRICS = 104
+    """
+    Mobile app size metrics from preprod item type on the EAP dataset.
+    """
+    PREPROD_APP_SIZE = 105
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -85,8 +89,18 @@ class DashboardWidgetTypes(TypesClass):
         (SPANS, "spans"),
         (LOGS, "logs"),
         (TRACEMETRICS, "tracemetrics"),
+        (PREPROD_APP_SIZE, "preprod-app-size"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class DashboardWidgetLegendType(str, Enum):
+    DEFAULT = "default"
+    BREAKDOWN = "breakdown"
+
+    @classmethod
+    def as_text_choices(cls):
+        return [(member.value, member.value) for member in cls]
 
 
 class DatasetSourcesTypes(Enum):
@@ -169,6 +183,12 @@ class DashboardWidgetDisplayTypes(TypesClass):
     BIG_NUMBER = 6
     TOP_N = 7
     DETAILS = 8
+    CATEGORICAL_BAR_CHART = 9
+    WHEEL = 10
+    RAGE_AND_DEAD_CLICKS = 11
+    SERVER_TREE = 12
+    TEXT = 13
+    AGENTS_TRACES_TABLE = 14
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -178,11 +198,17 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (BIG_NUMBER, "big_number"),
         (TOP_N, "top_n"),
         (DETAILS, "details"),
+        (CATEGORICAL_BAR_CHART, "categorical_bar"),
+        (WHEEL, "wheel"),
+        (RAGE_AND_DEAD_CLICKS, "rage_and_dead_clicks"),
+        (SERVER_TREE, "server_tree"),
+        (TEXT, "text"),
+        (AGENTS_TRACES_TABLE, "agents_traces_table"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardWidgetQuery(Model):
     """
     A query in a dashboard widget.
@@ -222,7 +248,7 @@ class DashboardWidgetQuery(Model):
     __repr__ = sane_repr("widget", "type", "name")
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardFieldLink(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -239,7 +265,7 @@ class DashboardFieldLink(DefaultFieldsModel):
         unique_together = (("dashboard_widget_query", "field"),)
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardWidgetQueryOnDemand(Model):
     """
     Tracks on_demand state and values for dashboard widget queries.
@@ -262,8 +288,9 @@ class DashboardWidgetQueryOnDemand(Model):
         """ The widget was manually disabled by a user """
         DISABLED_SPEC_LIMIT = "disabled:spec-limit", gettext_lazy("disabled:spec-limit")
         """ This widget query was disabled during rollout due to the organization reaching it's spec limit. """
-        DISABLED_HIGH_CARDINALITY = "disabled:high-cardinality", gettext_lazy(
-            "disabled:high-cardinality"
+        DISABLED_HIGH_CARDINALITY = (
+            "disabled:high-cardinality",
+            gettext_lazy("disabled:high-cardinality"),
         )
         """ This widget query was disabled by the cardinality cron due to one of the columns having high cardinality """
         ENABLED_ENROLLED = "enabled:enrolled", gettext_lazy("enabled:enrolled")
@@ -307,7 +334,7 @@ class DashboardWidgetQueryOnDemand(Model):
     __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardWidget(Model):
     """
     A dashboard widget.
@@ -318,7 +345,7 @@ class DashboardWidget(Model):
     dashboard = FlexibleForeignKey("sentry.Dashboard")
     order = BoundedPositiveIntegerField(null=True)
     title = models.CharField(max_length=255)
-    description = models.CharField(max_length=255, null=True)
+    description = models.TextField(null=True, blank=True)
     thresholds = JSONField(null=True)
     interval = models.CharField(max_length=10, null=True)
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())

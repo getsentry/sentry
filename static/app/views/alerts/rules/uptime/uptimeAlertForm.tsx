@@ -1,42 +1,51 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react-lite';
 
-import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
+import {Confirm} from 'sentry/components/confirm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import HiddenField from 'sentry/components/forms/fields/hiddenField';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import RangeField from 'sentry/components/forms/fields/rangeField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import TextareaField from 'sentry/components/forms/fields/textareaField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import Panel from 'sentry/components/panels/panel';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {HiddenField} from 'sentry/components/forms/fields/hiddenField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {RangeField} from 'sentry/components/forms/fields/rangeField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {SentryMemberTeamSelectorField} from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeAssertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
+import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
+import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
+import {createMapFormErrors} from './formErrors';
 import {HTTPSnippet} from './httpSnippet';
+import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
+import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
+import {useUptimeAssertionFeatures} from './useUptimeAssertionFeatures';
 
 interface Props {
   handleDelete?: () => void;
@@ -51,6 +60,8 @@ const MINUTE = 60;
 
 const DEFAULT_DOWNTIME_THRESHOLD = 3;
 const DEFAULT_RECOVERY_THRESHOLD = 1;
+const DEFAULT_TIMEOUT_MS = 5000;
+const DEFAULT_METHOD = 'GET';
 
 const VALID_INTERVALS_SEC = [
   MINUTE * 1,
@@ -80,15 +91,28 @@ function getFormDataFromRule(rule: UptimeRule) {
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
     recoveryThreshold: rule.recoveryThreshold,
     downtimeThreshold: rule.downtimeThreshold,
+    // Use empty assertion structure for null - FormField converts null to '' which
+    // we can't distinguish from "new form". Empty children signals "edit with no assertions".
+    assertion: rule.assertion ?? {root: createEmptyAssertionRoot()},
   };
 }
 
 export function UptimeAlertForm({handleDelete, rule}: Props) {
+  return (
+    <PreviewCheckResultProvider>
+      <UptimeAlertFormContent handleDelete={handleDelete} rule={rule} />
+    </PreviewCheckResultProvider>
+  );
+}
+
+function UptimeAlertFormContent({handleDelete, rule}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
+  const previewCheckResult = usePreviewCheckResult();
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -96,9 +120,10 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project?.slug, method: 'GET', headers: []};
+    : {projectSlug: project?.slug, method: DEFAULT_METHOD, headers: []};
 
   const [formModel] = useState(() => new FormModel());
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
@@ -129,6 +154,14 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               exact: true,
             });
           }
+
+          if (!rule) {
+            trackAnalytics('uptime_monitor.created', {
+              organization,
+              uptime_mode: response.mode,
+            });
+          }
+
           navigate(
             makeAlertsPathname({
               path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
@@ -184,26 +217,54 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
+      mapFormErrors={createMapFormErrors(previewCheckResult)}
+      onFieldChange={onFieldChange}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
         }
+        // When runtime assertions are disabled, the assertions field is not mounted,
+        // so its `getValue` transform won't run. Normalize empty/sentinel assertions to null.
+        if (!hasRuntimeAssertions) {
+          const assertion = formModel.getValue<UptimeAssertion | null>('assertion');
+          if (!assertion?.root || assertion.root.children?.length === 0) {
+            formModel.setValue('assertion', null);
+          }
+        }
       }}
       extraButton={
-        rule && handleDelete ? (
-          <Confirm
-            message={t(
-              'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
-              rule.name
-            )}
-            header={<h5>{t('Delete Uptime Rule?')}</h5>}
-            priority="danger"
-            confirmText={t('Delete Rule')}
-            onConfirm={handleDelete}
-          >
-            <Button priority="danger">{t('Delete Rule')}</Button>
-          </Confirm>
-        ) : undefined
+        <Flex gap="md">
+          {rule && handleDelete && (
+            <Confirm
+              message={t(
+                'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
+                rule.name
+              )}
+              header={<h5>{t('Delete Uptime Rule?')}</h5>}
+              priority="danger"
+              confirmText={t('Delete Rule')}
+              onConfirm={handleDelete}
+            >
+              <Button priority="danger">{t('Delete Rule')}</Button>
+            </Confirm>
+          )}
+          {hasRuntimeAssertions && (
+            <TestUptimeMonitorButton
+              label={t('Test Rule')}
+              getFormData={() => {
+                const data = formModel.getTransformedData();
+                return {
+                  url: data.url,
+                  method: data.method ?? DEFAULT_METHOD,
+                  headers: data.headers ?? [],
+                  body: methodHasBody(formModel) ? data.body : null,
+                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                  assertion: data.assertion ?? null,
+                };
+              }}
+            />
+          )}
+        </Flex>
       }
     >
       <List symbol="colored-numeric">
@@ -232,7 +293,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             label={t('Environment')}
             placeholder={t('Select an environment')}
             noOptionsMessage={() => t('Start typing to create an environment')}
-            onCreateOption={(env: any) => {
+            onCreateOption={env => {
               setNewEnvironment(env);
               formModel.setValue('environment', env);
             }}
@@ -306,7 +367,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               max={60_000}
               step={250}
               tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
-              defaultValue={5_000}
+              defaultValue={DEFAULT_TIMEOUT_MS}
               showTickLabels
               formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
               flexibleControlStateSize
@@ -348,7 +409,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             />
           </ConfigurationPanel>
           <Alert.Container>
-            <Alert type="muted">
+            <Alert variant="muted">
               {tct(
                 'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
                 {
@@ -371,6 +432,53 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             )}
           </Observer>
         </Configuration>
+        {hasRuntimeAssertions && (
+          <Fragment>
+            <AlertListItem>
+              <Flex justify="between" align="end">
+                <Stack>
+                  {t('Verification')}
+                  <ListItemSubText style={{paddingLeft: 0}}>
+                    {t(
+                      'Define conditions that must be met for the check to be considered successful.'
+                    )}
+                  </ListItemSubText>
+                </Stack>
+                {hasAiAssertionSuggestions && (
+                  <AssertionSuggestionsButton
+                    size="xs"
+                    getFormData={() => {
+                      const data = formModel.getTransformedData();
+                      return {
+                        url: data.url,
+                        method: data.method ?? DEFAULT_METHOD,
+                        headers: data.headers ?? [],
+                        body: methodHasBody(formModel) ? data.body : null,
+                        timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                      };
+                    }}
+                    getCurrentAssertion={() =>
+                      formModel.getValue<UptimeAssertion | null>('assertion')
+                    }
+                    onApplySuggestion={newAssertion => {
+                      formModel.setValue('assertion', newAssertion as any);
+                    }}
+                  />
+                )}
+              </Flex>
+            </AlertListItem>
+
+            <Configuration>
+              <ConfigurationPanel>
+                <UptimeAssertionsField
+                  name="assertion"
+                  label={t('Assertions')}
+                  flexibleControlStateSize
+                />
+              </ConfigurationPanel>
+            </Configuration>
+          </Fragment>
+        )}
         <AlertListItem>{t('Set thresholds')}</AlertListItem>
         <ListItemSubText>
           {t('Configure when an issue is created or resolved.')}
@@ -464,24 +572,26 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.3;
 `;
 
 const ListItemSubText = styled(Text)`
-  padding-left: ${space(4)};
-  color: ${p => p.theme.subText};
+  padding-left: ${p => p.theme.space['3xl']};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FormRow = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   align-items: center;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
-  margin-left: ${space(4)};
+  gap: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['3xl']};
+  margin-left: ${p => p.theme.space['3xl']};
 
   ${FieldWrapper} {
     padding: 0;
@@ -489,14 +599,14 @@ const FormRow = styled('div')`
 `;
 
 const Configuration = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
-  margin-left: ${space(4)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['3xl']};
+  margin-left: ${p => p.theme.space['3xl']};
 `;
 
 const ConfigurationPanel = styled(Panel)`
   display: grid;
-  gap: 0 ${space(2)};
+  gap: 0 ${p => p.theme.space.xl};
   grid-template-columns: fit-content(325px) 1fr;
   align-items: center;
 

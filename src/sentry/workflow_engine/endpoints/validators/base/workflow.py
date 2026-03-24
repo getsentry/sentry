@@ -1,20 +1,30 @@
-from typing import Any, TypeVar
+from typing import Any, NotRequired, TypedDict, TypeVar
 
-from django.conf import settings
 from django.db import router, transaction
 from rest_framework import serializers
 
-from sentry import audit_log, features
+from sentry import audit_log, features, options
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.db import models
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.validators.base import (
-    BaseActionValidator,
+from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
+    ACTION_FILTERS_HELP_TEXT,
+    OWNER_HELP_TEXT,
+    WORKFLOW_CONFIG_HELP_TEXT,
+    WORKFLOW_TRIGGERS_HELP_TEXT,
+)
+from sentry.workflow_engine.endpoints.validators.base.action import ActionInput, BaseActionValidator
+from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
     BaseDataConditionGroupValidator,
+    DataConditionGroupInput,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
+    log_alerting_quota_hit,
     remove_items_by_api_input,
+    update_owner,
     validate_json_schema,
 )
 from sentry.workflow_engine.models import (
@@ -30,14 +40,50 @@ ListInputData = list[InputData]
 ModelType = TypeVar("ModelType", bound=models.Model)
 
 
-class WorkflowValidator(CamelSnakeSerializer):
-    id = serializers.CharField(required=False)
-    name = serializers.CharField(required=True, max_length=256)
-    enabled = serializers.BooleanField(required=False, default=True)
-    config = serializers.JSONField(required=False)
-    environment_id = serializers.IntegerField(required=False)
-    triggers = BaseDataConditionGroupValidator(required=False)
-    action_filters = serializers.ListField(required=False)
+class ActionFilterInput(DataConditionGroupInput):
+    actions: list[ActionInput]
+
+
+class WorkflowInput(TypedDict):
+    id: NotRequired[str]
+    name: str
+    enabled: NotRequired[bool]
+    config: NotRequired[dict[str, Any]]
+    environment: NotRequired[str | None]
+    triggers: NotRequired[DataConditionGroupInput]
+    actionFilters: NotRequired[list[ActionFilterInput]]
+    owner: NotRequired[str | int | None]
+
+
+class WorkflowValidator(CamelSnakeSerializer[Any]):
+    id = serializers.CharField(required=False, help_text="The ID of the existing alert")
+    name = serializers.CharField(required=True, max_length=256, help_text="The name of the alert")
+    enabled = serializers.BooleanField(
+        required=False, default=True, help_text="Whether the alert is enabled or disabled"
+    )
+    config = serializers.JSONField(
+        required=False,
+        help_text=WORKFLOW_CONFIG_HELP_TEXT,
+    )
+    environment = EnvironmentField(
+        required=False,
+        allow_null=True,
+        help_text="The name of the environment for the alert to evaluate in",
+    )
+
+    triggers = BaseDataConditionGroupValidator(
+        required=False,
+        help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
+    )
+    action_filters = serializers.ListField(
+        required=False,
+        help_text=ACTION_FILTERS_HELP_TEXT,
+    )
+    owner = OwnerActorField(
+        required=False,
+        allow_null=True,
+        help_text=OWNER_HELP_TEXT,
+    )
 
     def _split_action_and_condition_group(
         self, action_filter: dict[str, Any]
@@ -49,7 +95,7 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return actions, action_filter
 
-    def validate_config(self, value) -> bool:
+    def validate_config(self, value: Any) -> bool:
         schema = Workflow.config_schema
         return validate_json_schema(value, schema)
 
@@ -74,7 +120,7 @@ class WorkflowValidator(CamelSnakeSerializer):
     def _update_or_create(
         self,
         input_data: dict[str, Any],
-        validator: serializers.Serializer,
+        validator: serializers.Serializer[Any],
         Model: type[ModelType],
     ) -> ModelType:
         input_id = input_data.get("id")
@@ -161,9 +207,37 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return condition_group
 
+    def _validate_action_filter_ownership(self, action_filters: ListInputData) -> None:
+        workflow = self.context["workflow"]
+
+        valid_dcg_ids: set[int] = set(
+            workflow.workflowdataconditiongroup_set.values_list("condition_group_id", flat=True)
+        )
+        valid_action_ids: set[int] = set(
+            DataConditionGroupAction.objects.filter(
+                condition_group_id__in=valid_dcg_ids
+            ).values_list("action_id", flat=True)
+        )
+
+        for action_filter in action_filters:
+            dcg_id = action_filter.get("id")
+            if dcg_id is not None and int(dcg_id) not in valid_dcg_ids:
+                raise serializers.ValidationError(
+                    f"Action filter ID {dcg_id} does not belong to this workflow"
+                )
+
+            for action in action_filter.get("actions", []):
+                action_id = action.get("id")
+                if action_id is not None and int(action_id) not in valid_action_ids:
+                    raise serializers.ValidationError(
+                        f"Action ID {action_id} does not belong to this workflow"
+                    )
+
     def update_action_filters(self, action_filters: ListInputData) -> list[DataConditionGroup]:
         instance = self.context["workflow"]
         filters: list[DataConditionGroup] = []
+
+        self._validate_action_filter_ownership(action_filters)
 
         remove_items_by_api_input(
             action_filters, instance.workflowdataconditiongroup_set, "condition_group__id"
@@ -194,8 +268,15 @@ class WorkflowValidator(CamelSnakeSerializer):
             if action_filters is not None:
                 self.update_action_filters(action_filters)
 
+            # Handle owner field update
+            if "owner" in validated_data:
+                instance.owner_user_id, instance.owner_team_id = update_owner(
+                    validated_data.pop("owner")
+                )
+
             # Update the workflow
             instance.update(**validated_data)
+            instance.save()
             return instance
 
     def _validate_workflow_limits(self) -> None:
@@ -207,11 +288,17 @@ class WorkflowValidator(CamelSnakeSerializer):
         assert isinstance(org, Organization)
         workflow_count = Workflow.objects.filter(organization_id=org.id).count()
         if features.has("organizations:more-workflows", org):
-            max_workflows = settings.MAX_MORE_WORKFLOWS_PER_ORG
+            max_workflows = options.get("workflow_engine.max_more_workflows_per_org")
         else:
-            max_workflows = settings.MAX_WORKFLOWS_PER_ORG
+            max_workflows = options.get("workflow_engine.max_workflows_per_org")
 
         if workflow_count >= max_workflows:
+            request = self.context["request"]
+            log_alerting_quota_hit(
+                object_type="workflow",
+                organization=org,
+                actor=request.user if request.user.is_authenticated else None,
+            )
             raise serializers.ValidationError(
                 f"You may not exceed {max_workflows} workflows per organization."
             )
@@ -225,19 +312,34 @@ class WorkflowValidator(CamelSnakeSerializer):
         with transaction.atomic(router.db_for_write(Workflow)):
             when_condition_group = condition_group_validator.create(validated_value["triggers"])
 
+            environment = validated_value.get("environment")
+
+            owner = validated_value.get("owner")
+            owner_user_id = None
+            owner_team_id = None
+            if owner:
+                if owner.is_user:
+                    owner_user_id = owner.id
+                elif owner.is_team:
+                    owner_team_id = owner.id
+
+            owner_user_id, owner_team_id = update_owner(validated_value.get("owner"))
+
             workflow = Workflow.objects.create(
                 name=validated_value["name"],
                 enabled=validated_value["enabled"],
                 config=validated_value["config"],
                 organization_id=self.context["organization"].id,
-                environment_id=validated_value.get("environment_id"),
+                environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
                 created_by_id=self.context["request"].user.id,
+                owner_user_id=owner_user_id,
+                owner_team_id=owner_team_id,
             )
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?
             # Create actions and action filters, then associate them to the workflow
-            for action_filter in validated_value["action_filters"]:
+            for action_filter in validated_value.get("action_filters", []):
                 actions, condition_group = self._split_action_and_condition_group(action_filter)
                 new_condition_group = condition_group_validator.create(condition_group)
 

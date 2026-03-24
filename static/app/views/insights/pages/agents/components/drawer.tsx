@@ -1,22 +1,23 @@
 import {memo, useCallback, useEffect} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {useNodeDetailsLink} from 'sentry/views/insights/pages/agents/hooks/useNodeDetailsLink';
 import {useUrlTraceDrawer} from 'sentry/views/insights/pages/agents/hooks/useUrlTraceDrawer';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
-import {getNodeId} from 'sentry/views/insights/pages/agents/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useTraceDrawerQueryState} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -45,7 +46,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
-      const id = getNodeId(node);
+      const id = node.id;
       setTraceDrawerQueryState({
         spanId: id,
       });
@@ -57,7 +58,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
   );
 
   const selectedNode =
-    (selectedNodeKey && nodes.find(node => getNodeId(node) === selectedNodeKey)) ||
+    (selectedNodeKey && nodes.find(node => node.id === selectedNodeKey)) ||
     getDefaultSelectedNode(nodes);
 
   const nodeDetailsLink = useNodeDetailsLink({
@@ -74,14 +75,14 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
   }, [organization, closeDrawer]);
 
   return (
-    <DrawerWrapper>
+    <Stack height="100%">
       <StyledDrawerHeader>
-        <HeaderContent>
+        <Flex justify="between" align="center" flex="1">
           {t('Abbreviated Trace')}
           <LinkButton size="xs" onClick={handleViewFullTraceClick} to={nodeDetailsLink}>
             {t('View in Full Trace')}
           </LinkButton>
-        </HeaderContent>
+        </Flex>
       </StyledDrawerHeader>
       <StyledDrawerBody>
         <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
@@ -95,7 +96,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
           />
         </TraceStateProvider>
       </StyledDrawerBody>
-    </DrawerWrapper>
+    </Stack>
   );
 });
 
@@ -122,6 +123,9 @@ export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
           onClose,
           shouldCloseOnInteractOutside: () => true,
           drawerWidth: `${DRAWER_WIDTH}px`,
+          drawerCss: css`
+            min-width: ${DRAWER_WIDTH}px;
+          `,
           resizable: true,
           traceSlug,
           timestamp,
@@ -168,9 +172,9 @@ function AITraceView({
   const organization = useOrganization();
   if (isLoading) {
     return (
-      <LoadingContainer>
+      <Flex justify="center" align="center" flex="1" height="100%">
         <LoadingIndicator size={32}>{t('Loading trace...')}</LoadingIndicator>
-      </LoadingContainer>
+      </Flex>
     );
   }
 
@@ -183,28 +187,28 @@ function AITraceView({
   }
 
   return (
-    <SplitContainer>
+    <Flex flex="1" minHeight="0">
       <LeftPanel>
         <SpansHeader>{t('AI Spans')}</SpansHeader>
         <AISpanList
           nodes={nodes}
-          selectedNodeKey={getNodeId(selectedNode!)}
+          selectedNodeKey={selectedNode?.id ?? null}
           onSelectNode={onSelectNode}
         />
       </LeftPanel>
       <RightPanel>
-        <TraceTreeNodeDetails
-          node={selectedNode}
-          manager={null}
-          onParentClick={() => {}}
-          onTabScrollToNode={() => {}}
-          organization={organization}
-          replay={null}
-          traceId={traceSlug}
-          hideNodeActions
-        />
+        {selectedNode?.renderDetails({
+          node: selectedNode,
+          manager: null,
+          onParentClick: () => {},
+          onTabScrollToNode: () => {},
+          organization,
+          replay: null,
+          traceId: traceSlug,
+          hideNodeActions: true,
+        })}
       </RightPanel>
-    </SplitContainer>
+    </Flex>
   );
 }
 
@@ -216,18 +220,12 @@ const StyledDrawerBody = styled(DrawerBody)`
   flex-direction: column;
 `;
 
-const SplitContainer = styled('div')`
-  display: flex;
-  flex: 1;
-  min-height: 0;
-`;
-
 const LeftPanel = styled('div')`
   flex: 1;
   min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
   padding: ${p => p.theme.space.xl};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   overflow-y: auto;
   overflow-x: hidden;
   max-width: 400px;
@@ -237,23 +235,9 @@ const RightPanel = styled('div')`
   min-width: ${RIGHT_PANEL_WIDTH}px;
   flex: 1;
   min-height: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
   overflow-x: hidden;
-`;
-
-const DrawerWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  flex: 1;
 `;
 
 const StyledDrawerHeader = styled(DrawerHeader)`
@@ -261,15 +245,8 @@ const StyledDrawerHeader = styled(DrawerHeader)`
   display: flex;
 `;
 
-const HeaderContent = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const SpansHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin-bottom: ${p => p.theme.space.xl};
 `;

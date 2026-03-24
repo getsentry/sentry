@@ -163,9 +163,17 @@ class ApiInviteHelper:
     def handle_invite_not_approved(self) -> None:
         if not self.invite_approved:
             assert self.invite_context.member
+            member = self.invite_context.member
             organization_service.delete_organization_member(
-                organization_member_id=self.invite_context.member.id,
+                organization_member_id=member.id,
                 organization_id=self.invite_context.organization.id,
+            )
+            create_audit_entry(
+                self.request,
+                organization_id=self.invite_context.organization.id,
+                target_object=member.id,
+                event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
+                data={"email": member.email},
             )
 
     @property

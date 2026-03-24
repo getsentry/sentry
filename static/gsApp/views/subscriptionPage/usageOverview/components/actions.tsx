@@ -1,19 +1,32 @@
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {useTheme} from '@emotion/react';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useNavContext} from 'sentry/views/nav/context';
-import {NavLayout} from 'sentry/views/nav/types';
+import {useMedia} from 'sentry/utils/useMedia';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-function UsageOverviewActions({organization}: {organization: Organization}) {
-  const {layout: navLayout} = useNavContext();
-  const isMobile = navLayout === NavLayout.MOBILE;
+export function UsageOverviewActions({organization}: {organization: Organization}) {
+  const {layout} = usePrimaryNavigation();
+  const {view} = useSecondaryNavigation();
+  const navIsCollapsed = view !== 'expanded';
+  const theme = useTheme();
+  const shouldCollapseOnLargeScreen =
+    useMedia(
+      `(min-width: ${theme.breakpoints.lg}) and (max-width: ${theme.breakpoints.xl})`
+    ) && !navIsCollapsed;
+  const shouldCollapseOnMobile =
+    useMedia(`(max-width: ${theme.breakpoints.sm})`) && layout === 'mobile';
+
+  const shouldCollapseActions = shouldCollapseOnLargeScreen || shouldCollapseOnMobile;
 
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
   const hasBillingPerms = organization.access.includes('org:billing');
@@ -30,7 +43,7 @@ function UsageOverviewActions({organization}: {organization: Organization}) {
   }> = [
     {
       label: t('View all usage'),
-      to: '/settings/billing/usage/',
+      to: `/settings/${organization.slug}/billing/usage/`,
       icon: <IconTable />,
     },
     {
@@ -49,7 +62,7 @@ function UsageOverviewActions({organization}: {organization: Organization}) {
     },
   ];
 
-  if (isMobile) {
+  if (shouldCollapseActions) {
     return (
       <DropdownMenu
         triggerProps={{
@@ -70,7 +83,7 @@ function UsageOverviewActions({organization}: {organization: Organization}) {
   }
 
   return (
-    <Flex gap="lg" direction={{xs: 'column', sm: 'row'}}>
+    <Flex gap="lg" direction="row">
       {buttons.map(buttonInfo =>
         buttonInfo.to ? (
           <LinkButton
@@ -96,5 +109,3 @@ function UsageOverviewActions({organization}: {organization: Organization}) {
     </Flex>
   );
 }
-
-export default UsageOverviewActions;

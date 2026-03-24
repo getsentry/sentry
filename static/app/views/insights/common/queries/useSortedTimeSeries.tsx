@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {
   EventsStats,
@@ -16,7 +17,6 @@ import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   isEventsStats,
   isGroupedMultiSeriesEventsStats,
@@ -43,10 +43,13 @@ interface Options<Fields> {
   enabled?: boolean;
   fields?: string[];
   interval?: string;
+  logQuery?: string[];
+  metricQuery?: string[];
   orderby?: string | string[];
   referrer?: string;
   samplingMode?: SamplingMode;
   search?: MutableSearch;
+  spanQuery?: string[];
   topEvents?: number;
   yAxis?: Fields;
 }
@@ -69,6 +72,9 @@ export const useSortedTimeSeries = <
     samplingMode,
     disableAggregateExtrapolation,
     caseInsensitive,
+    logQuery,
+    metricQuery,
+    spanQuery,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -110,6 +116,9 @@ export const useSortedTimeSeries = <
       pageFilters: pageFilters.selection,
       sort: decodeSorts(orderby)[0],
       caseInsensitive: Boolean(caseInsensitive),
+      logQuery,
+      metricQuery,
+      spanQuery,
       interval,
       sampling: samplingMode,
       extrapolate: !disableAggregateExtrapolation,

@@ -4,20 +4,22 @@ import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {ApiResult} from 'sentry/api';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
-import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
-import InfiniteListItems from 'sentry/components/infiniteList/infiniteListItems';
-import InfiniteListState from 'sentry/components/infiniteList/infiniteListState';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {FeedbackListHeader} from 'sentry/components/feedback/list/feedbackListHeader';
+import {FeedbackListItem} from 'sentry/components/feedback/list/feedbackListItem';
+import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
+import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import type {InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
 function NoFeedback() {
   return (
@@ -33,10 +35,12 @@ interface Props {
   onItemSelect: (itemIndex?: number) => void;
 }
 
-export default function FeedbackList({onItemSelect}: Props) {
+export function FeedbackList({onItemSelect}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
-    queryKey: listQueryKey ?? ['infinite', ''],
+    queryKey:
+      listQueryKey ??
+      ([{infinite: true, version: 'v1'}, ''] as unknown as InfiniteApiQueryKey),
     enabled: Boolean(listQueryKey),
   });
 
@@ -56,7 +60,7 @@ export default function FeedbackList({onItemSelect}: Props) {
   return (
     <Fragment>
       <FeedbackListHeader {...checkboxState} />
-      <FeedbackListItems>
+      <Stack flexGrow={1} paddingBottom="xs">
         <InfiniteListState
           queryResult={queryResult}
           backgroundUpdatingMessage={() => null}
@@ -97,37 +101,30 @@ export default function FeedbackList({onItemSelect}: Props) {
             loadingCompleteMessage={() => null}
           />
         </InfiniteListState>
-      </FeedbackListItems>
+      </Stack>
     </Fragment>
   );
 }
-
-const FeedbackListItems = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  padding-bottom: ${space(0.5)};
-`;
 
 const Centered = styled('div')`
   justify-self: center;
 `;
 
 const NoFeedbackWrapper = styled('div')`
-  padding: ${space(4)} ${space(4)};
+  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 
 const NoFeedbackMessage = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray400};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.colors.gray500};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
 `;

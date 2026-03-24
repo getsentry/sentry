@@ -17,7 +17,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -36,7 +36,7 @@ from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 logger = logging.getLogger(__name__)
 
 
-@region_silo_model
+@cell_silo_model
 class ExportedData(Model):
     """
     Stores references to asynchronous data export jobs
@@ -123,7 +123,19 @@ class ExportedData(Model):
             export_url=url,
             expiration_date=self.date_expired,
         )
-        if NotificationService.has_access(self.organization, data.source):
+        has_access = NotificationService.has_access(self.organization, data.source)
+        logger.info(
+            "notification.platform.data-export-success.has_access",
+            extra={
+                "organization_id": self.organization.id,
+                "data_export_id": self.id,
+                "data_source": data.source,
+                "has_access": has_access,
+                "user_email": user_email,
+            },
+        )
+
+        if has_access:
             NotificationService(data=data).notify_async(
                 targets=[
                     GenericNotificationTarget(
@@ -198,7 +210,7 @@ class ExportedData(Model):
     __repr__ = sane_repr("query_type", "query_info")
 
 
-@region_silo_model
+@cell_silo_model
 class ExportedDataBlob(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

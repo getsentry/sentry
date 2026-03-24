@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -65,39 +64,41 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
 
 const DescriptionWrapper = styled('div')<Pick<KeyDescriptionProps, 'size'>>`
   padding: ${p =>
-    p.size === 'sm' ? `${space(0.75)} ${space(1)}` : `${space(1.5)} ${space(2)}`};
+    p.size === 'sm'
+      ? `${p.theme.space.sm} ${p.theme.space.md}`
+      : `${p.theme.space.lg} ${p.theme.space.xl}`};
   max-width: ${p => (p.size === 'sm' ? '220px' : 'none')};
-  font-size: ${p => (p.size === 'sm' ? p.theme.fontSize.sm : p.theme.fontSize.md)};
+  font-size: ${p => (p.size === 'sm' ? p.theme.font.size.sm : p.theme.font.size.md)};
 
   p {
     margin: 0;
   }
 
   p + p {
-    margin-top: ${space(0.5)};
+    margin-top: ${p => p.theme.space.xs};
   }
 `;
 
 const DescriptionKeyLabel = styled('p')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   word-break: break-all;
 `;
 
 const Separator = styled('hr')`
-  border-top: 1px solid ${p => p.theme.border};
-  margin: ${space(1)} 0;
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const DescriptionList = styled('dl')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   margin: 0;
 `;
 
 const Term = styled('dt')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const Details = styled('dd')``;

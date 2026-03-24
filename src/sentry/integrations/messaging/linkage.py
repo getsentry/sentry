@@ -42,7 +42,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.client_config import get_client_config
-from sentry.web.frontend.base import BaseView, control_silo_view, region_silo_view
+from sentry.web.frontend.base import BaseView, cell_silo_view, control_silo_view
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.integrations.messaging.linkage")
@@ -154,7 +154,7 @@ class IdentityLinkageView(LinkageView, ABC):
                     self.provider, request.user, integration_id=integration_id
                 )
         except Http404:
-            logger.exception("get_identity_error", extra={"integration_id": integration_id})
+            logger.warning("get_identity_error", extra={"integration_id": integration_id})
             self.capture_metric("failure.get_identity")
             return self.render_error_page(
                 request,
@@ -196,7 +196,7 @@ class IdentityLinkageView(LinkageView, ABC):
             external_id: str = params_dict[self.external_id_parameter]
         except KeyError as e:
             event = self.capture_metric("failure.post.missing_params", tags={"error": str(e)})
-            logger.exception(event)
+            logger.warning(event)
             return self.render_error_page(
                 request,
                 status=400,
@@ -284,7 +284,7 @@ class LinkIdentityView(IdentityLinkageView, ABC):
             Identity.objects.link_identity(user=request.user, idp=idp, external_id=external_id)
         except IntegrityError:
             event = self.capture_metric("failure.integrity_error")
-            logger.exception(event)
+            logger.warning(event)
             raise Http404
 
 
@@ -323,12 +323,12 @@ class UnlinkIdentityView(IdentityLinkageView, ABC):
             identities.delete()
         except IntegrityError:
             tag = f"{self.provider_slug}.unlink.integrity-error"
-            logger.exception(tag)
+            logger.warning(tag)
             raise Http404
         return None
 
 
-@region_silo_view
+@cell_silo_view
 class TeamLinkageView(LinkageView, ABC):
     _ALLOWED_ROLES = frozenset(["admin", "manager", "owner"])
 

@@ -25,7 +25,9 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
 
     def test_admin_can_list_access_requests(self) -> None:
         organization = self.create_organization(
-            name="foo", owner=self.user, flags=0  # kill default allow_joinleave
+            name="foo",
+            owner=self.user,
+            flags=0,  # kill default allow_joinleave
         )
         team_1 = self.create_team(name="foo", organization=organization)
 

@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import type {ClickFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
-export default function SelectorList({frame}: {frame: ClickFrame}) {
+export function SelectorList({frame}: {frame: ClickFrame}) {
   const location = useLocation();
   const organization = useOrganization();
 

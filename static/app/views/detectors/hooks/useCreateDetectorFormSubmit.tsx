@@ -6,15 +6,20 @@ import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
   Detector,
+  DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/forms/common/getDetectorAnalyticsPayload';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 interface UseCreateDetectorFormSubmitOptions<TFormData, TUpdatePayload> {
+  /**
+   * Detector type for analytics tracking when validation fails
+   */
+  detectorType: DetectorType;
   /**
    * Function to transform form data to API payload
    */
@@ -27,6 +32,7 @@ export function useCreateDetectorFormSubmit<
   TFormData extends Data,
   TUpdatePayload extends BaseDetectorUpdatePayload,
 >({
+  detectorType,
   formDataToEndpointPayload,
   onError,
   onSuccess,
@@ -36,19 +42,30 @@ export function useCreateDetectorFormSubmit<
   const {mutateAsync: createDetector} = useCreateDetector();
 
   return useCallback<OnSubmitCallback>(
-    async (data, onSubmitSuccess, onSubmitError, _, formModel) => {
+    async (_data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const isValid = formModel.validateForm();
       if (!isValid) {
+        trackAnalytics('monitor.created', {
+          organization,
+          detector_type: detectorType,
+          success: false,
+        });
         return;
       }
 
+      // Use getTransformedData() instead of raw data to apply field-level
+      // getValue transformations (e.g., assertion normalization)
+      const payload = formDataToEndpointPayload(
+        formModel.getTransformedData() as TFormData
+      );
+
       try {
-        const payload = formDataToEndpointPayload(data as TFormData);
         const resultDetector = await createDetector(payload);
 
         trackAnalytics('monitor.created', {
           organization,
           ...getDetectorAnalyticsPayload(resultDetector),
+          success: true,
         });
 
         addSuccessMessage(t('Monitor created successfully'));
@@ -61,6 +78,12 @@ export function useCreateDetectorFormSubmit<
 
         onSubmitSuccess?.(resultDetector);
       } catch (error) {
+        trackAnalytics('monitor.created', {
+          organization,
+          detector_type: payload.type,
+          success: false,
+        });
+
         addErrorMessage(t('Unable to create monitor'));
 
         if (onError) {
@@ -71,6 +94,7 @@ export function useCreateDetectorFormSubmit<
       }
     },
     [
+      detectorType,
       formDataToEndpointPayload,
       createDetector,
       organization,

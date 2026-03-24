@@ -1,29 +1,19 @@
 import {useMemo} from 'react';
 
 import {STATIC_SEMVER_TAGS} from 'sentry/components/events/searchBarFieldConstants';
+import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters} from 'sentry/types/core';
-import {type TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, type AggregationKey} from 'sentry/utils/fields';
 import {
-  TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
+  useTraceItemSearchQueryBuilderProps,
+  type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
-
-interface SpanSearchQueryBuilderProps {
-  initialQuery: string;
-  searchSource: string;
-  datetime?: PageFilters['datetime'];
-  disableLoadingTags?: boolean;
-  onBlur?: (query: string, state: CallbackSearchState) => void;
-  onSearch?: (query: string, state: CallbackSearchState) => void;
-  placeholder?: string;
-  projects?: PageFilters['projects'];
-  useEap?: boolean;
-}
 
 export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
@@ -41,82 +31,100 @@ export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {});
 };
 
-export function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderProps) {
-  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemTags('number');
-  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemTags('string');
-
-  return (
-    <EAPSpanSearchQueryBuilder
-      numberTags={numberTags}
-      stringTags={stringTags}
-      numberSecondaryAliases={numberSecondaryAliases}
-      stringSecondaryAliases={stringSecondaryAliases}
-      {...props}
-    />
-  );
-}
-
-export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
-  numberSecondaryAliases: TagCollection;
-  numberTags: TagCollection;
-  stringSecondaryAliases: TagCollection;
-  stringTags: TagCollection;
+export interface UseSpanSearchQueryBuilderProps {
+  initialQuery: string;
+  searchSource: string;
   autoFocus?: boolean;
+  caseInsensitive?: CaseInsensitive;
+  datetime?: PageFilters['datetime'];
+  disableLoadingTags?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  onBlur?: (query: string, state: CallbackSearchState) => void;
+  onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
   onChange?: (query: string, state: CallbackSearchState) => void;
+  onSearch?: (query: string, state: CallbackSearchState) => void;
+  placeholder?: string;
   portalTarget?: HTMLElement | null;
+  projects?: PageFilters['projects'];
   supportedAggregates?: AggregationKey[];
+  useEap?: boolean;
+}
+export interface SpanSearchQueryBuilderProps extends UseSpanSearchQueryBuilderProps {
+  booleanAttributes: TagCollection;
+  booleanSecondaryAliases: TagCollection;
+  itemType: TraceItemDataset;
+  numberAttributes: TagCollection;
+  numberSecondaryAliases: TagCollection;
+  stringAttributes: TagCollection;
+  stringSecondaryAliases: TagCollection;
 }
 
-export function useEAPSpanSearchQueryBuilderProps(props: EAPSpanSearchQueryBuilderProps) {
-  const {
-    numberTags,
-    stringTags,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    ...rest
-  } = props;
+type UseTraceItemSearchQueryBuilderPropsReturnType = ReturnType<
+  typeof useTraceItemSearchQueryBuilderProps
+>;
 
-  const numberAttributes = numberTags;
-  const stringAttributes = useMemo(() => {
-    if (SpanFields.RELEASE in stringTags) {
+export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderProps): {
+  spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
+  spanSearchQueryBuilderProviderProps: UseTraceItemSearchQueryBuilderPropsReturnType;
+} {
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useSpanItemAttributes({}, 'number');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useSpanItemAttributes({}, 'string');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useSpanItemAttributes({}, 'boolean');
+
+  const stringAttributesWithSemver = useMemo(() => {
+    if (SpanFields.RELEASE in stringAttributes) {
       return {
-        ...stringTags,
+        ...stringAttributes,
         ...STATIC_SEMVER_TAGS,
       };
     }
-    return stringTags;
-  }, [stringTags]);
+    return stringAttributes;
+  }, [stringAttributes]);
 
-  return useSearchQueryBuilderProps({
+  const spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = useMemo(
+    () => ({
+      ...props,
+      itemType: TraceItemDataset.SPANS,
+      booleanAttributes,
+      booleanSecondaryAliases,
+      numberAttributes,
+      stringAttributes: stringAttributesWithSemver,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      caseInsensitive: props.caseInsensitive ? true : undefined,
+    }),
+    [
+      booleanAttributes,
+      booleanSecondaryAliases,
+      numberAttributes,
+      numberSecondaryAliases,
+      props,
+      stringAttributesWithSemver,
+      stringSecondaryAliases,
+    ]
+  );
+
+  const spanSearchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps({
+    ...props,
     itemType: TraceItemDataset.SPANS,
+    booleanAttributes,
+    booleanSecondaryAliases,
     numberAttributes,
-    stringAttributes,
+    stringAttributes: stringAttributesWithSemver,
     numberSecondaryAliases,
     stringSecondaryAliases,
-    ...rest,
+    caseInsensitive: props.caseInsensitive ? true : undefined,
+    onCaseInsensitiveClick: props.onCaseInsensitiveClick,
   });
-}
 
-export function EAPSpanSearchQueryBuilder(props: EAPSpanSearchQueryBuilderProps) {
-  const {
-    numberTags,
-    stringTags,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    ...rest
-  } = props;
-
-  return (
-    <TraceItemSearchQueryBuilder
-      itemType={TraceItemDataset.SPANS}
-      numberAttributes={numberTags}
-      stringAttributes={stringTags}
-      numberSecondaryAliases={numberSecondaryAliases}
-      stringSecondaryAliases={stringSecondaryAliases}
-      {...rest}
-    />
+  return useMemo(
+    () => ({
+      spanSearchQueryBuilderProps,
+      spanSearchQueryBuilderProviderProps,
+    }),
+    [spanSearchQueryBuilderProps, spanSearchQueryBuilderProviderProps]
   );
 }

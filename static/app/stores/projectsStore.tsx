@@ -13,8 +13,6 @@ type State = {
   projects: Project[];
 };
 
-type StatsData = Record<string, Project['stats']>;
-
 /**
  * Attributes that need typing but aren't part of the external interface,
  */
@@ -24,8 +22,7 @@ type InternalDefinition = {
 };
 
 interface ProjectsStoreDefinition
-  extends InternalDefinition,
-    StrictStoreDefinition<State> {
+  extends InternalDefinition, StrictStoreDefinition<State> {
   getById(id?: string): Project | undefined;
   getBySlug(slug?: string): Project | undefined;
   isLoading(): boolean;
@@ -36,7 +33,6 @@ interface ProjectsStoreDefinition
   onDeleteProject(projectSlug: string): void;
   onDeleteTeam(slug: string): void;
   onRemoveTeam(teamSlug: string, projectSlug: string): void;
-  onStatsLoadSuccess(data: StatsData): void;
   onUpdateSuccess(data: Partial<Project>): void;
   reset(): void;
 }
@@ -116,18 +112,6 @@ const storeConfig: ProjectsStoreDefinition = {
 
     this.trigger(new Set([data.id]));
     clearQueryCache();
-  },
-
-  onStatsLoadSuccess(data) {
-    const statsData = data || {};
-
-    // Assign stats into projects
-    const newProjects = this.state.projects.map(project =>
-      statsData[project.id] ? {...project, stats: data[project.id]} : project
-    );
-    this.state = {...this.state, projects: newProjects};
-
-    this.trigger(new Set(Object.keys(data)));
   },
 
   onDeleteProject(projectSlug: string) {
@@ -217,5 +201,4 @@ const storeConfig: ProjectsStoreDefinition = {
   },
 };
 
-const ProjectsStore = createStore(storeConfig);
-export default ProjectsStore;
+export const ProjectsStore = createStore(storeConfig);

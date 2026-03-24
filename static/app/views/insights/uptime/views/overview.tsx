@@ -1,37 +1,40 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {type UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {makeMonitorTypePathname} from 'sentry/views/detectors/pathnames';
 import {OverviewTimeline} from 'sentry/views/insights/uptime/components/overviewTimeline';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/uptime/settings';
 
@@ -78,7 +81,7 @@ export default function UptimeOverview() {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <FeedbackButton />
             <LinkButton
               size="sm"
@@ -86,11 +89,11 @@ export default function UptimeOverview() {
               to={makeAlertsPathname({path: `/new/uptime/`, organization})}
               icon={<IconAdd />}
               disabled={!canCreateAlert}
-              title={canCreateAlert ? undefined : permissionTooltipText}
+              tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
             >
               {t('Add Uptime Monitor')}
             </LinkButton>
-          </ButtonBar>
+          </Grid>
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
@@ -115,6 +118,28 @@ export default function UptimeOverview() {
               }}
             />
           </Filters>
+          {organization.features.includes('workflow-engine-ui') && (
+            <Alert.Container>
+              <Alert variant="info" showIcon>
+                {tct(
+                  'Uptime Monitors are moving to [link:Monitors]. Head over there for the same functionality in a new home.',
+                  {
+                    link: (
+                      <Link
+                        to={{
+                          pathname: makeMonitorTypePathname(
+                            organization.slug,
+                            'uptime_domain_failure'
+                          ),
+                          query: extractSelectionParameters(location.query),
+                        }}
+                      />
+                    ),
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
+          )}
           {isPending ? (
             <LoadingIndicator />
           ) : detectors?.length ? (
@@ -155,8 +180,8 @@ export default function UptimeOverview() {
 
 const Filters = styled('div')`
   display: flex;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
 
   > :last-child {
     flex-grow: 1;

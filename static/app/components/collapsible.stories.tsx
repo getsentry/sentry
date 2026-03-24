@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import Collapsible from 'sentry/components/collapsible';
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
+import {Collapsible} from 'sentry/components/collapsible';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Collapsible', story => {

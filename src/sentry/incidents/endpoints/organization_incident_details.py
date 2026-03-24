@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
@@ -23,14 +23,12 @@ class IncidentSerializer(serializers.Serializer):
             value = IncidentStatus(value)
         except Exception:
             raise serializers.ValidationError(
-                "Invalid value for status. Valid values: {}".format(
-                    [e.value for e in IncidentStatus]
-                )
+                f"Invalid value for status. Valid values: {[e.value for e in IncidentStatus]}"
             )
         return value
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {

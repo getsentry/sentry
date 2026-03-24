@@ -8,7 +8,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {openModal} from 'sentry/actionCreators/modal';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface MissingDsymModalProps {
   binaries: string[];
@@ -24,7 +23,9 @@ function MissingDsymModal({binaries, closeModal}: MissingDsymModalProps) {
         </Heading>
         <Container
           position="absolute"
-          style={{top: '50%', right: 0, transform: 'translateY(-50%)'}}
+          top="50%"
+          right={0}
+          style={{transform: 'translateY(-50%)'}}
         >
           <Button
             onClick={closeModal}
@@ -56,19 +57,19 @@ function MissingDsymModal({binaries, closeModal}: MissingDsymModalProps) {
 const BinaryList = styled(Stack)`
   max-height: 400px;
   overflow-y: auto;
-  padding: ${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.xl};
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const BinaryItem = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 
   code {
-    font-family: ${p => p.theme.text.familyMono};
+    font-family: ${p => p.theme.font.family.mono};
     word-break: break-all;
   }
 `;

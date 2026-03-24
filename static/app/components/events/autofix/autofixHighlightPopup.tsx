@@ -13,25 +13,26 @@ import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {TextArea} from 'sentry/components/core/textarea';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
@@ -247,14 +248,14 @@ function AutofixHighlightPopupContent({
       const lastServerMessage = serverMessages[serverMessages.length - 1];
 
       // If the last server message is from the assistant, clear all pending messages
-      if (lastServerMessage && lastServerMessage.role === 'assistant') {
+      if (lastServerMessage?.role === 'assistant') {
         setPendingUserMessage(null);
         setShowLoadingAssistant(false);
       }
 
       // If the last server message is from the user, keep loading assistant state
       // but clear the pending user message
-      if (lastServerMessage && lastServerMessage.role === 'user') {
+      if (lastServerMessage?.role === 'user') {
         setPendingUserMessage(null);
         setShowLoadingAssistant(true);
       }
@@ -405,16 +406,16 @@ function AutofixHighlightPopupContent({
                     <FlippedReturnIcon />
                   </ReworkArrow>
                 </ReworkHeaderSection>
-                <HeaderRight>
+                <Flex align="center" paddingLeft="lg">
                   <Divider />
                   <ResolveButton
                     size="zero"
-                    borderless
+                    priority="transparent"
                     aria-label={t('Resolve thread')}
                     onClick={handleResolve}
                     icon={<IconClose size="xs" />}
                   />
-                </HeaderRight>
+                </Flex>
               </motion.div>
             ) : (
               <motion.div
@@ -440,7 +441,7 @@ function AutofixHighlightPopupContent({
                 {allMessages.length > 0 && (
                   <ResolveButton
                     size="zero"
-                    borderless
+                    priority="transparent"
                     aria-label={t('Resolve thread')}
                     onClick={handleResolve}
                     icon={<IconClose size="xs" />}
@@ -464,9 +465,9 @@ function AutofixHighlightPopupContent({
                 )}
                 <MessageContent>
                   {message.isLoading ? (
-                    <LoadingWrapper>
+                    <Flex align="center" marginTop="2xs" height="24px">
                       <LoadingIndicator mini size={12} />
-                    </LoadingWrapper>
+                    </Flex>
                   ) : (
                     <MarkedText text={message.content} inline />
                   )}
@@ -506,7 +507,7 @@ function AutofixHighlightPopupContent({
               <StyledButton
                 size="zero"
                 type="submit"
-                borderless
+                priority="transparent"
                 aria-label={t('Submit Comment')}
               >
                 {'\u23CE'}
@@ -550,7 +551,7 @@ function getOptimalPosition(
   return {left, top};
 }
 
-function AutofixHighlightPopup(props: Props) {
+export function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{
@@ -671,8 +672,8 @@ const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-right: ${space(1)};
-  gap: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
   max-width: 300px;
   min-width: 200px;
   position: fixed;
@@ -685,7 +686,7 @@ const ScaleContainer = styled(motion.div)<{isFocused?: boolean}>`
   flex-direction: column;
   align-items: flex-start;
   transform-origin: top right;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space.xl};
   transform: scale(${p => (p.isFocused ? 1 : 0.9)});
   transition: transform 200ms ease;
 `;
@@ -695,9 +696,9 @@ const Container = styled(motion.div, {
 })<{isFocused?: boolean}>`
   position: relative;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
-  border: 1px dashed ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   overflow: hidden;
   box-shadow: ${p => (p.isFocused ? p.theme.dropShadowHeavy : p.theme.dropShadowLight)};
   transition: box-shadow 200ms ease;
@@ -709,7 +710,11 @@ const Container = styled(motion.div, {
     background: linear-gradient(
       90deg,
       transparent,
-      ${p => p.theme.active}20,
+      color-mix(
+        in srgb,
+        ${p => p.theme.tokens.background.accent.vibrant} 12.5%,
+        transparent
+      ),
       transparent
     );
     background-size: 2000px 100%;
@@ -719,33 +724,33 @@ const Container = styled(motion.div, {
 
 const InputWrapper = styled('form')`
   display: flex;
-  padding: ${space(0.5)};
-  background: ${p => p.theme.backgroundSecondary};
+  padding: ${p => p.theme.space.xs};
+  background: ${p => p.theme.tokens.background.secondary};
   position: relative;
 `;
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
-  border-color: ${p => p.theme.innerBorder};
-  padding-right: ${space(4)};
-  padding-top: ${space(0.75)};
-  padding-bottom: ${space(0.75)};
+  border-color: ${p => p.theme.tokens.border.secondary};
+  padding-right: ${p => p.theme.space['3xl']};
+  padding-top: ${p => p.theme.space.sm};
+  padding-bottom: ${p => p.theme.space.sm};
   resize: none;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StyledButton = styled(Button)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
   top: 50%;
   transform: translateY(-50%);
   height: 24px;
   width: 24px;
   margin-right: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   z-index: 2;
 `;
 
@@ -753,15 +758,15 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.backgroundSecondary};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  background: ${p => p.theme.tokens.background.secondary};
   word-break: break-word;
   overflow-wrap: break-word;
 `;
 
 const SelectedText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   align-items: center;
   white-space: nowrap;
   overflow: hidden;
@@ -778,8 +783,8 @@ const Arrow = styled('div')`
   position: absolute;
   width: 12px;
   height: 12px;
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px dashed ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.secondary};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-right: none;
   border-bottom: none;
   top: 20px;
@@ -789,10 +794,10 @@ const Arrow = styled('div')`
 `;
 
 const MessagesContainer = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   max-height: 200px;
   overflow-y: auto;
   scroll-behavior: smooth;
@@ -800,22 +805,22 @@ const MessagesContainer = styled('div')`
 
 const Message = styled('div')<{role: CommentThreadMessage['role']}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: flex-start;
 `;
 
 const MessageContent = styled('div')`
   flex-grow: 1;
-  border-radius: ${p => p.theme.borderRadius};
-  padding-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
+  border-radius: ${p => p.theme.radius.md};
+  padding-top: ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
 
   code {
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     background: transparent;
   }
 `;
@@ -827,25 +832,18 @@ const CircularSeerIcon = styled('div')`
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: ${p => p.theme.purple300};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
   flex-shrink: 0;
 
   > svg {
     width: 18px;
     height: 18px;
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.tokens.content.onVibrant.light};
   }
 `;
 
-const LoadingWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 24px;
-  margin-top: ${space(0.25)};
-`;
-
 const ResolveButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const ReworkHeaderSection = styled('div')`
@@ -857,18 +855,12 @@ const ReworkHeaderSection = styled('div')`
   flex: 1;
 `;
 
-const HeaderRight = styled('div')`
-  display: flex;
-  align-items: center;
-  padding-left: ${p => p.theme.space.lg};
-`;
-
 const ReworkText = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${ReworkHeaderSection}:hover & {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -896,5 +888,3 @@ function getScrollParents(element: HTMLElement): Element[] {
 
   return scrollParents;
 }
-
-export default AutofixHighlightPopup;

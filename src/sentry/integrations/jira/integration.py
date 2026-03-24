@@ -126,7 +126,15 @@ metadata = IntegrationMetadata(
 # Some Jira errors for invalid field values don't actually provide the field
 # ID in an easily mappable way, so we have to manually map known error types
 # here to make it explicit to the user what failed.
-CUSTOM_ERROR_MESSAGE_MATCHERS = [(re.compile("Team with id '.*' not found.$"), "Team Field")]
+CUSTOM_ERROR_MESSAGE_MATCHERS = [
+    (re.compile("Team with id '.*' not found.$"), "Team Field"),
+    (
+        re.compile(
+            r"Issue does not exist or you do not have permission to see it\.?$", re.IGNORECASE
+        ),
+        "Issue",
+    ),
+]
 
 # Hide linked issues fields because we don't have the necessary UI for fully specifying
 # a valid link (e.g. "is blocked by ISSUE-1").
@@ -260,6 +268,11 @@ class JiraIntegration(IssueSyncIntegration):
                     "emptyMessage": _("All projects configured"),
                     "noResultsMessage": _("Could not find Jira project"),
                     "items": [],  # Populated with projects
+                    "url": reverse(
+                        "sentry-extensions-jira-search",
+                        args=[self.organization.slug, self.model.id],
+                    ),
+                    "searchField": "project",
                 },
                 "mappedSelectors": {},
                 "columnLabels": {
@@ -516,12 +529,19 @@ class JiraIntegration(IssueSyncIntegration):
             logging_context=logging_context,
         )
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["base_url", "domain_name"]
+
     def get_issue(self, issue_id, **kwargs):
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
         client = self.get_client()
-        issue = client.get_issue(issue_id)
+        try:
+            issue = client.get_issue(issue_id)
+        except ApiError as e:
+            self.raise_error(e)
+
         fields = issue.get("fields", {})
         return {
             "key": issue_id,
@@ -764,7 +784,7 @@ class JiraIntegration(IssueSyncIntegration):
                 extra={"organization_id": self.organization_id, "jira_project": project_id},
             )
             raise IntegrationError(
-                "Jira returned: Unauthorized. " "Please check your configuration settings."
+                "Jira returned: Unauthorized. Please check your configuration settings."
             )
         except ApiError as e:
             logger.info(
@@ -849,7 +869,7 @@ class JiraIntegration(IssueSyncIntegration):
         projects_form_field = {
             "name": "project",
             "label": "Jira Project",
-            "choices": [(p["id"], f"{p["key"]} - {p["name"]}") for p in jira_projects],
+            "choices": [(p["id"], f"{p['key']} - {p['name']}") for p in jira_projects],
             "default": meta["id"],
             "type": "select",
             "updatesForm": True,
@@ -1003,21 +1023,24 @@ class JiraIntegration(IssueSyncIntegration):
             "request_body": str(exc.json) if isinstance(exc, ApiError) else None,
         }
 
-        if isinstance(exc, ApiError) and not exc.json:
-            logger.warning("sentry.jira.raise_error.non_json_error_response", extra=logging_context)
-            raise IntegrationConfigurationError(
-                "Something went wrong while communicating with Jira"
-            ) from exc
+        if isinstance(exc, ApiError):
+            if not exc.json:
+                logger.warning(
+                    "sentry.jira.raise_error.non_json_error_response", extra=logging_context
+                )
+                raise IntegrationConfigurationError(
+                    "Something went wrong while communicating with Jira"
+                ) from exc
 
-        if isinstance(exc, ApiInvalidRequestError):
             error_fields = self.error_fields_from_json(exc.json)
             if error_fields is not None:
                 raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
 
-            logger.warning(
-                "sentry.jira.raise_error.generic_api_invalid_error", extra=logging_context
-            )
-            raise IntegrationConfigurationError(exc.text) from exc
+            if isinstance(exc, ApiInvalidRequestError):
+                logger.warning(
+                    "sentry.jira.raise_error.generic_api_invalid_error", extra=logging_context
+                )
+                raise IntegrationConfigurationError(exc.text) from exc
 
         super().raise_error(exc, identity=identity)
 
@@ -1177,10 +1200,10 @@ class JiraIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = JiraIntegration
 
-    # Jira is region-restricted because the JiraSentryIssueDetailsView view does not currently
-    # contain organization-identifying information aside from the ExternalIssue. Multiple regions
+    # Jira is cell-restricted because the JiraSentryIssueDetailsView view does not currently
+    # contain organization-identifying information aside from the ExternalIssue. Multiple cells
     # may contain a matching ExternalIssue and we could leak data across the organizations.
-    is_region_restricted = True
+    is_cell_restricted = True
 
     features = frozenset(
         [

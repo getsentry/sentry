@@ -2,11 +2,13 @@ from collections import defaultdict
 from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -19,6 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.models.organization import Organization
 from sentry.rules.actions.services import PluginService, SentryAppService
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
@@ -41,7 +44,7 @@ class AvailableIntegration(TypedDict):
     services: list[tuple[int, str]]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -63,7 +66,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns a list of available actions for a given org
         """

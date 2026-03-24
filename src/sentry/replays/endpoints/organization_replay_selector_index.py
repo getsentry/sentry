@@ -23,11 +23,9 @@ from snuba_sdk import (
 )
 from snuba_sdk import Request as SnubaRequest
 
-from sentry import features
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases.organization import NoProjects
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
@@ -36,12 +34,19 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Visibility
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.replays.endpoints.organization_replay_endpoint import (
+    OrganizationReplayEndpoint,
+)
 from sentry.replays.lib.new_query.conditions import IntegerScalar
 from sentry.replays.lib.new_query.fields import FieldProtocol, IntegerColumnField
 from sentry.replays.lib.new_query.parsers import parse_int
 from sentry.replays.query import make_pagination_values
 from sentry.replays.usecases.errors import handled_snuba_exceptions
-from sentry.replays.usecases.query import Paginators, handle_ordering, handle_search_filters
+from sentry.replays.usecases.query import (
+    Paginators,
+    handle_ordering,
+    handle_search_filters,
+)
 from sentry.replays.validators import ReplaySelectorValidator
 from sentry.utils.snuba import raw_snql_query
 
@@ -73,10 +78,9 @@ class ReplaySelectorResponse(TypedDict):
     data: list[ReplaySelectorResponseData]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
-class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.REPLAY
+class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -106,8 +110,8 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """Return a list of selectors for a given organization."""
-        if not features.has("organizations:session-replay", organization, actor=request.user):
-            return Response(status=404)
+        self.check_replay_access(request, organization)
+
         try:
             filter_params = self.get_replay_filter_params(request, organization)
         except NoProjects:
@@ -275,8 +279,16 @@ def query_selector_dataset(
                 Column("click_aria_label"),
                 Column("click_title"),
                 Column("click_component_name"),
-                Function("sum", parameters=[Column("click_is_dead")], alias="count_dead_clicks"),
-                Function("sum", parameters=[Column("click_is_rage")], alias="count_rage_clicks"),
+                Function(
+                    "sum",
+                    parameters=[Column("click_is_dead")],
+                    alias="count_dead_clicks",
+                ),
+                Function(
+                    "sum",
+                    parameters=[Column("click_is_rage")],
+                    alias="count_rage_clicks",
+                ),
             ],
             where=where_conditions,
             having=conditions,

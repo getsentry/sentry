@@ -1,16 +1,19 @@
 import type {ReactNode} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {PercentChange} from 'sentry/components/percentChange';
 import {IconCode, IconDownload, IconLightning, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricCard} from 'sentry/views/preprod/components/metricCard';
 import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
@@ -22,11 +25,14 @@ import type {
   BuildDetailsSizeInfoSizeMetric,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
+  formattedSizeDiff,
   getLabels,
+  getTrend,
 } from 'sentry/views/preprod/utils/labelUtils';
 
 interface BuildDetailsMetricCardsProps {
@@ -34,7 +40,10 @@ interface BuildDetailsMetricCardsProps {
   processedInsights: ProcessedInsight[];
   sizeInfo: BuildDetailsSizeInfo | undefined;
   totalSize: number;
+  artifactId?: string;
+  baseArtifactId?: string | null;
   platform?: Platform | null;
+  projectId?: string;
   projectType?: string | null;
 }
 
@@ -43,15 +52,23 @@ interface MetricCardConfig {
   key: string;
   title: string;
   value: string;
+  comparisonUrl?: string;
+  componentBreakdown?: ComponentBreakdown;
+  delta?: MetricDelta;
   labelTooltip?: string;
   percentageText?: string;
   showInsightsButton?: boolean;
-  watchBreakdown?: WatchBreakdown;
+}
+interface MetricDelta {
+  baseValue: number;
+  diff: number;
+  percentageChange: number;
 }
 
-interface WatchBreakdown {
+interface ComponentBreakdown {
   appValue: string;
-  watchValue: string;
+  appClipValue?: string;
+  watchValue?: string;
 }
 
 export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
@@ -59,12 +76,16 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
     sizeInfo,
     processedInsights,
     totalSize,
+    artifactId,
+    baseArtifactId,
     platform: platformProp,
     projectType,
+    projectId,
     onOpenInsightsSidebar,
   } = props;
 
   const organization = useOrganization();
+  const theme = useTheme();
 
   if (!isSizeInfoCompleted(sizeInfo)) {
     return null;
@@ -75,8 +96,37 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
   const watchArtifactMetric = sizeInfo.size_metrics.find(
     metric => metric.metrics_artifact_type === MetricsArtifactType.WATCH_ARTIFACT
   );
+  const appClipArtifactMetrics = sizeInfo.size_metrics.filter(
+    metric => metric.metrics_artifact_type === MetricsArtifactType.APP_CLIP_ARTIFACT
+  );
   const installMetricValue = formattedPrimaryMetricInstallSize(sizeInfo);
   const downloadMetricValue = formattedPrimaryMetricDownloadSize(sizeInfo);
+
+  // Find matching base metrics for comparison
+  const basePrimarySizeMetric = sizeInfo.base_size_metrics.find(
+    metric => metric.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
+  );
+
+  // Calculate deltas for install and download sizes
+  const installDelta = calculateDelta(
+    primarySizeMetric?.install_size_bytes,
+    basePrimarySizeMetric?.install_size_bytes
+  );
+  const downloadDelta = calculateDelta(
+    primarySizeMetric?.download_size_bytes,
+    basePrimarySizeMetric?.download_size_bytes
+  );
+
+  // Build comparison URL using route params
+  const comparisonUrl =
+    baseArtifactId && projectId && artifactId
+      ? getCompareBuildPath({
+          organizationSlug: organization.slug,
+          headArtifactId: artifactId,
+          baseArtifactId,
+        })
+      : undefined;
+
   const totalPotentialSavings = processedInsights.reduce(
     (sum, insight) => sum + (insight.totalSavings ?? 0),
     0
@@ -97,11 +147,14 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
       icon: <IconCode size="sm" />,
       labelTooltip: labels.installSizeDescription,
       value: installMetricValue,
-      watchBreakdown: getWatchBreakdown(
+      comparisonUrl,
+      componentBreakdown: getComponentBreakdown(
         primarySizeMetric,
         watchArtifactMetric,
+        appClipArtifactMetrics,
         'install_size_bytes'
       ),
+      delta: installDelta,
     },
     {
       key: 'download',
@@ -109,11 +162,14 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
       icon: <IconDownload size="sm" />,
       labelTooltip: labels.downloadSizeDescription,
       value: downloadMetricValue,
-      watchBreakdown: getWatchBreakdown(
+      comparisonUrl,
+      componentBreakdown: getComponentBreakdown(
         primarySizeMetric,
         watchArtifactMetric,
+        appClipArtifactMetrics,
         'download_size_bytes'
       ),
+      delta: downloadDelta,
     },
     {
       key: 'savings',
@@ -121,6 +177,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
       icon: <IconLightning size="sm" />,
       labelTooltip: t('Total savings from insights'),
       value: formatBytesBase10(totalPotentialSavings),
+      comparisonUrl: undefined,
       percentageText: potentialSavingsPercentageText,
       showInsightsButton: totalPotentialSavings > 0,
     },
@@ -137,7 +194,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
           action={
             card.showInsightsButton
               ? {
-                  icon: <IconSettings size="sm" color="white" />,
+                  icon: <IconSettings size="sm" variant="primary" />,
                   tooltip: t('View insight details'),
                   ariaLabel: t('View insight details'),
                   onClick: () => {
@@ -153,32 +210,114 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
               : undefined
           }
         >
-          <Heading as="h3">
-            {card.watchBreakdown ? (
-              <Tooltip
-                title={
-                  <WatchBreakdownTooltip
-                    appValue={card.watchBreakdown.appValue}
-                    watchValue={card.watchBreakdown.watchValue}
-                  />
-                }
-                position="bottom"
-              >
-                <MetricValue $interactive>{card.value}</MetricValue>
-              </Tooltip>
-            ) : (
-              <MetricValue>{card.value}</MetricValue>
+          <Stack gap="xs">
+            <Flex align="center" gap="sm" wrap="wrap">
+              <Heading as="h3">
+                {card.componentBreakdown ? (
+                  <Tooltip
+                    title={
+                      <ComponentBreakdownTooltip
+                        appValue={card.componentBreakdown.appValue}
+                        watchValue={card.componentBreakdown.watchValue}
+                        appClipValue={card.componentBreakdown.appClipValue}
+                      />
+                    }
+                    position="bottom"
+                  >
+                    <MetricValue $interactive>{card.value}</MetricValue>
+                  </Tooltip>
+                ) : (
+                  <MetricValue>{card.value}</MetricValue>
+                )}
+                {card.percentageText ?? ''}
+              </Heading>
+
+              {card.delta &&
+                card.comparisonUrl &&
+                (() => {
+                  const {variant, icon} = getTrend(card.delta.diff);
+
+                  return (
+                    <LinkButton
+                      to={card.comparisonUrl}
+                      size="zero"
+                      priority="link"
+                      aria-label={t('Compare builds')}
+                    >
+                      <Flex align="center" gap="xs">
+                        <Flex
+                          as="span"
+                          display="inline-flex"
+                          align="center"
+                          style={{color: theme.tokens.content.primary}}
+                        >
+                          {icon}
+                        </Flex>
+                        <Text
+                          as="span"
+                          variant={variant}
+                          size="sm"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '0.25em',
+                            fontWeight: 'normal',
+                          }}
+                        >
+                          {formattedSizeDiff(card.delta.diff)}
+                          {card.delta.percentageChange !== 0 && (
+                            <Text
+                              as="span"
+                              variant={variant}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {' ('}
+                              <PercentChange
+                                value={card.delta.percentageChange}
+                                minimumValue={0.001}
+                                preferredPolarity="-"
+                                colorize
+                              />
+                              {')'}
+                            </Text>
+                          )}
+                        </Text>
+                      </Flex>
+                    </LinkButton>
+                  );
+                })()}
+            </Flex>
+
+            {card.delta && (
+              <Flex gap="xs" wrap="wrap">
+                <Text variant="muted" size="sm">
+                  {t('Base Build Size:')}
+                </Text>
+                <Text variant="muted" size="sm" bold>
+                  {card.delta.baseValue === 0
+                    ? t('Not present')
+                    : formatBytesBase10(card.delta.baseValue)}
+                </Text>
+              </Flex>
             )}
-            {card.percentageText ?? ''}
-          </Heading>
+          </Stack>
         </MetricCard>
       ))}
     </Flex>
   );
 }
 
-function WatchBreakdownTooltip(props: {appValue: string; watchValue: string}) {
-  const {appValue, watchValue} = props;
+function ComponentBreakdownTooltip(props: {
+  appValue: string;
+  appClipValue?: string;
+  watchValue?: string;
+}) {
+  const {appValue, watchValue, appClipValue} = props;
 
   return (
     <Stack align="start">
@@ -188,28 +327,64 @@ function WatchBreakdownTooltip(props: {appValue: string; watchValue: string}) {
         </Text>
         <Text size="md">{appValue}</Text>
       </Flex>
-      <Flex gap="sm">
-        <Text size="md" bold>
-          {t('Watch')}:
-        </Text>
-        <Text size="md">{watchValue}</Text>
-      </Flex>
+      {watchValue ? (
+        <Flex gap="sm">
+          <Text size="md" bold>
+            {t('Watch')}:
+          </Text>
+          <Text size="md">{watchValue}</Text>
+        </Flex>
+      ) : null}
+      {appClipValue ? (
+        <Flex gap="sm">
+          <Text size="md" bold>
+            {t('App Clip')}:
+          </Text>
+          <Text size="md">{appClipValue}</Text>
+        </Flex>
+      ) : null}
     </Stack>
   );
 }
 
-function getWatchBreakdown(
+function getComponentBreakdown(
   primaryMetric: BuildDetailsSizeInfoSizeMetric | undefined,
   watchMetric: BuildDetailsSizeInfoSizeMetric | undefined,
+  appClipMetrics: BuildDetailsSizeInfoSizeMetric[],
   field: 'install_size_bytes' | 'download_size_bytes'
-): WatchBreakdown | undefined {
-  if (!primaryMetric || !watchMetric) {
+): ComponentBreakdown | undefined {
+  if (!primaryMetric) {
+    return undefined;
+  }
+
+  const appClipTotal = appClipMetrics.reduce((sum, metric) => sum + metric[field], 0);
+
+  if (!watchMetric && appClipTotal === 0) {
     return undefined;
   }
 
   return {
     appValue: formatBytesBase10(primaryMetric[field]),
-    watchValue: formatBytesBase10(watchMetric[field]),
+    watchValue: watchMetric ? formatBytesBase10(watchMetric[field]) : undefined,
+    appClipValue: appClipTotal > 0 ? formatBytesBase10(appClipTotal) : undefined,
+  };
+}
+
+function calculateDelta(
+  headValue: number | undefined,
+  baseValue: number | undefined
+): MetricDelta | undefined {
+  if (headValue === undefined || baseValue === undefined) {
+    return undefined;
+  }
+
+  const diff = headValue - baseValue;
+  const percentageChange = baseValue === 0 ? 0 : diff / baseValue;
+
+  return {
+    baseValue,
+    diff,
+    percentageChange,
   };
 }
 

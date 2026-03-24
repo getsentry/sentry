@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import DeleteTraceItemsResponse
@@ -8,16 +8,17 @@ from sentry.deletions.tasks.nodestore import delete_events_from_eap
 from sentry.eventstream.eap import delete_groups_from_eap_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
 class TestEAPDeletion(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization_id = 1
         self.project_id = 123
         self.group_ids = [1, 2, 3]
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_deletion_with_error_dataset(self, mock_rpc):
+    def test_deletion_with_error_dataset(self, mock_rpc: MagicMock) -> None:
         mock_rpc.return_value = DeleteTraceItemsResponse(
             meta=ResponseMeta(),
             matching_items_count=150,
@@ -45,7 +46,7 @@ class TestEAPDeletion(TestCase):
         )
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_multiple_group_ids(self, mock_rpc):
+    def test_multiple_group_ids(self, mock_rpc: MagicMock) -> None:
         mock_rpc.return_value = DeleteTraceItemsResponse(
             meta=ResponseMeta(),
             matching_items_count=500,
@@ -64,7 +65,7 @@ class TestEAPDeletion(TestCase):
         assert list(group_filter.comparison_filter.value.val_int_array.values) == many_group_ids
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_eap_deletion_disabled_skips_deletion(self, mock_rpc):
+    def test_eap_deletion_disabled_skips_deletion(self, mock_rpc: MagicMock) -> None:
         with self.options({"eventstream.eap.deletion-enabled": False}):
             delete_events_from_eap(
                 self.organization_id, self.project_id, self.group_ids, Dataset.Events
@@ -72,7 +73,7 @@ class TestEAPDeletion(TestCase):
 
         mock_rpc.assert_not_called()
 
-    def test_empty_group_ids_raises_error(self):
+    def test_empty_group_ids_raises_error(self) -> None:
         with pytest.raises(ValueError, match="group_ids must not be empty"):
             delete_groups_from_eap_rpc(
                 organization_id=self.organization_id,
@@ -81,7 +82,7 @@ class TestEAPDeletion(TestCase):
             )
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_exception_does_not_propagate(self, mock_rpc):
+    def test_exception_does_not_propagate(self, mock_rpc: MagicMock) -> None:
         mock_rpc.side_effect = Exception("RPC connection failed")
 
         # Should not raise - exception should be caught
@@ -91,3 +92,41 @@ class TestEAPDeletion(TestCase):
             )
         except Exception:
             pytest.fail("Exception should have been caught and not propagated")
+
+    @patch("sentry.deletions.tasks.nodestore.exponential_delay")
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
+    def test_rate_limit_error_is_retried(self, mock_rpc: MagicMock, mock_delay: MagicMock) -> None:
+        mock_rpc.side_effect = SnubaRPCRateLimitExceeded("rate limited")
+        mock_delay.return_value = lambda _: 0
+
+        delete_events_from_eap(
+            self.organization_id, self.project_id, self.group_ids, Dataset.Events
+        )
+
+        assert mock_rpc.call_count == 5
+
+    @patch("sentry.deletions.tasks.nodestore.exponential_delay")
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
+    def test_rate_limit_succeeds_on_retry(self, mock_rpc: MagicMock, mock_delay: MagicMock) -> None:
+        mock_rpc.side_effect = [
+            SnubaRPCRateLimitExceeded("rate limited"),
+            SnubaRPCRateLimitExceeded("rate limited"),
+            DeleteTraceItemsResponse(meta=ResponseMeta(), matching_items_count=10),
+        ]
+        mock_delay.return_value = lambda _: 0
+
+        delete_events_from_eap(
+            self.organization_id, self.project_id, self.group_ids, Dataset.Events
+        )
+
+        assert mock_rpc.call_count == 3
+
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
+    def test_non_rate_limit_error_not_retried(self, mock_rpc: MagicMock) -> None:
+        mock_rpc.side_effect = Exception("Some other error")
+
+        delete_events_from_eap(
+            self.organization_id, self.project_id, self.group_ids, Dataset.Events
+        )
+
+        assert mock_rpc.call_count == 1

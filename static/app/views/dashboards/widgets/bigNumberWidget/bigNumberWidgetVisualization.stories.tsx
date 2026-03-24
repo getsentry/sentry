@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 
 import {BigNumberWidgetVisualization} from './bigNumberWidgetVisualization';
@@ -315,9 +314,9 @@ function SmallWidget(props: SmallWidgetProps) {
 }
 
 const Padded = styled('div')`
-  border-radius: ${p => p.theme.borderRadius};
-  border: ${p => `1px solid ${p.theme.border}`};
-  padding: ${space(2)} ${space(1)};
+  border-radius: ${p => p.theme.radius.md};
+  border: ${p => `1px solid ${p.theme.tokens.border.primary}`};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   width: 250px;
   height: 80px;
 `;

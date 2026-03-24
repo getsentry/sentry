@@ -81,7 +81,7 @@ describe('BigNumberWidgetVisualization', () => {
         />
       );
 
-      await userEvent.hover(screen.getByText('178m'));
+      await userEvent.hover(screen.getByText('178M'));
 
       expect(screen.getByText('178451214')).toBeInTheDocument();
     });
@@ -97,7 +97,7 @@ describe('BigNumberWidgetVisualization', () => {
         />
       );
 
-      expect(screen.getByText(textWithMarkupMatcher('>100m'))).toBeInTheDocument();
+      expect(screen.getByText(textWithMarkupMatcher('>100M'))).toBeInTheDocument();
     });
   });
 

@@ -51,7 +51,7 @@ function useReplayerInstance() {
         duration: 0.75 * 1000,
         lineCap: 'round',
         lineWidth: 2,
-        strokeStyle: theme.purple200,
+        strokeStyle: theme.tokens.border.accent.moderate,
       },
       plugins: getPlugins(webFrames),
       skipInactive: initialPrefsRef.current.isSkippingInactive,
@@ -88,7 +88,7 @@ interface Props extends HTMLAttributes<HTMLDivElement> {
   offsetMs?: undefined | number;
 }
 
-export default function ReplayPlayer({offsetMs, ...props}: Props) {
+export function ReplayPlayer({offsetMs, ...props}: Props) {
   const mountPointRef = useReplayerInstance();
   const userAction = useReplayUserAction();
 

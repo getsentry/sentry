@@ -1,14 +1,18 @@
+import {type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {SearchBar as TransactionNameSearchBar} from 'sentry/components/performance/searchBar';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -32,7 +36,15 @@ function getFreeTextFromQuery(query: string) {
   return '';
 }
 
-export function PlatformLandingPageLayout({children}: {children: React.ReactNode}) {
+interface PlatformLandingPageLayoutProps {
+  children: ReactNode;
+  datePageFilterProps: DatePageFilterProps;
+}
+
+export function PlatformLandingPageLayout({
+  children,
+  datePageFilterProps,
+}: PlatformLandingPageLayoutProps) {
   const location = useLocation();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
@@ -56,7 +68,7 @@ export function PlatformLandingPageLayout({children}: {children: React.ReactNode
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
                   <InsightsEnvironmentSelector />
-                  <DatePageFilter />
+                  <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar

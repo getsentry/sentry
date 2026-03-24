@@ -6,10 +6,11 @@ source: 'sentry/components/commandPalette/useCommandPaletteActions'
 
 import {Fragment} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openCommandPalette} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {
@@ -21,46 +22,7 @@ import {useCommandPaletteActions} from 'sentry/components/commandPalette/useComm
 
 import * as Storybook from 'sentry/stories';
 
-export function RegisterActions({actions}) {
-  useCommandPaletteActions(actions);
-  return null;
-}
-
-export function CommandPaletteDemo() {
-  const demoActions = [
-    makeCommandPaletteLink({
-      display: {label: 'Go to Flex story'},
-      to: '/stories/layout/flex/',
-      groupingKey: 'navigate',
-    }),
-    makeCommandPaletteCallback({
-      display: {label: 'Execute an action'},
-      groupingKey: 'help',
-      onAction: () => {
-        addSuccessMessage('Action executed');
-      },
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'add',
-      display: {label: 'Parent action'},
-      actions: [
-        makeCommandPaletteCallback({
-          display: {label: 'Child action'},
-          onAction: () => {
-            addSuccessMessage('Child action executed');
-          },
-        }),
-      ],
-    }),
-  ];
-
-return (
-
-<Fragment>
-  <RegisterActions actions={demoActions} />
-  <Button onClick={() => openCommandPalette()}>Open Command Palette</Button>
-</Fragment>
-); }
+import {CommandPaletteDemo, RegisterActions} from './__stories__/components';
 
 ## Basic Usage
 

@@ -1,8 +1,8 @@
 import groupBy from 'lodash/groupBy';
 
-import type {BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import type {AvatarProps} from '@sentry/scraps/avatar';
+import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+
 import {t} from 'sentry/locale';
 import type {DetailedTeam, Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -11,7 +11,7 @@ interface Options {
   /**
    * Props to pass to the leading avatar component
    */
-  avatarProps?: BaseAvatarProps;
+  avatarProps?: AvatarProps;
   /**
    * Filter teams that are not part of a the provided set of project slugs
    */

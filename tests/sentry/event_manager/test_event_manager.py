@@ -19,7 +19,8 @@ from django.core.cache import cache
 from django.db.models import F
 from django.utils import timezone
 
-from sentry import nodestore, tsdb
+from sentry import analytics, nodestore, tsdb
+from sentry.analytics.events.event_processing_error_recorded import EventProcessingErrorRecorded
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory, InsightModules
@@ -80,7 +81,6 @@ from sentry.testutils.cases import (
     PerformanceIssueTestCase,
     SnubaTestCase,
     TestCase,
-    TransactionTestCase,
 )
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -274,7 +274,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                                 "value": "The exception was not handled due to missing onError handler in the subscribe() method call.",
                                 "module": "io.reactivex.rxjava3.exceptions",
                                 "mechanism": {
-                                    "type": "UncaughtExceptionHandler",
+                                    "type": "chained",
                                     "handled": False,
                                     "exception_id": 0,
                                 },
@@ -348,6 +348,136 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.data["metadata"]["value"] == "Can't call onError."
         assert event.group is not None
         assert event.group.title == "CompositeException: Can't call onError."
+
+    def test_kotlin_coroutine_diagnostic_exception_correct_title(self) -> None:
+        """DiagnosticCoroutineContextException should not determine the title."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "RuntimeException",
+                            "value": "main exception",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "RuntimeException"
+        assert event.data["metadata"]["value"] == "main exception"
+        assert event.group is not None
+        assert event.group.title == "RuntimeException: main exception"
+
+    def test_kotlin_coroutine_diagnostic_exception_chained_mechanism_correct_title(self) -> None:
+        """DiagnosticCoroutineContextException with chained mechanism should not determine the title."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "IllegalStateException",
+                            "value": "coroutine error",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "chained",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "IllegalStateException"
+        assert event.data["metadata"]["value"] == "coroutine error"
+        assert event.group is not None
+        assert event.group.title == "IllegalStateException: coroutine error"
+
+    def test_kotlin_coroutine_diagnostic_exception_no_parent_keeps_default_behavior(self) -> None:
+        """DiagnosticCoroutineContextException without parent_id should not change behavior."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "generic",
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "DiagnosticCoroutineContextException"
+        assert event.group is not None
+        assert "DiagnosticCoroutineContextException" in event.group.title
+
+    def test_kotlin_coroutine_diagnostic_exception_invalid_parent_id_uses_root(self) -> None:
+        """DiagnosticCoroutineContextException with invalid parent_id becomes orphaned in exception tree."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "RuntimeException",
+                            "value": "actual error",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 999,  # References non-existent exception
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        # With invalid parent_id, DiagnosticCoroutineContextException is orphaned in the exception
+        # tree. The exception group filtering logic then picks RuntimeException (the root) as the
+        # main exception. This is correct behavior - the orphaned exception is effectively excluded.
+        assert event.data["metadata"]["type"] == "RuntimeException"
+        assert event.data["metadata"]["value"] == "actual error"
+        assert event.group is not None
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
@@ -1511,7 +1641,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert None in manager.get_data().get("tags", [])
         assert 42 not in manager.get_data().get("tags", [])
         event = manager.save(self.project.id)
-        assert 42 not in event.tags
+        assert 42 not in event.tags  # type: ignore[comparison-overlap]
         assert None not in event.tags
 
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
@@ -1654,7 +1784,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data["metadata"]["title"] == "foo bar"
 
     def test_error_event_type(self) -> None:
-
         manager = EventManager(
             make_event(**{"exception": {"values": [{"type": "Foo", "value": "bar"}]}})
         )
@@ -1672,10 +1801,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         }
 
     def test_error_event_with_minified_stacktrace(self) -> None:
-        with patch(
-            "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
-        ) as mock_record_event_with_first_minified_stack_trace_for_project:
-
+        with (
+            patch(
+                "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
+            ) as mock_record_event_with_first_minified_stack_trace_for_project
+        ):
             first_event_with_minified_stack_trace_received.connect(
                 mock_record_event_with_first_minified_stack_trace_for_project, weak=False
             )
@@ -2250,7 +2380,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             with (
                 mock.patch("sentry.event_manager.track_outcome", mock_track_outcome),
                 self.feature("organizations:event-attachments"),
-                self.feature("organizations:grouptombstones-hit-counter"),
                 self.tasks(),
                 pytest.raises(HashDiscarded),
             ):
@@ -4085,10 +4214,10 @@ class DSLatestReleaseBoostTest(TestCase):
         ]
 
 
-class TestSaveGroupHashAndGroup(TransactionTestCase):
+class TestSaveGroupHashAndGroup(TestCase):
     def test_simple(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
-        perf_data["event_id"] = str(uuid.uuid4())
+        perf_data["event_id"] = "a" * 32
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
         group, created, _ = save_grouphash_and_group(self.project, event, group_hash)
@@ -4211,3 +4340,162 @@ def test_cogs_event_manager(
     # We cannot assert for exact length because manager save method adds some extra fields. So we
     # assert that the length is at least greater than the expected length.
     assert formatted["amount"] >= expected_len
+
+
+class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
+    """
+    Unit tests for processing error analytics recording.
+
+    These tests use store_event() which goes through the full EventManager flow.
+    Errors can come from:
+    1. Normalization (validation errors like invalid_data, future_timestamp)
+    2. Symbolication (js_*, native_*, proguard_* errors)
+    """
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_validation_errors_recorded_to_analytics(self, mock_random: mock.MagicMock) -> None:
+        """Test that validation errors from normalization are also recorded."""
+        mock_random.return_value = 0.001
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            # Create an event with a future timestamp, which produces a validation error
+            future = timezone.now() + timedelta(minutes=10)
+            event = self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            recorded_events = [
+                call[0][0]
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            expected_events = [
+                EventProcessingErrorRecorded(
+                    organization_id=self.project.organization_id,
+                    project_id=self.project.id,
+                    event_id=event.event_id,
+                    group_id=event.group_id,
+                    error_type="future_timestamp",
+                    platform="python",
+                    name="timestamp",
+                    value=None,
+                ),
+            ]
+            assert recorded_events == expected_events
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_not_recorded_when_not_sampled(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Test that processing errors are not recorded when outside the 1% sample."""
+        mock_random.return_value = 0.5
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            # Create an event with a future timestamp, which produces a validation error
+            future = timezone.now() + timedelta(minutes=10)
+            self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            processing_error_calls = [
+                call
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert len(processing_error_calls) == 0
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_not_recorded_when_no_errors(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Test that analytics is not recorded when there are no processing errors."""
+        mock_random.return_value = 0.001
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            self.store_event(
+                data=make_event(platform="python"),
+                project_id=self.project.id,
+            )
+            processing_error_calls = [
+                call
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert len(processing_error_calls) == 0
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_not_recorded_when_feature_disabled(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Test that analytics is not recorded when feature flag is disabled."""
+        mock_random.return_value = 0.001
+        with (
+            self.feature({"organizations:processing-error-analytics": False}),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            # Create an event with a future timestamp, which produces a validation error
+            future = timezone.now() + timedelta(minutes=10)
+            self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            processing_error_calls = [
+                call
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert len(processing_error_calls) == 0
+
+
+class SaveAttachmentTest(TestCase):
+    def test_rate_limit_skipped_when_stored_id_set(self) -> None:
+        from sentry.event_manager import save_attachment
+
+        stored_id = "test-stored-id"
+        attachment = CachedAttachment(
+            name="test.txt",
+            stored_id=stored_id,
+            size=100,
+        )
+
+        mock_putfile = mock.MagicMock()
+        mock_putfile.return_value.content_type = "text/plain"
+        mock_putfile.return_value.size = 100
+        mock_putfile.return_value.sha1 = "abc"
+        mock_putfile.return_value.blob_path = None
+
+        with (
+            mock.patch(
+                "sentry.ratelimits.backend.is_limited_with_value",
+                return_value=(True, 0, 0),
+            ) as mock_rate_limit,
+            mock.patch("sentry.models.eventattachment.EventAttachment.putfile", mock_putfile),
+            mock.patch("sentry.models.eventattachment.EventAttachment.objects.create"),
+        ):
+            save_attachment(
+                cache_key=None,
+                attachment=attachment,
+                project=self.project,
+                event_id="a" * 32,
+            )
+
+        mock_rate_limit.assert_not_called()
+        mock_putfile.assert_called_once()

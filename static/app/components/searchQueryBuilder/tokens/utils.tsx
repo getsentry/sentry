@@ -6,7 +6,8 @@ import type {Key, Node} from '@react-types/shared';
 import type {
   SelectOptionOrSectionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
+} from '@sentry/scraps/compactSelect';
+
 import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
   WildcardOperators,
@@ -53,6 +54,7 @@ export function getDefaultValueForValueType(valueType: FieldValueType | null): s
       return 'true';
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
+    case FieldValueType.CURRENCY:
       return '100';
     case FieldValueType.DATE:
       return '-24h';
@@ -117,26 +119,23 @@ function getInitialValueType(fieldDefinition: FieldDefinition | null) {
 
 export function getInitialFilterText(
   key: string,
-  fieldDefinition: FieldDefinition | null,
-  hasWildcardOperators: boolean
+  fieldDefinition: FieldDefinition | null
 ) {
   const defaultValue = getDefaultFilterValue({fieldDefinition});
 
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
   const valueType = getInitialValueType(fieldDefinition);
 
-  const allowContainsOperator =
-    hasWildcardOperators && areWildcardOperatorsAllowed(fieldDefinition);
-
   switch (valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
+    case FieldValueType.CURRENCY:
     case FieldValueType.DURATION:
     case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
       return `${keyText}:>${defaultValue}`;
     case FieldValueType.STRING: {
-      return allowContainsOperator
+      return areWildcardOperatorsAllowed(fieldDefinition)
         ? `${keyText}:${WildcardOperators.CONTAINS}${defaultValue}`
         : `${keyText}:${defaultValue}`;
     }

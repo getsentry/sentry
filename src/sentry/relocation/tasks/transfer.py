@@ -3,6 +3,7 @@ import logging
 from django.db.models import Subquery
 from django.utils import timezone
 from sentry_sdk import capture_exception
+from taskbroker_client.task import Task
 
 from sentry.models.files.utils import get_relocation_storage
 from sentry.relocation.models.relocationtransfer import (
@@ -20,8 +21,7 @@ from sentry.relocation.services.relocation_export.service import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relocation_control_tasks, relocation_tasks
-from sentry.taskworker.task import Task
-from sentry.types.region import get_local_region
+from sentry.types.cell import get_local_cell
 
 logger = logging.getLogger("sentry.relocation")
 
@@ -38,7 +38,7 @@ def find_relocation_transfer_control() -> None:
 @instrumented_task(
     name="sentry.relocation.transfer.find_relocation_transfer_region",
     namespace=relocation_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def find_relocation_transfer_region() -> None:
     _find_relocation_transfer(RegionRelocationTransfer, process_relocation_transfer_region)
@@ -68,7 +68,7 @@ def _find_relocation_transfer(
         )
 
     # Garbage collect expired transfers. Because relocations are
-    # expected to complete in 1 hour we should purge transfers older than
+    # expected to complete in 80min we should purge transfers older than
     # that.
     now = timezone.now()
     expired = model_cls.objects.filter(date_added__lte=now - MAX_AGE)
@@ -89,6 +89,7 @@ def _find_relocation_transfer(
     name="sentry.relocation.transfer.process_relocation_transfer_control",
     namespace=relocation_control_tasks,
     silo_mode=SiloMode.CONTROL,
+    processing_deadline_duration=60,
 )
 def process_relocation_transfer_control(transfer_id: int) -> None:
     log_context = {"id": transfer_id, "silo": "control"}
@@ -178,10 +179,11 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
 @instrumented_task(
     name="sentry.relocation.transfer.process_relocation_transfer_region",
     namespace=relocation_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=60,
 )
 def process_relocation_transfer_region(transfer_id: int) -> None:
-    log_context = {"id": transfer_id, "silo": "region", "region": get_local_region().name}
+    log_context = {"id": transfer_id, "silo": "region", "region": get_local_cell().name}
 
     try:
         transfer = RegionRelocationTransfer.objects.get(id=transfer_id)

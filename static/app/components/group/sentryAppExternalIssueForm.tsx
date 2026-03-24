@@ -7,9 +7,9 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types/integrations';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import getStacktraceBody from 'sentry/utils/getStacktraceBody';
+import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 import SentryAppExternalForm from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
@@ -23,7 +23,7 @@ type Props = {
   sentryAppInstallation: SentryAppInstallation;
 };
 
-function SentryAppExternalIssueForm({
+export function SentryAppExternalIssueForm({
   action,
   appName,
   config,
@@ -96,5 +96,3 @@ function SentryAppExternalIssueForm({
     />
   );
 }
-
-export default SentryAppExternalIssueForm;

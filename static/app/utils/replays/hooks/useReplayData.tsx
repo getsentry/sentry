@@ -1,18 +1,19 @@
 import {useCallback, useMemo} from 'react';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
-import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
+import {useFetchSequentialPages} from 'sentry/utils/api/useFetchSequentialPages';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useFeedbackEvents from 'sentry/utils/replays/hooks/useFeedbackEvents';
+import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RawReplayError} from 'sentry/utils/replays/types';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
@@ -77,7 +78,7 @@ interface Result {
  * @param {orgSlug, replayId} Where to find the root replay event
  * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
-function useReplayData({
+export function useReplayData({
   replayId,
   orgSlug,
   errorsPerPage = 50,
@@ -95,11 +96,21 @@ function useReplayData({
     data: replayData,
     status: fetchReplayStatus,
     error: fetchReplayError,
-  } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
-    enabled: enableReplayRecord,
-    retry: false,
-    staleTime: Infinity,
-  });
+  } = useApiQuery<{data: unknown}>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/replays/$replayId/', {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          replayId: replayId!,
+        },
+      }),
+    ],
+    {
+      enabled: enableReplayRecord,
+      retry: false,
+      staleTime: Infinity,
+    }
+  );
   const replayRecord = useMemo(
     () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
     [replayData?.data]
@@ -110,7 +121,16 @@ function useReplayData({
   const getAttachmentsQueryKey = useCallback(
     ({cursor, per_page}: any): ApiQueryKey => {
       return [
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
+          {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              projectIdOrSlug: projectSlug!,
+              replayId: replayId!,
+            },
+          }
+        ),
         {
           query: {
             download: true,
@@ -150,7 +170,9 @@ function useReplayData({
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
       return [
-        `/organizations/${orgSlug}/replays-events-meta/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replays-events-meta/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
         {
           query: {
             referrer: 'replay_details',
@@ -178,7 +200,9 @@ function useReplayData({
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
       return [
-        `/organizations/${orgSlug}/replays-events-meta/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replays-events-meta/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
         {
           query: {
             referrer: 'replay_details',
@@ -316,5 +340,3 @@ function useReplayData({
     allErrors,
   ]);
 }
-
-export default useReplayData;

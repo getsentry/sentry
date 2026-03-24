@@ -16,7 +16,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.hybridcloud.models.outbox import outbox_context
-from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel, RegionOutboxProducingModel
+from sentry.hybridcloud.outbox.base import CellOutboxProducingModel, ControlOutboxProducingModel
 from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.utils import json, metrics, redis
@@ -81,7 +81,7 @@ def set_processing_state(table_name: str, value: int, version: int) -> None:
 
 
 def find_replication_version(
-    model: type[ControlOutboxProducingModel] | type[RegionOutboxProducingModel] | type[User],
+    model: type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User],
     force_synchronous: bool = False,
 ) -> int:
     """
@@ -101,7 +101,7 @@ def find_replication_version(
 
 
 def _chunk_processing_batch(
-    model: type[ControlOutboxProducingModel] | type[RegionOutboxProducingModel] | type[User],
+    model: type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User],
     *,
     batch_size: int,
     force_synchronous: bool = False,
@@ -128,7 +128,7 @@ def process_outbox_backfill_batch(
     model: type[Model], batch_size: int, force_synchronous: bool = False
 ) -> BackfillBatch | None:
     if (
-        not issubclass(model, RegionOutboxProducingModel)
+        not issubclass(model, CellOutboxProducingModel)
         and not issubclass(model, ControlOutboxProducingModel)
         and not issubclass(model, User)
     ):
@@ -142,7 +142,7 @@ def process_outbox_backfill_batch(
 
     for inst in model.objects.filter(id__gte=processing_state.low, id__lte=processing_state.up):
         with outbox_context(transaction.atomic(router.db_for_write(model)), flush=False):
-            if isinstance(inst, RegionOutboxProducingModel):
+            if isinstance(inst, CellOutboxProducingModel):
                 inst.outbox_for_update().save()
             if isinstance(inst, ControlOutboxProducingModel) or isinstance(inst, User):
                 for outbox in inst.outboxes_for_update():

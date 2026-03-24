@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.monitors.models import ScheduleType
@@ -27,21 +27,13 @@ class SampleScheduleConfigValidator(ConfigValidator):
     num_ticks = serializers.IntegerField(min_value=1, max_value=MAX_TICKS)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.CRONS
 
     def get(self, request: Request, organization: Organization) -> Response:
-        # Convert query params to a form the validator can use
-        config_data: dict[str, list | str] = {}
-        for key, val in request.GET.lists():
-            if key == "schedule" and len(val) > 1:
-                config_data[key] = [int(val[0]), val[1]]
-            else:
-                config_data[key] = val[0]
-
-        validator = SampleScheduleConfigValidator(data=config_data)
+        validator = SampleScheduleConfigValidator(data=request.GET)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 

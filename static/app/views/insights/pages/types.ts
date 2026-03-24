@@ -1,5 +1,6 @@
 import {AGENTS_LANDING_TITLE} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
+import {CONVERSATIONS_LANDING_TITLE} from 'sentry/views/insights/pages/conversations/settings';
 import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/pages/frontend/settings';
 import {MCP_LANDING_TITLE} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_TITLE} from 'sentry/views/insights/pages/mobile/settings';
@@ -10,5 +11,6 @@ export const DOMAIN_VIEW_TITLES: Record<DomainView, string> = {
   frontend: FRONTEND_LANDING_TITLE,
   mobile: MOBILE_LANDING_TITLE,
   'ai-agents': AGENTS_LANDING_TITLE,
+  conversations: CONVERSATIONS_LANDING_TITLE,
   mcp: MCP_LANDING_TITLE,
 };

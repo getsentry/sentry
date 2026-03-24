@@ -8,9 +8,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
@@ -21,6 +20,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.replay_counts import get_replay_counts
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -35,7 +35,7 @@ class ReplayCountQueryParamsValidator(serializers.Serializer):
     returnIds = serializers.BooleanField(default=False)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
     """
@@ -43,7 +43,6 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
     then verify that they exist in the replays dataset, and return the count.
     """
 
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -84,6 +83,8 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
         """
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
+        if not has_replay_permission(request, organization):
+            return Response(status=403)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

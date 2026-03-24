@@ -26,6 +26,10 @@ import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetC
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
+import {
+  percentThresholdAbsoluteToDelta,
+  percentThresholdDeltaToAbsolute,
+} from 'sentry/views/detectors/utils/percentThreshold';
 
 /**
  * Snuba query types that correspond to the backend SnubaQuery.Type enum.
@@ -90,7 +94,8 @@ interface SnubaQueryFormData {
 }
 
 export interface MetricDetectorFormData
-  extends PrioritizeLevelFormData,
+  extends
+    PrioritizeLevelFormData,
     MetricDetectorConditionFormData,
     MetricDetectorDynamicFormData,
     SnubaQueryFormData {
@@ -157,10 +162,10 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   sensitivity: AlertRuleSensitivity.MEDIUM,
   thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
 
-  dataset: DetectorDataset.SPANS,
-  aggregateFunction: 'avg(span.duration)',
+  dataset: DetectorDataset.ERRORS,
+  aggregateFunction: 'count()',
   interval: 60 * 60, // One hour in seconds
-  query: '',
+  query: 'is:unresolved',
 } satisfies Partial<MetricDetectorFormData>;
 
 /**
@@ -278,6 +283,7 @@ export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
       return Dataset.METRICS;
     case DetectorDataset.SPANS:
     case DetectorDataset.LOGS:
+    case DetectorDataset.METRICS:
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     default:
       unreachable(dataset);
@@ -299,6 +305,7 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
       case DetectorDataset.TRANSACTIONS:
       case DetectorDataset.SPANS:
       case DetectorDataset.LOGS:
+      case DetectorDataset.METRICS:
         return SnubaQueryType.PERFORMANCE;
       case DetectorDataset.RELEASES:
         return SnubaQueryType.CRASH_RATE; // Maps to crash rate for metrics dataset
@@ -338,6 +345,19 @@ export function metricDetectorFormDataToEndpointPayload(
     data.detectionType === 'dynamic'
       ? createAnomalyDetectionCondition(data)
       : createConditions(data);
+
+  // For percent detection, translate user-facing delta percentages (e.g. 10 for "10% higher")
+  // to the internal absolute-percentage format (e.g. 110) that the backend expects.
+  if (data.detectionType === 'percent') {
+    for (const condition of conditions) {
+      if (typeof condition.comparison === 'number') {
+        condition.comparison = percentThresholdDeltaToAbsolute(
+          condition.comparison,
+          condition.type
+        );
+      }
+    }
+  }
 
   const dataSource = createDataSource(data);
 
@@ -391,6 +411,7 @@ function processDetectorConditions(
   > {
   // Get conditions from the condition group
   const conditions = detector.conditionGroup?.conditions || [];
+  const isPercent = detector.config.detectionType === 'percent';
 
   // Find HIGH priority condition
   const highCondition = conditions.find(
@@ -425,9 +446,16 @@ function processDetectorConditions(
     conditionType = mainCondition.type;
   }
 
+  // Helper to translate a comparison value from internal absolute-percentage form
+  // to the user-facing delta form when in percent detection mode.
+  const toFormValue = (comparison: number): string =>
+    isPercent
+      ? percentThresholdAbsoluteToDelta(comparison).toString()
+      : comparison.toString();
+
   // Determine resolution strategy: automatic if OK threshold matches warning or critical
   const resolutionValue = okCondition?.comparison ?? undefined;
-  const computedResolutionStrategy: 'default' | 'custom' =
+  const computedResolutionStrategy =
     defined(resolutionValue) &&
     ![highCondition?.comparison, mediumCondition?.comparison].includes(resolutionValue)
       ? 'custom'
@@ -437,19 +465,19 @@ function processDetectorConditions(
     initialPriorityLevel,
     highThreshold:
       typeof highCondition?.comparison === 'number'
-        ? highCondition.comparison.toString()
+        ? toFormValue(highCondition.comparison)
         : typeof mainCondition?.comparison === 'number'
-          ? mainCondition.comparison.toString()
+          ? toFormValue(mainCondition.comparison)
           : '',
     conditionType,
     mediumThreshold:
       typeof mediumCondition?.comparison === 'number'
-        ? mediumCondition.comparison.toString()
+        ? toFormValue(mediumCondition.comparison)
         : '',
     resolutionStrategy: computedResolutionStrategy,
     resolutionValue:
       typeof okCondition?.comparison === 'number'
-        ? okCondition.comparison.toString()
+        ? toFormValue(okCondition.comparison)
         : '',
   };
 }
@@ -490,7 +518,7 @@ export function metricSavedDetectorToFormData(
 
   const dataset = snubaQuery?.dataset
     ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
-    : DetectorDataset.SPANS;
+    : DetectorDataset.ERRORS;
 
   const datasetConfig = getDatasetConfig(dataset);
   const anomalyCondition = getAnomalyCondition(detector);

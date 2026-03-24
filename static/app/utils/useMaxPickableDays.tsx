@@ -1,13 +1,13 @@
 import {useMemo, type ReactNode} from 'react';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * This returns the default max pickable days for the current organization.
@@ -65,7 +65,7 @@ export function getBestMaxPickableDays(
   dataCategories: readonly [DataCategory, ...DataCategory[]],
   getMaxPickableDaysFor: (dataCategory: DataCategory) => MaxPickableDaysOptions
 ) {
-  let maxPickableDays: MaxPickableDaysOptions = getMaxPickableDaysFor(dataCategories[0]);
+  let maxPickableDays = getMaxPickableDaysFor(dataCategories[0]);
 
   for (let i = 1; i < dataCategories.length; i++) {
     const dataCategory = dataCategories[i]!;
@@ -103,11 +103,11 @@ export function getMaxPickableDays(
       const maxPickableDays = organization.features.includes(
         'visibility-explore-range-high'
       )
-        ? 90
+        ? MAX_PICKABLE_DAYS
         : 30;
       return {
         maxPickableDays,
-        maxUpgradableDays: 90,
+        maxUpgradableDays: MAX_PICKABLE_DAYS,
         upsellFooter: SpansUpsellFooter,
       };
     }
@@ -118,6 +118,16 @@ export function getMaxPickableDays(
         maxPickableDays: 30,
         maxUpgradableDays: 30,
         defaultPeriod: '24h',
+      };
+    case DataCategory.PROFILE_CHUNKS:
+    case DataCategory.PROFILE_CHUNKS_UI:
+    case DataCategory.PROFILE_DURATION:
+    case DataCategory.PROFILE_DURATION_UI:
+    case DataCategory.TRANSACTIONS:
+    case DataCategory.REPLAYS:
+      return {
+        maxPickableDays: MAX_PICKABLE_DAYS,
+        maxUpgradableDays: MAX_PICKABLE_DAYS,
       };
     default:
       throw new Error(

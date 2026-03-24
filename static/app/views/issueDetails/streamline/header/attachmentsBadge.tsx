@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {IconAttachment} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -57,7 +58,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
 }
 
 const AttachmentButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;

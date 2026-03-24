@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IntegrationChannel} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 type Response = {
@@ -27,7 +28,15 @@ export function useValidateChannel({
 
   const queryKey: ApiQueryKey = useMemo(
     () => [
-      `/organizations/${organization.slug}/integrations/${integrationId}/channel-validate/`,
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            integrationId: integrationId!,
+          },
+        }
+      ),
       {
         query: {
           channel: channel?.label,

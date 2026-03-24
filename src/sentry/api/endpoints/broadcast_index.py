@@ -7,6 +7,8 @@ from operator import or_
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -22,10 +24,6 @@ from sentry.search.utils import tokenize_query
 from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry")
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 @control_silo_endpoint
@@ -70,9 +68,14 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
     def get(
         self, request: Request, organization: RpcOrganization | None = None, **kwargs
     ) -> Response:
+        limit = None
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")
+        elif request.GET.get("show") == "latest":
+            limit = self.get_per_page(request, default_per_page=3, max_per_page=100)
+            # Used to show broadcasts in the sidebar and avoid an empty state when users have seen all broadcasts already
+            queryset = Broadcast.objects.filter(is_active=True).order_by("-date_added")
         else:
             # only allow active broadcasts if they're not a superuser
             queryset = Broadcast.objects.filter(
@@ -114,7 +117,12 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
 
         if organization:
             data = self._secondary_filtering(request, organization, queryset)
+            if limit is not None:
+                data = data[:limit]
             return self.respond(self._serialize_objects(data, request))
+
+        if limit is not None:
+            return self.respond(self._serialize_objects(list(queryset[:limit]), request))
 
         sort_by = request.GET.get("sortBy")
         if sort_by == "expires":
@@ -156,12 +164,18 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                     id__in=queryset.filter(broadcastseen__user_id=request.user.id).values("id")
                 )
 
-            for broadcast in unseen_queryset:
-                try:
-                    with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
-                        BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
-                except IntegrityError:
-                    pass
+            broadcast_ids = list(unseen_queryset.values_list("id", flat=True))
+            if broadcast_ids:
+                seen_at = timezone.now()
+                db = router.db_for_write(BroadcastSeen)
+                seen_rows = [
+                    BroadcastSeen(
+                        broadcast_id=broadcast_id, user_id=request.user.id, date_seen=seen_at
+                    )
+                    for broadcast_id in broadcast_ids
+                ]
+                with transaction.atomic(using=db):
+                    BroadcastSeen.objects.using(db).bulk_create(seen_rows, ignore_conflicts=True)
 
         return self.respond(result)
 

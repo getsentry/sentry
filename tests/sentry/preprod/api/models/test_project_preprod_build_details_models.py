@@ -11,10 +11,10 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
 )
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class TestToSizeInfo(TestCase):
     def test_to_size_info_none_input(self):
         """Test to_size_info returns None when given None input."""
@@ -94,6 +94,37 @@ class TestToSizeInfo(TestCase):
         )
         assert result.size_metrics[1].install_size_bytes == 512000
         assert result.size_metrics[1].download_size_bytes == 256000
+
+    def test_to_size_info_completed_state_with_base_metrics(self):
+        """Test to_size_info includes base size metrics when provided."""
+        size_metrics = [
+            PreprodArtifactSizeMetrics(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                max_install_size=1024000,
+                max_download_size=512000,
+            ),
+        ]
+        base_size_metrics = [
+            PreprodArtifactSizeMetrics(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                max_install_size=512000,
+                max_download_size=256000,
+            ),
+        ]
+
+        result = to_size_info(size_metrics, base_size_metrics)
+
+        assert isinstance(result, SizeInfoCompleted)
+        assert len(result.base_size_metrics) == 1
+        base_metric = result.base_size_metrics[0]
+        assert (
+            base_metric.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert base_metric.install_size_bytes == 512000
+        assert base_metric.download_size_bytes == 256000
 
     def test_to_size_info_failed_state(self):
         """Test to_size_info returns SizeInfoFailed for FAILED state."""

@@ -1,10 +1,11 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Link} from 'sentry/components/core/link/link';
+import {Link} from '@sentry/scraps/link';
+
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {SentryLinkBehaviorProvider} from 'sentry/scrapsProviders/link';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 
 import {makeLazyloadComponent} from './makeLazyloadComponent';
 

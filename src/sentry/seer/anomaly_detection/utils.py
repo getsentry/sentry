@@ -11,9 +11,10 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
+from sentry.seer.anomaly_detection.types import TimeSeriesPoint
 from sentry.snuba import metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -21,14 +22,9 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_OPTIONS, get_dataset
 from sentry.utils.snuba import SnubaTSResult
-from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
-    DetectorGroupKey,
-    DetectorPriorityLevel,
-)
 
 NUM_DAYS = 28
 
@@ -37,47 +33,6 @@ SNUBA_QUERY_EVENT_TYPE_TO_STRING = {
     SnubaQueryEventType.EventType.DEFAULT: "default",
     SnubaQueryEventType.EventType.TRANSACTION: "transaction",
 }
-
-
-def get_anomaly_evaluation_from_workflow_engine(
-    detector: Detector,
-    data_packet_processing_results: list[
-        tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
-    ],
-) -> bool | DetectorEvaluationResult | None:
-    evaluation = None
-    for result in data_packet_processing_results:
-        if result[0].id == detector.id:
-            evaluation = result[1][None]
-            if evaluation:
-                return evaluation.priority == DetectorPriorityLevel.HIGH
-    return evaluation
-
-
-def has_anomaly(anomaly: TimeSeriesPoint, label: str) -> bool:
-    """
-    Helper function to determine whether we care about an anomaly based on the
-    anomaly type and trigger type.
-
-    """
-    from sentry.incidents.logic import WARNING_TRIGGER_LABEL
-
-    anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
-
-    if anomaly_type == AnomalyType.HIGH_CONFIDENCE.value or (
-        label == WARNING_TRIGGER_LABEL and anomaly_type == AnomalyType.LOW_CONFIDENCE.value
-    ):
-        return True
-    return False
-
-
-def anomaly_has_confidence(anomaly: TimeSeriesPoint) -> bool:
-    """
-    Helper function to determine whether we have the 7+ days of data necessary
-    to detect anomalies/send alerts for dynamic alert rules.
-    """
-    anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
-    return anomaly_type != AnomalyType.NO_DATA.value
 
 
 def translate_direction(direction: int) -> str:
@@ -90,6 +45,21 @@ def translate_direction(direction: int) -> str:
         AlertRuleThresholdType.ABOVE_AND_BELOW: "both",
     }
     return direction_map[AlertRuleThresholdType(direction)]
+
+
+def get_aggregate_type(aggregate: str | None) -> str | None:
+    """
+    Determine aggregate type for static threshold application.
+
+    Returns "count" for count-based aggregates (count(), count_unique(), etc.)
+    and "other" for all other aggregate types. Returns None if no aggregate provided.
+    """
+    if not aggregate:
+        return None
+    aggregate_lower = aggregate.lower()
+    if aggregate_lower.startswith("count"):
+        return "count"
+    return "other"
 
 
 def get_event_types(
@@ -154,7 +124,6 @@ def get_crash_free_historical_data(
         params=params,
         offset=None,
         limit=None,
-        query_config=release_health.backend.sessions_query_config(organization),
     )
     result = release_health.backend.run_sessions_query(
         organization.id, query, span_op="sessions.anomaly_detection"
@@ -227,7 +196,10 @@ def format_historical_data(
         return format_crash_free_data(data)
 
     return format_snuba_ts_data(
-        data, query_columns, organization, transform_alias_to_input_format=dataset == Spans
+        data,
+        query_columns,
+        organization,
+        transform_alias_to_input_format=dataset in (Spans, TraceMetrics),
     )
 
 
@@ -250,6 +222,8 @@ def get_dataset_name_from_label_and_event_types(
     elif dataset_label == "events_analytics_platform":
         if event_types and SnubaQueryEventType.EventType.TRACE_ITEM_LOG in event_types:
             dataset_label = "logs"
+        elif event_types and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
+            dataset_label = "tracemetrics"
         else:
             dataset_label = "spans"
     elif dataset_label in ["generic_metrics", "transactions"]:
@@ -331,6 +305,24 @@ def fetch_historical_data(
                 else Referrer.ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES.value
             ),
             config=SearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=False,
+            ),
+            sampling_mode="NORMAL",
+        )
+        return results
+    elif dataset == TraceMetrics:
+        results = TraceMetrics.run_timeseries_query(
+            params=snuba_params,
+            query_string=snuba_query.query,
+            y_axes=query_columns,
+            referrer=(
+                Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value
+                if is_store_data_request
+                else Referrer.ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES.value
+            ),
+            config=TraceMetricsSearchResolverConfig(
+                metric=None,
                 auto_fields=False,
                 use_aggregate_conditions=False,
             ),

@@ -16,9 +16,6 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.dynamic_sampling import generate_rules
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    get_boost_low_volume_projects_sample_rate,
-)
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -67,18 +64,21 @@ EXPOSABLE_FEATURES = [
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
-    "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
     "organizations:relay-otlp-traces-endpoint",
     "organizations:relay-otel-logs-endpoint",
+    "organizations:relay-new-error-processing",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
     "projects:span-v2-experimental-processing",
+    "projects:span-v2-attachment-processing",
+    "projects:trace-attachment-processing",
+    "projects:relay-upload-endpoint",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -985,73 +985,6 @@ def _get_default_browser_performance_profiles(
     ]
 
 
-def _get_mobile_performance_profiles(
-    organization: Organization,
-) -> list[dict[str, Any]]:
-    if not features.has(
-        "organizations:performance-calculate-mobile-perf-score-relay", organization
-    ):
-        return []
-
-    return [
-        {
-            "name": "Mobile",
-            "version": "mobile.alpha",
-            "scoreComponents": [
-                {
-                    "measurement": "time_to_initial_display",
-                    "weight": 0.25,
-                    "p10": 1800.0,
-                    "p50": 3000.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "time_to_full_display",
-                    "weight": 0.25,
-                    "p10": 2500.0,
-                    "p50": 4000.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "app_start_warm",
-                    "weight": 0.25,
-                    "p10": 200.0,
-                    "p50": 500.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "app_start_cold",
-                    "weight": 0.25,
-                    "p10": 200.0,
-                    "p50": 500.0,
-                    "optional": True,
-                },
-            ],
-            "condition": {
-                "op": "and",
-                "inner": [
-                    {
-                        "op": "or",
-                        "inner": [
-                            {
-                                "op": "eq",
-                                "name": "event.sdk.name",
-                                "value": "sentry.cocoa",
-                            },
-                            {
-                                "op": "eq",
-                                "name": "event.sdk.name",
-                                "value": "sentry.java.android",
-                            },
-                        ],
-                    },
-                    {"op": "eq", "name": "event.contexts.trace.op", "value": "ui.load"},
-                ],
-            },
-        }
-    ]
-
-
 def _get_project_config(
     project: Project, project_keys: Iterable[ProjectKey] | None = None
 ) -> ProjectConfig:
@@ -1148,7 +1081,6 @@ def _get_project_config(
     performance_score_profiles = [
         *_get_desktop_browser_performance_profiles(project.organization),
         *_get_mobile_browser_performance_profiles(project.organization),
-        *_get_mobile_performance_profiles(project.organization),
         *_get_default_browser_performance_profiles(project.organization),
     ]
     if performance_score_profiles:
@@ -1181,68 +1113,14 @@ def _get_project_config(
         if retentions_config:
             config["retentions"] = retentions_config
 
+    with sentry_sdk.start_span(op="get_trimming_configs"):
+        trimming_configs = quotas.backend.get_trimming_configs(project.organization)
+        if trimming_configs:
+            config["trimming"] = trimming_configs
+
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config
-
-    if features.has("organizations:log-project-config", project.organization):
-        try:
-            logger.info(
-                "log-project-config - get_project_config: Logging sampling feature flags for project %s in org %s.",
-                project.id,
-                project.organization.id,
-                extra={
-                    "project_id": str(project.id),
-                    "org_id": str(project.organization.id),
-                    "sampling_rule_count": (
-                        len(config["sampling"]["rules"]) if "sampling" in config else None
-                    ),
-                    "dynamic_sampling_feature_flag": features.has(
-                        "organizations:dynamic-sampling", project.organization
-                    ),
-                    "dynamic_sampling_custom_feature_flag": features.has(
-                        "organizations:dynamic-sampling-custom", project.organization
-                    ),
-                    "dynamic_sampling_mode": project.organization.get_option(
-                        "sentry:sampling_mode", None
-                    ),
-                    "dynamic_sampling_org_target_rate": project.organization.get_option(
-                        "sentry:target_sample_rate", None
-                    ),
-                    "dynamic_sampling_biases": project.get_option(
-                        "sentry:dynamic_sampling_biases", None
-                    ),
-                    "low_volume_projects_sample_rate": get_boost_low_volume_projects_sample_rate(
-                        org_id=project.organization.id,
-                        project_id=project.id,
-                        error_sample_rate_fallback=None,
-                    ),
-                },
-            )
-            logger.info(
-                "log-project-config - get_project_config: Logging project sampling config for project %s in org %s.",
-                project.id,
-                project.organization.id,
-                extra={
-                    "project_sampling_config": config["sampling"] if "sampling" in config else None,
-                    "project_id": str(project.id),
-                    "org_id": str(project.organization.id),
-                    "dynamic_sampling_feature_flag": features.has(
-                        "organizations:dynamic-sampling", project.organization
-                    ),
-                    "dynamic_sampling_custom_feature_flag": features.has(
-                        "organizations:dynamic-sampling-custom", project.organization
-                    ),
-                    "dynamic_sampling_mode": project.organization.get_option(
-                        "sentry:sampling_mode", None
-                    ),
-                    "dynamic_sampling_org_target_rate": project.organization.get_option(
-                        "sentry:target_sample_rate", None
-                    ),
-                },
-            )
-        except Exception:
-            capture_exception()
 
     return ProjectConfig(project, **cfg)
 
@@ -1336,7 +1214,7 @@ class _ConfigBase:
 
     def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore[arg-type]
+            return utils.json.dumps(self.to_dict(), sort_keys=True)
         except Exception as e:
             return f"Content Error:{e}"
 
@@ -1381,8 +1259,8 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
     """
     if setting is None:
         raise ValueError(
-            "Could not find filter state for filter {}."
-            " You need to register default filter state in projectoptions.defaults.".format(flt.id)
+            f"Could not find filter state for filter {flt.id}."
+            " You need to register default filter state in projectoptions.defaults."
         )
 
     is_enabled = setting != "0"

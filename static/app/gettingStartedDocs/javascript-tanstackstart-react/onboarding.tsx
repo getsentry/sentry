@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
@@ -113,6 +114,13 @@ export const getRouter = () => {
       replaysSessionSampleRate: 0.1,
       replaysOnErrorSampleRate: 1.0,`
           : ''
+      }${
+        params.isLogsSelected
+          ? `
+
+      // Enable logs to be sent to Sentry
+      enableLogs: true,`
+          : ''
       }
     });
   }
@@ -153,7 +161,97 @@ Sentry.init({
   // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  // Enable logs to be sent to Sentry
+  enableLogs: true,`
+      : ''
   }
+});`,
+            },
+          ],
+        },
+        {
+          type: 'alert',
+          alertType: 'warning',
+          showIcon: true,
+          text: tct(
+            "If you can't use the [code:--import] flag (e.g. in serverless environments like Vercel or Netlify), follow the [link:TanStack Start React guide] for alternative setup instructions.",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/#without---import-flag-eg-vercel-netlify" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'To capture server-side errors and traces, explicitly define a [serverEntryLink:server entry point] in your application and wrap your request handler with [code:wrapFetchWithSentry].',
+            {
+              code: <code />,
+              serverEntryLink: (
+                <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct('Create a [code:src/server.ts] file in your project:', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'TypeScript',
+              language: 'typescript',
+              filename: 'src/server.ts',
+              code: `import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
+import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
+
+export default createServerEntry(
+  wrapFetchWithSentry({
+    fetch(request: Request) {
+      return handler.fetch(request);
+    },
+  })
+);`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Add the [code:sentryTanstackStart] Vite plugin to your [configFile:vite.config.ts] file:',
+            {code: <code />, configFile: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'TypeScript',
+              language: 'typescript',
+              filename: 'vite.config.ts',
+              code: `import { defineConfig } from "vite";
+import { sentryTanstackStart } from "@sentry/tanstackstart-react/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+
+export default defineConfig({
+  plugins: [
+    tanstackStart(),
+    sentryTanstackStart({
+      org: "${params.organization.slug}",
+      project: "${params.project.slug}",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }),
+  ],
 });`,
             },
           ],
@@ -222,8 +320,38 @@ Sentry.init({
         {
           type: 'text',
           text: tct(
-            'Sentry automatically captures unhandled client-side errors. On the server side of TanStack Start, automatic error monitoring is not yet supported. Use [code:captureException] to manually capture errors in your server-side code.',
+            "To capture server-side errors from HTTP requests and server function invocations, add Sentry's global middlewares to [code:createStart()] in your [code:src/start.ts] file:",
             {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'TypeScript',
+              language: 'typescript',
+              filename: 'src/start.ts',
+              code: `import {
+  sentryGlobalFunctionMiddleware,
+  sentryGlobalRequestMiddleware,
+} from "@sentry/tanstackstart-react";
+import { createStart } from "@tanstack/react-start";
+
+export const startInstance = createStart(() => {
+  return {
+    requestMiddleware: [sentryGlobalRequestMiddleware],
+    functionMiddleware: [sentryGlobalFunctionMiddleware],
+  };
+});`,
+            },
+          ],
+        },
+        {
+          type: 'alert',
+          alertType: 'info',
+          showIcon: false,
+          text: t(
+            'The Sentry middleware should be the first middleware in the arrays to ensure all errors are captured. SSR rendering exceptions are not captured by the middleware. Use captureException to manually capture those errors.'
           ),
         },
         {
@@ -285,6 +413,35 @@ const route = createRoute({
             },
           ],
         },
+      ],
+    },
+    {
+      title: t('Upload Source Maps (Optional)'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'If you configured the [code:sentryTanstackStart] Vite plugin as shown above, source maps will be automatically uploaded to Sentry during the build process and deleted from your build output afterwards.',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'For alternative source map upload methods, follow the [link:Vite source maps guide].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />
+              ),
+            }
+          ),
+        },
+      ],
+      collapsible: true,
+    },
+    {
+      title: t('Avoid Ad Blockers With Tunneling (Optional)'),
+      content: [
         {
           type: 'text',
           text: tct(
@@ -313,6 +470,7 @@ const route = createRoute({
           ],
         },
       ],
+      collapsible: true,
     },
   ],
   verify: params => [

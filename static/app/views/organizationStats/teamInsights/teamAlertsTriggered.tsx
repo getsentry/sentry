@@ -3,19 +3,20 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -37,7 +38,7 @@ interface TeamAlertsTriggeredProps extends DateTimeObject {
   teamSlug: string;
 }
 
-function TeamAlertsTriggered({
+export function TeamAlertsTriggered({
   organization,
   projects,
   teamSlug,
@@ -56,7 +57,9 @@ function TeamAlertsTriggered({
     refetch: refetchAlertsTriggered,
   } = useApiQuery<AlertsTriggered>(
     [
-      `/teams/${organization.slug}/${teamSlug}/alerts-triggered/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           ...normalizeDateTimeParams(datetime),
@@ -73,7 +76,9 @@ function TeamAlertsTriggered({
     refetch: refetchAlertsTriggeredRule,
   } = useApiQuery<AlertsTriggeredRule[]>(
     [
-      `/teams/${organization.slug}/${teamSlug}/alerts-triggered-index/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered-index/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           ...normalizeDateTimeParams(datetime),
@@ -113,7 +118,9 @@ function TeamAlertsTriggered({
     }
 
     return (
-      <SubText color={diff <= 0 ? theme.successText : theme.errorText}>
+      <SubText
+        color={diff <= 0 ? theme.tokens.content.success : theme.tokens.content.danger}
+      >
         {formatPercentage(Math.abs(diff / weeklyAvg), 0)}
         <PaddedIconArrow direction={diff <= 0 ? 'down' : 'up'} size="xs" />
       </SubText>
@@ -208,36 +215,38 @@ function TeamAlertsTriggered({
   );
 }
 
-export default TeamAlertsTriggered;
-
 const ChartWrapper = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.5fr 0.2fr 0.2fr 0.2fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
   box-shadow: unset;
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
   ${p =>
     p.isEmpty &&
     css`
       & > div:last-child {
-        padding: 48px ${space(2)};
+        padding: 48px ${p.theme.space.xl};
       }
     `}
 `;
 
 const AlertNameContainer = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const AlignRight = styled('div')`
@@ -246,7 +255,7 @@ const AlignRight = styled('div')`
 `;
 
 const PaddedIconArrow = styled(IconArrow)`
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
 `;
 
 const SubText = styled('div')<{color: string}>`
@@ -255,7 +264,7 @@ const SubText = styled('div')<{color: string}>`
 
 const ButtonsContainer = styled('div')`
   & > a {
-    margin-right: ${space(0.5)};
-    margin-left: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
+    margin-left: ${p => p.theme.space.xs};
   }
 `;

@@ -1,17 +1,19 @@
 import {useState} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {Alert} from '@sentry/scraps/alert';
+
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Props = {
   authConfig: AuthConfig;
 };
 
-function SsoForm({authConfig}: Props) {
+export function SsoForm({authConfig}: Props) {
+  const navigate = useNavigate();
   const [error, setError] = useState('');
 
   const {serverHostname} = authConfig;
@@ -21,7 +23,7 @@ function SsoForm({authConfig}: Props) {
       apiMethod="POST"
       apiEndpoint="/auth/sso-locate/"
       onSubmitSuccess={response => {
-        browserHistory.push({pathname: response.nextUri});
+        navigate({pathname: response.nextUri});
       }}
       onSubmitError={response => {
         setError(response.responseJSON.detail);
@@ -36,7 +38,7 @@ function SsoForm({authConfig}: Props) {
     >
       {error && (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {error}
           </Alert>
         </Alert.Container>
@@ -70,5 +72,3 @@ function SlugExample({hostname, slug}: SlugExampleProps) {
     </code>
   );
 }
-
-export default SsoForm;

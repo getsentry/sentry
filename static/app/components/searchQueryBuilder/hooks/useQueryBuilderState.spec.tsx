@@ -1,5 +1,7 @@
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
 
 import {replaceFreeTextTokens} from './useQueryBuilderState';
 
@@ -13,7 +15,6 @@ describe('replaceFreeTextTokens', () => {
       };
       input: {
         currentQuery: string;
-        getFieldDefinition: () => null;
         rawSearchReplacement: string[];
       };
     };
@@ -22,7 +23,6 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when there are no tokens',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: '',
         },
@@ -34,7 +34,6 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when the replace raw search keys is empty',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: [],
           currentQuery: '',
         },
@@ -46,7 +45,6 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when the replace raw search keys is an empty string',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: [''],
           currentQuery: '',
         },
@@ -58,7 +56,6 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when there is no raw search replacement',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: [],
           currentQuery: `browser.name:${WildcardOperators.CONTAINS}"firefox"`,
         },
@@ -70,7 +67,6 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when there are no free text tokens',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: `browser.name:${WildcardOperators.CONTAINS}"firefox"`,
         },
@@ -82,7 +78,6 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when there only valid action tokens',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: 'span.op:eq',
         },
@@ -94,7 +89,6 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when there only space free text tokens in the action',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: 'span.op:eq    ',
         },
@@ -106,7 +100,6 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when there is one free text token',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: 'test',
         },
@@ -118,19 +111,17 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when there is one free text token that has a space',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: 'test test',
         },
         expected: {
-          query: `span.description:${WildcardOperators.CONTAINS}"test test"`,
+          query: `span.description:"*test*test*"`,
           focusOverride: {itemKey: 'freeText:1'},
         },
       },
       {
         description: 'when there is already a token present',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: 'span.op:eq test',
         },
@@ -142,7 +133,6 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when there is already a replace token present',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: `span.description:${WildcardOperators.CONTAINS}test test2`,
         },
@@ -154,12 +144,11 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when there is already a replace token present with a space',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: `span.description:${WildcardOperators.CONTAINS}test other value`,
         },
         expected: {
-          query: `span.description:${WildcardOperators.CONTAINS}test span.description:${WildcardOperators.CONTAINS}"other value"`,
+          query: `span.description:${WildcardOperators.CONTAINS}test span.description:"*other*value*"`,
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
@@ -167,19 +156,17 @@ describe('replaceFreeTextTokens', () => {
         description:
           'when there is already a replace token present with a different operator',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: `span.description:test other value`,
         },
         expected: {
-          query: `span.description:test span.description:${WildcardOperators.CONTAINS}"other value"`,
+          query: `span.description:test span.description:"*other*value*"`,
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
       {
         description: 'when the value contains an asterisks, it sets to is',
         input: {
-          getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
           currentQuery: `span.description:test te*st`,
         },
@@ -188,12 +175,69 @@ describe('replaceFreeTextTokens', () => {
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
+      {
+        description: 'when the value contains a space and asterisks, it sets to is',
+        input: {
+          rawSearchReplacement: ['span.description'],
+          currentQuery: `te*st test`,
+        },
+        expected: {
+          query: `span.description:"te*st test"`,
+          focusOverride: {itemKey: 'freeText:1'},
+        },
+      },
+      {
+        description:
+          'when the value contains multiple spaces, it removes them and will replace them with a single space, and apply fuzzy matching',
+        input: {
+          rawSearchReplacement: ['span.description'],
+          currentQuery: `test  test`,
+        },
+        expected: {
+          query: `span.description:"*test*test*"`,
+          focusOverride: {itemKey: 'freeText:1'},
+        },
+      },
+      {
+        description: 'when the value is an aggregate filter token, it ignores it',
+        input: {
+          rawSearchReplacement: ['span.description'],
+          currentQuery: `p75(span.duration):>300ms test`,
+        },
+        expected: {
+          query: `p75(span.duration):>300ms span.description:${WildcardOperators.CONTAINS}test`,
+          focusOverride: {itemKey: 'freeText:2'},
+        },
+      },
     ];
 
     it.each(testCases)('$description', ({input, expected}) => {
       const result = replaceFreeTextTokens(
         input.currentQuery,
-        input.getFieldDefinition,
+        (query: string) =>
+          parseQueryBuilderValue(
+            query,
+            (key: string) => {
+              if (key === 'span.duration') {
+                return {
+                  desc: 'The total time taken by the span',
+                  kind: 'metric',
+                  valueType: 'duration',
+                } as FieldDefinition;
+              }
+              return null;
+            },
+            {
+              disallowUnsupportedFilters: true,
+              filterKeys: {
+                'span.duration': {
+                  key: 'span.duration',
+                  name: 'span.duration',
+                  kind: FieldKind.MEASUREMENT,
+                },
+              },
+            }
+          ),
         input.rawSearchReplacement
       );
 

@@ -73,17 +73,23 @@ def _get_tag_and_feature_flag_keys(
     org_id: int,
     org_slug: str,
     project_ids: list[int],
-    stats_period: str,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     include_feature_flags: bool = True,
 ) -> tuple[set[str], set[str]]:
     api_key = ApiKey(organization_id=org_id, scope_list=["org:read", "project:read", "event:read"])
 
     base_params: dict[str, Any] = {
-        "statsPeriod": stats_period,
         "project": project_ids,
         "referrer": Referrer.SEER_RPC,
         "useCache": "1",
     }
+    if stats_period:
+        base_params["statsPeriod"] = stats_period
+    else:
+        base_params["start"] = start
+        base_params["end"] = end
 
     # Get custom tags
     event_params = {**base_params, "dataset": Dataset.Events.value}
@@ -155,7 +161,9 @@ def get_event_filter_keys(
     *,
     org_id: int,
     project_ids: list[int] | None = None,
-    stats_period: str = "7d",
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     include_feature_flags: bool = False,
 ) -> dict[str, dict[str, Any]] | None:
     """
@@ -183,7 +191,9 @@ def get_event_filter_keys(
         organization.id,
         organization.slug,
         project_ids,
-        stats_period,
+        stats_period=stats_period,
+        start=start,
+        end=end,
         include_feature_flags=include_feature_flags,
     )
 
@@ -203,7 +213,9 @@ def get_event_filter_key_values(
     filter_key: str,
     substring: str | None = None,
     project_ids: list[int] | None = None,
-    stats_period: str = "7d",
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
 ) -> list[dict[str, Any]] | None:
     """
     Get values for a specific filter key.
@@ -219,7 +231,9 @@ def get_event_filter_key_values(
         project_ids: List of project IDs to query
         filter_key: The filter key to get values for
         substring: Optional substring to filter values. Only values containing this substring will be returned
-        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Defaults to "7d"
+        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Cannot be provided with start and end.
+        start: Start date for the query (ISO string). Must be provided with end.
+        end: End date for the query (ISO string). Must be provided with start.
 
     Returns:
         List of dicts containing:
@@ -248,7 +262,9 @@ def get_event_filter_key_values(
             organization.id,
             organization.slug,
             project_ids,
-            stats_period,
+            stats_period=stats_period,
+            start=start,
+            end=end,
             include_feature_flags=False,
         )
         return [{"value": t} for t in tag_keys]
@@ -258,11 +274,15 @@ def get_event_filter_key_values(
     )
 
     base_params: dict[str, Any] = {
-        "statsPeriod": stats_period,
         "project": project_ids,
         "sort": "-count",
         "referrer": Referrer.SEER_RPC,
     }
+    if stats_period:
+        base_params["statsPeriod"] = stats_period
+    else:
+        base_params["start"] = start
+        base_params["end"] = end
     if substring:
         base_params["query"] = substring
 

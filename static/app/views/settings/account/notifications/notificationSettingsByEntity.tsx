@@ -1,27 +1,30 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/core/button';
-import {Select} from 'sentry/components/core/select';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Button} from '@sentry/scraps/button';
+import {Select} from '@sentry/scraps/select';
+
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {NotificationOptionsObject, NotificationSettingsType} from './constants';
-import {NOTIFICATION_SETTING_FIELDS} from './fields2';
+import {NOTIFICATION_SETTING_FIELDS} from './fields';
 import {OrganizationSelectHeader} from './organizationSelectHeader';
 
 type Value = 'always' | 'never' | 'subscribe_only' | 'committed_only';
@@ -38,7 +41,7 @@ interface NotificationSettingsByEntityProps {
   organizations: Organization[];
 }
 
-function NotificationSettingsByEntity({
+export function NotificationSettingsByEntity({
   entityType,
   handleAddNotificationOption,
   handleEditNotificationOption,
@@ -47,7 +50,9 @@ function NotificationSettingsByEntity({
   notificationType,
   organizations,
 }: NotificationSettingsByEntityProps) {
-  const router = useRouter();
+  const theme = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [selectedValue, setSelectedValue] = useState<Value | null>(null);
 
@@ -57,7 +62,7 @@ function NotificationSettingsByEntity({
   )?.id;
 
   const orgId =
-    router.location?.query?.organizationId ??
+    (location.query?.organizationId as string | undefined) ??
     orgFromSubdomain ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
   let organization = organizations.find(({id}) => id === orgId);
@@ -76,7 +81,9 @@ function NotificationSettingsByEntity({
     refetch,
   } = useApiQuery<Project[]>(
     [
-      `/organizations/${orgSlug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: orgSlug!},
+      }),
       {
         host: organization?.links?.regionUrl,
         query: {
@@ -94,10 +101,13 @@ function NotificationSettingsByEntity({
   const entityById = keyBy<Organization | Project>(entities, 'id');
 
   const handleOrgChange = (organizationId: string) => {
-    router.replace({
-      ...router.location,
-      query: {organizationId},
-    });
+    navigate(
+      {
+        ...location,
+        query: {organizationId},
+      },
+      {replace: true}
+    );
   };
 
   const handleAdd = () => {
@@ -124,7 +134,7 @@ function NotificationSettingsByEntity({
       option => option.type === notificationType && option.scopeType === entityType
     );
     return matchedOptions.map(option => {
-      const entity = entityById[`${option.scopeIdentifier}`];
+      const entity = entityById[option.scopeIdentifier];
       if (!entity) {
         return null;
       }
@@ -136,7 +146,7 @@ function NotificationSettingsByEntity({
 
       return (
         <Item key={entity.id}>
-          <div style={{marginLeft: space(2)}}>
+          <div style={{marginLeft: theme.space.xl}}>
             <IdBadge
               {...idBadgeProps}
               avatarSize={20}
@@ -297,15 +307,13 @@ function NotificationSettingsByEntity({
   );
 }
 
-export default NotificationSettingsByEntity;
-
 const MinHeight = styled('div')`
   min-height: 400px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   & > form:last-child {
     flex-grow: 1;
   }
@@ -313,22 +321,22 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const StyledPanelBody = styled(PanelBody)`
   & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const Item = styled('div')`
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   grid-template-columns: 2.5fr 1fr min-content;
   align-items: center;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const ControlItem = styled(Item)`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RemoveButtonWrapper = styled('div')`
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
 `;

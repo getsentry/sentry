@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t, tct} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/insights/browser/resources/settings';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -23,7 +24,7 @@ type Props = {
   timeSpentTotal: number;
 };
 
-function ResourceInfo(props: Props) {
+export function ResourceInfo(props: Props) {
   const {
     isLoading,
     avgContentLength,
@@ -115,7 +116,7 @@ function ResourceInfo(props: Props) {
 
       {!isLoading && hasNoData && (
         <Alert.Container>
-          <Alert style={{width: '100%'}} type="warning">
+          <Alert style={{width: '100%'}} variant="warning">
             {t(
               "We couldn't find any size information for this resource, this is likely because the `timing-allow-origin` header is not set."
             )}
@@ -125,5 +126,3 @@ function ResourceInfo(props: Props) {
     </Fragment>
   );
 }
-
-export default ResourceInfo;

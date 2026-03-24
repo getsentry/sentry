@@ -6,15 +6,12 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import type {
-  SelectKey,
-  SelectOptionOrSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {Button} from '@sentry/scraps/button';
+import {ListBox} from '@sentry/scraps/compactSelect';
+import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -31,7 +28,7 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: Array<TokenResult<Token.FILTER>>;
@@ -40,18 +37,17 @@ interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   setSelectedSection: (section: string) => void;
 }
 
-interface FilterKeyMenuContentProps<T>
-  extends Pick<
-    FilterKeyListBoxProps<T>,
-    | 'hiddenOptions'
-    | 'listBoxProps'
-    | 'listBoxRef'
-    | 'recentFilters'
-    | 'state'
-    | 'selectedSection'
-    | 'setSelectedSection'
-    | 'sections'
-  > {
+interface FilterKeyMenuContentProps<T> extends Pick<
+  FilterKeyListBoxProps<T>,
+  | 'hiddenOptions'
+  | 'listBoxProps'
+  | 'listBoxRef'
+  | 'recentFilters'
+  | 'state'
+  | 'selectedSection'
+  | 'setSelectedSection'
+  | 'sections'
+> {
   fullWidth: boolean;
 }
 
@@ -67,7 +63,7 @@ function ListBoxSectionButton({
   return (
     <SectionButton
       size="zero"
-      borderless
+      priority="transparent"
       aria-selected={selected}
       onClick={onClick}
       tabIndex={-1}
@@ -220,11 +216,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <Fragment>
-      {enableAISearch ? (
-        <Feature features="organizations:gen-ai-explore-traces">
-          <AskSeer state={state} />
-        </Feature>
-      ) : null}
+      {enableAISearch ? <AskSeer state={state} /> : null}
       {showRecentFilters ? (
         <RecentFiltersPane>
           {recentFilters.map(filter => (
@@ -298,7 +290,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   setSelectedSection,
   overlayProps,
 }: FilterKeyListBoxProps<T>) {
-  const {filterKeyMenuWidth, wrapperRef, query, portalTarget, enableAISearch} =
+  const {filterKeyMenuWidth, wrapperRef, query, portalTarget, enableAISearch, size} =
     useSearchQueryBuilder();
 
   const hiddenOptionsWithRecentsAndAskSeerAdded = useMemo<Set<SelectKey>>(() => {
@@ -325,7 +317,9 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 
   useSwitchToValidSection({sections, selectedSection, setSelectedSection});
 
-  const fullWidth = !query;
+  // Full-width mode works well for wide search bars, but for narrow bars it over-constrains
+  // the filter menu and makes the details pane unreadable.
+  const fullWidth = !query && size === 'normal';
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
 
   // Remove bottom border radius of top-level component while the full-width menu is open
@@ -359,6 +353,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           fullWidth
           showDetailsPane={showDetailsPane}
           hasAiFeatures={enableAISearch}
+          onMouseDown={e => {
+            // Prevent the input from losing focus when interacting with the menu
+            e.preventDefault();
+          }}
         >
           {isOpen ? (
             <FilterKeyMenuContent
@@ -385,6 +383,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         ref={popoverRef}
         width={filterKeyMenuWidth}
         hasAiFeatures={enableAISearch}
+        onMouseDown={e => {
+          // Prevent the input from losing focus when interacting with the menu
+          e.preventDefault();
+        }}
       >
         {isOpen ? (
           <FilterKeyMenuContent
@@ -461,8 +463,7 @@ const SectionedOverlay = styled(Overlay, {
   overflow: hidden;
   height: 400px;
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
-  ${p =>
-    p.fullWidth && `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+  ${p => p.fullWidth && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
 `;
 
 const SectionedOverlayFooter = styled('div')`
@@ -471,17 +472,17 @@ const SectionedOverlayFooter = styled('div')`
   align-items: center;
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RecentFiltersPane = styled('ul')`
   grid-area: recentFilters;
   display: flex;
   flex-wrap: wrap;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} 10px;
   gap: ${p => p.theme.space['2xs']};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: 0;
 `;
 
@@ -493,7 +494,7 @@ const SectionedListBoxPane = styled('div')`
 const DetailsPane = styled('div')`
   grid-area: details;
   overflow-y: auto;
-  border-left: 1px solid ${p => p.theme.innerBorder};
+  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const SectionedListBoxTabPane = styled('div')`
@@ -502,7 +503,7 @@ const SectionedListBoxTabPane = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${p => p.theme.space['2xs']};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RecentFilterPill = styled('li')`
@@ -510,12 +511,13 @@ const RecentFilterPill = styled('li')`
   display: flex;
   align-items: center;
   height: 22px;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.background};
-  box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.primary};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
 
   /* Fade out on right side to represent that this is a filter key only */
@@ -528,31 +530,35 @@ const RecentFilterPill = styled('li')`
     height: 100%;
     background: linear-gradient(
       to left,
-      ${p => p.theme.backgroundSecondary} 0 2px,
+      ${p => p.theme.tokens.background.secondary} 0 2px,
       transparent ${p => p.theme.space.xl} 100%
     );
   }
 `;
 
 const RecentFilterPillLabel = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 200px;
 `;
 
 const SectionButton = styled(Button)`
   height: 20px;
   text-align: left;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
   padding: 0 ${p => p.theme.space.lg};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border: 0;
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.purple100};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.purple100};
-    color: ${p => p.theme.purple300};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
+    color: ${p => p.theme.tokens.content.accent};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 `;
 
@@ -569,7 +575,7 @@ const EmptyState = styled('div')`
   height: 100%;
   padding: ${p => p.theme.space['3xl']};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   div {
     max-width: 280px;

@@ -9,42 +9,41 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
+import {Alert, AlertLink} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Input} from '@sentry/scraps/input';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Input} from 'sentry/components/core/input';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
+import {Confirm} from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
-import IdBadge from 'sentry/components/idBadge';
+import {Form} from 'sentry/components/forms/form';
+import {FormField} from 'sentry/components/forms/formField';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import LoadingMask from 'sentry/components/loadingMask';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {LoadingMask} from 'sentry/components/loadingMask';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
   IssueAlertRule,
@@ -64,14 +63,15 @@ import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import recreateRoute from 'sentry/utils/recreateRoute';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {withOrganization} from 'sentry/utils/withOrganization';
+import {withProjects} from 'sentry/utils/withProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import FeedbackAlertBanner from 'sentry/views/alerts/rules/issue/feedbackAlertBanner';
+import {FeedbackAlertBanner} from 'sentry/views/alerts/rules/issue/feedbackAlertBanner';
 import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
-import SetupMessagingIntegrationButton, {
+import {
   MessagingIntegrationAnalyticsView,
+  SetupMessagingIntegrationButton,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {getProjectOptions} from 'sentry/views/alerts/rules/utils';
 import {
@@ -457,6 +457,12 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     metric.endSpan({name: 'saveAlertRule'});
 
+    if (isNew) {
+      trackAnalytics('issue_alert_rule.created', {
+        organization,
+      });
+    }
+
     router.push(
       makeAlertsPathname({
         path: `/rules/${project.slug}/${rule.id}/details/`,
@@ -479,7 +485,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     const endpoint = `/projects/${organization.slug}/${project.slug}/rules/${ruleId}`;
 
-    if (rule && rule.environment === ALL_ENVIRONMENTS_KEY) {
+    if (rule?.environment === ALL_ENVIRONMENTS_KEY) {
       delete rule.environment;
     }
 
@@ -636,6 +642,16 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
       set(clonedState, `rule[${type}][${idx}][${prop}]`, val);
+
+      // If changing the channel name for a Slack action, clear the channel id for convenience
+      if (
+        type === 'actions' &&
+        prop === 'channel' &&
+        prevState.rule?.actions?.[idx]?.id === IssueAlertActionType.SLACK
+      ) {
+        set(clonedState, `rule[${type}][${idx}][channel_id]`, '');
+      }
+
       return clonedState;
     });
   };
@@ -830,7 +846,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   renderError() {
     return (
       <Alert.Container>
-        <Alert type="error">
+        <Alert variant="danger">
           {t(
             'Unable to access this alert rule -- check to make sure you have the correct permissions'
           )}
@@ -906,8 +922,8 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       <AlertLink.Container>
         <AlertLink
           openInNewTab
-          type="error"
-          trailingItems={<IconNot color="red300" />}
+          variant="danger"
+          trailingItems={<IconNot variant="danger" />}
           href={makeAlertsPathname({
             path: `/rules/${project.slug}/${duplicateRuleId}/details/`,
             organization,
@@ -956,7 +972,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="warning">
+        <Alert variant="warning">
           <div>
             {t(
               'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
@@ -1077,7 +1093,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
               styles={{
                 container: (provided: Record<string, string | number | boolean>) => ({
                   ...provided,
-                  marginBottom: `${space(1)}`,
+                  marginBottom: '8px',
                 }),
               }}
               options={projectOptions}
@@ -1244,7 +1260,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                     <StepConnector />
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron color="gray200" direction="right" size="sm" />
+                        <IconChevron variant="muted" direction="right" size="sm" />
                       </ChevronContainer>
                       <StepContent>
                         <StepLead>
@@ -1297,7 +1313,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert variant="danger" showIcon={false}>
                                 {detailedError?.conditions![0]}
                                 {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
@@ -1329,7 +1345,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron color="gray200" direction="right" size="sm" />
+                        <IconChevron variant="muted" direction="right" size="sm" />
                       </ChevronContainer>
 
                       <StepContent data-test-id="rule-filters">
@@ -1379,7 +1395,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert variant="danger" showIcon={false}>
                                 {detailedError?.filters![0]}
                               </Alert>
                             )
@@ -1400,7 +1416,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   <Step>
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron color="gray200" direction="right" size="sm" />
+                        <IconChevron variant="muted" direction="right" size="sm" />
                       </ChevronContainer>
                       <StepContent>
                         <StepLead>
@@ -1423,7 +1439,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert variant="danger" showIcon={false}>
                                 {detailedError?.actions![0]}
                               </Alert>
                             )
@@ -1594,19 +1610,19 @@ const StyledForm = styled(Form)<FormProps>`
 `;
 
 const ConditionsPanel = styled(Panel)`
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(2)};
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const StyledFieldHelp = styled(FieldHelp)`
   margin-top: 0;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    margin-left: -${space(4)};
+    margin-left: -${p => p.theme.space['3xl']};
   }
 `;
 
@@ -1619,11 +1635,12 @@ const Step = styled('div')`
   position: relative;
   display: flex;
   align-items: flex-start;
-  margin: ${space(4)} ${space(4)} ${space(3)} ${space(1)};
+  margin: ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']}
+    ${p => p.theme.space['2xl']} ${p => p.theme.space.md};
 `;
 
 const StepHeader = styled('h5')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StepContainer = styled('div')`
@@ -1642,36 +1659,36 @@ const StepConnector = styled('div')`
   height: 100%;
   top: 28px;
   left: 19px;
-  border-right: 1px ${p => p.theme.gray200} dashed;
+  border-right: 1px ${p => p.theme.colors.gray200} dashed;
 `;
 
 const StepLead = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const TestButtonWrapper = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
 const ChevronContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 `;
 
 const Badge = styled('span')`
   min-width: 56px;
-  background-color: ${p => p.theme.purple300};
-  padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.white};
+  background-color: ${p => p.theme.tokens.background.accent.vibrant};
+  padding: 0 ${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.colors.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.5;
 `;
 
@@ -1681,7 +1698,7 @@ const EmbeddedWrapper = styled('div')`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
 `;
 
@@ -1693,7 +1710,7 @@ const SemiTransparentLoadingMask = styled(LoadingMask)`
 const SettingsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledField = styled(FieldGroup)`
@@ -1704,42 +1721,42 @@ const StyledField = styled(FieldGroup)`
     padding: 0;
     width: 100%;
   }
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledFieldWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space.md};
   }
 `;
 
 const ContentIndent = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    margin-left: ${space(4)};
+    margin-left: ${p => p.theme.space['3xl']};
   }
 `;
 
 const AcknowledgeLabel = styled('label')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   line-height: 2;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const AcknowledgeField = styled(FieldGroup)`
   padding: 0;
   display: flex;
   align-items: center;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 
   & > div {
     padding-left: 0;
     display: flex;
     align-items: baseline;
     flex: unset;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space.md};
   }
 `;

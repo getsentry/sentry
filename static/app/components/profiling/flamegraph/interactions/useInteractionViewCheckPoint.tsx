@@ -3,7 +3,7 @@ import {useEffect, useRef} from 'react';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 export function useInteractionViewCheckPoint({
   view,
@@ -28,11 +28,14 @@ export function useInteractionViewCheckPoint({
       return;
     }
 
-    if (
-      beforeInteractionConfigView.current &&
-      !beforeInteractionConfigView.current.equals(view.configView)
-    ) {
-      dispatch({type: 'checkpoint', payload: view.configView.clone()});
+    // Check if we are finish the current interaction
+    if (previousInteraction && lastInteraction === null) {
+      if (
+        beforeInteractionConfigView.current &&
+        !beforeInteractionConfigView.current.equals(view.configView)
+      ) {
+        dispatch({type: 'checkpoint', payload: view.configView.clone()});
+      }
     }
   }, [dispatch, lastInteraction, previousInteraction, view]);
 }

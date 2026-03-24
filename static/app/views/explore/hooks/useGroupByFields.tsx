@@ -1,16 +1,17 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {t} from 'sentry/locale';
-import type {Tag, TagCollection} from 'sentry/types/group';
-import {FieldKind, prettifyTagKey} from 'sentry/utils/fields';
-import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import type {TagCollection} from 'sentry/types/group';
+import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
+import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface UseGroupByFieldsProps {
+  booleanTags: TagCollection;
   /**
    * All the group bys that are in use. They will be injected if
    * they dont exist already.
@@ -25,11 +26,13 @@ interface UseGroupByFieldsProps {
 export function useGroupByFields({
   numberTags,
   stringTags,
+  booleanTags,
   groupBys,
   traceItemType,
   hideEmptyOption,
 }: UseGroupByFieldsProps): Array<SelectOption<string>> {
   return useMemo(() => {
+    const seen = new Set<string>();
     const options = [
       ...Object.entries(numberTags)
         .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
@@ -37,9 +40,16 @@ export function useGroupByFields({
       ...Object.entries(stringTags)
         .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
         .map(([_, tag]) => optionFromTag(tag, traceItemType)),
+      ...Object.entries(booleanTags)
+        .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
+        .map(([_, tag]) => optionFromTag(tag, traceItemType)),
       ...groupBys
         .filter(
-          groupBy => groupBy && !(groupBy in numberTags) && !(groupBy in stringTags)
+          groupBy =>
+            groupBy &&
+            !(groupBy in numberTags) &&
+            !(groupBy in stringTags) &&
+            !(groupBy in booleanTags)
         )
         .map(groupBy =>
           optionFromTag(
@@ -47,13 +57,26 @@ export function useGroupByFields({
             traceItemType
           )
         ),
-    ];
-
-    options.sort((a, b) => {
-      const aLabel = a.label || '';
-      const bLabel = b.label || '';
-      return aLabel.localeCompare(bLabel);
-    });
+    ]
+      .filter(option => {
+        // Filtering by value here, so it's based off of explicit tags i.e. `key`
+        // or `tags[<key>, <boolean | number | string>]
+        if (seen.has(option.value)) return false;
+        seen.add(option.value);
+        return true;
+      })
+      .toSorted((a, b) => {
+        const aKnown =
+          getFieldDefinition(a.value, TRACE_ITEM_FIELD_DEFINITION_TYPE[traceItemType]) !==
+          null;
+        const bKnown =
+          getFieldDefinition(b.value, TRACE_ITEM_FIELD_DEFINITION_TYPE[traceItemType]) !==
+          null;
+        if (aKnown !== bKnown) return aKnown ? -1 : 1;
+        const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
+        const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
+        return aLabel.localeCompare(bLabel);
+      });
 
     return [
       // hard code in an empty option
@@ -68,31 +91,21 @@ export function useGroupByFields({
           ]),
       ...options,
     ];
-  }, [numberTags, stringTags, groupBys, hideEmptyOption, traceItemType]);
+  }, [booleanTags, groupBys, hideEmptyOption, numberTags, stringTags, traceItemType]);
 }
 
-function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
-  return {
-    label: tag.name,
-    value: tag.key,
-    textValue: tag.key,
-    trailingItems: <TypeBadge kind={tag.kind} />,
-    showDetailsInOverlay: true,
-    details: (
-      <AttributeDetails
-        column={tag.key}
-        kind={tag.kind}
-        label={tag.key}
-        traceItemType={traceItemType}
-      />
-    ),
-  };
-}
+const TRACE_ITEM_FIELD_DEFINITION_TYPE: Partial<
+  Record<TraceItemDataset, 'span' | 'log' | 'tracemetric'>
+> = {
+  [TraceItemDataset.SPANS]: 'span',
+  [TraceItemDataset.LOGS]: 'log',
+  [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
+};
 
 // Some fields don't make sense to allow users to group by as they create
 // very high cardinality groupings and is not useful.
 const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);
 
 const Disabled = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

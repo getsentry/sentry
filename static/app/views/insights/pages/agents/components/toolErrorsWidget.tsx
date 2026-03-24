@@ -2,12 +2,13 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -15,6 +16,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -28,7 +30,7 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function ToolErrorsWidget() {
+export function ToolErrorsWidget() {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
@@ -37,7 +39,7 @@ export default function ToolErrorsWidget() {
   const theme = useTheme();
 
   const fullQuery = useCombinedQuery(
-    'span.op:gen_ai.execute_tool span.status:internal_error'
+    `${getToolSpansFilter()} span.status:internal_error`
   );
 
   const toolsRequest = useSpans(
@@ -97,7 +99,9 @@ export default function ToolErrorsWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(ts, {
-              color: ts.meta.isOther ? theme.chart.neutral : colorPalette[index],
+              color: ts.meta.isOther
+                ? theme.tokens.dataviz.semantic.neutral
+                : colorPalette[index],
               stack: 'stack',
             })
         ),
@@ -171,9 +175,13 @@ export default function ToolErrorsWidget() {
 }
 
 const ToolText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.2;
   min-width: 0px;
 `;

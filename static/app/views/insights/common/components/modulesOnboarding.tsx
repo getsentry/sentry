@@ -15,15 +15,16 @@ import sessionHealthPreviewImg from 'sentry-images/insights/module-upsells/insig
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Panel from 'sentry/components/panels/panel';
-import platforms from 'sentry/data/platforms';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -37,14 +38,13 @@ import {
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-type ModulesWithOnboarding = Exclude<
+export type ModulesWithOnboarding = Exclude<
   ModuleName,
   | ModuleName.AGENT_MODELS
   | ModuleName.AGENT_TOOLS
   | ModuleName.MCP_TOOLS
   | ModuleName.MCP_RESOURCES
   | ModuleName.MCP_PROMPTS
-  | ModuleName.AI_GENERATIONS
   | ModuleName.MOBILE_UI
   | ModuleName.OTHER
 >;
@@ -105,7 +105,7 @@ export function ModulesOnboardingPanel({
   return (
     <Panel>
       <Container>
-        <SplitMainContent>
+        <Flex align="stretch" wrap="wrap-reverse" gap="3xl">
           <ModuleInfo>
             <Fragment>
               <Header>{emptyStateContent.heading}</Header>
@@ -126,7 +126,7 @@ export function ModulesOnboardingPanel({
           <Sidebar>
             <PerfImage src={emptyStateImg} />
           </Sidebar>
-        </SplitMainContent>
+        </Flex>
         <LinkButton priority="primary" external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
@@ -152,7 +152,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
       {emptyStateContent.supportedSdks && (
         <SupportedSdkContainer>
           <div>{t('Supported Today: ')}</div>
-          <SupportedSdkList>
+          <Flex justify="center" wrap="wrap" gap="xs">
             {emptyStateContent.supportedSdks.map((sdk: PlatformKey) => (
               <Tooltip title={getSDKName(sdk) ?? startCase(sdk)} key={sdk} position="top">
                 <SupportedSdkIconContainer
@@ -166,7 +166,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
                 </SupportedSdkIconContainer>
               </Tooltip>
             ))}
-          </SupportedSdkList>
+          </Flex>
         </SupportedSdkContainer>
       )}
     </ModulePreviewContainer>
@@ -187,18 +187,11 @@ const Container = styled('div')`
   position: relative;
   overflow: hidden;
   min-height: 160px;
-  padding: ${space(4)};
-`;
-
-const SplitMainContent = styled('div')`
-  display: flex;
-  align-items: stretch;
-  flex-wrap: wrap-reverse;
-  gap: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Header = styled('h3')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SplitContainer = styled(Panel)`
@@ -216,50 +209,43 @@ const ModulePreviewImage = styled('img')`
   max-width: 100%;
   display: block;
   margin: auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   object-fit: contain;
 `;
 
 const ModulePreviewContainer = styled('div')`
   flex: 2;
   width: 100%;
-  padding: ${space(3)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  padding: ${p => p.theme.space['2xl']};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SupportedSdkContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const SupportedSdkList = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-  justify-content: center;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SupportedSdkIconContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
   width: 42px;
   height: 42px;
   border-radius: 3px;
   &:hover {
-    box-shadow: 0 0 0 1px ${p => p.theme.gray200};
+    box-shadow: 0 0 0 1px ${p => p.theme.colors.gray200};
   }
 `;
 
 const ValueProp = styled('div')`
   flex: 1;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   ul {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 

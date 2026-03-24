@@ -1,39 +1,40 @@
 import {Fragment, useCallback, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import Placeholder from 'sentry/components/placeholder';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TimeSince from 'sentry/components/timeSince';
-import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Placeholder} from 'sentry/components/placeholder';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TimeSince} from 'sentry/components/timeSince';
+import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useUserFromId from 'sentry/utils/useUserFromId';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
+import {AutomationHistoryList} from 'sentry/views/automations/components/automationHistoryList';
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
-import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
-import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {ConditionsPanel} from 'sentry/views/automations/components/conditionsPanel';
+import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
+import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {
@@ -75,8 +76,9 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
         </DetailLayout.Header>
         <DetailLayout.Body>
           <DetailLayout.Main>
-            {warning && (
-              <Alert type={warning.color === 'warning' ? 'warning' : 'error'}>
+            <DisabledAlert automation={automation} />
+            {automation.enabled && warning && (
+              <Alert variant={warning.color === 'warning' ? 'warning' : 'danger'}>
                 {warning.message}
               </Alert>
             )}

@@ -2,23 +2,23 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
-import Access from 'sentry/components/acl/access';
-import type {AlertProps} from 'sentry/components/core/alert';
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
+import type {AlertProps} from '@sentry/scraps/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Access} from 'sentry/components/acl/access';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconDocs} from 'sentry/icons/iconDocs';
 import {IconGeneric} from 'sentry/icons/iconGeneric';
 import {IconGithub} from 'sentry/icons/iconGithub';
 import {IconProject} from 'sentry/icons/iconProject';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationFeature,
   IntegrationInstallationStatus,
@@ -26,11 +26,11 @@ import type {
 import {getCategories, getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {useIntegrationFeatures} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationFeatures';
-import IntegrationStatus from 'sentry/views/settings/organizationIntegrations/integrationStatus';
+import {IntegrationStatus} from 'sentry/views/settings/organizationIntegrations/integrationStatus';
 
 export type IntegrationTab = 'overview' | 'configurations' | 'features';
 export interface AlertType extends AlertProps {
@@ -54,10 +54,10 @@ function TopSection({
 }) {
   const tags = getCategories(featureData);
   return (
-    <TopSectionWrapper>
+    <Flex justify="between">
       <Flex>
         {integrationIcon}
-        <NameContainer>
+        <Stack justify="center" align="start" paddingLeft="xl">
           <Flex align="center">
             <Name>{integrationName}</Name>
             <StatusWrapper>
@@ -66,16 +66,18 @@ function TopSection({
           </Flex>
           <Flex align="center">
             {tags.map(feature => (
-              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
+              <StyledTag key={feature} variant="muted">
+                {startCase(feature)}
+              </StyledTag>
             ))}
           </Flex>
-        </NameContainer>
+        </Stack>
       </Flex>
       <Flex align="center">
         {addInstallButton}
         {additionalCTA}
       </Flex>
-    </TopSectionWrapper>
+    </Flex>
   );
 }
 
@@ -86,7 +88,7 @@ function IntegrationTabs({
   getTabDisplay,
 }: {
   activeTab: IntegrationTab;
-  tabs: IntegrationTab[];
+  tabs: readonly IntegrationTab[];
   getTabDisplay?: (tab: IntegrationTab) => string;
   onTabChange?: (tab: IntegrationTab) => void;
 }) {
@@ -117,8 +119,8 @@ const Capitalized = styled('div')`
 `;
 
 const TabsContainer = styled('div')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 function Body({
@@ -170,7 +172,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
     <span>{reason}</span>
   </div>
 ))`
-  padding-top: ${space(0.5)};
+  padding-top: ${p => p.theme.space.xs};
   font-size: 0.9em;
 `;
 
@@ -252,7 +254,7 @@ function InformationCard({
           {permissions}
           {alerts.map((alert, i) => (
             <Alert.Container key={i}>
-              <Alert key={i} type={alert.type}>
+              <Alert variant={alert.variant}>
                 <span
                   dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
                 />
@@ -267,8 +269,8 @@ function InformationCard({
               <div>{author}</div>
             </AuthorInfo>
           )}
-          {resourceLinks.map(({title, url}) => (
-            <ExternalLinkContainer key={url}>
+          {resourceLinks.map(({title, url}, index) => (
+            <ExternalLinkContainer key={index}>
               <ResourceIcon title={title} />
               <ExternalLink href={url}>{title}</ExternalLink>
             </ExternalLinkContainer>
@@ -294,7 +296,7 @@ function ResourceIcon({title}: {title: string}) {
   }
 }
 
-const IntegrationLayout = {
+export const IntegrationLayout = {
   TopSection,
   Tabs: IntegrationTabs,
   Body,
@@ -305,46 +307,31 @@ const IntegrationLayout = {
   ResourceIcon,
 };
 
-export default IntegrationLayout;
-
 const IntegrationDescription = styled('div')`
   flex-grow: 1;
 `;
 
-const TopSectionWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
-const NameContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  justify-content: center;
-  padding-left: ${space(2)};
-`;
-
 const Name = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 1.4em;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const StatusWrapper = styled('div')`
-  margin-bottom: ${space(0.5)};
-  padding-left: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xs};
+  padding-left: ${p => p.theme.space.xl};
 `;
 
 const StyledTag = styled(Tag)`
   text-transform: none;
   &:not(:first-child) {
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space.xs};
   }
 `;
 
 const IconCloseCircle = styled(IconClose)`
-  color: ${p => p.theme.dangerText};
-  margin-right: ${space(1)};
+  color: ${p => p.theme.tokens.content.danger};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const DisableWrapper = styled('div')`
@@ -365,29 +352,29 @@ const Metadata = styled('div')`
   display: grid;
   grid-auto-rows: max-content;
   grid-auto-flow: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: 0.9em;
-  margin-left: ${space(4)};
+  margin-left: ${p => p.theme.space['3xl']};
   margin-right: 100px;
   align-self: flex-start;
   flex-shrink: 0;
 `;
 
 const AuthorInfo = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
-  padding-bottom: ${space(1)};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  padding-bottom: ${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 12px;
 `;
 
 const ExternalLinkContainer = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;

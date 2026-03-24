@@ -1,18 +1,10 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
 
 export function AutomationBuilderSelect(props: ComponentProps<typeof Select>) {
-  return (
-    <StyledSelect
-      flexibleControlStateSize
-      hideLabel
-      inline
-      styles={selectControlStyles}
-      {...props}
-    />
-  );
+  return <StyledSelect styles={selectControlStyles} {...props} />;
 }
 
 const StyledSelect = styled(Select)`

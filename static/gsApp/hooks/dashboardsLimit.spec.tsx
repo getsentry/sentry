@@ -9,7 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 import {useDashboardsLimit} from './dashboardsLimit';
 
@@ -58,33 +58,31 @@ describe('useDashboardsLimit', () => {
     expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 
-  it('handles no subscription data (defaults to 0)', () => {
+  it('handles no subscription data (defaults to 10)', async () => {
     SubscriptionStore.set(mockOrganization.slug, null as any);
 
     const dashboardsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [],
+      match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
       organization: mockOrganization,
     });
 
-    expect(result.current.hasReachedDashboardLimit).toBe(true);
-    expect(result.current.dashboardsLimit).toBe(0);
-    expect(result.current.isLoading).toBe(false);
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
-    render(<div>{result.current.limitMessage}</div>);
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
-        )
-      )
-    ).toBeInTheDocument();
+    expect(result.current).toEqual({
+      hasReachedDashboardLimit: false,
+      dashboardsLimit: 10,
+      isLoading: false,
+      limitMessage: null,
+    });
 
-    // Should not make the dashboards request when no subscription
-    expect(dashboardsRequest).not.toHaveBeenCalled();
+    expect(dashboardsRequest).toHaveBeenCalledTimes(1);
   });
 
   it('returns under limit when dashboards count is below limit', async () => {
@@ -107,7 +105,7 @@ describe('useDashboardsLimit', () => {
         {id: '2', title: 'Dashboard 2'},
         {id: '3', title: 'Dashboard 3'},
       ],
-      match: [MockApiClient.matchQuery({per_page: 11})],
+      match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
@@ -149,7 +147,7 @@ describe('useDashboardsLimit', () => {
         {id: '2', title: 'Dashboard 2'},
         {id: '3', title: 'Dashboard 3'},
       ],
-      match: [MockApiClient.matchQuery({per_page: 4})],
+      match: [MockApiClient.matchQuery({per_page: 3, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
@@ -195,7 +193,7 @@ describe('useDashboardsLimit', () => {
         {id: '2', title: 'Dashboard 2'},
         {id: '3', title: 'Dashboard 3'},
       ],
-      match: [MockApiClient.matchQuery({per_page: 3})],
+      match: [MockApiClient.matchQuery({per_page: 2, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
@@ -237,7 +235,7 @@ describe('useDashboardsLimit', () => {
     const dashboardsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [],
-      match: [MockApiClient.matchQuery({per_page: 11})],
+      match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
@@ -271,7 +269,7 @@ describe('useDashboardsLimit', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       statusCode: 500,
-      match: [MockApiClient.matchQuery({per_page: 11})],
+      match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
@@ -293,7 +291,7 @@ describe('useDashboardsLimit', () => {
     });
   });
 
-  it('handles missing subscription planDetails gracefully (defaults to 0)', () => {
+  it('handles missing subscription planDetails gracefully (defaults to 10)', async () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: undefined as any,
@@ -304,27 +302,24 @@ describe('useDashboardsLimit', () => {
     const dashboardsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [],
+      match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
       organization: mockOrganization,
     });
 
-    // Should default to 0 when planDetails is missing
-    expect(result.current.hasReachedDashboardLimit).toBe(true);
-    expect(result.current.dashboardsLimit).toBe(0);
-    expect(result.current.isLoading).toBe(false);
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
-    render(<div>{result.current.limitMessage}</div>);
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
-        )
-      )
-    ).toBeInTheDocument();
+    expect(result.current).toEqual({
+      hasReachedDashboardLimit: false,
+      dashboardsLimit: 10,
+      isLoading: false,
+      limitMessage: null,
+    });
 
-    // Should not make dashboards request for unlimited plans
-    expect(dashboardsRequest).not.toHaveBeenCalled();
+    expect(dashboardsRequest).toHaveBeenCalledTimes(1);
   });
 });

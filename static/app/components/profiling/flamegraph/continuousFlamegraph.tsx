@@ -106,7 +106,7 @@ function getMaxConfigSpace(
   profileGroup: ProfileGroup,
   transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string,
-  [start, end]: [number, number] | [null, null]
+  [start, end]: readonly [number, number] | readonly [null, null]
 ): Rect {
   const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   const spaceDuration = start !== null && end !== null ? end - start : 0;
@@ -264,9 +264,9 @@ export function ContinuousFlamegraph(): ReactElement {
     );
   }, [profileGroup]);
 
-  const configSpaceQueryParam: [number, number] = useMemo(() => {
+  const configSpaceQueryParam = useMemo(() => {
     const [startedAtMs, endedAtMs] = decodeConfigSpace();
-    return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp];
+    return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp] as const;
   }, [profileTimestamp]);
 
   const flamegraphTheme = useFlamegraphTheme();
@@ -334,7 +334,7 @@ export function ContinuousFlamegraph(): ReactElement {
     return profileGroup.profiles.find(p => p.threadId === flamegraphProfiles.threadId);
   }, [profileGroup, flamegraphProfiles.threadId]);
 
-  const spanTree: SpanTree | null = useMemo(() => {
+  const spanTree = useMemo(() => {
     if (segment.type === 'empty') {
       return null;
     }
@@ -604,7 +604,14 @@ export function ContinuousFlamegraph(): ReactElement {
           minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-          configSpaceTransform: getProfileOffset(profile, configSpaceQueryParam[0]),
+          configSpaceTransform:
+            // For continuous flamegraphs, we only want to adjust when the sorting is
+            // call order. This is because we need to offset it to align with the
+            // specified start/end but when sorting by left heavy or alphabetical,
+            // we always align it at 0.
+            sorting === 'call order'
+              ? getProfileOffset(profile, configSpaceQueryParam[0])
+              : undefined,
         },
       });
 

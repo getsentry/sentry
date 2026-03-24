@@ -1,12 +1,12 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import Card from 'sentry/components/card';
-import {Link} from 'sentry/components/core/link';
+import {Card} from 'sentry/components/card';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
 
 type Props = {
@@ -75,7 +75,7 @@ class QueryCard extends PureComponent<Props> {
 }
 
 const AvatarWrapper = styled('span')`
-  border: 3px solid ${p => p.theme.border};
+  border: 3px solid ${p => p.theme.tokens.border.primary};
   border-radius: 50%;
   height: min-content;
 `;
@@ -83,7 +83,7 @@ const AvatarWrapper = styled('span')`
 const QueryCardContent = styled('div')`
   flex-grow: 1;
   overflow: hidden;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledQueryCard = styled(Card)`
@@ -97,12 +97,16 @@ const StyledQueryCard = styled(Card)`
 
 const QueryCardHeader = styled('div')`
   display: flex;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const QueryTitle = styled('div')`
-  color: ${p => p.theme.headingColor};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
@@ -112,15 +116,19 @@ const QueryTitle = styled('div')`
 `;
 
 const QueryDetail = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const QueryCardBody = styled('div')`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   max-height: 150px;
   height: 100%;
   overflow: hidden;
@@ -130,20 +138,23 @@ const QueryCardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  display: grid;
-  grid-column-gap: ${space(1)};
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.font.size.sm};
+  grid-column-gap: ${p => p.theme.space.md};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.subText};
-  padding-left: ${space(1)};
+  color: ${p => p.theme.tokens.content.secondary};
+  padding-left: ${p => p.theme.space.md};
 `;
 
 const StyledErrorBoundary = styled(ErrorBoundary)`

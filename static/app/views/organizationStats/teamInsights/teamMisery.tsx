@@ -3,20 +3,20 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import LoadingError from 'sentry/components/loadingError';
+import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
+import {LoadingError} from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -95,7 +95,7 @@ function TeamMisery({
             }
             headers={[
               <Flex align="center" key="transaction">
-                <StyledIconStar isSolid color="yellow300" /> {t('Key transaction')}
+                <StyledIconStar isSolid variant="warning" /> {t('Key transaction')}
               </Flex>,
               t('Project'),
               tct('Last [period]', {period}),
@@ -132,7 +132,7 @@ function TeamMisery({
                 <Fragment key={idx}>
                   <KeyTransactionTitleWrapper>
                     <div>
-                      <StyledIconStar isSolid color="yellow300" />
+                      <StyledIconStar isSolid variant="warning" />
                     </div>
                     <TransactionWrapper>
                       <Link
@@ -161,7 +161,13 @@ function TeamMisery({
                         {t('change')}
                       </SubText>
                     ) : (
-                      <TrendText color={trend >= 0 ? theme.successText : theme.errorText}>
+                      <TrendText
+                        color={
+                          trend >= 0
+                            ? theme.tokens.content.success
+                            : theme.tokens.content.danger
+                        }
+                      >
                         {`${trendValue}\u0025 `}
                         {trend >= 0 ? t('better') : t('worse')}
                       </TrendText>
@@ -188,7 +194,7 @@ type Props = {
   start?: string;
 } & DateTimeObject;
 
-function TeamMiseryWrapper({
+export function TeamMiseryWrapper({
   organization,
   teamId,
   projects,
@@ -271,43 +277,48 @@ function TeamMiseryWrapper({
   );
 }
 
-export default TeamMiseryWrapper;
-
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1.25fr 0.5fr 112px 112px 0.25fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
   box-shadow: unset;
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
   ${p =>
     p.isEmpty &&
     css`
       & > div:last-child {
-        padding: 48px ${space(2)};
+        padding: 48px ${p.theme.space.xl};
       }
     `}
 `;
 
 const KeyTransactionTitleWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   align-items: center;
 `;
 
 const StyledIconStar = styled(IconStar)`
   display: block;
-  margin-right: ${space(1)};
-  margin-bottom: ${space(0.5)};
+  margin-right: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const TransactionWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const RightAligned = styled('span')`
@@ -322,7 +333,7 @@ const ScoreWrapper = styled('div')`
 `;
 
 const SubText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TrendText = styled('div')<{color: string}>`

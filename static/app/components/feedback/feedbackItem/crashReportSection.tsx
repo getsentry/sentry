@@ -1,13 +1,13 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
-import Placeholder from 'sentry/components/placeholder';
+import {Alert} from '@sentry/scraps/alert';
+
+import {useFetchCrashReport} from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
+import {Placeholder} from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -17,11 +17,7 @@ interface Props {
   projectSlug: string;
 }
 
-export default function CrashReportSection({
-  crashReportId,
-  organization,
-  projectSlug,
-}: Props) {
+export function CrashReportSection({crashReportId, organization, projectSlug}: Props) {
   const {isFetching, groupData} = useFetchCrashReport({
     crashReportId,
     organization,
@@ -43,7 +39,7 @@ export default function CrashReportSection({
 
   if (!groupData) {
     return (
-      <Alert type="warning">
+      <Alert variant="warning">
         {tct(
           'Event [id] was linked but not found in this project. The event might have been dropped or the ID may be incorrect.',
           {id: crashReportId}
@@ -54,16 +50,17 @@ export default function CrashReportSection({
 
   return (
     <IssueDetailsContainer>
-      <EventOrGroupHeader eventId={crashReportId} data={groupData} />
-      <EventOrGroupExtraDetails data={groupData} />
+      <GroupHeaderRow eventId={crashReportId} data={groupData} />
+      <GroupMetaRow data={groupData} />
     </IssueDetailsContainer>
   );
 }
 
 const IssueDetailsContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   position: relative;
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.lg}
+    ${p => p.theme.space.xl};
   overflow: auto;
 `;

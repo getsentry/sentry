@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -9,9 +9,9 @@ import {
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
-import useUserFromId from 'sentry/utils/useUserFromId';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TargetType} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
@@ -43,7 +43,7 @@ function AssignedToTeam({teamId}: {teamId: string}) {
 
 function AssignedToMember({memberId}: {memberId: number}) {
   const {data: user} = useUserFromId({id: memberId});
-  return t('Issue is assigned to member %s', `${user?.email ?? 'unknown'}`);
+  return t('Issue is assigned to member %s', user?.email ?? 'unknown');
 }
 
 export function AssignedToNode() {
@@ -81,7 +81,7 @@ function IdentifierField() {
 
   if (condition.comparison.targetType === TargetType.TEAM) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <TeamSelector
           name={`${condition_id}.data.targetIdentifier`}
           aria-label={t('Team')}
@@ -99,13 +99,13 @@ function IdentifierField() {
           useId
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
 
   if (condition.comparison.targetType === TargetType.MEMBER) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <SelectMembers
           organization={organization}
           key={`${condition_id}.data.targetIdentifier`}
@@ -123,7 +123,7 @@ function IdentifierField() {
           }}
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
 
@@ -150,7 +150,3 @@ export function validateAssignedToCondition({
   }
   return undefined;
 }
-
-const SelectWrapper = styled('div')`
-  width: 200px;
-`;

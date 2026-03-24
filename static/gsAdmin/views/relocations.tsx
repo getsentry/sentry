@@ -1,16 +1,13 @@
 import moment from 'moment-timezone';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
 
-import PageHeader from 'admin/components/pageHeader';
-import RelocationBadge from 'admin/components/relocationBadge';
+import {PageHeader} from 'admin/components/pageHeader';
+import {RelocationBadge} from 'admin/components/relocationBadge';
 import ResultGrid from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
-import titleCase from 'getsentry/utils/titleCase';
-
-type Props = RouteComponentProps<unknown, unknown>;
+import {titleCase} from 'getsentry/utils/titleCase';
 
 const getRow = (row: Relocation) => {
   return [
@@ -30,7 +27,7 @@ const getRow = (row: Relocation) => {
       {titleCase(row.step)}
     </td>,
     <td key="pause" style={{textAlign: 'center'}}>
-      {row.scheduledPauseAtStep ? `${titleCase(row.scheduledPauseAtStep)}` : '--'}
+      {row.scheduledPauseAtStep ? titleCase(row.scheduledPauseAtStep) : '--'}
     </td>,
     <td key="owner" style={{textAlign: 'right'}}>
       {row.owner ? (
@@ -56,7 +53,7 @@ const getRow = (row: Relocation) => {
   ];
 };
 
-function Relocations(props: Props) {
+export function Relocations() {
   return (
     <div>
       <PageHeader title="Relocations">
@@ -108,10 +105,7 @@ function Relocations(props: Props) {
               };
             });
         }}
-        {...props}
       />
     </div>
   );
 }
-
-export default Relocations;

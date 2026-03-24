@@ -1,20 +1,18 @@
 import styled from '@emotion/styled';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
-import {Disclosure} from 'sentry/components/core/disclosure';
-import {Flex} from 'sentry/components/core/layout';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
-import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummary';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackCategories} from 'sentry/components/feedback/summaryCategories/feedbackCategories';
+import {FeedbackSummary} from 'sentry/components/feedback/summaryCategories/feedbackSummary';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
-export default function FeedbackSummaryCategories() {
-  const organization = useOrganization();
-
+export function FeedbackSummaryCategories() {
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 
   const [isExpanded, setIsExpanded] = useSyncedLocalStorageState(
@@ -22,12 +20,7 @@ export default function FeedbackSummaryCategories() {
     true
   );
 
-  const showSummaryCategories =
-    (organization.features.includes('user-feedback-ai-summaries') ||
-      organization.features.includes('user-feedback-ai-categorization-features')) &&
-    areAiFeaturesAllowed;
-
-  if (!showSummaryCategories) {
+  if (!areAiFeaturesAllowed) {
     return null;
   }
 
@@ -36,7 +29,9 @@ export default function FeedbackSummaryCategories() {
       <FeedbackButton
         aria-label={t('Give feedback on the AI-powered summary')}
         icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-        title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
+        tooltipProps={{
+          title: type === 'positive' ? t('I like this') : t(`I don't like this`),
+        }}
         size="xs"
         feedbackOptions={{
           messagePlaceholder:
@@ -74,29 +69,18 @@ export default function FeedbackSummaryCategories() {
           <AiPrivacyTooltip>{t('Summary')}</AiPrivacyTooltip>
         </Disclosure.Title>
         <Disclosure.Content>
-          <SummaryContainer>
-            {organization.features.includes('user-feedback-ai-summaries') && (
-              <FeedbackSummary />
-            )}
-            {organization.features.includes(
-              'user-feedback-ai-categorization-features'
-            ) && <FeedbackCategories />}
-          </SummaryContainer>
+          <Stack gap="md" width="100%">
+            <FeedbackSummary />
+            <FeedbackCategories />
+          </Stack>
         </Disclosure.Content>
       </Disclosure>
     </SummaryIconContainer>
   );
 }
 
-const SummaryContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  width: 100%;
-`;
-
 const SummaryIconContainer = styled('div')`
   padding: ${p => p.theme.space.md};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;

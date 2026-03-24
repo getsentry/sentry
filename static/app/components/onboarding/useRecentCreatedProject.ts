@@ -3,8 +3,9 @@ import moment from 'moment-timezone';
 import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 // Refetch the data every second
 const DEFAULT_POLL_INTERVAL_MS = 1000;
@@ -46,7 +47,14 @@ export function useRecentCreatedProject({
       : undefined;
 
   const {isPending: isProjectLoading, data: freshProject} = useApiQuery<Project>(
-    [`/projects/${orgSlug}/${projectSlug}/overview/`],
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/', {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug!,
+        },
+      }),
+    ],
     {
       staleTime: 0,
       enabled: !!projectSlug,

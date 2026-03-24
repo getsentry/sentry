@@ -17,8 +17,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   DataConditionGroupLogicType,
   DataConditionType,
@@ -223,7 +223,9 @@ describe('DetectorEdit', () => {
       expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
 
       // Can add an automation and save
-      await userEvent.click(screen.getByRole('button', {name: 'Connect an Alert'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Connect Existing Alerts'})
+      );
       const drawer = await screen.findByRole('complementary', {
         name: 'Connect Alerts',
       });
@@ -520,8 +522,10 @@ describe('DetectorEdit', () => {
         );
       });
       const updateBody = updateRequest.mock.calls[0][1];
+      // Percent thresholds are reverse-translated to internal absolute-percentage form:
+      // user enters 22 (meaning "22% higher") → stored as 122 (122% of baseline)
       expect(updateBody.data.conditionGroup.conditions[0]).toEqual({
-        comparison: Number(newThresholdValue),
+        comparison: Number(newThresholdValue) + 100,
         conditionResult: 75,
         type: 'gt',
       });
@@ -622,6 +626,11 @@ describe('DetectorEdit', () => {
         body: mockDetector,
       });
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/anomaly-data/`,
+        body: [],
+      });
+
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig,
@@ -671,6 +680,11 @@ describe('DetectorEdit', () => {
         body: dynamicDetector,
       });
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${dynamicDetector.id}/anomaly-data/`,
+        body: [],
+      });
+
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig: {
@@ -695,6 +709,11 @@ describe('DetectorEdit', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
         body: mockDetector,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/anomaly-data/`,
+        body: [],
       });
 
       // Current data for chart

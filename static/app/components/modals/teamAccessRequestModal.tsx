@@ -1,20 +1,19 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {
   ModalRenderProps,
   TeamAccessRequestModalOptions,
 } from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 export interface CreateTeamAccessRequestModalProps
-  extends ModalRenderProps,
-    TeamAccessRequestModalOptions {
+  extends ModalRenderProps, TeamAccessRequestModalOptions {
   api: Client;
   memberId: string;
   orgId: string;
@@ -66,7 +65,7 @@ function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) 
 const ButtonGroup = styled('div')`
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 export default withApi(CreateTeamAccessRequestModal);

@@ -3,9 +3,9 @@ import {useCallback} from 'react';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
 import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = FormProps & {
   apiEndpoint: string;
@@ -20,7 +20,13 @@ type Props = FormProps & {
  * DO NOT USE THIS. Prefer using `Form` instead. Form already supports API
  * requests, this is quite old and should be removed
  */
-function ApiForm({onSubmit, apiMethod, apiEndpoint, hostOverride, ...otherProps}: Props) {
+export function ApiForm({
+  onSubmit,
+  apiMethod,
+  apiEndpoint,
+  hostOverride,
+  ...otherProps
+}: Props) {
   const api = useApi();
 
   const handleSubmit = useCallback(
@@ -56,5 +62,3 @@ function ApiForm({onSubmit, apiMethod, apiEndpoint, hostOverride, ...otherProps}
 
   return <Form onSubmit={handleSubmit} {...otherProps} />;
 }
-
-export default ApiForm;

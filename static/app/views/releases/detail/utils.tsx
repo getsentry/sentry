@@ -1,12 +1,11 @@
 import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
-import type {Moment} from 'moment-timezone';
 import moment from 'moment-timezone';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {
@@ -175,16 +174,16 @@ function generateReleaseMarkLine(
     data: [{name: position, value: null as any}], // TODO(ts): echart types
     yAxisIndex: axisIndex ?? undefined,
     xAxisIndex: axisIndex ?? undefined,
-    color: theme.gray300,
+    color: theme.colors.gray400,
     markLine: MarkLine({
       silent: true,
-      lineStyle: {color: theme.gray300, type: 'solid'},
+      lineStyle: {color: theme.colors.gray400, type: 'solid'},
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
         fontFamily: 'Rubik',
         fontSize: 14,
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         backgroundColor: theme.tokens.background.secondary,
       },
       data: [
@@ -250,7 +249,7 @@ export function generateReleaseMarkLines(
     return markLines;
   }
 
-  const releaseAdopted: Moment | undefined = adoptionStages?.adopted
+  const releaseAdopted = adoptionStages?.adopted
     ? moment(adoptionStages.adopted)
     : undefined;
   if (releaseAdopted?.isBetween(start, end)) {
@@ -264,7 +263,7 @@ export function generateReleaseMarkLines(
     );
   }
 
-  const releaseReplaced: Moment | undefined = adoptionStages?.unadopted
+  const releaseReplaced = adoptionStages?.unadopted
     ? moment(adoptionStages.unadopted)
     : undefined;
   if (releaseReplaced?.isBetween(start, end)) {

@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Assertion Failure Tree model Builds the expected tree 1`] = `
+"
+AND - op-1
+  STATUS CODE - op-2
+  OR - op-3
+    JSON PATH - op-4
+  (negated) AND - op-6
+    HEADER CHECK - op-7
+"
+`;
+
+exports[`Assertion Failure Tree model Merges logical ops - non-root 1`] = `
+"
+(negated) AND - op-3
+  STATUS CODE - op-4
+  JSON PATH - op-5
+"
+`;
+
+exports[`Assertion Failure Tree model Merges logical ops - root 1`] = `
+"
+(negated) OR - op-3
+  STATUS CODE - op-4
+"
+`;

@@ -4,9 +4,10 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from django.db.models import Count
+from drf_spectacular.utils import extend_schema_serializer
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
@@ -24,24 +25,26 @@ from sentry.workflow_engine.models import (
 
 
 class DetectorSerializerResponseOptional(TypedDict, total=False):
-    owner: str | None
-    createdById: str | None
+    owner: ActorSerializerResponse | None
+    createdBy: str | None
     alertRuleId: int | None
     ruleId: int | None
-    latestGroup: dict | None
+    latestGroup: dict[str, Any] | None
+    description: str | None
 
 
+@extend_schema_serializer(exclude_fields=["alertRuleId", "ruleId"])
 class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     id: str
     projectId: str
     name: str
     type: str
-    workflowIds: list[str]
+    workflowIds: list[str] | None
     dateCreated: datetime
     dateUpdated: datetime
-    dataSources: list[dict]
-    conditionGroup: dict
-    config: dict
+    dataSources: list[dict[str, Any]] | None
+    conditionGroup: dict[str, Any] | None
+    config: dict[str, Any]
     enabled: bool
     openIssues: int
 
@@ -49,7 +52,7 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
 @register(Detector)
 class DetectorSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[Detector], user, **kwargs
+        self, item_list: Sequence[Detector], user: Any, **kwargs: Any
     ) -> MutableMapping[Detector, dict[str, Any]]:
         attrs: MutableMapping[Detector, dict[str, Any]] = defaultdict(dict)
 
@@ -169,7 +172,19 @@ class DetectorSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+    @staticmethod
+    def _normalize_config(config: dict[str, Any]) -> dict[str, Any]:
+        # XXX: There are some migrated metric alerts which have `detection_type: "static"`,
+        # a defined `comparison_delta`. These are treated as `detection_type: "percent"` in the backend,
+        # so this is a temporary fix to ensure that the frontend displays the correct detection type.
+        # Remove this once ISWF-2272 backfills the correct `detection_type`.
+        if config.get("detection_type") == "static" and config.get("comparison_delta"):
+            return {**config, "detection_type": "percent"}
+        return config
+
+    def serialize(
+        self, obj: Detector, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> DetectorSerializerResponse:
         alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
             "id": str(obj.id),
@@ -184,7 +199,9 @@ class DetectorSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
-            "config": convert_dict_key_case(attrs.get("config"), snake_to_camel_case),
+            "config": convert_dict_key_case(
+                self._normalize_config(attrs.get("config", {})), snake_to_camel_case
+            ),
             "enabled": obj.enabled,
             "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
             "ruleId": alert_rule_mapping.get("rule_id"),

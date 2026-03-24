@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+from sentry import options
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
@@ -24,9 +25,16 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack.metrics import translate_slack_api_error
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
+from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.notifications.platform.provider import IntegrationNotificationClient
-from sentry.notifications.platform.slack.provider import SlackRenderable
+from sentry.notifications.platform.provider import (
+    IntegrationNotificationClient,
+    ProviderThreadingContext,
+)
+from sentry.notifications.platform.slack.provider import (
+    SlackProviderThreadingContext,
+    SlackRenderable,
+)
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
@@ -90,6 +98,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         )
         return {"installationType": metadata_.get("installation_type", default_installation)}
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name", "installation_type", "scopes"]
+
     def send_message(self, channel_id: str, message: str) -> None:
         client = self.get_client()
 
@@ -108,6 +119,155 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
+
+    def send_notification_with_threading(
+        self,
+        target: IntegrationNotificationTarget,
+        payload: SlackRenderable,
+        threading_context: ProviderThreadingContext,
+    ) -> dict[str, Any]:
+        client = self.get_client()
+
+        assert isinstance(threading_context, SlackProviderThreadingContext), (
+            "ProviderThreadingContext must be a SlackProviderThreadingContext"
+        )
+        kwargs: dict[str, Any] = dict(
+            channel=target.resource_id,
+            blocks=payload["blocks"],
+            text=payload["text"],
+        )
+
+        if threading_context.thread_ts is not None:
+            kwargs["thread_ts"] = threading_context.thread_ts
+            if threading_context.reply_broadcast:
+                kwargs["reply_broadcast"] = True
+
+        try:
+            response = client.chat_postMessage(**kwargs)
+            return dict(response.data) if isinstance(response.data, dict) else {}
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+            return {}
+
+    def send_threaded_message(
+        self,
+        *,
+        channel_id: str,
+        renderable: SlackRenderable,
+        thread_ts: str,
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_postMessage(
+                channel=channel_id,
+                blocks=renderable["blocks"],
+                text=renderable["text"],
+                thread_ts=thread_ts,
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
+    def send_threaded_ephemeral_message(
+        self,
+        *,
+        slack_user_id: str,
+        channel_id: str,
+        renderable: SlackRenderable,
+        thread_ts: str,
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_postEphemeral(
+                channel=channel_id,
+                blocks=renderable["blocks"],
+                text=renderable["text"],
+                thread_ts=thread_ts,
+                user=slack_user_id,
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
+    def update_message(
+        self,
+        *,
+        channel_id: str,
+        message_ts: str,
+        renderable: SlackRenderable,
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_update(
+                channel=channel_id,
+                ts=message_ts,
+                text=renderable["text"],
+                blocks=renderable["blocks"],
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
+    def has_scope(self, scope: SlackScope) -> bool:
+        """Check whether this integration was granted the given OAuth scope.
+
+        Logs a warning and returns ``False`` when the scope is missing.
+        """
+        has_scope = scope in self.model.metadata.get("scopes", [])
+        if not has_scope:
+            _logger.warning(
+                "slack.missing_scope",
+                extra={"integration_id": self.model.id, "scope": scope},
+            )
+        return has_scope
+
+    def get_thread_history(
+        self,
+        *,
+        channel_id: str,
+        thread_ts: str,
+    ) -> list[dict[str, Any]]:
+        """
+        Fetch thread replies using the conversations.replies API.
+        Returns a list of message dicts, or an empty list on error.
+        """
+        if not self.has_scope(SlackScope.CHANNELS_HISTORY):
+            return []
+
+        client = self.get_client()
+        try:
+            response = client.conversations_replies(
+                channel=channel_id,
+                ts=thread_ts,
+            )
+            return response.get("messages", [])
+        except SlackApiError as e:
+            _logger.warning(
+                "slack.get_thread_history.error",
+                extra={"channel_id": channel_id, "thread_ts": thread_ts, "error": str(e)},
+            )
+            return []
+
+    def set_thread_status(
+        self,
+        *,
+        channel_id: str,
+        thread_ts: str,
+        status: str,
+    ) -> None:
+        """
+        Set a status indicator in a Slack assistant thread (e.g. "Thinking...").
+        The status auto-clears when the bot sends a reply, or after 2 minutes.
+        """
+        client = self.get_client()
+        try:
+            client.assistant_threads_setStatus(
+                channel_id=channel_id,
+                thread_ts=thread_ts,
+                status=status,
+            )
+        except SlackApiError:
+            _logger.warning(
+                "slack.set_thread_status.error",
+                extra={"channel_id": channel_id, "thread_ts": thread_ts},
+            )
 
 
 class SlackIntegrationProvider(IntegrationProvider):
@@ -134,6 +294,16 @@ class SlackIntegrationProvider(IntegrationProvider):
             "commands",
         ]
     )
+    # Extended scopes that require Slack marketplace approval
+    # Gated by slack.extended-scopes-enabled option
+    extended_oauth_scopes = frozenset(
+        [
+            SlackScope.REACTIONS_WRITE,
+            SlackScope.CHANNELS_HISTORY,
+            SlackScope.GROUPS_HISTORY,
+            SlackScope.APP_MENTIONS_READ,
+        ]
+    )
     user_scopes = frozenset(
         [
             "links:read",
@@ -141,6 +311,15 @@ class SlackIntegrationProvider(IntegrationProvider):
             "users:read.email",
         ]
     )
+
+    def _get_oauth_scopes(self) -> frozenset[str]:
+        """
+        Returns the OAuth scopes to request during installation.
+        Extended scopes are included when slack.extended-scopes-enabled is True.
+        """
+        if options.get("slack.extended-scopes-enabled"):
+            return self.identity_oauth_scopes | self.extended_oauth_scopes
+        return self.identity_oauth_scopes
 
     setup_dialog_config = {"width": 600, "height": 900}
 
@@ -150,7 +329,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             provider_key=IntegrationProviderSlug.SLACK.value,
             pipeline_cls=IdentityPipeline,
             config={
-                "oauth_scopes": self.identity_oauth_scopes,
+                "oauth_scopes": self._get_oauth_scopes(),
                 "user_scopes": self.user_scopes,
                 "redirect_url": absolute_uri("/extensions/slack/setup/"),
             },
@@ -169,7 +348,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
             return sdk_response.get("team")
         except SlackApiError:
-            _logger.exception("slack.install.team-info.error")
+            _logger.warning("slack.install.team-info.error")
             raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
@@ -183,12 +362,15 @@ class SlackIntegrationProvider(IntegrationProvider):
         team_name = data["team"]["name"]
         team_id = data["team"]["id"]
 
-        scopes = sorted(self.identity_oauth_scopes)
+        # Use actual granted scopes from Slack's OAuth response
+        granted_scopes_str = data.get("scope")  # "channels:read,links:write,..."
+        # If we did not get scopes from data, be conservative and use only the old permissions without extensions
+        scopes = granted_scopes_str.split(",") if granted_scopes_str else self.identity_oauth_scopes
         team_data = self._get_team_info(access_token)
 
         metadata = {
             "access_token": access_token,
-            "scopes": scopes,
+            "scopes": sorted(scopes),
             "icon": team_data["icon"]["image_132"],
             "domain_name": team_data["domain"] + ".slack.com",
             "installation_type": "born_as_bot",

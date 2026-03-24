@@ -462,7 +462,7 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
         assert batch_query == {self.event3.group_id: percent_of_sessions}
 
     def test_batch_query_percent_decimal(self) -> None:
-        self._make_sessions(600, self.environment.name)
+        self._make_sessions(60, self.environment.name)
 
         assert self.event.group_id
         groups = list(
@@ -480,7 +480,7 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
             end=self.end,
             environment_id=self.environment.id,
         )
-        assert round(batch_query[self.event.group_id], 4) == 0.17
+        assert round(batch_query[self.event.group_id], 4) == 1.67
 
     @patch(
         "sentry.workflow_engine.handlers.condition.event_frequency_query_handlers.MIN_SESSIONS_TO_FIRE",

@@ -15,9 +15,9 @@ import type {Project} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked/marked';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -29,7 +29,7 @@ const shouldSearchEventIds = (query?: string) =>
   typeof query === 'string' && query.length === 32;
 
 // STRING-HEXVAL
-const shouldSearchShortIds = (query: string) => /[\w\d]+-[\w\d]+/.test(query);
+const shouldSearchShortIds = (query: string) => /\w+-\w+/.test(query);
 
 async function createProjectResults(
   projectsPromise: Promise<Project[]>,
@@ -238,8 +238,8 @@ async function createShortIdResult(
   const issue = shortIdLookup?.group;
   return [
     {
-      title: `${issue?.metadata?.type ?? shortIdLookup.shortId}`,
-      description: `${issue?.metadata?.value ?? t('Issue')}`,
+      title: issue?.metadata?.type ?? shortIdLookup.shortId,
+      description: issue?.metadata?.value ?? t('Issue'),
       model: shortIdLookup.group,
       sourceType: 'issue',
       resultType: 'issue',
@@ -262,7 +262,7 @@ async function createEventIdResult(
   const event = eventIdLookup?.event;
   return [
     {
-      title: `${event?.metadata?.type ?? t('Event')}`,
+      title: event?.metadata?.type ?? t('Event'),
       description: event?.metadata?.value,
       model: event,
       sourceType: 'event',
@@ -301,7 +301,7 @@ async function queryResults(
   }
 }
 
-function ApiSource({children, query, searchOptions, debounceDuration}: Props) {
+export function ApiSource({children, query, searchOptions, debounceDuration}: Props) {
   const api = useApi();
   const organization = useOrganization({allowNull: true});
 
@@ -374,5 +374,3 @@ function ApiSource({children, query, searchOptions, debounceDuration}: Props) {
 
   return children({results, isLoading});
 }
-
-export default ApiSource;

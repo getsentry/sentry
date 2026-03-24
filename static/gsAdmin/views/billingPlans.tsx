@@ -1,16 +1,17 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import Panel from 'sentry/components/panels/panel';
+import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+
+import {Panel} from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
-import ResultTable from 'admin/components/resultTable';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {ResultTable} from 'admin/components/resultTable';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
 export interface BillingPlansResponse {
@@ -42,7 +43,7 @@ interface PriceTier {
   volume: number;
 }
 
-function BillingPlans() {
+export function BillingPlans() {
   const {
     data: billingPlansResponse = {
       not_live: [],
@@ -292,17 +293,22 @@ function PlanDetailsSection({
   planTierIdFormatted: string;
   notLive?: boolean;
 }) {
+  const theme = useTheme();
   const planNameFormatted = formatPlanName(planName);
   const planTypeId = `${planTierIdFormatted}-${planNameFormatted}`;
   const pricingId = `${planTierIdFormatted}-${planNameFormatted}-pricing`;
 
   return (
     <div>
-      <div style={{display: 'flex', alignItems: 'center', marginBottom: space(3)}}>
+      <div
+        style={{display: 'flex', alignItems: 'center', marginBottom: theme.space['2xl']}}
+      >
         <h3 id={planTypeId} style={{margin: 0}}>
           {planTierIdFormatted} {planNameFormatted} Plan
         </h3>
-        <Badge type={notLive ? 'warning' : 'new'}>{notLive ? 'NOT LIVE' : 'LIVE'}</Badge>
+        <Badge variant={notLive ? 'warning' : 'new'}>
+          {notLive ? 'NOT LIVE' : 'LIVE'}
+        </Badge>
       </div>
 
       {/* Pricing Table */}
@@ -367,6 +373,7 @@ function PriceTiersTable({
   tiers: PriceTier[];
   notLive?: boolean;
 }) {
+  const theme = useTheme();
   const dataCategoryFormatted = formatDataCategory(dataCategory);
   const dataCategoryId = `${planTierIdFormatted}-${planNameFormatted}-${dataCategoryFormatted}`;
 
@@ -377,11 +384,13 @@ function PriceTiersTable({
 
   return (
     <div>
-      <div style={{display: 'flex', alignItems: 'center', marginBottom: space(3)}}>
+      <div
+        style={{display: 'flex', alignItems: 'center', marginBottom: theme.space['2xl']}}
+      >
         <h5 id={dataCategoryId} style={{margin: 0}}>
           {dataCategoryFormatted} for {planTierIdFormatted} {planNameFormatted}
         </h5>
-        <Badge type={badgeType}>{badgeText}</Badge>
+        <Badge variant={badgeType}>{badgeText}</Badge>
       </div>
       <Panel>
         <StyledResultTable>
@@ -422,25 +431,25 @@ function PriceTiersTable({
 }
 
 const BillingPlansContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const StyledResultTable = styled(ResultTable)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const TOCContainer = styled('nav')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   ul {
     list-style-type: none;
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
   }
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
   a {
     text-decoration: none;
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     &:hover {
       text-decoration: underline;
     }
@@ -478,5 +487,3 @@ function escapeCsvField(field: string): string {
   }
   return field;
 }
-
-export default BillingPlans;

@@ -1,22 +1,20 @@
-import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {Alert} from '@sentry/scraps/alert';
 
-interface Props extends ComponentProps<typeof FluidHeight> {
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+
+type Props = React.ComponentProps<typeof FluidHeight> & {
   error: string;
-}
+};
 
-const FeedbackErrorDetails = styled(({error, ...props}: Props) => (
+export const FeedbackErrorDetails = styled(({error, ...props}: Props) => (
   <FluidHeight {...props}>
     <Alert.Container>
-      <Alert type="error">{error}</Alert>
+      <Alert variant="danger">{error}</Alert>
     </Alert.Container>
   </FluidHeight>
 ))`
   display: grid;
   place-items: center;
 `;
-
-export default FeedbackErrorDetails;

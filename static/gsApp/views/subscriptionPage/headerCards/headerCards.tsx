@@ -1,23 +1,21 @@
-import {Grid} from 'sentry/components/core/layout';
+import {Grid} from '@sentry/scraps/layout';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import type {Subscription} from 'getsentry/types';
 import {
   hasBillingAccess,
-  hasNewBillingUI,
   isDeveloperPlan,
   isTrialPlan,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
-import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
-import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
-import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
-import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
-
-import {SubscriptionCard} from './subscriptionCard';
-import {UsageCard} from './usageCard';
+import {BillingInfoCard} from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
+import {LinksCard} from 'getsentry/views/subscriptionPage/headerCards/linksCard';
+import {NextBillCard} from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
+import {PaygCard} from 'getsentry/views/subscriptionPage/headerCards/paygCard';
+import {SeerAutomationAlert} from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 interface HeaderCardsProps {
   organization: Organization;
@@ -74,39 +72,26 @@ function getCards(organization: Organization, subscription: Subscription) {
   return cards;
 }
 
-function HeaderCards({organization, subscription}: HeaderCardsProps) {
-  const isNewBillingUI = hasNewBillingUI(organization);
+export function HeaderCards({organization, subscription}: HeaderCardsProps) {
   const cards = getCards(organization, subscription);
+  const {view} = useSecondaryNavigation();
+  const navIsCollapsed = view !== 'expanded';
 
   return (
     <ErrorBoundary mini>
       <SeerAutomationAlert organization={organization} />
-      {isNewBillingUI ? (
-        <Grid
-          columns={{
-            xs: '1fr',
-            sm: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
-            md: `repeat(${cards.length}, minmax(0, 1fr))`,
-          }}
-          gap="xl"
-          data-test-id="subscription-header-cards"
-        >
-          {cards}
-        </Grid>
-      ) : (
-        <Grid
-          background="primary"
-          border="primary"
-          radius="md"
-          columns={{lg: 'auto minmax(0, 600px)'}}
-          gap={{lg: 'xl'}}
-        >
-          <SubscriptionCard organization={organization} subscription={subscription} />
-          <UsageCard organization={organization} subscription={subscription} />
-        </Grid>
-      )}
+      <Grid
+        columns={{
+          xs: '1fr',
+          sm: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
+          md: navIsCollapsed ? `repeat(${cards.length}, minmax(0, 1fr))` : undefined,
+          lg: `repeat(${cards.length}, minmax(0, 1fr))`,
+        }}
+        gap="lg"
+        data-test-id="subscription-header-cards"
+      >
+        {cards}
+      </Grid>
     </ErrorBoundary>
   );
 }
-
-export default HeaderCards;

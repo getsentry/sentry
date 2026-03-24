@@ -39,7 +39,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {FilterKeyItem} from './filterKeyListBox/types';
 
@@ -101,13 +101,12 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter,
-  hasWildcardOperators: boolean
+  getFieldDefinition: FieldDefinitionGetter
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key), hasWildcardOperators)
+    getInitialFilterText(key, getFieldDefinition(key))
   );
 }
 
@@ -150,11 +149,7 @@ function calculateNextFocusForFilter(
       ? 'op'
       : 'value';
 
-  if (
-    definition &&
-    definition.kind === FieldKind.FUNCTION &&
-    definition.parameters?.length
-  ) {
+  if (definition?.kind === FieldKind.FUNCTION && definition.parameters?.length) {
     part = 'key';
   } else if (key === FilterType.IS || key === FilterType.HAS) {
     part = 'value';
@@ -273,9 +268,6 @@ function SearchQueryBuilderInputInternal({
   const hasInputChangeFlows = organization.features.includes(
     'search-query-builder-input-flow-changes'
   );
-  const hasWildcardOperators =
-    organization.features.includes('search-query-builder-wildcard-operators') &&
-    organization.features.includes('search-query-builder-default-to-contains');
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -305,11 +297,12 @@ function SearchQueryBuilderInputInternal({
     useFilterKeyListBox({
       filterValue,
     });
-  const sortedFilteredItems = useSortedFilterKeyItems({
-    filterValue,
-    inputValue,
-    includeSuggestions: true,
-  });
+  const {items: sortedFilteredItems, isLoading: isLoadingFilterKeys} =
+    useSortedFilterKeyItems({
+      filterValue,
+      inputValue,
+      includeSuggestions: true,
+    });
 
   const items = customMenu ? sectionItems : sortedFilteredItems;
 
@@ -442,6 +435,7 @@ function SearchQueryBuilderInputInternal({
         customMenu={customMenu}
         ref={inputRef}
         items={items}
+        isLoading={isLoadingFilterKeys}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
           if (handleOptionSelected) {
@@ -516,8 +510,7 @@ function SearchQueryBuilderInputInternal({
               inputValue,
               selectionIndex,
               value,
-              getFieldDefinition,
-              hasWildcardOperators
+              getFieldDefinition
             ),
             focusOverride: calculateNextFocusForFilter(
               state,
@@ -620,8 +613,7 @@ function SearchQueryBuilderInputInternal({
                     inputValue,
                     selectionIndex,
                     filterValue,
-                    getFieldDefinition,
-                    hasWildcardOperators
+                    getFieldDefinition
                   ),
                   focusOverride: calculateNextFocusForFilter(
                     state,
@@ -664,8 +656,7 @@ function SearchQueryBuilderInputInternal({
                 inputValue,
                 selectionIndex,
                 filterKey,
-                getFieldDefinition,
-                hasWildcardOperators
+                getFieldDefinition
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
@@ -769,7 +760,7 @@ const Row = styled('div')`
 
   &[aria-invalid='true'] {
     input {
-      color: ${p => p.theme.red400};
+      color: ${p => p.theme.colors.red500};
     }
   }
 
@@ -781,7 +772,7 @@ const Row = styled('div')`
       right: ${p => p.theme.space.xs};
       top: 0;
       bottom: 0;
-      background-color: ${p => p.theme.gray100};
+      background-color: ${p => p.theme.colors.gray100};
     }
   }
 `;

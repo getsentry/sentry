@@ -7,47 +7,54 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import DateTimeField from 'sentry/components/forms/fields/dateTimeField';
-import EmailField from 'sentry/components/forms/fields/emailField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextareaField from 'sentry/components/forms/fields/textareaField';
-import TextField from 'sentry/components/forms/fields/textField';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {DateTimeField} from 'sentry/components/forms/fields/dateTimeField';
+import {EmailField} from 'sentry/components/forms/fields/emailField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelItem from 'sentry/components/panels/panelItem';
-import {space} from 'sentry/styles/space';
+import {Form} from 'sentry/components/forms/form';
+import {FormField} from 'sentry/components/forms/formField';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 import type {Subscription} from 'getsentry/types';
 
 const PLAN_CHOICES = [
   ['m1_baa', 'Medium (BAA)'],
   ['l1', 'Large'],
   ['e1', 'Enterprise'],
-];
+] as const;
 
 const PERIOD_CHOICES = [
   ['monthly', 'Monthly'],
   ['annual', 'Annual'],
-];
+] as const;
 
-function CustomerUpgradeRequest() {
+export function CustomerUpgradeRequest() {
   const {orgId} = useParams<{orgId: string}>();
   const {
     data: customer,
     isPending,
     isError,
-  } = useApiQuery<Subscription>([`/customers/${orgId}/`], {staleTime: 0});
+  } = useApiQuery<Subscription>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+        path: {organizationIdOrSlug: orgId},
+      }),
+    ],
+    {staleTime: 0}
+  );
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<string>();
@@ -114,7 +121,7 @@ function CustomerUpgradeRequest() {
               choices={PLAN_CHOICES}
               clearable={false}
               required
-              onChange={(v: any) => setSelectedPlan(v)}
+              onChange={v => setSelectedPlan(v)}
             />
             {selectedPlan === 'e1' && (
               <TextField
@@ -203,10 +210,8 @@ function CustomerUpgradeRequest() {
 }
 
 const Divider = styled(PanelItem)`
-  font-size: ${p => p.theme.fontSize.md};
-  padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  background: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default CustomerUpgradeRequest;

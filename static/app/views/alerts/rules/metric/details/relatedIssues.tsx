@@ -1,18 +1,20 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GroupList from 'sentry/components/issues/groupList';
-import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {GroupList} from 'sentry/components/issues/groupList';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   RELATED_ISSUES_BOOLEAN_QUERY_ERROR,
   RelatedIssuesNotAvailable,
@@ -33,7 +35,7 @@ interface Props {
   skipHeader?: boolean;
 }
 
-function RelatedIssues({
+export function RelatedIssues({
   rule,
   organization,
   projects,
@@ -41,19 +43,23 @@ function RelatedIssues({
   timePeriod,
   skipHeader,
 }: Props) {
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Add environment to the query parameters to be picked up by GlobalSelectionLink
-  // GlobalSelectionLink uses the current query parameters to build links to issue details
+  // Add environment to the query parameters to be picked up by extractSelectionParameters
+  // Links using extractSelectionParameters will preserve these query parameters when navigating to issue details
   useEffect(() => {
     const env = rule.environment ?? '';
-    if (env !== (router.location.query.environment ?? '')) {
-      router.replace({
-        pathname: router.location.pathname,
-        query: {...router.location.query, environment: env},
-      });
+    if (env !== (location.query.environment ?? '')) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, environment: env},
+        },
+        {replace: true}
+      );
     }
-  }, [rule.environment, router]);
+  }, [rule.environment, location, navigate]);
 
   function renderErrorMessage({detail}: {detail: string}, retry: () => void) {
     if (
@@ -110,12 +116,12 @@ function RelatedIssues({
   return (
     <Fragment>
       {!skipHeader && (
-        <ControlsWrapper>
+        <Flex justify="between" align="center" marginBottom="md">
           <SectionHeading>{t('Related Issues')}</SectionHeading>
           <LinkButton data-test-id="issues-open" size="xs" to={issueSearch}>
             {t('Open in Issues')}
           </LinkButton>
-        </ControlsWrapper>
+        </Flex>
       )}
 
       <TableWrapper>
@@ -138,19 +144,10 @@ function RelatedIssues({
   );
 }
 
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;
-
 const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   ${Panel} {
     /* smaller space between table and pagination */
-    margin-bottom: -${space(1)};
+    margin-bottom: -${p => p.theme.space.md};
   }
 `;
-
-export default RelatedIssues;

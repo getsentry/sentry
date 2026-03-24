@@ -5,8 +5,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import HookStore from 'sentry/stores/hookStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {HookStore} from 'sentry/stores/hookStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import * as analytics from 'sentry/utils/analytics';
@@ -92,7 +92,6 @@ describe('StacktraceBanners', () => {
       expect.objectContaining({
         query: {
           feature: 'stacktrace_link',
-          organization_id: org.id,
           project_id: project.id,
         },
       })

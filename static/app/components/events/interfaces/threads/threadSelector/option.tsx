@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Thread} from 'sentry/types/event';
@@ -23,7 +24,7 @@ type ThreadInfo = {
   state?: ThreadStates;
 };
 
-function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
+export function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
   const label = details.label ?? `<${t('unknown')}>`;
   const optionName = thread.name || `<${t('unknown')}>`;
 
@@ -41,10 +42,10 @@ function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
                 disabled={!crashedInfo}
                 position="top"
               >
-                <IconFire color="errorText" />
+                <IconFire variant="danger" />
               </Tooltip>
             ) : (
-              <IconFire color="errorText" />
+              <IconFire variant="danger" />
             )}
           </InnerCell>
         )}
@@ -75,13 +76,14 @@ function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
   );
 }
 
-export default Option;
-
 const InnerCell = styled('div')<{
   isBold?: boolean;
   isCentered?: boolean;
 }>`
-  ${p => p.theme.overflowEllipsis}
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   align-items: center;
   justify-content: ${p => (p.isCentered ? 'center' : 'flex-start')};

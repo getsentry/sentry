@@ -1,11 +1,12 @@
 import {cloneElement, Fragment, isValidElement, useRef, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 
 export type ConfirmMessageRenderProps = {
@@ -187,7 +188,7 @@ export const openConfirmModal = ({
  *
  * This is the declarative alternative to using openConfirmModal
  */
-function Confirm({
+export function Confirm({
   disabled,
   children,
   stopPropagation = false,
@@ -318,7 +319,7 @@ function ConfirmModal({
       <Body>
         {isError && (
           <Alert.Container>
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {errorMessage}
             </Alert>
           </Alert.Container>
@@ -326,7 +327,7 @@ function ConfirmModal({
         {makeConfirmMessage()}
       </Body>
       <Footer>
-        <ButtonBar gap="xl">
+        <Grid flow="column" align="center" gap="xl">
           {renderCancelButton ? (
             renderCancelButton({
               closeModal,
@@ -358,10 +359,8 @@ function ConfirmModal({
               {confirmText ?? t('Confirm')}
             </Button>
           )}
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );
 }
-
-export default Confirm;

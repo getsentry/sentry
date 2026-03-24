@@ -33,7 +33,7 @@ export function SelectionKeyHandler({
   const {dispatch, disabled, currentInputValueRef} = useSearchQueryBuilder();
   const {selectInDirection} = useKeyboardSelection();
 
-  const selectedTokens: ParseResultToken[] = [...state.collection.getKeys()]
+  const selectedTokens = [...state.collection.getKeys()]
     .filter(key => state.selectionManager.selectedKeys.has(key))
     .map(key => state.collection.getItem(key)?.value)
     .filter(defined);
@@ -139,6 +139,18 @@ export function SelectionKeyHandler({
               e.preventDefault();
               e.stopPropagation();
             }
+            return;
+          }
+
+          // Wrap selected tokens in parentheses when ( or ) is pressed
+          if ((e.key === '(' || e.key === ')') && selectedTokens.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            dispatch({
+              type: 'WRAP_TOKENS_WITH_PARENTHESES',
+              tokens: selectedTokens,
+            });
+            state.selectionManager.clearSelection();
             return;
           }
 

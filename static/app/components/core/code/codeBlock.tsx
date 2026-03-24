@@ -3,13 +3,14 @@ import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {loadPrismLanguage} from 'sentry/utils/prism';
-// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
-import {darkTheme} from 'sentry/utils/theme';
+import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme} from 'sentry/utils/theme/theme';
 
 interface CodeBlockProps {
   children: string;
@@ -110,7 +111,8 @@ export function CodeBlock({
       return;
     }
 
-    if (!language) {
+    // Skip if no language or if language is not a valid Prism language (e.g. "text")
+    if (!language || !getPrismLanguage(language)) {
       return;
     }
 
@@ -170,20 +172,19 @@ export function CodeBlock({
                 </Tab>
               ))}
             </TabsWrapper>
-            <FlexSpacer />
+            <Container flexGrow={1} />
           </Fragment>
         )}
         {icon}
         {filename && <FileName>{filename}</FileName>}
-        {!hasTabs && <FlexSpacer />}
+        {!hasTabs && <Container flexGrow={1} />}
         {!hideCopyButton && (
           <CopyButton
             type="button"
             size="xs"
-            borderless
+            priority="transparent"
             onClick={handleCopy}
-            title={tooltipTitle}
-            tooltipProps={{position: 'left'}}
+            tooltipProps={{position: 'left', title: tooltipTitle}}
             onMouseLeave={() => setTooltipState('copy')}
             isAlwaysVisible={!hasFloatingHeader || (!!icon && hasFloatingHeader)}
             aria-label={t('Copy snippet')}
@@ -213,15 +214,11 @@ export function CodeBlock({
   return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
 }
 
-const FlexSpacer = styled('div')`
-  flex-grow: 1;
-`;
-
 const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   height: 100%;
   background: var(--prism-block-background);
-  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : '0px')};
+  border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
   pre {
     margin: 0;
@@ -237,16 +234,16 @@ const Header = styled('div')<{isFloating: boolean}>`
   display: flex;
   align-items: center;
 
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: var(--prism-base);
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.mono.medium};
   z-index: 2;
 
   ${p =>
     p.isFloating
       ? css`
-          gap: ${space(0.25)};
+          gap: ${p.theme.space['2xs']};
           justify-content: flex-end;
           position: absolute;
           top: 0;
@@ -254,17 +251,20 @@ const Header = styled('div')<{isFloating: boolean}>`
           width: max-content;
           height: max-content;
           max-height: 100%;
-          padding: ${space(0.5)};
+          padding: ${p.theme.space.xs};
         `
       : css`
-          gap: ${space(0.75)};
-          padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
-          border-bottom: solid 1px ${p.theme.border};
+          gap: ${p.theme.space.sm};
+          padding: ${p.theme.space.xs} ${p.theme.space.xs} 0 ${p.theme.space.md};
+          border-bottom: solid 1px ${p.theme.tokens.border.primary};
         `}
 `;
 
 const FileName = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 
@@ -279,11 +279,11 @@ const Tab = styled('button')<{isSelected: boolean}>`
   margin: 0;
   border: none;
   background: none;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   color: var(--prism-comment);
   ${p =>
     p.isSelected
-      ? `border-bottom: 3px solid ${p.theme.purple300};
+      ? `border-bottom: 3px solid ${p.theme.tokens.graphics.accent.vibrant};
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}

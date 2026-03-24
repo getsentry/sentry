@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,14 +21,14 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     condition = Condition.LATEST_ADOPTED_RELEASE
-    payload = {
+    payload: Mapping[str, Any] = {
         "id": LatestAdoptedReleaseFilter.id,
         "oldest_or_newest": "oldest",
         "older_or_newer": "newer",
         "environment": "prod",
     }
 
-    def create_new_group_event(self, fingerprint):
+    def create_new_group_event(self, fingerprint: str) -> tuple[Any, Any]:
         event = self.store_event(data={"fingerprint": [fingerprint]}, project_id=self.project.id)
         group = event.group
         group_event = self.event.for_group(group)

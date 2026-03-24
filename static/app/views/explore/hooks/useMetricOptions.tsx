@@ -1,12 +1,14 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResult,
@@ -15,6 +17,7 @@ import {
 interface UseMetricOptionsProps {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
+  environments?: PageFilters['environments'];
   orgSlug?: string;
   projectIds?: PageFilters['projects'];
   search?: string;
@@ -25,26 +28,38 @@ function metricOptionsQueryKey({
   projectIds,
   datetime,
   search,
-}: UseMetricOptionsProps = {}): ApiQueryKey {
+  environments,
+  hasMetricUnitsUI,
+}: UseMetricOptionsProps & {hasMetricUnitsUI?: boolean} = {}): ApiQueryKey {
   const searchValue = new MutableSearch('');
   if (search) {
     searchValue.addStringContainsFilter(
       `${TraceMetricKnownFieldKey.METRIC_NAME}:${search}`
     );
   }
+  const queryFields = [
+    TraceMetricKnownFieldKey.METRIC_NAME,
+    TraceMetricKnownFieldKey.METRIC_TYPE,
+    `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
+    `max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`,
+  ];
+  if (hasMetricUnitsUI) {
+    queryFields.push(TraceMetricKnownFieldKey.METRIC_UNIT);
+  }
+
   const query: Record<string, string | string[] | number[]> = {
     dataset: DiscoverDatasets.TRACEMETRICS,
-    field: [
-      TraceMetricKnownFieldKey.METRIC_NAME,
-      TraceMetricKnownFieldKey.METRIC_TYPE,
-      `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
-    ],
+    field: queryFields,
     query: searchValue.formatString(),
     referrer: 'api.explore.metric-options',
   };
 
   if (projectIds?.length) {
     query.project = projectIds.map(String);
+  }
+
+  if (environments?.length) {
+    query.environment = environments;
   }
 
   if (datetime) {
@@ -55,7 +70,12 @@ function metricOptionsQueryKey({
     });
   }
 
-  return [`/organizations/${orgSlug}/events/`, {query}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+      path: {organizationIdOrSlug: orgSlug!},
+    }),
+    {query},
+  ];
 }
 
 /**
@@ -66,10 +86,12 @@ export function useMetricOptions({
   search,
   projectIds,
   datetime,
+  environments,
   enabled = true,
 }: UseMetricOptionsProps = {}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const hasMetricUnitsUI = useHasMetricUnitsUI();
 
   const queryKey = useMemo(
     () =>
@@ -78,6 +100,8 @@ export function useMetricOptions({
         orgSlug: organization.slug,
         projectIds: projectIds ?? selection.projects,
         datetime: datetime ?? selection.datetime,
+        environments: environments ?? selection.environments,
+        hasMetricUnitsUI,
       }),
     [
       organization.slug,
@@ -86,6 +110,9 @@ export function useMetricOptions({
       selection.projects,
       selection.datetime,
       datetime,
+      environments,
+      selection.environments,
+      hasMetricUnitsUI,
     ]
   );
 
@@ -97,24 +124,28 @@ export function useMetricOptions({
     enabled,
   });
 
-  // This replaces order-by metric.name as that will never be performant over large time periods with high numbers of metrics.
-  useEffect(() => {
-    if (result.data?.data) {
-      result.data.data.sort((a, b) => {
-        return a[TraceMetricKnownFieldKey.METRIC_NAME].localeCompare(
-          b[TraceMetricKnownFieldKey.METRIC_NAME]
-        );
-      });
+  const filteredData = useMemo(() => {
+    if (!result.data?.data) {
+      return undefined;
     }
-  }, [result.data]);
+    // Filter out empty string metric names which cause infinite update loops
+    return result.data.data
+      .filter(item => item[TraceMetricKnownFieldKey.METRIC_NAME]?.length > 0)
+      .sort((a, b) =>
+        a[TraceMetricKnownFieldKey.METRIC_NAME].localeCompare(
+          b[TraceMetricKnownFieldKey.METRIC_NAME]
+        )
+      );
+  }, [result.data?.data]);
 
   const isMetricOptionsEmpty =
     !result.isFetching &&
     !result.isLoading &&
-    (!result.data?.data || result.data.data.length === 0);
+    (!filteredData || filteredData.length === 0);
 
   return {
     ...result,
+    data: filteredData ? {...result.data, data: filteredData} : result.data,
     isMetricOptionsEmpty,
   };
 }

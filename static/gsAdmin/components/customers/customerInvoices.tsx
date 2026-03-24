@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
+import {Tag} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -25,7 +25,7 @@ const getRow = (orgId: string, region: string, row: any) => [
     {row.channel || 'n/a'}
   </td>,
   <td key="status" style={{textAlign: 'center'}}>
-    <Tag type={row.isPaid ? 'success' : row.isClosed ? 'error' : 'warning'}>
+    <Tag variant={row.isPaid ? 'success' : row.isClosed ? 'danger' : 'warning'}>
       {row.isPaid ? 'Paid' : row.isClosed ? 'Closed' : 'Pending'}
     </Tag>
   </td>,
@@ -38,7 +38,7 @@ const getRow = (orgId: string, region: string, row: any) => [
   </td>,
 ];
 
-function CustomerInvoices({orgId, region, ...props}: Props) {
+export function CustomerInvoices({orgId, region, ...props}: Props) {
   return (
     <ResultGrid
       path={`/_admin/customers/${orgId}/`}
@@ -65,5 +65,3 @@ function CustomerInvoices({orgId, region, ...props}: Props) {
     />
   );
 }
-
-export default CustomerInvoices;

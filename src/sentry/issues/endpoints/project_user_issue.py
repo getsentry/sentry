@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.apidocs.parameters import GlobalParams
 from sentry.grouping.grouptype import ErrorGroupType
@@ -89,7 +89,7 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
         vital = self.data.get("vital", "")
         transaction = self.data.get("transaction", "")
         a_or_an = "an" if vital in ["lcp", "fcp", "inp"] else "a"
-        return f"{transaction} has {a_or_an} {vital.upper()} score of {self.data.get("score")}"
+        return f"{transaction} has {a_or_an} {vital.upper()} score of {self.data.get('score')}"
 
     def create_fingerprint(self) -> list[str]:
         vital = self.data.get("vital", "")
@@ -190,7 +190,7 @@ class ProjectUserIssueResponseSerializer(serializers.Serializer):
     event_id = serializers.CharField(required=True)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectUserIssueEndpoint(ProjectEndpoint):
     permission_classes = (ProjectUserIssuePermission,)
     publish_status = {
@@ -213,8 +213,6 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             "organizations:performance-web-vitals-seer-suggestions",
             organization,
             actor=request.user,
-        ) and features.has(
-            "organizations:issue-web-vitals-ingest", organization, actor=request.user
         )
 
     @extend_schema(

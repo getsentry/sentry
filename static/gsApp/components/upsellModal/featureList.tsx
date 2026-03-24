@@ -4,13 +4,12 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import ProgressRing from 'sentry/components/progressRing';
+import {ProgressRing} from 'sentry/components/progressRing';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
-import MoreFeaturesLink from 'getsentry/views/amCheckout/components/moreFeaturesLink';
+import {MoreFeaturesLink} from 'getsentry/views/amCheckout/components/moreFeaturesLink';
 
 import type {Feature} from './types';
 
@@ -23,7 +22,7 @@ type Props = {
   withCountdown?: number;
 };
 
-function FeatureList({
+export function FeatureList({
   features,
   selected,
   onClick,
@@ -54,7 +53,7 @@ function FeatureList({
           whileTap={{x: -7}}
           transition={testableTransition()}
         >
-          <IconBusiness gradient={feat === selected} withShine={feat === selected} />
+          <IconBusiness />
           {feat.name}
         </FeatureLink>
       ))}
@@ -96,8 +95,8 @@ const CountdownRing = withTheme(({theme, id, totalTime}: CountdownRingProps) => 
         value={timeLeft}
         barWidth={2}
         size={14}
-        backgroundColor={theme.gray100}
-        progressColor={theme.gray200}
+        backgroundColor={theme.colors.gray100}
+        progressColor={theme.colors.gray200}
       />
     </RingContainer>
   );
@@ -110,31 +109,30 @@ const RingContainer = styled(motion.div)`
 
 const Heading = styled('div')`
   font-weight: bold;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const FeatureLink = styled(motion.div)`
   cursor: pointer;
   transition: color 300ms;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   position: relative;
   display: grid;
   grid-template-columns: max-content auto;
-  gap: ${space(1)};
-  align-items: center;
+  gap: ${p => p.theme.space.md};
+  align-items: flex-start;
   align-content: center;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
+  white-space: nowrap;
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
   &[aria-selected] {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     font-weight: bold;
   }
 `;
-
-export default FeatureList;

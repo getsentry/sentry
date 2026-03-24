@@ -1,15 +1,15 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   ProjectScore,
@@ -45,10 +45,10 @@ export function PerformanceScoreChart({
   if (webVital) {
     const index = ORDER.indexOf(webVital);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
-      return i === index ? color : theme.gray200;
+      return i === index ? color : theme.colors.gray200;
     });
     ringBackgroundColors = ringBackgroundColors.map((color, i) => {
-      return i === index ? color : `${theme.gray200}33`;
+      return i === index ? color : `${theme.colors.gray200}33`;
     });
   }
 
@@ -109,16 +109,16 @@ const Flex = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.md};
   flex-wrap: wrap;
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
   min-width: 320px;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
   flex-direction: column;
@@ -129,22 +129,22 @@ const PerformanceScoreLabelContainer = styled('div')`
 
 const PerformanceScoreLabel = styled('div')`
   width: 100%;
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.primary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const PerformanceScoreSubtext = styled('div')`
   width: 100%;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: relative;
-  margin-left: ${space(0.5)};
-  top: ${space(0.25)};
+  margin-left: ${p => p.theme.space.xs};
+  top: ${p => p.theme.space['2xs']};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

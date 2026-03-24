@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
 
 export const GridEditableContainer = styled('div')`
   position: relative;
@@ -13,11 +13,15 @@ export const LoadingOverlay = styled('div')`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   opacity: 0.5;
   z-index: 1;
 `;
 
 export const CellLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

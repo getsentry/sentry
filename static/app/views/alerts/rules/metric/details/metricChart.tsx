@@ -1,22 +1,26 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {LineSeriesOption, TooltipComponentOption} from 'echarts';
 import moment from 'moment-timezone';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert';
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {
   transformComparisonTimeseriesData,
   transformTimeseriesData,
 } from 'sentry/components/charts/eventsRequest';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {
   ChartControls,
   HeaderTitleLegend,
@@ -25,30 +29,27 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
-import CircleIndicator from 'sentry/components/circleIndicator';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import Placeholder from 'sentry/components/placeholder';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
+import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
@@ -76,6 +77,12 @@ import {
   getTraceItemTypeForDatasetAndEventType,
 } from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
+import {
+  LOWER_THRESHOLD_SERIES_NAME,
+  UPPER_THRESHOLD_SERIES_NAME,
+  useMetricDetectorAnomalyThresholds,
+} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
 import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
@@ -128,7 +135,7 @@ function getRuleChangeSeries(
       markLine: MarkLine({
         silent: true,
         animation: false,
-        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+        lineStyle: {color: theme.colors.gray200, type: 'solid', width: 1},
         data: [{xAxis: ruleChanged}],
         label: {
           show: false,
@@ -137,7 +144,7 @@ function getRuleChangeSeries(
       markArea: MarkArea({
         silent: true,
         itemStyle: {
-          color: color(theme.gray100).alpha(0.42).rgb().string(),
+          color: color(theme.colors.gray100).alpha(0.42).rgb().string(),
         },
         data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
       }),
@@ -146,7 +153,7 @@ function getRuleChangeSeries(
   ];
 }
 
-export default function MetricChart({
+export function MetricChart({
   rule,
   project,
   timePeriod,
@@ -282,20 +289,20 @@ export default function MetricChart({
               <SectionHeading>{t('Summary')}</SectionHeading>
               <StyledSectionValue>
                 <ValueItem>
-                  <IconCheckmark color="successText" />
+                  <IconCheckmark variant="success" />
                   {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
-                  <IconWarning color="warningText" />
+                  <IconWarning variant="warning" />
                   {warningPercent ? warningPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
-                  <IconFire color="errorText" />
+                  <IconFire variant="danger" />
                   {criticalPercent ? criticalPercent.toFixed(2) : 0}%
                 </ValueItem>
                 {waitingForDataPercent > 0 && (
                   <StyledTooltip
-                    underlineColor="gray200"
+                    underlineColor="muted"
                     showUnderline
                     title={t(
                       'The time spent waiting for metrics matching the filters used.'
@@ -322,7 +329,7 @@ export default function MetricChart({
                 <LinkButton
                   size="sm"
                   disabled={disableEapButton}
-                  title={disabledTooltip}
+                  tooltipProps={{title: disabledTooltip}}
                   {...props}
                 >
                   {buttonText}
@@ -346,7 +353,8 @@ export default function MetricChart({
       loading: boolean,
       timeseriesData?: Series[],
       minutesThresholdToDisplaySeconds?: number,
-      comparisonTimeseriesData?: Series[]
+      comparisonTimeseriesData?: Series[],
+      thresholdSeries?: LineSeriesOption[]
     ) => {
       const {start, end} = timePeriod;
 
@@ -393,8 +401,8 @@ export default function MetricChart({
           LineSeries({
             name: comparisonSeriesName,
             data: _data.map(({name, value}) => [name, value]),
-            lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-            itemStyle: {color: theme.gray200},
+            lineStyle: {color: theme.colors.gray200, type: 'dashed', width: 1},
+            itemStyle: {color: theme.colors.gray200},
             animation: false,
             animationThreshold: 1,
             animationDuration: 0,
@@ -402,6 +410,7 @@ export default function MetricChart({
           })
         ),
         ...getRuleChangeSeries(rule, timeseriesData, theme),
+        ...(thresholdSeries ?? []),
       ];
 
       const queryFilter =
@@ -526,6 +535,50 @@ export default function MetricChart({
     ? transformComparisonTimeseriesData(eventStats?.data ?? [])
     : [];
 
+  // Get timestamps from actual series data for anomaly threshold data
+  const metricTimestamps = useMemo(() => {
+    const firstSeries = timeSeriesData[0];
+    if (!firstSeries?.data.length) {
+      return {start: undefined, end: undefined};
+    }
+    const data = firstSeries.data;
+    const firstPoint = data[0];
+    const lastPoint = data[data.length - 1];
+
+    if (!firstPoint || !lastPoint) {
+      return {start: undefined, end: undefined};
+    }
+
+    const firstTimestamp =
+      typeof firstPoint.name === 'number'
+        ? firstPoint.name
+        : new Date(firstPoint.name).getTime();
+    const lastTimestamp =
+      typeof lastPoint.name === 'number'
+        ? lastPoint.name
+        : new Date(lastPoint.name).getTime();
+
+    return {
+      start: Math.floor(firstTimestamp / 1000),
+      end: Math.floor(lastTimestamp / 1000),
+    };
+  }, [timeSeriesData]);
+
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: rule.id ?? '',
+    detectionType: rule.detectionType,
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
+    series: timeSeriesData,
+    isLegacyAlert: true,
+  });
+
+  const filteredAnomalyThresholdSeries = useFilteredAnomalyThresholdSeries({
+    anomalyThresholdSeries,
+    isAnomalyDetection: rule.detectionType === 'dynamic',
+    thresholdType: rule.thresholdType,
+  });
+
   return (
     <Fragment>
       {shouldUseSessionsStats
@@ -535,7 +588,8 @@ export default function MetricChart({
         isLoading,
         timeSeriesData,
         minutesThresholdToDisplaySeconds,
-        comparisonTimeseriesData
+        comparisonTimeseriesData,
+        filteredAnomalyThresholdSeries
       )}
     </Fragment>
   );
@@ -588,6 +642,33 @@ function getMetricChartTooltipFormatter({
 
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const comparisonPointY = comparisonSeries?.data[1] as number | undefined;
+
+    // Find threshold series for anomaly detection
+    const upperThresholdSeries = pointSeries.find(
+      ({seriesName: _sn}) => _sn === UPPER_THRESHOLD_SERIES_NAME
+    );
+    const lowerThresholdSeries = pointSeries.find(
+      ({seriesName: _sn}) => _sn === LOWER_THRESHOLD_SERIES_NAME
+    );
+
+    const upperThresholdValue =
+      Array.isArray(upperThresholdSeries?.data) && upperThresholdSeries.data.length > 1
+        ? (upperThresholdSeries.data[1] as number)
+        : undefined;
+
+    const lowerThresholdValue =
+      Array.isArray(lowerThresholdSeries?.data) && lowerThresholdSeries.data.length > 1
+        ? (lowerThresholdSeries.data[1] as number)
+        : undefined;
+
+    const upperThresholdFormatted =
+      upperThresholdValue === undefined
+        ? undefined
+        : alertTooltipValueFormatter(upperThresholdValue, seriesName, rule.aggregate);
+    const lowerThresholdFormatted =
+      lowerThresholdValue === undefined
+        ? undefined
+        : alertTooltipValueFormatter(lowerThresholdValue, seriesName, rule.aggregate);
     const comparisonPointYFormatted =
       comparisonPointY === undefined
         ? undefined
@@ -606,10 +687,10 @@ function getMetricChartTooltipFormatter({
 
     const changeStatusColor =
       changeStatus === AlertRuleTriggerType.CRITICAL
-        ? theme.red300
+        ? theme.colors.red400
         : changeStatus === AlertRuleTriggerType.WARNING
-          ? theme.yellow300
-          : theme.green300;
+          ? theme.colors.yellow400
+          : theme.colors.green400;
 
     return [
       `<div class="tooltip-series">`,
@@ -620,6 +701,12 @@ function getMetricChartTooltipFormatter({
       `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
       comparisonSeries &&
         `<div><span class="tooltip-label">${comparisonSeries.marker as string} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+      upperThresholdSeries &&
+        upperThresholdFormatted &&
+        `<div><span class="tooltip-label">${upperThresholdSeries.marker as string} <strong>${t('Upper Threshold')}</strong></span>${upperThresholdFormatted}</div>`,
+      lowerThresholdSeries &&
+        lowerThresholdFormatted &&
+        `<div><span class="tooltip-label">${lowerThresholdSeries.marker as string} <strong>${t('Lower Threshold')}</strong></span>${lowerThresholdFormatted}</div>`,
       `</div>`,
       `<div class="tooltip-footer">`,
       `<span>${startTime} &mdash; ${endTime}</span>`,
@@ -640,11 +727,11 @@ function getMetricChartTooltipFormatter({
 }
 
 const ChartPanel = styled(Panel)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const ChartHeader = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const StyledChartControls = styled(ChartControls)`
@@ -655,47 +742,51 @@ const StyledChartControls = styled(ChartControls)`
 
 const StyledInlineContainer = styled(InlineContainer)`
   grid-auto-flow: column;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.subText};
-  height: ${space(1)};
-  margin-right: ${space(0.5)};
+  background: ${p => p.theme.tokens.graphics.neutral.vibrant};
+  height: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const ChartFilters = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.sans};
+  color: ${p => p.theme.tokens.content.primary};
   display: inline-grid;
   grid-template-columns: max-content max-content auto;
   align-items: center;
 `;
 
 const Filters = styled('span')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const QueryFilters = styled('span')`
   min-width: 0px;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledSectionValue = styled(SectionValue)`
   display: grid;
   grid-template-columns: repeat(4, auto);
-  gap: ${space(1.5)};
-  margin: 0 0 0 ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
+  margin: 0 0 0 ${p => p.theme.space.lg};
 `;
 
 const ValueItem = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   font-variant-numeric: tabular-nums;
-  text-underline-offset: ${space(4)};
+  text-underline-offset: ${p => p.theme.space['3xl']};
 `;
 
 /* Override padding to make chart appear centered */
@@ -706,9 +797,9 @@ const StyledPanelBody = styled(PanelBody)`
 const TriggerChartPlaceholder = styled(Placeholder)`
   height: 200px;
   text-align: center;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;
 
 const StyledTooltip = styled(Tooltip)`
-  text-underline-offset: ${space(0.5)} !important;
+  text-underline-offset: ${p => p.theme.space.xs} !important;
 `;

@@ -1,10 +1,8 @@
-import styled from '@emotion/styled';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -41,7 +39,7 @@ export function PlaceHolder({
               view,
             })}
           />
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <FeedbackButton
               size="xs"
               feedbackOptions={{
@@ -52,40 +50,28 @@ export function PlaceHolder({
                 },
               }}
             />
-          </ButtonBar>
+          </Grid>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
-          <PlaceHolderTitleWrapper>
+          <Stack gap="xs">
             <TraceHeaderComponents.StyledPlaceholder _width={300} _height={20} />
             <TraceHeaderComponents.StyledPlaceholder _width={200} _height={18} />
-          </PlaceHolderTitleWrapper>
-          <PlaceHolderTitleWrapper>
+          </Stack>
+          <Stack gap="xs">
             <TraceHeaderComponents.StyledPlaceholder _width={300} _height={18} />
             <TraceHeaderComponents.StyledPlaceholder _width={300} _height={24} />
-          </PlaceHolderTitleWrapper>
+          </Stack>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.StyledBreak />
         <TraceHeaderComponents.HeaderRow>
-          <PlaceHolderHighlightWrapper>
+          <Flex align="center" gap="md">
             <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
             <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
             <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
-          </PlaceHolderHighlightWrapper>
+          </Flex>
           <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
         </TraceHeaderComponents.HeaderRow>
       </TraceHeaderComponents.HeaderContent>
     </TraceHeaderComponents.HeaderLayout>
   );
 }
-
-const PlaceHolderTitleWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const PlaceHolderHighlightWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;

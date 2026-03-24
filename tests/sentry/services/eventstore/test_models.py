@@ -1,4 +1,7 @@
+import os
 import pickle
+import time
+from contextlib import contextmanager
 from unittest import mock
 
 import pytest
@@ -17,13 +20,28 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
+
+
+@contextmanager
+def timezone_context(tz: str):
+    old_tz = os.environ.get("TZ")
+    try:
+        os.environ["TZ"] = tz
+        time.tzset()
+        yield
+    finally:
+        if old_tz is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = old_tz
+        time.tzset()
 
 
 class EventTest(TestCase, PerformanceIssueTestCase):
@@ -212,7 +230,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Hello World!",
                 "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
                 "user": {"id": "test", "email": "test@test.com"},
-                "timestamp": before_now(seconds=1).isoformat(),
+                "timestamp": before_now(seconds=1).replace(microsecond=0).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -279,6 +297,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert not event_from_nodestore.group_id
         assert not event_from_nodestore.group
 
+    @freeze_time()
     def test_snuba_data_transaction(self) -> None:
         self.store_event(
             data={
@@ -551,9 +570,6 @@ class GroupEventFromEventTest(TestCase):
         )
         group_event = GroupEvent.from_event(event, self.group)
         assert event.for_group(self.group) == group_event
-        # Since event didn't have a cached project, we should query here to fetch it
-        with self.assertNumQueries(1):
-            group_event.project
 
     def test_project_cache(self) -> None:
         event = Event(
@@ -693,6 +709,7 @@ class EventNodeStoreTest(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.data.get_ref(event) == event.project.id
 
+    @freeze_time()
     def test_datetime_uses_timestamp_ms_from_snuba(self) -> None:
         second_before_now = before_now(seconds=1)
         second_before_now_str = second_before_now.isoformat()
@@ -798,3 +815,20 @@ class EventNodeStoreTest(TestCase):
 
             mock_nodestore_get.assert_called_once_with(node_id)
             assert second_before_now_str == timestamp_result
+
+    def test_datetime_from_nodestore_interprets_as_utc(self) -> None:
+        expected_time = before_now(minutes=1).replace(microsecond=0)
+
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": expected_time.timestamp(),
+            },
+            project_id=self.project.id,
+        )
+
+        event = Event(project_id=self.project.id, event_id="d" * 32)
+
+        with timezone_context("US/Pacific"):
+            dt = event.datetime
+            assert dt == expected_time

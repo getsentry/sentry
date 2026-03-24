@@ -4,12 +4,14 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import type {EventErrorData} from 'sentry/components/events/interfaces/types';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {
   GenericSchemaErrors,
   HttpProcessingErrors,
@@ -18,14 +20,13 @@ import {
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ActionableItemErrors, ActionableItemTypes} from './actionableItemsUtils';
 import {
@@ -297,7 +298,7 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
   return (
     <List symbol="bullet">
       <StyledListItem>
-        <ErrorTitleFlex>
+        <Flex justify="between" align="center" gap="md">
           <strong>
             {title} ({numErrors})
           </strong>
@@ -311,7 +312,7 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
           >
             {expanded ? t('Collapse') : t('Expand')}
           </ToggleButton>
-        </ErrorTitleFlex>
+        </Flex>
         {expanded && (
           <div>
             {desc && <Description>{desc}</Description>}
@@ -456,7 +457,7 @@ export function ActionableItems({event, project}: ActionableItemsProps) {
   return (
     <StyledAlert
       defaultExpanded
-      type={hasErrorAlert ? 'error' : 'warning'}
+      variant={hasErrorAlert ? 'danger' : 'warning'}
       expand={
         <Fragment>
           {Object.keys(errorMessages).map((error, idx) => {
@@ -480,30 +481,23 @@ export function ActionableItems({event, project}: ActionableItemsProps) {
 }
 
 const Description = styled('div')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 const StyledAlert = styled(Alert)`
   margin: 0 30px;
 `;
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;
 
 const ToggleButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover,
   :focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const ErrorTitleFlex = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const HiddenDiv = styled('div')`

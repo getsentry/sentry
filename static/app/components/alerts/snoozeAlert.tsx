@@ -1,15 +1,16 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   hasAccess: boolean;
@@ -25,7 +26,7 @@ type Props = {
   ruleId?: string;
 };
 
-function SnoozeAlert({
+export function SnoozeAlert({
   isSnoozed,
   onSnooze,
   projectSlug,
@@ -142,7 +143,7 @@ function SnoozeAlert({
     );
   }
   return (
-    <ButtonBar gap="0">
+    <Grid flow="column" align="center" gap="0">
       <MuteButton
         size="sm"
         icon={<IconSound />}
@@ -154,16 +155,12 @@ function SnoozeAlert({
       >
         {t('Mute for everyone')}
       </MuteButton>
-    </ButtonBar>
+    </Grid>
   );
 }
-
-export default SnoozeAlert;
 
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;
   border-radius: ${p =>
-    p.hasDropdown
-      ? `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`
-      : p.theme.borderRadius};
+    p.hasDropdown ? `${p.theme.radius.md} 0 0 ${p.theme.radius.md}` : p.theme.radius.md};
 `;

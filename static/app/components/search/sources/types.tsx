@@ -44,7 +44,8 @@ export type ResultItem = {
     | 'integration'
     | 'sentryApp'
     | 'docIntegration'
-    | 'help';
+    | 'help'
+    | 'dsn-lookup';
   /**
    * The title to display in result options.
    */

@@ -16,15 +16,12 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
-        self.features = {
-            "organizations:performance-spans-suspect-attributes": True,
-        }
         self.ten_mins_ago = before_now(minutes=10)
         self.ten_mins_ago_iso = self.ten_mins_ago.replace(microsecond=0).isoformat()
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-spans-suspect-attributes"]
+            features = []
 
         if query and "type" not in query.keys():
             query["type"] = "string"
@@ -45,9 +42,12 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
             return response
 
-    def _store_span(self, description=None, tags=None, duration=None):
+    def _store_span(self, description=None, tags=None, duration=None, status=None):
         if tags is None:
             tags = {"foo": "bar"}
+
+        if status is not None:
+            tags["status"] = status
 
         self.store_span(
             self.create_span(
@@ -59,17 +59,12 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
                 start_ts=self.ten_mins_ago,
                 duration=duration or 1000,
             ),
-            is_eap=True,
         )
 
     def test_no_project(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.data
         assert response.data == {"rankedAttributes": []}
-
-    def test_no_feature(self) -> None:
-        response = self.do_request(features=[])
-        assert response.status_code == 404, response.data
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_distribution_values(self, mock_compare_distributions) -> None:
@@ -157,9 +152,8 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert "rankedAttributes" in response.data
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.keyed_rrf_score")
     def test_baseline_distribution_includes_baseline_only_buckets(
-        self, mock_keyed_rrf_score, mock_compare_distributions
+        self, mock_compare_distributions
     ) -> None:
         """Test that buckets existing only in baseline (not in suspect) are included in scoring.
 
@@ -167,19 +161,14 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         in all spans but NOT in the suspect cohort were missing from the baseline
         distribution passed to scoring algorithms.
         """
-        # Capture what's passed to the scoring functions
+        # Capture what's passed to compare_distributions
         captured_baseline = None
 
-        def capture_baseline(*args, **kwargs):
+        def capture_compare(*args, **kwargs):
             nonlocal captured_baseline
             captured_baseline = kwargs.get("baseline")
-            # Return results matching the actual internal attribute names
-            return [("sentry.browser", 1.0), ("sentry.device", 0.8)]
-
-        def capture_compare(*args, **kwargs):
             return {"results": [("sentry.browser", 0.9), ("sentry.device", 0.7)]}
 
-        mock_keyed_rrf_score.side_effect = capture_baseline
         mock_compare_distributions.side_effect = capture_compare
 
         tags = [
@@ -212,15 +201,15 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         # Verify that "edge" browser exists in the baseline distribution sent to scoring
         # This is the key test: edge exists in all spans but NOT in suspect spans
         # Note: Internal attribute name is "sentry.browser"
-        assert (
-            "sentry.browser" in baseline_dict
-        ), "sentry.browser attribute should be in baseline distribution"
-        assert (
-            "edge" in baseline_dict["sentry.browser"]
-        ), "edge browser should be in baseline (it exists in all spans but not in suspect)"
-        assert (
-            baseline_dict["sentry.browser"]["edge"] > 0
-        ), "edge count should be positive in baseline"
+        assert "sentry.browser" in baseline_dict, (
+            "sentry.browser attribute should be in baseline distribution"
+        )
+        assert "edge" in baseline_dict["sentry.browser"], (
+            "edge browser should be in baseline (it exists in all spans but not in suspect)"
+        )
+        assert baseline_dict["sentry.browser"]["edge"] > 0, (
+            "edge count should be positive in baseline"
+        )
 
         # Also verify edge appears in the response (public name is "browser")
         browser_attr = next(
@@ -233,15 +222,15 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert edge_bucket["value"] > 0, "edge count should be positive in response"
 
         # Verify tablet device exists (also only in baseline)
-        assert (
-            "sentry.device" in baseline_dict
-        ), "sentry.device attribute should be in baseline distribution"
-        assert (
-            "tablet" in baseline_dict["sentry.device"]
-        ), "tablet device should be in baseline (exists in all spans but not in suspect)"
-        assert (
-            baseline_dict["sentry.device"]["tablet"] > 0
-        ), "tablet count should be positive in baseline"
+        assert "sentry.device" in baseline_dict, (
+            "sentry.device attribute should be in baseline distribution"
+        )
+        assert "tablet" in baseline_dict["sentry.device"], (
+            "tablet device should be in baseline (exists in all spans but not in suspect)"
+        )
+        assert baseline_dict["sentry.device"]["tablet"] > 0, (
+            "tablet count should be positive in baseline"
+        )
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_filters_out_internal_and_private_attributes(self, mock_compare_distributions) -> None:
@@ -270,31 +259,32 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         for attr in response.data["rankedAttributes"]:
             attr_name = attr["attributeName"]
             # Public alias filtering
-            assert not attr_name.startswith(
-                "tags["
-            ), f"Attribute '{attr_name}' should be filtered (starts with tags[)"
+            assert not attr_name.startswith("tags["), (
+                f"Attribute '{attr_name}' should be filtered (starts with tags[)"
+            )
             assert not (
                 attr_name.startswith("sentry.") and attr_name != "sentry.normalized_description"
-            ), f"Attribute '{attr_name}' should be filtered (starts with sentry.* but is not sentry.normalized_description)"
+            ), (
+                f"Attribute '{attr_name}' should be filtered (starts with sentry.* but is not sentry.normalized_description)"
+            )
 
             # Internal/private attribute filtering
-            assert not attr_name.startswith(
-                "sentry._internal."
-            ), f"Attribute '{attr_name}' should be filtered (internal attribute with sentry._internal. prefix)"
-            assert not attr_name.startswith(
-                "__sentry_internal"
-            ), f"Attribute '{attr_name}' should be filtered (internal attribute with __sentry_internal prefix)"
-            assert (
-                "sentry._meta" not in attr_name
-            ), f"Attribute '{attr_name}' should be filtered (meta attribute)"
+            assert not attr_name.startswith("sentry._internal."), (
+                f"Attribute '{attr_name}' should be filtered (internal attribute with sentry._internal. prefix)"
+            )
+            assert not attr_name.startswith("__sentry_internal"), (
+                f"Attribute '{attr_name}' should be filtered (internal attribute with __sentry_internal prefix)"
+            )
+            assert "sentry._meta" not in attr_name, (
+                f"Attribute '{attr_name}' should be filtered (meta attribute)"
+            )
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.keyed_rrf_score")
     @patch(
         "sentry.api.endpoints.organization_trace_item_attributes_ranked.translate_internal_to_public_alias"
     )
     def test_includes_user_defined_attributes_when_translate_returns_none(
-        self, mock_translate, mock_keyed_rrf_score, mock_compare_distributions
+        self, mock_translate, mock_compare_distributions
     ) -> None:
         """Test that user-defined attributes are included when translate_internal_to_public_alias returns None.
 
@@ -313,14 +303,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         mock_translate.side_effect = mock_translate_func
 
-        # Mock primary scoring (keyed_rrf_score) to include our test attributes
-        mock_keyed_rrf_score.return_value = [
-            ("custom_user_attr", 0.9),
-            ("tags[filtered_tag]", 0.8),
-            ("regular_attr", 0.7),
-        ]
-
-        # Mock secondary scoring for RRR ordering
+        # Mock compare_distributions to return our test attributes (now the primary scoring)
         mock_compare_distributions.return_value = {
             "results": [
                 ("custom_user_attr", 0.9),
@@ -341,14 +324,136 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         returned_attrs = [attr["attributeName"] for attr in response.data["rankedAttributes"]]
 
         # User-defined attribute should be included with original name
-        assert (
-            "custom_user_attr" in returned_attrs
-        ), "User-defined attributes should be included when translate returns None"
+        assert "custom_user_attr" in returned_attrs, (
+            "User-defined attributes should be included when translate returns None"
+        )
 
         # Filtered attribute should NOT be included even if translate returns None
-        assert (
-            "tags[filtered_tag]" not in returned_attrs
-        ), "Attributes with forbidden prefixes should be filtered even when translate returns None"
+        assert "tags[filtered_tag]" not in returned_attrs, (
+            "Attributes with forbidden prefixes should be filtered even when translate returns None"
+        )
 
         # Regular attribute should be included
         assert "regular_attr" in returned_attrs, "Regular attributes should be included"
+
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_empty_baseline_returns_empty_response(self, mock_compare_distributions) -> None:
+        """Test that when total_baseline <= 0, the endpoint returns empty rankedAttributes without calling Seer.
+
+        This happens when the outlier cohort (query_1) matches all or more spans than the baseline (query_2),
+        resulting in total_baseline = total_spans - total_outliers <= 0.
+        """
+        # Store spans where ALL spans match both queries
+        tags = [
+            ({"browser": "chrome"}, 100),
+            ({"browser": "firefox"}, 50),
+            ({"browser": "safari"}, 75),
+        ]
+
+        for tag, duration in tags:
+            self._store_span(tags=tag, duration=duration)
+
+        # query_1 and query_2 match the same spans, so total_baseline = 0
+        response = self.do_request(
+            query={
+                "query_1": "span.duration:<=100",  # Matches all spans
+                "query_2": "",  # Also matches all spans
+            }
+        )
+
+        assert response.status_code == 200, response.data
+
+        # Should return full response structure with empty rankedAttributes
+        assert response.data["rankedAttributes"] == []
+        assert "rankingInfo" in response.data
+        assert response.data["rankingInfo"]["function"] == "count(span.duration)"
+        assert response.data["cohort1Total"] == 3  # All spans are in cohort1
+        assert response.data["cohort2Total"] == 0  # No baseline spans
+
+        # compare_distributions should NOT be called when baseline is empty
+        mock_compare_distributions.assert_not_called()
+
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_failure_rate_filters_to_failed_spans_only(self, mock_compare_distributions) -> None:
+        """Test that failure_rate() and failure_count() filter the selected cohort to failed spans.
+
+        When failure_rate() or failure_count() is selected, the endpoint should:
+        - Filter the selected cohort (cohort1) to only include failed spans
+        - Keep the baseline (cohort2) as all other spans for meaningful comparison
+        Sentry treats spans with status other than "ok", "cancelled", and "unknown" as failures.
+        """
+        mock_compare_distributions.return_value = {
+            "results": [
+                ("sentry.browser", 0.8),
+            ]
+        }
+
+        # Store spans with various statuses:
+        # - "ok", "cancelled", "unknown" are NOT failures
+        # - "internal_error", "invalid_argument" ARE failures
+        spans_data = [
+            # Failed spans (short duration - will be in selected region)
+            ({"browser": "chrome"}, 100, "internal_error"),
+            ({"browser": "chrome"}, 100, "invalid_argument"),
+            ({"browser": "safari"}, 100, "internal_error"),
+            # Non-failed spans (short duration - would be in selected region if not filtered)
+            ({"browser": "firefox"}, 100, "ok"),
+            ({"browser": "edge"}, 100, "cancelled"),
+            ({"browser": "opera"}, 100, "unknown"),
+            # Failed spans (long duration - baseline only)
+            ({"browser": "chrome"}, 500, "internal_error"),
+            ({"browser": "firefox"}, 500, "invalid_argument"),
+            # Non-failed spans (long duration - should be excluded from baseline too)
+            ({"browser": "edge"}, 500, "ok"),
+        ]
+
+        for tags, duration, status in spans_data:
+            self._store_span(tags=tags, duration=duration, status=status)
+
+        # Request with failure_rate() function
+        response = self.do_request(
+            query={
+                "function": "failure_rate()",
+                "query_1": "span.duration:<=100",
+                "query_2": "",
+            }
+        )
+
+        assert response.status_code == 200, response.data
+
+        # With failure_rate filtering:
+        # - cohort1 (selected): only failed spans with duration <= 100
+        #   = 3 spans (chrome internal_error, chrome invalid_argument, safari internal_error)
+        # - cohort2 (baseline): all other spans (not filtered to failures)
+        #   = 9 total spans - 3 = 6 spans
+        #
+        # Without filtering (old behavior), cohort1 would be 6 spans (all short duration)
+        # and cohort2 would be 3 spans (all long duration)
+
+        # Verify that cohort1 contains only failed spans
+        assert response.data["cohort1Total"] == 3, (
+            f"Expected 3 failed spans in selected region, got {response.data['cohort1Total']}. "
+            "failure_rate() should filter selected cohort to only failed spans."
+        )
+        # Baseline is all other spans (not filtered to failures)
+        assert response.data["cohort2Total"] == 6, (
+            f"Expected 6 spans in baseline (all other spans), got {response.data['cohort2Total']}. "
+            "Baseline should include all spans not in the selected cohort."
+        )
+
+        # Also test with failure_count() - should behave the same way
+        response_count = self.do_request(
+            query={
+                "function": "failure_count()",
+                "query_1": "span.duration:<=100",
+                "query_2": "",
+            }
+        )
+
+        assert response_count.status_code == 200, response_count.data
+        assert response_count.data["cohort1Total"] == 3, (
+            f"Expected 3 failed spans for failure_count(), got {response_count.data['cohort1Total']}."
+        )
+        assert response_count.data["cohort2Total"] == 6, (
+            f"Expected 6 spans in baseline for failure_count(), got {response_count.data['cohort2Total']}."
+        )

@@ -1,10 +1,11 @@
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconArrow} from 'sentry/icons';
 import {tn} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Counts = {
   counts: {
@@ -20,7 +21,9 @@ export function MonitorsDropdown() {
 
   const {data: cronsData, isPending: cronsIsPending} = useApiQuery<Counts>(
     [
-      `/organizations/${organization.slug}/monitors-count/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/monitors-count/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: location.query.project,
@@ -37,7 +40,9 @@ export function MonitorsDropdown() {
 
   const {data: uptimeData, isPending: uptimeIsPending} = useApiQuery<Counts>(
     [
-      `/organizations/${organization.slug}/uptime-count/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/uptime-count/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: location.query.project,

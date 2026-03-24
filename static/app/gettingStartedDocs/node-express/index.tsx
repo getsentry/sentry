@@ -3,8 +3,8 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {logs} from './logs';
 import {mcp} from './mcp';
@@ -12,7 +12,7 @@ import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 import {profiling} from './profiling';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
@@ -20,8 +20,6 @@ const docs: Docs = {
   logsOnboarding: logs,
   metricsOnboarding: metrics,
   profilingOnboarding: profiling,
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: agentMonitoring(),
   mcpOnboarding: mcp,
 };
-
-export default docs;

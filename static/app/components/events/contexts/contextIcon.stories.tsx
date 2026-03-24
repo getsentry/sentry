@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {ContextIcon, NAMES} from 'sentry/components/events/contexts/contextIcon';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 export default Storybook.story('ContextIcon', story => {
   story('All', () => (
@@ -35,20 +35,20 @@ export default Storybook.story('ContextIcon', story => {
 
 const Grid = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
 const Cell = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   border: 1px solid transparent;
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)};
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space.md};
   cursor: pointer;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;

@@ -97,8 +97,7 @@ org_setup_complete = BetterSignal()  # ["organization", "user"]
 # transactions through post processing
 transaction_processed = BetterSignal()  # ["project", "event"]
 
-# DEPRECATED
-event_received = BetterSignal()  # ["ip", "project"]
+# Used in getsentry/getsentry to power live.sentry.io
 event_accepted = BetterSignal()  # ["ip", "data", "project"]
 
 # Organization Onboarding Signals

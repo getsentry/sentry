@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useRef} from 'react';
 
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
-import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useFetchSequentialPages} from 'sentry/utils/api/useFetchSequentialPages';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export default Storybook.story('useFetchSequentialPages', story => {
   story('WARNING!', () => (
@@ -31,9 +32,10 @@ export default Storybook.story('useFetchSequentialPages', story => {
       initialCursor: undefined,
       getQueryKey: useCallback(
         ({cursor, per_page}) => {
-          // console.log('cursor', cursor);
           return [
-            `/organizations/${organization.slug}/projects/`,
+            getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
             {query: {cursor, per_page}},
           ];
         },
@@ -73,7 +75,9 @@ export default Storybook.story('useFetchSequentialPages', story => {
           }
 
           return [
-            `/organizations/${organization.slug}/projects/`,
+            getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
             {query: {cursor, per_page}},
           ];
         },

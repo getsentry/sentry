@@ -2,18 +2,18 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Input} from '@sentry/scraps/input';
+
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Input} from 'sentry/components/core/input';
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
+import {Form} from 'sentry/components/forms/form';
+import {FormField} from 'sentry/components/forms/formField';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {ProjectKey} from 'sentry/types/project';
@@ -42,7 +42,13 @@ type Props = {
   'params'
 >;
 
-function KeyRateLimitsForm({data, disabled, organization, params, updateData}: Props) {
+export function KeyRateLimitsForm({
+  data,
+  disabled,
+  organization,
+  params,
+  updateData,
+}: Props) {
   const initialRateLimit = useMemo(() => data.rateLimit, [data.rateLimit]);
 
   const {keyId, projectId} = params;
@@ -105,7 +111,7 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
             <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
             <PanelBody>
-              <PanelAlert type="info">
+              <PanelAlert variant="info">
                 {t(
                   `Rate limits provide a flexible way to manage your error
                     volume. If you have a noisy project or environment you
@@ -131,8 +137,7 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
                 validate={({form}: any) => {
                   // TODO(TS): is validate actually doing anything because it's an unexpected prop
                   const isValid =
-                    form?.rateLimit &&
-                    typeof form.rateLimit.count !== 'undefined' &&
+                    typeof form?.rateLimit?.count !== 'undefined' &&
                     typeof form.rateLimit.window !== 'undefined';
 
                   if (isValid) {
@@ -217,17 +222,15 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
   );
 }
 
-export default KeyRateLimitsForm;
-
 const RateLimitRow = styled('div')`
   display: grid;
   grid-template-columns: 100px max-content 1fr;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const EventsIn = styled('small')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.font.size.sm};
   text-align: center;
   white-space: nowrap;
 `;

@@ -2,11 +2,16 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+// These are used as series names for chart lookup - do not translate
+export const UPPER_THRESHOLD_SERIES_NAME = 'Upper Threshold';
+export const LOWER_THRESHOLD_SERIES_NAME = 'Lower Threshold';
 
 interface AnomalyThresholdDataPoint {
   external_alert_id: number;
@@ -22,7 +27,9 @@ interface AnomalyThresholdDataResponse {
 
 interface UseMetricDetectorAnomalyThresholdsProps {
   detectorId: string;
+  detectionType?: string;
   endTimestamp?: number;
+  isLegacyAlert?: boolean; // for Alerts, remove this once organizations:workflow-engine-ui is GAd
   series?: Series[];
   startTimestamp?: number;
 }
@@ -38,16 +45,16 @@ interface UseMetricDetectorAnomalyThresholdsResult {
  */
 export function useMetricDetectorAnomalyThresholds({
   detectorId,
+  detectionType,
   startTimestamp,
   endTimestamp,
   series = [],
+  isLegacyAlert = false,
 }: UseMetricDetectorAnomalyThresholdsProps): UseMetricDetectorAnomalyThresholdsResult {
   const organization = useOrganization();
   const theme = useTheme();
 
-  const hasAnomalyDataFlag = organization.features.includes(
-    'anomaly-detection-threshold-data'
-  );
+  const isAnomalyDetection = detectionType === 'dynamic';
 
   const {
     data: anomalyData,
@@ -55,18 +62,24 @@ export function useMetricDetectorAnomalyThresholds({
     error,
   } = useApiQuery<AnomalyThresholdDataResponse>(
     [
-      `/organizations/${organization.slug}/detectors/${detectorId}/anomaly-data/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/detectors/$detectorId/anomaly-data/',
+        {
+          path: {organizationIdOrSlug: organization.slug, detectorId},
+        }
+      ),
       {
         query: {
           start: startTimestamp,
           end: endTimestamp,
+          ...(isLegacyAlert && {legacy_alert: 'true'}),
         },
       },
     ],
     {
       staleTime: 0,
       enabled:
-        hasAnomalyDataFlag && Boolean(detectorId && startTimestamp && endTimestamp),
+        isAnomalyDetection && Boolean(detectorId && startTimestamp && endTimestamp),
     }
   );
 
@@ -86,7 +99,6 @@ export function useMetricDetectorAnomalyThresholds({
 
     const upperBoundData: Array<[number, number]> = [];
     const lowerBoundData: Array<[number, number]> = [];
-    const seerValueData: Array<[number, number]> = [];
 
     metricData.forEach(metricPoint => {
       const timestamp =
@@ -98,16 +110,14 @@ export function useMetricDetectorAnomalyThresholds({
       if (anomalyPoint) {
         upperBoundData.push([timestamp, Math.round(anomalyPoint.yhat_upper)]);
         lowerBoundData.push([timestamp, Math.round(anomalyPoint.yhat_lower)]);
-        seerValueData.push([timestamp, Math.round(anomalyPoint.value)]);
       }
     });
 
-    const lineColor = theme.red300;
-    const seerValueColor = theme.yellow300;
+    const lineColor = theme.colors.red400;
 
     return [
       LineSeries({
-        name: 'Upper Threshold',
+        name: UPPER_THRESHOLD_SERIES_NAME,
         data: upperBoundData,
         lineStyle: {
           color: lineColor,
@@ -129,7 +139,7 @@ export function useMetricDetectorAnomalyThresholds({
         step: false,
       }),
       LineSeries({
-        name: 'Lower Threshold',
+        name: LOWER_THRESHOLD_SERIES_NAME,
         data: lowerBoundData,
         lineStyle: {
           color: lineColor,
@@ -149,22 +159,6 @@ export function useMetricDetectorAnomalyThresholds({
         symbol: 'none',
         connectNulls: true,
         step: false,
-      }),
-      LineSeries({
-        name: 'Seer Historical Value',
-        data: seerValueData,
-        lineStyle: {
-          color: seerValueColor,
-          type: 'solid',
-          width: 2,
-        },
-        itemStyle: {color: seerValueColor},
-        animation: false,
-        animationThreshold: 1,
-        animationDuration: 0,
-        symbol: 'circle',
-        symbolSize: 4,
-        connectNulls: true,
       }),
     ];
   }, [anomalyData, series, theme]);

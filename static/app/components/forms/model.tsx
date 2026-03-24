@@ -3,13 +3,13 @@ import type {ObservableMap} from 'mobx';
 import {action, computed, makeObservable, observable} from 'mobx';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {APIRequestMethod} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicators';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 export const fieldIsRequiredMessage = t('Field is required');
@@ -40,7 +40,7 @@ export type FormOptions = {
   /**
    * API method used to save the form model
    */
-  apiMethod?: APIRequestMethod;
+  apiMethod?: RequestMethod;
   /**
    * Options passed to the API Client
    */
@@ -84,7 +84,7 @@ export type FormOptions = {
   transformData?: (data: Record<string, any>, instance: FormModel) => Record<string, any>;
 };
 
-class FormModel {
+export class FormModel {
   /**
    * Map of field name -> value
    */
@@ -420,7 +420,7 @@ class FormModel {
   }: {
     data: Record<PropertyKey, unknown>;
     apiEndpoint?: string;
-    apiMethod?: APIRequestMethod;
+    apiMethod?: RequestMethod;
   }) {
     const endpoint = apiEndpoint || this.options.apiEndpoint || '';
     const method = apiMethod || this.options.apiMethod;
@@ -430,6 +430,7 @@ class FormModel {
         method,
         data,
         success: response => resolve(response),
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         error: error => reject(error),
       })
     );
@@ -779,8 +780,9 @@ class FormModel {
       this.errors.delete(id);
     }
 
-    // Field should no longer to "saving", but is not necessarily "ready"
+    // Resets field states used in the control state
     this.setFieldState(id, FormState.SAVING, false);
+    this.setFieldState(id, FormState.READY, false);
   }
 
   /**
@@ -891,5 +893,3 @@ export class MockModel {
     return false;
   }
 }
-
-export default FormModel;

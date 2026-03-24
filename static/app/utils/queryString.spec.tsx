@@ -1,4 +1,13 @@
-import utils from 'sentry/utils/queryString';
+import {
+  addQueryParamsToExistingUrl,
+  appendExcludeTagValuesCondition,
+  appendTagCondition,
+  decodeBoolean,
+  decodeInteger,
+  decodeList,
+  decodeScalar,
+  decodeSorts,
+} from './queryString';
 
 describe('addQueryParamsToExistingUrl', () => {
   it('adds new query params to existing query params', () => {
@@ -6,7 +15,7 @@ describe('addQueryParamsToExistingUrl', () => {
     const newParams = {
       id: 4,
     };
-    expect(utils.addQueryParamsToExistingUrl(url, newParams)).toBe(
+    expect(addQueryParamsToExistingUrl(url, newParams)).toBe(
       'https://example.com/?id=4&value=3'
     );
   });
@@ -16,9 +25,7 @@ describe('addQueryParamsToExistingUrl', () => {
     const newParams = {
       id: 4,
     };
-    expect(utils.addQueryParamsToExistingUrl(url, newParams)).toBe(
-      'https://example.com/?id=4'
-    );
+    expect(addQueryParamsToExistingUrl(url, newParams)).toBe('https://example.com/?id=4');
   });
 
   it('returns empty string no url is passed', () => {
@@ -26,64 +33,64 @@ describe('addQueryParamsToExistingUrl', () => {
     const newParams = {
       id: 4,
     };
-    expect(utils.addQueryParamsToExistingUrl(url, newParams)).toBe('');
+    expect(addQueryParamsToExistingUrl(url, newParams)).toBe('');
   });
 });
 
 describe('appendTagCondition', () => {
   it('adds simple values', () => {
-    const result = utils.appendTagCondition('error+text', 'color', 'red');
+    const result = appendTagCondition('error+text', 'color', 'red');
     expect(result).toBe('error+text color:red');
   });
 
   it('handles array current value', () => {
-    const result = utils.appendTagCondition(['', 'thing'], 'color', 'red');
+    const result = appendTagCondition(['', 'thing'], 'color', 'red');
     expect(result).toBe('thing color:red');
   });
 
   it('handles empty string current value', () => {
-    const result = utils.appendTagCondition('', 'color', 'red');
+    const result = appendTagCondition('', 'color', 'red');
     expect(result).toBe('color:red');
   });
 
   it('handles null current value', () => {
-    const result = utils.appendTagCondition(null, 'color', 'red');
+    const result = appendTagCondition(null, 'color', 'red');
     expect(result).toBe('color:red');
   });
 
   it('wraps values with spaces', () => {
-    const result = utils.appendTagCondition(null, 'color', 'purple red');
+    const result = appendTagCondition(null, 'color', 'purple red');
     expect(result).toBe('color:"purple red"');
   });
 
   it('wraps values with colon', () => {
-    const result = utils.appendTagCondition(null, 'color', 'id:red');
+    const result = appendTagCondition(null, 'color', 'id:red');
     expect(result).toBe('color:"id:red"');
   });
 
   it('wraps values with a backslash', () => {
-    const result = utils.appendTagCondition(null, 'color', 'id\\red');
+    const result = appendTagCondition(null, 'color', 'id\\red');
     expect(result).toBe('color:"id\\red"');
   });
 
   it('handles user tag values', () => {
-    let result = utils.appendTagCondition('', 'user', 'something');
+    let result = appendTagCondition('', 'user', 'something');
     expect(result).toBe('user:something');
 
-    result = utils.appendTagCondition('', 'user', 'id:1');
+    result = appendTagCondition('', 'user', 'id:1');
     expect(result).toBe('user:"id:1"');
 
-    result = utils.appendTagCondition('', 'user', 'email:foo@example.com');
+    result = appendTagCondition('', 'user', 'email:foo@example.com');
     expect(result).toBe('user:"email:foo@example.com"');
 
-    result = utils.appendTagCondition('', 'user', 'name:jill jones');
+    result = appendTagCondition('', 'user', 'name:jill jones');
     expect(result).toBe('user:"name:jill jones"');
   });
 });
 
 describe('appendExcludeTagValuesCondition', () => {
   it('excludes tag values', () => {
-    const result = utils.appendExcludeTagValuesCondition(null, 'color', [
+    const result = appendExcludeTagValuesCondition(null, 'color', [
       'red',
       'blue',
       'green',
@@ -91,7 +98,7 @@ describe('appendExcludeTagValuesCondition', () => {
     expect(result).toBe('!color:[red, blue, green]');
   });
   it('excludes tag values on an existing query', () => {
-    const result = utils.appendExcludeTagValuesCondition('user.id:123', 'color', [
+    const result = appendExcludeTagValuesCondition('user.id:123', 'color', [
       'red',
       'blue',
       'green',
@@ -99,7 +106,7 @@ describe('appendExcludeTagValuesCondition', () => {
     expect(result).toBe('user.id:123 !color:[red, blue, green]');
   });
   it('wraps double quotes when a space exists in the tag value', () => {
-    const result = utils.appendExcludeTagValuesCondition(null, 'color', [
+    const result = appendExcludeTagValuesCondition(null, 'color', [
       'red',
       'ocean blue',
       '"green"',
@@ -111,114 +118,108 @@ describe('appendExcludeTagValuesCondition', () => {
 
 describe('decodeScalar()', () => {
   it('unwraps array values', () => {
-    expect(utils.decodeScalar(['one', 'two'])).toBe('one');
+    expect(decodeScalar(['one', 'two'])).toBe('one');
   });
 
   it('handles strings', () => {
-    expect(utils.decodeScalar('one')).toBe('one');
+    expect(decodeScalar('one')).toBe('one');
   });
 
   it('handles falsey values', () => {
-    expect(utils.decodeScalar(undefined)).toBeUndefined();
+    expect(decodeScalar(undefined)).toBeUndefined();
     // @ts-expect-error type false is not assignable to QueryValue
-    expect(utils.decodeScalar(false)).toBeUndefined();
-    expect(utils.decodeScalar('')).toBeUndefined();
+    expect(decodeScalar(false)).toBeUndefined();
+    expect(decodeScalar('')).toBeUndefined();
   });
 
   it('uses fallback values', () => {
-    expect(utils.decodeScalar('value', 'default')).toBe('value');
-    expect(utils.decodeScalar('', 'default')).toBe('default');
-    expect(utils.decodeScalar(null, 'default')).toBe('default');
-    expect(utils.decodeScalar(undefined, 'default')).toBe('default');
-    expect(utils.decodeScalar([], 'default')).toBe('default');
+    expect(decodeScalar('value', 'default')).toBe('value');
+    expect(decodeScalar('', 'default')).toBe('default');
+    expect(decodeScalar(null, 'default')).toBe('default');
+    expect(decodeScalar(undefined, 'default')).toBe('default');
+    expect(decodeScalar([], 'default')).toBe('default');
   });
 });
 
 describe('decodeList()', () => {
   it('wraps string values', () => {
-    expect(utils.decodeList('one')).toEqual(['one']);
+    expect(decodeList('one')).toEqual(['one']);
   });
 
   it('handles arrays', () => {
-    expect(utils.decodeList(['one', 'two'])).toEqual(['one', 'two']);
+    expect(decodeList(['one', 'two'])).toEqual(['one', 'two']);
   });
 
   it('handles falsey values', () => {
-    expect(utils.decodeList(undefined)).toEqual([]);
+    expect(decodeList(undefined)).toEqual([]);
     // @ts-expect-error type false is not assignable to QueryValue
-    expect(utils.decodeList(false)).toEqual([]);
-    expect(utils.decodeList('')).toEqual([]);
+    expect(decodeList(false)).toEqual([]);
+    expect(decodeList('')).toEqual([]);
   });
 });
 
 describe('decodeInteger()', () => {
   it('handles integer strings', () => {
-    expect(utils.decodeInteger('1')).toBe(1);
-    expect(utils.decodeInteger('1.2')).toBe(1);
-    expect(utils.decodeInteger('1.9')).toBe(1);
-    expect(utils.decodeInteger('foo')).toBeUndefined();
-    expect(utils.decodeInteger('foo', 2020)).toBe(2020);
+    expect(decodeInteger('1')).toBe(1);
+    expect(decodeInteger('1.2')).toBe(1);
+    expect(decodeInteger('1.9')).toBe(1);
+    expect(decodeInteger('foo')).toBeUndefined();
+    expect(decodeInteger('foo', 2020)).toBe(2020);
   });
 
   it('handles arrays', () => {
-    expect(utils.decodeInteger(['1', 'foo'])).toBe(1);
-    expect(utils.decodeInteger(['1.2', 'foo'])).toBe(1);
-    expect(utils.decodeInteger(['1.9', 'foo'])).toBe(1);
-    expect(utils.decodeInteger(['foo', '1'])).toBeUndefined();
-    expect(utils.decodeInteger(['foo'], 2020)).toBe(2020);
+    expect(decodeInteger(['1', 'foo'])).toBe(1);
+    expect(decodeInteger(['1.2', 'foo'])).toBe(1);
+    expect(decodeInteger(['1.9', 'foo'])).toBe(1);
+    expect(decodeInteger(['foo', '1'])).toBeUndefined();
+    expect(decodeInteger(['foo'], 2020)).toBe(2020);
   });
 
   it('handles falsey values', () => {
-    expect(utils.decodeInteger(undefined, 2020)).toBe(2020);
+    expect(decodeInteger(undefined, 2020)).toBe(2020);
     // @ts-expect-error type false is not assignable to QueryValue
-    expect(utils.decodeInteger(false, 2020)).toBe(2020);
-    expect(utils.decodeInteger('', 2020)).toBe(2020);
+    expect(decodeInteger(false, 2020)).toBe(2020);
+    expect(decodeInteger('', 2020)).toBe(2020);
   });
 });
 
 describe('decodeSorts', () => {
   it('handles simple strings and lists', () => {
-    expect(utils.decodeSorts('startedAt')).toEqual([{kind: 'asc', field: 'startedAt'}]);
-    expect(utils.decodeSorts(['startedAt', 'finishedAt'])).toEqual([
+    expect(decodeSorts('startedAt')).toEqual([{kind: 'asc', field: 'startedAt'}]);
+    expect(decodeSorts(['startedAt', 'finishedAt'])).toEqual([
       {kind: 'asc', field: 'startedAt'},
       {kind: 'asc', field: 'finishedAt'},
     ]);
-    expect(utils.decodeSorts('-startedAt')).toEqual([{kind: 'desc', field: 'startedAt'}]);
-    expect(utils.decodeSorts(['-startedAt', '-finishedAt'])).toEqual([
+    expect(decodeSorts('-startedAt')).toEqual([{kind: 'desc', field: 'startedAt'}]);
+    expect(decodeSorts(['-startedAt', '-finishedAt'])).toEqual([
       {kind: 'desc', field: 'startedAt'},
       {kind: 'desc', field: 'finishedAt'},
     ]);
   });
 
   it('handles falsey values', () => {
-    expect(utils.decodeSorts(null)).toEqual([]);
-    expect(utils.decodeSorts(undefined)).toEqual([]);
-    expect(utils.decodeSorts('')).toEqual([]);
-    expect(utils.decodeSorts([''])).toEqual([]);
+    expect(decodeSorts(null)).toEqual([]);
+    expect(decodeSorts(undefined)).toEqual([]);
+    expect(decodeSorts('')).toEqual([]);
+    expect(decodeSorts([''])).toEqual([]);
   });
 
   it('fallsback to a default value', () => {
-    expect(utils.decodeSorts(null, '-startedAt')).toEqual([
+    expect(decodeSorts(null, '-startedAt')).toEqual([{kind: 'desc', field: 'startedAt'}]);
+    expect(decodeSorts(undefined, '-startedAt')).toEqual([
       {kind: 'desc', field: 'startedAt'},
     ]);
-    expect(utils.decodeSorts(undefined, '-startedAt')).toEqual([
-      {kind: 'desc', field: 'startedAt'},
-    ]);
-    expect(utils.decodeSorts('', '-startedAt')).toEqual([
-      {kind: 'desc', field: 'startedAt'},
-    ]);
-    expect(utils.decodeSorts([''], '-startedAt')).toEqual([
-      {kind: 'desc', field: 'startedAt'},
-    ]);
+    expect(decodeSorts('', '-startedAt')).toEqual([{kind: 'desc', field: 'startedAt'}]);
+    expect(decodeSorts([''], '-startedAt')).toEqual([{kind: 'desc', field: 'startedAt'}]);
   });
 });
 
 describe('decodeBoolean', () => {
   it('handles boolean strings', () => {
-    expect(utils.decodeBoolean('true')).toBe(true);
-    expect(utils.decodeBoolean('false')).toBe(false);
-    expect(utils.decodeBoolean('foo')).toBeUndefined();
-    expect(utils.decodeBoolean('foo', true)).toBe(true);
-    expect(utils.decodeBoolean('foo', false)).toBe(false);
+    expect(decodeBoolean('true')).toBe(true);
+    expect(decodeBoolean('false')).toBe(false);
+    expect(decodeBoolean('foo')).toBeUndefined();
+    expect(decodeBoolean('foo', true)).toBe(true);
+    expect(decodeBoolean('foo', false)).toBe(false);
   });
 });

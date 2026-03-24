@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import Form from 'sentry/components/forms/form';
-import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+import {Form} from 'sentry/components/forms/form';
+import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 describe('Resource Subscriptions', () => {
   describe('initial no-access permissions', () => {

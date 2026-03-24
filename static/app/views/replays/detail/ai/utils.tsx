@@ -9,6 +9,18 @@ export const NO_REPLAY_SUMMARY_MESSAGES = [
   t('All quiet on the replay front.'),
 ];
 
+export const REPLAY_SUMMARY_PROCESSING_MESSAGES = [
+  t('Reconstructing session timeline from Replay events...'),
+  t('Gathering logs, navigation, and network metadata...'),
+  t('Applying privacy settings...'),
+  t('Analyzing Replay stream...'),
+  t('Highlighting key moments: errors, long waits, and rage clicks...'),
+  t('Turning signals into a readable summary...'),
+  t('Sanity-checking the summary against the Replay timeline...'),
+  t('Finalizing, almost ready...'),
+  t('Still working — this Replay has a lot going on...'),
+];
+
 export enum ReplaySummaryStatus {
   PROCESSING = 'processing',
   COMPLETED = 'completed',

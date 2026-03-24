@@ -1,7 +1,7 @@
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useProjects} from 'sentry/utils/useProjects';
 
-export default function useProjectHasSessions() {
+export function useProjectHasSessions() {
   const {selection} = usePageFilters();
   const {projects: allProjects} = useProjects();
 

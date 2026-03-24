@@ -1,22 +1,21 @@
 import {initializeLogsTest} from 'sentry-fixture/log';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
@@ -30,9 +29,7 @@ const datePageFilterProps: DatePageFilterProps = {
 };
 
 describe('LogsTabContent', () => {
-  const {organization, project, setupPageFilters} = initializeLogsTest({
-    orgFeatures: ['search-query-builder-case-insensitivity'],
-  });
+  const {organization, project, setupPageFilters} = initializeLogsTest();
 
   let eventTableMock: jest.Mock;
   let eventsTimeSeriesMock: jest.Mock;
@@ -43,9 +40,7 @@ describe('LogsTabContent', () => {
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <LogsPageDataProvider>{children}</LogsPageDataProvider>
-        </TraceItemAttributeProvider>
+        <LogsPageDataProvider>{children}</LogsPageDataProvider>
       </LogsQueryParamsProvider>
     );
   }
@@ -60,6 +55,7 @@ describe('LogsTabContent', () => {
         [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
         [LOGS_SORT_BYS_KEY]: ['sentry.message.parameters.0'],
         [LOGS_QUERY_KEY]: 'severity:error',
+        [LOGS_AUTO_REFRESH_KEY]: '',
       },
     },
     route: '/organizations/:orgId/explore/logs/',
@@ -153,7 +149,7 @@ describe('LogsTabContent', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -197,7 +193,7 @@ describe('LogsTabContent', () => {
       `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         query: expect.objectContaining({
-          caseInsensitive: 0,
+          caseInsensitive: undefined,
           dataset: 'ourlogs',
           disableAggregateExtrapolation: '0',
           environment: [],
@@ -206,8 +202,8 @@ describe('LogsTabContent', () => {
           interval: '1h',
           partial: 1,
           project: [2],
-          query: 'severity:error timestamp_precise:<=1508208040000000000',
-          referrer: 'explore.ourlogs.main-chart',
+          query: 'severity:error',
+          referrer: 'api.explore.ourlogs-timeseries',
           sampling: 'NORMAL',
           sort: '-count_message',
           statsPeriod: '14d',
@@ -292,7 +288,7 @@ describe('LogsTabContent', () => {
           field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
           sort: 'sentry.message.parameters.0',
           query: 'severity:error',
-          caseInsensitive: 1,
+          caseInsensitive: '1',
         }),
       })
     );
@@ -310,8 +306,8 @@ describe('LogsTabContent', () => {
           interval: '1h',
           partial: 1,
           project: [2],
-          query: 'severity:error timestamp_precise:<=1508208040000000000',
-          referrer: 'explore.ourlogs.main-chart',
+          query: 'severity:error',
+          referrer: 'api.explore.ourlogs-timeseries',
           sampling: 'NORMAL',
           sort: '-count_message',
           statsPeriod: '14d',
@@ -320,5 +316,30 @@ describe('LogsTabContent', () => {
         }),
       })
     );
+  });
+
+  it('should add a timestamp_precise filter when autorefresh is enabled', async () => {
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+    render(
+      <ProviderWrapper>
+        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig: autorefreshEnabledRouterConfig,
+        organization,
+      }
+    );
+
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-timeseries/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'severity:error timestamp_precise:<=1508208040000000000',
+          }),
+        })
+      );
+    });
   });
 });

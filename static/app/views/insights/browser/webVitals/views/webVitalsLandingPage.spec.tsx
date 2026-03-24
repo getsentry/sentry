@@ -4,8 +4,8 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import WebVitalsLandingPage from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
 
 describe('WebVitalsLandingPage', () => {
@@ -84,9 +84,21 @@ describe('WebVitalsLandingPage', () => {
       initialRouterConfig,
     });
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    // Table query
+    // geo subregion query
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spans',
+          field: ['user.geo.subregion', 'count()'],
+          query: 'has:user.geo.subregion',
+        }),
+      })
+    );
+    // Table query
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
@@ -111,13 +123,13 @@ describe('WebVitalsLandingPage', () => {
             'count_scores(measurements.score.total)',
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] avg(measurements.score.total):>=0',
         }),
       })
     );
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
-      2,
+      3,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
@@ -131,13 +143,13 @@ describe('WebVitalsLandingPage', () => {
             'count()',
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""]',
         }),
       })
     );
     // Project performance score ring query
     expect(eventsMock).toHaveBeenNthCalledWith(
-      3,
+      4,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
@@ -163,7 +175,7 @@ describe('WebVitalsLandingPage', () => {
             `count_scores(measurements.score.inp)`,
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""]',
         }),
       })
     );

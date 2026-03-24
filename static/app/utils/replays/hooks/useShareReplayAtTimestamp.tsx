@@ -1,16 +1,17 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Input} from 'sentry/components/core/input';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
 import {parseClockToSeconds} from 'sentry/utils/duration/parseClockToSeconds';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 function ShareModal({currentTimeSec, Header, Body}: any) {
@@ -43,7 +44,7 @@ function ShareModal({currentTimeSec, Header, Body}: any) {
           {url.toString()}
         </StyledTextCopyInput>
 
-        <ShareAtRadioGroup>
+        <Stack marginTop="xl" maxWidth="fit-content">
           <RadioGroup
             value={shareMode}
             choices={[
@@ -66,13 +67,13 @@ function ShareModal({currentTimeSec, Header, Body}: any) {
             label="share at"
             onChange={id => setShareMode(id)}
           />
-        </ShareAtRadioGroup>
+        </Stack>
       </Body>
     </div>
   );
 }
 
-export default function useShareReplayAtTimestamp() {
+export function useShareReplayAtTimestamp() {
   const {currentTime} = useReplayContext();
 
   const handleShare = useCallback(() => {
@@ -94,7 +95,7 @@ const StyledTextCopyInput = styled(TextCopyInput)`
 const InputRow = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   & > div {
     min-width: fit-content;
@@ -102,11 +103,4 @@ const InputRow = styled('div')`
   & > input {
     width: 100px;
   }
-`;
-
-const ShareAtRadioGroup = styled('div')`
-  margin-top: ${space(2)};
-  display: flex;
-  flex-direction: column;
-  max-width: fit-content;
 `;

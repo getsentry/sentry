@@ -2,12 +2,13 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -30,7 +31,7 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function LLMCallsWidget() {
+export function LLMCallsWidget() {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
@@ -95,7 +96,9 @@ export default function LLMCallsWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(ts, {
-              color: ts.meta.isOther ? theme.chart.neutral : colorPalette[index],
+              color: ts.meta.isOther
+                ? theme.tokens.dataviz.semantic.neutral
+                : colorPalette[index],
               stack: 'stack',
             })
         ),
@@ -106,7 +109,7 @@ export default function LLMCallsWidget() {
   const footer = hasData && (
     <WidgetFooterTable>
       {models?.map((item, index) => {
-        const modelId = `${item['gen_ai.request.model']}`;
+        const modelId = item['gen_ai.request.model'];
         return (
           <Fragment key={modelId}>
             <div>
@@ -130,7 +133,7 @@ export default function LLMCallsWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('LLM Calls')} />}
+      Title={<Widget.WidgetTitle title={t('LLM Calls by Model')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
@@ -172,9 +175,13 @@ export default function LLMCallsWidget() {
 }
 
 const ModelText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.2;
   min-width: 0px;
 `;

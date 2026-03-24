@@ -1,13 +1,13 @@
 import type {Theme} from '@emotion/react';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {YAXisComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
@@ -223,7 +223,7 @@ export function getMetricAlertChartOption(
   let warningDuration = 0;
 
   series.push(
-    createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
+    createStatusAreaSeries(theme.colors.green400, firstPoint, lastPoint, minChartValue)
   );
 
   if (showWaitingForData) {
@@ -233,7 +233,9 @@ export function getMetricAlertChartOption(
 
     waitingForDataDuration = Math.abs(endTime - startTime);
 
-    series.push(createStatusAreaSeries(theme.gray200, startTime, endTime, minChartValue));
+    series.push(
+      createStatusAreaSeries(theme.colors.gray200, startTime, endTime, minChartValue)
+    );
   }
 
   if (incidents) {
@@ -261,8 +263,8 @@ export function getMetricAlertChartOption(
         const incidentColor =
           warningTrigger &&
           statusChanges.some(({value}) => Number(value) === IncidentStatus.CRITICAL)
-            ? theme.red300
-            : theme.yellow300;
+            ? theme.colors.red400
+            : theme.colors.yellow400;
 
         const incidentStartDate = new Date(incident.dateStarted).getTime();
         const incidentCloseDate = incident.dateClosed
@@ -289,13 +291,14 @@ export function getMetricAlertChartOption(
             : new Date(incidentEnd).getTime(),
           lastPoint
         );
-        const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
+        const areaColor = warningTrigger ? theme.colors.yellow400 : theme.colors.red400;
+
         if (areaEnd > areaStart) {
           series.push(
             createStatusAreaSeries(areaColor, areaStart, areaEnd, minChartValue)
           );
 
-          if (areaColor === theme.yellow300) {
+          if (areaColor === theme.colors.yellow400) {
             warningDuration += Math.abs(areaEnd - areaStart);
           } else {
             criticalDuration += Math.abs(areaEnd - areaStart);
@@ -315,8 +318,8 @@ export function getMetricAlertChartOption(
           );
           const statusAreaColor =
             activity.value === `${IncidentStatus.CRITICAL}`
-              ? theme.red300
-              : theme.yellow300;
+              ? theme.colors.red400
+              : theme.colors.yellow400;
           if (statusAreaEnd > statusAreaStart) {
             series.push(
               createStatusAreaSeries(
@@ -326,7 +329,7 @@ export function getMetricAlertChartOption(
                 minChartValue
               )
             );
-            if (statusAreaColor === theme.yellow300) {
+            if (statusAreaColor === theme.colors.yellow400) {
               warningDuration += Math.abs(statusAreaEnd - statusAreaStart);
             } else {
               criticalDuration += Math.abs(statusAreaEnd - statusAreaStart);
@@ -334,9 +337,11 @@ export function getMetricAlertChartOption(
           }
         });
 
-        if (selectedIncident && incident.id === selectedIncident.id) {
+        if (incident.id === selectedIncident?.id) {
           const selectedIncidentColor =
-            incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
+            incidentColor === theme.colors.yellow400
+              ? theme.colors.yellow100
+              : theme.colors.red100;
 
           // Is areaSeries used anywhere?
           areaSeries.push({
@@ -360,21 +365,27 @@ export function getMetricAlertChartOption(
   let maxThresholdValue = 0;
   if (!rule.comparisonDelta && warningTrigger?.alertThreshold) {
     const {alertThreshold} = warningTrigger;
-    const warningThresholdLine = createThresholdSeries(theme.yellow300, alertThreshold);
+    const warningThresholdLine = createThresholdSeries(
+      theme.colors.yellow400,
+      alertThreshold
+    );
     series.push(warningThresholdLine);
     maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
   }
 
   if (!rule.comparisonDelta && criticalTrigger?.alertThreshold) {
     const {alertThreshold} = criticalTrigger;
-    const criticalThresholdLine = createThresholdSeries(theme.red300, alertThreshold);
+    const criticalThresholdLine = createThresholdSeries(
+      theme.colors.red400,
+      alertThreshold
+    );
     series.push(criticalThresholdLine);
     maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
   }
 
   if (!rule.comparisonDelta && rule.resolveThreshold) {
     const resolveThresholdLine = createThresholdSeries(
-      theme.green300,
+      theme.colors.green400,
       rule.resolveThreshold
     );
     series.push(resolveThresholdLine);
@@ -404,9 +415,9 @@ export function getMetricAlertChartOption(
       yAxis,
       series,
       grid: {
-        left: space(0.25),
-        right: space(2),
-        top: space(3),
+        left: theme.space['2xs'],
+        right: theme.space.xl,
+        top: theme.space['2xl'],
         bottom: 0,
       },
     },

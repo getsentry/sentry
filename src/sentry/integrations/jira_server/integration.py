@@ -171,7 +171,7 @@ class InstallationForm(forms.Form):
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
         help_text=_(
-            "By default, we verify SSL certificates " "when making requests to your Jira instance."
+            "By default, we verify SSL certificates when making requests to your Jira instance."
         ),
         widget=forms.CheckboxInput(),
         required=False,
@@ -1377,6 +1377,9 @@ class JiraServerIntegration(IssueSyncIntegration):
                 "organization_id": self.organization_id,
             }
         )
+
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["base_url", "domain_name", "verify_ssl"]
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):

@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 type TextProps = {
   percent: number;
@@ -56,8 +56,8 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   justify-content: center;
   height: 100%;
   width: 100%;
-  color: ${p => p.theme.chartLabel};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
   transition: color 100ms;
   ${p => p.textCss?.(p)}
 `;
@@ -71,7 +71,7 @@ const animatedTextDefaultProps = {
   transition: testableTransition(),
 };
 
-function ProgressRing({
+export function ProgressRing({
   value,
   minValue = 0,
   maxValue = 100,
@@ -84,8 +84,8 @@ function ProgressRing({
   ...p
 }: Props) {
   const theme = useTheme();
-  const progressColor = p.progressColor ?? theme.green300;
-  const backgroundColor = p.backgroundColor ?? theme.gray200;
+  const progressColor = p.progressColor ?? theme.colors.green400;
+  const backgroundColor = p.backgroundColor ?? theme.colors.gray200;
   const radius = size / 2 - barWidth / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -184,5 +184,3 @@ const RingBar = styled('circle')<{
 `;
 
 const MotionRingBar = motion.create(RingBar);
-
-export default ProgressRing;

@@ -6,6 +6,8 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
+import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -25,6 +27,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -48,28 +51,16 @@ import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMod
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
-export function getExploreUrl({
-  organization,
-  selection,
-  interval,
-  mode,
-  aggregateField,
-  visualize,
-  query,
-  groupBy,
-  sort,
-  field,
-  id,
-  title,
-  referrer,
-}: {
+export interface GetExploreUrlArgs {
   organization: Organization;
   aggregateField?: Array<GroupBy | BaseVisualize>;
+  caseInsensitive?: CaseInsensitive;
+  chartSelection?: ChartSelectionQueryParam;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -79,17 +70,38 @@ export function getExploreUrl({
   referrer?: string;
   selection?: PageFilters;
   sort?: string;
+  table?: 'trace' | 'attribute_breakdowns';
   title?: string;
   visualize?: BaseVisualize[];
-}) {
+}
+
+export function getExploreUrl({
+  organization,
+  selection,
+  interval,
+  mode,
+  aggregateField,
+  chartSelection,
+  visualize,
+  query,
+  groupBy,
+  sort,
+  field,
+  id,
+  table,
+  title,
+  referrer,
+  caseInsensitive,
+}: GetExploreUrlArgs) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
-    project: projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: projects?.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
     mode,
     query,
@@ -100,8 +112,11 @@ export function getExploreUrl({
     field,
     utc,
     id,
+    table,
     title,
     referrer,
+    caseInsensitive: caseInsensitive ? '1' : undefined,
+    chartSelection: chartSelection ? JSON.stringify(chartSelection) : undefined,
   };
 
   return (
@@ -128,9 +143,9 @@ function getExploreUrlFromSavedQueryUrl({
           q.aggregateField
             ?.filter<RawGroupBy>(isGroupBy)
             ?.map(groupBy => groupBy.groupBy) ?? q.groupby;
-        const visualize: RawVisualize | undefined =
+        const visualize =
           q.aggregateField?.find<RawVisualize>(isRawVisualize) ?? q.visualize?.[0];
-        const chartType: ChartType | undefined = isChartType(visualize?.chartType)
+        const chartType = isChartType(visualize?.chartType)
           ? visualize.chartType
           : undefined;
 
@@ -140,6 +155,7 @@ function getExploreUrlFromSavedQueryUrl({
           yAxes: (visualize?.yAxes ?? []).slice(),
           groupBys: groupBys ?? [],
           sortBys: decodeSorts(q.orderby),
+          caseInsensitive: q.caseInsensitive ? '1' : null,
         };
       }),
       title: savedQuery.name,
@@ -155,6 +171,7 @@ function getExploreUrlFromSavedQueryUrl({
       },
     });
   }
+
   return getExploreUrl({
     organization,
     ...savedQuery,
@@ -201,21 +218,24 @@ export function getExploreMultiQueryUrl({
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
   const queryParams = {
-    project: projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: projects.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
-    queries: queries.map(({chartType, fields, groupBys, query, sortBys, yAxes}) =>
-      JSON.stringify({
-        chartType,
-        fields,
-        groupBys,
-        query,
-        sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
-        yAxes,
-      })
+    queries: queries.map(
+      ({chartType, fields, groupBys, query, sortBys, yAxes, caseInsensitive}) =>
+        JSON.stringify({
+          chartType,
+          fields,
+          groupBys,
+          query,
+          sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
+          yAxes,
+          caseInsensitive: caseInsensitive ? '1' : undefined,
+        })
     ),
     title,
     id,
@@ -231,7 +251,11 @@ export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {
   let highs = 0;
   let nulls = 0;
 
-  for (const s of series) {
+  // We filter the series because there are cases where the series is a sparse array,
+  // meaning we have possible undefined values. This typically happens in multi-yaxis
+  // charts when we have a grouping so the data is positioned in such a way to make
+  // series colors consistent when rendering
+  for (const s of series.filter(defined)) {
     const confidence = determineTimeSeriesConfidence(s);
     if (confidence === 'low') {
       lows += 1;
@@ -403,10 +427,7 @@ export function viewSamplesTarget({
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
-  if (
-    organization.features.includes('performance-trace-explorer') ||
-    organization.features.includes('visibility-explore-view')
-  ) {
+  if (organization.features.includes('visibility-explore-view')) {
     return 'traces';
   }
 
@@ -461,6 +482,7 @@ export function findSuggestedColumns(
   newSearch: MutableSearch,
   oldSearch: MutableSearch,
   attributes: {
+    booleanAttributes: TagCollection;
     numberAttributes: TagCollection;
     stringAttributes: TagCollection;
   }
@@ -468,7 +490,7 @@ export function findSuggestedColumns(
   const oldFilters = oldSearch.filters;
   const newFilters = newSearch.filters;
 
-  const keys: Set<string> = new Set();
+  const keys = new Set<string>();
 
   for (const [key, value] of Object.entries(newFilters)) {
     if (key === 'has' || key === '!has') {
@@ -482,9 +504,12 @@ export function findSuggestedColumns(
     const isNumberAttribute = key.startsWith('!')
       ? key.slice(1) in attributes.numberAttributes
       : key in attributes.numberAttributes;
+    const isBooleanAttribute = key.startsWith('!')
+      ? key.slice(1) in attributes.booleanAttributes
+      : key in attributes.booleanAttributes;
 
     // guard against unknown keys and aggregate keys
-    if (!isStringAttribute && !isNumberAttribute) {
+    if (!isStringAttribute && !isNumberAttribute && !isBooleanAttribute) {
       continue;
     }
 
@@ -529,6 +554,7 @@ function isSimpleFilter(
   key: string,
   value: string[],
   attributes: {
+    booleanAttributes: TagCollection;
     numberAttributes: TagCollection;
     stringAttributes: TagCollection;
   }
@@ -543,6 +569,12 @@ function isSimpleFilter(
   // almost always match on a range of values
   if (key in attributes.numberAttributes) {
     return false;
+  }
+
+  // boolean attributes are always considered trivial because they almost match on a
+  // single value, so there's no value in adding a column
+  if (key in attributes.booleanAttributes) {
+    return true;
   }
 
   if (value.length === 1) {
@@ -640,6 +672,29 @@ export function getSavedQueryTraceItemUrl({
   return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
 }
 
+function getReplayUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const firstQuery = savedQuery.query[0];
+  const queryParams = {
+    query: firstQuery?.query,
+    project: savedQuery.projects,
+    environment: savedQuery.environment,
+    start: normalizeDateTimeString(savedQuery.start),
+    end: normalizeDateTimeString(savedQuery.end),
+    statsPeriod: savedQuery.range,
+    id: savedQuery.id,
+    title: savedQuery.name,
+  };
+
+  const queryString = qs.stringify(queryParams, {skipNull: true});
+  return `${makeReplaysPathname({organization, path: '/'})}?${queryString}`;
+}
+
 const TRACE_ITEM_TO_URL_FUNCTION: Record<
   TraceItemDataset,
   | (({
@@ -655,6 +710,9 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
   [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
+  [TraceItemDataset.PREPROD]: undefined,
+  [TraceItemDataset.REPLAYS]: getReplayUrlFromSavedQueryUrl,
+  [TraceItemDataset.PROCESSING_ERRORS]: undefined,
 };
 
 /**

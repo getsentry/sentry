@@ -12,7 +12,7 @@ from rest_framework.exceptions import ValidationError
 from sentry import analytics
 from sentry.analytics.events.codeowners_max_length_exceeded import CodeOwnersMaxLengthExceeded
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, JSONField, Model, cell_silo_model, sane_repr
 from sentry.issues.ownership.grammar import (
     convert_codeowners_syntax,
     create_schema_from_issue_owners,
@@ -24,9 +24,8 @@ logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
-@region_silo_model
+@cell_silo_model
 class ProjectCodeOwners(Model):
-
     __relocation_scope__ = RelocationScope.Excluded
     # no db constraint to prevent locks on the Project table
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
@@ -151,18 +150,14 @@ def modify_date_updated(instance, **kwargs):
 
 def process_resource_change(instance, change, **kwargs):
     from sentry.models.groupowner import GroupOwner
-    from sentry.models.projectownership import ProjectOwnership
 
     cache.set(
         ProjectCodeOwners.get_cache_key(instance.project_id),
         None,
         READ_CACHE_DURATION,
     )
-    ownership = ProjectOwnership.get_ownership_cached(instance.project_id)
-    if not ownership:
-        ownership = ProjectOwnership(project_id=instance.project_id)
 
-    GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
+    GroupOwner.set_project_ownership_version(instance.project_id)
 
 
 pre_save.connect(

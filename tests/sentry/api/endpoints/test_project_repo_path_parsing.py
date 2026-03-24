@@ -180,6 +180,13 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Enter a valid URL."]}
 
+    def test_malformed_source_url_empty_source_path(self) -> None:
+        source_url = "https://github.com/getsentry/sentry/tree/master/src/sentry/api/endpoints/project_stacktrace_link.py"
+        stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 400, resp.content
+        assert resp.data == {"detail": "Could not determine code mapping from provided paths"}
+
     def test_wrong_file(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_releases.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
@@ -211,14 +218,21 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
-    def test_unsupported_frame_info(self) -> None:
+    def test_single_file_path(self) -> None:
         source_url = (
             "https://github.com/getsentry/sentry/blob/master/src/project_stacktrace_link.py"
         )
         stack_path = "project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
-        assert resp.status_code == 400, resp.content
-        assert resp.data == {"detail": "Unsupported frame info"}
+        assert resp.status_code == 200, resp.content
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "",
+            "sourceRoot": "src/",
+            "defaultBranch": "master",
+        }
 
     def test_basic(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
@@ -409,3 +423,18 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
 
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
+
+    def test_strips_query_params_from_source_url(self) -> None:
+        source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py?ref_type=heads"
+        stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "gitlab",
+            "stackRoot": "sentry/",
+            "sourceRoot": "src/sentry/",
+            "defaultBranch": "master",
+        }

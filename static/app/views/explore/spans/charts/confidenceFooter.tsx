@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -111,7 +112,7 @@ function confidenceMessage({
         ? t('%s matches', <Count value={sampleCount} />)
         : t('%s match', <Count value={sampleCount} />);
 
-    const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+    const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
       rawSpanCounts.highAccuracy.count > 1 ? (
         t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
       ) : (
@@ -146,7 +147,7 @@ function confidenceMessage({
           ? t('%s samples', <Count value={sampleCount} />)
           : t('%s sample', <Count value={sampleCount} />);
 
-      const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+      const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
         rawSpanCounts.highAccuracy.count > 1 ? (
           t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
         ) : (
@@ -219,7 +220,7 @@ function confidenceMessage({
         ? t('%s matches', <Count value={sampleCount} />)
         : t('%s match', <Count value={sampleCount} />);
 
-    const scannedSpansCount = rawSpanCounts.normal.count ? (
+    const scannedSpansCount = defined(rawSpanCounts.normal.count) ? (
       rawSpanCounts.normal.count > 1 ? (
         t('%s samples', <Count value={rawSpanCounts.normal.count} />)
       ) : (
@@ -229,7 +230,7 @@ function confidenceMessage({
       <Placeholder width={40} />
     );
 
-    const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+    const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
       rawSpanCounts.highAccuracy.count > 1 ? (
         t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
       ) : (
@@ -273,7 +274,7 @@ function confidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-  const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+  const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
     rawSpanCounts.highAccuracy.count > 1 ? (
       t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
     ) : (
@@ -363,6 +364,6 @@ function _LowAccuracyFullTooltip({
 }
 
 const Container = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;

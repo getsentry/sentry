@@ -1,19 +1,21 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
-import Placeholder from 'sentry/components/placeholder';
+import {useFeedbackCategories} from 'sentry/components/feedback/list/useFeedbackCategories';
+import {Placeholder} from 'sentry/components/placeholder';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-function getSearchTermForLabel(label: string, hasWildcardOps: boolean) {
+function getSearchTermForLabel(label: string) {
   /**
    * Return exactly what we have to pass to the search API
    * The search API uses a very similar (almost exactly the same, except wildcards) escape logic to JSON.stringify, so doing it twice just "makes it work"
@@ -26,36 +28,29 @@ function getSearchTermForLabel(label: string, hasWildcardOps: boolean) {
   const toPassToSearch = escapeFilterValue(JSON.stringify(JSON.stringify(label)));
   // Now, add the wildcards to the string (second spot and second-last spot, since we want them inside the second pair of quotes)
   // The first and last quotes are added by the second JSON.stringify, we just manually add them back
-  return hasWildcardOps
-    ? `"${toPassToSearch.slice(1, -1)}"`
-    : `"*${toPassToSearch.slice(1, -1)}*"`;
+  return `"${toPassToSearch.slice(1, -1)}"`;
 }
 
-function getSearchTermForLabelList(labels: string[], hasWildcardOps: boolean) {
+function getSearchTermForLabelList(labels: string[]) {
   labels.sort();
-  const searchTerms = labels.map(label => getSearchTermForLabel(label, hasWildcardOps));
+  const searchTerms = labels.map(label => getSearchTermForLabel(label));
   return `[${searchTerms.join(',')}]`;
 }
 
-export default function FeedbackCategories() {
+export function FeedbackCategories() {
   const {isError, isPending, categories, tooFewFeedbacks} = useFeedbackCategories();
   // if we are showing this component, gen-ai-features must be true
   // and org.hideAiFeatures must be false,
   // but we still need to check that their seer acknowledgement exists
-  const {setupAcknowledgement, isPending: isOrgSeerSetupPending} =
-    useOrganizationSeerSetup();
+  const {isPending: isOrgSeerSetupPending} = useOrganizationSeerSetup();
 
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
 
-  const hasWildcardOperators = organization.features.includes(
-    'search-query-builder-wildcard-operators'
-  );
-
   useEffect(() => {
     // Analytics for the rendered state. Should match the conditions below.
-    if (isPending || isOrgSeerSetupPending || !setupAcknowledgement.orgHasAcknowledged) {
+    if (isPending || isOrgSeerSetupPending) {
       return;
     }
     if (isError) {
@@ -81,7 +76,6 @@ export default function FeedbackCategories() {
     isError,
     tooFewFeedbacks,
     categories,
-    setupAcknowledgement.orgHasAcknowledged,
     isPending,
     isOrgSeerSetupPending,
   ]);
@@ -98,13 +92,7 @@ export default function FeedbackCategories() {
 
   // The assumption is that if categories are enabled, then summaries are definitely enabled.
   // Both are wrapped in a parent component. Summary has its own states for these cases, so we can just return null.
-  if (
-    isError ||
-    tooFewFeedbacks ||
-    !categories ||
-    categories.length === 0 ||
-    !setupAcknowledgement.orgHasAcknowledged
-  ) {
+  if (isError || tooFewFeedbacks || !categories || categories.length === 0) {
     return null;
   }
 
@@ -114,7 +102,7 @@ export default function FeedbackCategories() {
   }) => {
     // Create search terms for primary label and all associated labels
     const allLabels = [category.primaryLabel, ...category.associatedLabels];
-    const exactSearchTerm = getSearchTermForLabelList(allLabels, hasWildcardOperators);
+    const exactSearchTerm = getSearchTermForLabelList(allLabels);
     const currentFilters = searchConditions.getFilterValues('ai_categorization.labels');
 
     // Only show a tag as selected if it is the only filter, and the search term matches exactly
@@ -127,7 +115,7 @@ export default function FeedbackCategories() {
   }) => {
     const allLabels = [category.primaryLabel, ...category.associatedLabels];
 
-    const exactSearchTerm = getSearchTermForLabelList(allLabels, hasWildcardOperators);
+    const exactSearchTerm = getSearchTermForLabelList(allLabels);
 
     const isSelected = isCategorySelected(category);
 
@@ -139,19 +127,11 @@ export default function FeedbackCategories() {
       newSearchConditions.removeFilter('ai_categorization.labels');
 
       // Don't escape the search term, since we want wildcards to work; escape the string ourselves before adding the wildcards
-      if (hasWildcardOperators) {
-        newSearchConditions.addContainsFilterValue(
-          'ai_categorization.labels',
-          exactSearchTerm,
-          false
-        );
-      } else {
-        newSearchConditions.addFilterValue(
-          'ai_categorization.labels',
-          exactSearchTerm,
-          false
-        );
-      }
+      newSearchConditions.addContainsFilterValue(
+        'ai_categorization.labels',
+        exactSearchTerm,
+        false
+      );
 
       trackAnalytics('feedback.summary.category-selected', {
         organization,
@@ -171,13 +151,13 @@ export default function FeedbackCategories() {
 
   // TODO: after all feedbacks have the .labels tag, uncomment the feedback count
   return (
-    <TagsContainer>
+    <Flex wrap="wrap" gap="xs">
       {categories.map((category, index) => {
         const selected = isCategorySelected(category);
         return (
           <ClickableTag
             key={index}
-            type={selected ? 'info' : 'default'}
+            variant={selected ? 'info' : 'muted'}
             onClick={() => handleTagClick(category)}
             selected={selected}
           >
@@ -186,15 +166,9 @@ export default function FeedbackCategories() {
           </ClickableTag>
         );
       })}
-    </TagsContainer>
+    </Flex>
   );
 }
-
-const TagsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${p => p.theme.space.xs};
-`;
 
 const ClickableTag = styled(Tag)<{selected: boolean}>`
   cursor: pointer;
@@ -210,5 +184,5 @@ const ClickableTag = styled(Tag)<{selected: boolean}>`
 const LoadingPlaceholder = styled(Placeholder)`
   height: 16px;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;

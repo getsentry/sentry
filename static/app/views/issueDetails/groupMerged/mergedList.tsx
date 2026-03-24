@@ -1,17 +1,15 @@
 import {Fragment} from 'react';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useLocation} from 'sentry/utils/useLocation';
 
-import MergedItem from './mergedItem';
+import {MergedItem} from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
 
 type Props = {
@@ -24,18 +22,16 @@ type Props = {
    * From GroupMergedView -> handleUnmerge
    */
   onUnmerge: () => void;
-  organization: Organization;
   project: Project;
   fingerprints?: Fingerprint[];
   pageLinks?: string;
 };
 
-function MergedList({
+export function MergedList({
   fingerprints = [],
   pageLinks,
   onToggleCollapse,
   onUnmerge,
-  organization,
   groupId,
   project,
 }: Props) {
@@ -43,7 +39,6 @@ function MergedList({
     ({latestEvent}) => !!latestEvent
   );
   const hasResults = fingerprintsWithLatestEvent.length > 0;
-  const location = useLocation();
   if (!hasResults) {
     return (
       <Panel>
@@ -60,10 +55,8 @@ function MergedList({
         <MergedToolbar
           onToggleCollapse={onToggleCollapse}
           onUnmerge={onUnmerge}
-          orgId={organization.slug}
           project={project}
           groupId={groupId}
-          location={location}
         />
 
         <PanelBody>
@@ -80,5 +73,3 @@ function MergedList({
     </Fragment>
   );
 }
-
-export default MergedList;

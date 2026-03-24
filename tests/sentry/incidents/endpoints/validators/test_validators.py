@@ -51,7 +51,6 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "type": Condition.GREATER,
             "comparison": 100,
             "conditionResult": DetectorPriorityLevel.HIGH,
-            "conditionGroupId": self.data_condition_group.id,
         }
 
     def test(self) -> None:
@@ -61,7 +60,6 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "comparison": 100.0,
             "condition_result": DetectorPriorityLevel.HIGH,
             "type": Condition.GREATER,
-            "condition_group_id": self.data_condition_group.id,
         }
 
     def test_invalid_condition(self) -> None:
@@ -133,10 +131,12 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         self.environment = Environment.objects.create(
             organization_id=self.project.organization_id, name="production"
         )
+        request = self.make_request(user=self.user)
         self.context = {
             "organization": self.project.organization,
             "project": self.project,
-            "request": self.make_request(),
+            "request": request,
+            "user": request.user,
         }
         self.valid_data = {
             "name": "Test Detector",
@@ -285,7 +285,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
 
 class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator):
-
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(
@@ -303,9 +302,7 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         )
         mock_schedule_update_project_config.assert_called_once_with(detector)
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_anomaly_detection(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
@@ -360,9 +357,7 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         )
         assert not validator.is_valid()
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     def test_anomaly_detection__send_historical_data_fails(
         self, mock_seer_request: mock.MagicMock
     ) -> None:
@@ -528,6 +523,19 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             validator.save()
 
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.log_alerting_quota_hit")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_enforce_quota_calls_log(
+        self, mock_log: mock.MagicMock, mock_get_limit: mock.MagicMock
+    ) -> None:
+        mock_get_limit.return_value = 0
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        validator.is_valid()
+        with pytest.raises(ValidationError):
+            validator.save()
+        mock_log.assert_called_once()
+
     @with_feature("organizations:discover-saved-queries-deprecation")
     def test_transaction_dataset_deprecation_transactions(self) -> None:
         data = {
@@ -553,7 +561,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             validator.save()
 
     @with_feature("organizations:discover-saved-queries-deprecation")
-    @with_feature("organizations:mep-rollout-flag")
     def test_transaction_dataset_deprecation_generic_metrics(self) -> None:
         data = {
             **self.valid_data,
@@ -601,6 +608,143 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
         ):
             validator.save()
+
+
+class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
+    def setUp(self) -> None:
+        super().setUp()
+        self.trace_metrics_data = {
+            "name": "Trace Metrics Detector",
+            "type": MetricIssue.slug,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "",
+                    "aggregate": "per_second(value,metric_name_one,counter,-)",
+                    "timeWindow": 300,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.name.lower()],
+                }
+            ],
+            "conditionGroup": {
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                    },
+                ],
+            },
+            "config": {
+                "thresholdPeriod": 1,
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+            },
+        }
+
+    @with_feature(
+        {
+            "organizations:performance-view": False,
+            "organizations:tracemetrics-alerts": False,
+            "organizations:tracemetrics-enabled": False,
+        }
+    )
+    def test_create_detector_trace_metrics_feature_flag_disabled(self) -> None:
+        validator = MetricIssueDetectorValidator(
+            data=self.trace_metrics_data,
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        data_sources_errors = validator.errors.get("dataSources")
+        assert data_sources_errors is not None
+        assert "You do not have access to the metrics alerts feature." in str(data_sources_errors)
+
+    @with_feature(
+        [
+            "organizations:incidents",
+            "organizations:performance-view",
+            "organizations:tracemetrics-alerts",
+            "organizations:tracemetrics-enabled",
+        ]
+    )
+    def test_create_detector_trace_metrics_invalid_aggregate(self) -> None:
+        data = {
+            **self.trace_metrics_data,
+            "dataSources": [
+                {
+                    **self.trace_metrics_data["dataSources"][0],  # type: ignore[index]
+                    "aggregate": "count(trace.duration)",
+                }
+            ],
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert "Invalid trace metrics aggregate" in str(validator.errors)
+
+    @with_feature(
+        [
+            "organizations:incidents",
+            "organizations:performance-view",
+            "organizations:tracemetrics-alerts",
+            "organizations:tracemetrics-enabled",
+        ]
+    )
+    def test_create_detector_trace_metrics_valid_aggregates(self) -> None:
+        data_per_second = {
+            **self.trace_metrics_data,
+            "name": "Trace Metrics Per Second Detector",
+            "dataSources": [
+                {
+                    **self.trace_metrics_data["dataSources"][0],  # type: ignore[index]
+                    "aggregate": "per_second(value,metric_name_one,counter,-)",
+                }
+            ],
+        }
+        validator_per_second = MetricIssueDetectorValidator(
+            data=data_per_second, context=self.context
+        )
+        assert validator_per_second.is_valid(), validator_per_second.errors
+
+        with self.tasks():
+            detector_per_second = validator_per_second.save()
+
+        assert detector_per_second.name == "Trace Metrics Per Second Detector"
+        data_source_per_second = DataSource.objects.get(detector=detector_per_second)
+        query_sub_per_second = QuerySubscription.objects.get(id=data_source_per_second.source_id)
+        assert (
+            query_sub_per_second.snuba_query.aggregate
+            == "per_second(value,metric_name_one,counter,-)"
+        )
+
+        data_count = {
+            **self.trace_metrics_data,
+            "name": "Trace Metrics Count Detector",
+            "dataSources": [
+                {
+                    **self.trace_metrics_data["dataSources"][0],  # type: ignore[index]
+                    "aggregate": "count(metric.name,metric_name_two,distribution,-)",
+                }
+            ],
+        }
+        validator_count = MetricIssueDetectorValidator(data=data_count, context=self.context)
+        assert validator_count.is_valid(), validator_count.errors
+
+        with self.tasks():
+            detector_count = validator_count.save()
+
+        assert detector_count.name == "Trace Metrics Count Detector"
+        data_source_count = DataSource.objects.get(detector=detector_count)
+        query_sub_count = QuerySubscription.objects.get(id=data_source_count.source_id)
+        assert (
+            query_sub_count.snuba_query.aggregate
+            == "count(metric.name,metric_name_two,distribution,-)"
+        )
 
 
 class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator):
@@ -724,9 +868,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         assert snuba_query.query_snapshot is None
 
     @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_to_static(
         self,
@@ -764,9 +906,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
 
         assert mock_seer_delete_request.call_count == 1
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_from_static(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
@@ -826,9 +966,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             data=dynamic_detector.get_audit_log_data(),
         )
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_snuba_query_query(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
@@ -896,9 +1034,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             data=dynamic_detector.get_audit_log_data(),
         )
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_snuba_query_aggregate(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
@@ -966,9 +1102,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         )
 
     @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_no_config(
         self,
@@ -1040,9 +1174,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             data=dynamic_detector.get_audit_log_data(),
         )
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_snuba_query_to_perf(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
@@ -1099,9 +1231,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             data=dynamic_detector.get_audit_log_data(),
         )
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch(
         "sentry.seer.anomaly_detection.store_data_workflow_engine.handle_send_historical_data_to_seer"
     )
@@ -1155,9 +1285,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             [SnubaQueryEventType.EventType.TRANSACTION],
         )
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     def test_anomaly_detection__send_historical_data_update_fails(
         self, mock_seer_request: mock.MagicMock
     ) -> None:
@@ -1195,9 +1323,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     def test_anomaly_detection__send_historical_data_snuba_update_fails(
         self, mock_seer_request: mock.MagicMock
     ) -> None:
@@ -1260,7 +1386,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         updated_detector = update_validator.save()
         assert updated_detector.name == "Updated Detector Name"
 
-    @with_feature("organizations:mep-rollout-flag")
     def test_transaction_dataset_deprecation_generic_metrics_update(self) -> None:
         data = {
             **self.valid_data,
@@ -1306,6 +1431,51 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             update_validator.save()
 
+    def test_transaction_dataset_deprecation_update_to_transactions(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                },
+            ],
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        update_data = {
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.Transactions.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        with (
+            self.assertRaisesMessage(
+                ValidationError,
+                expected_message="Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
+            ),
+            with_feature("organizations:discover-saved-queries-deprecation"),
+        ):
+            update_validator.save()
+
     def test_invalid_extrapolation_mode_create(self) -> None:
         data = {
             **self.valid_data,
@@ -1324,12 +1494,12 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         }
 
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
-        assert validator.is_valid(), validator.errors
-        with self.assertRaisesMessage(
-            ValidationError,
-            expected_message="server_weighted extrapolation mode is not supported for new detectors.",
-        ):
-            validator.save()
+        assert not validator.is_valid()
+        assert validator.errors
+        assert (
+            validator.errors["dataSources"]["nonFieldErrors"][0]
+            == "Invalid extrapolation mode for this alert type: server_weighted. Allowed modes are: client_and_server_weighted, unknown."
+        )
 
     def test_invalid_extrapolation_mode_update(self) -> None:
         data = {
@@ -1370,12 +1540,12 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         update_validator = MetricIssueDetectorValidator(
             instance=detector, data=update_data, context=self.context, partial=True
         )
-        assert update_validator.is_valid(), update_validator.errors
-        with self.assertRaisesMessage(
-            ValidationError,
-            expected_message="Invalid extrapolation mode for this detector type.",
-        ):
-            update_validator.save()
+        assert not update_validator.is_valid()
+        assert update_validator.errors
+        assert (
+            update_validator.errors["dataSources"]["nonFieldErrors"][0]
+            == "Invalid extrapolation mode for this alert type: server_weighted. Allowed modes are: client_and_server_weighted, unknown."
+        )
 
     def test_nonexistent_extrapolation_mode_create(self) -> None:
         data = {
@@ -1397,7 +1567,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid(), validator.errors
         assert (
-            validator.errors["dataSources"]["extrapolationMode"][0]
+            validator.errors["dataSources"]["nonFieldErrors"][0]
             == "Invalid extrapolation mode: blah"
         )
 
@@ -1443,6 +1613,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
 
         assert not update_validator.is_valid(), update_validator.errors
         assert (
-            update_validator.errors["dataSources"]["extrapolationMode"][0]
+            update_validator.errors["dataSources"]["nonFieldErrors"][0]
             == "Invalid extrapolation mode: blah"
         )

@@ -11,7 +11,7 @@ import {
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const BASE_FILTERS = {
+export const BASE_FILTERS = {
   [SpanFields.SPAN_CATEGORY]: ModuleName.DB,
   has: SpanFields.NORMALIZED_DESCRIPTION,
 };
@@ -59,7 +59,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Queries Per Minute'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
-      interval: '',
+      interval: '5m',
       queries: [
         {
           name: QUERIES_PER_MINUTE_TEXT,
@@ -83,15 +83,15 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Average Duration'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
-      interval: '',
+      interval: '5m',
       queries: [
         {
           name: AVERAGE_DURATION_TEXT,
           conditions: FILTER_STRING,
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
       layout: {
@@ -107,7 +107,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Queries List'),
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
-      interval: '',
+      interval: '5m',
       tableWidths: [-1, -1, -1, -1],
       queries: [
         {
@@ -116,16 +116,16 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [
             SpanFields.NORMALIZED_DESCRIPTION,
             'epm()',
-            `avg(${SpanFields.SPAN_SELF_TIME})`,
-            `sum(${SpanFields.SPAN_SELF_TIME})`,
+            `avg(${SpanFields.SPAN_DURATION})`,
+            `sum(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
             'epm()',
-            `avg(${SpanFields.SPAN_SELF_TIME})`,
-            `sum(${SpanFields.SPAN_SELF_TIME})`,
+            `avg(${SpanFields.SPAN_DURATION})`,
+            `sum(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
-          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `-sum(${SpanFields.SPAN_DURATION})`,
           fieldAliases: [
             t('Query Description'),
             `${t('Queries')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
@@ -150,4 +150,5 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.DB},
 };

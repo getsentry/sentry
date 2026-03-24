@@ -1,51 +1,53 @@
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import PanelBody from 'sentry/components/panels/panelBody';
-import {space} from 'sentry/styles/space';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
+import {PanelBody} from 'sentry/components/panels/panelBody';
 
 export const SubscriptionBody = styled(PanelBody)`
   display: grid;
   grid-auto-flow: column;
   justify-content: space-between;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
 
   h3 {
-    margin-bottom: ${space(1)};
-    font-size: ${p => p.theme.fontSize.xl};
+    margin-bottom: ${p => p.theme.space.md};
+    font-size: ${p => p.theme.font.size.xl};
     font-weight: 400;
   }
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: row;
     grid-auto-columns: 1fr;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space.md};
   }
 `;
 
-export const ButtonWrapper = styled(ButtonBar)`
+export const ButtonWrapper = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   align-self: center;
   justify-self: end;
 `;
 
 export const StripedTable = styled('table')`
   width: 100%;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
 
   tr:nth-child(2n + 1) td {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 export const AlertStripedTable = styled(StripedTable)`
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   th {
     text-transform: uppercase;
     text-align: center;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 
   td:first-child,
@@ -61,13 +63,13 @@ export const AlertStripedTable = styled(StripedTable)`
 
   td,
   th {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
   }
 `;
 
 export const PanelBodyWithTable = styled(PanelBody)`
   display: grid;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(2, 1fr);
@@ -78,6 +80,6 @@ export const PanelBodyWithTable = styled(PanelBody)`
 
   h4 {
     font-weight: 400;
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
 `;

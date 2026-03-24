@@ -2,127 +2,58 @@ from __future__ import annotations
 
 import importlib
 from abc import ABC, abstractmethod
-from enum import StrEnum
-from typing import Any, Literal
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client_models import CustomToolDefinition
 
-
-class ExplorerParamType(StrEnum):
-    """Allowed parameter types for Explorer tools."""
-
-    STRING = "string"
-    INTEGER = "integer"
-    NUMBER = "number"
-    BOOLEAN = "boolean"
-    ARRAY = "array"
+ParamsT = TypeVar("ParamsT", bound=BaseModel)
 
 
-# Type specifications for different parameter types
-class StringType(BaseModel):
-    """Simple string type."""
-
-    kind: Literal["string"] = "string"
-
-
-class IntegerType(BaseModel):
-    """Simple integer type."""
-
-    kind: Literal["integer"] = "integer"
-
-
-class NumberType(BaseModel):
-    """Simple number (float) type."""
-
-    kind: Literal["number"] = "number"
-
-
-class BooleanType(BaseModel):
-    """Simple boolean type."""
-
-    kind: Literal["boolean"] = "boolean"
-
-
-class EnumType(BaseModel):
-    """String restricted to specific values."""
-
-    kind: Literal["enum"] = "enum"
-    values: list[str]
-
-
-class ArrayType(BaseModel):
-    """Array with typed elements."""
-
-    kind: Literal["array"] = "array"
-    item_type: ExplorerParamType
-
-
-ParamTypeSpec = StringType | IntegerType | NumberType | BooleanType | EnumType | ArrayType
-
-
-class ExplorerToolParam(BaseModel):
-    """Parameter definition for an Explorer tool.
-
-    Examples:
-        # String parameter
-        ExplorerToolParam(
-            name="query",
-            description="Search query",
-            type=StringType()
-        )
-
-        # Array of strings
-        ExplorerToolParam(
-            name="tags",
-            description="List of tags",
-            type=ArrayType(item_type=ExplorerParamType.STRING)
-        )
-
-        # Enum parameter
-        ExplorerToolParam(
-            name="status",
-            description="Status",
-            type=EnumType(values=["active", "inactive"])
-        )
-    """
-
-    name: str
-    description: str
-    type: ParamTypeSpec
-    required: bool = True
-
-
-class ExplorerTool(ABC):
+class ExplorerTool(ABC, Generic[ParamsT]):
     """Base class for custom Explorer tools.
 
+    Define parameters via a Pydantic model.
+
     Example:
-        class DeploymentStatusTool(ExplorerTool):
+        from pydantic import BaseModel, Field
+
+        class DeploymentStatusParams(BaseModel):
+            environment: str = Field(description="Environment name (e.g., 'production', 'staging')")
+            service: str = Field(description="Service name")
+
+        class DeploymentStatusTool(ExplorerTool[DeploymentStatusParams]):
+            params_model = DeploymentStatusParams
+
             @classmethod
             def get_description(cls) -> str:
                 return "Check if a service is deployed in an environment"
 
             @classmethod
-            def get_params(cls) -> list[ExplorerToolParam]:
-                return [
-                    ExplorerToolParam(
-                        name="environment",
-                        description="Environment name",
-                        type=StringType(),
-                    ),
-                    ExplorerToolParam(
-                        name="service",
-                        description="Service name",
-                        type=StringType(),
-                    ),
-                ]
-
-            @classmethod
-            def execute(cls, organization: Organization, **kwargs) -> str:
-                return check_deployment(organization, kwargs["environment"], kwargs["service"])
+            def execute(cls, organization: Organization, params: DeploymentStatusParams) -> str:
+                return check_deployment(organization, params.environment, params.service)
     """
+
+    # Define a Pydantic model for parameters
+    params_model: type[ParamsT]
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        # Skip validation for abstract subclasses
+        if ABC in cls.__bases__:
+            return
+        if not hasattr(cls, "params_model") or cls.params_model is None:
+            raise TypeError(
+                f"{cls.__name__} must define a params_model class attribute. "
+                "Use an empty BaseModel if no parameters are needed."
+            )
+        if not isinstance(cls.params_model, type) or not issubclass(cls.params_model, BaseModel):
+            raise TypeError(
+                f"{cls.__name__}.params_model must be a Pydantic BaseModel subclass, "
+                f"got {type(cls.params_model)}"
+            )
 
     @classmethod
     @abstractmethod
@@ -132,14 +63,8 @@ class ExplorerTool(ABC):
 
     @classmethod
     @abstractmethod
-    def get_params(cls) -> list[ExplorerToolParam]:
-        """Return the list of parameter definitions for this tool."""
-        ...
-
-    @classmethod
-    @abstractmethod
-    def execute(cls, organization: Organization, **kwargs) -> str:
-        """Execute the tool with the given organization and parameters."""
+    def execute(cls, organization: Organization, params: ParamsT) -> str:
+        """Execute the tool with the given organization and validated parameters."""
         ...
 
     @classmethod
@@ -152,14 +77,14 @@ class ExplorerTool(ABC):
         return f"{cls.__module__}.{cls.__name__}"
 
 
-def extract_tool_schema(tool_class: type[ExplorerTool]) -> CustomToolDefinition:
+def extract_tool_schema(tool_class: type[ExplorerTool[Any]]) -> CustomToolDefinition:
     """Extract tool schema from an ExplorerTool class.
 
     Args:
         tool_class: A class that inherits from ExplorerTool
 
     Returns:
-        CustomToolDefinition with the tool's name, description, parameters, and module path
+        CustomToolDefinition with the tool's name, description, param_schema, and module path
     """
     # Enforce module-level classes only (no nested classes)
     if "." in tool_class.__qualname__:
@@ -168,43 +93,11 @@ def extract_tool_schema(tool_class: type[ExplorerTool]) -> CustomToolDefinition:
             f"Nested classes are not supported. (qualname: {tool_class.__qualname__})"
         )
 
-    params = tool_class.get_params()
-
-    # Convert ExplorerToolParam list to parameter dicts
-    parameters: list[dict[str, Any]] = []
-    required: list[str] = []
-    for param in params:
-        param_dict: dict[str, Any] = {
-            "name": param.name,
-            "description": param.description,
-        }
-
-        # Extract type information based on the type spec
-        type_spec = param.type
-        if isinstance(type_spec, EnumType):
-            param_dict["type"] = "string"
-            param_dict["enum"] = type_spec.values
-        elif isinstance(type_spec, ArrayType):
-            param_dict["type"] = "array"
-            param_dict["items"] = {"type": type_spec.item_type.value}
-        else:
-            # Simple types: StringType, IntegerType, etc.
-            param_dict["type"] = type_spec.kind
-
-        parameters.append(param_dict)
-
-        # Track required parameters
-        if param.required:
-            required.append(param.name)
-
-    description = tool_class.get_description()
-
     return CustomToolDefinition(
         name=tool_class.__name__,
         module_path=tool_class.get_module_path(),
-        description=description,
-        parameters=parameters,
-        required=required,
+        description=tool_class.get_description(),
+        param_schema=tool_class.params_model.schema(),
     )
 
 
@@ -256,9 +149,15 @@ def call_custom_tool(
     if not isinstance(tool_class, type) or not issubclass(tool_class, ExplorerTool):
         raise ValueError(f"{module_path} must be a class that inherits from ExplorerTool")
 
+    # Validate and parse params through the model
+    try:
+        params = tool_class.params_model(**kwargs)
+    except Exception as e:
+        raise ValueError(f"Invalid parameters for {module_path}: {e}")
+
     # Execute the tool
     try:
-        result = tool_class.execute(organization, **kwargs)
+        result = tool_class.execute(organization, params)
     except Exception as e:
         raise RuntimeError(f"Error executing custom tool {module_path}: {e}")
 

@@ -7,6 +7,32 @@ import {DataCategory} from 'sentry/types/core';
 import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
+  it('returns 90/90 for transactions', () => {
+    const {result} = renderHookWithProviders(() =>
+      useMaxPickableDays({
+        dataCategories: [DataCategory.TRANSACTIONS],
+      })
+    );
+
+    expect(result.current).toEqual({
+      maxPickableDays: 90,
+      maxUpgradableDays: 90,
+    });
+  });
+
+  it('returns 90/90 for replays', () => {
+    const {result} = renderHookWithProviders(() =>
+      useMaxPickableDays({
+        dataCategories: [DataCategory.REPLAYS],
+      })
+    );
+
+    expect(result.current).toEqual({
+      maxPickableDays: 90,
+      maxUpgradableDays: 90,
+    });
+  });
+
   it('returns 30/90 for spans without flag', () => {
     const {result} = renderHookWithProviders(() =>
       useMaxPickableDays({

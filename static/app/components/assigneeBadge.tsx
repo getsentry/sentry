@@ -1,19 +1,18 @@
 import {Fragment} from 'react';
-import {type DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Tag} from 'sentry/components/core/badge';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
@@ -34,6 +33,7 @@ export function AssigneeBadge({
   loading = false,
   isTooltipDisabled,
 }: AssigneeBadgeProps) {
+  const theme = useTheme();
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
     suspectCommit: tct('Based on [commit:commit data]', {
       commit: (
@@ -57,13 +57,13 @@ export function AssigneeBadge({
           // Team avatars need extra left margin since the
           // square team avatar is being fit into a rounded borders
           style={{
-            marginLeft: actor.type === 'team' ? space(0.5) : '0',
+            marginLeft: actor.type === 'team' ? theme.space.xs : '0',
           }}
         />
         {showLabel && (
           <StyledText>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</StyledText>
         )}
-        <IconChevron color="subText" direction={chevronDirection} size="xs" />
+        <IconChevron variant="muted" direction={chevronDirection} size="xs" />
       </Fragment>
     );
   };
@@ -72,7 +72,7 @@ export function AssigneeBadge({
     <Fragment>
       <StyledLoadingIndicator mini relative size={AVATAR_SIZE} />
       {showLabel && 'Loading...'}
-      <IconChevron color="subText" direction={chevronDirection} size="xs" />
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
@@ -85,12 +85,12 @@ export function AssigneeBadge({
         height={`${AVATAR_SIZE}px`}
       />
       {showLabel && <Fragment>Unassigned</Fragment>}
-      <IconChevron color="subText" direction={chevronDirection} size="xs" />
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
   return loading ? (
-    <StyledTag icon={loadingIcon} />
+    <StyledTag icon={loadingIcon} variant="muted" />
   ) : assignedTo ? (
     <Tooltip
       isHoverable
@@ -106,7 +106,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <StyledTag icon={makeAssignedIcon(assignedTo)} />
+      <StyledTag icon={makeAssignedIcon(assignedTo)} variant="muted" />
     </Tooltip>
   ) : (
     <Tooltip
@@ -129,7 +129,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <UnassignedTag icon={unassignedIcon} />
+      <UnassignedTag icon={unassignedIcon} variant="muted" />
     </Tooltip>
   );
 }
@@ -144,38 +144,37 @@ const TooltipWrapper = styled('div')`
 `;
 
 const StyledText = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 114px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledTag = styled(Tag)`
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   height: 24px;
-  padding: ${space(0.5)};
-  padding-right: ${space(0.25)};
-  color: ${p => p.theme.subText};
+  padding: ${p => p.theme.space.xs};
+  padding-right: ${p => p.theme.space['2xs']};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const UnassignedTag = withChonk(
-  styled(StyledTag)`
-    border-style: dashed;
-  `,
-  styled(StyledTag)<{theme: DO_NOT_USE_ChonkTheme}>`
-    border: 1px dashed ${p => p.theme.border};
-    background-color: transparent;
-  `
-);
+const UnassignedTag = styled(StyledTag)`
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  background-color: transparent;
+`;
 
 const TooltipSubtext = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

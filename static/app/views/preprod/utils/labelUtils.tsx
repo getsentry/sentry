@@ -1,3 +1,4 @@
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -8,20 +9,6 @@ import {
   type BuildDetailsSizeInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
-
-// Mapping of Launchpad platform to PlatformIcon platform
-// PlatformIcon definitions: https://sentry.sentry.io/stories/foundations/icons
-export function getPlatformIconFromPlatform(platform: Platform): 'apple' | 'android' {
-  switch (platform) {
-    case 'ios':
-    case 'macos':
-      return 'apple';
-    case 'android':
-      return 'android';
-    default:
-      throw new Error(`Unsupported platform: ${platform}`);
-  }
-}
 
 export function getReadableArtifactTypeLabel(
   artifactType: BuildDetailsArtifactType | null
@@ -61,7 +48,7 @@ export function getReadableArtifactTypeTooltip(
   }
 }
 
-interface Labels {
+export interface Labels {
   appId: string;
   buildConfiguration: string;
   downloadSizeDescription: string;
@@ -69,9 +56,26 @@ interface Labels {
   installSizeDescription: string;
   installSizeLabel: string;
   installUnavailableTooltip: string;
+  installSizeLabelTooltip?: string;
 }
 
-export function getLabels(platform: Platform | undefined): Labels {
+export function getLabels(
+  platform: Platform | undefined,
+  hasMultiplePlatforms = false
+): Labels {
+  if (hasMultiplePlatforms) {
+    return {
+      installSizeLabel: t('Install Size'),
+      downloadSizeLabel: t('Download Size'),
+      appId: t('Bundle identifier'),
+      installSizeDescription: t('Uncompressed size'),
+      downloadSizeDescription: t('Bytes transferred over the network'),
+      buildConfiguration: t('Build configuration'),
+      installUnavailableTooltip: t('This app cannot be installed.'),
+      installSizeLabelTooltip: t('Install Size for iOS; Uncompressed Size for Android'),
+    };
+  }
+
   switch (platform) {
     case 'android':
       return {
@@ -83,8 +87,7 @@ export function getLabels(platform: Platform | undefined): Labels {
         buildConfiguration: t('Build configuration'),
         installUnavailableTooltip: t('This app cannot be installed.'),
       };
-    case 'ios':
-    case 'macos':
+    case 'apple':
     case undefined:
       return {
         installSizeLabel: t('Install Size'),
@@ -104,12 +107,10 @@ export function getLabels(platform: Platform | undefined): Labels {
 
 export function getReadablePlatformLabel(platform: Platform): string {
   switch (platform) {
-    case 'ios':
-      return 'iOS';
+    case 'apple':
+      return 'Apple';
     case 'android':
       return 'Android';
-    case 'macos':
-      return 'macOS';
     default:
       throw new Error(`Unknown platform: ${platform}`);
   }
@@ -141,4 +142,34 @@ export function formattedPrimaryMetricDownloadSize(
     return formatBytesBase10(primarySizeMetric.download_size_bytes);
   }
   return '-';
+}
+
+export function formattedSizeDiff(diff: number): string {
+  if (diff === 0) {
+    return '';
+  }
+
+  const sign = diff > 0 ? '+' : '-';
+  return `${sign}${formatBytesBase10(Math.abs(diff))}`;
+}
+
+export function getTrend(diff: number): {
+  variant: 'danger' | 'success' | 'muted';
+  icon?: React.ReactNode;
+} {
+  if (diff > 0) {
+    return {
+      variant: 'danger',
+      icon: <IconArrow direction="up" size="xs" />,
+    };
+  }
+
+  if (diff < 0) {
+    return {
+      variant: 'success',
+      icon: <IconArrow direction="down" size="xs" />,
+    };
+  }
+
+  return {variant: 'muted'};
 }

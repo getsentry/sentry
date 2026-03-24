@@ -2,13 +2,14 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -20,11 +21,7 @@ import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -36,7 +33,7 @@ import {
   COLD_START_TYPE,
   WARM_START_TYPE,
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 import type {SpanProperty} from 'sentry/views/insights/types';
@@ -45,15 +42,10 @@ const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = Span
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function SpanOperationTable({
-  transaction,
-  primaryRelease,
-  secondaryRelease,
-}: Props) {
+export function SpanOperationTable({transaction, primaryRelease}: Props) {
   const organization = useOrganization();
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
   const baseURL = `${moduleURL}/details/`;
@@ -100,31 +92,15 @@ export function SpanOperationTable({
     searchQuery.addFilterValue('os.name', selectedPlatform);
   }
 
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   // Only show comparison when we have two different releases selected
   const baseFields: SpanProperty[] = [PROJECT_ID, SPAN_OP, SPAN_GROUP, SPAN_DESCRIPTION];
-  let spanFields: SpanProperty[] = [];
-  if (defined(primaryRelease) && defined(secondaryRelease)) {
-    spanFields = [
-      `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-      `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-      `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-    ];
-  } else {
-    spanFields = [`avg(${SPAN_SELF_TIME})`];
-  }
+  const spanFields: SpanProperty[] = [`avg(${SPAN_SELF_TIME})`];
 
   const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
     kind: 'desc',
-    field:
-      primaryRelease && secondaryRelease
-        ? `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`
-        : `avg(${SPAN_SELF_TIME})`,
+    field: `avg(${SPAN_SELF_TIME})`,
   };
 
   const {data, meta, isPending, pageLinks} = useSpans(
@@ -140,30 +116,12 @@ export function SpanOperationTable({
   const columnHeaders: GridColumnHeader[] = [
     {key: SPAN_OP, name: t('Operation'), width: COL_WIDTH_UNDEFINED},
     {key: SPAN_DESCRIPTION, name: t('Span Description'), width: COL_WIDTH_UNDEFINED},
-  ];
-  if (defined(primaryRelease) && defined(secondaryRelease)) {
-    columnHeaders.push({
-      key: `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-      name: t('Avg Duration (%s)', PRIMARY_RELEASE_ALIAS),
-      width: COL_WIDTH_UNDEFINED,
-    });
-    columnHeaders.push({
-      key: `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-      name: t('Avg Duration (%s)', SECONDARY_RELEASE_ALIAS),
-      width: COL_WIDTH_UNDEFINED,
-    });
-    columnHeaders.push({
-      key: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-      name: t('Change'),
-      width: COL_WIDTH_UNDEFINED,
-    });
-  } else {
-    columnHeaders.push({
+    {
       key: `avg(${SPAN_SELF_TIME})`,
       name: t('Avg Duration'),
       width: COL_WIDTH_UNDEFINED,
-    });
-  }
+    },
+  ];
 
   function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!meta?.fields) {

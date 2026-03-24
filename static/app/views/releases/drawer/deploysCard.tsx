@@ -1,10 +1,10 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Card, KeyValueData} from 'sentry/components/keyValueData';
-import LoadingError from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {useReleaseDeploys} from 'sentry/views/releases/utils/useReleaseDeploys';
 
@@ -29,7 +29,7 @@ export function DeploysCard({release, projectSlug}: DeploysCardProps) {
     return (
       <KeyValueData.CardPanel>
         <KeyValueData.Title>{t('Deploys')}</KeyValueData.Title>
-        <InfoWrapper>
+        <Container column="span 2">
           {isLoading ? (
             <Placeholder height="20px" />
           ) : (
@@ -37,7 +37,7 @@ export function DeploysCard({release, projectSlug}: DeploysCardProps) {
               {t('No deploys found')}
             </EmptyStateWarning>
           )}
-        </InfoWrapper>
+        </Container>
       </KeyValueData.CardPanel>
     );
   }
@@ -57,6 +57,3 @@ export function DeploysCard({release, projectSlug}: DeploysCardProps) {
 }
 
 // Needed to make width 100%, because of CardPanel's grid
-const InfoWrapper = styled('div')`
-  grid-column: span 2;
-`;

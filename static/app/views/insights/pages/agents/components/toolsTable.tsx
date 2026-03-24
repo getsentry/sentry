@@ -1,16 +1,17 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 
-import Pagination from 'sentry/components/pagination';
-import GridEditable, {
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Pagination} from 'sentry/components/pagination';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -27,6 +28,7 @@ import {
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
+import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
@@ -63,7 +65,7 @@ export function ToolsTable() {
     columns: defaultColumnOrder,
   });
 
-  const fullQuery = useCombinedQuery(`span.op:gen_ai.execute_tool`);
+  const fullQuery = useCombinedQuery(getToolSpansFilter());
 
   const {cursor, setCursor} = useTableCursor();
 
@@ -94,7 +96,7 @@ export function ToolsTable() {
     }
 
     return toolsRequest.data.map(span => ({
-      tool: `${span['gen_ai.tool.name']}`,
+      tool: span['gen_ai.tool.name'],
       requests: Number(span['count()']),
       avg: Number(span['avg(span.duration)']),
       p95: Number(span['p95(span.duration)']),

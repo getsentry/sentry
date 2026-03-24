@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import DefaultDict, TypedDict
+from typing import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -49,7 +49,7 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
 @register(ExploreSavedQuery)
 class ExploreSavedQueryModelSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        result: DefaultDict[str, dict] = defaultdict(lambda: {"created_by": {}})
+        result: defaultdict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
         starred_queries = dict(
             ExploreSavedQueryStarred.objects.filter(

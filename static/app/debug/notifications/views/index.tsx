@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex, Grid} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {DebugNotificationsExample} from 'sentry/debug/notifications/components/debugNotificationsExample';
 import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/debugNotificationsHeader';
 import {DebugNotificationsLanding} from 'sentry/debug/notifications/components/debugNotificationsLanding';
@@ -13,8 +14,8 @@ import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview
 import {EmailPreview} from 'sentry/debug/notifications/previews/emailPreview';
 import {SlackPreview} from 'sentry/debug/notifications/previews/slackPreview';
 import {TeamsPreview} from 'sentry/debug/notifications/previews/teamsPreview';
-import OrganizationContainer from 'sentry/views/organizationContainer';
-import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
+import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
 
 const HEADER_HEIGHT = 52;
 
@@ -51,7 +52,7 @@ export default function DebugNotificationsIndex() {
                 <Heading as="h2" variant="success">
                   <Flex gap="md" align="center">
                     {selectedRegistration.source}
-                    <Tag type="success">{selectedRegistration.category}</Tag>
+                    <Tag variant="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
                 <Grid columns={{md: '1fr', lg: '1fr auto'}} gap="2xl" position="relative">
@@ -97,9 +98,13 @@ const SidebarContainer = styled('nav')`
   top: ${HEADER_HEIGHT}px;
   overflow-y: auto;
   max-height: calc(100dvh - ${HEADER_HEIGHT}px);
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
   scrollbar-width: thin;
-  scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
+  /* eslint-disable @sentry/scraps/use-semantic-token */
+  scrollbar-color: ${p => p.theme.tokens.border.primary}
+    ${p => p.theme.tokens.background.primary};
+  /* eslint-enable @sentry/scraps/use-semantic-token */
   display: flex;
   flex-direction: column;
 `;

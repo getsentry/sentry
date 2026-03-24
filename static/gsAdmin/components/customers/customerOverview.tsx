@@ -3,25 +3,29 @@ import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import ChangeARRAction from 'admin/components/changeARRAction';
-import ChangeContractEndDateAction from 'admin/components/changeContractEndDateAction';
-import CustomerContact from 'admin/components/customerContact';
-import CustomerStatus from 'admin/components/customerStatus';
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
+import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
+import {ChangeARRAction} from 'admin/components/changeARRAction';
+import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDateAction';
+import {CustomerContact} from 'admin/components/customerContact';
+import {CustomerStatus} from 'admin/components/customerStatus';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
+import {ExtendProductTrialAction} from 'admin/components/extendProductTrialAction';
 import {getLogQuery} from 'admin/utils';
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
@@ -30,12 +34,13 @@ import type {
   ReservedBudgetMetricHistory,
   Subscription,
 } from 'getsentry/types';
-import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {AddOnCategory, BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {
   displayBudgetName,
   formatBalance,
   formatReservedWithUnits,
   getActiveProductTrial,
+  getBilledCategory,
   getProductTrial,
   RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
@@ -44,9 +49,9 @@ import {
   getReservedBudgetDisplayName,
   sortCategories,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {
@@ -80,7 +85,7 @@ function SoftCapTypeDetail({
                 capitalize: true,
                 hadCustomDynamicSampling: shouldUseDsNames,
               })}: `}
-              {`${softCapName}`}
+              {softCapName}
             </small>
             <br />
           </Fragment>
@@ -125,7 +130,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
                   onAction={onAction}
                 />
               )) ||
-              `${moment(customer.contractPeriodEnd).format('ll')}`}
+              moment(customer.contractPeriodEnd).format('ll')}
 
             <br />
             <small>{customer.contractInterval}</small>
@@ -136,7 +141,6 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <OnDemandSummary customer={customer} />
         </DetailLabel>
         <DetailLabel title="Can Trial" yesNo={customer.canTrial} />
-        <DetailLabel title="Can Grace Period" yesNo={customer.canGracePeriod} />
         <DetailLabel title="Legacy Soft Cap" yesNo={customer.hasSoftCap} />
         {customer.hasSoftCap && (
           <DetailLabel
@@ -403,7 +407,11 @@ function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
   const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
-    [`/organizations/${organization.slug}/sampling/effective-sample-rate/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: Infinity,
       enabled: dynamicSamplingEnabled,
@@ -433,6 +441,22 @@ function DynamicSampling({organization}: {organization: Organization}) {
       ? Math.abs(effectiveSampleRate - desiredSampleRate)
       : null;
 
+  const formatRate = (rate: number) => `${rate.toFixed(2)}%`;
+
+  const getSampleRateValue = (): string => {
+    if (effectiveSampleRate && desiredSampleRate) {
+      // When rates match, show just the rate instead of "X% instead of X% (~0%)"
+      if (formatRate(effectiveSampleRate) === formatRate(desiredSampleRate)) {
+        return formatRate(effectiveSampleRate);
+      }
+      return `${formatRate(effectiveSampleRate)} instead of ${formatRate(desiredSampleRate)} (~${formatRate(diffSampleRate!)})`;
+    }
+    if (desiredSampleRate) {
+      return formatRate(desiredSampleRate);
+    }
+    return 'n/a';
+  };
+
   return (
     <ThresholdLabel
       positive={
@@ -441,16 +465,12 @@ function DynamicSampling({organization}: {organization: Organization}) {
           : false
       }
     >
-      {effectiveSampleRate && desiredSampleRate
-        ? `${effectiveSampleRate.toFixed(2)}% instead of ${desiredSampleRate.toFixed(2)}% (~${diffSampleRate?.toFixed(2)}%)`
-        : desiredSampleRate
-          ? `${desiredSampleRate.toFixed(2)}%`
-          : 'n/a'}
+      {getSampleRateValue()}
     </ThresholdLabel>
   );
 }
 
-function CustomerOverview({customer, onAction, organization}: Props) {
+export function CustomerOverview({customer, onAction, organization}: Props) {
   let orgUrl = `/organizations/${organization.slug}/issues/`;
   const configFeatures = ConfigStore.get('features');
   if (configFeatures.has('system:multi-region')) {
@@ -467,14 +487,35 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   const region = regionMap[organization.links.regionUrl] ?? '??';
 
   const productTrialCategories = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
-    categoryInfo =>
-      categoryInfo.canProductTrial &&
-      customer.planDetails?.categories.includes(categoryInfo.plural)
+    categoryInfo => {
+      // Category must be in the plan's categories
+      if (!customer.planDetails?.categories.includes(categoryInfo.plural)) {
+        return false;
+      }
+      // Include if regular product trial is enabled
+      if (categoryInfo.canProductTrial) {
+        return true;
+      }
+      // Include admin-only product trials if graduated (true) or feature flag is enabled
+      if (categoryInfo.adminOnlyProductTrialFeature === true) {
+        // Graduated flag - always include without feature flag check
+        return true;
+      }
+      if (
+        typeof categoryInfo.adminOnlyProductTrialFeature === 'string' &&
+        organization.features?.includes(categoryInfo.adminOnlyProductTrialFeature)
+      ) {
+        return true;
+      }
+      return false;
+    }
   );
 
-  const productTrialCategoryGroups = Object.values(
-    customer.planDetails?.availableReservedBudgetTypes || {}
-  ).filter(group => group.canProductTrial);
+  const productTrialAddOns = Object.values(customer.addOns || {}).filter(
+    // TODO(billing): Right now all our add-ons can use product trials, but in future we should distinguish this
+    // like we do for other product types
+    addOn => addOn.isAvailable
+  );
 
   const categoryHasUsedProductTrial = (category: DataCategory) => {
     const trial = getProductTrial(customer.productTrials ?? [], category);
@@ -493,7 +534,8 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   const getTrialManagementActions = (
     category: DataCategory,
     apiName: string,
-    trialName: string
+    trialName: string,
+    isAdminOnly = false
   ) => {
     const formattedApiName = upperFirst(apiName);
     const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
@@ -508,11 +550,31 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
     const hasUsedProductTrial =
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
+
+    const handleExtendTrial = () => {
+      if (!activeProductTrial) {
+        return;
+      }
+      openAdminConfirmModal({
+        header: <h4>Extend {formattedTrialName} Trial</h4>,
+        confirmText: 'Extend Trial',
+        renderModalSpecificContent: deps => (
+          <ExtendProductTrialAction
+            activeProductTrial={activeProductTrial}
+            apiName={apiName}
+            trialName={formattedTrialName}
+            {...deps}
+          />
+        ),
+        onConfirm: onAction,
+      });
+    };
+
     return (
       <DetailLabel key={apiName} title={formattedTrialName}>
-        <TrialState>
+        <Stack gap="md">
           <StyledTag
-            type={
+            variant={
               lessThanOneDayLeft
                 ? 'promotion'
                 : hasActiveProductTrial
@@ -523,23 +585,25 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             }
           >
             {hasActiveProductTrial
-              ? `Active${lessThanOneDayLeft ? ` (${moment(activeProductTrial.endDate).add(1, 'day').fromNow(true)} left)` : ''}`
+              ? `Active (until ${moment.utc(activeProductTrial.endDate).format('MMM D, YYYY')} UTC)`
               : hasUsedProductTrial
                 ? 'Used'
                 : 'Available'}
           </StyledTag>
-          <TrialActions>
+          <Flex align="center" wrap="wrap" gap="md">
             <Button
               size="xs"
               onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
               disabled={!hasUsedProductTrial || hasActiveProductTrial}
-              title={
-                hasActiveProductTrial
+              tooltipProps={{
+                title: hasActiveProductTrial
                   ? `A product trial is currently active for ${formattedTrialName}`
                   : hasUsedProductTrial
-                    ? `Allow customer to start a new trial for ${formattedTrialName}`
-                    : `A product trial is already available for ${formattedTrialName}`
-              }
+                    ? isAdminOnly
+                      ? `Reset trial eligibility for ${formattedTrialName}`
+                      : `Allow customer to start a new trial for ${formattedTrialName}`
+                    : `A product trial is already available for ${formattedTrialName}`,
+              }}
             >
               Allow Trial
             </Button>
@@ -547,13 +611,13 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               size="xs"
               onClick={() => updateCustomerStatus(`startTrial${formattedApiName}`)}
               disabled={hasActiveProductTrial || hasUsedProductTrial}
-              title={
-                hasActiveProductTrial
+              tooltipProps={{
+                title: hasActiveProductTrial
                   ? `A product trial is currently active for ${formattedTrialName}`
                   : hasUsedProductTrial
                     ? `No product trial is available for ${formattedTrialName}`
-                    : `Start the 14-day ${formattedTrialName} product trial`
-              }
+                    : `Start the 14-day ${formattedTrialName} product trial`,
+              }}
             >
               Start Trial
             </Button>
@@ -561,18 +625,30 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               size="xs"
               onClick={() => updateCustomerStatus(`stopTrial${formattedApiName}`)}
               disabled={!hasActiveProductTrial || lessThanOneDayLeft}
-              title={
-                lessThanOneDayLeft
+              tooltipProps={{
+                title: lessThanOneDayLeft
                   ? `Current product trial will end in less than one day`
                   : hasActiveProductTrial
                     ? `Stop the current product trial for ${formattedTrialName}`
-                    : `No product trial is active for ${formattedTrialName}`
-              }
+                    : `No product trial is active for ${formattedTrialName}`,
+              }}
             >
               Stop Trial
             </Button>
-          </TrialActions>
-        </TrialState>
+            <Button
+              size="xs"
+              onClick={handleExtendTrial}
+              disabled={!hasActiveProductTrial}
+              tooltipProps={{
+                title: hasActiveProductTrial
+                  ? `Extend the current ${formattedTrialName} product trial`
+                  : `No active product trial to extend for ${formattedTrialName}`,
+              }}
+            >
+              Extend Trial
+            </Button>
+          </Flex>
+        </Stack>
       </DetailLabel>
     );
   };
@@ -758,7 +834,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             </ExternalLink>
           </DetailLabel>
         </DetailList>
-        {productTrialCategories.length + productTrialCategoryGroups.length > 0 && (
+        {productTrialCategories.length + productTrialAddOns.length > 0 && (
           <Fragment>
             <h6>Product Trials</h6>
             <ProductTrialsDetailListContainer>
@@ -771,16 +847,19 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                 return getTrialManagementActions(
                   categoryInfo.plural,
                   categoryInfo.plural,
-                  categoryName
+                  categoryName,
+                  !!categoryInfo.adminOnlyProductTrialFeature
                 );
               })}
-              {productTrialCategoryGroups.map(group => {
-                const category = group.dataCategories[0]; // doesn't matter which category we use
+              {productTrialAddOns.map(addOn => {
+                const category = getBilledCategory(customer, addOn.apiName);
                 if (category) {
                   return getTrialManagementActions(
                     category,
-                    group.apiName,
-                    group.productName
+                    addOn.apiName,
+                    addOn.apiName === AddOnCategory.LEGACY_SEER
+                      ? addOn.productName + ' (Legacy)'
+                      : addOn.productName
                   );
                 }
                 return null;
@@ -795,6 +874,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               <tr>
                 <th>Category</th>
                 <th>Standard</th>
+                <th>Default</th>
                 <th>
                   <Tooltip title="Null means use the Downsample default">
                     Downsampled
@@ -818,7 +898,12 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                         category: bmh.category,
                       })}
                     </td>
-                    <td>{bmh.retention?.standard}</td>
+                    <td>
+                      {bmh.retention?.standard === null
+                        ? 'null'
+                        : bmh.retention?.standard}
+                    </td>
+                    <td>{customer.planDetails.retentions?.[bmh.category]?.standard}</td>
                     <td>
                       {bmh.retention?.downsampled === null
                         ? 'null'
@@ -836,19 +921,6 @@ function CustomerOverview({customer, onAction, organization}: Props) {
     </DetailsContainer>
   );
 }
-
-const TrialState = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const TrialActions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-wrap: wrap;
-  align-items: center;
-`;
 
 const ProductTrialsDetailListContainer = styled(DetailList)`
   align-items: baseline;
@@ -884,7 +956,5 @@ function ThresholdLabel({positive, children}: ThresholdLabelProps) {
 }
 
 const ThresholdValue = styled('dd')<{positive: boolean}>`
-  color: ${p => (p.positive ? p.theme.green400 : p.theme.red400)};
+  color: ${p => (p.positive ? p.theme.colors.green500 : p.theme.colors.red500)};
 `;
-
-export default CustomerOverview;

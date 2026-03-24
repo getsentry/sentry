@@ -4,6 +4,7 @@ import aws from 'sentry-logos/logo-aws.svg';
 import vsts from 'sentry-logos/logo-azure.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
 import bitbucket from 'sentry-logos/logo-bitbucket.svg';
+import claude_code from 'sentry-logos/logo-claude.svg';
 import cursor from 'sentry-logos/logo-cursor.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
 import discord from 'sentry-logos/logo-discord.svg';
@@ -44,6 +45,7 @@ const PLUGIN_ICONS = {
   sqs: aws,
   'amazon-sqs': aws,
   aws_lambda: aws,
+  claude_code,
   cursor,
   asana,
   bitbucket,
@@ -51,6 +53,7 @@ const PLUGIN_ICONS = {
   bitbucket_server: bitbucketserver,
   discord,
   github,
+  github_copilot: github,
   github_enterprise: githubEnterprise,
   gitlab,
   heroku,
@@ -98,7 +101,7 @@ const StyledPluginIconContainer = styled('div')<{
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   min-width: ${p => p.size}px;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.colors.white};
   border-radius: 2px;
   display: flex;
   align-items: center;

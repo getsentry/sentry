@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {DataSection} from 'sentry/components/events/styles';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 export interface EventDataSectionProps {
   children: React.ReactNode;
@@ -85,7 +85,7 @@ export function EventDataSection({
             {showPermalink ? (
               <Permalink className="permalink">
                 <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
-                  <StyledIconLink size="xs" color="subText" />
+                  <StyledIconLink size="xs" variant="muted" />
                 </PermalinkAnchor>
                 {titleNode}
               </Permalink>
@@ -108,7 +108,7 @@ const Title = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const Permalink = styled('span')`
@@ -128,10 +128,10 @@ const PermalinkAnchor = styled(ExternalLink)`
   position: absolute;
   top: 0;
   left: 0;
-  width: calc(100% + ${space(3)});
+  width: calc(100% + ${p => p.theme.space['2xl']});
   height: 100%;
-  padding-left: ${space(0.5)};
-  transform: translateX(-${space(3)});
+  padding-left: ${p => p.theme.space.xs};
+  transform: translateX(-${p => p.theme.space['2xl']});
 
   :hover ${StyledIconLink}, :focus ${StyledIconLink} {
     opacity: 1;
@@ -142,35 +142,35 @@ const SectionHeader = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(0.5)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.xs};
+  margin-bottom: ${p => p.theme.space.md};
 
   & h3,
   & h3 a {
-    color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSize.md};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    color: ${p => p.theme.tokens.content.secondary};
+    font-size: ${p => p.theme.font.size.md};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   & h3 {
-    padding: ${space(0.75)} 0;
+    padding: ${p => p.theme.space.sm} 0;
     margin-bottom: 0;
   }
 
   & small {
-    color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSize.md};
-    margin-right: ${space(0.5)};
-    margin-left: ${space(0.5)};
+    color: ${p => p.theme.tokens.content.primary};
+    font-size: ${p => p.theme.font.size.md};
+    margin-right: ${p => p.theme.space.xs};
+    margin-left: ${p => p.theme.space.xs};
   }
   & small > span {
-    color: ${p => p.theme.textColor};
-    font-weight: ${p => p.theme.fontWeight.normal};
+    color: ${p => p.theme.tokens.content.primary};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     & > small {
-      margin-left: ${space(1)};
+      margin-left: ${p => p.theme.space.md};
       display: inline-block;
     }
   }

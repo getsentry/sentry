@@ -12,31 +12,31 @@ import {useTheme} from '@emotion/react';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
-import useProjects from 'sentry/utils/useProjects';
-import CellAction, {
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useProjects} from 'sentry/utils/useProjects';
+import {
   Actions,
   ActionTriggerType,
+  CellAction,
   copyToClipboard,
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -45,7 +45,10 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {
+  TraceItemDetailsResponse,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
@@ -107,7 +110,6 @@ type LogsRowProps = {
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   blockRowExpanding?: boolean;
-  canDeferRenderElements?: boolean;
   embedded?: boolean;
   embeddedOptions?: {
     openWithExpandedIds?: string[];
@@ -155,7 +157,6 @@ export const LogRowContent = memo(function LogRowContent({
   onCollapse,
   onExpandHeight,
   blockRowExpanding,
-  canDeferRenderElements,
   onEmbeddedRowClick,
   logStart,
   logEnd,
@@ -168,18 +169,7 @@ export const LogRowContent = memo(function LogRowContent({
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
-  const [shouldRenderHoverElements, _setShouldRenderHoverElements] = useState(
-    canDeferRenderElements ? false : true
-  );
-
-  const setShouldRenderHoverElements = useCallback(
-    (value: boolean) => {
-      if (canDeferRenderElements) {
-        _setShouldRenderHoverElements(value);
-      }
-    },
-    [canDeferRenderElements, _setShouldRenderHoverElements]
-  );
+  const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(false);
 
   // This only applies in embedded views where clicking doesn't expand row details.
   function onClick(event: SyntheticEvent) {
@@ -349,7 +339,7 @@ export const LogRowContent = memo(function LogRowContent({
                 aria-label={t('Toggle trace details')}
                 aria-expanded={expanded}
                 size="zero"
-                borderless
+                priority="transparent"
                 onClick={() => toggleExpanded()}
               />
             ) : (
@@ -403,9 +393,14 @@ export const LogRowContent = memo(function LogRowContent({
             type: FieldValueType.STRING,
           };
 
+          const shouldRenderActions =
+            !embedded &&
+            field !== OurLogKnownFieldKey.TIMESTAMP &&
+            shouldRenderHoverElements;
+
           return (
             <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
-              {shouldRenderHoverElements ? (
+              {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}
                   dataRow={dataRow as unknown as TableDataRow}
@@ -431,11 +426,7 @@ export const LogRowContent = memo(function LogRowContent({
                         break;
                     }
                   }}
-                  allowActions={
-                    field === OurLogKnownFieldKey.TIMESTAMP || embedded
-                      ? []
-                      : ALLOWED_CELL_ACTIONS
-                  }
+                  allowActions={ALLOWED_CELL_ACTIONS}
                   triggerType={ActionTriggerType.ELLIPSIS}
                 >
                   {renderedField}
@@ -502,17 +493,29 @@ function LogRowDetails({
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
   const attributes =
-    data?.attributes?.reduce((it, {name, value}) => ({...it, [name]: value}), {
-      [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
-    }) ?? {};
+    data?.attributes?.reduce<Record<string, TraceItemResponseAttribute['value']>>(
+      (it, attr) => {
+        it[attr.name] = attr.value;
+        return it;
+      },
+      {
+        [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
+      }
+    ) ?? {};
   const attributeTypes =
-    data?.attributes?.reduce((it, {name, type}) => ({...it, [name]: type}), {}) ?? {};
+    data?.attributes?.reduce<Record<string, TraceItemResponseAttribute['type']>>(
+      (it, attr) => {
+        it[attr.name] = attr.type;
+        return it;
+      },
+      {}
+    ) ?? {};
 
   if (missingLogId || isError) {
     return (
       <DetailsWrapper ref={ref}>
         <EmptyStreamWrapper>
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </EmptyStreamWrapper>
       </DetailsWrapper>
     );
@@ -597,13 +600,13 @@ function LogRowDetails({
 }
 
 function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowItem}) {
+  const theme = useTheme();
   const addSearchFilter = useAddSearchFilter();
   return (
     <LogDetailTableActionsButtonBar>
       <Button
         priority="link"
         size="sm"
-        borderless
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -611,13 +614,12 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconAdd size="md" style={{paddingRight: space(0.5)}} />
+        <IconAdd size="md" style={{paddingRight: theme.space.xs}} />
         {t('Add to filter')}
       </Button>
       <Button
         priority="link"
         size="sm"
-        borderless
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -626,7 +628,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconSubtract size="md" style={{paddingRight: space(0.5)}} />
+        <IconSubtract size="md" style={{paddingRight: theme.space.xs}} />
         {t('Exclude from filter')}
       </Button>
     </LogDetailTableActionsButtonBar>
@@ -640,6 +642,7 @@ function LogRowDetailsActions({
   fullLogDataResult: UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
   tableDataRow: LogTableRowItem;
 }) {
+  const theme = useTheme();
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
@@ -676,11 +679,10 @@ function LogRowDetailsActions({
         <Button
           priority="link"
           size="sm"
-          borderless
           onClick={betterCopyToClipboard}
           disabled={isPending || isError || !json}
         >
-          <IconJson size="md" style={{paddingRight: space(0.5)}} />
+          <IconJson size="md" style={{paddingRight: theme.space.xs}} />
           {t('Copy as JSON')}
         </Button>
       </LogDetailTableActionsButtonBar>

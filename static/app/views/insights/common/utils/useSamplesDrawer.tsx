@@ -1,13 +1,14 @@
 import {useCallback, useEffect} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import useDrawer from 'sentry/components/globalDrawer';
+import {Stack} from '@sentry/scraps/layout';
+
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 interface UseSamplesDrawerProps {
@@ -76,7 +77,7 @@ export function useSamplesDrawer({
       source: moduleName,
     });
 
-    openDrawer(() => <FullHeightWrapper>{Component}</FullHeightWrapper>, {
+    openDrawer(() => <Stack height="100%">{Component}</Stack>, {
       ariaLabel: t('Samples'),
       onClose: onCloseAction,
       shouldCloseOnLocationChange,
@@ -101,9 +102,3 @@ export function useSamplesDrawer({
     }
   }, [shouldDrawerOpen, openSamplesDrawer]);
 }
-
-const FullHeightWrapper = styled('div')`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-`;

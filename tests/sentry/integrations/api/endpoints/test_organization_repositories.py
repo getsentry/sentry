@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.constants import ObjectStatus
 from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils.cases import APITestCase
 
@@ -25,6 +26,8 @@ class OrganizationRepositoriesListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
+        assert "X-Hits" in response
+        assert int(response["X-Hits"]) == 1
         assert response.data[0]["id"] == str(repo.id)
         assert response.data[0]["externalSlug"] is None
 
@@ -66,6 +69,8 @@ class OrganizationRepositoriesListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
+        assert "X-Hits" in response
+        assert int(response["X-Hits"]) == 2
 
         first_row = response.data[0]
         assert first_row["id"] == str(repo1.id)
@@ -268,6 +273,55 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert response.data[0]["id"] == str(repo.id)
         assert response.data[0]["externalSlug"] is None
 
+    def test_without_expand_settings_and_has_settings(self) -> None:
+        repo = Repository.objects.create(name="example", organization_id=self.org.id)
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT],
+        )
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo.id)
+        assert "settings" not in response.data[0]
+
+    def test_expand_settings_with_settings(self) -> None:
+        repo = Repository.objects.create(name="example", organization_id=self.org.id)
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            ],
+        )
+
+        response = self.client.get(f"{self.url}?expand=settings", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo.id)
+        assert "settings" in response.data[0]
+        assert response.data[0]["settings"]["enabledCodeReview"] is True
+        assert response.data[0]["settings"]["codeReviewTriggers"] == [
+            "on_new_commit",
+            "on_ready_for_review",
+        ]
+
+    def test_expand_settings_without_settings(self) -> None:
+        repo = Repository.objects.create(name="example", organization_id=self.org.id)
+
+        response = self.client.get(f"{self.url}?expand=settings", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo.id)
+        assert "settings" in response.data[0]
+        assert response.data[0]["settings"] is None
+
 
 class OrganizationRepositoriesCreateTest(APITestCase):
     def test_simple(self) -> None:
@@ -338,7 +392,6 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
         ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
     )
     def test_simple(self, mock_build_repository_config: MagicMock) -> None:
-
         with patch.object(
             ExampleRepositoryProvider, "build_repository_config", return_value=self.repo_config_data
         ) as mock_get_repository_data:

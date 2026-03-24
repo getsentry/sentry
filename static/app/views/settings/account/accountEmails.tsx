@@ -1,79 +1,117 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {AlertLink} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
-import Confirm from 'sentry/components/confirm';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import accountEmailsFields from 'sentry/data/forms/accountEmails';
+import {Confirm} from 'sentry/components/confirm';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDelete, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UserEmail} from 'sentry/types/user';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-const ENDPOINT = '/users/me/emails/';
+const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});
+
+const schema = z.object({
+  email: z.email(t('Enter a valid email address')),
+});
 
 function AccountEmails() {
   const queryClient = useQueryClient();
 
-  const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (response, model, id) => {
-    queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
+  const mutation = useMutation({
+    mutationFn: (data: z.infer<typeof schema>) =>
+      fetchMutation<{detail?: string}>({
+        url: ENDPOINT,
+        method: 'POST',
+        data,
+      }),
+    onSuccess: response => {
+      queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
+      if (response?.detail) {
+        addSuccessMessage(response.detail);
+      }
+    },
+    onError: error => {
+      if (error instanceof RequestError) {
+        const errorMessage = error.responseJSON?.detail;
+        if (typeof errorMessage === 'string') {
+          addErrorMessage(errorMessage);
+        } else {
+          addErrorMessage(errorMessage?.message ?? t('An unknown error occurred.'));
+        }
+      }
+    },
+  });
 
-    if (id !== undefined) {
-      model.setValue(id, '');
-    }
-
-    if (response?.detail) {
-      addSuccessMessage(response.detail);
-    }
-  };
-
-  const handleSubmitError: FormProps['onSubmitError'] = (error, _model, _id) => {
-    const errorMessage = error?.responseJSON?.detail;
-
-    if (errorMessage) {
-      addErrorMessage(errorMessage);
-    }
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {email: ''},
+    validators: {onDynamic: schema},
+    onSubmit: ({value, formApi}) => {
+      return mutation
+        .mutateAsync(value)
+        .then(() => {
+          formApi.reset();
+        })
+        .catch(() => {});
+    },
+  });
 
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Emails')} />
       <SettingsPageHeader title={t('Email Addresses')} />
       <EmailAddresses />
-      <Form
-        apiMethod="POST"
-        apiEndpoint={ENDPOINT}
-        saveOnBlur
-        allowUndo={false}
-        onSubmitSuccess={handleSubmitSuccess}
-        onSubmitError={handleSubmitError}
-      >
-        <JsonForm forms={accountEmailsFields} />
-      </Form>
+      <FormSearch route="/settings/account/emails/">
+        <form.AppForm form={form}>
+          <form.FieldGroup title={t('Add Secondary Emails')}>
+            <form.AppField name="email">
+              {field => (
+                <field.Layout.Row
+                  label={t('Additional Email')}
+                  hintText={t('Designate an alternative email for this account')}
+                >
+                  <field.Input
+                    type="email"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('e.g. secondary@example.com')}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+          </form.FieldGroup>
+          <Flex justify="end">
+            <form.SubmitButton>{t('Add email')}</form.SubmitButton>
+          </Flex>
+        </form.AppForm>
+      </FormSearch>
 
       <AlertLink.Container>
         <AlertLink
           to="/settings/account/notifications"
           trailingItems={<IconStack />}
-          type="info"
+          variant="info"
         >
           {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>
@@ -197,10 +235,10 @@ function EmailRow({
     <EmailItem>
       <EmailTags>
         {email}
-        {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
-        {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
+        {!isVerified && <Tag variant="warning">{t('Unverified')}</Tag>}
+        {isPrimary && <Tag variant="success">{t('Primary')}</Tag>}
       </EmailTags>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         {!isPrimary && isVerified && (
           <Button size="sm" onClick={() => onSetPrimary?.(email)}>
             {t('Set as primary')}
@@ -228,7 +266,7 @@ function EmailRow({
             />
           </Confirm>
         )}
-      </ButtonBar>
+      </Grid>
     </EmailItem>
   );
 }
@@ -236,7 +274,7 @@ function EmailRow({
 const EmailTags = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 

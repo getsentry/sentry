@@ -30,7 +30,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
-from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.monitors.models import (
@@ -43,6 +42,7 @@ from sentry.monitors.models import (
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.preprod.models import (
     PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
@@ -52,6 +52,7 @@ from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -104,7 +105,7 @@ class Fixtures:
         return self.create_organization(name="baz", slug="baz", owner=self.user)
 
     @cached_property
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def team(self):
         team = self.create_team(organization=self.organization, name="foo", slug="foo")
         # XXX: handle legacy team fixture
@@ -141,7 +142,7 @@ class Fixtures:
         )
 
     @cached_property
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def activity(self):
         return Activity.objects.create(
             group=self.group,
@@ -214,9 +215,6 @@ class Fixtures:
             kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
 
-    def create_project_template(self, **kwargs) -> ProjectTemplate:
-        return Factories.create_project_template(**kwargs)
-
     def create_project_bookmark(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
@@ -279,6 +277,9 @@ class Fixtures:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
 
+    def create_repository_settings(self, *args, **kwargs):
+        return Factories.create_repository_settings(*args, **kwargs)
+
     def create_commit(self, *args, **kwargs):
         return Factories.create_commit(*args, **kwargs)
 
@@ -330,6 +331,16 @@ class Fixtures:
 
     def create_tempest_credentials(self, project: Project, *args, **kwargs) -> TempestCredentials:
         return Factories.create_tempest_credentials(project, *args, **kwargs)
+
+    def create_github_identity(
+        self, user: User | None = None, idp: IdentityProvider | None = None, **kwargs
+    ) -> Identity:
+        if not user:
+            user = self.user
+        return Factories.create_github_identity(user=user, idp=idp, **kwargs)
+
+    def create_github_provider(self, **kwargs) -> IdentityProvider:
+        return Factories.create_github_provider(**kwargs)
 
     def create_group(self, project=None, *args, **kwargs):
         if project is None:
@@ -428,6 +439,9 @@ class Fixtures:
 
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
+
+    def create_service_hook_project_for_installation(self, *args, **kwargs):
+        return Factories.create_service_hook_project_for_installation(*args, **kwargs)
 
     def create_userreport(self, *args, **kwargs):
         return Factories.create_userreport(*args, **kwargs)
@@ -577,7 +591,7 @@ class Fixtures:
         **kwargs: Any,
     ):
         if user is None:
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 user = organization.get_default_owner()
 
         integration = Factories.create_slack_integration(
@@ -773,6 +787,7 @@ class Fixtures:
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
         region_slugs: list[str] | None = None,
+        assertion: Any | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
@@ -797,6 +812,7 @@ class Fixtures:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            assertion=assertion,
         )
         for region_slug in region_slugs:
             self.create_uptime_subscription_region(subscription, region_slug)
@@ -909,6 +925,13 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_preprod_artifact(project=project, **kwargs)
+
+    def create_preprod_artifact_mobile_app_info(
+        self, preprod_artifact: PreprodArtifact, **kwargs
+    ) -> PreprodArtifactMobileAppInfo:
+        return Factories.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=preprod_artifact, **kwargs
+        )
 
     def create_preprod_artifact_size_metrics(
         self, preprod_artifact: PreprodArtifact, **kwargs
@@ -1156,5 +1179,5 @@ class Fixtures:
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
 
     @pytest.fixture(autouse=True)
-    def _init_insta_snapshot(self, insta_snapshot):
+    def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:
         self.insta_snapshot = insta_snapshot

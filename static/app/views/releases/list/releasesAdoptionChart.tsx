@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LineSeriesOption} from 'echarts';
@@ -7,6 +6,8 @@ import type {Location} from 'history';
 import compact from 'lodash/compact';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
@@ -18,33 +19,33 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {
   getDiffInMinutes,
   ONE_WEEK,
   truncationFormatter,
 } from 'sentry/components/charts/utils';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {
   normalizeDateTimeParams,
   parseStatsPeriod,
-} from 'sentry/components/organizations/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import Placeholder from 'sentry/components/placeholder';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
+} from 'sentry/components/pageFilters/parse';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
@@ -55,7 +56,7 @@ type Props = {
   selection: PageFilters;
 };
 
-function ReleasesAdoptionChart({
+export function ReleasesAdoptionChart({
   activeDisplay,
   selection,
   organization,
@@ -129,14 +130,13 @@ function ReleasesAdoptionChart({
         return;
       }
 
-      navigate(
-        normalizeUrl({
-          pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
-            params.seriesId
-          )}/`,
-          query: {project, environment: location.query.environment},
-        })
-      );
+      navigate({
+        pathname: makeReleasesPathname({
+          organization,
+          path: `/${encodeURIComponent(params.seriesId)}/`,
+        }),
+        query: {project, environment: location.query.environment},
+      });
     },
     [organization, selection, location, navigate]
   );
@@ -190,7 +190,7 @@ function ReleasesAdoptionChart({
           <Panel>
             <PanelBody withPadding>
               <ChartHeader>
-                <ChartTitle>{t('Release Adoption')}</ChartTitle>
+                <Flex as="header">{t('Release Adoption')}</Flex>
               </ChartHeader>
               <TransitionChart loading={loading} reloading={reloading}>
                 <TransparentLoadingMask visible={reloading} />
@@ -312,19 +312,12 @@ function ReleasesAdoptionChart({
   );
 }
 
-export default ReleasesAdoptionChart;
-
 const ChartHeader = styled(HeaderTitleLegend)`
-  margin-bottom: ${space(1)};
-`;
-
-const ChartTitle = styled('header')`
-  display: flex;
-  flex-direction: row;
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ChartFooter = styled(PanelFooter)`
   display: flex;
   align-items: center;
-  padding: ${space(1)} 20px;
+  padding: ${p => p.theme.space.md} 20px;
 `;

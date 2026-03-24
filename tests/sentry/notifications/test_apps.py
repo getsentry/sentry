@@ -4,7 +4,6 @@ from sentry.testutils.cases import TestCase
 
 
 class NotificationsDjangoAppTest(TestCase):
-
     def test_registers_legacy_providers(self) -> None:
         """
         This django app doesn't actually register these legacy providers because it would result

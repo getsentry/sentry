@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -121,7 +121,7 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
             <SpanDescriptionCell
               projectId={Number(item['project.id'])}
               group={item['span.group']}
-              description={item['sentry.normalized_description']}
+              description={item['sentry.normalized_description'] ?? ''}
               moduleName={ModuleName.DB}
             />
             <ControllerText>{item.transaction}</ControllerText>
@@ -174,9 +174,13 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
 }
 
 const ControllerText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.2;
   min-width: 0px;
 `;

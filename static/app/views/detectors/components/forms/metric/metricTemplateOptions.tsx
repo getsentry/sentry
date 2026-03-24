@@ -28,6 +28,7 @@ export const METRIC_TEMPLATE_OPTIONS: TemplateOption[] = [
     label: t('Users Experiencing Errors'),
     detectorDataset: DetectorDataset.ERRORS,
     aggregate: 'count_unique(user)',
+    query: 'is:unresolved',
   },
   {
     key: 'trace_item_throughput',
@@ -58,6 +59,12 @@ export const METRIC_TEMPLATE_OPTIONS: TemplateOption[] = [
     label: t('Logs'),
     detectorDataset: DetectorDataset.LOGS,
     aggregate: 'count(message)',
+  },
+  {
+    key: 'trace_item_metrics',
+    label: t('Custom Metrics'),
+    detectorDataset: DetectorDataset.METRICS,
+    aggregate: 'sum(value,,,-)',
   },
   {
     key: 'crash_free_sessions',

@@ -1,10 +1,10 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
@@ -33,7 +33,7 @@ function TraceLoading({
 
 function TraceError({trace}: {trace: UseApiQueryResult<TraceTree.Trace, RequestError>}) {
   const message = useMemo(() => {
-    const status: number | undefined = trace.error?.status;
+    const status = trace.error?.status;
 
     if (status === 404) {
       return tct(
@@ -134,13 +134,13 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   max-height: 150px;
   text-align: center;
   height: auto;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   z-index: 30;
   padding: 20px;
-  background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   transform-origin: 50% 50%;
   transform: translate(-50%, -50%);
   animation: ${p =>
@@ -180,7 +180,7 @@ const NoMarginIndicator = styled(LoadingIndicator)`
 `;
 
 const ErrorTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 export const TraceWaterfallState = {

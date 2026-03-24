@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
+import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/parentAutogroupNode';
+import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/siblingAutogroupNode';
 
 export function AutogroupNodeDetails(
   props: TraceTreeNodeDetailsProps<ParentAutogroupNode | SiblingAutogroupNode>
@@ -49,5 +48,5 @@ export function AutogroupNodeDetails(
 }
 
 const BulletList = styled('ul')`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;

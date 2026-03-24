@@ -40,6 +40,8 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     allowMemberProjectCreation: false,
     allowSuperuserAccess: false,
     allowSharedIssues: false,
+    autoEnableCodeReview: false,
+    autoOpenPrs: false,
     attachmentsRole: 'member',
     availableRoles: [],
     avatar: {
@@ -52,6 +54,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     dataScrubberDefaults: false,
     dateCreated: new Date().toISOString(),
     debugFilesRole: '',
+    defaultCodeReviewTriggers: [],
     defaultRole: '',
     enhancedPrivacy: false,
     eventsMemberAdmin: false,
@@ -88,6 +91,8 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     defaultAutofixAutomationTuning: 'off',
     orgRoleList: OrgRoleListFixture(),
     teamRoleList: TeamRoleListFixture(),
+    hasGranularReplayPermissions: false,
+    replayAccessMembers: [],
     ...params,
   };
 }

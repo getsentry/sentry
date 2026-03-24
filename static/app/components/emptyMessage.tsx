@@ -1,18 +1,19 @@
 import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
-interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title' | 'color'> {
   action?: React.ReactNode;
   icon?: React.ReactNode;
   size?: 'lg' | 'md';
   title?: React.ReactNode;
 }
 
-function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
+export function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
   const theme = useTheme();
 
   return (
@@ -26,9 +27,7 @@ function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
         >
           {icon && (
             <IconDefaultsProvider size="xl">
-              <Container color={theme.isChonk ? theme.gray400 : theme.gray200}>
-                {icon}
-              </Container>
+              <Container color={theme.colors.gray500}>{icon}</Container>
             </IconDefaultsProvider>
           )}
           {title && (
@@ -47,5 +46,3 @@ function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
     </Flex>
   );
 }
-
-export default EmptyMessage;

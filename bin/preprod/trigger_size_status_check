@@ -14,10 +14,19 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.preprod.models import (
     PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodComparisonApproval,
 )
-from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+from sentry.preprod.vcs.status_checks.size.tasks import (
+    _evaluate_rule_threshold,
+    _fetch_base_size_metrics,
+    _get_artifact_filter_context,
+    _get_status_check_rules,
+    _rule_matches_artifact,
+    create_preprod_status_check_task,
+)
 
 #################
 # Configuration #
@@ -37,8 +46,8 @@ BUILD_1 = {
     "build_number": 42,
     "build_configuration": "Debug",  # Head build configuration
     "base_build_configuration": "Release",  # Base build configuration (test different configs!)
-    "state": "processed_with_metrics",  # uploading, uploaded, failed, processed_no_metrics, processed_with_metrics, metrics_pending
-    "create_base_artifacts": True,  # Create base artifacts for size comparison
+    "state": "uploading",  # TEST: This triggers IN_PROGRESS status, so completed_at will be None
+    "create_base_artifacts": False,  # Not needed for this test
     "create_multiple_metrics": False,  # Create watch/dynamic feature metrics in addition to main
     "error_message": None,  # Only used if state is "failed"
 }
@@ -258,12 +267,17 @@ def create_base_artifacts_for_comparison(
         base_artifact = PreprodArtifact.objects.create(
             project=project,
             app_id=build_config["app_id"],
-            app_name=build_config["app_name"],
+            artifact_type=build_config["artifact_type"],
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
+            build_configuration=base_build_config,
+        )
+        # Create mobile app info with version details
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_artifact,
+            app_name=build_config["app_name"],
             build_version=build_config["build_version"],
             build_number=build_config["build_number"] - 1,  # Previous build number
-            build_configuration=base_build_config,
         )
         base_artifacts.append(base_artifact)
         logger.info(
@@ -349,14 +363,124 @@ def get_artifact_state_from_config(state_str: str) -> tuple:
     return state_map.get(state_str, (PreprodArtifact.ArtifactState.PROCESSED, False, None))
 
 
+def show_rule_evaluation(artifact_id: int) -> None:
+    """Show which rules matched and which triggered for all artifacts in the commit."""
+    artifact = PreprodArtifact.objects.get(id=artifact_id)
+
+    all_artifacts = list(artifact.get_sibling_artifacts_for_commit())
+
+    rules = _get_status_check_rules(artifact.project)
+
+    if not rules:
+        logger.info("\n📋 No rules configured")
+        return
+
+    logger.info("\n📋 Rule Evaluation Results:")
+
+    base_artifact_map, base_metrics_by_artifact = _fetch_base_size_metrics(all_artifacts)
+
+    overall_triggered = False
+
+    for art in all_artifacts:
+        size_metrics = art.preprodartifactsizemetrics_set.filter(
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        ).first()
+
+        if not size_metrics:
+            continue
+
+        base_metric = None
+        base_artifact = base_artifact_map.get(art.id)
+        if base_artifact:
+            base_metric = next(
+                (
+                    m
+                    for m in base_metrics_by_artifact.get(base_artifact.id, [])
+                    if m.metrics_artifact_type
+                    == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+                ),
+                None,
+            )
+        context = _get_artifact_filter_context(art)
+
+        logger.info("\n  📱 %s (%s):", art.app_id, context.get("build.platform", "unknown"))
+
+        if size_metrics:
+            head_install = size_metrics.max_install_size
+            head_download = size_metrics.max_download_size
+            logger.info(
+                "     Current: install=%s MB, download=%s MB",
+                round(head_install / 1024 / 1024, 2) if head_install else None,
+                round(head_download / 1024 / 1024, 2) if head_download else None,
+            )
+
+        if base_metric:
+            base_install = base_metric.max_install_size
+            base_download = base_metric.max_download_size
+            logger.info(
+                "     Base: install=%s MB, download=%s MB",
+                round(base_install / 1024 / 1024, 2) if base_install else None,
+                round(base_download / 1024 / 1024, 2) if base_download else None,
+            )
+            if size_metrics and base_install and head_install:
+                diff_mb = (head_install - base_install) / 1024 / 1024
+                diff_pct = ((head_install - base_install) / base_install) * 100
+                logger.info(
+                    "     Diff: %s%s MB (%s%s%%)",
+                    "+" if diff_mb > 0 else "",
+                    round(diff_mb, 2),
+                    "+" if diff_pct > 0 else "",
+                    round(diff_pct, 1),
+                )
+        else:
+            logger.info("     Base: No base metrics found (diff rules won't trigger)")
+
+        for rule in rules:
+            matches = _rule_matches_artifact(rule, context)
+            triggered = (
+                _evaluate_rule_threshold(rule, size_metrics, base_metric) if matches else False
+            )
+
+            if triggered:
+                status = "🔴 TRIGGERED"
+                overall_triggered = True
+            elif matches:
+                status = "✓ Matches"
+            else:
+                status = "⊘ Filtered out"
+
+            logger.info(
+                "     %s | %s %s (threshold: %s)",
+                status,
+                rule.metric,
+                rule.measurement,
+                rule.value,
+            )
+            if rule.filter_query:
+                logger.info("        Filter: %s", rule.filter_query)
+
+    if not overall_triggered:
+        logger.info("\n✅ All rules passed for all artifacts!")
+    else:
+        logger.info("\n❌ One or more rules triggered - check will fail")
+
+
 def main() -> None:
     """Main function to test size analysis status checks."""
     try:
-        # Get project
         project = Project.objects.get(slug=PROJECT_SLUG, organization__slug=ORG_SLUG)
         logger.info("Found project: %s (ID: %s)", project.name, project.id)
 
-        # Get or create commit comparison
+        status_checks_enabled = project.get_option(
+            "sentry:preprod_size_status_checks_enabled", default=True
+        )
+
+        if not status_checks_enabled:
+            logger.info("⚠️  Status checks: DISABLED (no checks will be posted)")
+            sys.exit(0)
+
+        logger.info("✅ Status checks: ENABLED")
+
         commit_comparison, created = CommitComparison.objects.get_or_create(
             head_repo_name=REPO_NAME,
             head_sha=COMMIT_SHA,
@@ -390,6 +514,14 @@ def main() -> None:
                 preprod_artifact__in=existing_artifacts
             ).delete()
 
+            # Delete approvals (before artifacts due to foreign key)
+            approval_count = PreprodComparisonApproval.objects.filter(
+                preprod_artifact__in=existing_artifacts
+            ).count()
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact__in=existing_artifacts
+            ).delete()
+
             # Delete the artifacts
             artifact_count = existing_artifacts.count()
             existing_artifacts.delete()
@@ -399,16 +531,18 @@ def main() -> None:
             if base_comparison_count > 0:
                 base_commit_comparisons.delete()
                 logger.info(
-                    "  ✓ Deleted %s existing artifacts, %s size metrics, and %s base commit comparisons",
+                    "  ✓ Deleted %s existing artifacts, %s size metrics, %s approvals, and %s base commit comparisons",
                     artifact_count,
                     size_metrics_count,
+                    approval_count,
                     base_comparison_count,
                 )
             else:
                 logger.info(
-                    "  ✓ Deleted %s existing artifacts and %s size metrics",
+                    "  ✓ Deleted %s existing artifacts, %s size metrics, and %s approvals",
                     artifact_count,
                     size_metrics_count,
+                    approval_count,
                 )
         else:
             logger.info("  ✓ No existing artifacts found (clean slate)")
@@ -478,11 +612,8 @@ def main() -> None:
                 "project": project,
                 "artifact_type": build_config["artifact_type"],
                 "app_id": build_config["app_id"],
-                "app_name": build_config["app_name"],
                 "commit_comparison": commit_comparison,
                 "state": artifact_state,
-                "build_version": build_config["build_version"],
-                "build_number": build_config["build_number"],
                 "build_configuration": head_build_config,
             }
 
@@ -495,6 +626,12 @@ def main() -> None:
 
             # Create the preprod artifact
             preprod_artifact = PreprodArtifact.objects.create(**artifact_data)
+            PreprodArtifactMobileAppInfo.objects.create(
+                preprod_artifact=preprod_artifact,
+                app_name=build_config["app_name"],
+                build_version=build_config["build_version"],
+                build_number=build_config["build_number"],
+            )
             created_artifacts.append(preprod_artifact)
             logger.info(
                 "  ✓ Created artifact: %s (state: %s, build_config: %s)",
@@ -505,7 +642,7 @@ def main() -> None:
 
             # Simulate processing time by backdating the creation timestamp
             # This ensures completed_at != started_at in the status check
-            preprod_artifact.date_added = preprod_artifact.date_added - timedelta(minutes=5)
+            preprod_artifact.date_added = preprod_artifact.date_added - timedelta(minutes=7)
             preprod_artifact.save(update_fields=["date_added"])
             logger.info("  ✓ Backdated artifact creation by 5 minutes (simulating processing time)")
 
@@ -522,7 +659,8 @@ def main() -> None:
         logger.info("Task result: %s", result)
         logger.info("✅ Status check function called successfully!")
 
-        # Show GitHub link
+        show_rule_evaluation(created_artifacts[0].id)
+
         logger.info("\n🔍 Check your GitHub status check at:")
         logger.info("   https://github.com/%s/commit/%s", REPO_NAME, COMMIT_SHA)
 

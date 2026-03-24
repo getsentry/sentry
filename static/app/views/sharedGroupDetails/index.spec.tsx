@@ -62,24 +62,12 @@ describe('SharedGroupDetails', () => {
     render(<SharedGroupDetails />, {
       initialRouterConfig: {
         location: {
-          pathname: '/share/issue/a/',
-        },
-        route: '/share/issue/:shareId/',
-      },
-    });
-    await screen.findByText('Details');
-  });
-
-  it('renders with org slug in path', async () => {
-    render(<SharedGroupDetails />, {
-      initialRouterConfig: {
-        location: {
           pathname: `/organizations/${organization.slug}/share/issue/a/`,
         },
         route: '/organizations/:orgId/share/issue/:shareId/',
       },
     });
-    await screen.findByText('Details');
-    await screen.findByTestId('sgh-timestamp');
+    expect(await screen.findByText('Details')).toBeInTheDocument();
+    expect(await screen.findByTestId('sgh-timestamp')).toBeInTheDocument();
   });
 });

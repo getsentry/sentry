@@ -1,12 +1,12 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -18,8 +18,8 @@ import {
   isTransactionProfileReference,
 } from 'sentry/utils/profiling/guards/profile';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 
 interface AggregateFlamegraphSidePanelProps {
@@ -66,7 +66,7 @@ export function AggregateFlamegraphSidePanel({
   const examples = useMemo(() => {
     const referenceNodes = frame ? [frame] : flamegraph.root.children;
 
-    const seen: Set<Profiling.ProfileReference> = new Set();
+    const seen = new Set<Profiling.ProfileReference>();
 
     const allExamples = [];
 
@@ -228,30 +228,30 @@ function getReferenceStart(reference: Profiling.ProfileReference): number {
 const AggregateFlamegraphSidePanelContainer = styled('div')`
   flex-direction: column;
   width: 360px;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  padding: ${space(1)};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  padding: ${p => p.theme.space.md};
 `;
 
 const RowContainer = styled('div')`
-  border-radius: ${space(0.5)};
-  padding: ${space(0.5)} ${space(1)};
+  border-radius: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   :nth-child(even) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
-  color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.background};
+  color: ${p => p.theme.tokens.content.secondary};
+  background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px transparent;
 `;
 
 const FunctionContainer = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const FunctionRowContainer = styled(RowContainer)`
@@ -261,7 +261,11 @@ const FunctionRowContainer = styled(RowContainer)`
 `;
 
 const DetailsContainer = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ReferenceRowContainer = styled(RowContainer)`

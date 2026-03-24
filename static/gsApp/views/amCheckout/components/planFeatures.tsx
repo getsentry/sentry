@@ -1,11 +1,11 @@
 import type React from 'react';
 import {useMemo} from 'react';
 
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
 import {
   IconAdd,
   IconCheckmark,
@@ -15,7 +15,7 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 import {DEFAULT_TIER, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {PlanTier, type Plan} from 'getsentry/types';
@@ -218,7 +218,7 @@ function MonitoringAndDataFeatures({
 
   const previousIncluded: Partial<Record<FeatureKey, number>> = {};
   planOptions.forEach(plan => {
-    const planType: PlanType = plan.name.toLowerCase() as PlanType;
+    const planType = plan.name.toLowerCase() as PlanType;
 
     Object.entries(plan.planCategories).forEach(([category, eventBuckets]) => {
       if (!orderedKeys.includes(category as DataCategory)) {
@@ -473,12 +473,12 @@ function FeatureItem({
       <Container padding="0">
         {isIncluded ? (
           isOnlyOnBusiness ? (
-            <IconAdd size="sm" color="activeText" />
+            <IconAdd size="sm" variant="success" />
           ) : (
-            <IconCheckmark size="sm" color="success" />
+            <IconCheckmark size="sm" variant="success" />
           )
         ) : (
-          <IconClose size="sm" color="disabled" />
+          <IconClose size="sm" variant="muted" />
         )}
       </Container>
       {children}
@@ -486,7 +486,7 @@ function FeatureItem({
   );
 }
 
-function PlanFeatures({
+export function PlanFeatures({
   planOptions,
   activePlan,
 }: {
@@ -538,7 +538,7 @@ function PlanFeatures({
         {currentTier !== DEFAULT_TIER && (
           <Flex gap="sm">
             <Container paddingTop="xs">
-              <IconLightning size="sm" color="active" />
+              <IconLightning size="sm" variant="accent" />
             </Container>
             <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40444678490651-How-can-I-update-to-an-account-with-Logs">
               {t('Want the latest features? Learn more here')}
@@ -569,7 +569,7 @@ function PlanFeatures({
               })}
             >
               <Flex gap="sm">
-                <IconWarning size="sm" color="disabled" />
+                <IconWarning size="sm" variant="muted" />
                 <Text size="sm" variant="muted">
                   {tct('Excess usage for [categories] costs more on [planName]', {
                     categories: listDisplayNames({
@@ -588,5 +588,3 @@ function PlanFeatures({
     </Flex>
   );
 }
-
-export default PlanFeatures;

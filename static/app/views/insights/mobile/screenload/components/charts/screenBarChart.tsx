@@ -1,9 +1,11 @@
 import {useTheme} from '@emotion/react';
 
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
-import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -42,14 +44,10 @@ export function ScreensBarChart({
   chartProps?: BaseChartProps;
 }) {
   const theme = useTheme();
-  const {
-    isLoading: isReleasesLoading,
-    primaryRelease,
-    secondaryRelease,
-  } = useReleaseSelection();
+  const {isLoading: isReleasesLoading, primaryRelease} = useReleaseSelection();
 
   const groupBy: SpanProperty[] = [SpanFields.DEVICE_CLASS];
-  if (defined(primaryRelease) || defined(secondaryRelease)) {
+  if (defined(primaryRelease)) {
     groupBy.push(SpanFields.RELEASE);
   }
   const breakdownMetric: SpanProperty =
@@ -77,7 +75,6 @@ export function ScreensBarChart({
   const transformedEvents = transformDeviceClassEvents({
     yAxes: [type === 'ttid' ? YAxis.TTID : YAxis.TTFD],
     primaryRelease,
-    secondaryRelease,
     data: deviceClassEvents,
     theme,
   });
@@ -100,7 +97,14 @@ export function ScreensBarChart({
   if (error) {
     return (
       <ChartContainer height={chartHeight}>
-        <Widget Title={Title} Visualization={<Widget.WidgetError error={error} />} />
+        <Widget
+          Title={Title}
+          Visualization={
+            <Container position="absolute" inset={0}>
+              <Widget.WidgetError error={error} />
+            </Container>
+          }
+        />
       </ChartContainer>
     );
   }
@@ -172,7 +176,7 @@ export function ScreensBarChart({
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}
-              borderless
+              priority="transparent"
               icon={<IconExpand />}
               onClick={() => {
                 openInsightChartModal({

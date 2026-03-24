@@ -1,18 +1,16 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 export const DataSection = styled('div')`
   display: flex;
   flex-direction: column;
   margin: 0;
 
   /* Padding aligns with Layout.Body */
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(1.5)} ${space(4)};
+    padding: ${p => p.theme.space.lg} ${p => p.theme.space['3xl']};
   }
 `;
 
@@ -23,16 +21,16 @@ type BannerProps = {
 function getColors({priority, theme}: BannerProps & {theme: Theme}) {
   const COLORS = {
     default: {
-      background: theme.backgroundSecondary,
-      border: theme.border,
+      background: theme.tokens.background.secondary,
+      border: theme.tokens.border.primary,
     },
     danger: {
-      background: theme.alert.error.backgroundLight,
-      border: theme.alert.error.border,
+      background: theme.colors.red100,
+      border: theme.colors.red200,
     },
     success: {
-      background: theme.alert.success.backgroundLight,
-      border: theme.alert.success.border,
+      background: theme.colors.green100,
+      border: theme.colors.green200,
     },
   } as const;
 
@@ -40,7 +38,7 @@ function getColors({priority, theme}: BannerProps & {theme: Theme}) {
 }
 
 export const BannerContainer = styled('div')<BannerProps>`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   background: ${p => getColors(p).background};
   border-top: 1px solid ${p => getColors(p).border};
   border-bottom: 1px solid ${p => getColors(p).border};
@@ -55,10 +53,10 @@ export const BannerSummary = styled('p')`
   display: flex;
   align-items: flex-start;
   margin-bottom: 0;
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    padding: ${space(2)} ${space(4)};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
   }
 
   /* Get icons in top right of content box */
@@ -66,7 +64,7 @@ export const BannerSummary = styled('p')`
   & > svg {
     flex-shrink: 0;
     flex-grow: 0;
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
     margin-top: 2px;
   }
 
@@ -83,13 +81,13 @@ export const SuspectCommitHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 
   & button,
   & h3 {
-    color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSize.md};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    color: ${p => p.theme.tokens.content.secondary};
+    font-size: ${p => p.theme.font.size.md};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   & h3 {

@@ -1,11 +1,12 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
 
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
 import {
   DataConditionType,
@@ -16,6 +17,8 @@ import type {
   MetricDetectorConfig,
 } from 'sentry/types/workflowEngine/detectors';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {isSessionPercentageOperation} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return MarkLine({
@@ -80,8 +83,30 @@ function createPercentThresholdSeries(
   };
 }
 
+/**
+ * Normalizes percentage threshold values to 0-1 scale for consistent display.
+ * - SESSIONS_OPERATIONS percentages (crash_free_rate, crash_rate, anr_rate, etc.) store values as percentages (5 for 5%)
+ * - Other percentage operations like failure_rate() store values as 0-1 (0.05 = 5%)
+ */
+function normalizePercentageThreshold(aggregate: string, value: number): number {
+  const outputType = aggregateOutputType(aggregate);
+  if (outputType !== 'percentage') {
+    return value;
+  }
+
+  // Session operations store as percentage (5 for 5%), needs conversion to 0-1
+  if (isSessionPercentageOperation(aggregate)) {
+    return value / 100;
+  }
+
+  // Other operations like failure_rate store as decimal (0.05 for 5%), already in 0-1 scale
+  return value;
+}
+
 function extractThresholdsFromConditions(
-  conditions: Array<Omit<MetricCondition, 'id'>>
+  conditions: Array<Omit<MetricCondition, 'id'>>,
+  aggregate: string,
+  detectionType: MetricDetectorConfig['detectionType']
 ): {
   thresholds: Array<{
     priority: DetectorPriorityLevel;
@@ -96,11 +121,19 @@ function extractThresholdsFromConditions(
         condition.conditionResult !== DetectorPriorityLevel.OK &&
         typeof condition.comparison === 'number'
     )
-    .map(condition => ({
-      value: Number(condition.comparison),
-      priority: condition.conditionResult || DetectorPriorityLevel.MEDIUM,
-      type: condition.type,
-    }))
+    .map(condition => {
+      let value = Number(condition.comparison);
+      if (detectionType === 'percent') {
+        value = percentThresholdAbsoluteToDelta(value);
+      } else {
+        value = normalizePercentageThreshold(aggregate, value);
+      }
+      return {
+        value,
+        priority: condition.conditionResult || DetectorPriorityLevel.MEDIUM,
+        type: condition.type,
+      };
+    })
     .sort((a, b) => a.value - b.value);
 
   const resolutionCondition = conditions.find(
@@ -109,19 +142,28 @@ function extractThresholdsFromConditions(
 
   const resolution =
     resolutionCondition && typeof resolutionCondition.comparison === 'number'
-      ? {type: resolutionCondition.type, value: Number(resolutionCondition.comparison)}
+      ? {
+          type: resolutionCondition.type,
+          value:
+            detectionType === 'percent'
+              ? percentThresholdAbsoluteToDelta(Number(resolutionCondition.comparison))
+              : normalizePercentageThreshold(
+                  aggregate,
+                  Number(resolutionCondition.comparison)
+                ),
+        }
       : undefined;
 
   return {thresholds, resolution};
 }
 
 interface UseMetricDetectorThresholdSeriesProps {
-  conditions: Array<Omit<MetricCondition, 'id'>> | undefined;
-  detectionType: MetricDetectorConfig['detectionType'];
   /**
    * The aggregate function to determine if thresholds should be scaled for percentage display
    */
-  aggregate?: string;
+  aggregate: string;
+  conditions: Array<Omit<MetricCondition, 'id'>> | undefined;
+  detectionType: MetricDetectorConfig['detectionType'];
   comparisonSeries?: Series[];
 }
 
@@ -145,15 +187,15 @@ export function useMetricDetectorThresholdSeries({
   const theme = useTheme();
 
   return useMemo((): UseMetricDetectorThresholdSeriesResult => {
-    // For percentage aggregates (e.g., crash-free rate), thresholds are input as whole numbers
-    // (e.g., 95 for 95%) but need to be displayed as decimals (0.95) on the chart
-    const isPercentageAggregate =
-      aggregate && aggregateOutputType(aggregate) === 'percentage';
     if (!conditions) {
       return {maxValue: undefined, additionalSeries: []};
     }
 
-    const {thresholds, resolution} = extractThresholdsFromConditions(conditions);
+    const {thresholds, resolution} = extractThresholdsFromConditions(
+      conditions,
+      aggregate,
+      detectionType
+    );
     const additional: LineSeriesOption[] = [];
 
     if (detectionType === 'percent') {
@@ -165,8 +207,8 @@ export function useMetricDetectorThresholdSeries({
         const isAbove = threshold.type === DataConditionType.GREATER;
         const lineColor =
           threshold.priority === DetectorPriorityLevel.HIGH
-            ? theme.red300
-            : theme.yellow300;
+            ? theme.colors.red400
+            : theme.colors.yellow400;
 
         const seriesName = `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`;
 
@@ -223,13 +265,11 @@ export function useMetricDetectorThresholdSeries({
         const isAbove = threshold.type === DataConditionType.GREATER;
         const lineColor =
           threshold.priority === DetectorPriorityLevel.HIGH
-            ? theme.red300
-            : theme.yellow300;
+            ? theme.colors.red400
+            : theme.colors.yellow400;
         const areaColor = lineColor;
-        // Scale threshold for percentage aggregates (e.g., 95 -> 0.95)
-        const displayThreshold = isPercentageAggregate
-          ? threshold.value / 100
-          : threshold.value;
+        // Thresholds are normalized to correct scale via normalizePercentageThreshold()
+        const displayThreshold = threshold.value;
 
         return {
           type: 'line',
@@ -245,17 +285,17 @@ export function useMetricDetectorThresholdSeries({
         resolution && !thresholds.some(threshold => threshold.value === resolution.value)
       );
       if (resolution && isResolutionManual) {
-        // Scale resolution threshold for percentage aggregates
-        const displayResolution = isPercentageAggregate
-          ? resolution.value / 100
-          : resolution.value;
+        // Resolution value is normalized to correct scale via normalizePercentageThreshold()
+        const displayResolution = resolution.value;
         const resolutionSeries: LineSeriesOption = {
           type: 'line',
-          markLine: createThresholdMarkLine(theme.green300, displayResolution),
+          markLine: createThresholdMarkLine(theme.colors.green400, displayResolution),
           markArea: createThresholdMarkArea(
-            theme.green300,
+            theme.colors.green400,
             displayResolution,
-            resolution.type === DataConditionType.GREATER
+            [DataConditionType.GREATER, DataConditionType.GREATER_OR_EQUAL].includes(
+              resolution.type
+            )
           ),
           data: [],
         };
@@ -263,12 +303,8 @@ export function useMetricDetectorThresholdSeries({
       }
 
       const valuesForMax = [
-        ...thresholds.map(threshold =>
-          isPercentageAggregate ? threshold.value / 100 : threshold.value
-        ),
-        ...(resolution && isResolutionManual
-          ? [isPercentageAggregate ? resolution.value / 100 : resolution.value]
-          : []),
+        ...thresholds.map(threshold => threshold.value),
+        ...(resolution && isResolutionManual ? [resolution.value] : []),
       ];
       const maxValue = valuesForMax.length > 0 ? Math.max(...valuesForMax) : undefined;
       return {maxValue, additionalSeries: additional};
@@ -276,5 +312,5 @@ export function useMetricDetectorThresholdSeries({
 
     // Other detection types not supported yet
     return {maxValue: undefined, additionalSeries: additional};
-  }, [conditions, detectionType, aggregate, comparisonSeries, theme]);
+  }, [aggregate, conditions, detectionType, comparisonSeries, theme]);
 }

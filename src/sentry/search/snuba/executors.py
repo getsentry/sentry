@@ -13,7 +13,6 @@ from math import floor
 from typing import Any, TypedDict, cast
 
 import sentry_sdk
-from django.db.models import Q
 from django.utils import timezone
 from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
@@ -24,8 +23,7 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.grouping.grouptype import ErrorGroupType
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
@@ -146,8 +144,9 @@ def group_categories_from_search_filters(
 
     if not group_categories:
         group_categories = set(get_search_strategies().keys())
-        # if we're not searching for feedbacks, then hide them by default
+        # Hide certain categories from the default issue stream
         group_categories.discard(GroupCategory.FEEDBACK.value)
+        group_categories.discard(GroupCategory.INSTRUMENTATION.value)
 
     if not features.has("organizations:performance-issues-search", organization):
         group_categories.discard(GroupCategory.PERFORMANCE.value)
@@ -371,7 +370,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             pinned_query_partial,
             selected_columns,
             aggregations,
-            organization.id,
+            organization,
             project_ids,
             environments,
             group_ids,
@@ -426,7 +425,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             sf
             for sf in search_filters or ()
             # remove any search_filters that are only available in postgres, we special case date
-            if not (sf.key.name in self.postgres_only_fields.union(["date", "timestamp"]))
+            if sf.key.name not in self.postgres_only_fields.union(["date", "timestamp"])
         ]
 
         # common pinned parameters that won't change based off datasource
@@ -757,6 +756,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         now = timezone.now()
         end = None
         paginator_options = {} if paginator_options is None else paginator_options
+
         end_params = [
             _f
             for _f in [
@@ -769,13 +769,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if end_params:
             end = min(end_params)
 
+        allow_postgres_only_search = False
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
             allow_postgres_only_search = True
-        else:
-            allow_postgres_only_search = features.has(
-                "organizations:issue-search-allow-postgres-only-search", projects[0].organization
-            )
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -827,21 +824,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 .order_by("-last_seen")
             )
 
-            for sf in search_filters or ():
-                # general search query:
-                if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
-                    group_queryset = group_queryset.filter(
-                        Q(type=ErrorGroupType.type_id)
-                        | (
-                            Q(type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value))
-                            and (
-                                ~Q(message__icontains=sf.value.raw_value)
-                                if sf.is_negation
-                                else Q(message__icontains=sf.value.raw_value)
-                            )
-                        )
-                    )
-
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
 
             # When it's a simple django-only search, we count_hits like normal
@@ -866,11 +848,14 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             span.set_data("Result Size", len(group_ids))
         metrics.distribution("snuba.search.num_candidates", len(group_ids))
         too_many_candidates = False
+        original_group_ids: list[int] | None = None
         if not group_ids:
             # no matches could possibly be found from this point on
             metrics.incr("snuba.search.no_candidates", skip_internal=False)
             return self.empty_result
         elif len(group_ids) > max_candidates:
+            original_group_ids = group_ids
+
             # If the pre-filter query didn't include anything to significantly
             # filter down the number of results (from 'first_release', 'status',
             # 'bookmarked_by', 'assigned_to', 'unassigned', or 'subscribed_by')
@@ -909,11 +894,24 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             referrer=referrer,
         )
         if count_hits and hits == 0:
-            return self.empty_result
+            # Sampling estimated 0 hits. This could mean:
+            # 1. There are genuinely no results (return empty)
+            # 2. The filter is selective and sampling failed to find matches
+            #
+            # If we had too_many_candidates, fall back to truncation instead of
+            # returning empty. This handles selective filters (like assigned_to)
+            # where random sampling is unlikely to find matches.
+            if too_many_candidates and original_group_ids:
+                metrics.incr("snuba.search.hits_zero_fallback_to_truncation", skip_internal=False)
+                group_ids = original_group_ids[:max_candidates]
+                too_many_candidates = False
+                hits = None
+            else:
+                return self.empty_result
 
         paginator_results = self.empty_result
-        result_groups = []
-        result_group_ids = set()
+        result_groups: list[tuple[int, Any]] = []
+        result_group_ids: set[int] = set()
 
         max_time = options.get("snuba.search.max-total-chunk-time-seconds")
         time_start = time.time()
@@ -976,7 +974,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 ).values_list("id", flat=True)
 
                 group_to_score = dict(snuba_groups)
+                filtered_count = 0
                 for group_id in filtered_group_ids:
+                    filtered_count += 1
                     if group_id in result_group_ids:
                         # because we're doing multiple Snuba queries, which
                         # happen outside of a transaction, there is a small possibility
@@ -1030,6 +1030,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             (timezone.now() - now).total_seconds(),
             tags={"postgres_only": False},
         )
+
         return paginator_results
 
     def calculate_hits(
@@ -1114,6 +1115,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 **kwargs,
             )
             snuba_count = len(snuba_groups)
+
             if snuba_count == 0:
                 # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.empty_result
                 return 0

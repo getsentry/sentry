@@ -1,6 +1,5 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
@@ -9,22 +8,18 @@ import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack, type FlexProps, type StackProps} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {
-  makeProjectSeerPreferencesQueryKey,
-  useProjectSeerPreferences,
-} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
+import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
+import {StarFixabilityViewButton} from 'sentry/components/events/autofix/seerCreateViewButton';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {
+  organizationIntegrationsCodingAgents,
   useAutofixRepos,
-  useCodingAgentIntegrations,
 } from 'sentry/components/events/autofix/useAutofix';
 import {
   GuidedSteps,
@@ -33,14 +28,15 @@ import {
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
-import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
+import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 
 interface SeerNoticesProps {
   groupId: string;
@@ -95,7 +91,6 @@ function CustomStepButtons({
 
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
   const {repos} = useAutofixRepos(groupId);
   const {
     preference,
@@ -103,8 +98,10 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     codeMappingRepos,
   } = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
-  const {mutateAsync: updateProjectAutomation} = useUpdateProjectAutomation(project);
-  const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
+  const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
+  const {data: codingAgentIntegrations} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
   const {starredViews: views} = useStarredIssueViews();
 
   const detailedProject = useDetailedProject({
@@ -172,7 +169,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   ];
 
   const handleSetupCursorHandoff = useCallback(async () => {
-    if (!cursorIntegration) {
+    if (!cursorIntegration?.id) {
       return;
     }
 
@@ -187,26 +184,15 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       });
     }
 
-    updateProjectSeerPreferences(
-      {
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: 'root_cause',
-        automation_handoff: {
-          handoff_point: 'root_cause',
-          target: 'cursor_background_agent',
-          integration_id: parseInt(cursorIntegration.id, 10),
-        },
+    updateProjectSeerPreferences({
+      repositories: preference?.repositories || [],
+      automated_run_stopping_point: 'root_cause',
+      automation_handoff: {
+        handoff_point: 'root_cause',
+        target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+        integration_id: parseInt(cursorIntegration.id, 10),
       },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: [
-              makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-            ],
-          });
-        },
-      }
-    );
+    });
   }, [
     cursorIntegration,
     project.seerScannerAutomation,
@@ -214,9 +200,6 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     updateProjectAutomation,
     updateProjectSeerPreferences,
     preference?.repositories,
-    queryClient,
-    organization.slug,
-    project.slug,
   ]);
 
   const handleSkipCursorStep = useCallback(() => {
@@ -231,11 +214,11 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const anyStepIncomplete = incompleteStepIndices.length > 0;
 
   return (
-    <NoticesContainer>
+    <Stack align="stretch">
       {/* Collapsed summary */}
       {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
-          <IconSeer variant="waiting" size="lg" style={{marginRight: 8}} />
+          <IconSeer animation="waiting" size="lg" style={{marginRight: 8}} />
           <span>
             {t(
               'Only %s step%s left to get the most out of Seer.',
@@ -256,7 +239,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
             transition={{duration: 0.2}}
           >
             <StepsHeader>
-              <IconSeer variant="waiting" size="xl" />
+              <IconSeer animation="waiting" size="xl" />
               Debug Faster with Seer
             </StepsHeader>
             <StyledGuidedSteps>
@@ -501,7 +484,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                                 'Set up the [integrationLink:Cursor Integration] to enable automatic handoff. [docsLink:Read the docs] to learn more.',
                                 {
                                   integrationLink: (
-                                    <Link to="/settings/integrations/cursor/" />
+                                    <Link
+                                      to={`/settings/${organization.slug}/integrations/cursor/`}
+                                    />
                                   ),
                                   docsLink: (
                                     <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
@@ -536,7 +521,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       </Button>
                     ) : (
                       <LinkButton
-                        href="/settings/integrations/cursor/"
+                        href={`/settings/${organization.slug}/integrations/cursor/`}
                         size="sm"
                         priority="primary"
                       >
@@ -553,7 +538,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       )}
       {/* Banners for unreadable repos */}
       {hasMultipleUnreadableRepos && (
-        <StyledAlert type="warning" key="multiple-repos">
+        <StyledAlert variant="warning" key="multiple-repos">
           {tct("Seer can't access these repositories: [repoList].", {
             repoList: <b>{unreadableRepos.map(repo => repo.name).join(', ')}</b>,
           })}
@@ -578,7 +563,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         </StyledAlert>
       )}
       {hasSingleUnreadableRepo && (
-        <StyledAlert type="warning" key="single-repo">
+        <StyledAlert variant="warning" key="single-repo">
           {unreadableRepos[0]?.provider.includes('github')
             ? tct(
                 "Seer can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
@@ -597,7 +582,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               )}
         </StyledAlert>
       )}
-    </NoticesContainer>
+    </Stack>
   );
 }
 
@@ -606,20 +591,16 @@ const StyledGuidedSteps = styled(GuidedSteps)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const NoticesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-`;
-
-const CardDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
+function CardDescription(props: StackProps) {
+  return (
+    <Stack gap="md" {...props}>
+      {props.children}
+    </Stack>
+  );
+}
 
 const CardIllustration = styled('img')`
   width: 100%;
@@ -639,61 +620,61 @@ const CursorPluginIcon = styled('div')`
   transform: translateY(3px);
 `;
 
-const StepContentRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: ${space(3)};
-`;
+function StepContentRow(props: FlexProps) {
+  return (
+    <Flex justify="between" align="center" gap="2xl" width="100%" {...props}>
+      {props.children}
+    </Flex>
+  );
+}
 
-const StepTextCol = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  flex: 0 0 75%;
-  min-width: 0;
-`;
+function StepTextCol(props: StackProps) {
+  return (
+    <Stack flex="0 0 75%" gap="xl" minWidth="0" {...props}>
+      {props.children}
+    </Stack>
+  );
+}
 
-const StepImageCol = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  flex-grow: 1;
-`;
+function StepImageCol(props: FlexProps) {
+  return (
+    <Flex align="end" justify="end" flexGrow={1} {...props}>
+      {props.children}
+    </Flex>
+  );
+}
 
 const StepsHeader = styled('h3')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.xl};
-  margin-bottom: ${space(0.5)};
+  gap: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.xl};
+  margin-bottom: ${p => p.theme.space.xs};
   margin-left: 1px;
 `;
 
 const StepsDivider = styled('hr')`
   border: none;
-  border-top: 1px solid ${p => p.theme.border};
-  margin: ${space(3)} 0;
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  margin: ${p => p.theme.space['2xl']} 0;
 `;
 
 const CollapsedSummaryCard = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  background: ${p => p.theme.pink400}10;
-  border: 1px solid ${p => p.theme.border};
+  gap: ${p => p.theme.space.md};
+  background: ${p => p.theme.colors.pink500}10;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
-  padding: ${space(1)};
-  margin-bottom: ${space(2)};
+  padding: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xl};
   cursor: pointer;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 500;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   transition: box-shadow 0.2s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   &:hover {
-    background: ${p => p.theme.pink400}20;
+    background: ${p => p.theme.colors.pink500}20;
   }
 `;

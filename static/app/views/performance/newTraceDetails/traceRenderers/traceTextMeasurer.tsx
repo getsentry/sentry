@@ -3,7 +3,7 @@ import type {Theme} from '@emotion/react';
 export class TraceTextMeasurer {
   queue: string[] = [];
   drainRaf: number | null = null;
-  cache: Map<string, number> = new Map();
+  cache = new Map<string, number>();
 
   number = 0;
   dot = 0;
@@ -31,7 +31,7 @@ export class TraceTextMeasurer {
     canvas.width = 50 * window.devicePixelRatio;
     canvas.height = 50 * window.devicePixelRatio;
 
-    ctx.font = '11px' + theme.text.family;
+    ctx.font = `${theme.font.size.xs} ${theme.font.family.sans}`;
 
     this.dot = ctx.measureText('.').width;
     for (let i = 0; i < 10; i++) {

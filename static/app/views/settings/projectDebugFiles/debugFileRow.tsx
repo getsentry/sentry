@@ -1,20 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'sentry/components/acl/access';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Access} from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
-import Confirm from 'sentry/components/confirm';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import FileSize from 'sentry/components/fileSize';
-import TimeSince from 'sentry/components/timeSince';
+import {Confirm} from 'sentry/components/confirm';
+import {FileSize} from 'sentry/components/fileSize';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {Project} from 'sentry/types/project';
 
@@ -29,7 +28,7 @@ type Props = {
   showDetails: boolean;
 };
 
-function DebugFileRow({
+export function DebugFileRow({
   debugFile,
   showDetails,
   downloadUrl,
@@ -47,7 +46,7 @@ function DebugFileRow({
 
   return (
     <Fragment>
-      <Column>
+      <Stack align="start">
         <div>
           <DebugId>{debugId || uuid}</DebugId>
         </div>
@@ -58,8 +57,8 @@ function DebugFileRow({
             <TimeSince date={dateCreated} />
           </TimeWrapper>
         </TimeAndSizeWrapper>
-      </Column>
-      <Column>
+      </Stack>
+      <Stack align="start">
         <Name>
           {symbolType === 'proguard' && objectName === 'proguard-mapping'
             ? '\u2015'
@@ -72,7 +71,7 @@ function DebugFileRow({
             <FeatureTags>
               {features.map(feature => (
                 <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
-                  <StyledTag>{feature}</StyledTag>
+                  <StyledTag variant="muted">{feature}</StyledTag>
                 </Tooltip>
               ))}
             </FeatureTags>
@@ -88,9 +87,9 @@ function DebugFileRow({
             </div>
           )}
         </Description>
-      </Column>
-      <RightColumn>
-        <ButtonBar gap="xs">
+      </Stack>
+      <Flex justify="end" align="start" marginTop="md">
+        <Grid flow="column" align="center" gap="xs">
           <Tooltip
             disabled={hasRole}
             title={tct(
@@ -136,83 +135,72 @@ function DebugFileRow({
               </Tooltip>
             )}
           </Access>
-        </ButtonBar>
-      </RightColumn>
+        </Grid>
+      </Flex>
     </Fragment>
   );
 }
 
 const DescriptionText = styled('span')`
   display: inline-flex;
-  margin: 0 ${space(1)} ${space(1)} 0;
+  margin: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
 `;
 
 const FeatureTags = styled('div')`
   display: inline-flex;
   flex-wrap: wrap;
-  margin: -${space(0.5)};
+  margin: -${p => p.theme.space.xs};
 `;
 
 const StyledTag = styled(Tag)`
-  padding: ${space(0.5)};
-`;
-
-const Column = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const RightColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-  margin-top: ${space(1)};
+  padding: ${p => p.theme.space.xs};
 `;
 
 const DebugId = styled('code')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TimeAndSizeWrapper = styled('div')`
   width: 100%;
   display: flex;
-  font-size: ${p => p.theme.fontSize.sm};
-  margin-top: ${space(1)};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  margin-top: ${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.content.secondary};
   align-items: center;
 `;
 
 const StyledFileSize = styled(FileSize)`
   flex: 1;
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   grid-template-columns: min-content 1fr;
   flex: 2;
   align-items: center;
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
 `;
 
 const Name = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.font.size.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     line-height: 1.7;
   }
 `;
 
 const DetailsItem = styled('div')`
-  ${p => p.theme.overflowEllipsis}
-  margin-top: ${space(1)}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: ${p => p.theme.space.md};
 `;
-
-export default DebugFileRow;

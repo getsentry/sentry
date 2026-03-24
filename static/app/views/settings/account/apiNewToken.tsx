@@ -1,24 +1,27 @@
 import {useCallback, useState} from 'react';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import ApiForm from 'sentry/components/forms/apiForm';
-import TextareaField from 'sentry/components/forms/fields/textareaField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {ApiForm} from 'sentry/components/forms/apiForm';
+import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {
+  DISTRIBUTION_SENTRY_APP_PERMISSION,
+  SENTRY_APP_PERMISSIONS,
+} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
@@ -34,15 +37,14 @@ export default function ApiNewToken() {
     Distribution: 'no-access',
   });
   const navigate = useNavigate();
-  const organization = useOrganization({allowNull: true});
   const [hasNewToken, setHasnewToken] = useState(false);
   const [preview, setPreview] = useState<string>('');
 
-  const hasPreprodFeature =
-    organization?.features.includes('organizations:preprod-build-distribution') ?? false;
-
+  // Personal tokens can't be used for Distribution. The point of
+  // Distribution is to emebed the token into an app. We don't want people
+  // using personal tokens for that.
   const displayedPermissions = SENTRY_APP_PERMISSIONS.filter(
-    o => o.resource !== 'Distribution' || hasPreprodFeature
+    o => o !== DISTRIBUTION_SENTRY_APP_PERMISSION
   );
 
   const getPreview = () => {

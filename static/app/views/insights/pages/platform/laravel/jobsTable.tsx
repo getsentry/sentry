@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -164,7 +165,11 @@ function DestinationCell({destination}: {destination: string}) {
 }
 
 const StyledJobLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
 `;
 

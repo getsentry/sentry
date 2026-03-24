@@ -1,23 +1,26 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxField from 'sentry/components/forms/fields/checkboxField';
-import InputField from 'sentry/components/forms/fields/inputField';
-import RadioField from 'sentry/components/forms/fields/radioField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import type FormModel from 'sentry/components/forms/model';
+import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
+import {InputField} from 'sentry/components/forms/fields/inputField';
+import {RadioField} from 'sentry/components/forms/fields/radioField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import type {FormModel} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL} from 'getsentry/constants';
-import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
+import {
+  AddOnCategory,
+  type BillingConfig,
+  type Plan,
+  type Subscription,
+} from 'getsentry/types';
 import {getPlanCategoryName, isByteCategory} from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = {
   activePlan: Plan | null;
@@ -27,15 +30,13 @@ type Props = {
   onSubmit: OnSubmitCallback;
   onSubmitError: (error: any) => void;
   onSubmitSuccess: (data: Data) => void;
-  organization: Organization;
   subscription: Subscription;
   tierPlans: BillingConfig['planList'];
 };
 
-function PlanList({
+export function PlanList({
   activePlan,
   subscription,
-  organization,
   onSubmit,
   onCancel,
   onSubmitSuccess,
@@ -79,27 +80,25 @@ function PlanList({
     100000: '100K',
   };
 
-  const availableProducts = useMemo(
+  const availableAddOns = useMemo(
     () =>
       Object.values(activePlan?.addOnCategories || {})
         .filter(
-          productInfo =>
-            productInfo.billingFlag &&
-            organization.features.includes(productInfo.billingFlag)
+          productInfo => subscription.addOns?.[productInfo.apiName]?.isAvailable ?? false
         )
         .map(productInfo => {
           return productInfo;
         }),
-    [activePlan?.addOnCategories, organization.features]
+    [activePlan?.addOnCategories, subscription.addOns]
   );
 
   useEffect(() => {
-    availableProducts.forEach(productInfo => {
+    availableAddOns.forEach(productInfo => {
       const addOnKey = `addOn${toTitleCase(productInfo.apiName, {allowInnerUpperCase: true})}`;
       const enabled = subscription.addOns?.[productInfo.apiName]?.enabled;
       formModel.setValue(addOnKey, enabled);
     });
-  }, [availableProducts, subscription.addOns, formModel]);
+  }, [availableAddOns, subscription.addOns, formModel]);
 
   return (
     <Form
@@ -174,7 +173,6 @@ function PlanList({
                     value={fieldValue}
                     options={(activePlan.planCategories[category] || []).map(
                       (level: {events: {toLocaleString: () => any}}) => ({
-                        // eslint-disable-next-line @typescript-eslint/no-base-to-string
                         label: level.events.toLocaleString(),
                         value: level.events,
                       })
@@ -187,16 +185,23 @@ function PlanList({
             })}
           </StyledFormSection>
         )}
-      {availableProducts.length > 0 && (
+      {availableAddOns.length > 0 && (
         <StyledFormSection>
           <h4>Available Products</h4>
-          {availableProducts.map(productInfo => {
+          {availableAddOns.map(productInfo => {
             const addOnKey = `addOn${toTitleCase(productInfo.apiName, {allowInnerUpperCase: true})}`;
+            const titleCaseName = toTitleCase(productInfo.productName, {
+              allowInnerUpperCase: true,
+            });
+            const label =
+              productInfo.apiName === AddOnCategory.LEGACY_SEER
+                ? `${titleCaseName} (Legacy)`
+                : titleCaseName;
             return (
               <CheckboxField
                 key={productInfo.apiName}
                 data-test-id={`checkbox-${productInfo.productName}`}
-                label={toTitleCase(productInfo.productName)}
+                label={label}
                 name={addOnKey}
                 onChange={(value: any) => {
                   formModel.setValue(addOnKey, value.target.checked);
@@ -231,10 +236,10 @@ function PlanList({
 }
 
 const StyledFormSection = styled('div')`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 
   & > h4 {
-    margin: ${space(2)} 0;
+    margin: ${p => p.theme.space.xl} 0;
   }
 `;
 
@@ -245,7 +250,7 @@ const PlanLabel = styled('label')`
   align-items: flex-start;
 
   & > div {
-    margin-right: ${space(3)};
+    margin-right: ${p => p.theme.space['2xl']};
   }
 `;
 
@@ -261,13 +266,11 @@ const SelectFieldWrapper = styled('div')`
 const CurrentValueText = styled('div')`
   color: #666;
   font-size: 0.9em;
-  margin-top: -${space(1)};
-  margin-bottom: ${space(1.5)};
+  margin-top: -${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.lg};
   font-style: italic;
 `;
 
 const AuditFields = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
-
-export default PlanList;

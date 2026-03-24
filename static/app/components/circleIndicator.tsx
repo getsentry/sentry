@@ -17,14 +17,15 @@ const defaultProps = {
   size: 14,
 };
 
-const CircleIndicator = styled('div')<Props>`
+export const CircleIndicator = styled('div')<Props>`
   display: inline-block;
   position: relative;
   border-radius: 50%;
   height: ${p => p.size ?? defaultProps.size}px;
   width: ${p => p.size ?? defaultProps.size}px;
   background: ${p =>
-    p.color ?? ((p.enabled ?? defaultProps.enabled) ? p.theme.success : p.theme.error)};
+    p.color ??
+    ((p.enabled ?? defaultProps.enabled)
+      ? p.theme.tokens.background.success.vibrant
+      : p.theme.tokens.background.danger.vibrant)};
 `;
-
-export default CircleIndicator;

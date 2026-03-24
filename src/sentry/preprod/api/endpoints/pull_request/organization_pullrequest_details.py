@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.preprod.analytics import PreprodApiPrPageDetailsEvent
@@ -20,7 +20,7 @@ from sentry.shared_integrations.exceptions import ApiError
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -61,7 +61,7 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
 
         try:
             # TODO(telkins): handle pagination
-            pr_files = client.get_pullrequest_files(repo_name, pr_number)
+            pr_files = client.get_pull_request_files(repo_name, pr_number)
             # TODO(telkins): push this into client
             pr_details = client.get(f"/repos/{repo_name}/pulls/{pr_number}")
 

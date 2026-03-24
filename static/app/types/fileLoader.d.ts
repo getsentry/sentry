@@ -11,4 +11,9 @@ declare module '*.svg' {
   export default content;
 }
 
-declare module '*.pegjs';
+declare module '*.pegjs' {
+  import type {Parser} from 'peggy';
+  export const parse: Parser['parse'];
+  export const SyntaxError: Parser['SyntaxError'];
+  export const StartRules: Parser['StartRules'];
+}

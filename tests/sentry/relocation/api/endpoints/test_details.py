@@ -22,7 +22,7 @@ class GetRelocationDetailsTest(APITestCase):
         self.staff_user = self.create_user(is_staff=True)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             status=Relocation.Status.SUCCESS.value,
             step=Relocation.Step.COMPLETED.value,
@@ -35,6 +35,7 @@ class GetRelocationDetailsTest(APITestCase):
             latest_task_attempts=1,
         )
 
+    @override_options({"staff.ga-rollout": False})
     def test_good_superuser_found(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(self.relocation.uuid, status_code=200)
@@ -47,22 +48,19 @@ class GetRelocationDetailsTest(APITestCase):
         assert response.data["uuid"] == str(self.relocation.uuid)
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_superuser_fails_with_option(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
-        self.get_error_response(self.relocation.uuid, status_code=403)
-
-    def test_bad_superuser_not_found(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
-        does_not_exist_uuid = uuid4().hex
-        self.get_error_response(str(does_not_exist_uuid), status_code=404)
-
-    @override_options({"staff.ga-rollout": True})
     def test_bad_staff_not_found(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
+    @override_options({"staff.ga-rollout": False})
+    def test_bad_superuser_not_found(self) -> None:
+        self.login_as(user=self.superuser, superuser=True)
+        does_not_exist_uuid = uuid4().hex
+        self.get_error_response(str(does_not_exist_uuid), status_code=404)
+
     # TODO(getsentry/team-ospo#214): Add test for non-superusers to view their own relocations, but
     # not other owners'.
+    @override_options({"staff.ga-rollout": True})
     def test_bad_no_auth(self) -> None:
         self.get_error_response(self.relocation.uuid, status_code=401)

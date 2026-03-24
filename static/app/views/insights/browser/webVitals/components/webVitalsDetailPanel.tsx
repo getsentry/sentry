@@ -1,23 +1,29 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {DashboardFilters} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {getLinkedDashboardUrl} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -31,7 +37,7 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
@@ -50,7 +56,13 @@ const sort: GridColumnSortBy<keyof Row> = {key: 'count()', order: 'desc'};
 
 const MAX_ROWS = 10;
 
-export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
+export function WebVitalsDetailPanel({
+  webVital,
+  dashboardFilters,
+}: {
+  webVital: WebVitals | null;
+  dashboardFilters?: DashboardFilters;
+}) {
   const location = useLocation();
   const organization = useOrganization();
   const moduleUrl = useModuleURL(ModuleName.VITAL);
@@ -58,6 +70,10 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
   const subregions = decodeList(
     location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
+
+  const {dashboard: linkedWebVitalsSummaryDashboard} = useGetPrebuiltDashboard(
+    dashboardFilters === undefined ? undefined : PrebuiltDashboardId.WEB_VITALS_SUMMARY
+  );
 
   const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
@@ -131,6 +147,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
       return (
         <Tooltip
           isHoverable
+          showUnderline
           title={
             <span>
               {tct(
@@ -144,7 +161,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
             </span>
           }
         >
-          <OpportunityHeader>{col.name}</OpportunityHeader>
+          {col.name}
         </Tooltip>
       );
     }
@@ -182,19 +199,39 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
       return <AlignRight>{value}</AlignRight>;
     }
     if (key === 'transaction') {
+      const linkedDashboardUrl =
+        dashboardFilters !== undefined && linkedWebVitalsSummaryDashboard?.id
+          ? getLinkedDashboardUrl({
+              linkedDashboard: {
+                dashboardId: linkedWebVitalsSummaryDashboard.id,
+                field: SpanFields.TRANSACTION,
+                additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
+              },
+              organizationSlug: organization.slug,
+              field: 'transaction',
+              value: row.transaction,
+              widgetType: WidgetType.SPANS,
+              dashboardFilters,
+              locationQuery: location.query,
+              projectIdOverride: String(row['project.id']),
+            })
+          : undefined;
+
       return (
         <NoOverflow>
           <Link
-            to={{
-              ...location,
-              pathname: `${moduleUrl}/overview/`,
-              query: {
-                ...location.query,
-                transaction: row.transaction,
-                webVital,
-                project: row['project.id'],
-              },
-            }}
+            to={
+              linkedDashboardUrl || {
+                ...location,
+                pathname: `${moduleUrl}/overview/`,
+                query: {
+                  ...location.query,
+                  transaction: row.transaction,
+                  webVital,
+                  project: row['project.id'],
+                },
+              }
+            }
           >
             {row.transaction}
           </Link>
@@ -297,10 +334,6 @@ const ChartContainer = styled('div')`
 const AlignCenter = styled('span')`
   text-align: center;
   width: 100%;
-`;
-
-const OpportunityHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
 `;
 
 const TableContainer = styled('div')`

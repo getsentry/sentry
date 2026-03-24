@@ -1,26 +1,26 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import TextareaField from 'sentry/components/forms/fields/textareaField';
-import TextField from 'sentry/components/forms/fields/textField';
+import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {Form} from 'sentry/components/forms/form';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {GDPRDetails, Subscription} from 'getsentry/types';
 
 interface GDPREditModalProps extends ModalRenderProps {
@@ -75,7 +75,7 @@ function GDPREditModal({
           <TextField key="email" name={`${prefix}Email`} label={t('Email')} inline />
         </FormWrapper>
         <Footer>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               type="button"
               onClick={() => {
@@ -87,7 +87,7 @@ function GDPREditModal({
             <Button type="submit" priority="primary">
               {t('Save Changes')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Footer>
       </Form>
     </Fragment>
@@ -112,9 +112,9 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
     const hasInformation = subscription.gdprDetails
       ? Boolean(
           subscription.gdprDetails[`${prefix}Email`] ||
-            subscription.gdprDetails[`${prefix}Name`] ||
-            subscription.gdprDetails[`${prefix}Address`] ||
-            subscription.gdprDetails[`${prefix}Email`]
+          subscription.gdprDetails[`${prefix}Name`] ||
+          subscription.gdprDetails[`${prefix}Address`] ||
+          subscription.gdprDetails[`${prefix}Email`]
         )
       : false;
     const contactDetails = subscription.gdprDetails ? (
@@ -200,23 +200,23 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
 const ItemLayout = styled(PanelItem)`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
 `;
 
 const SubText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 /**
  * Allows the form to expand into the full width of the panel
  */
 const FormWrapper = styled('div')`
-  margin-left: -${space(4)};
-  margin-right: -${space(4)};
+  margin-left: -${p => p.theme.space['3xl']};
+  margin-right: -${p => p.theme.space['3xl']};
   & > div {
-    padding-left: ${space(4)};
-    padding-right: ${space(4)} !important;
+    padding-left: ${p => p.theme.space['3xl']};
+    padding-right: ${p => p.theme.space['3xl']} !important;
   }
 
   & > div > label {
@@ -225,6 +225,6 @@ const FormWrapper = styled('div')`
 `;
 
 const ContactDetailsWrapper = styled('div')`
-  margin-bottom: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.sm};
+  margin-bottom: ${p => p.theme.space.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

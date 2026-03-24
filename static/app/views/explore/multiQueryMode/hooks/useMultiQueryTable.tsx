@@ -1,11 +1,11 @@
 import {useCallback, useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -61,7 +61,7 @@ function useMultiQueryTableAggregateModeImpl({
   const {selection} = usePageFilters();
 
   const fields = useMemo(() => {
-    const allFields: Set<string> = new Set();
+    const allFields = new Set<string>();
 
     for (const groupBy of groupBys) {
       allFields.add(groupBy);
@@ -100,7 +100,13 @@ function useMultiQueryTableAggregateModeImpl({
   return {eventView, fields, result};
 }
 
-export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: Props) {
+export function useMultiQueryTableSampleMode({
+  query,
+  yAxes,
+  sortBys,
+  enabled,
+  queryExtras,
+}: Props) {
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
       const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
@@ -111,7 +117,7 @@ export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: P
   );
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableSampleModeImpl,
-    queryHookArgs: {query, yAxes, sortBys, enabled},
+    queryHookArgs: {query, yAxes, sortBys, enabled, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
     },

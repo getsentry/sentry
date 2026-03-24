@@ -73,8 +73,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"type": "codeowners", "pattern": "docs/*"},
                     "owners": [
-                        {"type": "user", "id": self.user.id, "name": self.user.email},
-                        {"type": "team", "id": self.team.id, "name": self.team.slug},
+                        {"type": "user", "id": str(self.user.id), "name": self.user.email},
+                        {"type": "team", "id": str(self.team.id), "name": self.team.slug},
                     ],
                 }
             ],
@@ -124,7 +124,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "rules": [
                 {
                     "matcher": {"type": "codeowners", "pattern": "*.js"},
-                    "owners": [{"type": "team", "id": self.team.id, "name": self.team.slug}],
+                    "owners": [{"type": "team", "id": str(self.team.id), "name": self.team.slug}],
                 }
             ],
         }
@@ -156,7 +156,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "rules": [
                 {
                     "matcher": {"type": "codeowners", "pattern": "*.js"},
-                    "owners": [{"type": "team", "id": self.team.id, "name": self.team.slug}],
+                    "owners": [{"type": "team", "id": str(self.team.id), "name": self.team.slug}],
                 }
             ],
         }
@@ -359,9 +359,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         external_team_name = self.external_team.external_name
         capitalized_external_team_name = external_team_name.swapcase()
 
-        self.data[
-            "raw"
-        ] = f"""
+        self.data["raw"] = f"""
         src/frontend/* {external_team_name}
         src/frontend2/* {capitalized_external_team_name}
         """
@@ -398,9 +396,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
         assert self.external_team.external_name != external_team_2.external_name
 
-        self.data[
-            "raw"
-        ] = f"""
+        self.data["raw"] = f"""
         src/frontend/* {self.external_team.external_name}
         src/frontend2/* {external_team_2.external_name}
         """
@@ -549,8 +545,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"type": "codeowners", "pattern": "docs/*"},
                     "owners": [
-                        {"type": "user", "id": self.user.id, "identifier": "admin@sentry.io"},
-                        {"type": "team", "id": self.team.id, "identifier": "tiger-team"},
+                        {"type": "user", "id": str(self.user.id), "identifier": "admin@sentry.io"},
+                        {"type": "team", "id": str(self.team.id), "identifier": "tiger-team"},
                     ],
                 }
             ],
@@ -576,10 +572,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                     "owners": [
                         {
                             "type": "user",
-                            "id": self.user.id,
+                            "id": str(self.user.id),
                             "name": "admin@sentry.io",
                         },
-                        {"type": "team", "id": self.team.id, "name": "tiger-team"},
+                        {"type": "team", "id": str(self.team.id), "name": "tiger-team"},
                     ],
                 }
             ],
@@ -636,9 +632,9 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                             {
                                 "type": "user",
                                 "name": self.member_user_delete.email,
-                                "id": self.member_user_delete.id,
+                                "id": str(self.member_user_delete.id),
                             },
-                            {"type": "team", "name": self.team.slug, "id": self.team.id},
+                            {"type": "team", "name": self.team.slug, "id": str(self.team.id)},
                         ],
                     }
                 ],
@@ -673,7 +669,9 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 "rules": [
                     {
                         "matcher": {"type": "codeowners", "pattern": "docs/*"},
-                        "owners": [{"type": "team", "name": self.team.slug, "id": self.team.id}],
+                        "owners": [
+                            {"type": "team", "name": self.team.slug, "id": str(self.team.id)}
+                        ],
                     }
                 ],
             }
@@ -716,7 +714,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                             {
                                 "type": "user",
                                 "name": self.member_user_delete.email,
-                                "id": self.member_user_delete.id,
+                                "id": str(self.member_user_delete.id),
                             }
                         ],
                     }
@@ -805,18 +803,18 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                             {
                                 "type": "user",
                                 "name": self.member_user_delete_1.email,
-                                "id": self.member_user_delete_1.id,
+                                "id": str(self.member_user_delete_1.id),
                             }
                         ],
                     },
                     {
                         "matcher": {"type": "codeowners", "pattern": "*.py"},
                         "owners": [
-                            {"type": "team", "name": self.team.slug, "id": self.team.id},
+                            {"type": "team", "name": self.team.slug, "id": str(self.team.id)},
                             {
                                 "type": "user",
                                 "name": self.member_user_delete_1.email,
-                                "id": self.member_user_delete_1.id,
+                                "id": str(self.member_user_delete_1.id),
                             },
                         ],
                     },
@@ -829,7 +827,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                             {
                                 "type": "user",
                                 "name": self.member_user_delete_2.email,
-                                "id": self.member_user_delete_2.id,
+                                "id": str(self.member_user_delete_2.id),
                             },
                         ],
                     },
@@ -839,7 +837,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                             {
                                 "type": "user",
                                 "name": self.user.email,
-                                "id": self.user.id,
+                                "id": str(self.user.id),
                             }
                         ],
                     },
@@ -893,7 +891,9 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 "rules": [
                     {
                         "matcher": {"type": "codeowners", "pattern": "*.py"},
-                        "owners": [{"type": "team", "name": self.team.slug, "id": self.team.id}],
+                        "owners": [
+                            {"type": "team", "name": self.team.slug, "id": str(self.team.id)}
+                        ],
                     },
                     {
                         "matcher": {"type": "codeowners", "pattern": "*.rb"},
@@ -901,7 +901,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                             {
                                 "type": "user",
                                 "name": self.user.email,
-                                "id": self.user.id,
+                                "id": str(self.user.id),
                             }
                         ],
                     },

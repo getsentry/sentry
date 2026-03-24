@@ -198,7 +198,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            '100 matches of 1k spans'
+            '100 matches of 1K spans'
           );
         });
 
@@ -216,7 +216,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            '100 matches of 1k spans for top 5 groups'
+            '100 matches of 1K spans for top 5 groups'
           );
         });
       });
@@ -270,7 +270,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            '100 matches of 1k spans'
+            '100 matches of 1K spans'
           );
         });
 
@@ -288,7 +288,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            '100 matches of 1k spans for top 5 groups'
+            '100 matches of 1K spans for top 5 groups'
           );
         });
       });
@@ -308,7 +308,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 sample of 1k spans'
+              'Estimated from 1 sample of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '1 sample')
@@ -337,7 +337,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 sample of 1k spans'
+              'Estimated for top 5 groups from 1 sample of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '1 sample')
@@ -365,7 +365,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 samples of 1k spans'
+              'Estimated from 10 samples of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '10 samples')
@@ -394,7 +394,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 samples of 1k spans'
+              'Estimated for top 5 groups from 10 samples of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '10 samples')
@@ -424,7 +424,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 sample of 1k spans'
+              'Estimated from 1 sample of 1K spans'
             );
           });
 
@@ -440,7 +440,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 sample of 1k spans'
+              'Estimated for top 5 groups from 1 sample of 1K spans'
             );
           });
 
@@ -455,7 +455,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 samples of 1k spans'
+              'Estimated from 10 samples of 1K spans'
             );
           });
 
@@ -471,7 +471,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 samples of 1k spans'
+              'Estimated for top 5 groups from 10 samples of 1K spans'
             );
           });
         });
@@ -675,7 +675,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 match after scanning 100 samples of 1k spans'
+              'Estimated from 1 match after scanning 100 samples of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '1 match')
@@ -705,7 +705,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 match after scanning 100 samples of 1k spans'
+              'Estimated for top 5 groups from 1 match after scanning 100 samples of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '1 match')
@@ -734,7 +734,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 matches after scanning 100 samples of 1k spans'
+              'Estimated from 10 matches after scanning 100 samples of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '10 matches')
@@ -764,7 +764,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 matches after scanning 100 samples of 1k spans'
+              'Estimated for top 5 groups from 10 matches after scanning 100 samples of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '10 matches')
@@ -795,7 +795,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 match after scanning 100 samples of 1k spans'
+              'Estimated from 1 match after scanning 100 samples of 1K spans'
             );
           });
 
@@ -812,7 +812,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 match after scanning 100 samples of 1k spans'
+              'Estimated for top 5 groups from 1 match after scanning 100 samples of 1K spans'
             );
           });
 
@@ -828,7 +828,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 matches after scanning 100 samples of 1k spans'
+              'Estimated from 10 matches after scanning 100 samples of 1K spans'
             );
           });
 
@@ -845,7 +845,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 matches after scanning 100 samples of 1k spans'
+              'Estimated for top 5 groups from 10 matches after scanning 100 samples of 1K spans'
             );
           });
         });
@@ -865,7 +865,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 match of 1k spans'
+              'Estimated from 1 match of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '1 match')
@@ -895,7 +895,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 match of 1k spans'
+              'Estimated for top 5 groups from 1 match of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '1 match')
@@ -924,7 +924,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 matches of 1k spans'
+              'Estimated from 10 matches of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '10 matches')
@@ -954,7 +954,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 matches of 1k spans'
+              'Estimated for top 5 groups from 10 matches of 1K spans'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '10 matches')
@@ -985,7 +985,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 match of 1k spans'
+              'Estimated from 1 match of 1K spans'
             );
           });
 
@@ -1002,7 +1002,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 match of 1k spans'
+              'Estimated for top 5 groups from 1 match of 1K spans'
             );
           });
 
@@ -1018,7 +1018,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 matches of 1k spans'
+              'Estimated from 10 matches of 1K spans'
             );
           });
 
@@ -1035,7 +1035,7 @@ describe('ConfidenceFooter', () => {
               {wrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 matches of 1k spans'
+              'Estimated for top 5 groups from 10 matches of 1K spans'
             );
           });
         });

@@ -1,29 +1,31 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {getProfileDurationCategoryForPlatform} from 'sentry/utils/profiling/platforms';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openAM2ProfilingUpsellModal} from 'getsentry/actionCreators/modal';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
-import withSubscription from 'getsentry/components/withSubscription';
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {BilledDataCategoryInfo, ProductTrial, Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {
@@ -36,7 +38,7 @@ import {
 } from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {BudgetUsage, checkBudgetUsageFor} from 'getsentry/utils/profiling';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function makeLinkToOwnersAndBillingMembers(
   organization: Organization,
@@ -107,7 +109,7 @@ interface GraceAlertProps {
   children: React.ReactNode;
   dismiss: undefined | (() => void);
   disableAction?: boolean;
-  type?: 'error';
+  type?: 'danger';
 }
 
 function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlertProps) {
@@ -118,7 +120,7 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
       </Button>
       {dismiss ? (
         <StyledButton priority="link" size="sm" onClick={dismiss}>
-          <IconClose color="gray500" size="sm" />
+          <IconClose variant="primary" size="sm" />
         </StyledButton>
       ) : null}
     </Fragment>
@@ -129,7 +131,7 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
       icon={type ? <IconWarning /> : dismiss ? <IconInfo /> : <IconWarning />}
       system
       trailingItems={trailingItems}
-      type={type ? type : dismiss ? 'info' : 'error'}
+      variant={type ? type : dismiss ? 'info' : 'danger'}
     >
       {children}
     </Alert>
@@ -291,7 +293,7 @@ function ContinuousProfilingBetaAlertBannerInner({
 
   return (
     <Alert
-      type="warning"
+      variant="warning"
       system
       trailingItems={
         <AddEventsCTA
@@ -300,7 +302,7 @@ function ContinuousProfilingBetaAlertBannerInner({
           buttonProps={{
             priority: 'default',
             size: 'xs',
-            style: {marginBlock: `-${space(0.25)}`},
+            style: {marginBlock: '-2px'},
           }}
           eventTypes={eventTypes}
           notificationType="overage_critical"
@@ -343,7 +345,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
   const sdkDeprecationResults = useSDKDeprecations();
 
   const sdkDeprecations = useMemo(() => {
-    const sdks: Map<string, SDKDeprecation> = new Map();
+    const sdks = new Map<string, SDKDeprecation>();
 
     for (const sdk of sdkDeprecationResults.data?.data ?? []) {
       const key = `${sdk.sdkName}:${sdk.sdkVersion}`;
@@ -359,7 +361,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
 
   return (
     <Alert.Container>
-      <Alert system type="warning">
+      <Alert system variant="warning">
         {tct(
           '[bold:Action Needed: Profiling beta period ends May 19, 2025.] Your SDK is out of date. To continue using profiling without interruption, upgrade to the latest version:',
           {
@@ -370,13 +372,13 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
           {sdkDeprecations.values().map(sdk => {
             const key = `${sdk.projectId}-${sdk.sdkName}-${sdk.sdkVersion}`;
             return (
-              <SDKDeprecationContainer key={key}>
+              <Flex as="li" align="baseline" key={key}>
                 <Dot />
                 {tct('[name] minimum version [version]', {
                   name: <code>{sdk.sdkName}</code>,
                   version: <code>{sdk.minimumVersion}</code>,
                 })}
-              </SDKDeprecationContainer>
+              </Flex>
             );
           })}
         </SDKDeprecationsContainer>
@@ -484,7 +486,7 @@ function BusinessTrialBanner({
   subscription,
 }: ProductBannerProps) {
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Heading as="h3">{t('Try Sentry Business for Free')}</Heading>
       <AlertBody>
         <Text>
@@ -518,7 +520,7 @@ function ProductTrialBanner({
   const [isStartingTrial, setIsStartingTrial] = useState(false);
 
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Heading as="h3">
         {tct('Try [product] for free', {product: categoryInfo.productName})}
       </Heading>
@@ -568,7 +570,7 @@ function OnDemandOrPaygBanner({
   const hasBillingPerms = organization.access?.includes('org:billing');
 
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Heading as="h3">
         {displayBudgetName(subscription.planDetails, {title: true})}
       </Heading>
@@ -615,7 +617,9 @@ function useSDKDeprecations() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/sdk-deprecations/`;
+  const path = getApiUrl(`/organizations/$organizationIdOrSlug/sdk-deprecations/`, {
+    path: {organizationIdOrSlug: organization.slug},
+  });
   const options = {
     query: {
       project: selection.projects,
@@ -635,21 +639,16 @@ const SDKDeprecationsContainer = styled('ul')`
   margin: 0;
 `;
 
-const SDKDeprecationContainer = styled('li')`
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-`;
-
 const Dot = styled('span')`
   display: inline-block;
-  margin-right: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-  width: ${space(0.5)};
-  height: ${space(0.5)};
-  background-color: ${p => p.theme.textColor};
+  margin-right: ${p => p.theme.space.md};
+  border-radius: ${p => p.theme.radius.md};
+  width: ${p => p.theme.space.xs};
+  height: ${p => p.theme.space.xs};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background-color: ${p => p.theme.tokens.content.primary};
 `;
 
 const AlertBody = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

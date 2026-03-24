@@ -1,11 +1,23 @@
 import styled from '@emotion/styled';
 
+import {Container, Flex} from '@sentry/scraps/layout';
+
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {SampleImages} from 'sentry/views/insights/browser/resources/components/sampleImages';
+import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/insights/browser/resources/constants';
+import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {DomainStatusLink} from 'sentry/views/insights/http/components/domainStatusLink';
 import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
-import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
+import {LOADING_PLACEHOLDER} from './settings';
+
+// Matches theme.size.xs (64px)
+const RESOURCE_TEXT_MAX_FONT_SIZE_PX = 64;
 
 interface DetailsWidgetVisualizationProps {
   span: Pick<SpanResponse, DefaultDetailWidgetFields>;
@@ -32,11 +44,95 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
     );
   }
 
+  if (moduleName === ModuleName.HTTP) {
+    return (
+      <HttpSpanVisualization
+        spanId={span[SpanFields.ID]}
+        spanOp={spanOp}
+        spanDescription={spanDescription}
+      />
+    );
+  }
+
+  if (moduleName === ModuleName.RESOURCE) {
+    const isImage =
+      spanOp === ResourceSpanOps.IMAGE ||
+      IMAGE_FILE_EXTENSIONS.includes(
+        (spanDescription.split('?')[0] ?? '').split('.').pop()?.toLowerCase() ?? ''
+      );
+
+    if (isImage) {
+      const projectId = span[SpanFields.PROJECT_ID]
+        ? Number(span[SpanFields.PROJECT_ID])
+        : undefined;
+      return <ResourceImageVisualization spanGroup={spanGroup} projectId={projectId} />;
+    }
+
+    return (
+      // Add 32px to the height to account for the padding of the children
+      <Container height={`${RESOURCE_TEXT_MAX_FONT_SIZE_PX + 32}px`} width="100%">
+        <Wrapper>{spanDescription}</Wrapper>
+      </Container>
+    );
+  }
+
   return <Wrapper>{`${spanOp} - ${spanDescription}`}</Wrapper>;
 }
 
-function Wrapper({children}: any) {
-  return <GrowingWrapper>{children}</GrowingWrapper>;
+function ResourceImageVisualization(props: {
+  spanGroup: string;
+  projectId?: number;
+}): React.ReactNode {
+  const {spanGroup, projectId} = props;
+
+  return (
+    <Container padding="0 xl" overflow="auto" height="100%">
+      <SampleImages groupId={spanGroup} projectId={projectId} noVisualizationPadding />
+    </Container>
+  );
+}
+
+function HttpSpanVisualization(props: {
+  spanDescription: string;
+  spanId: string;
+  spanOp: string;
+}): React.ReactNode {
+  const {spanId, spanOp, spanDescription} = props;
+
+  const {data: httpSpan, isLoading} = useSpans(
+    {
+      search: MutableSearch.fromQueryObject({
+        id: spanId,
+      }),
+      fields: [SpanFields.SPAN_DOMAIN],
+    },
+    'api.dashboards.details-widget.domain-status'
+  );
+
+  if (isLoading) {
+    return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
+  }
+
+  if (!httpSpan?.[0]?.[SpanFields.SPAN_DOMAIN]) {
+    return <Wrapper>{`${spanOp} - ${spanDescription}`}</Wrapper>;
+  }
+
+  return (
+    <Flex align="center" padding="xl" gap="md" height="100%">
+      <h1>{httpSpan[0][SpanFields.SPAN_DOMAIN]}</h1>
+      <DomainStatusLink domain={httpSpan[0][SpanFields.SPAN_DOMAIN]} />
+    </Flex>
+  );
+}
+
+function Wrapper({children}: {children: React.ReactNode}) {
+  return (
+    <GrowingWrapper>
+      <AutoResizeParent>
+        <AutoSizedText>{children}</AutoSizedText>
+      </AutoResizeParent>
+    </GrowingWrapper>
+  );
 }
 
 // Takes up 100% of the parent. If within flex context, grows to fill.
@@ -48,9 +144,25 @@ const GrowingWrapper = styled('div')`
   width: 100%;
 `;
 
+const AutoResizeParent = styled('div')`
+  position: absolute;
+  inset: 0;
+
+  color: ${p => p.theme.tokens.content.primary};
+
+  container-type: size;
+  container-name: auto-resize-parent;
+  padding: ${p => p.theme.space.xl};
+
+  * {
+    line-height: 1;
+    text-align: left !important;
+  }
+`;
+
 const LoadingPlaceholder = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  font-size: ${p => p.theme.fontSize.lg};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 DetailsWidgetVisualization.LoadingPlaceholder = function () {

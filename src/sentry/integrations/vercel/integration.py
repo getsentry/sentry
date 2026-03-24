@@ -245,7 +245,7 @@ class VercelIntegration(IntegrationInstallation):
         for configuration_id, data in self.metadata["configurations"].items():
             if data["organization_id"] == self.organization_id:
                 return configuration_id
-        logger.error(
+        logger.warning(
             "could not find matching org",
             extra={"organization_id": self.organization_id, "integration_id": self.model.id},
         )
@@ -480,7 +480,10 @@ class VercelIntegrationProvider(IntegrationProvider):
             )
             return
 
-        user = User.objects.get(id=extra.get("user_id"))
+        user_id = extra.get("user_id")
+        if user_id is None:
+            raise ValueError("user_id is required in post_install_data")
+        user = User.objects.get(id=user_id)
         # create the internal integration and link it to the join table
         sentry_app = SentryAppCreator(
             name="Vercel Internal Integration",

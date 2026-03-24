@@ -1,12 +1,12 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {TeamAvatar} from './teamAvatar';
 import {UserAvatar, type UserAvatarProps} from './userAvatar';
@@ -29,34 +29,19 @@ type Props = {
 
 export function CollapsedAvatars({
   ref,
-  size,
   children,
 }: {
   children: React.ReactNode;
-  size: number;
   ref?: React.Ref<HTMLDivElement>;
 }) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  if (hasStreamlinedUI) {
-    return (
-      <Tag ref={ref} data-test-id="avatarList-collapsedavatars">
-        {children}
-      </Tag>
-    );
-  }
   return (
-    <CollapsedAvatarsCicle
-      ref={ref}
-      size={size}
-      data-test-id="avatarList-collapsedavatars"
-    >
+    <Tag ref={ref} data-test-id="avatarList-collapsedavatars" variant="muted">
       {children}
-    </CollapsedAvatarsCicle>
+    </Tag>
   );
 }
 
-function AvatarList({
+export function AvatarList({
   avatarSize = 28,
   maxVisibleAvatars = 5,
   typeAvatars = 'users',
@@ -99,10 +84,7 @@ function AvatarList({
           renderCollapsedAvatars(avatarSize, numCollapsedAvatars)
         ) : (
           <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
-            <CollapsedAvatars
-              size={avatarSize}
-              data-test-id="avatarList-collapsedavatars"
-            >
+            <CollapsedAvatars data-test-id="avatarList-collapsedavatars">
               {numCollapsedAvatars < 99 && '+'}
               {numCollapsedAvatars}
             </CollapsedAvatars>
@@ -154,8 +136,6 @@ function AvatarList({
   );
 }
 
-export default AvatarList;
-
 // used in releases list page to do some alignment
 const AvatarListWrapper = styled('div')`
   display: flex;
@@ -164,7 +144,7 @@ const AvatarListWrapper = styled('div')`
 `;
 
 const AvatarStyle = (p: {theme: Theme}) => css`
-  border: 2px solid ${p.theme.background};
+  border: 2px solid ${p.theme.tokens.border.primary};
   margin-left: -8px;
   cursor: default;
 
@@ -173,7 +153,7 @@ const AvatarStyle = (p: {theme: Theme}) => css`
   }
 
   ${AvatarListWrapper}:hover & {
-    border-color: ${p.theme.translucentBorder};
+    border-color: ${p.theme.tokens.border.transparent.neutral.muted};
     cursor: pointer;
   }
 `;
@@ -187,20 +167,4 @@ const StyledUserAvatar = styled(UserAvatar)`
 const StyledTeamAvatar = styled(TeamAvatar)`
   overflow: hidden;
   ${AvatarStyle}
-`;
-
-const CollapsedAvatarsCicle = styled('div')<{size: number}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  text-align: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  background-color: ${p => p.theme.gray200};
-  color: ${p => p.theme.subText};
-  font-size: ${p => Math.floor(p.size / 2.3)}px;
-  width: ${p => p.size}px;
-  height: ${p => p.size}px;
-  border-radius: 50%;
-  ${AvatarStyle};
 `;

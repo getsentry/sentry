@@ -18,12 +18,12 @@ import type {BarChartProps} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -279,7 +279,7 @@ class Chart extends Component<ChartProps, State> {
           .slice())
       : undefined;
     if (chartColors?.length && hasOther) {
-      chartColors.push(theme.chartOther);
+      chartColors.push(theme.tokens.content.secondary);
     }
     const chartOptions = {
       colors: chartColors,
@@ -317,7 +317,7 @@ class Chart extends Component<ChartProps, State> {
         : undefined,
       yAxis: {
         axisLabel: {
-          color: theme.chartLabel,
+          color: theme.tokens.content.secondary,
           formatter: (value: number) => {
             if (timeseriesResultsTypes) {
               // Check to see if all series output types are the same. If not, then default to number.
@@ -576,7 +576,7 @@ class EventsChart extends Component<EventsChartProps> {
       if (errored) {
         return (
           <ErrorPanel>
-            <IconWarning color="gray300" size="lg" />
+            <IconWarning variant="muted" size="lg" />
           </ErrorPanel>
         );
       }

@@ -1,4 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {tct} from 'sentry/locale';
 
 import ZendeskLink from 'getsentry/components/zendeskLink';
@@ -8,7 +9,7 @@ type Props = {
   subscription: Subscription;
 };
 
-function TrialEnded({subscription}: Props) {
+export function TrialEnded({subscription}: Props) {
   const canRequestTrial =
     subscription.canSelfServe && subscription.planDetails?.trialPlan;
 
@@ -19,7 +20,7 @@ function TrialEnded({subscription}: Props) {
   const supportLink = <ZendeskLink subject="Request Another Trial" source="trial" />;
 
   return (
-    <Alert type="info" showIcon={false}>
+    <Alert variant="info" showIcon={false}>
       {tct(
         'Your free trial has ended. You may [supportLink:contact support] to request another trial.',
         {supportLink}
@@ -27,5 +28,3 @@ function TrialEnded({subscription}: Props) {
     </Alert>
   );
 }
-
-export default TrialEnded;

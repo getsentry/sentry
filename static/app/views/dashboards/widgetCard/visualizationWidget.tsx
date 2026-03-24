@@ -1,32 +1,85 @@
-import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
-import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
-import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
-import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import {Fragment} from 'react';
+import {Link} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 
+import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
+import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
+import type {Confidence} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
+import {
+  WidgetType,
+  type DashboardFilters,
+  type Widget as TWidget,
+} from 'sentry/views/dashboards/types';
+import {applyDashboardFilters, usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {
+  findLinkedDashboardForField,
+  getLinkedDashboardUrl,
+} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
+import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
+import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
+import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import type {
+  LegendSelection,
+  TabularColumn,
+  TimeSeries,
+  TimeSeriesGroupBy,
+} from 'sentry/views/dashboards/widgets/common/types';
+import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
+import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
+import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {
+  SeriesColorIndicator,
+  WidgetFooterTable,
+} from 'sentry/views/insights/pages/platform/shared/styles';
+import {SpanFields} from 'sentry/views/insights/types';
+
+import {WidgetCardConfidenceFooter} from './confidenceFooter';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 interface VisualizationWidgetProps {
   selection: PageFilters;
-  widget: Widget;
+  widget: TWidget;
   dashboardFilters?: DashboardFilters;
+  isFullScreen?: boolean;
+  legendSelection?: LegendSelection;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     pageLinks?: string;
     tableResults?: any[];
     timeseriesResults?: Series[];
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    timeseriesResultsUnits?: Record<string, DataUnit>;
     totalIssuesCount?: string;
   }) => void;
+  onLegendSelectionChange?: (selection: LegendSelection) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  onZoom?: EChartDataZoomHandler;
+  showConfidenceWarning?: boolean;
   showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
+  widgetInterval?: string;
 }
 
 export function VisualizationWidget({
@@ -36,9 +89,16 @@ export function VisualizationWidget({
   onDataFetched,
   onDataFetchStart,
   tableItemLimit,
-  renderErrorMessage,
+  widgetInterval,
   showReleaseAs = 'bubble',
+  showConfidenceWarning,
+  onZoom,
+  legendSelection,
+  onLegendSelectionChange,
+  isFullScreen,
 }: VisualizationWidgetProps) {
+  const onWidgetError = useWidgetErrorCallback();
+
   const {releases: releasesWithDate} = useReleaseStats(selection, {
     enabled: showReleaseAs !== 'none',
   });
@@ -52,37 +112,373 @@ export function VisualizationWidget({
   return (
     <WidgetCardDataLoader
       widget={widget}
-      dashboardFilters={dashboardFilters}
       selection={selection}
+      dashboardFilters={dashboardFilters}
       onDataFetched={onDataFetched}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
+      widgetInterval={widgetInterval}
     >
-      {({timeseriesResults, timeseriesResultsTypes, errorMessage, loading}) => {
-        const plottables = transformLegacySeriesToPlottables(
-          timeseriesResults,
-          timeseriesResultsTypes,
-          widget
-        );
-
-        const errorDisplay =
-          renderErrorMessage && errorMessage ? renderErrorMessage(errorMessage) : null;
-
-        if (loading) {
-          return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
-        }
-        if (errorDisplay) {
-          return errorDisplay;
+      {({
+        timeseriesResults,
+        timeseriesResultsTypes,
+        timeseriesResultsUnits,
+        tableResults,
+        errorMessage,
+        loading,
+        confidence,
+        dataScanned,
+        isSampled,
+        sampleCount,
+      }) => {
+        if (errorMessage && onWidgetError) {
+          onWidgetError(widget, errorMessage);
         }
 
         return (
-          <TimeSeriesWidgetVisualization
-            plottables={plottables}
+          <VisualizationWidgetContent
+            widget={widget}
+            timeseriesResults={timeseriesResults ?? []}
+            timeseriesResultsTypes={timeseriesResultsTypes}
+            timeseriesResultsUnits={timeseriesResultsUnits}
+            tableResults={tableResults}
+            errorMessage={errorMessage}
+            loading={loading}
             releases={releases}
             showReleaseAs={showReleaseAs}
+            dashboardFilters={dashboardFilters}
+            showConfidenceWarning={showConfidenceWarning}
+            confidence={confidence}
+            dataScanned={dataScanned}
+            isSampled={isSampled}
+            sampleCount={sampleCount}
+            onZoom={onZoom}
+            legendSelection={legendSelection}
+            onLegendSelectionChange={onLegendSelectionChange}
+            isFullScreen={isFullScreen}
           />
         );
       }}
     </WidgetCardDataLoader>
   );
+}
+
+interface VisualizationWidgetContentProps {
+  loading: boolean;
+  releases: Array<{timestamp: string; version: string}>;
+  showReleaseAs: LoadableChartWidgetProps['showReleaseAs'];
+  timeseriesResults: Series[];
+  widget: TWidget;
+  confidence?: Confidence;
+  dashboardFilters?: DashboardFilters;
+  dataScanned?: 'full' | 'partial';
+  errorMessage?: string;
+  isFullScreen?: boolean;
+  isSampled?: boolean | null;
+  legendSelection?: LegendSelection;
+  onLegendSelectionChange?: (selection: LegendSelection) => void;
+  onZoom?: EChartDataZoomHandler;
+  sampleCount?: number;
+  showConfidenceWarning?: boolean;
+  tableResults?: TableDataWithTitle[];
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
+}
+
+function VisualizationWidgetContent({
+  widget,
+  timeseriesResults,
+  timeseriesResultsTypes,
+  timeseriesResultsUnits,
+  tableResults,
+  errorMessage,
+  loading,
+  releases,
+  showReleaseAs,
+  dashboardFilters,
+  showConfidenceWarning,
+  confidence,
+  dataScanned,
+  isSampled,
+  sampleCount,
+  onZoom,
+  legendSelection,
+  onLegendSelectionChange,
+  isFullScreen,
+}: VisualizationWidgetContentProps) {
+  const theme = useTheme();
+  const organization = useOrganization();
+  const location = useLocation();
+  const {selection} = usePageFilters();
+
+  const firstWidgetQuery = widget.queries[0];
+  const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
+
+  const timeSeriesWithPlottable = timeseriesResults
+    .map(series => {
+      const transformed = transformWidgetSeriesToTimeSeries(
+        series,
+        widget,
+        timeseriesResultsTypes,
+        timeseriesResultsUnits
+      );
+
+      if (!transformed) {
+        return null;
+      }
+
+      const {timeSeries, label, seriesName, widgetQuery} = transformed;
+      const plottable = createPlottableFromTimeSeries(
+        timeSeries,
+        widget,
+        label,
+        seriesName,
+        timeSeries.meta.isOther ? theme.tokens.dataviz.semantic.neutral : undefined
+      );
+      if (!plottable) {
+        return null;
+      }
+
+      // Match the timeseries to its corresponding table result by query index
+      const queryIndex = widget.queries.indexOf(widgetQuery);
+      const tableData = tableResults?.[queryIndex]?.data;
+
+      return [timeSeries, plottable, tableData] satisfies [
+        TimeSeries,
+        Plottable,
+        TableDataWithTitle['data'] | undefined,
+      ];
+    })
+    .filter(defined);
+
+  const plottableWithNeedsColor = timeSeriesWithPlottable.filter(
+    ([_, plottable]) => plottable.needsColor
+  ).length;
+
+  const colorPalette =
+    plottableWithNeedsColor > 0
+      ? theme.chart.getColorPalette(plottableWithNeedsColor - 1)
+      : [];
+
+  const showBreakdownData =
+    !isFullScreen &&
+    widget.legendType === 'breakdown' &&
+    usesTimeSeriesData(widget.displayType) &&
+    tableResults &&
+    tableResults.length > 0;
+
+  // We only support one column for legend breakdown right now
+  const firstColumn = columns[0];
+  const linkedDashboard = findLinkedDashboardForField(firstWidgetQuery, firstColumn);
+
+  const footerTable = showBreakdownData ? (
+    <WidgetFooterTable>
+      {timeSeriesWithPlottable.map(([timeSeries, plottable, tableDataRows], index) => {
+        if (timeSeries.meta.isOther) {
+          return null;
+        }
+
+        const yAxis = timeSeries.yAxis;
+        const firstColumnGroupByValue = timeSeries.groupBy?.find(
+          groupBy => groupBy.key === firstColumn
+        )?.value;
+
+        const value = tableDataRows
+          ? matchTimeSeriesToTableRowValue({
+              tableDataRows,
+              timeSeries,
+            })
+          : null;
+        const dataType = timeSeries.meta.valueType;
+        const dataUnit = timeSeries.meta.valueUnit ?? undefined;
+        const label = plottable?.label ?? timeSeries.yAxis;
+
+        const labelDisplay = renderBreakdownLabel(
+          firstColumn,
+          firstColumnGroupByValue,
+          label
+        );
+
+        let labelContent = <Text>{labelDisplay}</Text>;
+
+        // TODO: to simplify things, we only support one widget query for explore urls right now
+        // Otherwise we have to map the correct widget query to the timeseries result
+        if (
+          firstColumn &&
+          typeof firstColumnGroupByValue === 'string' &&
+          widget.queries.length === 1 &&
+          widget.widgetType === WidgetType.SPANS
+        ) {
+          const exploreQuery = new MutableSearch(widget.queries[0]?.conditions ?? '');
+          exploreQuery.addFilterValue(firstColumn, firstColumnGroupByValue);
+          const exploreUrl = getExploreUrl({
+            organization,
+            selection,
+            aggregateField: [
+              {chartType: getChartType(widget.displayType), yAxes: [yAxis]},
+            ],
+            query: applyDashboardFilters(
+              exploreQuery.formatString(),
+              dashboardFilters,
+              widget.widgetType
+            ),
+          });
+          labelContent = <Link to={exploreUrl}>{labelDisplay}</Link>;
+        }
+
+        if (
+          linkedDashboard &&
+          firstColumn &&
+          widget.widgetType &&
+          typeof firstColumnGroupByValue === 'string'
+        ) {
+          const linkedDashbordUrl = getLinkedDashboardUrl({
+            linkedDashboard,
+            organizationSlug: organization.slug,
+            field: firstColumn,
+            value: firstColumnGroupByValue,
+            widgetType: widget.widgetType,
+            dashboardFilters,
+            locationQuery: location.query,
+          });
+          if (linkedDashbordUrl) {
+            labelContent = <Link to={linkedDashbordUrl}>{labelDisplay}</Link>;
+          }
+        }
+
+        return (
+          <Fragment key={plottable.name}>
+            <Container>
+              <SeriesColorIndicator
+                style={{
+                  backgroundColor: colorPalette[index],
+                }}
+              />
+            </Container>
+            <Tooltip title={label} showOnlyOnOverflow>
+              {labelContent}
+            </Tooltip>
+            <TextAlignRight>
+              {value === null ? '—' : formatTooltipValue(value, dataType, dataUnit)}
+            </TextAlignRight>
+          </Fragment>
+        );
+      })}
+    </WidgetFooterTable>
+  ) : null;
+
+  if (loading) {
+    return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+  }
+
+  if (errorMessage) {
+    return <Widget.WidgetError error={errorMessage} />;
+  }
+
+  const timeseriesContainerPadding: ContainerProps = {
+    paddingLeft: 'xl',
+    paddingRight: 'xl',
+    paddingBottom: 'lg',
+  };
+
+  const plottables: Plottable[] = timeSeriesWithPlottable.map(
+    ([, plottable]) => plottable
+  );
+
+  if (
+    defined(widget.thresholds?.max_values.max1) ||
+    defined(widget.thresholds?.max_values.max2)
+  ) {
+    plottables.push(
+      new Thresholds({
+        thresholds: widget.thresholds,
+        dataType: timeSeriesWithPlottable[0]?.[0]?.meta?.valueType,
+      })
+    );
+  }
+
+  // Check for empty plottables before rendering the visualization
+  // This prevents TimeSeriesWidgetVisualization from throwing an error
+  // that would get caught by ErrorBoundary and persist across filter changes
+  const hasNoPlottableData = plottables.every(plottable => plottable.isEmpty);
+
+  if (hasNoPlottableData) {
+    return <Widget.WidgetError error={MISSING_DATA_MESSAGE} />;
+  }
+
+  const confidenceFooter = showConfidenceWarning ? (
+    <WidgetCardConfidenceFooter
+      confidence={confidence}
+      dataScanned={dataScanned}
+      isSampled={isSampled}
+      loading={loading}
+      sampleCount={sampleCount}
+      series={timeseriesResults}
+      timeseriesResults={timeseriesResults}
+      widget={widget}
+      yAxis={widget.queries[0]?.aggregates[0] ?? ''}
+    />
+  ) : null;
+
+  if (showBreakdownData) {
+    return (
+      <Flex direction="column" height="100%">
+        <Container overflow="hidden" flex={2} {...timeseriesContainerPadding}>
+          <TimeSeriesWidgetVisualization
+            plottables={plottables}
+            releases={releases}
+            showReleaseAs={showReleaseAs}
+            showLegend="never"
+            axisRange={widget.axisRange}
+            onZoom={onZoom}
+            legendSelection={legendSelection}
+            onLegendSelectionChange={onLegendSelectionChange}
+          />
+        </Container>
+        <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
+        <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
+          <Container flex={1} width="100%">
+            {footerTable}
+          </Container>
+        </Flex>
+      </Flex>
+    );
+  }
+
+  return (
+    <Flex direction="column" height="100%">
+      <Container flex={1} {...timeseriesContainerPadding}>
+        <TimeSeriesWidgetVisualization
+          plottables={plottables}
+          releases={releases}
+          showReleaseAs={showReleaseAs}
+          axisRange={widget.axisRange}
+          onZoom={onZoom}
+          legendSelection={legendSelection}
+          onLegendSelectionChange={onLegendSelectionChange}
+        />
+      </Container>
+      <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
+    </Flex>
+  );
+}
+
+/**
+ * Returns a custom label element for breakdown legend rows that need special rendering
+ * (e.g., model icons for AI model fields), or falls back to the plain text label.
+ */
+function renderBreakdownLabel(
+  column?: string,
+  groupByValue?: TimeSeriesGroupBy['value'],
+  fallbackLabel?: string
+): React.ReactNode {
+  if (
+    typeof groupByValue === 'string' &&
+    (column === SpanFields.GEN_AI_REQUEST_MODEL ||
+      column === SpanFields.GEN_AI_RESPONSE_MODEL)
+  ) {
+    return <ModelName modelId={groupByValue} size={14} />;
+  }
+
+  return fallbackLabel;
 }

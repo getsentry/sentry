@@ -3,16 +3,6 @@ export const NOT_INSTALLED = 'Not Installed';
 export const PENDING = 'Pending';
 export const DISABLED = 'Disabled';
 export const PENDING_DELETION = 'Pending Deletion';
-const LEARN_MORE = 'Learn More';
-
-export const COLORS = {
-  [INSTALLED]: 'success',
-  [NOT_INSTALLED]: 'gray300',
-  [DISABLED]: 'gray300',
-  [PENDING_DELETION]: 'gray300',
-  [PENDING]: 'pink300',
-  [LEARN_MORE]: 'gray300',
-} as const;
 
 /**
  * Integrations in the integration directory should be sorted by their popularity (weight).

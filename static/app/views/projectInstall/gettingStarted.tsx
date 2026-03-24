@@ -1,21 +1,19 @@
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Redirect from 'sentry/components/redirect';
-import allPlatforms from 'sentry/data/platforms';
-import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
+import {allPlatforms} from 'sentry/data/platforms';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ProjectInstallPlatform} from './platform';
 
-type Props = RouteComponentProps<{projectId: string}>;
-
-function GettingStarted({params}: Props) {
+export default function GettingStarted() {
   const organization = useOrganization();
+  const params = useParams<{projectId: string}>();
 
   const {projects, initiallyLoaded} = useProjects({
     slugs: [params.projectId],
@@ -50,8 +48,6 @@ function GettingStarted({params}: Props) {
 }
 
 const GettingStartedLayout = styled(Layout.Page)`
-  background: ${p => p.theme.background};
-  padding-top: ${space(3)};
+  background: ${p => p.theme.tokens.background.primary};
+  padding-top: ${p => p.theme.space['2xl']};
 `;
-
-export default GettingStarted;
