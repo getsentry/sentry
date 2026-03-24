@@ -36,7 +36,7 @@ interface ScmBenefitsCardProps {
 
 export function ScmBenefitsCard({showTitle}: ScmBenefitsCardProps) {
   return (
-    <Container border="secondary" padding="lg" radius="md">
+    <Container border="secondary" padding="xl" radius="md">
       <Stack gap="2xl">
         {showTitle && (
           <Text variant="muted" size="md">
@@ -45,8 +45,8 @@ export function ScmBenefitsCard({showTitle}: ScmBenefitsCardProps) {
         )}
         {BENEFITS.map(({icon: Icon, title, description}) => (
           <Flex key={title} gap="lg" align="start">
-            <Icon size="sm" />
-            <Stack gap="0">
+            <Icon size="md" />
+            <Stack gap="2xs">
               <Text bold size="md">
                 {title}
               </Text>

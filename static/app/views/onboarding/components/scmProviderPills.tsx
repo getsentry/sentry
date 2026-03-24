@@ -12,7 +12,7 @@ interface ScmProviderPillsProps {
 
 export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) {
   return (
-    <Flex gap="md" wrap="wrap" justify="center">
+    <Flex gap="lg" wrap="wrap" justify="center">
       {providers.map(provider => (
         <IntegrationContext
           key={provider.key}

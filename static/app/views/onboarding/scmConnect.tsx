@@ -3,14 +3,16 @@ import {useCallback, useEffect} from 'react';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {IconCheckmark, IconClose} from 'sentry/icons';
+import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScmBenefitsCard} from './components/scmBenefitsCard';
@@ -56,11 +58,6 @@ export function ScmConnect({onComplete}: StepProps) {
     [setSelectedIntegration, setSelectedRepository, refetchIntegrations]
   );
 
-  const handleDisconnect = useCallback(() => {
-    setSelectedIntegration(undefined);
-    setSelectedRepository(undefined);
-  }, [setSelectedIntegration, setSelectedRepository]);
-
   if (isPending) {
     return (
       <Flex justify="center" align="center" flexGrow={1}>
@@ -87,13 +84,15 @@ export function ScmConnect({onComplete}: StepProps) {
           </Text>
           <Tag variant="muted">{t('Optional')}</Tag>
         </Flex>
-        <Heading as="h2">{t('Connect a repository')}</Heading>
-        <Text variant="muted">
+        <Heading as="h2" size="3xl">
+          {t('Connect a repository')}
+        </Heading>
+        <Text variant="muted" size="lg">
           {t('Link your source control for enhanced debugging features')}
         </Text>
       </Stack>
 
-      <Stack gap="lg" width="100%" maxWidth="600px">
+      <Stack gap="lg" width="100%" maxWidth="506px">
         {effectiveIntegration ? (
           <Stack gap="lg">
             <Flex align="center" justify="between">
@@ -103,9 +102,9 @@ export function ScmConnect({onComplete}: StepProps) {
                   effectiveIntegration.domainName || effectiveIntegration.provider.name
                 )}
               </Tag>
-              <Button size="xs" icon={<IconClose size="xs" />} onClick={handleDisconnect}>
-                {t('Disconnect')}
-              </Button>
+              <Link to={normalizeUrl(`/settings/${organization.slug}/integrations/`)}>
+                {t('Manage in Settings')}
+              </Link>
             </Flex>
             <ScmRepoSelector integration={effectiveIntegration} />
             {selectedRepository && <ScmBenefitsCard />}
@@ -118,7 +117,7 @@ export function ScmConnect({onComplete}: StepProps) {
         )}
       </Stack>
 
-      <Flex gap="md" align="center">
+      <Flex gap="lg" align="center">
         {!selectedRepository && (
           <Button
             analyticsEventKey="onboarding.scm_connect_skip_clicked"
