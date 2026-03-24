@@ -23,6 +23,7 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.analytics import SlackIntegrationChartUnfurl
+from sentry.integrations.slack.integration import SlackIntegration
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
@@ -364,11 +365,24 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return self.respond()
 
             try:
-                client = SlackSdkClient(integration_id=slack_request.integration.id)
-                client.assistant_threads_setStatus(
+                installation = slack_request.integration.get_installation(
+                    organization_id=organization_id
+                )
+                assert isinstance(installation, SlackIntegration)
+                installation.set_thread_status(
                     channel_id=channel_id,
                     thread_ts=thread_ts,
                     status="Thinking...",
+                    loading_messages=[
+                        "Digging through your errors...",
+                        "Sifting through stack traces...",
+                        "Blaming the right code...",
+                        "Following the breadcrumbs...",
+                        "Asking the stack trace nicely...",
+                        "Reading between the stack frames...",
+                        "Hold on, I've seen this one before...",
+                        "It worked on my machine...",
+                    ],
                 )
             except Exception:
                 pass

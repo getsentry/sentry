@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Optional
 
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
@@ -251,6 +251,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         channel_id: str,
         thread_ts: str,
         status: str,
+        loading_messages: Optional[list[str]] = None,
     ) -> None:
         """
         Set a status indicator in a Slack assistant thread (e.g. "Thinking...").
@@ -262,6 +263,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 channel_id=channel_id,
                 thread_ts=thread_ts,
                 status=status,
+                loading_messages=loading_messages,
             )
         except SlackApiError:
             _logger.warning(
