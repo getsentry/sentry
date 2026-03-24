@@ -39,9 +39,14 @@ function UserAndOrganizationNavigation() {
   useGlobalCommandPaletteActions();
 
   const commandPaletteOpenRef = useRef(false);
+  const previousFocusRef = useRef<Element | null>(null);
 
   useEffect(() => {
-    if (!visible) {
+    if (!visible && commandPaletteOpenRef.current) {
+      if (previousFocusRef.current instanceof HTMLElement) {
+        previousFocusRef.current.focus();
+      }
+      previousFocusRef.current = null;
       commandPaletteOpenRef.current = false;
     }
   }, [visible]);
@@ -55,6 +60,7 @@ function UserAndOrganizationNavigation() {
           if (visible && commandPaletteOpenRef.current) {
             closeModal();
           } else if (!visible) {
+            previousFocusRef.current = document.activeElement;
             openCommandPalette();
             commandPaletteOpenRef.current = true;
           }
