@@ -344,7 +344,7 @@ def build_size_analysis_summary(
         "buildId": str(head_artifact.id),
         "organizationSlug": head_artifact.project.organization.slug,
         "projectSlug": head_artifact.project.slug,
-        "platform": platform.value if platform is not None else None,
+        "platform": platform.value.upper() if platform is not None else None,
         "state": state_enum.name,
         "appInfo": create_app_info_dict(head_artifact),
         "gitInfo": create_git_info_dict(head_artifact),

@@ -154,3 +154,4 @@ class SentryAppEventType(StrEnum):
 
     # preprod artifact webhooks
     PREPROD_ARTIFACT_SIZE_ANALYSIS_COMPLETED = "preprod_artifact.size_analysis_completed"
+    PREPROD_ARTIFACT_BUILD_DISTRIBUTION_COMPLETED = "preprod_artifact.build_distribution_completed"

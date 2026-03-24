@@ -56,6 +56,7 @@ class SeerActionType(SentryAppActionType):
 
 class PreprodArtifactActionType(SentryAppActionType):
     SIZE_ANALYSIS_COMPLETED = "size_analysis_completed"
+    BUILD_DISTRIBUTION_COMPLETED = "build_distribution_completed"
 
 
 class SentryAppResourceType(StrEnum):

@@ -252,17 +252,12 @@ def compare_preprod_artifact_size_analysis(
                     }
                 )
 
-        artifact_type_name = "unknown"
-        if artifact.artifact_type is not None:
-            try:
-                artifact_type_name = PreprodArtifact.ArtifactType(
-                    artifact.artifact_type
-                ).name.lower()
-            except (ValueError, AttributeError):
-                artifact_type_name = "unknown"
+        try:
+            artifact_type_name = PreprodArtifact.ArtifactType(artifact.artifact_type).name.lower()
+        except (ValueError, AttributeError, TypeError):
+            artifact_type_name = "unknown"
 
-        time_now = timezone.now()
-        e2e_size_analysis_compare_duration = time_now - artifact.date_added
+        e2e_size_analysis_compare_duration = timezone.now() - artifact.date_added
         metrics.distribution(
             "preprod.size_analysis.compare.results_e2e",
             e2e_size_analysis_compare_duration.total_seconds(),

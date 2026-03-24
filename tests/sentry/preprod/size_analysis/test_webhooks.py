@@ -119,7 +119,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload["buildId"] == str(artifact.id)
         assert payload["organizationSlug"] == self.organization.slug
         assert payload["projectSlug"] == self.project.slug
-        assert payload["platform"] == "apple"
+        assert payload["platform"] == "APPLE"
         assert payload["state"] == "COMPLETED"
         assert payload["errorCode"] is None
         assert payload["errorMessage"] is None
@@ -164,7 +164,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload is not None
         assert payload["state"] == "COMPLETED"
         assert payload["organizationSlug"] == self.organization.slug
-        assert payload["platform"] == "android"
+        assert payload["platform"] == "ANDROID"
         assert payload["appInfo"]["artifactType"] == "AAB"
         assert payload["comparisons"] is None
         assert payload["gitInfo"] is not None
