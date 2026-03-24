@@ -1,17 +1,25 @@
 import {useContext, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {SizeProvider} from '@sentry/scraps/sizeContext';
 
+import {IconSeer} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {PRIMARY_HEADER_HEIGHT} from './constants';
 
 export function TopBar() {
   const theme = useTheme();
   const flexRef = useRef<HTMLDivElement>(null);
+  const organization = useOrganization({allowNull: true});
   const primaryNavigation = usePrimaryNavigation();
   const secondaryNavigation = useContext(SecondaryNavigationContext);
   const hasPageFrame = useHasPageFrameFeature();
@@ -54,6 +62,8 @@ export function TopBar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [theme.tokens.border.primary, secondaryNavigation?.view, primaryNavigation.layout]);
 
+  const {openExplorerPanel} = useExplorerPanel();
+
   if (!hasPageFrame) {
     return null;
   }
@@ -75,6 +85,18 @@ export function TopBar() {
         zIndex: theme.zIndex.sidebarPanel - 1,
         transition: `border-bottom ${theme.motion.enter.slow}`,
       }}
-    />
+    >
+      <SizeProvider size="sm">
+        {/* @TODO(JonasBadalic): Implement breadcrumbs here */}
+        <Flex />
+        <Flex align="center" gap="md">
+          {organization && isSeerExplorerEnabled(organization) ? (
+            <Button icon={<IconSeer />} onClick={openExplorerPanel}>
+              {t('Ask Seer')}
+            </Button>
+          ) : null}
+        </Flex>
+      </SizeProvider>
+    </Flex>
   );
 }

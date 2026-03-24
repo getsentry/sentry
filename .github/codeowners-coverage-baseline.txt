@@ -1070,7 +1070,6 @@ static/app/components/repositories/scmIntegrationTree/useScmTreeFilters.tsx
 static/app/components/repositories/scmRepoTreeModal.tsx
 static/app/components/repositoryRow.spec.tsx
 static/app/components/repositoryRow.tsx
-static/app/components/reprocessedBox.tsx
 static/app/components/resolutionBox.spec.tsx
 static/app/components/resolutionBox.tsx
 static/app/components/resourceCard.tsx
