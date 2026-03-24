@@ -180,9 +180,11 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
         labels: Sequence[tuple[str, str]] = []
+        types: Sequence[tuple[str, str]] = []
         if default_repo:
             owner, repo = default_repo.split("/")
             labels = self.get_repo_labels(owner, repo)
+            types = self.get_repo_types(owner)
 
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
@@ -216,6 +218,15 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                 "multiple": True,
                 "required": False,
                 "choices": labels,
+            },
+            {
+                "name": "type",
+                "label": "Type",
+                "default": [],
+                "type": "select",
+                "multiple": False,
+                "required": False,
+                "choices": types,
             },
         ]
 
@@ -385,3 +396,23 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         )
 
         return labels
+
+    def get_org_types(self, owner: str) -> Sequence[tuple[str, str]]:
+        client = self.get_client()
+        try:
+            response = client.get_types(owner)
+        except Exception as e:
+            self.raise_error(e)
+
+        def natural_sort_pair(pair: tuple[str, str]) -> list[str | int]:
+            return [
+                int(text) if text.isdecimal() else text.lower()
+                for text in re.split("([0-9]+)", pair[0])
+            ]
+
+        # sort alphabetically
+        types = tuple(
+            sorted([(type_obj["name"], type_obj["name"]) for type_obj in response], key=natural_sort_pair)
+        )
+
+        return types
