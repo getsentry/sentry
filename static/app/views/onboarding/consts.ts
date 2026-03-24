@@ -16,3 +16,19 @@ export const ONBOARDING_WELCOME_STAGGER_ITEM: MotionProps = {
     exit: {opacity: 0, y: -10},
   },
 };
+
+// Fade + slide-up animation for SCM step content sections.
+// Use with motion.div. For staggered items, pass a delay via transition override.
+export const SCM_STEP_FADE_IN: MotionProps = {
+  initial: {opacity: 0, y: 20},
+  animate: {opacity: 1, y: 0},
+  transition: testableTransition({duration: 0.4}),
+};
+
+export function scmStepFadeIn(delay: number): MotionProps {
+  return {
+    initial: {opacity: 0, y: 20},
+    animate: {opacity: 1, y: 0},
+    transition: testableTransition({duration: 0.4, delay}),
+  };
+}

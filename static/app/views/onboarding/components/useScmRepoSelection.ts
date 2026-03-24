@@ -94,13 +94,12 @@ export function useScmRepoSelection({
     onSelect(optimistic);
 
     if (repo.isInstalled) {
-      // Repo already exists in Sentry — use the existing record if we can
-      // find it, otherwise keep the optimistic value. Either way, no POST needed.
       const existing = existingReposBySlug.get(repo.identifier);
       if (existing) {
         onSelect({...optimistic, ...existing});
+        return;
       }
-      return;
+      // Lookup missed (e.g., repo was hidden). Fall through to re-add it.
     }
 
     // Note: for project creation (non-onboarding), we'll also need to handle
@@ -119,9 +118,7 @@ export function useScmRepoSelection({
       onSelect({...optimistic, ...created});
       addedRepoIdRef.current = created.id;
     } catch {
-      // 400 means the repo already exists in Sentry (e.g., previously added
-      // then hidden). Keep the optimistic selection — the repo is valid.
-      // Only revert for other errors (network failures, etc).
+      onSelect(undefined);
     } finally {
       setBusy(false);
     }
