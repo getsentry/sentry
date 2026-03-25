@@ -20,7 +20,9 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseCursor} from 'sentry/utils/cursor';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
@@ -217,6 +219,7 @@ function DetectorAutomationsTable({
 
 export function DetectorDetailsAutomations({detector}: Props) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const {mutate: updateDetector} = useUpdateDetector();
   const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
@@ -234,11 +237,19 @@ export function DetectorDetailsAutomations({detector}: Props) {
         {
           onSuccess: () => {
             addSuccessMessage(t('Connected alerts updated'));
+            // Invalidate the Connected Alerts table query
+            queryClient.invalidateQueries({
+              queryKey: [
+                getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
+                  path: {organizationIdOrSlug: organization.slug},
+                }),
+              ],
+            });
           },
         }
       );
     },
-    [detector.id, updateDetector]
+    [detector.id, updateDetector, queryClient, organization.slug]
   );
 
   const toggleDrawer = () => {
