@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from sentry.integrations.pipeline import IntegrationPipeline  # noqa: F401
     from sentry.integrations.services.integration import RpcOrganizationIntegration
     from sentry.integrations.services.integration.model import RpcIntegration
+    from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -571,3 +572,13 @@ def get_integration_types(provider: str) -> list[IntegrationDomain]:
         if provider in providers:
             types.append(integration_type)
     return types
+
+
+def is_provider_enabled(provider: IntegrationProvider, organization: Organization) -> bool:
+    from sentry import features
+
+    if not provider.requires_feature_flag:
+        return True
+    provider_key = provider.key.replace("_", "-")
+    feature_flag_name = "organizations:integrations-%s" % provider_key
+    return features.has(feature_flag_name, organization)

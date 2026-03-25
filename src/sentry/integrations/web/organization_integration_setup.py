@@ -7,7 +7,7 @@ from sentry_sdk.tracing import TransactionSource
 
 from sentry import features
 from sentry.features.exceptions import FeatureNotRegistered
-from sentry.integrations.base import IntegrationProvider
+from sentry.integrations.base import IntegrationProvider, is_provider_enabled
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 
@@ -49,6 +49,9 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
             )
 
         if not pipeline.provider.can_add:
+            raise Http404
+
+        if not is_provider_enabled(pipeline.provider, organization):
             raise Http404
 
         pipeline.initialize()

@@ -73,6 +73,7 @@ class IntegrationClassification(BaseClassification):
             JiraServerRequestParser,
             MsTeamsRequestParser,
             SlackRequestParser,
+            SlackStagingRequestParser,
             VercelRequestParser,
             VstsRequestParser,
         )
@@ -89,6 +90,7 @@ class IntegrationClassification(BaseClassification):
             JiraServerRequestParser,
             MsTeamsRequestParser,
             SlackRequestParser,
+            SlackStagingRequestParser,
             VercelRequestParser,
             VstsRequestParser,
         ]

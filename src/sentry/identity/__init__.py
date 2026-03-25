@@ -16,7 +16,7 @@ def _register_providers() -> None:
     from .github_enterprise.provider import GitHubEnterpriseIdentityProvider
     from .gitlab.provider import GitlabIdentityProvider
     from .google.provider import GoogleIdentityProvider
-    from .slack.provider import SlackIdentityProvider
+    from .slack.provider import SlackIdentityProvider, SlackStagingIdentityProvider
     from .vercel.provider import VercelIdentityProvider
     from .vsts.provider import VSTSIdentityProvider, VSTSNewIdentityProvider
     from .vsts_extension.provider import VstsExtensionIdentityProvider
@@ -24,6 +24,7 @@ def _register_providers() -> None:
     # TODO(epurkhiser): Should this be moved into it's own plugin, it should be
     # initialized there.
     register(SlackIdentityProvider)
+    register(SlackStagingIdentityProvider)
     register(GitHubIdentityProvider)
     register(GitHubEnterpriseIdentityProvider)
     register(VSTSNewIdentityProvider)
