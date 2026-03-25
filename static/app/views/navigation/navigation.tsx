@@ -317,10 +317,13 @@ export function PrimaryNavigationFooterItems() {
           analyticsKey="search"
           buttonProps={{
             icon: <IconSearch />,
-            onClick: () =>
-              organization.features.includes('cmd-k-supercharged')
-                ? toggleCommandPalette({}, state, dispatch)
-                : openHelpSearchModal({organization}),
+            onClick: () => {
+              if (organization.features.includes('cmd-k-supercharged')) {
+                toggleCommandPalette({}, organization, state, dispatch, 'button');
+              } else {
+                openHelpSearchModal({organization});
+              }
+            },
           }}
         />
       ) : null}

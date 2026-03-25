@@ -22,6 +22,7 @@ import type {Event} from 'sentry/types/event';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Theme} from 'sentry/utils/theme';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
@@ -154,8 +155,10 @@ export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
 
 export async function toggleCommandPalette(
   options: ModalOptions = {},
+  organization: Organization,
   state: CommandPaletteState,
-  dispatch: CommandPaletteDispatch
+  dispatch: CommandPaletteDispatch,
+  source: 'button' | 'keyboard'
 ) {
   const {default: Modal, modalCss} =
     await import('sentry/components/commandPalette/ui/modal');
@@ -168,6 +171,7 @@ export async function toggleCommandPalette(
     closeCommandPaletteModal();
     closeModal();
   } else {
+    trackAnalytics('command_palette.opened', {organization, source});
     dispatch({type: 'toggle modal'});
     openModal(deps => <Modal {...deps} {...options} />, {
       modalCss,

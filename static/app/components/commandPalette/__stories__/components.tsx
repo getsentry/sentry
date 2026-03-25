@@ -1,15 +1,12 @@
-import {Fragment} from 'react';
-
-import {Button} from '@sentry/scraps/button';
-
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {toggleCommandPalette} from 'sentry/actionCreators/modal';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {
   makeCommandPaletteCallback,
   makeCommandPaletteGroup,
   makeCommandPaletteLink,
 } from 'sentry/components/commandPalette/makeCommandPaletteAction';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import {CommandPaletteContent} from 'sentry/components/commandPalette/ui/content';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 
 export function RegisterActions({actions}: {actions: CommandPaletteAction[]}) {
@@ -46,10 +43,9 @@ export function CommandPaletteDemo() {
   ];
 
   return (
-    <Fragment>
+    <CommandPaletteProvider>
       <RegisterActions actions={demoActions} />
-      {/* @ts-expect-error ignore this for now */}
-      <Button onClick={() => toggleCommandPalette()}>Open Command Palette</Button>
-    </Fragment>
+      <CommandPaletteContent onClose={() => {}} />
+    </CommandPaletteProvider>
   );
 }
