@@ -11,7 +11,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 
-import * as Storybook from 'sentry/stories';
+import {Demo} from 'sentry/stories/demo';
 
 export const documentation = import('!!type-loader!@sentry/scraps/loader');
 
@@ -19,19 +19,39 @@ The `IndeterminateLoader` renders a repeating squiggle pattern with an animated 
 
 ## Usage
 
-<Storybook.Demo>
+<Demo>
   <IndeterminateLoader />
-</Storybook.Demo>
+</Demo>
 
 ```jsx
 <IndeterminateLoader />
+```
+
+## Messages
+
+Pass an array of `messages` to step through loading messages as the loader runs.
+
+<Demo>
+  <IndeterminateLoader
+    messages={[
+      'Doing the first thing',
+      'Doing the second thing',
+      'Doing the third thing',
+    ]}
+  />
+</Demo>
+
+```jsx
+<IndeterminateLoader
+  messages={['Doing the first thing', 'Doing the second thing', 'Doing the third thing']}
+/>
 ```
 
 ## Contained Width
 
 Constrain the loader's width by wrapping it in a sized container.
 
-<Storybook.Demo>
+<Demo>
   <Flex direction="column" gap="lg">
     <Container style={{width: 120}}>
       <IndeterminateLoader />
@@ -41,7 +61,7 @@ Constrain the loader's width by wrapping it in a sized container.
     </Container>
     <IndeterminateLoader />
   </Flex>
-</Storybook.Demo>
+</Demo>
 
 ```jsx
 <Container style={{width: 120}}>
@@ -59,9 +79,9 @@ Constrain the loader's width by wrapping it in a sized container.
 
 Use `variant="monochrome"` to inherit `currentColor` from the parent. The track renders at 25% opacity and the accent at full opacity.
 
-This is used internally in the `<Button busy>` component.
+This is used internally in the Button component.
 
-<Storybook.Demo>
+<Demo>
   <Flex direction="column" gap="lg">
     <Container style={{width: '320px', color: '#7553ff'}}>
       <IndeterminateLoader variant="monochrome" />
@@ -71,7 +91,7 @@ This is used internally in the `<Button busy>` component.
     </Container>
     <IndeterminateLoader variant="monochrome" />
   </Flex>
-</Storybook.Demo>
+</Demo>
 
 ```jsx
 <Container style={{color: '#7553ff'}}>
