@@ -1,5 +1,5 @@
 import {useCallback, useEffect} from 'react';
-import {LayoutGroup, motion} from 'framer-motion';
+import {AnimatePresence, LayoutGroup, motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -17,11 +17,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ScmBenefitsCard} from './components/scmBenefitsCard';
 import {ScmProviderPills} from './components/scmProviderPills';
 import {ScmRepoSelector} from './components/scmRepoSelector';
-import {ScmStepContent} from './components/scmStepContent';
 import {ScmStepFooter} from './components/scmStepFooter';
 import {ScmStepHeader} from './components/scmStepHeader';
 import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import {useScmProviders} from './components/useScmProviders';
+import {SCM_STEP_CONTENT_WIDTH} from './consts';
 import type {StepProps} from './types';
 
 export function ScmConnect({onComplete}: StepProps) {
@@ -87,64 +87,85 @@ export function ScmConnect({onComplete}: StepProps) {
       />
 
       <LayoutGroup>
-        <ScmStepContent>
-          {effectiveIntegration ? (
-            <MotionStack gap="xl" exit={{opacity: 0}} key="connected">
-              <Tag variant="success" icon={<IconCheckmark />}>
-                {t(
-                  'Connected to %s org %s',
-                  effectiveIntegration.provider.name,
-                  effectiveIntegration.name
-                )}
-              </Tag>
-              <ScmRepoSelector integration={effectiveIntegration} />
-              {selectedRepository && <MotionScmBenefitsCard exit={{opacity: 0}} />}
-            </MotionStack>
-          ) : (
-            <MotionStack gap="2xl" exit={{opacity: 0}} key="not-connected">
-              <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
-              <ScmBenefitsCard showTitle />
-            </MotionStack>
-          )}
-        </ScmStepContent>
-
-        <MotionScmStepFooter layout="position">
-          {!selectedRepository && (
-            <Button
-              analyticsEventKey="onboarding.scm_connect_skip_clicked"
-              analyticsEventName="Onboarding: SCM Connect Skip Clicked"
-              analyticsParams={{
-                has_integration: !!effectiveIntegration,
-              }}
-              onClick={() => onComplete()}
-            >
-              {t('Skip for now')}
-            </Button>
-          )}
-          <Button
-            priority="primary"
-            analyticsEventKey="onboarding.scm_connect_continue_clicked"
-            analyticsEventName="Onboarding: SCM Connect Continue Clicked"
-            analyticsParams={{
-              provider: effectiveIntegration?.provider.key ?? '',
-              repo: selectedRepository?.name ?? '',
-            }}
-            onClick={() => {
-              if (effectiveIntegration && !selectedIntegration) {
-                setSelectedIntegration(effectiveIntegration);
-              }
-              onComplete();
-            }}
-            disabled={!selectedRepository?.id}
+        {effectiveIntegration ? (
+          <MotionStack
+            key="with-integration"
+            gap="xl"
+            width="100%"
+            maxWidth={SCM_STEP_CONTENT_WIDTH}
+            exit={{opacity: 0}}
           >
-            {t('Continue')}
-          </Button>
-        </MotionScmStepFooter>
+            <Tag variant="success" icon={<IconCheckmark />}>
+              {t(
+                'Connected to %s org %s',
+                effectiveIntegration.provider.name,
+                effectiveIntegration.name
+              )}
+            </Tag>
+            <ScmRepoSelector integration={effectiveIntegration} />
+            <AnimatePresence>
+              {selectedRepository ? (
+                <motion.div
+                  exit={{opacity: 0}}
+                  initial={{opacity: 0}}
+                  animate={{opacity: 1}}
+                  key="benefits"
+                >
+                  <ScmBenefitsCard />
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </MotionStack>
+        ) : (
+          <MotionStack
+            key="without-integration"
+            gap="2xl"
+            width="100%"
+            maxWidth={SCM_STEP_CONTENT_WIDTH}
+            exit={{opacity: 0}}
+          >
+            <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
+            <ScmBenefitsCard showTitle />
+          </MotionStack>
+        )}
+
+        <MotionStack layout="position" width="100%" align="center">
+          <ScmStepFooter>
+            {!selectedRepository && (
+              <Button
+                analyticsEventKey="onboarding.scm_connect_skip_clicked"
+                analyticsEventName="Onboarding: SCM Connect Skip Clicked"
+                analyticsParams={{
+                  has_integration: !!effectiveIntegration,
+                }}
+                onClick={() => onComplete()}
+              >
+                {t('Skip for now')}
+              </Button>
+            )}
+            <Button
+              priority="primary"
+              analyticsEventKey="onboarding.scm_connect_continue_clicked"
+              analyticsEventName="Onboarding: SCM Connect Continue Clicked"
+              analyticsParams={{
+                provider: effectiveIntegration?.provider.key ?? '',
+                repo: selectedRepository?.name ?? '',
+              }}
+              onClick={() => {
+                if (effectiveIntegration && !selectedIntegration) {
+                  setSelectedIntegration(effectiveIntegration);
+                }
+                onComplete();
+              }}
+              disabled={!selectedRepository?.id}
+            >
+              {t('Continue')}
+            </Button>
+          </ScmStepFooter>
+        </MotionStack>
       </LayoutGroup>
     </Flex>
   );
 }
 
-const MotionScmStepFooter = motion.create(ScmStepFooter);
 const MotionStack = motion.create(Stack);
-const MotionScmBenefitsCard = motion.create(ScmBenefitsCard);
