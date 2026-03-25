@@ -4,6 +4,8 @@ import * as Sentry from '@sentry/react';
 import {Container} from '@sentry/scraps/layout';
 import type {ContainerProps} from '@sentry/scraps/layout';
 
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
 export function SubscriptionPageContainer({
   children,
   background,
@@ -14,10 +16,14 @@ export function SubscriptionPageContainer({
     Sentry.getReplay()?.start();
   }, []);
 
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
     <Container
-      background={background}
-      borderTop={background === 'secondary' ? 'primary' : undefined}
+      background={hasPageFrame ? 'primary' : background}
+      borderTop={
+        hasPageFrame ? undefined : background === 'secondary' ? 'primary' : undefined
+      }
       flexGrow={1}
       padding={{xs: 'xl', md: '3xl'}}
       {...rest}

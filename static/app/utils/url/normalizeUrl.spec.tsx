@@ -74,6 +74,11 @@ describe('normalizeUrl', () => {
       ['/settings/stats/issues/', '/settings/stats/issues/'],
       ['/settings/stats/health/', '/settings/stats/health/'],
 
+      // Seer org settings: strip org slug but keep /settings/seer/... paths
+      ['/settings/acme/seer/', '/settings/seer/'],
+      ['/settings/acme/seer/repos/', '/settings/seer/repos/'],
+      ['/settings/seer/repos/', '/settings/seer/repos/'],
+
       ['/join-request/acme', '/join-request/'],
       ['/join-request/acme/', '/join-request/'],
       ['/onboarding/acme/', '/onboarding/'],
@@ -155,6 +160,9 @@ describe('normalizeUrl', () => {
 
     result = normalizeUrl({pathname: '/settings/sentry/members'}, location);
     expect(result.pathname).toBe('/settings/members');
+
+    result = normalizeUrl({pathname: '/settings/acme/seer/repos/'}, location);
+    expect(result.pathname).toBe('/settings/seer/repos/');
 
     result = normalizeUrl({pathname: '/organizations/albertos-apples/issues'}, location);
     expect(result.pathname).toBe('/issues');

@@ -14,7 +14,7 @@ export function useRouteSource() {
       ? // Removes the last route segment. This is to ensure `/debug/notifications/` and
         // `/organizations/:slug/debug/notifications/` are valid as base routes
         // It does mean we'll have to change this if we add change the routes but works for now
-        location.pathname.replace(/[\w-]+\/{0,1}$/, '')
+        location.pathname.replace(/[\w-]+\/?$/, '')
       : location.pathname,
   };
 }

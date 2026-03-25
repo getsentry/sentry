@@ -502,7 +502,6 @@ class TestInvalidationTask:
         assert schedule_inner.call_count == 2
 
 
-@override_options({"taskworker.enabled": True})
 @django_db_all(transaction=True)
 @thread_leak_allowlist(reason="relay integration tests", issue=97040)
 def test_invalidate_hierarchy(

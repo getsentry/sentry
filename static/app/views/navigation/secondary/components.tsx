@@ -40,7 +40,13 @@ import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {IconAllProjects, IconChevron, IconGrabbable, IconMyProjects} from 'sentry/icons';
+import {
+  IconAllProjects,
+  IconChevron,
+  IconClose,
+  IconGrabbable,
+  IconMyProjects,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableTransition} from 'sentry/utils/testableTransition';
@@ -51,6 +57,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_HEADER_HEIGHT,
@@ -82,6 +89,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
   const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
+  const {layout} = usePrimaryNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -99,6 +107,8 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
   });
 
   const {activeGroup} = usePrimaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   return (
     <SecondarySidebarWrapper
@@ -106,13 +116,18 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
       description={NAVIGATION_TOUR_CONTENT[stepId].description}
       title={NAVIGATION_TOUR_CONTENT[stepId].title}
     >
-      {({ref, ...props}) => (
+      {({ref, 'aria-expanded': _ariaExpanded, ...props}) => (
+        // aria-expanded is omitted here because TourGuide passes it via useOverlay's
+        // triggerProps (designed for button/disclosure triggers), but this element is
+        // a plain container div with no role that supports aria-expanded. Spreading it
+        // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
+        // without a matching ARIA role.
         <Container
           height="100%"
           right="0"
           {...props}
-          width={`${size}px`}
-          ref={mergeRefs(resizableContainerRef, ref)}
+          width={isMobilePageFrame ? '100%' : `${size}px`}
+          ref={isMobilePageFrame ? undefined : mergeRefs(resizableContainerRef, ref)}
           {...{
             [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
           }}
@@ -142,6 +157,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
                 width="8px"
                 radius="lg"
                 position="absolute"
+                display={isMobilePageFrame ? 'none' : undefined}
               >
                 {p => (
                   <ResizeHandle
@@ -168,12 +184,15 @@ function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
   const secondaryNavigation = useSecondaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
+  const {layout} = usePrimaryNavigation();
 
   return (
     <Container
       background="secondary"
       borderRight={
-        hasPageFrame && secondaryNavigation.view === 'expanded' ? undefined : 'primary'
+        hasPageFrame && secondaryNavigation.view === 'expanded' && layout !== 'mobile'
+          ? undefined
+          : 'primary'
       }
       position="relative"
       height="100%"
@@ -264,6 +283,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
   const hasPageFrame = useHasPageFrameFeature();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   return (
     <Grid
@@ -271,13 +291,17 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       align="center"
       borderBottom={hasPageFrame ? 'primary' : 'muted'}
       height={
-        layout === 'mobile'
-          ? undefined
-          : hasPageFrame
-            ? `${PRIMARY_HEADER_HEIGHT}px`
-            : '44px'
+        isMobilePageFrame
+          ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+          : layout === 'mobile'
+            ? undefined
+            : hasPageFrame
+              ? `${PRIMARY_HEADER_HEIGHT}px`
+              : '44px'
       }
-      padding={layout === 'mobile' ? 'md xl' : '0 md 0 xl'}
+      padding={
+        layout === 'mobile' ? (isMobilePageFrame ? 'md lg' : 'md xl') : '0 md 0 xl'
+      }
     >
       <div>
         <Text size="md" bold>
@@ -285,7 +309,15 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
         </Text>
       </div>
       <div>
-        {layout === 'mobile' ? null : (
+        {isMobilePageFrame ? (
+          <Button
+            size="xs"
+            icon={<IconClose />}
+            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
+            priority="transparent"
+          />
+        ) : layout === 'mobile' ? null : (
           <Button
             size="xs"
             icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
@@ -344,7 +376,7 @@ function SectionTitle(props: SectionTitleProps) {
             <Text bold ellipsis align="left">
               {props.children}
             </Text>
-            <Flex align="center" flexShrink={0}>
+            <Flex align="center" flexShrink={0} aria-hidden="true">
               {props.trailingItems ? (
                 <div onClick={e => e.stopPropagation()}>{props.trailingItems}</div>
               ) : (
@@ -438,7 +470,6 @@ function SecondaryNavigationLink({
     state: {source: SIDEBAR_NAVIGATION_SOURCE},
     to,
     'aria-current': isActive ? ('page' as const) : undefined,
-    'aria-selected': isActive,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (analyticsItemName) {
         trackAnalytics('navigation.secondary_item_clicked', {
@@ -454,16 +485,6 @@ function SecondaryNavigationLink({
     },
   };
 
-  if (layout === 'mobile') {
-    return (
-      <MobileNavigationLink {...sharedLinkProps}>
-        {leadingItems}
-        <Text ellipsis>{children}</Text>
-        {trailingItems}
-      </MobileNavigationLink>
-    );
-  }
-
   if (hasPageFrame) {
     return (
       <PageFrameSidebarNavigationLink {...sharedLinkProps}>
@@ -473,6 +494,16 @@ function SecondaryNavigationLink({
         </Text>
         {trailingItems}
       </PageFrameSidebarNavigationLink>
+    );
+  }
+
+  if (layout === 'mobile') {
+    return (
+      <MobileNavigationLink {...sharedLinkProps}>
+        {leadingItems}
+        <Text ellipsis>{children}</Text>
+        {trailingItems}
+      </MobileNavigationLink>
     );
   }
 
@@ -506,22 +537,38 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
   switch (props.projectPlatforms.length) {
     case 0:
       icons = props.allProjects ? (
-        <IconAllProjects size="md" />
+        <IconAllProjects size="md" aria-hidden="true" />
       ) : (
-        <IconMyProjects size="md" />
+        <IconMyProjects size="md" aria-hidden="true" />
       );
       break;
     case 1:
-      icons = <PlatformIcon platform={props.projectPlatforms[0]!} size={16} />;
+      icons = (
+        <PlatformIcon platform={props.projectPlatforms[0]!} size={16} aria-hidden />
+      );
       break;
     default:
       icons = (
         <Fragment>
           <Container position="absolute" top="0" right="6px" width="12px" height="12px">
-            {p => <PlatformIcon {...p} platform={props.projectPlatforms[0]!} size={12} />}
+            {p => (
+              <PlatformIcon
+                {...p}
+                platform={props.projectPlatforms[0]!}
+                size={12}
+                aria-hidden
+              />
+            )}
           </Container>
           <Container position="absolute" bottom="0" right="0" width="12px" height="12px">
-            {p => <PlatformIcon {...p} platform={props.projectPlatforms[1]!} size={12} />}
+            {p => (
+              <PlatformIcon
+                {...p}
+                platform={props.projectPlatforms[1]!}
+                size={12}
+                aria-hidden
+              />
+            )}
           </Container>
         </Fragment>
       );
@@ -536,6 +583,7 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
       height="18px"
       position="relative"
       data-project-icon
+      aria-hidden="true"
     >
       {icons}
     </Stack>
@@ -631,7 +679,7 @@ function navigationItemStyles(p: {layout: 'mobile' | 'sidebar'; theme: Theme}) {
         .hover};
     }
 
-    &[aria-selected='true'] {
+    &[aria-current='page'] {
       color: ${p.theme.tokens.interactive.link.accent.rest};
       background-color: ${p.theme.tokens.interactive.transparent.accent.selected
         .background.rest};
@@ -681,7 +729,7 @@ const MobileNavigationLink = styled(Link)`
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
@@ -756,12 +804,14 @@ function ReorderableListItem<T extends {id: string | number}>(
       value={{attributes, isDragging, listeners, setActivatorNodeRef}}
     >
       <Container
+        as="li"
         radius="md"
         position="relative"
         background={isDragging ? 'secondary' : undefined}
         ref={setNodeRef}
         data-is-dragging={isDragging ? true : undefined}
         style={{
+          listStyleType: 'none',
           transform: CSS.Transform.toString(transform),
           transition: transition ?? undefined,
           zIndex: isDragging ? 1 : undefined,
@@ -826,7 +876,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       onDragCancel={() => scrollLock.release()}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <Stack direction="column" padding="0" width="100%">
+        <Stack direction="column" as="ul" padding="0" width="100%" margin="0">
           {items.map(item => (
             <ReorderableListItem key={item.id} item={item}>
               {props.children(item)}
@@ -888,7 +938,6 @@ function SecondaryNavigationReorderableLink({
     layout,
     isDragging,
     'aria-current': isActive ? ('page' as const) : undefined,
-    'aria-selected': isActive,
     onClick: handleNavigate,
     onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
       // When the grab handle has focus, dnd-kit owns Space/Enter for pick-up
@@ -917,17 +966,17 @@ function SecondaryNavigationReorderableLink({
     </Fragment>
   );
 
-  if (layout === 'mobile') {
+  if (hasPageFrame) {
     return (
-      <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
+      <StyledPageFrameReorderableFakeLink {...sharedProps} layout="sidebar">
+        {content}
+      </StyledPageFrameReorderableFakeLink>
     );
   }
 
-  if (hasPageFrame) {
+  if (layout === 'mobile') {
     return (
-      <StyledPageFrameReorderableFakeLink {...sharedProps}>
-        {content}
-      </StyledPageFrameReorderableFakeLink>
+      <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
     );
   }
 
@@ -963,7 +1012,7 @@ function GrabHandle(props: FlexProps<'div'>) {
           style={{cursor: isDragging ? 'grabbing' : 'grab'}}
           onClick={e => e.stopPropagation()}
         >
-          <IconGrabbable variant="muted" />
+          <IconGrabbable variant="muted" aria-hidden="true" />
         </GrabHandleAnimation>
       )}
     </Flex>
@@ -1103,7 +1152,7 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
       p.theme.tokens.interactive.transparent.accent.background.active};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
@@ -1176,7 +1225,7 @@ const SidebarNavigationLink = styled(Link)`
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
@@ -1220,7 +1269,7 @@ const PageFrameSidebarNavigationLink = styled(Link)`
       p.theme.tokens.interactive.transparent.accent.background.active};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};

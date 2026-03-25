@@ -6,6 +6,7 @@ import partition from 'lodash/partition';
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -24,7 +25,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface OrganizationDropdownProps {
@@ -54,15 +54,14 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
-  const {layout} = usePrimaryNavigation();
-  const hasPageFrame = organization.features.includes('page-frame');
-
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
   const letterAvatarProps = {
     identifier: organization.slug,
     name: organization.name || organization.slug,
   };
+
+  const size = useSizeContext();
 
   return (
     <DropdownMenu
@@ -90,11 +89,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     ...letterAvatarProps,
                   }
           }
-          {...(layout === 'mobile'
-            ? {size: 'xs' as const}
-            : hasPageFrame
-              ? {}
-              : {size: 'md' as const})}
+          size={size}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
           onClick={e => {

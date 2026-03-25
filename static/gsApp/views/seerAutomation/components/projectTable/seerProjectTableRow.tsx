@@ -16,13 +16,13 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
 import {
   useAgentOptions,
   useMutateCreatePr,
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
-} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
+} from 'sentry/views/settings/seer/seerAgentHooks';
+
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {

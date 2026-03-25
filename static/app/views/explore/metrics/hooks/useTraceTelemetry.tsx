@@ -4,7 +4,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {NewQuery} from 'sentry/types/organization';
 import {useDiscoverQuery, type TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

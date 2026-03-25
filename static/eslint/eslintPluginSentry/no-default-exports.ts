@@ -63,27 +63,24 @@ function collectResolvedImportFiles(program: ts.Program) {
   return allowedFiles;
 }
 
-function findTopLevelFunctionDeclaration(
-  body: TSESTree.ProgramStatement[],
-  name: string
-) {
-  return body.find(
-    statement =>
-      statement.type === AST_NODE_TYPES.FunctionDeclaration && statement.id?.name === name
-  );
-}
-
-function findTopLevelVariableDeclaration(
-  body: TSESTree.ProgramStatement[],
-  name: string
-): TSESTree.VariableDeclaration | undefined {
-  return body.find((statement): statement is TSESTree.VariableDeclaration => {
-    if (statement.type !== AST_NODE_TYPES.VariableDeclaration) {
-      return false;
+function findTopLevelDeclaration(body: TSESTree.ProgramStatement[], name: string) {
+  return body.find(statement => {
+    switch (statement.type) {
+      case AST_NODE_TYPES.FunctionDeclaration:
+      case AST_NODE_TYPES.ClassDeclaration:
+      case AST_NODE_TYPES.TSEnumDeclaration:
+      case AST_NODE_TYPES.TSInterfaceDeclaration:
+      case AST_NODE_TYPES.TSTypeAliasDeclaration:
+        return statement.id?.name === name;
+      case AST_NODE_TYPES.VariableDeclaration:
+        return statement.declarations.some(
+          declaration =>
+            declaration.id.type === AST_NODE_TYPES.Identifier &&
+            declaration.id.name === name
+        );
+      default:
+        return false;
     }
-    return statement.declarations.some(
-      decl => decl.id.type === AST_NODE_TYPES.Identifier && decl.id.name === name
-    );
   });
 }
 
@@ -112,55 +109,80 @@ export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
       return {};
     }
 
+    function visitDeclaration(
+      exported: TSESTree.Node,
+      declaration: TSESTree.ExportDefaultDeclaration
+    ) {
+      switch (exported.type) {
+        case AST_NODE_TYPES.ClassDeclaration:
+        case AST_NODE_TYPES.FunctionDeclaration: {
+          context.report({
+            node: declaration,
+            messageId: 'forbidden',
+            fix: exported.id
+              ? fixer => [
+                  fixer.replaceTextRange(
+                    [declaration.range[0], exported.range[0]],
+                    'export '
+                  ),
+                ]
+              : undefined,
+          });
+          return;
+        }
+
+        case AST_NODE_TYPES.Identifier: {
+          const declarationToExport = findTopLevelDeclaration(
+            declaration.parent.body,
+            exported.name
+          );
+
+          context.report({
+            node: declaration,
+            messageId: 'forbidden',
+            fix: declarationToExport
+              ? fixer => {
+                  const text = context.sourceCode.getText();
+                  let removeStart = declaration.range[0];
+                  while (removeStart > 0 && ' \t'.includes(text[removeStart - 1]!)) {
+                    removeStart--;
+                  }
+                  if (removeStart > 0 && text[removeStart - 1] === '\n') {
+                    removeStart--;
+                  }
+                  return [
+                    fixer.insertTextBefore(declarationToExport, 'export '),
+                    fixer.removeRange([removeStart, declaration.range[1]]),
+                  ];
+                }
+              : undefined,
+          });
+          return;
+        }
+
+        case AST_NODE_TYPES.TSAsExpression:
+          visitDeclaration(exported.expression, declaration);
+          return;
+
+        // Calls like HoCs often result in differences between internal and exported names:
+        //   export default withConfig(MyComponent);
+        //   export default styled(MyComponent)``;
+        case AST_NODE_TYPES.CallExpression:
+        case AST_NODE_TYPES.TaggedTemplateExpression: {
+          return;
+        }
+
+        default:
+          context.report({
+            node: declaration,
+            messageId: 'forbidden',
+          });
+      }
+    }
+
     return {
       ExportDefaultDeclaration(node) {
-        if (
-          node.declaration.type === AST_NODE_TYPES.ClassDeclaration ||
-          node.declaration.type === AST_NODE_TYPES.FunctionDeclaration
-        ) {
-          if (!node.declaration.id) {
-            return;
-          }
-
-          context.report({
-            node,
-            messageId: 'forbidden',
-            fix: fixer => [
-              fixer.replaceTextRange(
-                [node.range[0], node.declaration.range[0]],
-                'export '
-              ),
-            ],
-          });
-          return;
-        }
-
-        if (node.declaration.type === AST_NODE_TYPES.Identifier) {
-          const exportedName = node.declaration.name;
-          const functionDeclaration = findTopLevelFunctionDeclaration(
-            node.parent.body,
-            exportedName
-          );
-          const variableDeclaration = findTopLevelVariableDeclaration(
-            node.parent.body,
-            exportedName
-          );
-
-          const declarationToExport = functionDeclaration ?? variableDeclaration;
-          if (!declarationToExport) {
-            return;
-          }
-
-          context.report({
-            node,
-            messageId: 'forbidden',
-            fix: fixer => [
-              fixer.insertTextBefore(declarationToExport, 'export '),
-              fixer.remove(node),
-            ],
-          });
-          return;
-        }
+        visitDeclaration(node.declaration, node);
       },
     };
   },

@@ -133,7 +133,7 @@ describe('RuleNode', () => {
   };
 
   const labelReplacer = (label: string, values: any) => {
-    return label.replace(/{\w+}/gm, placeholder => values[placeholder]);
+    return label.replace(/{\w+}/g, placeholder => values[placeholder]);
   };
 
   afterEach(() => {

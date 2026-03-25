@@ -1,10 +1,14 @@
-export function BarPreview() {
+interface BarPreviewProps {
+  color: string;
+}
+
+export function BarPreview({color}: BarPreviewProps) {
   return (
     <svg
       viewBox="0 0 140 48"
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="none"
-      fill="#B85586"
+      fill={color}
       height="100%"
       width="100%"
     >

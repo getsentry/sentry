@@ -5,7 +5,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
-import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 import {
   EVENTS_TABLE_RESPONSE_FIELDS,

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -113,38 +113,42 @@ function StarredDashboardItems({
   projects: Project[];
   userId: string;
 }) {
-  return dashboards.map(dashboard => {
-    const dashboardProjects = new Set((dashboard?.projects ?? []).map(String));
-    if (!defined(dashboard?.projects)) {
-      Sentry.setTag('organization', organizationId);
-      Sentry.setTag('dashboard.id', dashboard.id);
-      Sentry.setTag('user.id', userId);
-      Sentry.captureMessage('dashboard.projects is undefined in starred sidebar', {
-        level: 'warning',
-      });
-    }
-    const dashboardProjectPlatforms = projects
-      .filter(p => dashboardProjects.has(p.id))
-      .map(p => p.platform)
-      .filter(defined);
+  return (
+    <SecondaryNavigation.List>
+      {dashboards.map(dashboard => {
+        const dashboardProjects = new Set((dashboard?.projects ?? []).map(String));
+        if (!defined(dashboard?.projects)) {
+          Sentry.setTag('organization', organizationId);
+          Sentry.setTag('dashboard.id', dashboard.id);
+          Sentry.setTag('user.id', userId);
+          Sentry.captureMessage('dashboard.projects is undefined in starred sidebar', {
+            level: 'warning',
+          });
+        }
+        const dashboardProjectPlatforms = projects
+          .filter(p => dashboardProjects.has(p.id))
+          .map(p => p.platform)
+          .filter(defined);
 
-    return (
-      <SecondaryNavigation.ListItem key={dashboard.id}>
-        <SecondaryNavigation.Link
-          to={`/organizations/${organizationSlug}/dashboard/${dashboard.id}/`}
-          analyticsItemName="dashboard_starred_item"
-          leadingItems={
-            <SecondaryNavigation.ProjectIcon
-              projectPlatforms={dashboardProjectPlatforms}
-              allProjects={
-                dashboard.projects?.length === 1 && dashboard.projects[0] === -1
+        return (
+          <SecondaryNavigation.ListItem key={dashboard.id}>
+            <SecondaryNavigation.Link
+              to={`/organizations/${organizationSlug}/dashboard/${dashboard.id}/`}
+              analyticsItemName="dashboard_starred_item"
+              leadingItems={
+                <SecondaryNavigation.ProjectIcon
+                  projectPlatforms={dashboardProjectPlatforms}
+                  allProjects={
+                    dashboard.projects?.length === 1 && dashboard.projects[0] === -1
+                  }
+                />
               }
-            />
-          }
-        >
-          {dashboard.title}
-        </SecondaryNavigation.Link>
-      </SecondaryNavigation.ListItem>
-    );
-  });
+            >
+              {dashboard.title}
+            </SecondaryNavigation.Link>
+          </SecondaryNavigation.ListItem>
+        );
+      })}
+    </SecondaryNavigation.List>
+  );
 }

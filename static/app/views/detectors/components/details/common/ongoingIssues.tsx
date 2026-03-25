@@ -1,6 +1,6 @@
 import {LinkButton} from '@sentry/scraps/button';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';

@@ -41,7 +41,7 @@ const selectablePlatforms = platforms.filter(platform =>
 );
 
 function startsWithPunctuation(name: string) {
-  return /^[\p{P}]/u.test(name);
+  return /^\p{P}/u.test(name);
 }
 
 export type Category = (typeof categoryList)[number]['id'];

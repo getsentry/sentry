@@ -2526,6 +2526,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TTL in seconds for nodestore cache entries. Event bodies are immutable
+# so longer TTLs are safe and improve cache hit rates for batch reads
+# (e.g. group events list endpoint).
+register(
+    "nodestore.cache-ttl",
+    default=300,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # === Backpressure related runtime options ===
 
 # Enables monitoring of services for backpressure management.
@@ -3854,11 +3864,6 @@ register(
 
 # Taskbroker flags
 register(
-    "taskworker.enabled",
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "taskworker.producer.max_futures",
     type=Int,
     default=1000,
@@ -3869,18 +3874,6 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "taskworker.grpc_service_config",
-    type=String,
-    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.fetch_next.disabled_pools",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Enable HTTP/2 transport in Sentry SDK
 register(
