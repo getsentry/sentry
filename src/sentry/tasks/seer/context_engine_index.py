@@ -8,6 +8,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
@@ -268,6 +269,7 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     name="sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
     namespace=seer_tasks,
     processing_deadline_duration=30 * 60,
+    retry=Retry(times=3, on=(RpcRemoteException,), delay=60),
 )
 def schedule_context_engine_indexing_tasks() -> None:
     """
