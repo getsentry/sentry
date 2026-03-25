@@ -165,8 +165,11 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
     return false;
   };
 
-  // Detect horizontal scroll to conditionally show sticky column shadow
   useEffect(() => {
+    if (hasMetricsUIRefresh) {
+      return undefined;
+    }
+
     const tableElement = tableRef.current;
     if (!tableElement) {
       return undefined;
@@ -175,10 +178,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
     const checkScroll = () => {
       const {scrollWidth, clientWidth, scrollLeft} = tableElement;
       const hasOverflow = scrollWidth > clientWidth;
-      // Check if scrolled all the way to the right, use < 1 as threshold to account for precision issues
       const isScrolledFullyRight = Math.abs(scrollLeft + clientWidth - scrollWidth) < 1;
 
-      // Update box-shadow directly on DOM elements (prevents re-renders)
       const shouldShowShadow = hasOverflow && !isScrolledFullyRight;
       tableElement
         .querySelectorAll<HTMLElement>('[data-sticky-column="true"]')
@@ -196,19 +197,14 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
         });
     };
 
-    // Throttle scroll handler to avoid calling this too often
     const throttledCheckScroll = throttle(checkScroll, 100, {
       leading: true,
       trailing: true,
     });
 
-    // Check on mount and when content changes
     checkScroll();
-
-    // Listen to scroll events with throttled handler
     tableElement.addEventListener('scroll', throttledCheckScroll);
 
-    // Use ResizeObserver to check when table size changes
     const resizeObserver = new ResizeObserver(throttledCheckScroll);
     resizeObserver.observe(tableElement);
 
@@ -217,7 +213,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       throttledCheckScroll.cancel();
       resizeObserver.disconnect();
     };
-  }, [result.data, fields.length]);
+  }, [displayFields.length, hasMetricsUIRefresh, result.data]);
 
   const isPending = result.isPending && !isMetricOptionsEmpty;
 
@@ -278,6 +274,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
               groupBys.length === 0
                 ? {...row, [TraceMetricKnownFieldKey.METRIC_NAME]: traceMetric.name}
                 : row;
+
             return (
               <SimpleTable.Row key={i} style={{minHeight: '33px'}}>
                 {topEvents && i < topEvents && (
