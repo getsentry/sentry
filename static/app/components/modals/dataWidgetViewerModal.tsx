@@ -94,10 +94,7 @@ import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import {
-  DashboardsMEPProvider,
-  useDashboardsMEPContext,
-} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
@@ -896,8 +893,6 @@ function OpenButton({
 }: OpenButtonProps) {
   let openLabel: string;
   let path: string;
-  const {isMetricsData} = useDashboardsMEPContext();
-
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
@@ -929,9 +924,7 @@ function OpenButton({
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
         dashboardFilters,
         selection,
-        organization,
-        0,
-        isMetricsData
+        organization
       );
       break;
   }

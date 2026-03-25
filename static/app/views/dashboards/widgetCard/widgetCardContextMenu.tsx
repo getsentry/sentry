@@ -167,7 +167,6 @@ export function getMenuOptions(
   organization: Organization,
   selection: PageFilters,
   widget: Widget,
-  isMetricsData: boolean,
   widgetLimitReached: boolean,
   hasEditAccess = true,
   location: Location,
@@ -198,9 +197,7 @@ export function getMenuOptions(
         widget,
         dashboardFilters,
         selection,
-        organization,
-        0,
-        isMetricsData
+        organization
       );
       menuOptions.push({
         key: 'open-in-discover',
@@ -230,7 +227,6 @@ export function getMenuOptions(
           openDashboardWidgetQuerySelectorModal({
             organization,
             widget,
-            isMetricsData,
             dashboardFilters,
           });
         },

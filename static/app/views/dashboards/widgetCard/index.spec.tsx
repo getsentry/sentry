@@ -181,7 +181,6 @@ describe('Dashboards > WidgetCard', () => {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
     expect(spy).toHaveBeenCalledWith({
-      isMetricsData: false,
       organization,
       widget: multipleQueryWidget,
     });

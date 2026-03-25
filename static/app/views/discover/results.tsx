@@ -177,15 +177,6 @@ export class Results extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, selection, location, isHomepage, navigate} = this.props;
-    if (location.query.fromMetric) {
-      navigate(
-        {
-          ...location,
-          query: {...location.query, fromMetric: undefined},
-        },
-        {replace: true}
-      );
-    }
     if (location.query[SHOW_UNPARAM_BANNER]) {
       this.setState({showUnparameterizedBanner: true});
       navigate(
