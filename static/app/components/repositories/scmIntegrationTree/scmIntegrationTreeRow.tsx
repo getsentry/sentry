@@ -13,6 +13,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {ProviderConfigLink} from 'sentry/components/repositories/scmIntegrationTree/providerConfigLink';
+import {DISCONNECTED_SECTION_KEY} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTreeNodes';
 import type {TreeNode} from 'sentry/components/repositories/scmIntegrationTree/types';
 import {IconAdd, IconChevron, IconClose, IconDelete, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -244,7 +245,7 @@ export function ScmIntegrationTreeRow({
     return (
       <RowContainer style={style} role="row" aria-level={1}>
         <RowButton
-          onClick={() => onToggleProvider('__disconnected__')}
+          onClick={() => onToggleProvider(DISCONNECTED_SECTION_KEY)}
           aria-expanded={node.isExpanded}
           aria-label={t('Other repositories')}
         >

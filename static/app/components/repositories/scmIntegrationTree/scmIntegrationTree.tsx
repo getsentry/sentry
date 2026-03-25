@@ -56,7 +56,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     refetchIntegrations,
     reposByIntegrationId,
     reposPendingByIntegrationId,
-    reposQueryKey,
+    reposQueryOptions,
     isPending,
     isError,
   } = useScmIntegrationTreeData();
@@ -161,9 +161,9 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
   // Optimistically remove a repo from cache and call the API
   const removeRepo = useCallback(
     async (repo: Repository) => {
-      const previousData = queryClient.getQueryData(reposQueryKey as any);
+      const previousData = queryClient.getQueryData(reposQueryOptions.queryKey);
       queryClient.setQueryData(
-        reposQueryKey as any,
+        reposQueryOptions.queryKey,
         (old: InfiniteData<{json: Repository[]}> | undefined) => {
           if (!old) return old;
           return {
@@ -179,10 +179,10 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
         await hideRepository(api, organization.slug, repo.id);
         addSuccessMessage(t('Removed %s', repo.name));
       } catch {
-        queryClient.setQueryData(reposQueryKey as any, previousData);
+        queryClient.setQueryData(reposQueryOptions.queryKey, previousData);
       }
     },
-    [api, organization.slug, queryClient, reposQueryKey]
+    [api, organization.slug, queryClient, reposQueryOptions.queryKey]
   );
 
   const handleToggleRepo = useCallback(
@@ -195,7 +195,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
       try {
         if (isConnected) {
           const connectedRepo = queryClient
-            .getQueryData<InfiniteData<{json: Repository[]}>>(reposQueryKey as any)
+            .getQueryData<InfiniteData<{json: Repository[]}>>(reposQueryOptions.queryKey)
             ?.pages.flatMap(p => p.json)
             .find(r => r.name === repo.identifier);
           if (connectedRepo) {
@@ -209,7 +209,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
             integration
           );
           queryClient.setQueryData(
-            reposQueryKey as any,
+            reposQueryOptions.queryKey,
             (old: InfiniteData<{json: Repository[]}> | undefined) => {
               if (!old) return old;
               return {
@@ -231,7 +231,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
         });
       }
     },
-    [api, organization.slug, queryClient, removeRepo, reposQueryKey]
+    [api, organization.slug, queryClient, removeRepo, reposQueryOptions.queryKey]
   );
 
   const handleRemoveDisconnectedRepo = useCallback(
