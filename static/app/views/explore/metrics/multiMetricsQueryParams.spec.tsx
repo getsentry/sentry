@@ -33,8 +33,8 @@ describe('MultiMetricsQueryParamsProvider', () => {
           sortBys: [{field: 'timestamp', kind: 'desc'}],
 
           aggregateCursor: '',
-          aggregateFields: [new VisualizeFunction('per_second(value)')],
-          aggregateSortBys: [{field: 'per_second(value)', kind: 'desc'}],
+          aggregateFields: [new VisualizeFunction('sum(value)')],
+          aggregateSortBys: [{field: 'sum(value)', kind: 'desc'}],
         }),
         removeMetric: expect.any(Function),
         setQueryParams: expect.any(Function),
@@ -53,7 +53,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'foo', type: 'counter'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('per_second(value,foo,counter,-)')],
+          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,-)')],
         }),
       }),
     ]);
@@ -63,7 +63,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'bar', type: 'gauge'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('per_second(value,bar,gauge,-)')],
+          aggregateFields: [new VisualizeFunction('avg(value,bar,gauge,-)')],
         }),
       }),
     ]);
@@ -73,9 +73,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'qux', type: 'distribution'},
         queryParams: expect.objectContaining({
-          aggregateFields: [
-            new VisualizeFunction('per_second(value,qux,distribution,-)'),
-          ],
+          aggregateFields: [new VisualizeFunction('avg(value,qux,distribution,-)')],
         }),
       }),
     ]);
@@ -134,7 +132,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'bar', type: 'distribution'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('p75(value,bar,distribution,-)')],
+          aggregateFields: [new VisualizeFunction('sum(value,bar,distribution,-)')],
         }),
       }),
     ]);
@@ -160,7 +158,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'foo', type: 'counter'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('per_second(value,foo,counter,-)')],
+          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,-)')],
         }),
       }),
     ]);

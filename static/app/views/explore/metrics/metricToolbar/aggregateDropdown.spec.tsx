@@ -34,12 +34,8 @@ function createWrapper(options: WrapperOptions = {}) {
     fields: ['id', 'timestamp'],
     sortBys: [{field: 'timestamp', kind: 'desc'}],
     aggregateCursor: '',
-    aggregateFields: [
-      new VisualizeFunction('per_second(value,test_metric,distribution,-)'),
-    ],
-    aggregateSortBys: [
-      {field: 'per_second(value,test_metric,distribution,-)', kind: 'desc'},
-    ],
+    aggregateFields: [new VisualizeFunction('sum(value,test_metric,distribution,-)')],
+    aggregateSortBys: [{field: 'sum(value,test_metric,distribution,-)', kind: 'desc'}],
   });
 
   return function Wrapper({children}: {children: ReactNode}) {
@@ -225,7 +221,7 @@ describe('AggregateDropdown', () => {
     const callArgs = setQueryParams.mock.calls[setQueryParams.mock.calls.length - 1]![0];
     expect(callArgs.aggregateFields).toHaveLength(1);
     expect(callArgs.aggregateFields[0]).toBeInstanceOf(VisualizeFunction);
-    expect(callArgs.aggregateFields[0].parsedFunction?.name).toBe('p75');
+    expect(callArgs.aggregateFields[0].parsedFunction?.name).toBe('sum');
   });
 
   it('shows correct options for counter metric type', async () => {

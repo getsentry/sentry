@@ -1139,6 +1139,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/dynamicSampling')),
     },
     {
+      path: 'mcp-cli/',
+      name: t('MCP & CLI'),
+      component: make(() => import('sentry/views/settings/organizationMcpCli')),
+    },
+    {
       path: 'feature-flags/',
       name: t('Feature Flags'),
       children: [
@@ -2433,7 +2438,10 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: TabPaths[Tab.ACTIVITY],
-      component: make(() => import('sentry/views/issueDetails/groupActivity')),
+      component: make(
+        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+        <GroupEventDetailsLoading />
+      ),
     },
     {
       path: TabPaths[Tab.EVENTS],
