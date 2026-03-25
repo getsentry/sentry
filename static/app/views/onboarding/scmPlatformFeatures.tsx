@@ -8,7 +8,6 @@ import {Select} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal, openModal} from 'sentry/actionCreators/modal';
-import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -18,7 +17,6 @@ import {
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
 import {platforms} from 'sentry/data/platforms';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
@@ -28,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
 import {ScmPlatformCard} from 'sentry/views/onboarding/components/scmPlatformCard';
 
+import {ScmSearchControl} from './components/scmSearchControl';
 import {ScmStepFooter} from './components/scmStepFooter';
 import {ScmStepHeader} from './components/scmStepHeader';
 import {
@@ -51,21 +50,6 @@ const platformOptions = platforms.map(platform => ({
   textValue: `${platform.name} ${platform.id}`,
   leadingItems: <PlatformIcon platform={platform.id} size={16} />,
 }));
-
-/**
- * Custom Control that prepends a search icon inside the Select input.
- * Props are typed as `any` because react-select's generic types don't
- * match the specific option shape our Select wrapper uses. This matches
- * the pattern used in scmRepoSelector and elsewhere in the codebase.
- */
-function SearchControl({children, ...props}: any) {
-  return (
-    <selectComponents.Control {...props}>
-      <IconSearch size="sm" variant="muted" style={{marginLeft: 12, flexShrink: 0}} />
-      {children}
-    </selectComponents.Control>
-  );
-}
 
 function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
   return {
@@ -338,9 +322,16 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
             <Stack gap="md">
               <Heading as="h3">{t('Recommended SDK')}</Heading>
               {isDetecting ? (
-                <Flex justify="center" padding="xl">
+                <Stack gap="md" align="center" padding="xl">
                   <LoadingIndicator mini />
-                </Flex>
+                  <Button
+                    size="xs"
+                    priority="link"
+                    onClick={() => setShowManualPicker(true)}
+                  >
+                    {t('Skip detection and select manually')}
+                  </Button>
+                </Stack>
               ) : (
                 <Stack gap="sm">
                   <Flex gap="md" wrap="wrap" role="radiogroup">
@@ -385,7 +376,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                   }
                 }}
                 searchable
-                components={{Control: SearchControl}}
+                components={{Control: ScmSearchControl}}
               />
               {hasScmConnected && (
                 <Button
