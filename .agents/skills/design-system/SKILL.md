@@ -51,7 +51,7 @@ import {Container} from '@sentry/scraps/layout';
 
 // ❌ Don't create styled components
 const Component = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
@@ -119,7 +119,7 @@ import {Grid} from '@sentry/scraps/layout';
 const Component = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.md};
 `;
 
 // ✅ Use Grid primitive
@@ -147,7 +147,7 @@ import {Stack} from '@sentry/scraps/layout';
 const Component = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.md};
 `;
 
 // ✅ Use Stack primitive (automatically column direction)
@@ -401,7 +401,7 @@ Container supports `margin` props but they are deprecated. Use `gap` on parent c
 ```tsx
 // ❌ Don't use margin between children
 const Child = styled('div')`
-  margin-right: ${p => p.theme.spacing.lg};
+  margin-right: ${p => p.theme.space.lg};
 `;
 
 // ✅ Use gap on parent container
