@@ -29,7 +29,7 @@ function actionToMenuItem(
     label: action.display.label,
     details: action.display.details,
     leadingItems: action.display.icon ? (
-      <Flex align="center" justify="center" width="100%" height="100%">
+      <Flex align="start" justify="center" width="100%" height="100%" paddingTop="2xs">
         <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
       </Flex>
     ) : undefined,

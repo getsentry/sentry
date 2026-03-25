@@ -134,7 +134,7 @@ export function CommandPaletteList({
                   ref={inputRef}
                   value={query}
                   placeholder={placeholder}
-                  aria-label={t('Search for commands…')}
+                  aria-label={t('Search commands')}
                   {...inputProps}
                 />
               </InputGroup>
@@ -144,10 +144,10 @@ export function CommandPaletteList({
       </Flex>
       {treeState.collection.size === 0 ? (
         <Flex
+          gap="lg"
           direction="column"
           align="center"
           justify="center"
-          gap="lg"
           padding="xl lg"
           height="400px"
         >
@@ -187,12 +187,6 @@ const ResultsList = styled(Flex)`
   ul,
   li {
     scroll-margin: ${p => p.theme.space['3xl']} 0;
-  }
-
-  li ${InnerWrap} {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
   }
 
   li[data-focused] > ${InnerWrap} {
