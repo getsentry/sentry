@@ -72,17 +72,17 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
   });
 
   it('renders correctly with web vital', async () => {
-    render(<PageOverviewWebVitalsDetailPanel webVital="lcp" />, {
+    render(<PageOverviewWebVitalsDetailPanel webVital="fcp" />, {
       organization,
     });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getAllByText('Largest Contentful Paint (P75)')).toHaveLength(2);
+    expect(screen.getAllByText('First Contentful Paint (P75)')).toHaveLength(2);
     expect(screen.getByText('Transaction')).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
     expect(screen.getByText('Replay')).toBeInTheDocument();
-    expect(screen.getByText('lcp')).toBeInTheDocument();
-    expect(screen.getByText('lcp Score')).toBeInTheDocument();
+    expect(screen.getByText('fcp')).toBeInTheDocument();
+    expect(screen.getByText('fcp Score')).toBeInTheDocument();
   });
 });
