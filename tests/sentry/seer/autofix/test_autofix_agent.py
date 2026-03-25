@@ -375,8 +375,8 @@ class TestTriggerAutofixExplorer(TestCase):
 
         self.group.refresh_from_db()
 
-        assert self.group.seer_explorer_autofix_last_triggered is not None
         assert self.group.seer_autofix_last_triggered is None
+        assert self.group.seer_explorer_autofix_last_triggered is not None
 
 
 class TestTriggerCodingAgentHandoff(TestCase):
