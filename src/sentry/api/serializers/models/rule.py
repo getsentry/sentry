@@ -629,10 +629,8 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
             serialized_actions = []
             errors = []
-            wdcgs_with_conditions = [
-                wdcg for wdcg in prefetched_wdcgs if list(wdcg.condition_group.conditions.all())
-            ]
-            if len(wdcgs_with_conditions) > 1:
+
+            if len(prefetched_wdcgs) > 1:
                 errors.append(
                     {
                         "detail": "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."

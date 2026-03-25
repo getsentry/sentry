@@ -284,13 +284,34 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         )
         # Second if/then block: action DCG with filter condition + action
         action_group2, _ = self.create_workflow_action(workflow)
-        self.create_data_condition(
+        dc2 = self.create_data_condition(
             condition_group=action_group2,
             type=Condition.EVENT_ATTRIBUTE,
             comparison={"attribute": "platform", "match": "eq", "value": "java"},
             condition_result=True,
         )
 
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        multiple_action_filter_resp = None
+        for resp in response.data:
+            if resp["name"] == workflow.name:
+                multiple_action_filter_resp = resp
+
+        assert multiple_action_filter_resp
+        # only the first if/then block's filter is rendered
+        assert len(multiple_action_filter_resp["filters"]) == 1
+        assert (
+            multiple_action_filter_resp["errors"][0]["detail"]
+            == "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
+        )
+
+        # remove the 2nd data condition so the if/then is just an action - this should still show the error
+        dc2.delete()
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
