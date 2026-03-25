@@ -25,7 +25,7 @@ export type CommandPaletteEventParameters = {
 
 type CommandPaletteEventKey = keyof CommandPaletteEventParameters;
 
-export const commandPaletteEventMap: Record<CommandPaletteEventKey, string | null> = {
+export const commandPaletteEventMap: Record<CommandPaletteEventKey, string> = {
   'command_palette.opened': 'Command Palette: Opened',
   'command_palette.action_selected': 'Command Palette: Action Selected',
   'command_palette.no_results': 'Command Palette: No Results',
