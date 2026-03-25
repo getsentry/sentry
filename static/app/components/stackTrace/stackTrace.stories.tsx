@@ -1021,20 +1021,20 @@ export default Storybook.story('StackTrace', story => {
   story('StackTraceFrames - Single Frame Source Coverage', () => {
     const {event, stacktrace} = makeStackTraceData();
 
-    const frameWithContext = stacktrace.frames.find(
-      frame => frame.inApp && (frame.context?.length ?? 0) > 0
-    );
-    if (!frameWithContext) {
-      return null;
-    }
-
-    const sourceLineCoverage = getSampleSourceLineCoverage(
-      frameWithContext.context?.length ?? 0
-    );
+    const context: Frame['context'] = [
+      [1, 'import os'],
+      [2, ''],
+      [3, 'def process(data):'],
+      [4, '    result = validate(data)'],
+      [5, '    if result is None:'],
+      [6, '        raise ValueError("bad data")'],
+      [7, '    return result'],
+    ];
+    const sourceLineCoverage = getSampleSourceLineCoverage(context.length);
 
     const singleFrameStacktrace = {
       ...stacktrace,
-      frames: [frameWithContext],
+      frames: [makeFrame({context, lineNo: 6, inApp: true})],
     };
 
     function CoveredFrameContext() {
@@ -1057,30 +1057,23 @@ export default Storybook.story('StackTrace', story => {
   story('StackTraceFrames - Long Line Numbers', () => {
     const {event, stacktrace} = makeStackTraceData();
 
-    const frameWithContext = stacktrace.frames.find(
-      frame => frame.inApp && (frame.context?.length ?? 0) > 0
-    );
-    if (!frameWithContext) {
-      return null;
-    }
-
-    const context = frameWithContext.context ?? [];
-    const lineNumberOffset = 12000;
-    const longLineNumberFrame = {
-      ...frameWithContext,
-      context: context.map<[number, string | null]>(([lineNumber, lineValue]) => [
-        lineNumber + lineNumberOffset,
-        lineValue,
-      ]),
-      lineNo:
-        typeof frameWithContext.lineNo === 'number'
-          ? frameWithContext.lineNo + lineNumberOffset
-          : frameWithContext.lineNo,
-    };
-
     const singleFrameStacktrace = {
       ...stacktrace,
-      frames: [longLineNumberFrame],
+      frames: [
+        makeFrame({
+          inApp: true,
+          lineNo: 100000,
+          context: [
+            [99997, 'def handle_request(request):'],
+            [99998, '    data = parse(request.body)'],
+            [99999, '    result = validate(data)'],
+            [100000, '    if result is None:'],
+            [100001, '        raise ValueError("bad data")'],
+            [100002, '    return result'],
+            [100003, ''],
+          ],
+        }),
+      ],
     };
 
     return (
