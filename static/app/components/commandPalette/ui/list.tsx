@@ -2,7 +2,7 @@ import {Fragment, useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
-import type {TreeProps} from '@react-stately/tree';
+import {Item, Section} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 
 import error from 'sentry-images/spot/computer-missing.svg';
@@ -12,22 +12,83 @@ import {ListBox} from '@sentry/scraps/compactSelect';
 import {Image} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {InnerWrap} from '@sentry/scraps/menuListItem';
+import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
+import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
+import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
 import {IconArrow} from 'sentry/icons';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
+import {fzf} from 'sentry/utils/search/fzf';
 
-type CommandPaletteSection = {
-  actions: CommandPaletteActionWithKey[];
-  label: string;
-  'aria-label'?: string;
+type CommandPaletteActionMenuItem = MenuListItemProps & {
+  children: CommandPaletteActionMenuItem[];
+  key: string;
+  hideCheck?: boolean;
 };
 
-interface CommandPaletteListProps extends TreeProps<CommandPaletteSection> {
+function actionToMenuItem(
+  action: CommandPaletteActionWithKey
+): CommandPaletteActionMenuItem {
+  return {
+    key: action.key,
+    label: action.display.label,
+    details: action.display.details,
+    leadingItems: action.display.icon ? (
+      <IconWrap align="center" justify="center">
+        {action.display.icon}
+      </IconWrap>
+    ) : undefined,
+    children: action.type === 'group' ? action.actions.map(actionToMenuItem) : [],
+    hideCheck: true,
+  };
+}
+
+type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
+  priority: number;
+};
+
+function flattenActions(
+  actions: CommandPaletteActionWithKey[],
+  parentLabel?: string
+): CommandPaletteActionWithPriority[] {
+  const flattened: CommandPaletteActionWithPriority[] = [];
+
+  for (const action of actions) {
+    if (action.hidden) {
+      continue;
+    }
+
+    if (parentLabel) {
+      flattened.push({
+        ...action,
+        display: {
+          ...action.display,
+          label: `${parentLabel} → ${action.display.label}`,
+        },
+        priority: 1,
+      });
+    } else {
+      flattened.push({...action, priority: 0});
+    }
+
+    if (action.type === 'group' && action.actions.length > 0) {
+      const childParentLabel = parentLabel
+        ? `${parentLabel} → ${action.display.label}`
+        : action.display.label;
+      flattened.push(...flattenActions(action.actions, childParentLabel));
+    }
+  }
+
+  return flattened;
+}
+
+interface CommandPaletteListProps {
   clearSelection: () => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
-  onActionKey: (selectionKey: React.Key | null | undefined) => void;
+  onAction: (action: CommandPaletteActionWithKey) => void;
   query: string;
   selectedAction: CommandPaletteActionWithKey | null;
   setQuery: (query: string) => void;
@@ -36,13 +97,38 @@ interface CommandPaletteListProps extends TreeProps<CommandPaletteSection> {
 export function CommandPaletteList({
   clearSelection,
   selectedAction,
-  onActionKey,
+  onAction,
   inputRef,
   query,
   setQuery,
-  ...treeProps
 }: CommandPaletteListProps) {
-  const treeState = useTreeState(treeProps);
+  const actions = useCommandPaletteActions();
+
+  const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
+    if (selectedAction?.type === 'group' && selectedAction.actions.length > 0) {
+      return flattenActions(selectedAction.actions);
+    }
+    return flattenActions(actions);
+  }, [actions, selectedAction]);
+
+  const filteredActions = useMemo(
+    () => search(query, displayedActions),
+    [query, displayedActions]
+  );
+
+  const sections = useMemo(() => groupBySections(filteredActions), [filteredActions]);
+
+  const treeState = useTreeState({
+    children: sections.map(({key: sectionKey, label, children}) => (
+      <Section key={sectionKey} title={label}>
+        {children.map(({key: actionKey, ...action}) => (
+          <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
+            {action.label}
+          </Item>
+        ))}
+      </Section>
+    )),
+  });
 
   const firstFocusableKey = useMemo(() => {
     const firstItem = treeState.collection.at(0);
@@ -71,39 +157,12 @@ export function CommandPaletteList({
     [treeState.collection, treeState.selectionManager.disabledKeys, inputRef]
   );
 
-  // This helps handle keyboard events on the input
   const {collectionProps} = useSelectableCollection({
     selectionManager: treeState.selectionManager,
     keyboardDelegate: delegate,
     shouldFocusWrap: true,
     ref: inputRef,
   });
-
-  const inputProps = mergeProps(collectionProps, {
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      setQuery(e.target.value);
-      // We want to reset the focused key when the user types.
-      // The useLayoutEffect above will ensure that we set it correctly when it becomes null
-      treeState.selectionManager.setFocusedKey(null);
-    },
-    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Backspace' && query === '') {
-        clearSelection();
-        e.preventDefault();
-      }
-
-      if (e.key === 'Enter' || e.key === 'Tab') {
-        onActionKey(treeState.selectionManager.focusedKey);
-      }
-    },
-  });
-
-  const placeholder = useMemo(() => {
-    if (selectedAction) {
-      return selectedAction.display.label;
-    }
-    return t('Type for actions…');
-  }, [selectedAction]);
 
   return (
     <Fragment>
@@ -132,9 +191,30 @@ export function CommandPaletteList({
             ref={inputRef}
             value={query}
             aria-label={t('Search commands')}
-            placeholder={placeholder}
+            placeholder={selectedAction?.display?.label ?? t('Type for actions…')}
             autoFocus
-            {...inputProps}
+            {...mergeProps(collectionProps, {
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                setQuery(e.target.value);
+                treeState.selectionManager.setFocusedKey(null);
+              },
+              onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key === 'Backspace' && query === '') {
+                  clearSelection();
+                  e.preventDefault();
+                }
+
+                if (e.key === 'Enter' || e.key === 'Tab') {
+                  const key = treeState.selectionManager.focusedKey;
+                  if (key !== null && key !== undefined) {
+                    const action = filteredActions.find(a => a.key === key);
+                    if (action) {
+                      onAction(action);
+                    }
+                  }
+                }
+              },
+            })}
           />
         </Flex>
       </Flex>
@@ -171,12 +251,75 @@ export function CommandPaletteList({
           size="md"
           aria-label="Search results"
           selectionMode="none"
-          onAction={key => onActionKey?.(key)}
+          onAction={key => {
+            const action = filteredActions.find(a => a.key === key);
+            if (action) {
+              onAction(action);
+            }
+          }}
           shouldUseVirtualFocus
         />
       </ResultsList>
     </Fragment>
   );
+}
+
+function groupBySections(
+  actions: CommandPaletteActionWithPriority[]
+): CommandPaletteActionMenuItem[] {
+  const itemsBySection = new Map<string, CommandPaletteActionMenuItem[]>();
+  for (const action of actions) {
+    const sectionLabel = action.groupingKey
+      ? (COMMAND_PALETTE_GROUP_KEY_CONFIG[action.groupingKey]?.label ?? '')
+      : '';
+    const list = itemsBySection.get(sectionLabel) ?? [];
+    list.push(actionToMenuItem(action));
+    itemsBySection.set(sectionLabel, list);
+  }
+  return Array.from(itemsBySection.keys())
+    .map(sectionKey => ({
+      key: sectionKey,
+      label: sectionKey,
+      children: itemsBySection.get(sectionKey) ?? [],
+    }))
+    .filter(section => section.children.length > 0);
+}
+
+function search(
+  query: string,
+  actions: CommandPaletteActionWithPriority[]
+): CommandPaletteActionWithPriority[] {
+  if (query.length === 0) {
+    return actions.filter(a => a.priority === 0);
+  }
+
+  const normalizedQuery = query.toLowerCase();
+
+  const scored = actions.map(action => {
+    const label = typeof action.display.label === 'string' ? action.display.label : '';
+    const details =
+      typeof action.display.details === 'string' ? action.display.details : '';
+    const keywords = action.keywords?.join(' ') ?? '';
+    const searchText = [label, details, keywords].filter(Boolean).join(' ');
+    const result = fzf(searchText, normalizedQuery, false);
+    return {action, score: result.score, matched: result.end !== -1};
+  });
+
+  const matched = scored.filter(r => r.matched);
+  const unmatchedSearchResults = scored.filter(
+    r => !r.matched && r.action.groupingKey === 'search-result'
+  );
+
+  const sortedMatches = matched.toSorted((a, b) => {
+    const priorityDiff = a.action.priority - b.action.priority;
+    if (priorityDiff !== 0) return priorityDiff;
+    return b.score - a.score;
+  });
+
+  return [
+    ...sortedMatches.map(r => r.action),
+    ...unmatchedSearchResults.map(r => r.action),
+  ];
 }
 
 const CommandInput = styled('input')`
@@ -202,4 +345,9 @@ const ResultsList = styled(Flex)`
   li[data-focused] > ${InnerWrap} {
     outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
+`;
+
+const IconWrap = styled(Flex)`
+  width: ${() => SvgIcon.ICON_SIZES.md};
+  height: ${() => SvgIcon.ICON_SIZES.md};
 `;
