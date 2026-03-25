@@ -204,7 +204,7 @@ export type ExceptionValue = {
   stacktrace: StacktraceType | null;
   threadId: number | null;
   type: string;
-  value: string;
+  value: string | null;
   frames?: Frame[] | null;
   rawModule?: string | null;
   rawType?: string | null;
@@ -389,6 +389,11 @@ export type Entry =
   | EntryCsp
   | EntryGeneric
   | EntryResources;
+
+/** Maps each EntryType to its corresponding Entry subtype. */
+export type EntryMap = {
+  [E in Entry as E['type']]: E;
+};
 
 // Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
 

@@ -7,6 +7,7 @@ import {
   QUERIES_PER_MINUTE_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/constants';
 import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -71,7 +72,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'metrics-time-spent',
-      title: 'Time Spent',
+      title: t('Time Spent'),
       description: '',
       displayType: DisplayType.BIG_NUMBER,
       thresholds: null,
@@ -92,7 +93,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'example-query',
-      title: 'Example Query',
+      title: t('Example Query'),
       description: '',
       displayType: DisplayType.DETAILS,
       thresholds: null,
@@ -116,7 +117,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'transactions-with-query',
-      title: 'Transactions with query',
+      title: t('Transactions with Query'),
       description: '',
       displayType: DisplayType.TABLE,
       thresholds: null,
@@ -127,7 +128,11 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: ['transaction', 'epm()', `sum(${SpanFields.SPAN_DURATION})`],
           aggregates: ['epm()', `sum(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.TRANSACTION],
-          fieldAliases: [t('Found In'), t('Queries Per Minute'), t('Time Spent')],
+          fieldAliases: [
+            t('Found In'),
+            t('Queries Per Minute'),
+            WIDGET_COLUMN_LABELS.timeSpent,
+          ],
           conditions: BASE_FILTER_STRING,
           orderby: `-sum(${SpanFields.SPAN_DURATION})`,
           onDemand: [],
@@ -140,7 +145,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'metrics-throughput-line',
-      title: 'Queries Per Minute',
+      title: t('Queries Per Minute'),
       description: '',
       displayType: DisplayType.LINE,
       thresholds: null,
@@ -164,7 +169,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'metrics-duration-line',
-      title: 'Average Duration',
+      title: t('Average Duration'),
       description: '',
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,

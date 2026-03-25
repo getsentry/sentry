@@ -11,6 +11,7 @@ type State = {
   options: ModalOptions;
   renderer: Renderer | null;
   focusTrap?: FocusTrap;
+  triggerElement?: HTMLElement | null;
 };
 
 interface ModalStoreDefinition extends StrictStoreDefinition<State> {
@@ -48,7 +49,9 @@ const storeConfig: ModalStoreDefinition = {
   },
 
   openModal(renderer: Renderer, options: ModalOptions) {
-    this.state = {renderer, options, focusTrap: this.state.focusTrap};
+    const triggerElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.state = {renderer, options, focusTrap: this.state.focusTrap, triggerElement};
     this.trigger(this.state);
   },
 

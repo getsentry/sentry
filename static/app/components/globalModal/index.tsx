@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
-import {css, type Interpolation, type Theme} from '@emotion/react';
+import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
@@ -17,6 +17,7 @@ import {getModalPortal} from 'sentry/utils/getModalPortal';
 import {testableTransition} from 'sentry/utils/testableTransition';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
@@ -112,9 +113,10 @@ type Props = {
 };
 
 export function GlobalModal({onClose}: Props) {
-  const {renderer, options, visible} = useGlobalModal();
+  const {renderer, options, visible, triggerElement} = useGlobalModal();
+  const hasPageFrame = useHasPageFrameFeature();
   const location = useLocation();
-
+  const theme = useTheme();
   const closeEvents = options.closeEvents ?? 'all';
 
   const closeModal = useCallback(
@@ -171,8 +173,9 @@ export function GlobalModal({onClose}: Props) {
     const reset = () => {
       scrollLock.release();
       root?.removeAttribute('aria-hidden');
-      focusTrap.current?.deactivate();
+      focusTrap.current?.deactivate({returnFocus: false});
       document.removeEventListener('keydown', handleEscapeClose);
+      triggerElement?.focus();
     };
 
     if (visible) {
@@ -186,7 +189,7 @@ export function GlobalModal({onClose}: Props) {
     }
 
     return reset;
-  }, [portal, handleEscapeClose, visible, scrollLock]);
+  }, [portal, handleEscapeClose, visible, scrollLock, triggerElement]);
 
   // Close the modal when the browser history changes.
   //
@@ -223,7 +226,11 @@ export function GlobalModal({onClose}: Props) {
     <Fragment>
       <Backdrop
         data-overlay
-        style={backdrop && visible ? {opacity: 0.5, pointerEvents: 'auto'} : {}}
+        style={
+          backdrop && visible
+            ? {opacity: hasPageFrame ? 0.2 : 0.5, pointerEvents: 'auto'}
+            : {}
+        }
         css={options?.backdropCss}
       />
       <Container
@@ -246,14 +253,22 @@ export function GlobalModal({onClose}: Props) {
                 role="dialog"
                 aria-modal
                 css={options.modalCss}
-                initial={{opacity: 0, y: -10}}
-                animate={{opacity: 1, y: 0}}
-                exit={{opacity: 0, y: 15}}
-                transition={testableTransition({
-                  type: 'spring',
-                  stiffness: 450,
-                  damping: 25,
-                })}
+                initial={hasPageFrame ? {opacity: 0, scale: 0.98} : {opacity: 0, y: -10}}
+                animate={hasPageFrame ? {opacity: 1, scale: 1} : {opacity: 1, y: 0}}
+                exit={
+                  hasPageFrame
+                    ? {opacity: 0, scale: 0.99, transition: theme.motion.framer.exit.fast}
+                    : {opacity: 0, y: 15}
+                }
+                transition={
+                  hasPageFrame
+                    ? theme.motion.framer.enter.moderate
+                    : testableTransition({
+                        type: 'spring',
+                        stiffness: 450,
+                        damping: 25,
+                      })
+                }
               >
                 <Surface variant="overlay" elevation="high">
                   {p => (

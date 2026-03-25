@@ -22,7 +22,10 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.autofix.constants import (
+    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
+    FixabilityScoreThresholds,
+)
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -1277,10 +1280,10 @@ def process_processing_errors_eap(job: PostProcessJob):
     produce_processing_errors_to_eap(event.project, event.data, processing_errors)
 
 
-def process_sourcemap_issue_detection(job: PostProcessJob):
-    from sentry.processing_errors.detection import detect_sourcemap_issues
+def process_processing_issue_detection(job: PostProcessJob):
+    from sentry.processing_errors.detection import detect_processing_issues
 
-    detect_sourcemap_issues(job)
+    detect_processing_issues(job)
 
 
 def sdk_crash_monitoring(job: PostProcessJob):
@@ -1559,8 +1562,8 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
         # Seat-based tier behaviour
-        # If event count < 10, only generate summary (no automation)
-        if group.times_seen_with_pending < 10:
+        # If event count < threshold, only generate summary (no automation)
+        if group.times_seen_with_pending < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
@@ -1581,7 +1584,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
             generate_issue_summary_only.delay(group.id)
         else:
-            # Event count >= 10: run automation
+            # Event count >= threshold: run automation
             # Long-term check to avoid re-running
             if group.seer_autofix_last_triggered is not None:
                 return
@@ -1654,7 +1657,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         detect_base_urls_for_uptime,
         check_if_flags_sent,
         process_processing_errors_eap,
-        process_sourcemap_issue_detection,
+        process_processing_issue_detection,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

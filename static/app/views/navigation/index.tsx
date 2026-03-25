@@ -25,6 +25,10 @@ import {
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {
+  MobileSecondaryNavigationContextProvider,
+  useSecondaryNavigation,
+} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
@@ -33,6 +37,7 @@ function UserAndOrganizationNavigation() {
   const {layout} = usePrimaryNavigation();
   const {visible} = useGlobalModal();
   const hasPageFrame = useHasPageFrameFeature();
+  const {view, setView} = useSecondaryNavigation();
 
   useGlobalCommandPaletteActions();
 
@@ -50,17 +55,19 @@ function UserAndOrganizationNavigation() {
               }
             },
           },
+          {
+            match: ['command+b', 'ctrl+b'],
+            callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
+          },
         ]
   );
 
   return (
     <NavigationLayout>
       {layout === 'mobile' ? (
-        hasPageFrame ? (
-          <MobilePageFrameNavigation />
-        ) : (
-          <MobileNavigation />
-        )
+        <MobileSecondaryNavigationContextProvider>
+          {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}
+        </MobileSecondaryNavigationContextProvider>
       ) : (
         <DesktopNavigation />
       )}

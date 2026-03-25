@@ -28,7 +28,7 @@ export function getHangProfileData(event: Event): HangProfileData | null {
         if (hasFlamegraphData(value.stacktrace?.frames)) {
           return {
             frames: value.stacktrace!.frames!,
-            exceptionValue: value.value,
+            exceptionValue: value.value ?? '',
           };
         }
       }

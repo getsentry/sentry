@@ -40,7 +40,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 const BUTTON_ICON_SIZE = 'sm';
 const BUTTON_SIZE = 'sm';
 
-export function getSampleEventQuery({
+function getSampleEventQuery({
   transaction,
   durationBaseline,
   addUpperBound = true,

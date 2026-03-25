@@ -1,137 +1,16 @@
-import {useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {useMemo} from 'react';
 
-import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
-import {LoadingError} from 'sentry/components/loadingError';
 import {
   PlatformCategory,
   profiling as PROFILING_PLATFORMS,
 } from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {EventView} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {platformToCategory} from 'sentry/utils/platform';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeSorts} from 'sentry/utils/queryString';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
-
-interface Props {
-  excludedTags: string[];
-  group: Group;
-  organization: Organization;
-}
-
-const makeGroupPreviewRequestUrl = ({
-  orgSlug,
-  groupId,
-}: {
-  groupId: string;
-  orgSlug: string;
-}) => {
-  return getApiUrl(
-    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-    {
-      path: {organizationIdOrSlug: orgSlug, issueId: groupId, eventId: 'latest'},
-    }
-  );
-};
-
-export function AllEventsTable({organization, excludedTags, group}: Props) {
-  const location = useLocation();
-  const theme = useTheme();
-  const config = getConfigForIssueType(group, group.project);
-  const [error, setError] = useState<string>('');
-  const routes = useRoutes();
-  const {fields, columnTitles} = useEventColumns(group, organization);
-  const now = useMemo(() => Date.now(), []);
-
-  const endpointUrl = makeGroupPreviewRequestUrl({
-    orgSlug: organization.slug,
-    groupId: group.id,
-  });
-
-  const isRegressionIssue = group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
-  const {data, isLoading, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
-    staleTime: 60000,
-    enabled: isRegressionIssue,
-  });
-
-  const eventView = EventView.fromLocation(location);
-  if (config.usesIssuePlatform) {
-    eventView.dataset = DiscoverDatasets.ISSUE_PLATFORM;
-  }
-  eventView.fields = fields.map(fieldName => ({field: fieldName}));
-
-  eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
-    fields.includes(sort.field)
-  );
-
-  useEffect(() => {
-    setError('');
-  }, [eventView.query]);
-
-  if (!eventView.sorts.length) {
-    eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
-  }
-
-  eventView.statsPeriod = '90d';
-
-  let idQuery = `issue.id:${group.id}`;
-  if (isRegressionIssue) {
-    const {transaction, aggregateRange2, breakpoint} =
-      data?.occurrence?.evidenceData ?? {};
-
-    // Surface the "bad" events that occur after the breakpoint
-    idQuery = getSampleEventQuery({
-      transaction,
-      durationBaseline: aggregateRange2,
-      addUpperBound: false,
-    });
-
-    eventView.dataset = DiscoverDatasets.DISCOVER;
-    eventView.start = new Date(breakpoint * 1000).toISOString();
-    eventView.end = new Date(now).toISOString();
-    eventView.statsPeriod = undefined;
-  }
-  eventView.project = [parseInt(group.project.id, 10)];
-  eventView.query = `${idQuery} ${location.query.query || ''}`;
-
-  if (error || isLoadingError) {
-    return (
-      <LoadingError message={error || isLoadingError} onRetry={() => setError('')} />
-    );
-  }
-
-  return (
-    <EventsTable
-      theme={theme}
-      eventView={eventView}
-      location={location}
-      issueId={group.id}
-      isRegressionIssue={isRegressionIssue}
-      organization={organization}
-      routes={routes}
-      excludedTags={excludedTags}
-      projectSlug={group.project.slug}
-      customColumns={['minidump']}
-      setError={(msg: string | undefined) => setError(msg ?? '')}
-      transactionName=""
-      columnTitles={columnTitles.slice()}
-      referrer="api.issues.issue_events"
-      isEventLoading={isLoading}
-    />
-  );
-}
 
 type ColumnInfo = {columnTitles: string[]; fields: string[]};
 

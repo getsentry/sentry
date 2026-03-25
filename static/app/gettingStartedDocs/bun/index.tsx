@@ -1,4 +1,5 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
@@ -15,6 +16,9 @@ export const docs: Docs = {
   feedbackOnboardingJsLoader,
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'bun',
+    packageName: '@sentry/bun',
+  }),
+  agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/bun',
   }),
 };
