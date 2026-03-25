@@ -54,3 +54,4 @@ function getEAPFilterOptions(spanCategory?: string): DropdownOption[] {
 }
 
 export const SEGMENT_SPANS_CURSOR = 'segmentSpansCursor';
+export const SEGMENT_SPANS_SORT = 'segmentSpansSort';
