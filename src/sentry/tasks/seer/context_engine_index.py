@@ -9,6 +9,7 @@ from taskbroker_client.retry import Retry
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
@@ -225,30 +226,32 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
         now = datetime.now(UTC)
         TOTAL_HOURLY_SLOTS = 24
 
-        # Get's unique org ids with github integration
-        github_org_ids = integration_service.get_organization_ids_with_providers(
-            providers=["github", "github_enterprise"],
+        scm_org_ids = integration_service.get_organization_ids_with_providers(
+            providers=[
+                IntegrationProviderSlug.GITHUB.value,
+                IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            ],
             status=ObjectStatus.ACTIVE,
         )
         logger.info(
-            "Github integration enabled org ids fetched",
-            extra={"count": len(github_org_ids)},
+            "SCM integration enabled org ids fetched",
+            extra={"count": len(scm_org_ids)},
         )
 
-        hourly_github_org_ids = [
+        hourly_scm_org_ids = [
             org_id
-            for org_id in github_org_ids
+            for org_id in scm_org_ids
             if int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == now.hour
         ]
         logger.info(
-            "Github integration enabled org ids for current hour",
-            extra={"count": len(hourly_github_org_ids)},
+            "SCM integration enabled org ids for current hour",
+            extra={"count": len(hourly_scm_org_ids)},
         )
 
         eligible_org_ids: list[int] = []
 
         for org in RangeQuerySetWrapper(
-            Organization.objects.filter(id__in=hourly_github_org_ids, status=ObjectStatus.ACTIVE),
+            Organization.objects.filter(id__in=hourly_scm_org_ids, status=ObjectStatus.ACTIVE),
             result_value_getter=lambda o: o.id,
         ):
             if features.has("organizations:seer-explorer-context-engine", org):
