@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useMemo, useRef} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
@@ -27,7 +27,9 @@ import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette
 import {IconArrow, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {fzf} from 'sentry/utils/search/fzf';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {
   children: CommandPaletteActionMenuItem[];
@@ -326,6 +328,15 @@ function flattenActions(
 }
 
 function CommandPaletteNoResults() {
+  const organization = useOrganization();
+  const {query, selectedAction} = useCommandPaletteState();
+
+  useEffect(() => {
+    const action = selectedAction?.display.label;
+    trackAnalytics('command_palette.no_results', {organization, query, action});
+    Sentry.logger.info('Command palette returned no results', {query, action});
+  }, [organization, query, selectedAction]);
+
   return (
     <Flex
       direction="column"
