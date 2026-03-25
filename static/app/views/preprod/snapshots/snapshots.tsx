@@ -18,11 +18,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {
-  ComparisonState,
-  DiffStatus,
-  getImageGroup,
-} from 'sentry/views/preprod/types/snapshotTypes';
+import {ComparisonState, getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -35,17 +31,14 @@ import {SnapshotDevTools} from './header/snapshotDevTools';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import {SnapshotMainContent} from './main/snapshotMainContent';
-import {SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
+import {
+  SECTION_TYPE_ORDER,
+  SnapshotSidebarContent,
+} from './sidebar/snapshotSidebarContent';
 
-// Must match SECTION_ORDER in snapshotSidebarContent so keyboard
-// navigation follows the visual section order.
-const DIFF_TYPE_ORDER: Record<string, number> = {
-  [DiffStatus.CHANGED]: 0,
-  [DiffStatus.ADDED]: 1,
-  [DiffStatus.REMOVED]: 2,
-  [DiffStatus.RENAMED]: 3,
-  [DiffStatus.UNCHANGED]: 4,
-};
+const DIFF_TYPE_ORDER: Record<string, number> = Object.fromEntries(
+  SECTION_TYPE_ORDER.map((type, i) => [type, i])
+);
 
 export default function SnapshotsPage() {
   const organization = useOrganization();
