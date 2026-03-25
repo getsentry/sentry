@@ -1,7 +1,7 @@
+import {lazy, Suspense} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
-import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -13,6 +13,10 @@ import {
 } from './styles';
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
+
+const IndeterminateLoader = lazy(() =>
+  import('@sentry/scraps/loader').then(m => ({default: m.IndeterminateLoader}))
+);
 
 export type {ButtonProps};
 
@@ -88,7 +92,9 @@ export function Button({
               inset="0"
               style={{marginInline: '-4px'}}
             >
-              <IndeterminateLoader variant="monochrome" aria-hidden />
+              <Suspense fallback={null}>
+                <IndeterminateLoader variant="monochrome" aria-hidden />
+              </Suspense>
             </Flex>
           )}
         </Flex>
