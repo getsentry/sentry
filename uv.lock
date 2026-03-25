@@ -2393,7 +2393,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "codeowners-coverage", specifier = ">=0.2.1" },
+    { name = "codeowners-coverage", specifier = ">=0.3.0" },
     { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "devservices", specifier = ">=1.2.4" },
     { name = "django-stubs", specifier = ">=5.2.9" },
