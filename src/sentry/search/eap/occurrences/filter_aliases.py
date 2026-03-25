@@ -2,8 +2,6 @@ from typing import Any
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.group import Group
-from sentry.search.events.datasets.discover import InvalidIssueSearchQuery
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SnubaParams
 
@@ -39,36 +37,14 @@ def issue_filter_converter(
     ]
 
 
-def _get_group_ids(
-    params: SnubaParams, issue_identifiers: list[str], resolver: Any = None
-) -> list[int]:
-    cache: dict = (
-        resolver._issue_qualified_short_id_to_group_id_cache if resolver is not None else {}
-    )
-    primed = {}
+def _get_group_ids(params: SnubaParams, issue_identifiers: list[str], resolver: Any) -> list[int]:
+    cache: dict = resolver.qualified_short_id_to_group_id_cache
+    group_id_issue_map = {}
     for project_id in params.project_ids:
-        primed.update(cache.get(project_id, {}))
+        # All project_ids will exist.
+        group_id_issue_map.update(cache.get(project_id, {}))
 
-    cached_issue_ids = set(issue_identifiers).intersection(primed.keys())
-    cached_group_ids = []
-    fetched_group_ids = []
-    if cached_issue_ids:
-        cached_group_ids = sorted(primed[issue_id] for issue_id in cached_issue_ids)
-    remaining_issue_ids = set(issue_identifiers) - cached_issue_ids
-    if remaining_issue_ids:
-        remaining_issue_ids = list(remaining_issue_ids)
-        try:
-            groups = Group.objects.by_qualified_short_id_bulk(
-                organization_id=params.organization_id,
-                short_ids_raw=remaining_issue_ids,
-            )
-        except Group.DoesNotExist:
-            raise InvalidIssueSearchQuery(remaining_issue_ids)
-        except Exception:
-            raise InvalidSearchQuery(f"Invalid value '{remaining_issue_ids}' for 'issue:' filter")
-
-        fetched_group_ids = sorted(g.id for g in groups)
-    return cached_group_ids + fetched_group_ids
+    return sorted(group_id_issue_map[issue_id] for issue_id in issue_identifiers)
 
 
 def _convert_has_issue_filter(

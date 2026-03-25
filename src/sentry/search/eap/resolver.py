@@ -1,4 +1,3 @@
-from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -106,12 +105,7 @@ class SearchResolver:
             VirtualColumnDefinition | None,
         ],
     ] = field(default_factory=dict)
-    _issue_qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(
-        default_factory=dict
-    )
-    _issue_prime_group_id_to_qualified_short_id_cache: dict[int, dict[int, str]] = field(
-        default_factory=dict
-    )
+    qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(default_factory=dict)
 
     def get_function_definition(
         self, function_name: str
@@ -225,7 +219,7 @@ class SearchResolver:
             )
         )
 
-    def _prime_issue_short_id_cache(
+    def _init_issue_short_id_cache(
         self,
         parsed_terms: Sequence[object],
     ) -> None:
@@ -247,7 +241,6 @@ class SearchResolver:
 
         idx = {(g.project.slug.lower(), g.short_id): g for g in groups}
 
-        cache_map = defaultdict(dict)
         for raw in collected:
             parsed = parse_short_id(raw)
             if parsed is None:
@@ -255,9 +248,9 @@ class SearchResolver:
             g = idx.get((parsed.project_slug, parsed.short_id))
             if g is None:
                 raise InvalidIssueSearchQuery(sorted(collected))
-            cache_map[g.project.id][raw] = g.id
-
-        self._issue_qualified_short_id_to_group_id_cache.update(cache_map)
+            if g.project.id not in self.qualified_short_id_to_group_id_cache:
+                self.qualified_short_id_to_group_id_cache[g.project.id] = {}
+            self.qualified_short_id_to_group_id_cache[g.project.id][raw] = g.id
 
     def __resolve_query(
         self, querystring: str | None
@@ -286,7 +279,7 @@ class SearchResolver:
                 raise InvalidSearchQuery(f"Parse error for: {querystring}")
 
         # If occurrences dataset, cache group_id to issues mapping.
-        self._prime_issue_short_id_cache(parsed_terms)
+        self._init_issue_short_id_cache(parsed_terms)
 
         if any(
             isinstance(term, event_search.ParenExpression)

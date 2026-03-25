@@ -28,6 +28,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
@@ -645,6 +646,28 @@ class SearchResolverQueryTest(TestCase):
                     ),
                 ]
             )
+        )
+
+    def test_cache_update_for_issues(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization, projects=[self.project]),
+            config=SearchResolverConfig(),
+            definitions=OCCURRENCE_DEFINITIONS,
+        )
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        resolver.resolve_query(f"issue:{group1.qualified_short_id}")
+        project_id = group1.project_id
+        assert project_id in resolver.qualified_short_id_to_group_id_cache
+        assert len(resolver.qualified_short_id_to_group_id_cache[project_id]) == 1
+        assert (
+            group1.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
+        )
+
+        resolver.resolve_query(f"issue:{group2.qualified_short_id}")
+        assert len(resolver.qualified_short_id_to_group_id_cache[project_id]) == 2
+        assert (
+            group2.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
         )
 
 

@@ -237,34 +237,6 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         expected_seconds = (base + timedelta(minutes=10)).timestamp()
         assert data[0]["last_seen()"] == pytest.approx(expected_seconds, abs=1)
 
-    @pytest.mark.skip(reason="VCC Support for Integer is blocking: EAP-462")
-    def test_virtual_column_issue_in_fields(self):
-        """Test Virtual Column (issue) is in response fields"""
-        group = self.create_group(project=self.project)
-        occurrences = [
-            self.create_eap_occurrence(
-                group_id=group.id,
-                project=self.project,
-                attributes={"fingerprint": ["g1"]},
-            ),
-        ]
-        self.store_eap_items(occurrences)
-        response = self.request_with_feature_flag(
-            {
-                "field": [
-                    "issue",
-                    "group_id",
-                    "project",
-                    "project.name",
-                ],
-                "statsPeriod": "2h",
-                "project": [self.project.id],
-            }
-        )
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["issue"] == group.qualified_short_id
-
     def test_issue_filter(self):
         group1 = self.create_group(project=self.project)
         group2 = self.create_group(project=self.project)
@@ -494,36 +466,6 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
                 {
                     "field": ["count()", "sample_count()", "group_id"],
                     "query": query_string,
-                    "statsPeriod": "2h",
-                    "project": [self.project.id],
-                }
-            )
-        group_sql_hits = sum(1 for q in ctx.captured_queries if group_table in q["sql"])
-        assert group_sql_hits == 1, [
-            q["sql"] for q in ctx.captured_queries if group_table in q["sql"]
-        ]
-        assert len(response.data["data"]) == 1
-
-    def test_issue_vcc_uses_single_group_table_query(self) -> None:
-        """
-        VCC call only uses one Group Table Query
-        """
-        g1 = self.create_group(project=self.project)
-        occurrences = [
-            self.create_eap_occurrence(
-                group_id=g1.id,
-                project=self.project,
-                attributes={"fingerprint": ["g1"]},
-                client_sample_rate=0.1,
-            )
-        ]
-        self.store_eap_items(occurrences)
-
-        group_table = Group._meta.db_table
-        with CaptureQueriesContext(connection) as ctx:
-            response = self.request_with_feature_flag(
-                {
-                    "field": ["issue", "sample_count()", "group_id", "issue"],
                     "statsPeriod": "2h",
                     "project": [self.project.id],
                 }
