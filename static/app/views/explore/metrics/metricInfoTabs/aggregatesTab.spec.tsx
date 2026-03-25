@@ -101,7 +101,8 @@ describe('AggregatesTab', () => {
     expect(screen.getByRole('columnheader', {name: /sum/i})).toBeInTheDocument();
 
     // Metric name column should be prepended when no group bys are selected
-    expect(screen.getByRole('columnheader', {name: 'Metric'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Metric'}).tagName).toBe('DIV');
+    expect(screen.getByRole('columnheader', {name: /avg/i}).tagName).toBe('BUTTON');
   });
 
   it('renders table with groupBys and aggregate columns', async () => {
