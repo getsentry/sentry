@@ -260,7 +260,7 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
             return nested_pipeline.fetch_state(key)
         return self._fetch_state(key)
 
-    def get_pipeline_api_steps(self) -> ApiPipelineSteps[Self]:
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[Self] | None:
         """
         Return API step objects for this pipeline, or None if API mode is not
         supported. Steps may be callables for late binding (resolved when the

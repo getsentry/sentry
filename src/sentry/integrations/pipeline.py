@@ -172,7 +172,7 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
     ]:
         return self.provider.get_pipeline_views()
 
-    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline] | None:
         return self.provider.get_pipeline_api_steps()
 
     def get_analytics_event(self) -> analytics.Event | None:
