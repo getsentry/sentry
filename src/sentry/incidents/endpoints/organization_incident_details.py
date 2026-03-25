@@ -72,7 +72,9 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        if features.has("organizations:workflow-engine-rule-serializers", organization):
+        if request.method == "GET" and features.has(
+            "organizations:workflow-engine-rule-serializers", organization
+        ):
             gop: GroupOpenPeriod | None = None
 
             # Try the association table first (dual-written data).
