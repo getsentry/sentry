@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/links/externalLink';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
 import {getAttributeItem} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 import type {
   AttributesFieldRender,
@@ -32,11 +34,12 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
   // Check if we have a custom renderer for this attribute
   const attributeKey = originalAttribute.original_attribute_key;
   const renderer = renderers[attributeKey];
+  const value = String(content.value);
 
-  const defaultValue = <span>{String(content.value)}</span>;
+  const defaultValue = <span>{value}</span>;
 
   if (config?.disableRichValue) {
-    return String(content.value);
+    return value;
   }
 
   if (renderer) {
@@ -57,12 +60,24 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
       );
     }
   }
-  return isUrl(String(content.value)) ? (
+  const parsedJson = tryParseJson(content.value);
+  if (typeof parsedJson === 'object') {
+    return (
+      <AttributeStructuredData
+        data={parsedJson}
+        maxDefaultDepth={2}
+        withAnnotatedText={false}
+        className={value.length <= 48 ? 'compact' : undefined}
+      />
+    );
+  }
+
+  return isUrl(value) ? (
     <AttributeLinkText>
       <ExternalLink
         onClick={e => {
           e.preventDefault();
-          openNavigateToExternalLinkModal({linkText: String(content.value)});
+          openNavigateToExternalLinkModal({linkText: value});
         }}
       >
         {defaultValue}
@@ -84,5 +99,31 @@ const AttributeLinkText = styled('span')`
 
   div {
     white-space: normal;
+  }
+`;
+
+const AttributeStructuredData = styled(StructuredEventData)`
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  &.compact {
+    display: inline;
+
+    span[data-base-with-toggle='true'] {
+      display: inline;
+      padding-left: 0;
+    }
+
+    button {
+      display: none;
+    }
+
+    div {
+      display: inline;
+      padding-left: 0;
+    }
   }
 `;
