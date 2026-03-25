@@ -41,40 +41,51 @@ describe('OrganizationSampling', () => {
     expect(screen.getByRole('spinbutton')).toHaveValue(50);
   });
 
-  it('Save and Reset buttons are disabled when the form is clean', () => {
+  it('Reset button is disabled when the form is clean', () => {
     render(<OrganizationSampling />, {organization});
 
-    expect(screen.getByRole('button', {name: 'Save changes'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
   });
 
-  it('enables Save and Reset buttons after changing the rate', async () => {
+  it('Apply Changes button is always enabled when user has access', () => {
+    render(<OrganizationSampling />, {organization});
+
+    expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeEnabled();
+  });
+
+  it('enables Reset button after changing the rate', async () => {
     render(<OrganizationSampling />, {organization});
 
     await userEvent.clear(screen.getByRole('spinbutton'));
     await userEvent.type(screen.getByRole('spinbutton'), '30');
 
-    expect(screen.getByRole('button', {name: 'Save changes'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Reset'})).toBeEnabled();
   });
 
-  it('disables Save and shows a validation error for an out-of-range value', async () => {
+  it('does not call the API when value is out of range', async () => {
+    const putMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      method: 'PUT',
+      body: OrganizationFixture(),
+    });
+
     render(<OrganizationSampling />, {organization});
 
     await userEvent.clear(screen.getByRole('spinbutton'));
     await userEvent.type(screen.getByRole('spinbutton'), '150');
+    await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
 
-    expect(screen.getByRole('button', {name: 'Save changes'})).toBeDisabled();
-    expect(screen.getByText('Must be between 0% and 100%')).toBeInTheDocument();
+    // Zod validation prevents the API call
+    expect(putMock).not.toHaveBeenCalled();
   });
 
-  it('disables Save and shows a validation error for an empty value', async () => {
+  it('shows a validation error for an empty value on submit', async () => {
     render(<OrganizationSampling />, {organization});
 
     await userEvent.clear(screen.getByRole('spinbutton'));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
 
-    expect(screen.getByRole('button', {name: 'Save changes'})).toBeDisabled();
-    expect(screen.getByText('This field is required.')).toBeInTheDocument();
+    expect(await screen.findByText('Please enter a valid number')).toBeInTheDocument();
   });
 
   it('calls the API with the correct payload on save', async () => {
@@ -88,7 +99,7 @@ describe('OrganizationSampling', () => {
 
     await userEvent.clear(screen.getByRole('spinbutton'));
     await userEvent.type(screen.getByRole('spinbutton'), '30');
-    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
@@ -109,12 +120,11 @@ describe('OrganizationSampling', () => {
 
     await userEvent.clear(screen.getByRole('spinbutton'));
     await userEvent.type(screen.getByRole('spinbutton'), '30');
-    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Save changes'})).toBeDisabled()
+      expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled()
     );
-    expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
   });
 
   it('keeps form dirty after an API error', async () => {
@@ -129,12 +139,11 @@ describe('OrganizationSampling', () => {
 
     await userEvent.clear(screen.getByRole('spinbutton'));
     await userEvent.type(screen.getByRole('spinbutton'), '30');
-    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Save changes'})).toBeEnabled()
+      expect(screen.getByRole('button', {name: 'Reset'})).toBeEnabled()
     );
-    expect(screen.getByRole('button', {name: 'Reset'})).toBeEnabled();
   });
 
   it('resets the input back to the saved value when Reset is clicked', async () => {
@@ -147,7 +156,7 @@ describe('OrganizationSampling', () => {
     expect(screen.getByRole('spinbutton')).toHaveValue(50);
   });
 
-  it('disables the Save button for users without org:write access', async () => {
+  it('disables the Apply Changes button for users without org:write access', () => {
     const orgWithoutAccess = OrganizationFixture({
       access: [],
       targetSampleRate: 0.5,
@@ -156,10 +165,6 @@ describe('OrganizationSampling', () => {
 
     render(<OrganizationSampling />, {organization: orgWithoutAccess});
 
-    await userEvent.clear(screen.getByRole('spinbutton'));
-    await userEvent.type(screen.getByRole('spinbutton'), '30');
-
-    expect(screen.getByRole('button', {name: 'Save changes'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Reset'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeDisabled();
   });
 });
