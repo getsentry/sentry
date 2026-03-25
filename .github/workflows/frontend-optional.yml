@@ -36,6 +36,84 @@ jobs:
           filters: .github/file-filters.yml
           list-files: shell
 
+  frontend-jest-tests-changed-only:
+    if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
+    needs: [files-changed]
+    name: Jest
+    # If you change the runs-on image, you must also change the runner in jest-balance.yml
+    # so that the balancer runs in the same environment as the tests.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
+
+        instance: [0, 1, 2, 3]
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        name: Checkout sentry
+        with:
+          # PRs need history so we can compute merge base for Jest --changedSince.
+          # 100 is an arbitrary depth that will get most reasonable PRs' commits.
+          fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Download jest-balance.json
+        id: download-artifact
+        uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
+        with:
+          workflow: 38531594 # jest-balancer.yml
+          workflow_conclusion: success # The conclusion of the workflow we're looking for
+          branch: master # The branch we're looking for
+          name: jest-balance.json # Artifact name
+          name_is_regexp: false
+          path: tests/js/test-balancer/ # Directory where to extract artifact(s), defaults to the current directory
+          search_artifacts: true # Search for the last workflow run whose stored the artifact we're looking for
+          if_no_artifact_found: warn # Can be one of: "fail", "warn", "ignore"
+
+      # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
+      # Merge base of those two is what Jest --changedSince needs. Checkout uses fetch-depth: 100 for PRs.
+      - name: Get merge base for changedSince (PRs only)
+        id: merge_base
+        if: github.event_name == 'pull_request'
+        run: |
+          MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
+          if [ -n "$MERGE_BASE" ]; then
+            CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD)
+            if echo "$CHANGED" | grep -qvE '^static/'; then
+              echo "Non-frontend file changed — running full test suite"
+              MERGE_BASE=""
+            else
+              echo "Merge base: $MERGE_BASE (Jest will use --changedSince)"
+            fi
+          else
+            echo "Merge base: could not compute, will run full test suite"
+          fi
+          echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
+
+      - name: jest
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+          #      Otherwise, if there are other things in the matrix, using strategy.job-total
+          #      wouldn't be correct.
+          CI_NODE_TOTAL: 4
+          CI_NODE_INDEX: ${{ matrix.instance }}
+          # Disable testing-library from printing out any of of the DOM to
+          # stdout. No one actually looks through this in CI, they're just
+          # going to run it locally.
+          #
+          # This quiets up the logs quite a bit.
+          DEBUG_PRINT_LIMIT: 0
+          MERGE_BASE: ${{ steps.merge_base.outputs.merge_base }}
+        run: pnpm run test-ci --forceExit
+
   typescript-native:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
