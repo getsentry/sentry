@@ -240,7 +240,6 @@ export function Slider({
   );
 }
 
-// --- Styled Components ---
 
 const SliderWrapper = styled('div')`
   isolation: isolate;
