@@ -5,9 +5,32 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import SeerAutomation from 'getsentry/views/seerAutomation/seerAutomation';
 
 describe('SeerAutomation', () => {
-  afterEach(() => {
-    MockApiClient.clearMockResponses();
-    jest.resetAllMocks();
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/onboarding-check/`,
+      method: 'GET',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
+        isCodeReviewEnabled: true,
+        isSeerConfigured: true,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/config/integrations/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/repos/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('shows no-active-subscription banner inline for legacy Seer cohorts', () => {
