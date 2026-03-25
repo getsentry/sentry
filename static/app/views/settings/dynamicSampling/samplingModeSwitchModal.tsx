@@ -11,9 +11,9 @@ import {
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
-import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/utils/targetSampleRateSchema';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 
 interface Props {
