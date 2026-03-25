@@ -1,10 +1,17 @@
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+import {AnimatePresence, motion} from 'framer-motion';
+
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  messages?: React.ReactNode[];
   variant?: 'vibrant' | 'monochrome';
 }
 
@@ -51,14 +58,32 @@ function useAnimationTiming() {
   return {ref, duration, delay};
 }
 
+const MESSAGE_INTERVAL_MS = 10_000;
+
+function useMessageCycler(messages: React.ReactNode[]) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (messages.length <= 1 || index >= messages.length - 1) {
+      return undefined;
+    }
+    const timer = setTimeout(() => setIndex(i => i + 1), MESSAGE_INTERVAL_MS);
+    return () => clearTimeout(timer);
+  }, [index, messages.length]);
+
+  return {message: messages.length > 0 ? messages[index] : null, index};
+}
+
 export function IndeterminateLoader({
   variant = 'vibrant',
+  messages,
   ...props
 }: IndeterminateLoaderProps) {
   const theme = useTheme();
   const {ref, duration, delay} = useAnimationTiming();
+  const {message: currentMessage, index: messageIndex} = useMessageCycler(messages ?? []);
 
-  return (
+  const track = (
     <Track
       ref={ref}
       role="progressbar"
@@ -89,7 +114,52 @@ export function IndeterminateLoader({
       </ColorMask>
     </Track>
   );
+
+  if (!messages?.length) {
+    return track;
+  }
+
+  return (
+    <Stack align="start" gap="xl" width="100%" maxWidth="72ch">
+      {track}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={messageIndex}
+          initial={{opacity: 0}}
+          animate={{opacity: 1}}
+          exit={{opacity: 0}}
+          transition={testableTransition({duration: 0.3})}
+        >
+          <Text monospace variant="muted" size="lg">
+            {currentMessage}
+            <Ellipsis />
+          </Text>
+        </motion.div>
+      </AnimatePresence>
+    </Stack>
+  );
 }
+
+const dotFadeInOut = keyframes`
+  0%, 30% { opacity: 0; }
+  40%, 70% { opacity: 1; }
+  80%, 100% { opacity: 0; }
+`;
+
+function Ellipsis() {
+  return (
+    <span aria-hidden>
+      <Dot delay={0}>.</Dot>
+      <Dot delay={0.2}>.</Dot>
+      <Dot delay={0.4}>.</Dot>
+    </span>
+  );
+}
+
+const Dot = styled('span')<{delay: number}>`
+  opacity: 0;
+  animation: ${dotFadeInOut} 2.5s ${p => p.delay}s infinite;
+`;
 
 const Track = styled('div')<{color: string; opacity: string}>`
   position: relative;
