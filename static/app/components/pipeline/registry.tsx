@@ -1,6 +1,7 @@
 import {dummyIntegrationPipeline} from './pipelineDummyProvider';
 import {bitbucketIntegrationPipeline} from './pipelineIntegrationBitbucket';
 import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
+import {githubEnterpriseIntegrationPipeline} from './pipelineIntegrationGitHubEnterprise';
 import {gitlabIntegrationPipeline} from './pipelineIntegrationGitLab';
 import {slackIntegrationPipeline} from './pipelineIntegrationSlack';
 
@@ -11,6 +12,7 @@ export const PIPELINE_REGISTRY = [
   bitbucketIntegrationPipeline,
   dummyIntegrationPipeline,
   githubIntegrationPipeline,
+  githubEnterpriseIntegrationPipeline,
   gitlabIntegrationPipeline,
   slackIntegrationPipeline,
 ] as const;
