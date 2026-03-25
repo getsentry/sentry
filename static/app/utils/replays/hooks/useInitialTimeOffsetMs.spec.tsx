@@ -141,6 +141,11 @@ describe('useInitialTimeOffsetMs', () => {
     });
 
     it('should prefer reading `event_t` over the other search query params', async () => {
+      MockFetchReplayClicks.mockResolvedValue({
+        fetchError: undefined,
+        pageLinks: '',
+        clicks: [],
+      });
       const {result} = renderHookWithProviders(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
@@ -158,11 +163,6 @@ describe('useInitialTimeOffsetMs', () => {
             },
           },
         },
-      });
-      MockFetchReplayClicks.mockResolvedValue({
-        fetchError: undefined,
-        pageLinks: '',
-        clicks: [],
       });
 
       await waitFor(() =>
