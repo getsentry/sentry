@@ -816,6 +816,28 @@ class TestSeerOperatorCompletionHook(TestCase):
 
         mock_entrypoint_cls.on_explorer_update.assert_not_called()
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    def test_execute_records_failure_on_org_mismatch(self, mock_fetch, mock_record_failure):
+        state = self._make_state(
+            blocks=[
+                MemoryBlock(
+                    id="1",
+                    message=Message(role="assistant", content="summary"),
+                    timestamp="2024-01-01T00:00:00Z",
+                ),
+            ]
+        )
+        other_org = self.create_organization()
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(
+            mock_fetch,
+            state,
+            cache_return_value={"thread_id": "abc", "organization_id": other_org.id},
+        )
+
+        mock_entrypoint_cls.on_explorer_update.assert_not_called()
+        mock_record_failure.assert_called_once_with(failure_reason="org_mismatch")
+
     @patch("sentry.seer.explorer.client_utils.fetch_run_status")
     def test_execute_with_empty_blocks(self, mock_fetch):
         state = self._make_state(blocks=[])
