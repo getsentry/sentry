@@ -25,8 +25,9 @@ const indeterminateFast = keyframes`
 // Lerp animation timing based on track width.
 // Small (~128px): 2.0s duration, 1.0s delay
 // Large (~400px+): 3.2s duration, 1.6s delay
-const MIN_WIDTH = 128;
-const MAX_WIDTH = 400;
+const WIDTH = {MIN: 128, MAX: 400};
+const DURATION = {MIN: 2.0, MAX: 2.8};
+const DELAY = {MIN: 0.8, MAX: 1.2};
 
 function lerp(min: number, max: number, t: number): number {
   return min + (max - min) * Math.min(1, Math.max(0, t));
@@ -34,16 +35,16 @@ function lerp(min: number, max: number, t: number): number {
 
 function useAnimationTiming() {
   const ref = useRef<HTMLDivElement>(null);
-  const [duration, setDuration] = useState(3.2);
-  const [delay, setDelay] = useState(1.6);
+  const [duration, setDuration] = useState(DURATION.MAX);
+  const [delay, setDelay] = useState(DURATION.MAX);
 
   useResizeObserver({
     ref,
     onResize() {
-      const w = ref.current?.offsetWidth ?? MAX_WIDTH;
-      const t = (w - MIN_WIDTH) / (MAX_WIDTH - MIN_WIDTH);
-      setDuration(lerp(2.0, 3.2, t));
-      setDelay(lerp(1.0, 1.6, t));
+      const w = ref.current?.offsetWidth ?? WIDTH.MAX;
+      const t = (w - WIDTH.MIN) / (WIDTH.MAX - WIDTH.MIN);
+      setDuration(lerp(DURATION.MIN, DURATION.MAX, t));
+      setDelay(lerp(DELAY.MIN, DELAY.MAX, t));
     },
   });
 
