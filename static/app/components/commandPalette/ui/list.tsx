@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useMemo, useRef} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
@@ -27,7 +27,9 @@ import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette
 import {IconArrow, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {fzf} from 'sentry/utils/search/fzf';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {
   children: CommandPaletteActionMenuItem[];
@@ -48,6 +50,7 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
   const dispatch = useCommandPaletteDispatch();
   const actions = useCommandPaletteActions();
   const inputRef = useRef<HTMLInputElement>(null);
+  const organization = useOrganization();
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     if (selectedAction?.type === 'group' && selectedAction.actions.length > 0) {
@@ -111,6 +114,15 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
     shouldFocusWrap: true,
     ref: inputRef,
   });
+
+  const hasNoResults = treeState.collection.size === 0 && query.length > 0;
+  useEffect(() => {
+    if (hasNoResults) {
+      const action = selectedAction?.display.label;
+      trackAnalytics('command_palette.no_results', {organization, query, action});
+      Sentry.logger.info('Command palette returned no results', {query, action});
+    }
+  }, [hasNoResults, organization, query, selectedAction]);
 
   return (
     <Fragment>
