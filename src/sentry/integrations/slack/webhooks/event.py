@@ -371,7 +371,14 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     status="Thinking...",
                 )
             except Exception:
-                pass
+                _logger.exception(
+                    "slack.assistant_threads_setStatus.failed",
+                    extra={
+                        "integration_id": slack_request.integration.id,
+                        "channel_id": channel_id,
+                        "thread_ts": thread_ts,
+                    },
+                )
 
             authorizations = slack_request.data.get("authorizations") or []
             bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
