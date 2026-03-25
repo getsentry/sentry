@@ -16,6 +16,13 @@ def total_limit_key(provider: str, organization_id: int) -> str:
 
 
 class RateLimitProvider(Protocol):
+    """
+    Type definition for rate-limit service providers. Service providers could be Redis, local
+    in-memory, an RDBMS, or anything really (so long as it persists state between requests). In
+    practice this will always be Redis but we define the type so we can simplify testing and
+    simulation.
+    """
+
     def get_and_set_rate_limit(
         self, total_key: str, usage_key: str, expiration: int
     ) -> tuple[int | None, int]:
@@ -39,6 +46,14 @@ class RateLimitProvider(Protocol):
 
 class DynamicRateLimiter:
     """
+    Quota management class for external rate-limits with dynamic, per-organization request limits.
+
+    The `DynamicRateLimiter` class operates as an eventually consistent mirror of an externally
+    managed rate limiter. This class defines best-effort load shedding behavior. Because we will
+    never be consistent with the primary our goal is to reasonably allocate traffic between
+    referrers. We offer no guarantees that this class will actually reserve quota. It should more
+    accurately be thought of as a load-shedding heuristic where unallocated referrer requests are
+    eagerly dropped.
 
     :param get_time_in_seconds: Get the current UTC timestamp in seconds.
     :param organization_id: The organization-id we're scoped to.
