@@ -306,10 +306,12 @@ class GitHubProviderApiClient:
             payload["variables"] = variables
 
         response = self.post("/graphql", data=payload, headers={})
-        if not isinstance(response, dict) or ("data" not in response and "errors" not in response):
-            raise SCMProviderException("GraphQL response is not in expected format")
-
         response_data = response.json()
+
+        if not isinstance(response_data, dict) or (
+            "data" not in response_data and "errors" not in response_data
+        ):
+            raise SCMProviderException("GraphQL response is not in expected format")
 
         errors = response_data.get("errors", [])
         if errors and not response_data.get("data"):
