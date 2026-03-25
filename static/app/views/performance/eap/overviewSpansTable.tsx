@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Pagination, type CursorHandler} from 'sentry/components/pagination';
@@ -31,6 +32,7 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
 import {SEGMENT_SPANS_CURSOR} from 'sentry/views/performance/eap/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const LIMIT = 50;
 
@@ -223,6 +225,34 @@ function renderBodyCell(
         location={location}
       />
     );
+  }
+
+  if (column.key === 'trace') {
+    const traceId = row.trace?.toString() ?? '';
+    if (traceId) {
+      const target = getTraceDetailsUrl({
+        organization,
+        traceSlug: traceId,
+        dateSelection: {},
+        timestamp: row.timestamp,
+        location,
+        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+      });
+
+      if (!meta?.fields) {
+        return <Link to={target}>{traceId}</Link>;
+      }
+
+      const renderer = getFieldRenderer('trace', meta.fields, false);
+      const rendered = renderer(row, {
+        location,
+        organization,
+        theme,
+        unit: meta.units?.trace,
+      });
+
+      return <Link to={target}>{rendered}</Link>;
+    }
   }
 
   if (column.key === 'profile.id') {
