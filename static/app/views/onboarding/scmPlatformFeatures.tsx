@@ -294,6 +294,34 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     [selectedPlatform?.key, setPlatform, setSelectedFeatures, organization]
   );
 
+  function handleChangePlatformClick() {
+    setShowManualPicker(true);
+    if (!isDetecting) {
+      trackAnalytics('onboarding.scm_platform_change_platform_clicked', {
+        organization,
+      });
+    }
+  }
+
+  function handleBackToRecommended() {
+    setShowManualPicker(false);
+    if (detectedPlatformKey) {
+      setPlatform(detectedPlatformKey);
+      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    }
+  }
+
+  function handleContinue() {
+    // Persist derived defaults to context if user accepted them
+    if (currentPlatformKey && !selectedPlatform?.key) {
+      setPlatform(currentPlatformKey);
+    }
+    if (!selectedFeatures) {
+      setSelectedFeatures(currentFeatures);
+    }
+    onComplete();
+  }
+
   // Ensure the selected platform is always present in the dropdown options
   // so the Select can resolve and display it. When the framework suggestion
   // modal picks a key not in the static list, prepend it.
@@ -375,18 +403,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                 </Grid>
               )}
 
-              <Button
-                size="xs"
-                priority="link"
-                onClick={() => {
-                  setShowManualPicker(true);
-                  if (!isDetecting) {
-                    trackAnalytics('onboarding.scm_platform_change_platform_clicked', {
-                      organization,
-                    });
-                  }
-                }}
-              >
+              <Button size="xs" priority="link" onClick={handleChangePlatformClick}>
                 {isDetecting
                   ? t('Skip detection and select manually')
                   : t("Doesn't look right? Change platform")}
@@ -422,17 +439,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
               styles={{container: base => ({...base, width: '100%'})}}
             />
             {hasScmConnected && (
-              <Button
-                size="xs"
-                priority="link"
-                onClick={() => {
-                  setShowManualPicker(false);
-                  if (detectedPlatformKey) {
-                    setPlatform(detectedPlatformKey);
-                    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-                  }
-                }}
-              >
+              <Button size="xs" priority="link" onClick={handleBackToRecommended}>
                 {t('Back to recommended platforms')}
               </Button>
             )}
@@ -460,16 +467,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                 source: showDetectedPlatforms ? 'detected' : 'manual',
                 features: currentFeatures,
               }}
-              onClick={() => {
-                // Persist derived defaults to context if user accepted them
-                if (currentPlatformKey && !selectedPlatform?.key) {
-                  setPlatform(currentPlatformKey);
-                }
-                if (!selectedFeatures) {
-                  setSelectedFeatures(currentFeatures);
-                }
-                onComplete();
-              }}
+              onClick={handleContinue}
               disabled={!currentPlatformKey}
             >
               {t('Continue')}
