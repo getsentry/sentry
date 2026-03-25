@@ -89,7 +89,7 @@ export function SeerAutomationSettings() {
       />
       <SeerSettingsPageContent>
         {showSeerOverview ? (
-          <Fragment>
+          <div>
             <SCMOverviewSection
               organizationSlug={organization.slug}
               canWrite={canWrite}
@@ -97,9 +97,8 @@ export function SeerAutomationSettings() {
             />
             <AutofixOverviewSection stats={stats} isLoading={isLoading} />
             <CodeReviewOverviewSection stats={stats} isLoading={isLoading} />
-          </Fragment>
-        ) : null}
-        {!showSeerOverview && (
+          </div>
+        ) : (
           <Fragment>
             <FieldGroup
               title={

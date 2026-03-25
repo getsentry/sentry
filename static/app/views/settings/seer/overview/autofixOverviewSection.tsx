@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -104,13 +104,13 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
         mutationOptions={codingAgentMutationOpts}
       >
         {field => (
-          <field.Layout.Row
-            label={t('Default Coding Agent')}
-            hintText={t(
-              'For all new projects, select which coding agent Seer will hand off to when processing issues.'
-            )}
-          >
-            <Grid columns="1fr 1fr" gap="lg">
+          <Stack gap="md">
+            <field.Layout.Row
+              label={t('Default Coding Agent')}
+              hintText={t(
+                'For all new projects, select which coding agent Seer will hand off to when processing issues.'
+              )}
+            >
               <Container flexGrow={1}>
                 <field.Select
                   value={field.state.value}
@@ -119,45 +119,47 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
                   options={codingAgentOptions}
                 />
               </Container>
-              <Stack align="end" justify="center" gap="md">
-                <Text variant="secondary" size="sm">
-                  {t(
-                    '%s of %s existing projects use %s',
-                    stats.projectsWithAutomationCount,
-                    stats.totalProjects,
-                    codingAgentOptions.find(option => option.value === field.state.value)
-                      ?.label
-                  )}
-                </Text>
-                <Button
-                  size="xs"
-                  busy={isLoading}
-                  disabled={
-                    !canWrite || stats.projectsWithReposCount === stats.totalProjects
-                  }
-                  onClick={() => {
-                    // TODO
-                  }}
-                >
-                  {tn(
-                    'Set for the existing project',
-                    'Set for %s existing projects',
-                    stats.projectsWithReposCount
-                  )}
-                </Button>
-              </Stack>
-            </Grid>
-          </field.Layout.Row>
+            </field.Layout.Row>
+
+            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="md">
+              <Button
+                size="xs"
+                busy={isLoading}
+                disabled={
+                  !canWrite || stats.projectsWithReposCount === stats.totalProjects
+                }
+                onClick={() => {
+                  // TODO
+                }}
+              >
+                {tn(
+                  'Set for the existing project',
+                  'Set for all existing projects',
+                  stats.projectsWithReposCount
+                )}
+              </Button>
+              <Text variant="secondary" size="sm">
+                {t(
+                  '%s of %s existing projects use %s',
+                  stats.projectsWithAutomationCount,
+                  stats.totalProjects,
+                  codingAgentOptions.find(option => option.value === field.state.value)
+                    ?.label
+                )}
+              </Text>
+            </Flex>
+          </Stack>
         )}
       </AutoSaveForm>
-      <Stack gap="md">
-        <AutoSaveForm
-          name="autoOpenPrs"
-          schema={schema}
-          initialValue={organization.autoOpenPrs ?? false}
-          mutationOptions={orgMutationOpts}
-        >
-          {field => (
+
+      <AutoSaveForm
+        name="autoOpenPrs"
+        schema={schema}
+        initialValue={organization.autoOpenPrs ?? false}
+        mutationOptions={orgMutationOpts}
+      >
+        {field => (
+          <Stack gap="md">
             <field.Layout.Row
               label={t('Allow Autofix to create PRs by Default')}
               hintText={tct(
@@ -169,76 +171,78 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
                 }
               )}
             >
-              <Grid columns="1fr 1fr" gap="lg">
-                <Container flexGrow={1}>
-                  <field.Switch
-                    checked={
-                      organization.enableSeerCoding === false ? false : field.state.value
-                    }
-                    onChange={field.handleChange}
-                    disabled={
-                      organization.enableSeerCoding === false
-                        ? t('Enable Code Generation to allow Autofix to create PRs.')
-                        : !canWrite
-                    }
-                  />
-                </Container>
-                <Stack align="end" justify="center" gap="md">
-                  <Text variant="secondary" size="sm">
-                    {field.state.value
-                      ? t(
-                          '%s of %s existing repos have Create PR enabled',
-                          stats.projectsWithCreatePrCount,
-                          stats.totalProjects
-                        )
-                      : t(
-                          '%s of %s existing repos have Create PR disabled',
-                          stats.totalProjects - stats.projectsWithCreatePrCount,
-                          stats.totalProjects
-                        )}
-                  </Text>
-                  <Button
-                    size="xs"
-                    busy={isLoading}
-                    disabled={
-                      !canWrite ||
-                      organization.enableSeerCoding === false ||
-                      stats.projectsWithReposCount === stats.totalProjects
-                    }
-                    onClick={() => {
-                      // TODO
-                    }}
-                  >
-                    {field.state.value
-                      ? tn(
-                          'Enable for the existing project',
-                          'Enable for %s existing projects',
-                          stats.projectsWithReposCount
-                        )
-                      : tn(
-                          'Disable for the existing project',
-                          'Disable for %s existing projects',
-                          stats.projectsWithReposCount
-                        )}
-                  </Button>
-                </Stack>
-              </Grid>
+              <Container flexGrow={1}>
+                <field.Switch
+                  checked={
+                    organization.enableSeerCoding === false ? false : field.state.value
+                  }
+                  onChange={field.handleChange}
+                  disabled={
+                    organization.enableSeerCoding === false
+                      ? t('Enable Code Generation to allow Autofix to create PRs.')
+                      : !canWrite
+                  }
+                />
+              </Container>
             </field.Layout.Row>
-          )}
-        </AutoSaveForm>
-        {organization.enableSeerCoding === false && (
-          <Alert variant="warning">
-            {tct(
-              '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
-              {
-                settings: (
-                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
-                ),
-              }
+
+            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="md">
+              <Button
+                size="xs"
+                busy={isLoading}
+                disabled={
+                  !canWrite ||
+                  organization.enableSeerCoding === false ||
+                  stats.projectsWithReposCount === stats.totalProjects
+                }
+                onClick={() => {
+                  // TODO
+                }}
+              >
+                {field.state.value
+                  ? tn(
+                      'Enable for the existing project',
+                      'Enable for all existing projects',
+                      stats.projectsWithReposCount
+                    )
+                  : tn(
+                      'Disable for the existing project',
+                      'Disable for all existing projects',
+                      stats.projectsWithReposCount
+                    )}
+              </Button>
+              <Text variant="secondary" size="sm">
+                {field.state.value
+                  ? t(
+                      '%s of %s existing repos have Create PR enabled',
+                      stats.projectsWithCreatePrCount,
+                      stats.totalProjects
+                    )
+                  : t(
+                      '%s of %s existing repos have Create PR disabled',
+                      stats.totalProjects - stats.projectsWithCreatePrCount,
+                      stats.totalProjects
+                    )}
+              </Text>
+            </Flex>
+
+            {organization.enableSeerCoding === false && (
+              <Alert variant="warning">
+                {tct(
+                  '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+                  {
+                    settings: (
+                      <Link
+                        to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                      />
+                    ),
+                  }
+                )}
+              </Alert>
             )}
-          </Alert>
+          </Stack>
         )}
-      </Stack>
+      </AutoSaveForm>
     </FieldGroup>
   );
 }

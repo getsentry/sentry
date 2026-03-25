@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -63,13 +63,13 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
         mutationOptions={orgMutationOpts}
       >
         {field => (
-          <field.Layout.Row
-            label={t('Enable Code Review by Default')}
-            hintText={t(
-              'For all new projects, select which coding agent Seer will hand off to when processing issues.'
-            )}
-          >
-            <Grid columns="1fr 1fr" gap="lg">
+          <Stack gap="md">
+            <field.Layout.Row
+              label={t('Enable Code Review by Default')}
+              hintText={t(
+                'For all new projects, select which coding agent Seer will hand off to when processing issues.'
+              )}
+            >
               <Container flexGrow={1}>
                 <field.Switch
                   checked={field.state.value}
@@ -77,44 +77,46 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
                   disabled={!canWrite}
                 />
               </Container>
+            </field.Layout.Row>
 
-              <Stack align="end" justify="center" gap="md">
-                <Text variant="secondary" size="sm">
-                  {field.state.value
-                    ? t(
-                        '%s of %s existing repos have code review disabled',
-                        stats.seerRepoCount - stats.reposWithCodeReviewCount,
-                        stats.seerRepoCount
-                      )
-                    : t(
-                        '%s of %s existing repos have code review enabled',
-                        stats.reposWithCodeReviewCount,
-                        stats.seerRepoCount
-                      )}
-                </Text>
-                <Button
-                  size="xs"
-                  busy={isLoading}
-                  disabled={stats.projectsWithReposCount === stats.totalProjects}
-                  onClick={() => {
-                    // TODO
-                  }}
-                >
-                  {field.state.value
-                    ? tn(
-                        'Enable for existing repo',
-                        'Enable for %s existing repos',
-                        stats.seerRepoCount - stats.reposWithCodeReviewCount
-                      )
-                    : tn(
-                        'Disable for the existing repo',
-                        'Disable for %s existing repos',
-                        stats.seerRepoCount - stats.reposWithCodeReviewCount
-                      )}
-                </Button>
-              </Stack>
-            </Grid>
-          </field.Layout.Row>
+            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="md">
+              <Button
+                size="xs"
+                busy={isLoading}
+                disabled={
+                  !canWrite || stats.projectsWithReposCount === stats.totalProjects
+                }
+                onClick={() => {
+                  // TODO
+                }}
+              >
+                {field.state.value
+                  ? tn(
+                      'Enable for existing repo',
+                      'Enable for all existing repos',
+                      stats.seerRepoCount - stats.reposWithCodeReviewCount
+                    )
+                  : tn(
+                      'Disable for the existing repo',
+                      'Disable for all existing repos',
+                      stats.seerRepoCount - stats.reposWithCodeReviewCount
+                    )}
+              </Button>
+              <Text variant="secondary" size="sm">
+                {field.state.value
+                  ? t(
+                      '%s of %s existing repos have code review enabled',
+                      stats.reposWithCodeReviewCount,
+                      stats.seerRepoCount
+                    )
+                  : t(
+                      '%s of %s existing repos have code review disabled',
+                      stats.seerRepoCount - stats.reposWithCodeReviewCount,
+                      stats.seerRepoCount
+                    )}
+              </Text>
+            </Flex>
+          </Stack>
         )}
       </AutoSaveForm>
 
@@ -127,14 +129,14 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
         mutationOptions={orgMutationOpts}
       >
         {field => (
-          <field.Layout.Row
-            label={t('Code Review Triggers')}
-            hintText={tct(
-              'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
-              {code: <code />}
-            )}
-          >
-            <Grid columns="1fr 1fr" gap="lg">
+          <Stack gap="md">
+            <field.Layout.Row
+              label={t('Code Review Triggers')}
+              hintText={tct(
+                'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
+                {code: <code />}
+              )}
+            >
               <Container flexGrow={1}>
                 <field.Select
                   multiple
@@ -147,25 +149,26 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
                   ]}
                 />
               </Container>
-
-              <Stack align="end" justify="center" gap="md">
-                <Button
-                  size="xs"
-                  busy={isLoading}
-                  // disabled={stats.projectsWithReposCount === stats.seerRepoCount}
-                  onClick={() => {
-                    // TODO
-                  }}
-                >
-                  {tn(
-                    'Set for the existing repo',
-                    'Set for %s existing repos',
-                    stats.seerRepoCount
-                  )}
-                </Button>
-              </Stack>
-            </Grid>
-          </field.Layout.Row>
+            </field.Layout.Row>
+            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="md">
+              <Button
+                size="xs"
+                busy={isLoading}
+                disabled={
+                  !canWrite || stats.projectsWithReposCount === stats.seerRepoCount
+                }
+                onClick={() => {
+                  // TODO
+                }}
+              >
+                {tn(
+                  'Set for the existing repo',
+                  'Set for all existing repos',
+                  stats.seerRepoCount
+                )}
+              </Button>
+            </Flex>
+          </Stack>
         )}
       </AutoSaveForm>
     </FieldGroup>
