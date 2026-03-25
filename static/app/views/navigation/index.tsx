@@ -4,11 +4,7 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {
-  openCommandPalette,
-  openCommandPaletteDeprecated,
-} from 'sentry/actionCreators/modal';
-import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
+import {openCommandPaletteDeprecated} from 'sentry/actionCreators/modal';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -36,10 +32,8 @@ function UserAndOrganizationNavigation() {
   const organization = useOrganization();
   const {layout} = usePrimaryNavigation();
   const {visible} = useGlobalModal();
-  const hasPageFrame = useHasPageFrameFeature();
   const {view, setView} = useSecondaryNavigation();
-
-  useGlobalCommandPaletteActions();
+  const hasPageFrame = useHasPageFrameFeature();
 
   useHotkeys(
     visible
@@ -49,10 +43,10 @@ function UserAndOrganizationNavigation() {
             match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
             callback: () => {
               if (organization.features.includes('cmd-k-supercharged')) {
-                openCommandPalette();
-              } else {
-                openCommandPaletteDeprecated();
+                // CMD-K supercharged keyboard shortcut is managed by the command palette context
+                return;
               }
+              openCommandPaletteDeprecated();
             },
           },
           {

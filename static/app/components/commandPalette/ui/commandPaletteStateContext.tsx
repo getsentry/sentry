@@ -1,14 +1,23 @@
 import {createContext, useContext, useReducer} from 'react';
 
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
+import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
 import {unreachable} from 'sentry/utils/unreachable';
 
 export type CommandPaletteState = {
+  modal: {
+    open: boolean;
+    restoreFocusToElement: Element | null;
+  };
   query: string;
   selectedAction: CommandPaletteActionWithKey | null;
 };
 
+export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
+
 export type CommandPaletteAction =
+  | {restoreFocusToElement: Element | null; type: 'open modal'}
+  | {type: 'close modal'}
   | {query: string; type: 'set query'}
   | {action: CommandPaletteActionWithKey; type: 'set selected action'}
   | {type: 'trigger action'}
@@ -24,6 +33,13 @@ function commandPaletteReducer(
 ): CommandPaletteState {
   const type = action.type;
   switch (type) {
+    case 'open modal':
+      return {
+        ...state,
+        modal: {open: true, restoreFocusToElement: action.restoreFocusToElement},
+      };
+    case 'close modal':
+      return {...state, modal: {open: false, restoreFocusToElement: null}};
     case 'set query':
       return {...state, query: action.query};
     case 'set selected action':
@@ -46,7 +62,7 @@ export function useCommandPaletteState(): CommandPaletteState {
   return ctx;
 }
 
-export function useCommandPaletteDispatch(): React.Dispatch<CommandPaletteAction> {
+export function useCommandPaletteDispatch(): CommandPaletteDispatch {
   const ctx = useContext(CommandPaletteDispatchContext);
   if (ctx === null) {
     throw new Error(
@@ -63,9 +79,16 @@ interface CommandPaletteStateProviderProps {
 export function CommandPaletteStateProvider({
   children,
 }: CommandPaletteStateProviderProps) {
+  useGlobalCommandPaletteActions();
+
   const [state, dispatch] = useReducer(commandPaletteReducer, {
     query: '',
     selectedAction: null,
+
+    modal: {
+      open: false,
+      restoreFocusToElement: null,
+    },
   });
 
   return (

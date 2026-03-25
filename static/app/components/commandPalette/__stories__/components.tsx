@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {Button} from '@sentry/scraps/button';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openCommandPalette} from 'sentry/actionCreators/modal';
+import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 import {
   makeCommandPaletteCallback,
   makeCommandPaletteGroup,
@@ -48,7 +48,8 @@ export function CommandPaletteDemo() {
   return (
     <Fragment>
       <RegisterActions actions={demoActions} />
-      <Button onClick={() => openCommandPalette()}>Open Command Palette</Button>
+      {/* @ts-expect-error ignore this for now */}
+      <Button onClick={() => toggleCommandPalette()}>Open Command Palette</Button>
     </Fragment>
   );
 }
