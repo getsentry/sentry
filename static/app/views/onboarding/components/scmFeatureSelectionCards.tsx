@@ -89,7 +89,7 @@ export function ScmFeatureSelectionCards({
         <Heading as="h3">{t('What do you want to set up?')}</Heading>
         <Text variant="muted">{t('%s of %s selected', selectedCount, totalCount)}</Text>
       </Flex>
-      <Grid columns={2} gap="md">
+      <Grid columns={2} gap="lg">
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
           const disabledProduct = disabledProducts[feature];
