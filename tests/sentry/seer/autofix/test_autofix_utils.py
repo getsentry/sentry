@@ -957,7 +957,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
         assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
 
-    def test_writes_project_options_defaults(self):
+    def test_deletes_project_options_when_defaults(self):
         preference = SeerProjectPreference(
             organization_id=self.organization.id, project_id=self.project.id, repositories=[]
         )
