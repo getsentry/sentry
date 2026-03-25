@@ -84,7 +84,7 @@ jobs:
         run: |
           MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
           if [ -n "$MERGE_BASE" ]; then
-            CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD)
+            CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD^2)
             if echo "$CHANGED" | grep -qvE '^static/'; then
               echo "Non-frontend file changed — running full test suite"
               MERGE_BASE=""
