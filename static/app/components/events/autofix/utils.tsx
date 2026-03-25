@@ -208,6 +208,17 @@ const FEATURE_GATED_PROVIDERS: Array<{
 ];
 
 /**
+ * Pure function for non-hook contexts (e.g. buildIntegrationTreeNodes).
+ * Returns true if the provider is in the supported list.
+ */
+export function isSeerSupportedProvider(
+  provider: {id: string; name: string},
+  supportedProviderIds: string[]
+): boolean {
+  return supportedProviderIds.includes(provider.id);
+}
+
+/**
  * Returns the list of provider IDs supported for Seer based on the
  * organization's feature flags. To support a new provider, add an entry
  * to FEATURE_GATED_PROVIDERS above.
@@ -235,7 +246,8 @@ export function useIsSeerSupportedProvider(): (provider: {
 }) => boolean {
   const supportedProviderIds = useSeerSupportedProviderIds();
   return useCallback(
-    (provider: {id: string; name: string}) => supportedProviderIds.includes(provider.id),
+    (provider: {id: string; name: string}) =>
+      isSeerSupportedProvider(provider, supportedProviderIds),
     [supportedProviderIds]
   );
 }
