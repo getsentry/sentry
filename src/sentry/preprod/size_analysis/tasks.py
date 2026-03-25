@@ -672,14 +672,14 @@ def _maybe_emit_issues_from_diff_size_results(
             )
             continue
 
-        base_metric = base_artifact_to_metric.get(base_artifact.id)
-        if base_metric is None:
+        detector_base_metric = base_artifact_to_metric.get(base_artifact.id)
+        if detector_base_metric is None:
             continue
 
         metadata: SizeAnalysisMetadata = {
             "platform": _get_platform(artifact),
             "head_metric_id": head_metric.id,
-            "base_metric_id": base_metric.id,
+            "base_metric_id": detector_base_metric.id,
             "head_artifact_id": artifact.id,
             "base_artifact_id": base_artifact.id,
             "head_artifact": artifact,
@@ -689,8 +689,8 @@ def _maybe_emit_issues_from_diff_size_results(
         size_data: SizeAnalysisValue = {
             "head_install_size_bytes": head_metric.max_install_size or 0,
             "head_download_size_bytes": head_metric.max_download_size or 0,
-            "base_install_size_bytes": base_metric.max_install_size or 0,
-            "base_download_size_bytes": base_metric.max_download_size or 0,
+            "base_install_size_bytes": detector_base_metric.max_install_size or 0,
+            "base_download_size_bytes": detector_base_metric.max_download_size or 0,
             "metadata": metadata,
         }
 
