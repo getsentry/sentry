@@ -231,7 +231,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 
 const ASSETS_TABLE_WIDGET: Widget = {
   id: 'assets-table-widget',
-  title: t('Pages containing this asset'),
+  title: t('Pages Containing This Asset'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '5m',

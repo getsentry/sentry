@@ -72,7 +72,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'metrics-time-spent',
-      title: 'Time Spent',
+      title: t('Time Spent'),
       description: '',
       displayType: DisplayType.BIG_NUMBER,
       thresholds: null,
@@ -93,7 +93,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'example-query',
-      title: 'Example Query',
+      title: t('Example Query'),
       description: '',
       displayType: DisplayType.DETAILS,
       thresholds: null,
@@ -117,7 +117,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'transactions-with-query',
-      title: 'Transactions with query',
+      title: t('Transactions with Query'),
       description: '',
       displayType: DisplayType.TABLE,
       thresholds: null,
@@ -145,7 +145,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'metrics-throughput-line',
-      title: 'Queries Per Minute',
+      title: t('Queries Per Minute'),
       description: '',
       displayType: DisplayType.LINE,
       thresholds: null,
@@ -169,7 +169,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'metrics-duration-line',
-      title: 'Average Duration',
+      title: t('Average Duration'),
       description: '',
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,

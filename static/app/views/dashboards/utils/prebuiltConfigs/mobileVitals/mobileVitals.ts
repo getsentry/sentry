@@ -26,7 +26,7 @@ const SCREEN_RENDERING_CONDITION = `${TRANSACTION_OP_CONDITION} has:${SpanFields
 
 const COLD_START_BIG_NUMBER_WIDGET: Widget = {
   id: 'cold-start-big-number',
-  title: t('Avg. Cold App Start'),
+  title: t('Average Cold App Start'),
   description: 'Average cold app start duration',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -59,7 +59,7 @@ const COLD_START_BIG_NUMBER_WIDGET: Widget = {
 
 const WARM_START_BIG_NUMBER_WIDGET: Widget = {
   id: 'warm-start-big-number',
-  title: t('Avg. Warm App Start'),
+  title: t('Average Warm App Start'),
   description: 'Average warm app start duration',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -92,7 +92,7 @@ const WARM_START_BIG_NUMBER_WIDGET: Widget = {
 
 const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
   id: 'avg-ttid-big-number',
-  title: t('Avg. TTID'),
+  title: t('Average TTID'),
   description: 'Average time to initial display',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -119,7 +119,7 @@ const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
 
 const AVG_TTFD_BIG_NUMBER_WIDGET: Widget = {
   id: 'avg-ttfd-big-number',
-  title: t('Avg. TTFD'),
+  title: t('Average TTFD'),
   description: 'Average time to full display',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -248,7 +248,7 @@ const FROZEN_FRAME_RATE_WIDGET: Widget = {
 
 const AVG_FRAME_DELAY_WIDGET: Widget = {
   id: 'avg-frame-delay-big-number',
-  title: t('Avg. Frame Delay'),
+  title: t('Average Frame Delay'),
   description: 'Average frame delay',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
