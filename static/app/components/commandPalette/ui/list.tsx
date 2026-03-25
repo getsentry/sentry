@@ -50,7 +50,6 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
   const dispatch = useCommandPaletteDispatch();
   const actions = useCommandPaletteActions();
   const inputRef = useRef<HTMLInputElement>(null);
-  const organization = useOrganization();
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     if (selectedAction?.type === 'group' && selectedAction.actions.length > 0) {
@@ -115,15 +114,6 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
     ref: inputRef,
   });
 
-  const hasNoResults = treeState.collection.size === 0 && query.length > 0;
-  useEffect(() => {
-    if (hasNoResults) {
-      const action = selectedAction?.display.label;
-      trackAnalytics('command_palette.no_results', {organization, query, action});
-      Sentry.logger.info('Command palette returned no results', {query, action});
-    }
-  }, [hasNoResults, organization, query, selectedAction]);
-
   return (
     <Fragment>
       <Flex direction="column" align="start" gap="md">
@@ -184,7 +174,7 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
           }}
         </Flex>
       </Flex>
-      {treeState.collection.size === 0 ? (
+      {treeState.collection.size === 0 && query.length > 0 ? (
         <CommandPaletteNoResults />
       ) : (
         <ResultsList
@@ -338,6 +328,15 @@ function flattenActions(
 }
 
 function CommandPaletteNoResults() {
+  const organization = useOrganization();
+  const {query, selectedAction} = useCommandPaletteState();
+
+  useEffect(() => {
+    const action = selectedAction?.display.label;
+    trackAnalytics('command_palette.no_results', {organization, query, action});
+    Sentry.logger.info('Command palette returned no results', {query, action});
+  }, [organization, query, selectedAction]);
+
   return (
     <Flex
       direction="column"
