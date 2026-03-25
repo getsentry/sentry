@@ -47,10 +47,6 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
-from sentry.models.organizationcontributors import (
-    ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
-    OrganizationContributors,
-)
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -61,13 +57,12 @@ from sentry.plugins.providers.integration_repository import (
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
-from sentry.seer.code_review.contributor_seats import should_increment_contributor_seat
+from sentry.seer.code_review.contributor_seats import track_contributor_seat
 from sentry.seer.code_review.webhooks.handlers import (
     handle_webhook_event as code_review_handle_webhook_event,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
-from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
@@ -900,49 +895,14 @@ class PullRequestEventWebhook(GitHubWebhook):
                     },
                 )
 
-                contributor, _ = OrganizationContributors.objects.get_or_create(
-                    organization_id=organization.id,
+                track_contributor_seat(
+                    organization=organization,
+                    repo=repo,
                     integration_id=integration.id,
-                    external_identifier=user["id"],
-                    defaults={
-                        "alias": user["login"],
-                    },
+                    user_id=user["id"],
+                    user_username=user["login"],
+                    provider="github",
                 )
-
-                if should_increment_contributor_seat(organization, repo, contributor):
-                    metrics.incr(
-                        "github.webhook.organization_contributor.should_create",
-                        sample_rate=1.0,
-                    )
-
-                    locked_contributor = None
-                    with transaction.atomic(router.db_for_write(OrganizationContributors)):
-                        try:
-                            locked_contributor = (
-                                OrganizationContributors.objects.select_for_update().get(
-                                    organization_id=organization.id,
-                                    integration_id=integration.id,
-                                    external_identifier=user["id"],
-                                )
-                            )
-                            locked_contributor.num_actions += 1
-                            locked_contributor.save(update_fields=["num_actions", "date_updated"])
-                        except OrganizationContributors.DoesNotExist:
-                            logger.warning(
-                                "github.webhook.organization_contributor.not_found",
-                                extra={
-                                    "organization_id": organization.id,
-                                    "integration_id": integration.id,
-                                    "external_identifier": user["id"],
-                                },
-                            )
-
-                    if (
-                        locked_contributor
-                        and locked_contributor.num_actions
-                        >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
-                    ):
-                        assign_seat_to_organization_contributor.delay(locked_contributor.id)
 
         except IntegrityError:
             pass
