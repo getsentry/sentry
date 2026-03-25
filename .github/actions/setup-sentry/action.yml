@@ -19,6 +19,10 @@ inputs:
     description: 'Skip bringing up devservices'
     required: false
     default: 'false'
+  devservices-timeout-minutes:
+    description: 'Maximum minutes for devservices up'
+    required: false
+    default: '10'
 
 outputs:
   matrix-instance-number:
@@ -137,7 +141,7 @@ runs:
         # This is necessary to bring up devservices with appropriate sentry config
         cd "$WORKDIR"
 
-        devservices up --mode ${{ inputs.mode }}
+        timeout ${{ inputs.devservices-timeout-minutes }}m devservices up --mode ${{ inputs.mode }}
 
         # have tests listen on the docker gateway ip so loopback can occur
         echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
