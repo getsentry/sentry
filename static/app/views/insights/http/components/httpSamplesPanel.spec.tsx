@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
@@ -9,54 +8,33 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {useLocation} from 'sentry/utils/useLocation';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {HTTPSamplesPanel} from 'sentry/views/insights/http/components/httpSamplesPanel';
 import {SpanFields} from 'sentry/views/insights/types';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('HTTPSamplesPanel', () => {
   const organization = OrganizationFixture();
 
   let eventsRequestMock: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    })
-  );
-
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {
-      domain: '*.sentry.dev',
-      statsPeriod: '10d',
-      transaction: '/api/0/users',
-      transactionMethod: 'GET',
-      panel: 'status',
-    },
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
+  const basePath = `/organizations/${organization.slug}/insights/backend/http/domains/`;
+  const baseRoute = `/organizations/:orgId/insights/backend/http/domains/`;
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
@@ -116,10 +94,9 @@ describe('HTTPSamplesPanel', () => {
     let eventsStatsRequestMock: jest.Mock;
     let samplesRequestMock: jest.Mock;
 
-    beforeEach(() => {
-      jest.mocked(useLocation).mockReturnValue({
-        pathname: '',
-        search: '',
+    const statusRouterConfig = {
+      location: {
+        pathname: basePath,
         query: {
           statsPeriod: '10d',
           transaction: '/api/0/users',
@@ -127,12 +104,11 @@ describe('HTTPSamplesPanel', () => {
           panel: 'status',
           responseCodeClass: '3',
         },
-        hash: '',
-        state: undefined,
-        action: 'PUSH',
-        key: '',
-      });
+      },
+      route: baseRoute,
+    };
 
+    beforeEach(() => {
       eventsStatsRequestMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-timeseries/`,
         method: 'GET',
@@ -191,7 +167,7 @@ describe('HTTPSamplesPanel', () => {
     });
 
     it('fetches panel data', async () => {
-      render(<HTTPSamplesPanel />);
+      render(<HTTPSamplesPanel />, {initialRouterConfig: statusRouterConfig});
 
       expect(eventsRequestMock).toHaveBeenNthCalledWith(
         1,
@@ -276,7 +252,7 @@ describe('HTTPSamplesPanel', () => {
     });
 
     it('shows basic transaction info', async () => {
-      render(<HTTPSamplesPanel />);
+      render(<HTTPSamplesPanel />, {initialRouterConfig: statusRouterConfig});
 
       // Panel heading
       expect(screen.getByRole('heading', {name: 'GET /api/0/users'})).toBeInTheDocument();
@@ -306,10 +282,9 @@ describe('HTTPSamplesPanel', () => {
     let chartRequestMock: jest.Mock;
     let samplesRequestMock: jest.Mock;
 
-    beforeEach(() => {
-      jest.mocked(useLocation).mockReturnValue({
-        pathname: '',
-        search: '',
+    const durationRouterConfig = {
+      location: {
+        pathname: basePath,
         query: {
           domain: '*.sentry.dev',
           statsPeriod: '10d',
@@ -317,12 +292,11 @@ describe('HTTPSamplesPanel', () => {
           transactionMethod: 'GET',
           panel: 'duration',
         },
-        hash: '',
-        state: undefined,
-        action: 'PUSH',
-        key: '',
-      });
+      },
+      route: baseRoute,
+    };
 
+    beforeEach(() => {
       chartRequestMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-timeseries/`,
         method: 'GET',
@@ -372,7 +346,7 @@ describe('HTTPSamplesPanel', () => {
     });
 
     it('fetches panel data', async () => {
-      render(<HTTPSamplesPanel />);
+      render(<HTTPSamplesPanel />, {initialRouterConfig: durationRouterConfig});
 
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -430,7 +404,7 @@ describe('HTTPSamplesPanel', () => {
     });
 
     it('show basic transaction info', async () => {
-      render(<HTTPSamplesPanel />);
+      render(<HTTPSamplesPanel />, {initialRouterConfig: durationRouterConfig});
 
       // Panel heading
       expect(screen.getByRole('heading', {name: 'GET /api/0/users'})).toBeInTheDocument();
@@ -465,14 +439,14 @@ describe('HTTPSamplesPanel', () => {
 
       expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/explore/traces/trace/2b60b2eb415c4bfba3efeaf65c21c605/?domain=%2A.sentry.dev&eventId=11c910c9c10b3ec4ecf8f209b8c6ce48&node=span-b1bf1acde131623a&node=txn-11c910c9c10b3ec4ecf8f209b8c6ce48&panel=duration&source=requests_module&statsPeriod=10d&timestamp=1711398696&transaction=%2Fapi%2F0%2Fusers&transactionMethod=GET'
+        '/organizations/org-slug/insights/backend/trace/2b60b2eb415c4bfba3efeaf65c21c605/?domain=%2A.sentry.dev&eventId=11c910c9c10b3ec4ecf8f209b8c6ce48&node=span-b1bf1acde131623a&node=txn-11c910c9c10b3ec4ecf8f209b8c6ce48&panel=duration&source=requests_module&statsPeriod=10d&timestamp=1711398696&transaction=%2Fapi%2F0%2Fusers&transactionMethod=GET'
       );
 
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();
     });
 
     it('re-fetches samples', async () => {
-      render(<HTTPSamplesPanel />);
+      render(<HTTPSamplesPanel />, {initialRouterConfig: durationRouterConfig});
 
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

@@ -2,6 +2,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -11,6 +12,7 @@ type QueryResultItem<K extends string> = Record<K, number | null>;
 
 interface QueryResult<K extends string> {
   data: Array<QueryResultItem<K>>;
+  meta?: EventsMetaType;
 }
 
 interface RawCount {
@@ -19,33 +21,30 @@ interface RawCount {
 }
 
 export interface RawCounts {
-  highAccuracy: RawCount;
   normal: RawCount;
+  total: RawCount;
 }
 
 interface UseRawCountsOptions {
   dataset: DiscoverDatasets;
-  /**
-   * Optional custom aggregate function. If not provided, a default aggregate
-   * will be determined based on the dataset.
-   * Used for metrics which require dynamic aggregates like `count(value,<name>,<type>,<unit>)`.
-   */
-  aggregate?: string;
   enabled?: boolean;
+  normalModeExtrapolated?: boolean;
+  query?: string;
   selection?: PageFilters;
 }
 
 export function useRawCounts({
   dataset,
-  aggregate,
   enabled,
   selection,
+  query,
+  normalModeExtrapolated,
 }: UseRawCountsOptions): RawCounts {
   const organization = useOrganization();
   const {selection: pageFilterSelection} = usePageFilters();
   const effectiveSelection = selection ?? pageFilterSelection;
 
-  const count = aggregate ?? getAggregateForDataset(dataset);
+  const count = getAggregateForDataset(dataset);
 
   const baseQueryParams = {
     dataset,
@@ -54,6 +53,7 @@ export function useRawCounts({
     ...normalizeDateTimeParams(effectiveSelection.datetime),
     field: [count],
     disableAggregateExtrapolation: '1',
+    query,
   };
 
   const baseReferrer = getBaseReferrer(dataset);
@@ -76,7 +76,14 @@ export function useRawCounts({
     staleTime: 0,
   });
 
-  const highestAccuracyScanQueryKey: ApiQueryKey = [
+  const normalModeExtrapolatedOptions = {
+    referrer: `${baseReferrer}.normal-extrapolated-total`,
+    sampling: SAMPLING_MODE.NORMAL,
+    disableAggregateExtrapolation: undefined,
+    extrapolationMode: 'serverOnly',
+  };
+
+  const totalCountQueryKey: ApiQueryKey = [
     getApiUrl('/organizations/$organizationIdOrSlug/events/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
@@ -85,30 +92,29 @@ export function useRawCounts({
         ...baseQueryParams,
         referrer: `${baseReferrer}.high-accuracy`,
         sampling: SAMPLING_MODE.HIGH_ACCURACY,
+        ...(normalModeExtrapolated && dataset === DiscoverDatasets.TRACEMETRICS
+          ? normalModeExtrapolatedOptions
+          : {}),
       },
     },
   ];
 
-  const highestAccuracyScanResult = useApiQuery<QueryResult<typeof count>>(
-    highestAccuracyScanQueryKey,
-    {
-      enabled: enabled ?? true,
-      staleTime: 0,
-    }
-  );
+  const totalCountResult = useApiQuery<QueryResult<typeof count>>(totalCountQueryKey, {
+    enabled: enabled ?? true,
+    staleTime: 0,
+  });
 
   const normalScanCount = normalScanResult.data?.data?.[0]?.[count] ?? null;
-  const highestAccuracyScanCount =
-    highestAccuracyScanResult.data?.data?.[0]?.[count] ?? null;
+  const totalCount = totalCountResult.data?.data?.[0]?.[count] ?? null;
 
   return {
     normal: {
       isLoading: normalScanResult.isFetching,
       count: normalScanCount,
     },
-    highAccuracy: {
-      isLoading: highestAccuracyScanResult.isFetching,
-      count: highestAccuracyScanCount,
+    total: {
+      isLoading: totalCountResult.isFetching,
+      count: totalCount,
     },
   };
 }
@@ -120,7 +126,7 @@ function getBaseReferrer(dataset: DiscoverDatasets) {
     case DiscoverDatasets.OURLOGS:
       return 'api.explore.logs.raw-count' as const;
     case DiscoverDatasets.TRACEMETRICS:
-      return 'api.explore.metrics.raw-count' as const;
+      return 'api.explore.tracemetrics.raw-count' as const;
     default:
       throw new Error(`Unsupported dataset: ${dataset}`);
   }
@@ -132,6 +138,8 @@ function getAggregateForDataset(dataset: DiscoverDatasets) {
       return 'count(span.duration)' as const;
     case DiscoverDatasets.OURLOGS:
       return 'count(message)' as const;
+    case DiscoverDatasets.TRACEMETRICS:
+      return 'count(value)' as const;
     default:
       throw new Error(`Unsupported dataset: ${dataset}`);
   }

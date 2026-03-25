@@ -20,7 +20,7 @@ import {
 } from 'sentry/components/replays/table/replayTableColumns';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import type {Organization} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';

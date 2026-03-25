@@ -16,7 +16,6 @@ import {
   GrowLink,
   ListClose,
   RightAlignedCell,
-  SelectableList,
   Subtitle,
   WidgetEmptyStateWarning,
 } from 'sentry/views/performance/landing/widgets/components/selectableList';
@@ -57,17 +56,9 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
 
   const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
 
-  const {
-    eventView: _eventView,
-    organization,
-    withStaticFilters,
-    InteractiveTitle,
-  } = props;
+  const {eventView: _eventView, withStaticFilters, InteractiveTitle} = props;
 
-  const withBreakpoint =
-    organization.features.includes('performance-new-trends') &&
-    !isCardinalityCheckLoading &&
-    !outcome?.forceTransactionsOnly;
+  const withBreakpoint = !isCardinalityCheckLoading && !outcome?.forceTransactionsOnly;
 
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
@@ -201,60 +192,20 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     chart,
   };
 
-  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] =
-    organization.features.includes('performance-new-widget-designs')
-      ? [
-          {
-            component: provided => (
-              <Accordion
-                expandedIndex={selectedListIndex}
-                setExpandedIndex={setSelectListIndex}
-                items={assembleAccordionItems(provided)}
-              />
-            ),
-            // accordion items height + chart height
-            height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
-            noPadding: true,
-          },
-        ]
-      : [
-          {
-            component: provided => (
-              <TrendsChart
-                {...provided}
-                {...rest}
-                isLoading={provided.widgetData.chart.isLoading}
-                statsData={provided.widgetData.chart.statsData}
-                query={eventView.query}
-                project={eventView.project}
-                environment={eventView.environment}
-                start={eventView.start}
-                end={eventView.end}
-                statsPeriod={eventView.statsPeriod}
-                transaction={
-                  provided.widgetData.chart.transactionsList[selectedListIndex]
-                }
-                trendChangeType={derivedTrendChangeType}
-                trendFunctionField={trendFunctionField}
-                disableXAxis
-                disableLegend
-              />
-            ),
-            bottomPadding: false,
-            height: props.chartHeight,
-          },
-          {
-            component: provided => (
-              <SelectableList
-                selectedIndex={selectedListIndex}
-                setSelectedIndex={setSelectListIndex}
-                items={getItems(provided)}
-              />
-            ),
-            height: 124,
-            noPadding: true,
-          },
-        ];
+  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] = [
+    {
+      component: provided => (
+        <Accordion
+          expandedIndex={selectedListIndex}
+          setExpandedIndex={setSelectListIndex}
+          items={assembleAccordionItems(provided)}
+        />
+      ),
+      // accordion items height + chart height
+      height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
+      noPadding: true,
+    },
+  ];
 
   return (
     <GenericPerformanceWidget<DataType>

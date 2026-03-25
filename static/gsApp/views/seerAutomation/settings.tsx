@@ -44,7 +44,7 @@ export function SeerAutomationSettings() {
   const showSeerOverview = organization.features.includes('seer-overview');
 
   const scmOverviewData = useSCMOverviewSection();
-  const {stats, isLoading} = useSeerOverviewData();
+  const overviewData = useSeerOverviewData();
 
   const orgEndpoint = `/organizations/${organization.slug}/`;
   const orgMutationOpts = mutationOptions({
@@ -88,15 +88,15 @@ export function SeerAutomationSettings() {
         )}
       />
       <SeerSettingsPageContent>
+        <SCMOverviewSection
+          organizationSlug={organization.slug}
+          canWrite={canWrite}
+          {...scmOverviewData}
+        />
         {showSeerOverview ? (
           <div>
-            <SCMOverviewSection
-              organizationSlug={organization.slug}
-              canWrite={canWrite}
-              {...scmOverviewData}
-            />
-            <AutofixOverviewSection stats={stats} isLoading={isLoading} />
-            <CodeReviewOverviewSection stats={stats} isLoading={isLoading} />
+            <AutofixOverviewSection {...overviewData} />
+            <CodeReviewOverviewSection {...overviewData} />
           </div>
         ) : (
           <Fragment>
@@ -275,6 +275,7 @@ export function SeerAutomationSettings() {
             </FieldGroup>
           </Fragment>
         )}
+
         <FieldGroup title={t('Advanced Settings')}>
           <AutoSaveForm
             name="enableSeerEnhancedAlerts"

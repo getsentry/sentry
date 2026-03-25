@@ -77,14 +77,18 @@ function ConfidenceMessage({
 
   const isTopN = defined(topEvents) && topEvents > 1;
   const noSampling = defined(isSampled) && !isSampled;
+  const usePluralSampleCount = sampleCount !== 1;
+  const usePluralNormalMetricsCount =
+    defined(rawMetricCounts.normal.count) && rawMetricCounts.normal.count !== 1;
+  const usePluralTotalMetricsCount =
+    defined(rawMetricCounts.total.count) && rawMetricCounts.total.count !== 1;
 
   // No sampling happened, so don't mention estimations.
   if (noSampling) {
     if (!hasUserQuery) {
-      const matchingMetricsCount =
-        sampleCount > 1
-          ? t('%s data points', <Count value={sampleCount} />)
-          : t('%s data point', <Count value={sampleCount} />);
+      const matchingMetricsCount = usePluralSampleCount
+        ? t('%s data points', <Count value={sampleCount} />)
+        : t('%s data point', <Count value={sampleCount} />);
 
       if (isTopN) {
         return tct('[matchingMetricsCount] for top [topEvents] groups', {
@@ -96,16 +100,15 @@ function ConfidenceMessage({
       return matchingMetricsCount;
     }
 
-    const matchingMetricsCount =
-      sampleCount > 1
-        ? t('%s matches', <Count value={sampleCount} />)
-        : t('%s match', <Count value={sampleCount} />);
+    const matchingMetricsCount = usePluralSampleCount
+      ? t('%s matches', <Count value={sampleCount} />)
+      : t('%s match', <Count value={sampleCount} />);
 
-    const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
-      rawMetricCounts.highAccuracy.count > 1 ? (
-        t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
+    const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
+      usePluralTotalMetricsCount ? (
+        t('%s data points', <Count value={rawMetricCounts.total.count} />)
       ) : (
-        t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
+        t('%s data point', <Count value={rawMetricCounts.total.count} />)
       )
     ) : (
       <Placeholder width={40} />
@@ -141,16 +144,15 @@ function ConfidenceMessage({
     // partial scans means that we didnt scan all the data so it's useful
     // to mention the total number of metrics available
     if (dataScanned === 'partial') {
-      const matchingMetricsCount =
-        sampleCount > 1
-          ? t('%s samples', <Count value={sampleCount} />)
-          : t('%s sample', <Count value={sampleCount} />);
+      const matchingMetricsCount = usePluralSampleCount
+        ? t('%s samples', <Count value={sampleCount} />)
+        : t('%s sample', <Count value={sampleCount} />);
 
-      const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
-        rawMetricCounts.highAccuracy.count > 1 ? (
-          t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
+      const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
+        usePluralTotalMetricsCount ? (
+          t('%s data points', <Count value={rawMetricCounts.total.count} />)
         ) : (
-          t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
+          t('%s data point', <Count value={rawMetricCounts.total.count} />)
         )
       ) : (
         <Placeholder width={40} />
@@ -183,10 +185,9 @@ function ConfidenceMessage({
     // otherwise, a full scan was done
     // full scan means we scanned all the data available so no need to repeat that information twice
 
-    const matchingMetricsCount =
-      sampleCount > 1
-        ? t('%s data points', <Count value={sampleCount} />)
-        : t('%s data point', <Count value={sampleCount} />);
+    const matchingMetricsCount = usePluralSampleCount
+      ? t('%s data points', <Count value={sampleCount} />)
+      : t('%s data point', <Count value={sampleCount} />);
 
     if (isTopN) {
       return tct(
@@ -214,13 +215,12 @@ function ConfidenceMessage({
   // partial scans means that we didnt scan all the data so it's useful
   // to mention the total number of metrics available
   if (dataScanned === 'partial') {
-    const matchingMetricsCount =
-      sampleCount > 1
-        ? t('%s matches', <Count value={sampleCount} />)
-        : t('%s match', <Count value={sampleCount} />);
+    const matchingMetricsCount = usePluralSampleCount
+      ? t('%s matches', <Count value={sampleCount} />)
+      : t('%s match', <Count value={sampleCount} />);
 
     const scannedMetricsCount = defined(rawMetricCounts.normal.count) ? (
-      rawMetricCounts.normal.count > 1 ? (
+      usePluralNormalMetricsCount ? (
         t('%s samples', <Count value={rawMetricCounts.normal.count} />)
       ) : (
         t('%s sample', <Count value={rawMetricCounts.normal.count} />)
@@ -229,11 +229,11 @@ function ConfidenceMessage({
       <Placeholder width={40} />
     );
 
-    const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
-      rawMetricCounts.highAccuracy.count > 1 ? (
-        t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
+    const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
+      usePluralTotalMetricsCount ? (
+        t('%s data points', <Count value={rawMetricCounts.total.count} />)
       ) : (
-        t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
+        t('%s data point', <Count value={rawMetricCounts.total.count} />)
       )
     ) : (
       <Placeholder width={40} />
@@ -268,16 +268,15 @@ function ConfidenceMessage({
   // otherwise, a full scan was done
   // full scan means we scanned all the data available so no need to repeat that information twice
 
-  const matchingMetricsCount =
-    sampleCount > 1
-      ? t('%s matches', <Count value={sampleCount} />)
-      : t('%s match', <Count value={sampleCount} />);
+  const matchingMetricsCount = usePluralSampleCount
+    ? t('%s matches', <Count value={sampleCount} />)
+    : t('%s match', <Count value={sampleCount} />);
 
-  const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
-    rawMetricCounts.highAccuracy.count > 1 ? (
-      t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
+  const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
+    usePluralTotalMetricsCount ? (
+      t('%s data points', <Count value={rawMetricCounts.total.count} />)
     ) : (
-      t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
+      t('%s data point', <Count value={rawMetricCounts.total.count} />)
     )
   ) : (
     <Placeholder width={40} />

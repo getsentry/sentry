@@ -53,8 +53,9 @@ class _ImageDiffResult(NamedTuple):
 def categorize_image_diff(
     head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
 ) -> _ImageDiffResult:
-    head_by_name = {meta.image_file_name: h for h, meta in head_manifest.images.items()}
-    base_by_name = {meta.image_file_name: h for h, meta in base_manifest.images.items()}
+    # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+    head_by_name = {key: (meta.content_hash or key) for key, meta in head_manifest.images.items()}
+    base_by_name = {key: (meta.content_hash or key) for key, meta in base_manifest.images.items()}
 
     matched = head_by_name.keys() & base_by_name.keys()
     added = head_by_name.keys() - base_by_name.keys()
@@ -257,6 +258,10 @@ def compare_snapshots(
         head_images = head_manifest.images
         base_images = base_manifest.images
 
+        # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+        head_meta_by_hash = {(m.content_hash or k): m for k, m in head_images.items()}
+        base_meta_by_hash = {(m.content_hash or k): m for k, m in base_images.items()}
+
         categories = categorize_image_diff(head_manifest, base_manifest)
         renamed_pairs = categories.renamed_pairs
         added = categories.added
@@ -287,8 +292,8 @@ def compare_snapshots(
                 }
                 continue
 
-            head_meta = head_images[head_hash]
-            base_meta = base_images[base_hash]
+            head_meta = head_meta_by_hash[head_hash]
+            base_meta = base_meta_by_hash[base_hash]
             head_pixels = head_meta.width * head_meta.height
             base_pixels = base_meta.width * base_meta.height
             pixel_count = max(head_pixels, base_pixels)
@@ -450,7 +455,7 @@ def compare_snapshots(
 
         for name in sorted(removed):
             base_hash = base_by_name[name]
-            base_meta = base_images[base_hash]
+            base_meta = base_meta_by_hash[base_hash]
             image_results[name] = {
                 "status": "removed",
                 "base_hash": base_hash,
@@ -518,9 +523,9 @@ def compare_snapshots(
         time_now = timezone.now()
 
         metric_tags = {
-            "temp_org_id": str(org_id),
-            "temp_project_id": str(project_id),
-            "temp_app_id": head_artifact.app_id or "",
+            "org_id_temp": str(org_id),
+            "project_id_temp": str(project_id),
+            "app_id_temp": head_artifact.app_id or "",
         }
 
         diff_duration_s = (time_now - task_start_time).total_seconds()

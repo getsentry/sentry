@@ -6,7 +6,7 @@ from typing import Any
 import jsonschema
 import orjson
 from django.conf import settings
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,14 +14,19 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationReleasePermission,
+)
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
-from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
+from sentry.preprod.api.models.project_preprod_build_details_models import (
+    BuildDetailsVcsInfo,
+)
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotComparisonRunInfo,
     SnapshotDetailsApiResponse,
@@ -33,8 +38,15 @@ from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
     categorize_comparison_images,
 )
-from sentry.preprod.snapshots.manifest import ComparisonManifest, ImageMetadata, SnapshotManifest
-from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.manifest import (
+    ComparisonManifest,
+    ImageMetadata,
+    SnapshotManifest,
+)
+from sentry.preprod.snapshots.models import (
+    PreprodSnapshotComparison,
+    PreprodSnapshotMetrics,
+)
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
@@ -69,7 +81,9 @@ SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
 }
 
 
-def validate_preprod_snapshot_post_schema(request_body: bytes) -> tuple[dict[str, Any], str | None]:
+def validate_preprod_snapshot_post_schema(
+    request_body: bytes,
+) -> tuple[dict[str, Any], str | None]:
     try:
         data = orjson.loads(request_body)
         jsonschema.validate(data, SNAPSHOT_POST_REQUEST_SCHEMA)
@@ -191,7 +205,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             PreprodArtifactApiGetSnapshotDetailsEvent(
                 organization_id=organization.id,
                 project_id=artifact.project_id,
-                user_id=request.user.id if request.user and request.user.is_authenticated else None,
+                user_id=(
+                    request.user.id if request.user and request.user.is_authenticated else None
+                ),
                 artifact_id=str(artifact.id),
             )
         )
@@ -200,9 +216,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         image_list = [
             SnapshotImageResponse(
                 **{k: v for k, v in metadata.dict().items() if k not in first_class},
-                key=key,
+                key=metadata.content_hash
+                or key,  # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
                 display_name=metadata.display_name,
-                image_file_name=metadata.image_file_name,
+                image_file_name=key,
+                group=metadata.group,
                 width=metadata.width,
                 height=metadata.height,
             )
@@ -387,9 +405,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         has_vcs = commit_comparison is not None
 
         metric_tags = {
-            "temp_org_id": str(project.organization_id),
-            "temp_project_id": str(project.id),
-            "temp_app_id": artifact.app_id or "",
+            "org_id_temp": str(project.organization_id),
+            "project_id_temp": str(project.id),
+            "app_id_temp": artifact.app_id or "",
         }
 
         metrics.distribution(
@@ -443,6 +461,19 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                             "base_sha": base_sha,
                         },
                     )
+
+                    base_metrics = PreprodSnapshotMetrics.objects.filter(
+                        preprod_artifact=base_artifact
+                    ).first()
+                    if base_metrics:
+                        try:
+                            PreprodSnapshotComparison.objects.get_or_create(
+                                head_snapshot_metrics=snapshot_metrics,
+                                base_snapshot_metrics=base_metrics,
+                                defaults={"state": PreprodSnapshotComparison.State.PENDING},
+                            )
+                        except IntegrityError:
+                            pass
 
                     compare_snapshots.apply_async(
                         kwargs={

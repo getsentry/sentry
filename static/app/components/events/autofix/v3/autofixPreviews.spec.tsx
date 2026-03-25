@@ -74,7 +74,7 @@ describe('RootCausePreview', () => {
 });
 
 describe('SolutionPreview', () => {
-  it('renders implementation plan title and summary', () => {
+  it('renders plan title and summary', () => {
     const artifact: Artifact<SolutionArtifact> = {
       key: 'solution',
       reason: 'Found solution',
@@ -86,7 +86,7 @@ describe('SolutionPreview', () => {
 
     render(<SolutionPreview section={makeSection('solution', [artifact])} />);
 
-    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(screen.getByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
   });
 
@@ -107,10 +107,10 @@ describe('SolutionPreview', () => {
 
     render(<SolutionPreview section={makeSection('solution', [artifact])} />);
 
-    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(screen.getByText('Plan')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
+        'Seer failed to generate a plan. This one is on us. Try running it again.'
       )
     ).toBeInTheDocument();
   });
@@ -227,8 +227,16 @@ describe('PullRequestsPreview', () => {
       <PullRequestsPreview
         section={makeSection('pull_request', [
           [
-            makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
-            makePR({repo_name: 'org/repo-b', pr_number: 20, pr_url: 'https://pr/20'}),
+            makePR({
+              repo_name: 'org/repo-a',
+              pr_number: 10,
+              pr_url: 'https://pr/10',
+            }),
+            makePR({
+              repo_name: 'org/repo-b',
+              pr_number: 20,
+              pr_url: 'https://pr/20',
+            }),
           ],
         ])}
       />
@@ -242,7 +250,13 @@ describe('PullRequestsPreview', () => {
     render(
       <PullRequestsPreview
         section={makeSection('pull_request', [
-          [makePR({pr_creation_status: 'creating', pr_url: null, pr_number: null})],
+          [
+            makePR({
+              pr_creation_status: 'creating',
+              pr_url: null,
+              pr_number: null,
+            }),
+          ],
         ])}
       />
     );
@@ -319,7 +333,11 @@ describe('CodingAgentPreview', () => {
     render(
       <CodingAgentPreview
         section={makeSection('coding_agents', [
-          [makeCodingAgent({provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT})],
+          [
+            makeCodingAgent({
+              provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            }),
+          ],
         ])}
       />
     );
@@ -331,7 +349,11 @@ describe('CodingAgentPreview', () => {
     render(
       <CodingAgentPreview
         section={makeSection('coding_agents', [
-          [makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT})],
+          [
+            makeCodingAgent({
+              provider: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            }),
+          ],
         ])}
       />
     );
@@ -343,7 +365,11 @@ describe('CodingAgentPreview', () => {
     render(
       <CodingAgentPreview
         section={makeSection('coding_agents', [
-          [makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT})],
+          [
+            makeCodingAgent({
+              provider: CodingAgentProvider.GITHUB_COPILOT_AGENT,
+            }),
+          ],
         ])}
       />
     );
@@ -429,7 +455,11 @@ describe('CodingAgentPreview', () => {
         section={makeSection('coding_agents', [
           [
             makeCodingAgent({id: 'a1', name: 'Agent One', status: 'running'}),
-            makeCodingAgent({id: 'a2', name: 'Agent Two', status: 'completed'}),
+            makeCodingAgent({
+              id: 'a2',
+              name: 'Agent Two',
+              status: 'completed',
+            }),
           ],
         ])}
       />

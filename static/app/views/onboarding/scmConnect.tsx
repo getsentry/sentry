@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -15,6 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScmProviderPills} from './components/scmProviderPills';
 import {ScmRepoSelector} from './components/scmRepoSelector';
+import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import {useScmProviders} from './components/useScmProviders';
 import type {StepProps} from './types';
 
@@ -35,15 +36,11 @@ export function ScmConnect({onComplete}: StepProps) {
     activeIntegrationExisting,
   } = useScmProviders();
 
-  // If an existing SCM integration is detected and context doesn't have one
-  // yet, persist it to context so downstream steps and child components can
-  // read it without prop drilling.
-  const hasSelectedIntegration = !!selectedIntegration;
-  useEffect(() => {
-    if (!hasSelectedIntegration && activeIntegrationExisting) {
-      setSelectedIntegration(activeIntegrationExisting);
-    }
-  }, [hasSelectedIntegration, setSelectedIntegration, activeIntegrationExisting]);
+  // Pre-warm platform detection so results are cached when the user advances
+  useScmPlatformDetection(selectedRepository?.id);
+
+  // Derive integration from explicit selection, falling back to existing
+  const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
 
   const handleInstall = useCallback(
     (data: Integration) => {
@@ -81,7 +78,7 @@ export function ScmConnect({onComplete}: StepProps) {
       </Stack>
 
       <Stack gap="lg" width="100%" maxWidth="600px">
-        {selectedIntegration ? (
+        {effectiveIntegration ? (
           <Stack gap="lg">
             <Flex align="center" justify="between">
               <Flex align="center" gap="sm">
@@ -89,7 +86,7 @@ export function ScmConnect({onComplete}: StepProps) {
                 <Text bold variant="success">
                   {t(
                     'Connected to %s',
-                    selectedIntegration.domainName || selectedIntegration.provider.name
+                    effectiveIntegration.domainName || effectiveIntegration.provider.name
                   )}
                 </Text>
               </Flex>
@@ -97,7 +94,7 @@ export function ScmConnect({onComplete}: StepProps) {
                 {t('Manage in Settings')}
               </Link>
             </Flex>
-            <ScmRepoSelector />
+            <ScmRepoSelector integration={effectiveIntegration} />
           </Stack>
         ) : (
           <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
@@ -108,7 +105,12 @@ export function ScmConnect({onComplete}: StepProps) {
         <Button onClick={() => onComplete()}>{t('Skip for now')}</Button>
         <Button
           priority="primary"
-          onClick={() => onComplete()}
+          onClick={() => {
+            if (effectiveIntegration && !selectedIntegration) {
+              setSelectedIntegration(effectiveIntegration);
+            }
+            onComplete();
+          }}
           disabled={!selectedRepository?.id}
         >
           {t('Continue')}

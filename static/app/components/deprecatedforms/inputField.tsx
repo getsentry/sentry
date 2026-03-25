@@ -22,7 +22,7 @@ type InputFieldProps = FormFieldProps & {
 /**
  * @deprecated Do not use this
  */
-abstract class InputField<
+export abstract class InputField<
   Props extends InputFieldProps = InputFieldProps,
   State extends FormField['state'] = FormField['state'],
 > extends FormField<Props, State> {
@@ -56,5 +56,3 @@ abstract class InputField<
 
   abstract getType(): string;
 }
-
-export default InputField;

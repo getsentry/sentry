@@ -13,7 +13,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {DashboardPermissions, Widget} from 'sentry/views/dashboards/types';
-import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.mock('sentry/utils/analytics');
 

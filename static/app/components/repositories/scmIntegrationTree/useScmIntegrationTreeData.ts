@@ -21,7 +21,7 @@ type ScmIntegrationTreeData = {
   refetchIntegrations: () => void;
   reposByIntegrationId: Record<string, IntegrationRepository[]>;
   reposPendingByIntegrationId: Record<string, boolean>;
-  reposQueryKey: unknown;
+  reposQueryOptions: ReturnType<typeof organizationRepositoriesInfiniteOptions>;
   scmIntegrations: OrganizationIntegration[];
   scmProviders: IntegrationProvider[];
 };
@@ -64,7 +64,10 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   );
 
   // 3. Fetch already-connected repos, auto-paginate to get all
-  const reposQueryOptions = organizationRepositoriesInfiniteOptions({organization});
+  const reposQueryOptions = organizationRepositoriesInfiniteOptions({
+    organization,
+    staleTime: 0,
+  });
   const {
     data: reposPages,
     hasNextPage: reposHasNextPage,
@@ -144,7 +147,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
     },
     reposByIntegrationId,
     reposPendingByIntegrationId,
-    reposQueryKey: reposQueryOptions.queryKey,
+    reposQueryOptions,
     isPending,
     isError,
   };

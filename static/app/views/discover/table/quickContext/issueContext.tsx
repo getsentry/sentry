@@ -5,10 +5,11 @@ import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -147,6 +148,19 @@ export function IssueContext(props: BaseContextProps) {
       {renderAssignee()}
     </Wrapper>
   );
+}
+
+function getAssignedToDisplayName(group: Group) {
+  if (group.assignedTo?.type === 'team') {
+    const team = TeamStore.getById(group.assignedTo.id);
+    return `#${team?.slug ?? group.assignedTo.name}`;
+  }
+  if (group.assignedTo?.type === 'user') {
+    const user = MemberListStore.getById(group.assignedTo.id);
+    return user?.name ?? group.assignedTo.name;
+  }
+
+  return group.assignedTo?.name;
 }
 
 const IssueTitleBody = styled(ContextBody)`
