@@ -133,14 +133,16 @@ export function SeerAutomationSettings() {
                 label={t('Allow Autofix to create PRs by Default')}
                 hintText={
                   <Stack gap="sm">
-                    {tct(
-                      'For all new projects with connected repos, Seer will be able to make pull requests for [docs:highly actionable] issues.',
-                      {
-                        docs: (
-                          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-                        ),
-                      }
-                    )}
+                    <span>
+                      {tct(
+                        'For all new projects with connected repos, Seer will be able to make pull requests for [docs:highly actionable] issues.',
+                        {
+                          docs: (
+                            <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                          ),
+                        }
+                      )}
+                    </span>
                     {organization.enableSeerCoding === false && (
                       <Alert variant="warning">
                         {tct(
