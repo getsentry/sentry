@@ -27,15 +27,15 @@ interface SectionConfig {
   type: DiffStatus;
 }
 
-export const SECTION_TYPE_ORDER: DiffStatus[] = [
-  DiffStatus.CHANGED,
-  DiffStatus.ADDED,
-  DiffStatus.REMOVED,
-  DiffStatus.RENAMED,
-  DiffStatus.UNCHANGED,
-];
+// export const SECTION_TYPE_ORDER: DiffStatus[] = [
+//   DiffStatus.CHANGED,
+//   DiffStatus.ADDED,
+//   DiffStatus.REMOVED,
+//   DiffStatus.RENAMED,
+//   DiffStatus.UNCHANGED,
+// ];
 
-const SECTION_ORDER: SectionConfig[] = [
+export const SECTION_ORDER: SectionConfig[] = [
   {
     type: DiffStatus.CHANGED,
     label: t('Modified'),

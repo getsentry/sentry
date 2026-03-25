@@ -31,13 +31,10 @@ import {SnapshotDevTools} from './header/snapshotDevTools';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import {SnapshotMainContent} from './main/snapshotMainContent';
-import {
-  SECTION_TYPE_ORDER,
-  SnapshotSidebarContent,
-} from './sidebar/snapshotSidebarContent';
+import {SECTION_ORDER, SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 
 const DIFF_TYPE_ORDER: Record<string, number> = Object.fromEntries(
-  SECTION_TYPE_ORDER.map((type, i) => [type, i])
+  SECTION_ORDER.map((section, i) => [section.type, i])
 );
 
 export default function SnapshotsPage() {
@@ -245,7 +242,12 @@ export default function SnapshotsPage() {
     safeVariantIndex,
     variantCount,
   });
-  stateRef.current = {filteredItems, currentItemKey, safeVariantIndex, variantCount};
+  stateRef.current = {
+    filteredItems,
+    currentItemKey,
+    safeVariantIndex,
+    variantCount,
+  };
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
