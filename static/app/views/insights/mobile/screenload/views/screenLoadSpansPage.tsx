@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';

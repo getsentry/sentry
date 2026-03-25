@@ -326,15 +326,6 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
         value: '',
       },
-      {
-        dataset: WidgetType.SPANS,
-        tag: {
-          key: SpanFields.SPAN_OP,
-          name: SpanFields.SPAN_OP,
-          kind: FieldKind.TAG,
-        },
-        value: '',
-      },
     ],
   },
   onboarding: {type: 'module', moduleName: ModuleName.SCREEN_LOAD},

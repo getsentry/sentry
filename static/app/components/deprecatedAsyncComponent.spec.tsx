@@ -1,6 +1,6 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {DeprecatedAsyncComponent} from 'sentry/components/deprecatedAsyncComponent';
 
 describe('DeprecatedAsyncComponent', () => {
   class TestAsyncComponent extends DeprecatedAsyncComponent {

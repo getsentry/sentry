@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 from collections.abc import MutableMapping
 
@@ -84,7 +85,11 @@ def scope_consumers():
             try:
                 # stop the consumer
                 consumer.signal_shutdown()
-                consumer.run()
+                t = threading.Thread(target=consumer.run, daemon=True)
+                t.start()
+                t.join(timeout=5)
+                if t.is_alive():
+                    _log.warning("Consumer %s shutdown timed out, skipping", consumer_name)
             except Exception:
                 _log.warning("Failed to cleanup consumer %s", consumer_name)
 

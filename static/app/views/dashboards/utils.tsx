@@ -22,7 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   ABYTE_UNITS,

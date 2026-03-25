@@ -72,6 +72,8 @@ class GeneratedWidgetQuery(BaseModel):
 
 
 class GeneratedWidgetLayout(BaseModel):
+    """Layout position and size on a 6-column grid. Widget widths in each row should sum to 6 to fill the grid completely."""
+
     x: int = Field(
         default=0,
         description=f"Column position (0-{GRID_WIDTH - 1}). x + w must not exceed {GRID_WIDTH}.",
@@ -115,12 +117,17 @@ class GeneratedWidgetLayout(BaseModel):
 
 
 class GeneratedWidget(BaseModel):
+    """A single dashboard widget. Default sizes by display type: big_number 2w x 1h (3 per row), line/area/bar/stacked_area/top_n 3w x 2h (2 per row), table 6w x 2h (full row)."""
+
     title: str = Field(..., max_length=255)  # Matches serializer
     description: str = Field(
         ..., max_length=255
     )  # Length matches serializer, required field for generation
     display_type: DisplayType
-    widget_type: WidgetType
+    widget_type: WidgetType = Field(
+        ...,
+        description="Dataset to query. Use 'spans' as the default — it covers most use cases. Use 'error-events' for error-specific data, 'issue' for issue tracking, 'logs' for log data, 'tracemetrics' for trace metrics.",
+    )
     queries: list[GeneratedWidgetQuery]
     layout: GeneratedWidgetLayout
     limit: int | None = Field(default=None, le=10, ge=1)
@@ -128,5 +135,7 @@ class GeneratedWidget(BaseModel):
 
 
 class GeneratedDashboard(BaseModel):
+    """A complete dashboard definition on a 6-column grid. Widget widths per row must sum to 6. This is the sole output artifact."""
+
     title: str = Field(..., max_length=255)  # Matches serializer
     widgets: list[GeneratedWidget] = Field(..., max_items=Dashboard.MAX_WIDGETS)

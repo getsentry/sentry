@@ -43,7 +43,11 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         assert response.data == {"run_id": 789}
 
         mock_client_class.assert_called_once_with(
-            self.organization, ANY, on_completion_hook=DashboardOnCompletionHook
+            self.organization,
+            ANY,
+            on_completion_hook=DashboardOnCompletionHook,
+            category_key="dashboard_generate",
+            category_value=str(self.organization.id),
         )
         mock_client.start_run.assert_called_once_with(
             prompt="Show me error rates by project",

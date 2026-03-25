@@ -505,14 +505,21 @@ export const limitedMetricsSupportPrefixes = new Set<string>([
   'dotnet',
   'electron',
   'go',
+  'godot',
   'java',
   'javascript',
+  'native',
+  'nintendo-switch',
   'node',
+  'playstation',
   'python',
   'php',
   'react-native',
   'ruby',
   'flutter',
+  'unity',
+  'unreal',
+  'xbox',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -843,6 +850,7 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
   'deno',
+  'bun',
 ]);
 
 export const javascriptMetaFrameworks: readonly PlatformKey[] = [

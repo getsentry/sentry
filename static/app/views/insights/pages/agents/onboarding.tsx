@@ -68,7 +68,6 @@ import {
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
-  AgentIntegration,
   DENO_AGENT_INTEGRATIONS,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
@@ -264,8 +263,6 @@ export function Onboarding() {
   };
 
   const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
-  const isManualIntegration =
-    selectedPlatformOptions.integration === AgentIntegration.MANUAL;
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -357,20 +354,12 @@ export function Onboarding() {
                   borderless
                   steps={steps}
                   source="agent_monitoring_onboarding"
-                  postamble={
-                    isManualIntegration
-                      ? `${LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE}\n\n${LLM_ONBOARDING_INSTRUCTIONS}`
-                      : undefined
-                  }
-                  onCopy={
-                    isManualIntegration
-                      ? () => {
-                          trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
-                            organization,
-                          });
-                        }
-                      : undefined
-                  }
+                  postamble={`${LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE}\n\n${LLM_ONBOARDING_INSTRUCTIONS}`}
+                  onCopy={() => {
+                    trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
+                      organization,
+                    });
+                  }}
                 />
               ) : undefined
             }

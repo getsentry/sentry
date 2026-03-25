@@ -7,7 +7,7 @@ import {Duration} from 'sentry/components/duration';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';

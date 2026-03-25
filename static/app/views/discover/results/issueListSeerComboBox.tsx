@@ -295,12 +295,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
     ]
   );
 
-  const areAiFeaturesAllowed =
-    enableAISearch &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
-
-  if (!areAiFeaturesAllowed) {
+  if (!enableAISearch) {
     return null;
   }
 

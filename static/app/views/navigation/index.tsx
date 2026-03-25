@@ -13,7 +13,10 @@ import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
+import {
+  MobileNavigation,
+  MobilePageFrameNavigation,
+} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {
   NavigationTourProvider,
@@ -22,12 +25,15 @@ import {
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {MobileSecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
   const organization = useOrganization();
   const {layout} = usePrimaryNavigation();
   const {visible} = useGlobalModal();
+  const hasPageFrame = useHasPageFrameFeature();
 
   useGlobalCommandPaletteActions();
 
@@ -50,7 +56,13 @@ function UserAndOrganizationNavigation() {
 
   return (
     <NavigationLayout>
-      {layout === 'mobile' ? <MobileNavigation /> : <DesktopNavigation />}
+      {layout === 'mobile' ? (
+        <MobileSecondaryNavigationContextProvider>
+          {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}
+        </MobileSecondaryNavigationContextProvider>
+      ) : (
+        <DesktopNavigation />
+      )}
     </NavigationLayout>
   );
 }
@@ -72,6 +84,7 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
   return (
     <Flex
       top={0}
+      left={0}
       position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
       height={layout === 'mobile' ? undefined : '100dvh'}

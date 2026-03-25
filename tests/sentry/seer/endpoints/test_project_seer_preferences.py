@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.models.repository import Repository
 from sentry.seer.models import PreferenceResponse, SeerProjectPreference, SeerRepoDefinition
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase
 
 
@@ -682,3 +683,35 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
         mock_request.assert_not_called()
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
+    def test_post_creates_seer_project_repository(self, mock_request: MagicMock) -> None:
+        """Test that POST writes to SeerProjectRepository when feature flag is enabled."""
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_request.return_value = mock_response
+
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "123456",
+                    "branch_name": "main",
+                    "instructions": "test instructions",
+                }
+            ],
+            "automated_run_stopping_point": "open_pr",
+        }
+
+        with self.feature("organizations:seer-project-settings-dual-write"):
+            response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 204
+
+        seer_repo = SeerProjectRepository.objects.get(project=self.project)
+        assert seer_repo.repository_id == self.repository.id
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
