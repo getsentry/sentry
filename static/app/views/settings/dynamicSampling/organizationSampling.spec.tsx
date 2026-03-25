@@ -166,5 +166,6 @@ describe('OrganizationSampling', () => {
     render(<OrganizationSampling />, {organization: orgWithoutAccess});
 
     expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeDisabled();
+    expect(screen.getByRole('spinbutton')).toBeDisabled();
   });
 });
