@@ -34,61 +34,9 @@ type CommandPaletteActionMenuItem = MenuListItemProps & {
   hideCheck?: boolean;
 };
 
-function actionToMenuItem(
-  action: CommandPaletteActionWithKey
-): CommandPaletteActionMenuItem {
-  return {
-    key: action.key,
-    label: action.display.label,
-    details: action.display.details,
-    leadingItems: action.display.icon ? (
-      <IconWrap align="center" justify="center">
-        {action.display.icon}
-      </IconWrap>
-    ) : undefined,
-    children: action.type === 'group' ? action.actions.map(actionToMenuItem) : [],
-    hideCheck: true,
-  };
-}
-
 type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
   priority: number;
 };
-
-function flattenActions(
-  actions: CommandPaletteActionWithKey[],
-  parentLabel?: string
-): CommandPaletteActionWithPriority[] {
-  const flattened: CommandPaletteActionWithPriority[] = [];
-
-  for (const action of actions) {
-    if (action.hidden) {
-      continue;
-    }
-
-    if (parentLabel) {
-      flattened.push({
-        ...action,
-        display: {
-          ...action.display,
-          label: `${parentLabel} → ${action.display.label}`,
-        },
-        priority: 1,
-      });
-    } else {
-      flattened.push({...action, priority: 0});
-    }
-
-    if (action.type === 'group' && action.actions.length > 0) {
-      const childParentLabel = parentLabel
-        ? `${parentLabel} → ${action.display.label}`
-        : action.display.label;
-      flattened.push(...flattenActions(action.actions, childParentLabel));
-    }
-  }
-
-  return flattened;
-}
 
 interface CommandPaletteListProps {
   onAction: (action: CommandPaletteActionWithKey) => void;
@@ -363,3 +311,55 @@ const IconWrap = styled(Flex)`
   width: ${() => SvgIcon.ICON_SIZES.md};
   height: ${() => SvgIcon.ICON_SIZES.md};
 `;
+
+function actionToMenuItem(
+  action: CommandPaletteActionWithKey
+): CommandPaletteActionMenuItem {
+  return {
+    key: action.key,
+    label: action.display.label,
+    details: action.display.details,
+    leadingItems: action.display.icon ? (
+      <IconWrap align="center" justify="center">
+        {action.display.icon}
+      </IconWrap>
+    ) : undefined,
+    children: action.type === 'group' ? action.actions.map(actionToMenuItem) : [],
+    hideCheck: true,
+  };
+}
+
+function flattenActions(
+  actions: CommandPaletteActionWithKey[],
+  parentLabel?: string
+): CommandPaletteActionWithPriority[] {
+  const flattened: CommandPaletteActionWithPriority[] = [];
+
+  for (const action of actions) {
+    if (action.hidden) {
+      continue;
+    }
+
+    if (parentLabel) {
+      flattened.push({
+        ...action,
+        display: {
+          ...action.display,
+          label: `${parentLabel} → ${action.display.label}`,
+        },
+        priority: 1,
+      });
+    } else {
+      flattened.push({...action, priority: 0});
+    }
+
+    if (action.type === 'group' && action.actions.length > 0) {
+      const childParentLabel = parentLabel
+        ? `${parentLabel} → ${action.display.label}`
+        : action.display.label;
+      flattened.push(...flattenActions(action.actions, childParentLabel));
+    }
+  }
+
+  return flattened;
+}
