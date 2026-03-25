@@ -1,4 +1,5 @@
 import {dummyIntegrationPipeline} from './pipelineDummyProvider';
+import {bitbucketIntegrationPipeline} from './pipelineIntegrationBitbucket';
 import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
 import {gitlabIntegrationPipeline} from './pipelineIntegrationGitLab';
 import {slackIntegrationPipeline} from './pipelineIntegrationSlack';
@@ -7,6 +8,7 @@ import {slackIntegrationPipeline} from './pipelineIntegrationSlack';
  * All registered pipeline definitions.
  */
 export const PIPELINE_REGISTRY = [
+  bitbucketIntegrationPipeline,
   dummyIntegrationPipeline,
   githubIntegrationPipeline,
   gitlabIntegrationPipeline,
