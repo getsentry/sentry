@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
@@ -48,10 +48,8 @@ const platformOptions = platforms.map(platform => ({
   value: platform.id,
   label: platform.name,
   textValue: `${platform.name} ${platform.id}`,
-  leadingItems: (<PlatformIcon platform={platform.id} size={16} />) as ReactNode,
+  leadingItems: <PlatformIcon platform={platform.id} size={16} />,
 }));
-
-type PlatformOption = (typeof platformOptions)[number];
 
 function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
   return {
@@ -313,7 +311,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         value: info.id,
         label: info.name,
         textValue: `${info.name} ${info.id}`,
-        leadingItems: (<PlatformIcon platform={info.id} size={16} />) as ReactNode,
+        leadingItems: <PlatformIcon platform={info.id} size={16} />,
       },
       ...platformOptions,
     ];
@@ -346,6 +344,8 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
           <MotionStack
             key="detected"
             exit={{opacity: 0}}
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
             gap="md"
             align="center"
             width="100%"
@@ -405,9 +405,11 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
             width="100%"
             maxWidth={PLATFORM_CONTENT_WIDTH}
             exit={{opacity: 0}}
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
           >
             <Heading as="h3">{t('Select a platform')}</Heading>
-            <Select<PlatformOption>
+            <Select<(typeof platformOptions)[number]>
               placeholder={t('Search 100+ SDKs by name, package, or description...')}
               options={manualPickerOptions}
               value={currentPlatformKey ?? null}

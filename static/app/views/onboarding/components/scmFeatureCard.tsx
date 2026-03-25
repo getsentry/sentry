@@ -47,7 +47,7 @@ export function ScmFeatureCard({
           padding="xl"
           radius="md"
           height="100%"
-          style={isSelected ? {marginBottom: 2} : {borderBottomWidth: 3}}
+          style={isSelected ? {marginBottom: 2} : {borderBottomWidth: 3}} // this prevents el height from changing when switching border variant
         >
           <Flex gap="lg" align="start">
             <Container padding="xs 0 0 0">

@@ -84,7 +84,7 @@ export function ScmFeatureSelectionCards({
   const totalCount = availableFeatures.length;
 
   return (
-    <Flex direction="column" gap="md" width="100%">
+    <Flex direction="column" gap="md" width="100%" justify="center">
       <Grid columns="1fr auto 1fr" align="center" areas='"spacer heading counter"'>
         <Flex area="heading">
           <Heading as="h3">{t('What do you want to set up?')}</Heading>
@@ -94,11 +94,10 @@ export function ScmFeatureSelectionCards({
         </Flex>
       </Grid>
       <Grid
-        columns={availableFeatures.length === 1 ? '1fr' : 'repeat(2, 1fr)'}
         gap="lg"
-        style={
-          availableFeatures.length === 1 ? {maxWidth: '50%', margin: '0 auto'} : undefined
-        }
+        columns={availableFeatures.length === 1 ? '1fr' : 'repeat(2, 1fr)'}
+        maxWidth={availableFeatures.length === 1 ? '50%' : undefined}
+        margin={availableFeatures.length === 1 ? '0 auto' : undefined}
       >
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
