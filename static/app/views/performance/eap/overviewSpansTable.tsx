@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -26,16 +27,14 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
-import {
-  SEGMENT_SPANS_CURSOR,
-  SEGMENT_SPANS_SORT,
-} from 'sentry/views/performance/eap/utils';
+import {SEGMENT_SPANS_CURSOR} from 'sentry/views/performance/eap/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const LIMIT = 50;
 
-const FIELDS: SpanProperty[] = [
+const BASE_FIELDS: SpanProperty[] = [
   'span_id',
   'user.id',
   'user.email',
@@ -44,7 +43,6 @@ const FIELDS: SpanProperty[] = [
   'span.duration',
   'trace',
   'timestamp',
-  'replayId',
   'profile.id',
   'profiler.id',
   'thread.id',
@@ -56,14 +54,24 @@ type OverviewSpansColumn = GridColumnHeader<
   'span_id' | 'span.duration' | 'trace' | 'timestamp' | 'replayId' | 'profile.id'
 >;
 
-const COLUMN_ORDER: OverviewSpansColumn[] = [
+const BASE_COLUMN_ORDER: OverviewSpansColumn[] = [
   {key: 'trace', name: t('Trace ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'span_id', name: t('Span ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'span.duration', name: t('Total Duration'), width: COL_WIDTH_UNDEFINED},
   {key: 'timestamp', name: t('Timestamp'), width: COL_WIDTH_UNDEFINED},
-  {key: 'replayId', name: t('Replay'), width: COL_WIDTH_UNDEFINED},
-  {key: 'profile.id', name: t('Profile'), width: COL_WIDTH_UNDEFINED},
 ];
+
+const REPLAY_COLUMN: OverviewSpansColumn = {
+  key: 'replayId',
+  name: t('Replay'),
+  width: COL_WIDTH_UNDEFINED,
+};
+
+const PROFILE_COLUMN: OverviewSpansColumn = {
+  key: 'profile.id',
+  name: t('Profile'),
+  width: COL_WIDTH_UNDEFINED,
+};
 
 type Props = {
   eventView: EventView;
@@ -78,11 +86,27 @@ export function OverviewSpansTable({eventView, transactionName}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
 
-  const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
+  const project = projects.find(p => p.id === `${eventView.project}`);
+  const projectSlug = project?.slug;
+
+  const showReplayColumn =
+    organization.features.includes('session-replay') &&
+    project !== undefined &&
+    projectSupportsReplay(project);
+
+  const fields: SpanProperty[] = showReplayColumn
+    ? BASE_FIELDS.concat('replayId')
+    : BASE_FIELDS;
+
+  const columnOrder: OverviewSpansColumn[] = [
+    ...BASE_COLUMN_ORDER,
+    ...(showReplayColumn ? [REPLAY_COLUMN] : []),
+    PROFILE_COLUMN,
+  ];
 
   const searchQuery = decodeScalar(location.query.query, '');
   const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR]);
-  const sort = decodeSorts(location.query?.[SEGMENT_SPANS_SORT])[0] ?? {
+  const sort = decodeSorts(location.query?.[QueryParameterNames.SPANS_SORT])[0] ?? {
     field: 'timestamp',
     kind: 'desc' as const,
   };
@@ -123,7 +147,7 @@ export function OverviewSpansTable({eventView, transactionName}: Props) {
   } = useSpans(
     {
       search: defaultQuery,
-      fields: FIELDS,
+      fields,
       sorts: [sort],
       limit: LIMIT,
       cursor,
@@ -154,7 +178,7 @@ export function OverviewSpansTable({eventView, transactionName}: Props) {
         isLoading={isLoading}
         error={error}
         data={consolidatedData}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={columnOrder}
         columnSortBy={[{key: sort.field, order: sort.kind}]}
         grid={{
           renderHeadCell: column =>
@@ -162,7 +186,7 @@ export function OverviewSpansTable({eventView, transactionName}: Props) {
               column,
               sort,
               location,
-              sortParameterName: SEGMENT_SPANS_SORT,
+              sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
