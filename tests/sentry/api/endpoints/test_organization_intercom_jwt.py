@@ -30,7 +30,7 @@ class OrganizationIntercomJwtEndpointTest(APITestCase):
 
         with (
             self.feature("organizations:intercom-support"),
-            self.options({"intercom.api-secret": test_secret}),
+            self.options({"intercom.sentry-api-secret": test_secret}),
         ):
             response = self.get_success_response(self.organization.slug)
 
