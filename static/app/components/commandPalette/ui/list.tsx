@@ -174,7 +174,7 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
           }}
         </Flex>
       </Flex>
-      {treeState.collection.size === 0 && query.length > 0 ? (
+      {treeState.collection.size === 0 ? (
         <CommandPaletteNoResults />
       ) : (
         <ResultsList
