@@ -202,11 +202,7 @@ export function EventsContent(props: Props) {
   ]);
 
   const table = shouldUseEAP ? (
-    <OverviewSpansTable
-      eventView={eventView}
-      totalValues={null}
-      transactionName={transactionName}
-    />
+    <OverviewSpansTable eventView={eventView} transactionName={transactionName} />
   ) : (
     <EventsTable
       theme={theme}
