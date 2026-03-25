@@ -157,11 +157,9 @@ export default function ProjectCspReports() {
             <AutoSaveForm
               name="sentry:csp_ignored_sources_defaults"
               schema={cspSchema}
-              initialValue={
-                (project.options?.['sentry:csp_ignored_sources_defaults'] as
-                  | boolean
-                  | undefined) ?? false
-              }
+              initialValue={Boolean(
+                project.options?.['sentry:csp_ignored_sources_defaults']
+              )}
               mutationOptions={cspMutationOptions}
             >
               {field => (
@@ -183,10 +181,7 @@ export default function ProjectCspReports() {
             <AutoSaveForm
               name="sentry:csp_ignored_sources"
               schema={cspSchema}
-              initialValue={
-                (project.options?.['sentry:csp_ignored_sources'] as string | undefined) ??
-                ''
-              }
+              initialValue={String(project.options?.['sentry:csp_ignored_sources'] ?? '')}
               mutationOptions={cspMutationOptions}
             >
               {field => (
