@@ -25,6 +25,8 @@ export function CommandPaletteContent({onClose}: CommandPaletteContentProps) {
 
   const handleSelect = useCallback(
     (action: CommandPaletteActionWithKey) => {
+      dispatch({type: 'trigger action'});
+
       const actionType = action.type;
       switch (actionType) {
         case 'group':
