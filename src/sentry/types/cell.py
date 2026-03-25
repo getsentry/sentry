@@ -103,9 +103,9 @@ class Cell:
     """Whether the cell is visible in API responses"""
 
     def validate(self) -> None:
-        from sentry.utils.snowflake import REGION_ID
+        from sentry.utils.snowflake import CELL_ID
 
-        REGION_ID.validate(self.snowflake_id)
+        CELL_ID.validate(self.snowflake_id)
 
     def is_historic_monolith_region(self) -> bool:
         """Check whether this is a historic monolith region.
