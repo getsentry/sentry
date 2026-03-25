@@ -1,4 +1,5 @@
 import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -434,10 +435,10 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
-      <ExploreBodyContent>
-        <ExploreControlSection expanded={sidebarOpen}>
+      <ViewportConstrainedBody>
+        <LogsControlSection expanded={sidebarOpen}>
           {sidebarOpen ? <LogsToolbar /> : null}
-        </ExploreControlSection>
+        </LogsControlSection>
         <ExploreContentSection gap="md">
           {!expando.expanded && (
             <OverChartButtonGroup>
@@ -536,7 +537,17 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
             )}
           </LogsItemContainer>
         </ExploreContentSection>
-      </ExploreBodyContent>
+      </ViewportConstrainedBody>
     </Fragment>
   );
 }
+
+const ViewportConstrainedBody = styled(ExploreBodyContent)`
+  flex-direction: row;
+`;
+
+const LogsControlSection = styled(ExploreControlSection)`
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: none;
+  }
+`;
