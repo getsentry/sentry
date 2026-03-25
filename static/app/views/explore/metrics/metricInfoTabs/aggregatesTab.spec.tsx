@@ -99,6 +99,9 @@ describe('AggregatesTab', () => {
 
     // Both aggregate columns should be present
     expect(screen.getByRole('columnheader', {name: /sum/i})).toBeInTheDocument();
+
+    // Metric name column should be prepended when no group bys are selected
+    expect(screen.getByRole('columnheader', {name: 'Metric'})).toBeInTheDocument();
   });
 
   it('renders table with groupBys and aggregate columns', async () => {
@@ -153,6 +156,9 @@ describe('AggregatesTab', () => {
     // Aggregate columns
     expect(screen.getByRole('columnheader', {name: /avg/i})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: /p95/i})).toBeInTheDocument();
+
+    // Metric name column should NOT appear when group bys are selected
+    expect(screen.queryByRole('columnheader', {name: 'Metric'})).not.toBeInTheDocument();
   });
 
   it('shows empty state when no data is returned', async () => {
