@@ -122,7 +122,7 @@ export function OrganizationSampling() {
                           )}
                         >
                           <form.SubmitButton
-                            disabled={!hasAccess || !canSubmit || !isDirty}
+                            disabled={!hasAccess || !canSubmit}
                             formNoValidate
                           >
                             {t('Apply Changes')}
