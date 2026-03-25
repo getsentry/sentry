@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {Button} from '@sentry/scraps/button';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openCommandPaletteDeprecated} from 'sentry/actionCreators/modal';
+import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {
   makeCommandPaletteCallback,
   makeCommandPaletteGroup,
@@ -48,7 +48,7 @@ export function CommandPaletteDemo() {
   return (
     <Fragment>
       <RegisterActions actions={demoActions} />
-      <Button onClick={() => openCommandPaletteDeprecated()}>Open Command Palette</Button>
+      <Button onClick={() => openCommandPalette()}>Open Command Palette</Button>
     </Fragment>
   );
 }
