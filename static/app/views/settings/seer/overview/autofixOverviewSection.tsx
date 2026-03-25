@@ -1,16 +1,24 @@
+import {css} from '@emotion/react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {
+  AutoSaveForm,
+  defaultFormOptions,
+  FieldGroup,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
+import {ScmRepoTreeModal} from 'sentry/components/repositories/scmRepoTreeModal';
 import {IconSettings} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -29,6 +37,7 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
   const canWrite = hasEveryAccess(['org:write'], {organization});
 
   const schema = z.object({
+    placeholder: z.string(),
     defaultCodingAgent: z.string(),
     autoOpenPrs: z.boolean(),
   });
@@ -91,6 +100,8 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
         </Flex>
       }
     >
+      <ConnectToReposField />
+
       <AutoSaveForm
         name="defaultCodingAgent"
         schema={schema}
@@ -244,5 +255,48 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
         )}
       </AutoSaveForm>
     </FieldGroup>
+  );
+}
+
+function ConnectToReposField() {
+  const form = useScrapsForm(defaultFormOptions);
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="placeholder">
+        {field => (
+          <Stack gap="md">
+            <field.Layout.Row
+              label={t('Projects with connected repos')}
+              hintText={t(
+                'Projects must be connected to a repo in order for Autofix to collect context, and debug issues.'
+              )}
+            >
+              <Container flexGrow={1}>
+                <Button
+                  priority="primary"
+                  size="sm"
+                  onClick={() => {
+                    openModal(
+                      deps => (
+                        <ScmRepoTreeModal {...deps} title={t('Install Integration')} />
+                      ),
+                      {
+                        modalCss: css`
+                          width: 700px;
+                        `,
+                        // onClose: refetchIntegrations,
+                      }
+                    );
+                  }}
+                >
+                  {t('Connect Projects and Repos')}
+                </Button>
+              </Container>
+            </field.Layout.Row>
+          </Stack>
+        )}
+      </form.AppField>
+    </form.AppForm>
   );
 }

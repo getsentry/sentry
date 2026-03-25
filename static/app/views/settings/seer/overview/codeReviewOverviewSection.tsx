@@ -131,7 +131,7 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
         {field => (
           <Stack gap="md">
             <field.Layout.Row
-              label={t('Code Review Triggers')}
+              label={t('Default Code Review Triggers')}
               hintText={tct(
                 'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
                 {code: <code />}
