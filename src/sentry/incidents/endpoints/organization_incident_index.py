@@ -236,7 +236,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             open_periods = self._filter_by_status(open_periods, query_status)
 
         # Team filter
-        if len(teams) > 0:
+        if teams:
             try:
                 teams_query, unassigned = parse_team_params(request, organization, teams)
             except InvalidParams as err:
