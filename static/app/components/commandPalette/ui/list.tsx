@@ -1,5 +1,7 @@
 import {Fragment, useLayoutEffect, useMemo, useRef} from 'react';
+import {preload} from 'react-dom';
 import styled from '@emotion/styled';
+import { Container } from '@sentry/scraps/layout';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -18,6 +20,7 @@ import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {
   useCommandPaletteDispatch,
@@ -48,6 +51,9 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
   const dispatch = useCommandPaletteDispatch();
   const actions = useCommandPaletteActions();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Preload the empty state image so it's ready if/when there are no results
+  preload(error, {as: 'image'});
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     if (selectedAction?.type === 'group' && selectedAction.actions.length > 0) {
@@ -332,7 +338,7 @@ function CommandPaletteNoResults() {
       align="center"
       justify="center"
       gap="lg"
-      padding="xl lg"
+      padding="2xl lg"
       height="400px"
     >
       <Image src={error} alt="No results" width="400px" />
@@ -343,6 +349,16 @@ function CommandPaletteNoResults() {
         <Text size="md" align="center">
           {t('Try rephrasing your query maybe?')}
         </Text>
+        <Container paddingTop="xl">
+        <FeedbackButton
+          priority="primary"
+          feedbackOptions={{
+            tags: {
+              ['feedback.source']: 'command_palette',
+            },
+          }}
+        />
+        </Container>
       </Stack>
     </Flex>
   );
