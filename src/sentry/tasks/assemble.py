@@ -426,23 +426,38 @@ class ArtifactBundlePostAssembler:
 
             # If a release version is passed, we want to create the weak association between a bundle and a release.
             if self.release:
-                ReleaseArtifactBundle.objects.update_or_create(
-                    organization_id=self.organization.id,
-                    release_name=self.release,
-                    # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
-                    # tables.
-                    dist_name=self.dist or NULL_STRING,
-                    artifact_bundle=artifact_bundle,
-                    defaults=new_date_added,
-                )
+                try:
+                    ReleaseArtifactBundle.objects.update_or_create(
+                        organization_id=self.organization.id,
+                        release_name=self.release,
+                        # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
+                        # tables.
+                        dist_name=self.dist or NULL_STRING,
+                        artifact_bundle=artifact_bundle,
+                        defaults=new_date_added,
+                    )
+                except ReleaseArtifactBundle.MultipleObjectsReturned:
+                    ReleaseArtifactBundle.objects.filter(
+                        organization_id=self.organization.id,
+                        release_name=self.release,
+                        dist_name=self.dist or NULL_STRING,
+                        artifact_bundle=artifact_bundle,
+                    ).update(**new_date_added)
 
             for project_id in self.project_ids:
-                ProjectArtifactBundle.objects.update_or_create(
-                    organization_id=self.organization.id,
-                    project_id=project_id,
-                    artifact_bundle=artifact_bundle,
-                    defaults=new_date_added,
-                )
+                try:
+                    ProjectArtifactBundle.objects.update_or_create(
+                        organization_id=self.organization.id,
+                        project_id=project_id,
+                        artifact_bundle=artifact_bundle,
+                        defaults=new_date_added,
+                    )
+                except ProjectArtifactBundle.MultipleObjectsReturned:
+                    ProjectArtifactBundle.objects.filter(
+                        organization_id=self.organization.id,
+                        project_id=project_id,
+                        artifact_bundle=artifact_bundle,
+                    ).update(**new_date_added)
 
             # Instead of doing a `create_or_update` one-by-one, we will instead:
             # - Use a `bulk_create` with `ignore_conflicts` to insert new rows efficiently
