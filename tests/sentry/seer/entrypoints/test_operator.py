@@ -25,6 +25,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.explorer.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 
 
@@ -816,9 +817,9 @@ class TestSeerOperatorCompletionHook(TestCase):
 
         mock_entrypoint_cls.on_explorer_update.assert_not_called()
 
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.explorer.client_utils.fetch_run_status")
-    def test_execute_records_failure_on_org_mismatch(self, mock_fetch, mock_record_failure):
+    def test_execute_records_failure_on_org_mismatch(self, mock_fetch, mock_record):
         state = self._make_state(
             blocks=[
                 MemoryBlock(
@@ -836,7 +837,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         )
 
         mock_entrypoint_cls.on_explorer_update.assert_not_called()
-        mock_record_failure.assert_called_once_with(failure_reason="org_mismatch")
+        assert_failure_metric(mock_record, "org_mismatch")
 
     @patch("sentry.seer.explorer.client_utils.fetch_run_status")
     def test_execute_with_empty_blocks(self, mock_fetch):
