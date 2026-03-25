@@ -1,4 +1,3 @@
-import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
@@ -122,7 +121,7 @@ export default function ProjectCspReports() {
     }),
   ];
 
-  const cspMutationOptions = mutationOptions({
+  const cspMutationOptions = {
     mutationFn: (data: Partial<CspSchema>) =>
       fetchMutation<Project>({
         url: projectEndpoint,
@@ -141,7 +140,7 @@ export default function ProjectCspReports() {
         };
       });
     },
-  });
+  };
 
   return (
     <FormSearch route="/settings/:orgId/projects/:projectId/security-headers/csp/">
