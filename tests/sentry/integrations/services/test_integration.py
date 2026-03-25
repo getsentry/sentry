@@ -242,6 +242,36 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         result = integration_service.get_organization_integrations()
         assert len(result) == 0
 
+    def test_get_organization_ids_with_providers(self) -> None:
+        # integration2 is "github" with OI status=PENDING_DELETION
+        # integration1/3 are "example" with OI status=ACTIVE
+
+        # by provider, no status filter
+        result = integration_service.get_organization_ids_with_providers(providers=["github"])
+        assert set(result) == {self.organization.id}
+
+        # by provider with status filter — github OI is PENDING_DELETION, not ACTIVE
+        result = integration_service.get_organization_ids_with_providers(
+            providers=["github"], status=ObjectStatus.ACTIVE
+        )
+        assert result == []
+
+        # active example integrations
+        result = integration_service.get_organization_ids_with_providers(
+            providers=["example"], status=ObjectStatus.ACTIVE
+        )
+        assert set(result) == {self.organization.id}
+
+        # multiple providers
+        result = integration_service.get_organization_ids_with_providers(
+            providers=["github", "example"]
+        )
+        assert set(result) == {self.organization.id}
+
+        # no match
+        result = integration_service.get_organization_ids_with_providers(providers=["nonexistent"])
+        assert result == []
+
     def test_get_organization_integration(self) -> None:
         result = integration_service.get_organization_integration(
             integration_id=self.integration2.id,
