@@ -17,8 +17,23 @@ import {ScmPlatformFeatures} from './scmPlatformFeatures';
 
 jest.mock('sentry/actionCreators/modal');
 
+// Mock the virtualizer so all items render in JSDOM (no layout engine).
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: jest.fn(({count}) => ({
+    getVirtualItems: () =>
+      Array.from({length: count}, (_, i) => ({
+        key: i,
+        index: i,
+        start: i * 36,
+        size: 36,
+      })),
+    getTotalSize: () => count * 36,
+    measureElement: jest.fn(),
+  })),
+}));
+
 // Provide a small platform list so the Select dropdown renders
-// all options without virtualization in JSDOM.
+// a manageable number of options in JSDOM.
 jest.mock('sentry/data/platforms', () => {
   const actual = jest.requireActual('sentry/data/platforms');
   return {
