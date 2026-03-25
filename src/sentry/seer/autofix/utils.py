@@ -526,10 +526,13 @@ def _write_preferences_to_sentry_db(
         return
 
     with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
-        # Delete existing rows.
-        SeerProjectRepository.objects.filter(
-            project_id__in={project.id for project, _ in project_preferences}
-        ).delete()
+        project_ids = {project.id for project, _ in project_preferences}
+
+        # Lock project rows to serialize concurrent preference writes.
+        list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
+
+        # Delete existing project repos and branch overrides.
+        SeerProjectRepository.objects.filter(project_id__in=project_ids).delete()
 
         # Collect project repos to create.
         project_repos_to_create: list[SeerProjectRepository] = []
