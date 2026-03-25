@@ -618,7 +618,7 @@ describe('desktop navigation', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('can collapse the sidebar via Ctrl+B keyboard shortcut', async () => {
+      it('can collapse the sidebar via Ctrl+B keyboard shortcut', () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
@@ -631,7 +631,7 @@ describe('desktop navigation', () => {
         expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
       });
 
-      it('can expand a collapsed sidebar via Ctrl+B keyboard shortcut', async () => {
+      it('can expand a collapsed sidebar via Ctrl+B keyboard shortcut', () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
