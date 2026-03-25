@@ -1,7 +1,6 @@
 import {Fragment, useLayoutEffect, useMemo, useRef} from 'react';
 import {preload} from 'react-dom';
 import styled from '@emotion/styled';
-import { Container } from '@sentry/scraps/layout';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -14,19 +13,20 @@ import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
+import {Container} from '@sentry/scraps/layout';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
@@ -344,24 +344,24 @@ function CommandPaletteNoResults() {
       <Image src={error} alt="No results" width="400px" />
       <Stack align="center" gap="md">
         <Container padding="0 2xl">
-        <Stack gap="sm">
-        <Text size="md" align="center" >
-          {t("Whoops… we couldn't find any results matching your search.")}
-        </Text>
-        <Text size="md" align="center">
-          {t("May we suggest rephrasing your query?")}
-        </Text>
-        </Stack>
+          <Stack gap="sm">
+            <Text size="md" align="center">
+              {t("Whoops… we couldn't find any results matching your search.")}
+            </Text>
+            <Text size="md" align="center">
+              {t('May we suggest rephrasing your query?')}
+            </Text>
+          </Stack>
         </Container>
         <Container paddingTop="xl">
-        <FeedbackButton
-          priority="primary"
-          feedbackOptions={{
-            tags: {
-              ['feedback.source']: 'command_palette',
-            },
-          }}
-        />
+          <FeedbackButton
+            priority="primary"
+            feedbackOptions={{
+              tags: {
+                ['feedback.source']: 'command_palette',
+              },
+            }}
+          />
         </Container>
       </Stack>
     </Flex>
