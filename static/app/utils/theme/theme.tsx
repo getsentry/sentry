@@ -11,6 +11,7 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
+import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports
@@ -42,6 +43,9 @@ const motionCurves: Record<
   exit: [0.64, 0, 0.8, 0],
 };
 
+// Disable transitions in acceptance tests or node testing environments.
+const IS_ACCEPTANCE_OR_TESTING = IS_ACCEPTANCE_TEST || NODE_ENV === 'test';
+
 const motionCurveWithDuration = (
   durations: Record<MotionDuration, number>,
   easing: [number, number, number, number]
@@ -53,18 +57,24 @@ const motionCurveWithDuration = (
   };
 
   const framerMotion: Record<MotionDuration, Transition> = {
-    fast: {
-      duration: durations.fast / 1000,
-      ease: easing,
-    },
-    moderate: {
-      duration: durations.moderate / 1000,
-      ease: easing,
-    },
-    slow: {
-      duration: durations.slow / 1000,
-      ease: easing,
-    },
+    fast: IS_ACCEPTANCE_OR_TESTING
+      ? {}
+      : {
+          duration: durations.fast / 1000,
+          ease: easing,
+        },
+    moderate: IS_ACCEPTANCE_OR_TESTING
+      ? {}
+      : {
+          duration: durations.moderate / 1000,
+          ease: easing,
+        },
+    slow: IS_ACCEPTANCE_OR_TESTING
+      ? {}
+      : {
+          duration: durations.slow / 1000,
+          ease: easing,
+        },
   };
 
   return [motion, framerMotion];
