@@ -7,8 +7,8 @@ from sentry.scm.types import Referrer
 from sentry.utils import redis
 
 
-def usage_count_key(provider: str, organization_id: int, window: int, referrer: str) -> str:
-    return f"rl:scm:{provider}:{organization_id}:{referrer}:{window}"
+def usage_count_key(provider: str, organization_id: int, time_bucket: int, referrer: str) -> str:
+    return f"rl:scm:{provider}:{organization_id}:{referrer}:{time_bucket}"
 
 
 def total_limit_key(provider: str, organization_id: int) -> str:
