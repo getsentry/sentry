@@ -228,13 +228,22 @@ describe('GlobalModal', () => {
   it('restores focus to the button that opened the modal', async () => {
     const {waitForModalToHide} = renderGlobalModal();
     render(
-      <button onClick={() => openModal(() => <div>Modal content</div>)}>
+      <button
+        onClick={() =>
+          openModal(() => (
+            <div>
+              <input autoFocus />
+            </div>
+          ))
+        }
+      >
         Open Modal
       </button>
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Open Modal'}));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveFocus();
 
     await userEvent.keyboard('{Escape}');
     await waitForModalToHide();
@@ -251,8 +260,15 @@ describe('GlobalModal', () => {
     expect(screen.getByRole('button', {name: 'My Button'})).toHaveFocus();
 
     // Simulate a keyboard shortcut handler (e.g. Cmd+K) opening the modal
-    act(() => openModal(() => <div>Modal content</div>));
+    act(() =>
+      openModal(() => (
+        <div>
+          <input autoFocus />
+        </div>
+      ))
+    );
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveFocus();
 
     await userEvent.keyboard('{Escape}');
     await waitForModalToHide();
