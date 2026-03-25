@@ -6,7 +6,11 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Pagination, type CursorHandler} from 'sentry/components/pagination';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  COL_WIDTH_UNDEFINED,
+  GridEditable,
+  type GridColumnHeader,
+} from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -22,25 +26,48 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {ModuleName} from 'sentry/views/insights/types';
-import {
-  SEGMENT_SPANS_COLUMN_ORDER,
-  type SegmentSpansColumn,
-  type SegmentSpansRow,
-} from 'sentry/views/performance/eap/types';
-import {useSegmentSpansQuery} from 'sentry/views/performance/eap/useSegmentSpansQuery';
+import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
 import {SEGMENT_SPANS_CURSOR} from 'sentry/views/performance/eap/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const LIMIT = 50;
 
+const FIELDS: SpanProperty[] = [
+  'span_id',
+  'user.id',
+  'user.email',
+  'user.username',
+  'user.ip',
+  'span.duration',
+  'trace',
+  'timestamp',
+  'replayId',
+  'profile.id',
+  'profiler.id',
+  'thread.id',
+  'precise.start_ts',
+  'precise.finish_ts',
+];
+
+type OverviewSpansColumn = GridColumnHeader<
+  'span_id' | 'span.duration' | 'trace' | 'timestamp' | 'replayId' | 'profile.id'
+>;
+
+const COLUMN_ORDER: OverviewSpansColumn[] = [
+  {key: 'trace', name: t('Trace ID'), width: COL_WIDTH_UNDEFINED},
+  {key: 'span_id', name: t('Span ID'), width: COL_WIDTH_UNDEFINED},
+  {key: 'span.duration', name: t('Total Duration'), width: COL_WIDTH_UNDEFINED},
+  {key: 'timestamp', name: t('Timestamp'), width: COL_WIDTH_UNDEFINED},
+  {key: 'replayId', name: t('Replay'), width: COL_WIDTH_UNDEFINED},
+  {key: 'profile.id', name: t('Profile'), width: COL_WIDTH_UNDEFINED},
+];
+
 type Props = {
   eventView: EventView;
-  totalValues: Record<string, number> | null;
   transactionName: string;
 };
 
-export function OverviewSpansTable({eventView, totalValues, transactionName}: Props) {
+export function OverviewSpansTable({eventView, transactionName}: Props) {
   const {selection} = usePageFilters();
   const location = useLocation();
   const {projects} = useProjects();
@@ -50,8 +77,8 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
 
-  const p95 = totalValues?.['p95()'] ?? 0;
   const searchQuery = decodeScalar(location.query.query, '');
+  const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR]);
 
   const defaultQuery = new MutableSearch(searchQuery);
   defaultQuery.setFilterValues('is_transaction', ['true']);
@@ -86,15 +113,17 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
     pageLinks,
     meta,
     error,
-  } = useSegmentSpansQuery({
-    query: defaultQuery.formatString(),
-    sort: {
-      field: 'span.duration',
-      kind: 'desc',
+  } = useSpans(
+    {
+      search: defaultQuery,
+      fields: FIELDS,
+      sorts: [{field: 'span.duration' as const, kind: 'desc' as const}],
+      limit: LIMIT,
+      cursor,
+      pageFilters: selection,
     },
-    p95,
-    limit: LIMIT,
-  });
+    'api.insights.segment-spans-table'
+  );
 
   const consolidatedData = tableData?.map(row => {
     const user =
@@ -118,7 +147,7 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
         isLoading={isLoading}
         error={error}
         data={consolidatedData}
-        columnOrder={SEGMENT_SPANS_COLUMN_ORDER}
+        columnOrder={COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
           renderHeadCell: column =>
@@ -140,8 +169,8 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
 }
 
 function renderBodyCell(
-  column: SegmentSpansColumn,
-  row: SegmentSpansRow,
+  column: OverviewSpansColumn,
+  row: Record<string, any>,
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
   location: Location,
