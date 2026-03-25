@@ -23,7 +23,7 @@ export function CommandPaletteContent() {
       const actionType = action.type;
       switch (actionType) {
         case 'group':
-          dispatch({type: 'select_action', action});
+          dispatch({type: 'set selected action', action});
           return;
         case 'navigate':
           navigate(normalizeUrl(action.to));

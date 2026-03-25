@@ -4,6 +4,7 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
+import * as Sentry from '@sentry/react';
 
 import error from 'sentry-images/spot/computer-missing.svg';
 
@@ -111,7 +112,10 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
     [query, displayedActions]
   );
 
-  const sections = useMemo(() => groupBySections(filteredActions), [filteredActions]);
+  const sections = useMemo(
+    () => groupActionsBySection(filteredActions),
+    [filteredActions]
+  );
 
   const treeState = useTreeState({
     children: sections.map(({key: sectionKey, label, children}) => (
@@ -129,12 +133,6 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
     const firstItem = treeState.collection.at(0);
     return firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
   }, [treeState.collection]);
-
-  useLayoutEffect(() => {
-    if (selectedAction) {
-      inputRef.current?.focus();
-    }
-  }, [selectedAction, inputRef]);
 
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
@@ -182,7 +180,7 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
               size="sm"
               icon={<IconArrow direction="left" />}
               onClick={() => {
-                dispatch({type: 'clear_selection'});
+                dispatch({type: 'clear selected action'});
                 inputRef.current?.focus();
               }}
               aria-label={t('Return to all options')}
@@ -196,12 +194,12 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
             autoFocus
             {...mergeProps(collectionProps, {
               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                dispatch({type: 'set_query', query: e.target.value});
+                dispatch({type: 'set query', query: e.target.value});
                 treeState.selectionManager.setFocusedKey(null);
               },
               onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
                 if (e.key === 'Backspace' && query === '') {
-                  dispatch({type: 'clear_selection'});
+                  dispatch({type: 'clear selected action'});
                   e.preventDefault();
                 }
 
@@ -210,6 +208,7 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
                   if (key !== null && key !== undefined) {
                     const action = filteredActions.find(a => a.key === key);
                     if (action) {
+                      dispatch({type: 'trigger action'});
                       onAction(action);
                     }
                   }
@@ -235,13 +234,18 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
             size="md"
             aria-label="Search results"
             selectionMode="none"
+            shouldUseVirtualFocus
             onAction={key => {
               const action = filteredActions.find(a => a.key === key);
-              if (action) {
-                onAction(action);
+
+              if (!action) {
+                Sentry.logger.error('Command palette action not found', {key});
+                return;
               }
+
+              dispatch({type: 'trigger action'});
+              onAction(action);
             }}
-            shouldUseVirtualFocus
           />
         </ResultsList>
       )}
@@ -249,7 +253,7 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
   );
 }
 
-function groupBySections(
+function groupActionsBySection(
   actions: CommandPaletteActionWithPriority[]
 ): CommandPaletteActionMenuItem[] {
   const itemsBySection = new Map<string, CommandPaletteActionMenuItem[]>();

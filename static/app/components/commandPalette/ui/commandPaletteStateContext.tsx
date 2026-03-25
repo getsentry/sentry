@@ -9,9 +9,10 @@ export type CommandPaletteState = {
 };
 
 export type CommandPaletteAction =
-  | {query: string; type: 'set_query'}
-  | {action: CommandPaletteActionWithKey; type: 'select_action'}
-  | {type: 'clear_selection'};
+  | {query: string; type: 'set query'}
+  | {action: CommandPaletteActionWithKey; type: 'set selected action'}
+  | {type: 'trigger action'}
+  | {type: 'clear selected action'};
 
 const CommandPaletteStateContext = createContext<CommandPaletteState | null>(null);
 const CommandPaletteDispatchContext =
@@ -23,12 +24,14 @@ function commandPaletteReducer(
 ): CommandPaletteState {
   const type = action.type;
   switch (type) {
-    case 'set_query':
+    case 'set query':
       return {...state, query: action.query};
-    case 'select_action':
+    case 'set selected action':
       return {...state, selectedAction: action.action, query: ''};
-    case 'clear_selection':
+    case 'clear selected action':
       return {...state, selectedAction: null};
+    case 'trigger action':
+      return {...state, selectedAction: null, query: ''};
     default:
       unreachable(type);
       return state;
