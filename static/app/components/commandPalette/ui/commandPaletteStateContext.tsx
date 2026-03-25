@@ -1,8 +1,13 @@
 import {createContext, useContext, useReducer} from 'react';
 
+import {
+  openCommandPaletteDeprecated,
+  toggleCommandPalette,
+} from 'sentry/actionCreators/modal';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
-import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
 import {unreachable} from 'sentry/utils/unreachable';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type CommandPaletteState = {
   modal: {
@@ -79,8 +84,6 @@ interface CommandPaletteStateProviderProps {
 export function CommandPaletteStateProvider({
   children,
 }: CommandPaletteStateProviderProps) {
-  useGlobalCommandPaletteActions();
-
   const [state, dispatch] = useReducer(commandPaletteReducer, {
     query: '',
     selectedAction: null,
@@ -98,4 +101,26 @@ export function CommandPaletteStateProvider({
       </CommandPaletteStateContext.Provider>
     </CommandPaletteDispatchContext.Provider>
   );
+}
+
+export function CommandPaletteHotkeys() {
+  const state = useCommandPaletteState();
+  const dispatch = useCommandPaletteDispatch();
+  const organization = useOrganization();
+
+  useHotkeys([
+    {
+      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+      includeInputs: true,
+      callback: () => {
+        if (organization.features.includes('cmd-k-supercharged')) {
+          toggleCommandPalette({}, state, dispatch);
+        } else {
+          openCommandPaletteDeprecated();
+        }
+      },
+    },
+  ]);
+
+  return null;
 }

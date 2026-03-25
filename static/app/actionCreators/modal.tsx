@@ -161,14 +161,18 @@ export async function toggleCommandPalette(
     await import('sentry/components/commandPalette/ui/modal');
 
   function closeCommandPaletteModal() {
+    const focusElement = state.modal.restoreFocusToElement;
+
     dispatch({type: 'close modal'});
     closeModal();
-    if (state.modal.restoreFocusToElement) {
-      (state.modal.restoreFocusToElement as HTMLElement).focus();
+    if (focusElement) {
+      (focusElement as HTMLElement).focus();
     }
   }
 
   if (state.modal.open) {
+    closeCommandPaletteModal();
+  } else {
     dispatch({
       type: 'open modal',
       restoreFocusToElement: document.activeElement,
@@ -178,8 +182,6 @@ export async function toggleCommandPalette(
       modalCss,
       onClose: closeCommandPaletteModal,
     });
-  } else {
-    closeCommandPaletteModal();
   }
 }
 
