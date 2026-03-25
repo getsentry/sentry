@@ -496,3 +496,8 @@ def trigger_coding_agent_handoff(
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
     )
+
+
+def trigger_push_changes(group: Group, run_id: int):
+    client = get_autofix_explorer_client(group)
+    client.push_changes(run_id, blocking=False)

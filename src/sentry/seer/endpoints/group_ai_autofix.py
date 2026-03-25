@@ -38,6 +38,7 @@ from sentry.seer.autofix.autofix_agent import (
     get_autofix_explorer_state,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
+    trigger_push_changes,
 )
 from sentry.seer.autofix.coding_agent import (
     poll_claude_code_agents,
@@ -87,6 +88,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
             "root_cause",
             "solution",
             "code_changes",
+            "open_pr",
             "impact_assessment",
             "triage",
             "coding_agent_handoff",
@@ -228,10 +230,10 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
+        run_id = data.get("run_id")
 
         # Handle third-party coding agent handoff separately
         if step == "coding_agent_handoff":
-            run_id = data.get("run_id")
             integration_id = data.get("integration_id")
             provider = data.get("provider")
             if not run_id or (not integration_id and not provider):
@@ -256,6 +258,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             )
             return Response(result, status=202)
 
+        if step == "open_pr":
+            if not run_id:
+                return Response({"detail": "run_id is required for open_pr"})
+            trigger_push_changes(group, run_id)
+            return Response({"run_id": run_id}, status=202)
+
         # Handle all built-in Seer steps
         try:
             run_id = trigger_autofix_explorer(
@@ -263,7 +271,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 step=AutofixStep(step),
                 referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
-                run_id=data.get("run_id"),
+                run_id=run_id,
                 intelligence_level=data["intelligence_level"],
                 user_context=data.get("user_context"),
             )

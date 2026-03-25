@@ -992,6 +992,29 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert response.status_code == 400, f"Failed for {flag}: {response.data}"
             assert response.data["detail"] == "Cannot specify both integration_id and provider"
 
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
+    def test_open_pr(self, mock_explorer_update_request):
+        self.login_as(user=self.user)
+
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_explorer_update_request.return_value = mock_response
+
+        for flag in EXPLORER_FLAGS:
+            group = self.create_group()
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "open_pr",
+                        "run_id": 123,
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 202, f"Failed for {flag}: {response.data}"
+            assert response.data == {"run_id": 123}
+
 
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:seer-explorer")
