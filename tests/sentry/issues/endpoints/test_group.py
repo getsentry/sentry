@@ -73,11 +73,10 @@ class GroupAiPermissionTest(TestCase):
                 assert not self.has_object_perm(method, self.group, user=self.demo_user)
 
     def test_demo_user_demo_mode_disabled(self) -> None:
-        """When demo mode is off, demo user goes through normal auth — no special bypass."""
+        """When demo mode is off, listed demo users are denied entirely."""
         with override_options({"demo-mode.users": [self.demo_user.id]}):
-            # Has membership in demo_org → normal auth grants access
-            assert self.has_object_perm("GET", self.demo_group, user=self.demo_user)
-            # No membership in other_org → normal auth denies
+            # is_demo_user() is True but is_demo_mode_enabled() is False → blocked
+            assert not self.has_object_perm("GET", self.demo_group, user=self.demo_user)
             assert not self.has_object_perm("GET", self.other_group, user=self.demo_user)
 
     def test_demo_user_blocked_from_non_demo_org_group(self) -> None:
