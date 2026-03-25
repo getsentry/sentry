@@ -6,9 +6,12 @@ import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
+import {openCommandPalette} from 'sentry/actionCreators/modal';
+import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
+import {IconSearch} from 'sentry/icons';
 import {
   IconCompass,
   IconDashboard,
@@ -297,9 +300,23 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
  */
 export function PrimaryNavigationFooterItems() {
   const organization = useOrganization();
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Fragment>
+      {hasPageFrame ? (
+        <PrimaryNavigation.Button
+          label={t('Search support, docs and more')}
+          analyticsKey="search"
+          buttonProps={{
+            icon: <IconSearch />,
+            onClick: () =>
+              organization.features.includes('cmd-k-supercharged')
+                ? openCommandPalette()
+                : openHelpSearchModal({organization}),
+          }}
+        />
+      ) : null}
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationOnboarding />
       </ErrorBoundary>

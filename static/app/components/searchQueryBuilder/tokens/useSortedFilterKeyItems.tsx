@@ -168,6 +168,7 @@ export function useSortedFilterKeyItems({
     getFieldDefinition,
     filterKeySections,
     disallowFreeText,
+    disallowLogicalOperators,
     replaceRawSearchKeys,
     matchKeySuggestions,
     enableAISearch,
@@ -235,16 +236,18 @@ export function useSortedFilterKeyItems({
       };
     });
 
+    const logicFilterItems = disallowLogicalOperators ? [] : LOGIC_FILTER_ITEMS;
+
     if (includeSuggestions) {
       return [
         ...searchKeyItems,
         ...getFilterSearchValues(flatKeys, {getFieldDefinition}),
-        ...LOGIC_FILTER_ITEMS,
+        ...logicFilterItems,
       ];
     }
 
-    return [...searchKeyItems, ...LOGIC_FILTER_ITEMS];
-  }, [flatKeys, getFieldDefinition, includeSuggestions]);
+    return [...searchKeyItems, ...logicFilterItems];
+  }, [disallowLogicalOperators, flatKeys, getFieldDefinition, includeSuggestions]);
 
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 

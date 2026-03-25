@@ -153,7 +153,7 @@ export function defaultSortBys(fields: string[]): Sort[] {
 }
 
 function defaultVisualize(): Visualize {
-  return new VisualizeFunction('per_second(value)');
+  return new VisualizeFunction('sum(value)');
 }
 
 function defaultGroupBys(): GroupBy[] {

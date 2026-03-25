@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -14,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {getKeyCode} from 'sentry/utils/getKeyCode';
 import {Navigation} from 'sentry/views/navigation';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
@@ -611,6 +613,36 @@ describe('desktop navigation', () => {
         await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
         await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
 
+        expect(
+          screen.queryByTestId('collapsed-secondary-sidebar')
+        ).not.toBeInTheDocument();
+      });
+
+      it('can collapse the sidebar via Ctrl+B keyboard shortcut', () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
+
+        fireEvent.keyDown(document, {keyCode: getKeyCode('b'), ctrlKey: true});
+
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
+      });
+
+      it('can expand a collapsed sidebar via Ctrl+B keyboard shortcut', () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
+
+        fireEvent.keyDown(document, {keyCode: getKeyCode('b'), ctrlKey: true});
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
+
+        fireEvent.keyDown(document, {keyCode: getKeyCode('b'), ctrlKey: true});
         expect(
           screen.queryByTestId('collapsed-secondary-sidebar')
         ).not.toBeInTheDocument();

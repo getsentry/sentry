@@ -233,9 +233,8 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
             # Ordering of these if blocks is very crucial. We want to check the hour first as
             # checking the feature flag is an expensive operation and we want to avoid it if possible.
             if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == now.hour:
-                with sentry_sdk.start_span(op="explorer.context_engine.has_feature"):
-                    if features.has("organizations:seer-explorer-context-engine", org):
-                        eligible_org_ids.append(org.id)
+                if features.has("organizations:seer-explorer-context-engine", org):
+                    eligible_org_ids.append(org.id)
 
         return eligible_org_ids
 

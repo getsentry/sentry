@@ -12,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -50,13 +51,15 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const defaultQuery = new MutableSearch('');
-  defaultQuery.addFilterValue('is_transaction', '1');
-  defaultQuery.addFilterValue('transaction', transactionName);
+  const searchQuery = decodeScalar(location.query.query, '');
 
-  const countQuery = new MutableSearch('');
-  countQuery.addFilterValue('is_transaction', '1');
-  countQuery.addFilterValue('transaction', transactionName);
+  const defaultQuery = new MutableSearch(searchQuery);
+  defaultQuery.setFilterValues('is_transaction', ['true']);
+  defaultQuery.setFilterValues('transaction', [transactionName]);
+
+  const countQuery = new MutableSearch(searchQuery);
+  countQuery.setFilterValues('is_transaction', ['true']);
+  countQuery.setFilterValues('transaction', [transactionName]);
 
   const {data: numEvents, error: numEventsError} = useSpans(
     {

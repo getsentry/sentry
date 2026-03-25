@@ -102,7 +102,7 @@ export function MultiMetricsQueryParamsProvider({
               } else {
                 // the currently selected aggregation isn't supported on the new metric
                 const defaultAggregation =
-                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'per_second';
+                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
                 aggregateFields = [
                   updateVisualizeYAxis(visualize, defaultAggregation, newTraceMetric),
                   ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
