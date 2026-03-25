@@ -135,13 +135,15 @@ runs:
       env:
         WORKDIR: ${{ inputs.workdir }}
         ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
+        DEVSERVICES_TIMEOUT: ${{ inputs.devservices-timeout-minutes }}
+        DEVSERVICES_MODE: ${{ inputs.mode }}
       run: |
         sentry init
 
         # This is necessary to bring up devservices with appropriate sentry config
         cd "$WORKDIR"
 
-        timeout ${{ inputs.devservices-timeout-minutes }}m devservices up --mode ${{ inputs.mode }}
+        timeout "${DEVSERVICES_TIMEOUT}m" devservices up --mode "$DEVSERVICES_MODE"
 
         # have tests listen on the docker gateway ip so loopback can occur
         echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
