@@ -5,7 +5,10 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
 import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {
@@ -235,17 +238,17 @@ const TRANSACTIONS_TABLE: Widget = {
         SpanFields.PROJECT,
       ],
       fieldAliases: [
-        t('Starred'),
+        '',
         t('HTTP Method'),
         t('Transaction'),
         t('Operation'),
         t('Project'),
         t('TPM'),
-        'P50()',
-        'P95()',
+        WIDGET_COLUMN_LABELS.p50,
+        WIDGET_COLUMN_LABELS.p95,
         t('Failure rate'),
         t('Users'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       conditions: TABLE_QUERY.formatString(),
       orderby: '-sum(span.duration)',

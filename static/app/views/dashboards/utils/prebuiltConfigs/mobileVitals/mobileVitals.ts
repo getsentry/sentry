@@ -296,7 +296,7 @@ const APP_START_TABLE: Widget = {
         `count(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
-      fieldAliases: ['Screen', 'Cold Start', 'Warm Start', 'Screen Loads'],
+      fieldAliases: [t('Screen'), t('Cold Start'), t('Warm Start'), t('Screen Loads')],
       conditions: APP_START_CONDITION,
       orderby: '-count(span.duration)',
       linkedDashboards: [
@@ -340,7 +340,12 @@ const SCREEN_RENDERING_TABLE: Widget = {
         `count(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
-      fieldAliases: ['Transaction', 'Slow Frame %', 'Frozen Frame %', 'Screen Loads'],
+      fieldAliases: [
+        t('Transaction'),
+        t('Slow Frame %'),
+        t('Frozen Frame %'),
+        t('Screen Loads'),
+      ],
       conditions: SCREEN_RENDERING_CONDITION,
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
       linkedDashboards: [
@@ -384,7 +389,7 @@ const SCREEN_LOAD_TABLE: Widget = {
         `count(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
-      fieldAliases: ['Screen', 'TTID', 'TTFD', 'Screen Loads'],
+      fieldAliases: [t('Screen'), 'TTID', 'TTFD', t('Screen Loads')],
       conditions: SCREEN_LOAD_CONDITION,
       orderby: '-count(span.duration)',
       linkedDashboards: [

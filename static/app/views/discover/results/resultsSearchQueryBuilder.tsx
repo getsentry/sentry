@@ -143,8 +143,6 @@ export function ResultsSearchQueryBuilder(props: Props) {
     includeTransactions = true,
   } = props;
 
-  const organization = useOrganization();
-
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for events, users, tags, and more');
   }, [placeholder]);
@@ -160,13 +158,12 @@ export function ResultsSearchQueryBuilder(props: Props) {
       includeTransactions,
     });
 
-  // AI search is only enabled for Errors dataset
+  // AI search is only enabled for Errors dataset if translate endpoint is enabled
   const isErrorsDataset = dataset === DiscoverDatasets.ERRORS;
-  const areAiFeaturesAllowed =
-    isErrorsDataset &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
+  const organization = useOrganization();
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
 
   const searchBarProps = {
     placeholderText,
@@ -187,7 +184,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
     return (
       <SearchQueryBuilderProvider
         initialQuery={props.query ?? ''}
-        enableAISearch={areAiFeaturesAllowed}
+        enableAISearch={hasTranslateEndpoint}
         aiSearchBadgeType="alpha"
         disabled={disabled}
         fieldDefinitionGetter={undefined}
