@@ -56,12 +56,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
 
   const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
 
-  const {
-    eventView: _eventView,
-    organization,
-    withStaticFilters,
-    InteractiveTitle,
-  } = props;
+  const {eventView: _eventView, withStaticFilters, InteractiveTitle} = props;
 
   const withBreakpoint = !isCardinalityCheckLoading && !outcome?.forceTransactionsOnly;
 
