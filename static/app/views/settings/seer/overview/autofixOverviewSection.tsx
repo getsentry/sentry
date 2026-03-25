@@ -132,7 +132,9 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
                 <Button
                   size="xs"
                   busy={isLoading}
-                  disabled={stats.projectsWithReposCount === stats.totalProjects}
+                  disabled={
+                    !canWrite || stats.projectsWithReposCount === stats.totalProjects
+                  }
                   onClick={() => {
                     // TODO
                   }}
@@ -148,97 +150,95 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
           </field.Layout.Row>
         )}
       </AutoSaveForm>
-      <AutoSaveForm
-        name="autoOpenPrs"
-        schema={schema}
-        initialValue={organization.autoOpenPrs ?? false}
-        mutationOptions={orgMutationOpts}
-      >
-        {field => (
-          <field.Layout.Row
-            label={t('Allow Autofix to create PRs by Default')}
-            hintText={
-              <Stack gap="sm">
-                <span>
-                  {tct(
-                    'For all new projects with connected repos, Seer will be able to make pull requests for [docs:highly actionable] issues.',
-                    {
-                      docs: (
-                        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-                      ),
+      <Stack gap="md">
+        <AutoSaveForm
+          name="autoOpenPrs"
+          schema={schema}
+          initialValue={organization.autoOpenPrs ?? false}
+          mutationOptions={orgMutationOpts}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Allow Autofix to create PRs by Default')}
+              hintText={tct(
+                'For all new projects with connected repos, Seer will be able to make pull requests for [docs:highly actionable] issues.',
+                {
+                  docs: (
+                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                  ),
+                }
+              )}
+            >
+              <Grid columns="1fr 1fr" gap="lg">
+                <Container flexGrow={1}>
+                  <field.Switch
+                    checked={
+                      organization.enableSeerCoding === false ? false : field.state.value
                     }
-                  )}
-                </span>
-                {organization.enableSeerCoding === false && (
-                  <Alert variant="warning">
-                    {tct(
-                      '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
-                      {
-                        settings: (
-                          <Link
-                            to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
-                          />
-                        ),
-                      }
-                    )}
-                  </Alert>
-                )}
-              </Stack>
-            }
-          >
-            <Grid columns="1fr 1fr" gap="lg">
-              <Container flexGrow={1}>
-                <field.Switch
-                  checked={
-                    organization.enableSeerCoding === false ? false : field.state.value
-                  }
-                  onChange={field.handleChange}
-                  disabled={
-                    organization.enableSeerCoding === false
-                      ? t('Enable Code Generation to allow Autofix to create PRs.')
-                      : !canWrite
-                  }
-                />
-              </Container>
-              <Stack align="end" justify="center" gap="md">
-                <Text variant="secondary" size="sm">
-                  {field.state.value
-                    ? t(
-                        '%s of %s existing repos have Create PR disabled',
-                        stats.totalProjects - stats.projectsWithCreatePrCount,
-                        stats.totalProjects
-                      )
-                    : t(
-                        '%s of %s existing repos have Create PR enabled',
-                        stats.projectsWithCreatePrCount,
-                        stats.totalProjects
-                      )}
-                </Text>
-                <Button
-                  size="xs"
-                  busy={isLoading}
-                  disabled={stats.projectsWithReposCount === stats.totalProjects}
-                  onClick={() => {
-                    // TODO
-                  }}
-                >
-                  {field.state.value
-                    ? tn(
-                        'Enable for the existing project',
-                        'Enable for %s existing projects',
-                        stats.projectsWithReposCount
-                      )
-                    : tn(
-                        'Disable for the existing project',
-                        'Disable for %s existing projects',
-                        stats.projectsWithReposCount
-                      )}
-                </Button>
-              </Stack>
-            </Grid>
-          </field.Layout.Row>
+                    onChange={field.handleChange}
+                    disabled={
+                      organization.enableSeerCoding === false
+                        ? t('Enable Code Generation to allow Autofix to create PRs.')
+                        : !canWrite
+                    }
+                  />
+                </Container>
+                <Stack align="end" justify="center" gap="md">
+                  <Text variant="secondary" size="sm">
+                    {field.state.value
+                      ? t(
+                          '%s of %s existing repos have Create PR enabled',
+                          stats.projectsWithCreatePrCount,
+                          stats.totalProjects
+                        )
+                      : t(
+                          '%s of %s existing repos have Create PR disabled',
+                          stats.totalProjects - stats.projectsWithCreatePrCount,
+                          stats.totalProjects
+                        )}
+                  </Text>
+                  <Button
+                    size="xs"
+                    busy={isLoading}
+                    disabled={
+                      !canWrite ||
+                      organization.enableSeerCoding === false ||
+                      stats.projectsWithReposCount === stats.totalProjects
+                    }
+                    onClick={() => {
+                      // TODO
+                    }}
+                  >
+                    {field.state.value
+                      ? tn(
+                          'Enable for the existing project',
+                          'Enable for %s existing projects',
+                          stats.projectsWithReposCount
+                        )
+                      : tn(
+                          'Disable for the existing project',
+                          'Disable for %s existing projects',
+                          stats.projectsWithReposCount
+                        )}
+                  </Button>
+                </Stack>
+              </Grid>
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+        {organization.enableSeerCoding === false && (
+          <Alert variant="warning">
+            {tct(
+              '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+              {
+                settings: (
+                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                ),
+              }
+            )}
+          </Alert>
         )}
-      </AutoSaveForm>
+      </Stack>
     </FieldGroup>
   );
 }
