@@ -351,19 +351,10 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
             width="100%"
           >
             <Heading as="h3">{t('Recommended SDK')}</Heading>
-            {isDetecting ? (
-              <Stack gap="md" align="center" padding="xl">
+            <Stack gap="sm" align="center" width="100%">
+              {isDetecting ? (
                 <LoadingIndicator mini />
-                <Button
-                  size="xs"
-                  priority="link"
-                  onClick={() => setShowManualPicker(true)}
-                >
-                  {t('Skip detection and select manually')}
-                </Button>
-              </Stack>
-            ) : (
-              <Stack gap="sm" align="center" width="100%">
+              ) : (
                 <Grid
                   autoColumns="1fr"
                   flow="column"
@@ -382,20 +373,25 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                     />
                   ))}
                 </Grid>
-                <Button
-                  size="xs"
-                  priority="link"
-                  onClick={() => {
-                    setShowManualPicker(true);
+              )}
+
+              <Button
+                size="xs"
+                priority="link"
+                onClick={() => {
+                  setShowManualPicker(true);
+                  if (!isDetecting) {
                     trackAnalytics('onboarding.scm_platform_change_platform_clicked', {
                       organization,
                     });
-                  }}
-                >
-                  {t("Doesn't look right? Change platform")}
-                </Button>
-              </Stack>
-            )}
+                  }
+                }}
+              >
+                {isDetecting
+                  ? t('Skip detection and select manually')
+                  : t("Doesn't look right? Change platform")}
+              </Button>
+            </Stack>
           </MotionStack>
         ) : (
           <MotionStack
