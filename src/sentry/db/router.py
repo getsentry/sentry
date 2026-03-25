@@ -74,6 +74,7 @@ class SiloRouter:
         "releases_commitfilechange": SiloMode.CELL,
         "sentry_actor": SiloMode.CELL,
         "sentry_alertruleactivations": SiloMode.CELL,
+        "sentry_alertruleactivationconditions": SiloMode.CELL,
         "sentry_code_review_event": SiloMode.CELL,
         "sentry_dashboardwidgetsnapshot": SiloMode.CELL,
         "sentry_datasecrecywaiver": SiloMode.CELL,

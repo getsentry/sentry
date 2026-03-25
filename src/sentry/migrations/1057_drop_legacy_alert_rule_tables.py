@@ -2,7 +2,8 @@
 
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.new_migrations.monkey.special import SafeRunSQL
+from sentry.new_migrations.monkey.models import SafeDeleteModel
+from sentry.new_migrations.monkey.state import DeletionAction
 
 
 class Migration(CheckedMigration):
@@ -26,11 +27,6 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        # Addresses https://sentry.sentry.io/issues/7295196781/?project=1&query=is%3Aunresolved%20issue%3Asentry-5kfj&referrer=issue-stream
-        SafeRunSQL(
-            """
-            DROP TABLE IF EXISTS sentry_alertruleactivationcondition CASCADE;
-            """,
-            hints={"tables": ["sentry_alertruleactivationcondition"]},
-        ),
+        # Addresses https://sentry.sentry.io/issues/7295196781/
+        SafeDeleteModel(name="AlertRuleActivationCondition", deletion_action=DeletionAction.DELETE),
     ]
