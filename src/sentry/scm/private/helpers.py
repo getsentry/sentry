@@ -11,7 +11,7 @@ from sentry.scm.private.ipc import record_count_metric
 from sentry.scm.private.provider import Provider
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.private.providers.gitlab import GitLabProvider
-from sentry.scm.private.rate_limit import RateLimitProvider
+from sentry.scm.private.rate_limit import RateLimitProvider, RedisRateLimitProvider
 from sentry.scm.types import ExternalId, ProviderName, Referrer, Repository, RepositoryId
 
 
@@ -28,7 +28,10 @@ def map_integration_to_provider(
 
     if integration.provider == "github":
         return GitHubProvider(
-            client, organization_id, repository, rate_limit_provider=rate_limit_provider
+            client,
+            organization_id,
+            repository,
+            rate_limit_provider=rate_limit_provider or RedisRateLimitProvider(),
         )
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)

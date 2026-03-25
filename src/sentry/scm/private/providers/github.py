@@ -11,7 +11,6 @@ from sentry.scm.errors import SCMProviderException
 from sentry.scm.private.rate_limit import (
     DynamicRateLimiter,
     RateLimitProvider,
-    RedisRateLimitProvider,
 )
 from sentry.scm.types import (
     SHA,
@@ -325,13 +324,13 @@ class GitHubProvider:
         client: GitHubApiClient,
         organization_id: int,
         repository: Repository,
-        rate_limit_provider: RateLimitProvider | None = None,
+        rate_limit_provider: RateLimitProvider,
         get_time_in_seconds: Callable[[], int] = lambda: int(time.time()),
     ) -> None:
         self.client = GitHubProviderApiClient(
             client,
             organization_id=organization_id,
-            rate_limit_provider=rate_limit_provider or RedisRateLimitProvider(),
+            rate_limit_provider=rate_limit_provider,
             get_time_in_seconds=get_time_in_seconds,
         )
         self.organization_id = organization_id
