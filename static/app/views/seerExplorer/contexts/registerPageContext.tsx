@@ -23,7 +23,7 @@ interface RegisterPageContextOptions<P> {
  *     extract: (props) => ({ title: props.widget.title })
  *   })
  */
-export function registerPageContext<P extends Record<string, any>>(
+export function registerPageContext<P extends Record<string, unknown>>(
   nodeType: string,
   WrappedComponent: ComponentType<P>,
   options?: RegisterPageContextOptions<P>
@@ -49,7 +49,8 @@ export function registerPageContext<P extends Record<string, any>>(
     const extractedData = options?.extract ? options.extract(props) : undefined;
     usePageContext(nodeIdRef.current, extractedData ?? {});
 
-    return <WrappedComponent {...props} />;
+    // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+    return <WrappedComponent {...(props as any)} />;
   }
 
   PageContextWrapper.displayName = `registerPageContext(${nodeType}, ${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`;
