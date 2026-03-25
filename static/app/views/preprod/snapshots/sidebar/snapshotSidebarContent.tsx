@@ -127,6 +127,20 @@ export function SnapshotSidebarContent({
   }, [items, isDiffMode]);
 
   useEffect(() => {
+    if (!currentItemKey || !groupedItems) {
+      return;
+    }
+    for (const [sectionType, sectionItems] of groupedItems.entries()) {
+      if (sectionItems.some(item => item.key === currentItemKey)) {
+        setExpandedSections(prev =>
+          prev[sectionType] ? prev : {...prev, [sectionType]: true}
+        );
+        break;
+      }
+    }
+  }, [currentItemKey, groupedItems]);
+
+  useEffect(() => {
     if (!listRef.current || !currentItemKey) {
       return;
     }

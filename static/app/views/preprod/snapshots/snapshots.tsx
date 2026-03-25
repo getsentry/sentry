@@ -18,7 +18,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {ComparisonState, getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  ComparisonState,
+  DiffStatus,
+  getImageGroup,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -32,6 +36,16 @@ import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import {SnapshotMainContent} from './main/snapshotMainContent';
 import {SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
+
+// Must match SECTION_ORDER in snapshotSidebarContent so keyboard
+// navigation follows the visual section order.
+const DIFF_TYPE_ORDER: Record<string, number> = {
+  [DiffStatus.CHANGED]: 0,
+  [DiffStatus.ADDED]: 1,
+  [DiffStatus.REMOVED]: 2,
+  [DiffStatus.RENAMED]: 3,
+  [DiffStatus.UNCHANGED]: 4,
+};
 
 export default function SnapshotsPage() {
   const organization = useOrganization();
@@ -112,47 +126,30 @@ export default function SnapshotsPage() {
     if (comparisonType === 'diff') {
       const items: SidebarItem[] = [];
 
-      const changedGroups = new Map<string, SnapshotDiffPair[]>();
-      for (const pair of data.changed) {
-        const group = getImageGroup(pair.head_image);
-        const existing = changedGroups.get(group);
-        if (existing) {
-          existing.push(pair);
-        } else {
-          changedGroups.set(group, [pair]);
+      const groupDiffPairs = (pairs: SnapshotDiffPair[], type: 'changed' | 'renamed') => {
+        const groups = new Map<string, SnapshotDiffPair[]>();
+        for (const pair of pairs) {
+          const group = getImageGroup(pair.head_image);
+          const existing = groups.get(group);
+          if (existing) {
+            existing.push(pair);
+          } else {
+            groups.set(group, [pair]);
+          }
         }
-      }
-      for (const [groupKey, pairs] of changedGroups) {
-        const label = pairs[0]!.head_image.group ?? pairs[0]!.head_image.image_file_name;
-        items.push({
-          type: 'changed',
-          key: `changed:${groupKey}`,
-          name: label,
-          badge: null,
-          pairs,
-        });
-      }
-
-      const renamedGroups = new Map<string, SnapshotDiffPair[]>();
-      for (const pair of data.renamed ?? []) {
-        const group = getImageGroup(pair.head_image);
-        const existing = renamedGroups.get(group);
-        if (existing) {
-          existing.push(pair);
-        } else {
-          renamedGroups.set(group, [pair]);
+        for (const [groupKey, groupedPairs] of groups) {
+          const label =
+            groupedPairs[0]!.head_image.group ??
+            groupedPairs[0]!.head_image.image_file_name;
+          items.push({
+            type,
+            key: `${type}:${groupKey}`,
+            name: label,
+            badge: null,
+            pairs: groupedPairs,
+          });
         }
-      }
-      for (const [groupKey, pairs] of renamedGroups) {
-        const label = pairs[0]!.head_image.group ?? pairs[0]!.head_image.image_file_name;
-        items.push({
-          type: 'renamed',
-          key: `renamed:${groupKey}`,
-          name: label,
-          badge: null,
-          pairs,
-        });
-      }
+      };
 
       const groupImages = (
         imgs: SnapshotImage[],
@@ -180,9 +177,15 @@ export default function SnapshotsPage() {
         }
       };
 
+      groupDiffPairs(data.changed, 'changed');
+      groupDiffPairs(data.renamed ?? [], 'renamed');
       groupImages(data.added, 'added');
       groupImages(data.removed, 'removed');
       groupImages(data.unchanged, 'unchanged');
+
+      items.sort(
+        (a, b) => (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99)
+      );
 
       computeSidebarBadges(items);
       return items;
