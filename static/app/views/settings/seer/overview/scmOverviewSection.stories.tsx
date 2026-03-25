@@ -1,12 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, type ComponentProps} from 'react';
 
 import * as Storybook from 'sentry/stories';
 import type {
   IntegrationRepository,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import {SeerOverview} from 'sentry/views/settings/seer/overview/components';
-import {SCMOverviewSectionView} from 'sentry/views/settings/seer/overview/scmOverviewSection';
+import {SCMOverviewSection} from 'sentry/views/settings/seer/overview/scmOverviewSection';
 
 const GITHUB_INTEGRATION: OrganizationIntegration = {
   id: '1',
@@ -38,7 +37,7 @@ const REPOS: IntegrationRepository[] = [
   {identifier: 'my-org/infra', name: 'my-org/infra', isInstalled: true},
 ];
 
-const BASE_PROPS = {
+const BASE_PROPS: ComponentProps<typeof SCMOverviewSection> = {
   canWrite: true,
   organizationSlug: 'my-org',
   isError: false,
@@ -70,94 +69,99 @@ export default Storybook.story('SCMOverviewSection', story => {
   ));
 
   story('Loading', () => (
-    <SeerOverview>
-      <SCMOverviewSectionView
-        {...BASE_PROPS}
-        isPending
-        supportedScmIntegrations={[]}
-        seerRepos={[]}
-        connectedRepos={[]}
-        unconnectedRepos={[]}
-      />
-    </SeerOverview>
+    <SCMOverviewSection
+      {...BASE_PROPS}
+      isPending
+      supportedScmIntegrations={[]}
+      seerRepos={[]}
+      connectedRepos={[]}
+      unconnectedRepos={[]}
+    />
   ));
 
   story('Error', () => (
-    <SeerOverview>
-      <SCMOverviewSectionView
-        {...BASE_PROPS}
-        isError
-        supportedScmIntegrations={[]}
-        seerRepos={[]}
-        connectedRepos={[]}
-        unconnectedRepos={[]}
-      />
-    </SeerOverview>
+    <SCMOverviewSection
+      {...BASE_PROPS}
+      isError
+      supportedScmIntegrations={[]}
+      seerRepos={[]}
+      connectedRepos={[]}
+      unconnectedRepos={[]}
+    />
   ));
 
   story('No supported integrations installed', () => (
-    <SeerOverview>
-      <SCMOverviewSectionView
-        {...BASE_PROPS}
-        supportedScmIntegrations={[]}
-        seerRepos={[]}
-        connectedRepos={[]}
-        unconnectedRepos={[]}
-      />
-    </SeerOverview>
+    <SCMOverviewSection
+      {...BASE_PROPS}
+      supportedScmIntegrations={[]}
+      seerRepos={[]}
+      connectedRepos={[]}
+      unconnectedRepos={[]}
+    />
   ));
 
   story('Integration installed, provider has no accessible repos', () => (
-    <SeerOverview>
-      <SCMOverviewSectionView
-        {...BASE_PROPS}
-        seerRepos={[]}
-        connectedRepos={[]}
-        unconnectedRepos={[]}
-      />
-    </SeerOverview>
+    <SCMOverviewSection
+      {...BASE_PROPS}
+      seerRepos={[]}
+      connectedRepos={[]}
+      unconnectedRepos={[]}
+    />
   ));
 
-  story('Integration installed, repos visible but none added to Sentry', () => (
-    <SeerOverview>
-      <SCMOverviewSectionView {...BASE_PROPS} />
-    </SeerOverview>
+  story('Integration installed, 1 repo visible but none added to Sentry', () => (
+    <SCMOverviewSection {...BASE_PROPS} seerRepos={REPOS.slice(0, 1)} />
   ));
 
-  story('Some repos connected', () => (
-    <SeerOverview>
-      <SCMOverviewSectionView
-        {...BASE_PROPS}
-        connectedRepos={REPOS.slice(0, 1)}
-        unconnectedRepos={REPOS.slice(1).map(repo => ({
-          repo,
-          integration: GITHUB_INTEGRATION,
-        }))}
-      />
-    </SeerOverview>
+  story('Integration installed, >1 repos visible but none added to Sentry', () => (
+    <SCMOverviewSection {...BASE_PROPS} />
   ));
 
-  story('All repos connected', () => (
-    <SeerOverview>
-      <SCMOverviewSectionView
-        {...BASE_PROPS}
-        connectedRepos={REPOS}
-        unconnectedRepos={[]}
-      />
-    </SeerOverview>
+  story('Loading more repos', () => (
+    <SCMOverviewSection
+      {...BASE_PROPS}
+      isReposPending
+      connectedRepos={REPOS.slice(0, 1)}
+      unconnectedRepos={REPOS.slice(1).map(repo => ({
+        repo,
+        isReposPending: true,
+        integration: GITHUB_INTEGRATION,
+      }))}
+    />
+  ));
+
+  story('1 of 1 repo added', () => (
+    <SCMOverviewSection
+      {...BASE_PROPS}
+      connectedRepos={REPOS.slice(0, 1)}
+      unconnectedRepos={[]}
+    />
+  ));
+
+  story('Some repos added', () => (
+    <SCMOverviewSection
+      {...BASE_PROPS}
+      connectedRepos={REPOS.slice(0, 1)}
+      unconnectedRepos={REPOS.slice(1).map(repo => ({
+        repo,
+        integration: GITHUB_INTEGRATION,
+      }))}
+    />
+  ));
+
+  story('All repos added', () => (
+    <SCMOverviewSection {...BASE_PROPS} connectedRepos={REPOS} unconnectedRepos={[]} />
   ));
 
   story('Read-only (canWrite: false)', () => (
-    <SeerOverview>
-      <SCMOverviewSectionView
-        {...BASE_PROPS}
-        canWrite={false}
-        connectedRepos={REPOS.slice(0, 1)}
-        unconnectedRepos={REPOS.slice(1).map(repo => ({
-          repo,
-          integration: GITHUB_INTEGRATION,
-        }))}
-      />
-    </SeerOverview>
+    <SCMOverviewSection
+      {...BASE_PROPS}
+      canWrite={false}
+      connectedRepos={REPOS.slice(0, 1)}
+      unconnectedRepos={REPOS.slice(1).map(repo => ({
+        repo,
+        integration: GITHUB_INTEGRATION,
+      }))}
+    />
   ));
 });

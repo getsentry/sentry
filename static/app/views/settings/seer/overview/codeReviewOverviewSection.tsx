@@ -3,21 +3,18 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSettings} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SeerOverview} from 'sentry/views/settings/seer/overview/components';
 import {useSeerOverviewData} from 'sentry/views/settings/seer/overview/useSeerOverviewData';
 
 interface Props {
@@ -49,17 +46,6 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
       title={
         <Flex justify="between" gap="md" flexGrow={1}>
           <span>{t('Code Review')}</span>
-          {/* <QuestionTooltip
-            isHoverable
-            title={tct(
-              'These settings apply as new projects are created. Any [link:existing projects] will not be affected.',
-              {
-                link: <Link to={`/settings/${organization.slug}/seer/projects/`} />,
-              }
-            )}
-            size="xs"
-            icon="info"
-          /> */}
           <Text uppercase={false}>
             <Link to={`/settings/${organization.slug}/seer/repos/`}>
               <Flex align="center" gap="xs">

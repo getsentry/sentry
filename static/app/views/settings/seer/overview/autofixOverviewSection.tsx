@@ -4,7 +4,6 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -12,13 +11,11 @@ import {Text} from '@sentry/scraps/text';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSettings} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SeerOverview} from 'sentry/views/settings/seer/overview/components';
 import {useSeerOverviewData} from 'sentry/views/settings/seer/overview/useSeerOverviewData';
 import {useAgentOptions} from 'sentry/views/settings/seer/seerAgentHooks';
 
@@ -84,17 +81,6 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
       title={
         <Flex justify="between" gap="md" flexGrow={1}>
           <span>{t('Autofix')}</span>
-          {/* <QuestionTooltip
-            isHoverable
-            title={tct(
-              'These settings apply as new projects are created. Any [link:existing projects] will not be affected.',
-              {
-                link: <Link to={`/settings/${organization.slug}/seer/projects/`} />,
-              }
-            )}
-            size="xs"
-            icon="info"
-          /> */}
           <Text uppercase={false}>
             <Link to={`/settings/${organization.slug}/seer/projects/`}>
               <Flex align="center" gap="xs">

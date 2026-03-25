@@ -18,8 +18,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {AutofixOverviewSection} from 'sentry/views/settings/seer/overview/autofixOverviewSection';
 import {CodeReviewOverviewSection} from 'sentry/views/settings/seer/overview/codeReviewOverviewSection';
-import {SeerOverview} from 'sentry/views/settings/seer/overview/components';
-import {SCMOverviewSection} from 'sentry/views/settings/seer/overview/scmOverviewSection';
+import {
+  SCMOverviewSection,
+  useSCMOverviewSection,
+} from 'sentry/views/settings/seer/overview/scmOverviewSection';
 import {useSeerOverviewData} from 'sentry/views/settings/seer/overview/useSeerOverviewData';
 
 import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
@@ -40,6 +42,8 @@ export function SeerAutomationSettings() {
   const canWrite = useCanWriteSettings();
 
   const showSeerOverview = organization.features.includes('seer-overview');
+
+  const scmOverviewData = useSCMOverviewSection();
   const {stats, isLoading} = useSeerOverviewData();
 
   const orgEndpoint = `/organizations/${organization.slug}/`;
@@ -86,9 +90,11 @@ export function SeerAutomationSettings() {
       <SeerSettingsPageContent>
         {showSeerOverview ? (
           <Fragment>
-            <SeerOverview>
-              <SCMOverviewSection canWrite={canWrite} />
-            </SeerOverview>
+            <SCMOverviewSection
+              organizationSlug={organization.slug}
+              canWrite={canWrite}
+              {...scmOverviewData}
+            />
             <AutofixOverviewSection stats={stats} isLoading={isLoading} />
             <CodeReviewOverviewSection stats={stats} isLoading={isLoading} />
           </Fragment>
