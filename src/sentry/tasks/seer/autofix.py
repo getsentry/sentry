@@ -107,7 +107,7 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
 def generate_issue_summary_only(group_id: int) -> None:
     """
     Generate issue summary WITHOUT triggering automation.
-    Used for triage signals flow when event count < 10 or when summary doesn't exist yet.
+    Used for triage signals flow when event count < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD or when summary doesn't exist yet.
     """
     from sentry.seer.autofix.issue_summary import (
         get_and_update_group_fixability_score,
@@ -150,7 +150,7 @@ def generate_issue_summary_only(group_id: int) -> None:
 def run_automation_only_task(group_id: int) -> None:
     """
     Run automation directly for a group (assumes summary and fixability already exist).
-    Used for triage signals flow when event count >= 10 and summary exists.
+    Used for triage signals flow when event count >= AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD and summary exists.
     """
     from django.contrib.auth.models import AnonymousUser
 

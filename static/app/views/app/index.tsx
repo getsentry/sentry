@@ -1,4 +1,4 @@
-import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
+import {lazy, Suspense, useCallback, useEffect} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -231,10 +231,6 @@ export function App() {
     [preloadData]
   );
 
-  // Used to restore focus to the container after closing the modal
-  const mainContainerRef = useRef<HTMLDivElement>(null);
-  const handleModalClose = useCallback(() => mainContainerRef.current?.focus?.(), []);
-
   return (
     <Profiler id="App" onRender={onRenderCallback}>
       <UserTimezoneProvider>
@@ -243,10 +239,10 @@ export function App() {
             {renderOrganizationContextProvider(
               <AsyncSDKIntegrationContextProvider>
                 <GlobalFeedbackForm>
-                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                  <MainContainer tabIndex={-1}>
                     <DemoToursProvider>
                       <ExplorerPanelProvider>
-                        <GlobalModal onClose={handleModalClose} />
+                        <GlobalModal />
                         <ExplorerPanel />
                         <Indicators className="indicators-container" />
                         <ErrorBoundary>{renderBody()}</ErrorBoundary>

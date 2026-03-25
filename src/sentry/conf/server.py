@@ -1416,7 +1416,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
-    "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
 }
 

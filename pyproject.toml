@@ -143,7 +143,7 @@ default = true
 
 [dependency-groups]
 dev = [
-  "codeowners-coverage>=0.2.1",
+  "codeowners-coverage>=0.3.0",
   "covdefaults>=2.3.0",
   "devservices>=1.2.4",
   "docker>=7.1.0",
@@ -161,7 +161,7 @@ dev = [
   "pre-commit>=4.2.0",
   "pytest>=8.1.2",
   "pytest-cov>=4.0.0",
-  "pytest-django>=4.9.0",
+  "pytest-django>=4.12.0",
   "pytest-fail-slow>=0.3.0",
   "pytest-json-report>=1.5.0",
   "pytest-rerunfailures>=15.0",
