@@ -57,7 +57,7 @@ function UserAndOrganizationNavigation() {
           },
           {
             match: ['command+b', 'ctrl+b'],
-            callback: () => setView(view === 'collapsed' ? 'expanded' : 'collapsed'),
+            callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
           },
         ]
   );
