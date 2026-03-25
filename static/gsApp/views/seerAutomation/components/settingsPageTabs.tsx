@@ -16,14 +16,14 @@ export function SettingsPageTabs() {
     showNewSeer(organization)
       ? [
           [t('Overview'), '/seer/'],
-          [t('Source Code Management'), '/seer/scm/'],
+          [t('Repositories'), '/seer/scm/'],
           [t('Autofix'), '/seer/projects/'],
           [t('Code Review'), '/seer/repos/'],
         ]
       : [
           [t('Autofix'), '/seer/'],
           [t('Code Review'), '/seer/repos/'],
-          [t('Source Code Management'), '/seer/scm/'],
+          [t('Repositories'), '/seer/scm/'],
         ]
   ) satisfies Array<[string, string]>;
 
@@ -34,16 +34,8 @@ export function SettingsPageTabs() {
           {tabs.map(([label, to]) => {
             const tabPath = prefix + to;
             const normalized = normalizeUrl(tabPath);
-            // We need to normalize the `key` prop because that value is used to
-            // identify which tab to highlight, the value needs to match the
-            // value of the `value` prop on the `Tabs` component.
-            // The Tab component will render `TabLink` which extends `Link`and
-            // normalizes the url for us.
-            //
-            // If we manually make the call then it'll be double-normalized,
-            // we'd have `/settings/repos/` instead of `/settings/seer/repos/`.
             return (
-              <TabList.Item key={normalized} to={{pathname: tabPath}}>
+              <TabList.Item key={normalized} to={normalized}>
                 {label}
               </TabList.Item>
             );

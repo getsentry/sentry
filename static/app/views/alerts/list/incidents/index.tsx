@@ -9,7 +9,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {CreateAlertButton} from 'sentry/components/createAlertButton';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {DeprecatedAsyncComponent} from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {Pagination} from 'sentry/components/pagination';

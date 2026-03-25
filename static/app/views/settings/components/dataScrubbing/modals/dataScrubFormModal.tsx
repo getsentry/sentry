@@ -45,7 +45,7 @@ import {
 
 import {AttributeField} from './form/attributeField';
 import {EventIdField} from './form/eventIdField';
-import SourceField from './form/sourceField';
+import {SourceField} from './form/sourceField';
 import {ErrorType, handleError} from './handleError';
 import {hasCaptureGroups, useSourceGroupData} from './utils';
 

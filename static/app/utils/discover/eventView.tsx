@@ -294,7 +294,7 @@ export type EventViewOptions = {
   yAxis?: string | string[] | undefined;
 };
 
-class EventView {
+export class EventView {
   id: string | undefined;
   name: string | undefined;
   fields: readonly Field[];
@@ -1581,5 +1581,3 @@ export function pickRelevantLocationQueryStrings(location: Location) {
 
   return picked;
 }
-
-export default EventView;

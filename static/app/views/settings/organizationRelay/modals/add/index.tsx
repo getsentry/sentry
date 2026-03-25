@@ -4,12 +4,12 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {List} from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
-import ModalManager from 'sentry/views/settings/organizationRelay/modals/modalManager';
+import {ModalManager} from 'sentry/views/settings/organizationRelay/modals/modalManager';
 
 import {Item} from './item';
 import {Terminal} from './terminal';
 
-class Add extends ModalManager {
+export class Add extends ModalManager {
   getTitle() {
     return t('Register Key');
   }
@@ -62,8 +62,6 @@ class Add extends ModalManager {
     );
   }
 }
-
-export default Add;
 
 const StyledList = styled(List)`
   display: grid;

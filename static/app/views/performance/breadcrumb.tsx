@@ -8,7 +8,7 @@ import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {DOMAIN_VIEW_BASE_TITLE} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 
-import type Tab from './transactionSummary/tabs';
+import type {Tab} from './transactionSummary/tabs';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 
 type Props = {

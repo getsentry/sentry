@@ -55,7 +55,7 @@ import {FirstPartyIntegrationAlertHook} from 'getsentry/hooks/firstPartyIntegrat
 import GithubInstallationSelectInstallButton from 'getsentry/hooks/githubInstallationSelectInstall';
 import {handleGuideUpdate} from 'getsentry/hooks/handleGuideUpdate';
 import {handleMonitorCreated} from 'getsentry/hooks/handleMonitorCreated';
-import hookIntegrationFeatures from 'getsentry/hooks/integrationFeatures';
+import {hookIntegrationFeatures} from 'getsentry/hooks/integrationFeatures';
 import {legacyOrganizationRedirectRoutes} from 'getsentry/hooks/legacyOrganizationRedirectRoutes';
 import MemberListHeader from 'getsentry/hooks/memberListHeader';
 import {OrganizationMembershipSettingsForm} from 'getsentry/hooks/organizationMembershipSettingsForm';

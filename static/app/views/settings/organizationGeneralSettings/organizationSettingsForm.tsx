@@ -437,7 +437,10 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
     ...defaultFormOptions,
     defaultValues: {slug: initialData.slug},
     validators: {onDynamic: slugSchema},
-    onSubmit: ({value}) => updateSlug({slug: value.slug}).catch(() => {}),
+    onSubmit: ({value}) =>
+      updateSlug({slug: value.slug})
+        .then(() => slugForm.reset())
+        .catch(() => {}),
   });
 
   return (

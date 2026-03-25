@@ -76,7 +76,7 @@ function solutionArtifactToMarkdown(artifact: Artifact<SolutionArtifact>): strin
     return null;
   }
 
-  const parts: string[] = ['# Implementation Plan', '', solution.one_line_summary];
+  const parts: string[] = ['# Plan', '', solution.one_line_summary];
 
   if (solution.steps.length) {
     parts.push('');

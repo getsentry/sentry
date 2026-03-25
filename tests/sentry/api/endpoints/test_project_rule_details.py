@@ -24,6 +24,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow
@@ -239,6 +240,25 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_engine_serializer_single_written_rule(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=200
+        )
+        assert response.data["id"] == str(self.fake_workflow_id)
+        assert response.data["environment"] is None
+        assert response.data["conditions"][0]["name"]
+        assert response.data["filters"][0]["name"]
+
+    @with_feature("organizations:workflow-engine-projectruledetailsendpoint-get")
+    def test_workflow_engine_granular_flag_dual_written_rule(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["environment"] is None
+        assert response.data["conditions"][0]["name"]
+
+    @with_feature("organizations:workflow-engine-projectruledetailsendpoint-get")
+    def test_workflow_engine_granular_flag_single_written_rule(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=200
         )
@@ -1912,3 +1932,86 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
         assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
         assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
+
+
+class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):
+    def test_dual_written_rule_parity(self) -> None:
+        rule = self.create_project_rule(
+            project=self.project,
+            name="Production alert",
+            action_match="any",
+            frequency=60,
+            environment_id=self.environment.id,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                    "interval": "1h",
+                    "value": 50,
+                    "comparisonType": "count",
+                    "name": "The issue is seen more than 50 times in 1h",
+                },
+            ],
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                    "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                }
+            ],
+        )
+
+        legacy_response = self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200
+        )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            we_response = self.get_success_response(
+                self.organization.slug, self.project.slug, rule.id, status_code=200
+            )
+
+        assert legacy_response.data["id"] == str(rule.id)
+        assert_serializer_parity(old=legacy_response.data, new=we_response.data)
+
+    def test_dual_written_rule_with_filters_parity(self) -> None:
+        rule = self.create_project_rule(
+            project=self.project,
+            name="Alert with filters",
+            action_match="all",
+            frequency=30,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
+                    "value": 10,
+                    "name": "The issue has happened at least 10 times",
+                },
+            ],
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                    "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                }
+            ],
+        )
+
+        legacy_response = self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200
+        )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            we_response = self.get_success_response(
+                self.organization.slug, self.project.slug, rule.id, status_code=200
+            )
+
+        assert legacy_response.data["id"] == str(rule.id)
+        assert_serializer_parity(old=legacy_response.data, new=we_response.data)

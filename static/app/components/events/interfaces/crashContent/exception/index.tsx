@@ -1,4 +1,4 @@
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

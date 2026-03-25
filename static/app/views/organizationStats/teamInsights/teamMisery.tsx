@@ -17,7 +17,7 @@ import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
