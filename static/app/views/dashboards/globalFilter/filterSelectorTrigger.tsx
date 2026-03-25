@@ -30,12 +30,8 @@ export function FilterSelectorTrigger({
   const {isFetching} = queryResult;
   const {tag} = globalFilter;
 
-  const shouldShowBadge =
-    !isFetching &&
-    activeFilterValues.length > 1 &&
-    activeFilterValues.length !== options.length;
-  const isAllSelected =
-    activeFilterValues.length === 0 || activeFilterValues.length === options.length;
+  const shouldShowBadge = !isFetching && activeFilterValues.length > 1;
+  const isAllSelected = activeFilterValues.length === 0;
 
   const tagKey = prettifyTagKey(tag.key);
   const filterValue = activeFilterValues[0] ?? '';
