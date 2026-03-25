@@ -3677,8 +3677,8 @@ register(
 )
 # Tuning knobs for the periodic fire-history cleanup task.
 # time_limit is a wall-clock budget checked *between* batches, so a single
-# batch that exceeds it will still run to completion. Setting it to 0 allows
-# exactly one batch (elapsed time is always >= 0).
+# batch that exceeds it will still run to completion. Setting it to 0
+# prevents any batches from running.
 register(
     "workflow_engine.fire_history_cleanup.time_limit_seconds",
     type=Float,
