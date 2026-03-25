@@ -1,6 +1,9 @@
 import {useMemo, useState} from 'react';
 
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
+import {
+  useCommandPaletteActions,
+  useCommandPaletteQueryState,
+} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {fzf} from 'sentry/utils/search/fzf';
 
@@ -56,7 +59,7 @@ function flattenActions(
 }
 
 export function useCommandPaletteState() {
-  const [query, setQuery] = useState('');
+  const {query, setQuery} = useCommandPaletteQueryState();
   const actions = useCommandPaletteActions();
 
   const [selectedAction, setSelectedAction] =

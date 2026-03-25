@@ -1,4 +1,11 @@
-import {createContext, useCallback, useContext, useReducer} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useReducer,
+  useState,
+} from 'react';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -7,6 +14,11 @@ import type {CommandPaletteActionWithKey} from './types';
 type CommandPaletteProviderProps = {children: React.ReactNode};
 
 type CommandPaletteActions = CommandPaletteActionWithKey[];
+
+interface CommandPaletteQueryState {
+  query: string;
+  setQuery: React.Dispatch<React.SetStateAction<string>>;
+}
 
 type Unregister = () => void;
 type CommandPaletteRegistration = (actions: CommandPaletteActionWithKey[]) => Unregister;
@@ -24,6 +36,7 @@ type CommandPaletteActionReducerAction =
 const CommandPaletteRegistrationContext =
   createContext<CommandPaletteRegistration | null>(null);
 const CommandPaletteActionsContext = createContext<CommandPaletteActions | null>(null);
+const CommandPaletteQueryContext = createContext<CommandPaletteQueryState | null>(null);
 
 export function useCommandPaletteRegistration(): CommandPaletteRegistration {
   const ctx = useContext(CommandPaletteRegistrationContext);
@@ -39,6 +52,16 @@ export function useCommandPaletteActions(): CommandPaletteActionWithKey[] {
   const ctx = useContext(CommandPaletteActionsContext);
   if (ctx === null) {
     throw new Error('useCommandPaletteActions must be wrapped in CommandPaletteProvider');
+  }
+  return ctx;
+}
+
+export function useCommandPaletteQueryState(): CommandPaletteQueryState {
+  const ctx = useContext(CommandPaletteQueryContext);
+  if (ctx === null) {
+    throw new Error(
+      'useCommandPaletteQueryState must be wrapped in CommandPaletteProvider'
+    );
   }
   return ctx;
 }
@@ -74,6 +97,8 @@ function actionsReducer(
 
 export function CommandPaletteProvider({children}: CommandPaletteProviderProps) {
   const [actions, dispatch] = useReducer(actionsReducer, []);
+  const [query, setQuery] = useState('');
+  const queryState = useMemo(() => ({query, setQuery}), [query]);
 
   const registerActions = useCallback(
     (newActions: CommandPaletteActionWithKey[]) => {
@@ -88,7 +113,9 @@ export function CommandPaletteProvider({children}: CommandPaletteProviderProps) 
   return (
     <CommandPaletteRegistrationContext.Provider value={registerActions}>
       <CommandPaletteActionsContext.Provider value={actions}>
-        {children}
+        <CommandPaletteQueryContext.Provider value={queryState}>
+          {children}
+        </CommandPaletteQueryContext.Provider>
       </CommandPaletteActionsContext.Provider>
     </CommandPaletteRegistrationContext.Provider>
   );

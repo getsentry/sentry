@@ -5,12 +5,18 @@ export type CommandPaletteGroupKey = 'search-result' | 'navigate' | 'add' | 'hel
 
 interface CommonCommandPaletteAction {
   display: {
-    /** Primary text shown to the user */
+    /** Primary text shown to the user. Used for fuzzy search and key generation. */
     label: string;
     /** Additional context or description */
     details?: string;
     /** Icon to render for this action */
     icon?: ReactNode;
+    /**
+     * Optional rich label to render instead of the plain text `label`.
+     * When provided, this is displayed in the palette while `label` is still used
+     * for fuzzy search matching and key generation.
+     */
+    labelNode?: ReactNode;
   };
   /** Section to group the action in the palette */
   groupingKey?: CommandPaletteGroupKey;
