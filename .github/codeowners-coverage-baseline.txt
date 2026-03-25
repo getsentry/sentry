@@ -11,22 +11,11 @@
 src/sentry/data/error-**
 src/sentry/locale/**
 
-.agents/skills/design-system/SKILL.md
-.agents/skills/generate-frontend-forms/SKILL.md
-.agents/skills/lint-fix/SKILL.md
-.agents/skills/lint-fix/references/fix-patterns.md
-.agents/skills/lint-fix/references/token-taxonomy.md
-.agents/skills/lint-new/SKILL.md
-.agents/skills/lint-new/references/rule-archetypes.md
-.agents/skills/lint-new/references/schema-patterns.md
-.agents/skills/lint-new/references/style-collector-guide.md
-.agents/skills/migrate-frontend-forms/SKILL.md
 .agents/skills/notification-platform/SKILL.md
 .agents/skills/notification-platform/references/custom-renderers.md
 .agents/skills/notification-platform/references/data-and-templates.md
 .agents/skills/notification-platform/references/provider-template.md
 .agents/skills/notification-platform/references/targets-and-sending.md
-.agents/skills/react-component-documentation/SKILL.md
 .agents/skills/setup-dev/SKILL.md
 .agents/skills/setup-dev/references/orbstack-fix.md
 .codeowners-config.yml
@@ -68,9 +57,7 @@ bin/split-silo-database
 bin/update-migration
 config/build-chartcuterie.ts
 config/commit-template
-figma.config.json
 jest.config.snapshots.ts
-knip.config.ts
 migrations_lockfile.txt
 rspack.config.ts
 src/AGENTS.md
@@ -869,7 +856,6 @@ static/app/components/modals/explore/saveQueryModal.spec.tsx
 static/app/components/modals/explore/saveQueryModal.tsx
 static/app/components/modals/featureTourModal.spec.tsx
 static/app/components/modals/featureTourModal.tsx
-static/app/components/modals/generateDashboardFromSeerModal.tsx
 static/app/components/modals/helpSearchModal.spec.tsx
 static/app/components/modals/helpSearchModal.tsx
 static/app/components/modals/importDashboardFromFileModal.tsx
@@ -1071,7 +1057,6 @@ static/app/components/repositories/scmIntegrationTree/useScmTreeFilters.tsx
 static/app/components/repositories/scmRepoTreeModal.tsx
 static/app/components/repositoryRow.spec.tsx
 static/app/components/repositoryRow.tsx
-static/app/components/reprocessedBox.tsx
 static/app/components/resolutionBox.spec.tsx
 static/app/components/resolutionBox.tsx
 static/app/components/resourceCard.tsx
@@ -2524,14 +2509,12 @@ tests/sentry/tasks/test_activity.py
 tests/sentry/tasks/test_assemble.py
 tests/sentry/tasks/test_auth.py
 tests/sentry/tasks/test_auto_enable_codecov.py
-tests/sentry/tasks/test_autofix.py
 tests/sentry/tasks/test_base.py
 tests/sentry/tasks/test_beacon.py
 tests/sentry/tasks/test_check_am2_compatibility.py
 tests/sentry/tasks/test_check_auth.py
 tests/sentry/tasks/test_collect_project_platforms.py
 tests/sentry/tasks/test_commits.py
-tests/sentry/tasks/test_context_engine_index.py
 tests/sentry/tasks/test_delete_pending_groups.py
 tests/sentry/tasks/test_digests.py
 tests/sentry/tasks/test_email.py
@@ -2541,8 +2524,6 @@ tests/sentry/tasks/test_organization_contributors.py
 tests/sentry/tasks/test_process_buffer.py
 tests/sentry/tasks/test_relay.py
 tests/sentry/tasks/test_reprocessing2.py
-tests/sentry/tasks/test_seer.py
-tests/sentry/tasks/test_seer_explorer_index.py
 tests/sentry/tasks/test_store.py
 tests/sentry/tasks/test_symbolication.py
 tests/sentry/tasks/test_update_code_owners_schema.py

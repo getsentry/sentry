@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOrganization} from 'sentry/utils/useOrganization';

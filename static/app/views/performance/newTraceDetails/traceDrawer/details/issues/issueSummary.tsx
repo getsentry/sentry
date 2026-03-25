@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventTitleError} from 'sentry/components/eventTitleError';
 import {GroupTitle} from 'sentry/components/groupTitle';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';

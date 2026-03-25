@@ -16,7 +16,7 @@ export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoading
   return (
     <Layout.Page withPadding background="secondary">
       <Flex direction="column" gap="lg" align="center" justify="center" flex="1">
-        <Flex direction="column" gap="sm" width="500px">
+        <Flex direction="column" gap="sm" width="640px">
           <Heading as="h3">{t('Generating Dashboard')}</Heading>
           <Text variant="muted">
             {t('Stay on this page while we get this made for you')}

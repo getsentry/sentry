@@ -13,7 +13,6 @@ import {
   IconMegaphone,
   IconOpen,
   IconQuestion,
-  IconSearch,
   IconSentry,
   IconSupport,
 } from 'sentry/icons';
@@ -49,18 +48,20 @@ export function PrimaryNavigationHelpMenu() {
     <PrimaryNavigation.Menu
       triggerWrap={NavigationTourReminder}
       items={[
-        {
-          key: 'search',
-          label: t('Search support, docs and more'),
-          leadingItems: hasPageFrame ? (
-            <MenuIcon>
-              <IconSearch />
-            </MenuIcon>
-          ) : undefined,
-          onAction() {
-            openHelpSearchModal({organization});
-          },
-        },
+        ...(hasPageFrame
+          ? // When page frame feature flag is enabled, the search menu is
+            // rendered as part of the footer items and is always visible
+            // to the user.
+            []
+          : [
+              {
+                key: 'search',
+                label: t('Search support, docs and more'),
+                onAction() {
+                  openHelpSearchModal({organization});
+                },
+              },
+            ]),
         ...items,
         {
           key: 'actions',

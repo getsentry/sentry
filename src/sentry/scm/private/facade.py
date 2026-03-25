@@ -71,11 +71,7 @@ class Facade:
         facade_cls = _facade_type_for_provider_class(
             cast(Hashable, cls), cast(Hashable, type(provider))
         )
-        instance = object.__new__(facade_cls)
-        instance.provider = provider
-        instance.referrer = referrer
-        instance.record_count = record_count
-        return instance
+        return object.__new__(facade_cls)
 
     def __init__(
         self,
@@ -84,4 +80,6 @@ class Facade:
         referrer: Referrer = "shared",
         record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
     ) -> None:
-        pass
+        self.provider = provider
+        self.referrer = referrer
+        self.record_count = record_count

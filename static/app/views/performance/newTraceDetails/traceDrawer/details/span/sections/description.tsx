@@ -89,12 +89,10 @@ export function SpanDescription({
     return formatter.toString(span.description ?? '');
   }, [span.description, resolvedModule, span.sentry_tags?.description, system]);
 
-  const hasNewSpansUIFlag =
-    organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insight-modules');
+  const hasInsightModules = organization.features.includes('insight-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
-  const groupHash = hasNewSpansUIFlag
+  const groupHash = hasInsightModules
     ? (span.sentry_tags?.group ?? '')
     : (span.hash ?? '');
   const showAction = hasExploreEnabled ? !!span.description : !!span.op && !!span.hash;
@@ -159,7 +157,7 @@ export function SpanDescription({
           <MissingFrame />
         )}
       </Stack>
-    ) : hasNewSpansUIFlag &&
+    ) : hasInsightModules &&
       resolvedModule === ModuleName.RESOURCE &&
       span.op === 'resource.img' ? (
       <ResourceImageDescription formattedDescription={formattedDescription} node={node} />

@@ -25,7 +25,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from './types';
-import type WidgetLegendSelectionState from './widgetLegendSelectionState';
+import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
 
@@ -43,6 +43,7 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
   isEmbedded?: boolean;
+  isGeneratedDashboard?: boolean;
   isMobile?: boolean;
   isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
@@ -156,7 +157,11 @@ export function SortableWidget(props: Props) {
       data-test-id="sortable-widget"
     >
       <DashboardsMEPProvider>
-        <LazyRender containerHeight={200} withoutContainer>
+        <LazyRender
+          containerHeight={200}
+          withoutContainer
+          disabled={props.isGeneratedDashboard}
+        >
           <WidgetCard {...widgetProps} />
           {props.isEditingDashboard && (
             <Toolbar

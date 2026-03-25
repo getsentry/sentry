@@ -122,7 +122,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
   datePageFilterProps,
   searchBarWidthOffset,
 }: LogsSearchSectionProps) {
-  const organization = useOrganization();
   const logsSearch = useQueryParamsSearch();
   const logsSearchQuery = logsSearch.formatString();
   const groupBys = useQueryParamsGroupBys();
@@ -130,12 +129,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const [interval] = useChartInterval();
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
-
-  // AI search is gated behind the gen-ai-search-agent-translate feature flag
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
 
   const saveAsItems = useSaveAsItems({
     visualizes,
@@ -176,9 +169,14 @@ const LogsSearchSection = memo(function LogsSearchSection({
     return [];
   }, []);
 
+  const organization = useOrganization();
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
+
   return (
     <SearchQueryBuilderProvider
-      enableAISearch={areAiFeaturesAllowed}
+      enableAISearch={hasTranslateEndpoint}
       aiSearchBadgeType="alpha"
       {...searchQueryBuilderProviderProps}
     >
