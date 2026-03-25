@@ -10,33 +10,36 @@
  * Usage: <Select components={{MenuList: ScmVirtualizedMenuList}} />
  */
 
-import {useRef} from 'react';
+import {useRef, type PropsWithChildren} from 'react';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 const OPTION_HEIGHT = 36;
 const MAX_MENU_HEIGHT = 300;
-export function ScmVirtualizedMenuList(props: {
-  children: React.ReactNode;
-  maxHeight: number;
-}) {
-  const {children, maxHeight} = props;
+
+interface ScmVirtualizedMenuListProps {
+  maxHeight?: number;
+  optionHeight?: number;
+}
+
+export function ScmVirtualizedMenuList({
+  children,
+  maxHeight = MAX_MENU_HEIGHT,
+  optionHeight = OPTION_HEIGHT,
+}: PropsWithChildren<ScmVirtualizedMenuListProps>) {
   const items = Array.isArray(children) ? children : [];
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => OPTION_HEIGHT,
+    estimateSize: () => optionHeight,
     overscan: 5,
   });
 
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div
-      ref={scrollRef}
-      style={{maxHeight: maxHeight || MAX_MENU_HEIGHT, overflowY: 'auto'}}
-    >
+    <div ref={scrollRef} style={{maxHeight, overflowY: 'auto'}}>
       {virtualItems.length > 0 ? (
         <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
           {virtualItems.map(virtualRow => (
