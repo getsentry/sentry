@@ -64,7 +64,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, organization, InteractiveTitle, fields} = props;
+  const {organization, InteractiveTitle, fields} = props;
   const {setPageDanger} = usePageAlert();
 
   const colors = [...theme.chart.getColorPalette(5)].reverse();
@@ -264,11 +264,6 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
       {...props}
       location={location}
       Subtitle={() => <Subtitle>{t('P75 in Top Transactions')}</Subtitle>}
-      HeaderActions={provided =>
-        ContainerActions && (
-          <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
-        )
-      }
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />
