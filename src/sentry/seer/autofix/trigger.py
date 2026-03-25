@@ -6,10 +6,20 @@ from typing import TYPE_CHECKING, Literal
 from django.utils import timezone
 
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.autofix.issue_summary import (
+    get_issue_summary_cache_key,
+    get_issue_summary_lock_key,
+)
+from sentry.seer.autofix.utils import (
+    has_project_connected_repos,
+    is_issue_eligible_for_seer_automation,
+    is_seer_scanner_rate_limited,
+)
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
+    from sentry.utils.locking.manager import LockManager
 
 SeerAutomationSkipReason = Literal[
     "already_has_fixability_score",
@@ -28,15 +38,9 @@ SeerAutomationSkipReason = Literal[
 
 def get_default_seer_automation_skip_reason(
     group: Group,
+    locks: LockManager,
 ) -> SeerAutomationSkipReason | None:
     """Return skip reason for the default (non-seat-based) automation path, or None if eligible."""
-    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
-    from sentry.seer.autofix.utils import (
-        is_issue_eligible_for_seer_automation,
-        is_seer_scanner_rate_limited,
-    )
-    from sentry.tasks.post_process import locks
-
     if group.seer_fixability_score is not None:
         return "already_has_fixability_score"
 
@@ -58,13 +62,6 @@ def get_seat_based_seer_automation_skip_reason(
     group: Group,
 ) -> SeerAutomationSkipReason | None:
     """Return skip reason for the seat-based automation path, or None if eligible."""
-    from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-    from sentry.seer.autofix.utils import (
-        has_project_connected_repos,
-        is_issue_eligible_for_seer_automation,
-        is_seer_scanner_rate_limited,
-    )
-
     if group.times_seen_with_pending < 10:
         cache_key = get_issue_summary_cache_key(group.id)
         if cache.get(cache_key) is not None:
