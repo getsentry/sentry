@@ -240,7 +240,6 @@ export function Slider({
   );
 }
 
-
 const SliderWrapper = styled('div')`
   isolation: isolate;
   position: relative;
