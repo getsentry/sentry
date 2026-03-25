@@ -40,27 +40,22 @@ export function ScmVirtualizedMenuList({
 
   return (
     <div ref={scrollRef} style={{maxHeight, overflowY: 'auto'}}>
-      {virtualItems.length > 0 ? (
-        <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
-          {virtualItems.map(virtualRow => (
-            <div
-              key={virtualRow.key}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              {items[virtualRow.index]}
-            </div>
-          ))}
-        </div>
-      ) : (
-        // Fallback: render all items when virtualizer can't measure (JSDOM)
-        items
-      )}
+      <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
+        {virtualItems.map(virtualRow => (
+          <div
+            key={virtualRow.key}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualRow.start}px)`,
+            }}
+          >
+            {items[virtualRow.index]}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
