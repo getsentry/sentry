@@ -16,7 +16,10 @@ import {
   getTraceMetricAggregateActionType,
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
-import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {
+  DEFAULT_YAXIS_BY_TYPE,
+  OPTIONS_BY_TYPE,
+} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 
@@ -39,8 +42,8 @@ function getUpdatedAggregatesMultiMetric(
 
   const nextAggregateKey = isValid
     ? currentAggregateKey
-    : (DEFAULT_AGGREGATE_BY_TYPE[newTraceMetric.type] ??
-      (validAggregateOptions[0]?.value as AggregationKeyWithAlias));
+    : ((DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
+        validAggregateOptions[0]?.value) as AggregationKeyWithAlias);
 
   if (!nextAggregateKey) {
     return undefined;
@@ -53,12 +56,6 @@ function getUpdatedAggregatesMultiMetric(
 
   return updatedAggregates;
 }
-
-const DEFAULT_AGGREGATE_BY_TYPE: Record<string, AggregationKeyWithAlias> = {
-  counter: 'sum',
-  distribution: 'sum',
-  gauge: 'avg',
-};
 
 export function MetricSelectRow({
   disabled,
@@ -110,8 +107,8 @@ export function MetricSelectRow({
 
                   if (!isValid && validAggregateOptions.length > 0) {
                     return buildTraceMetricAggregate(
-                      DEFAULT_AGGREGATE_BY_TYPE[newTraceMetric.type] ??
-                        (validAggregateOptions[0]?.value as AggregationKeyWithAlias),
+                      (DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
+                        validAggregateOptions[0]?.value) as AggregationKeyWithAlias,
                       newTraceMetric
                     );
                   }
