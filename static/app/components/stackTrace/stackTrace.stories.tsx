@@ -1242,6 +1242,7 @@ export default Storybook.story('StackTrace', story => {
           body={
             <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
               <StackTraceFrames
+                borderless
                 frameContextComponent={FrameContent}
                 frameActionsComponent={StoryFrameActions}
               />
