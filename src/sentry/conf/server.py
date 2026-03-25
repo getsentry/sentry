@@ -1148,12 +1148,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
     "context-engine-index": {
-        "task": "seer:sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
+        "task": "seer:sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks",
         # Offset by 30 minutes from seer-explorer-index to spread load
         "schedule": crontab("30", "*/1", "*", "*", "*"),
     },
     "index-sentry-knowledge": {
-        "task": "seer:sentry.tasks.context_engine_index.index_sentry_knowledge",
+        "task": "seer:sentry.tasks.seer.context_engine_index.index_sentry_knowledge",
         # Run once a month at midnight
         "schedule": crontab("0", "0", "*", "1", "*"),
     },
