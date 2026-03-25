@@ -2,8 +2,7 @@
 
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.new_migrations.monkey.models import SafeDeleteModel
-from sentry.new_migrations.monkey.state import DeletionAction
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -28,12 +27,16 @@ class Migration(CheckedMigration):
 
     operations = [
         # Addresses https://sentry.sentry.io/issues/7295196781/
-        SafeDeleteModel(
-            name="AlertRuleActivationCondition",
-            deletion_action=DeletionAction.DELETE,
+        SafeRunSQL(
+            """
+            DROP TABLE IF EXISTS sentry_alertruleactivationconditions CASCADE;
+            """,
+            hints={"tables": ["sentry_alertruleactivationconditions"]},
         ),
-        SafeDeleteModel(
-            name="AlertRuleActivations",
-            deletion_action=DeletionAction.DELETE,
+        SafeRunSQL(
+            """
+            DROP TABLE IF EXISTS sentry_alertruleactivations CASCADE;
+            """,
+            hints={"tables": ["sentry_alertruleactivations"]},
         ),
     ]
