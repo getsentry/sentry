@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
@@ -48,8 +48,10 @@ const platformOptions = platforms.map(platform => ({
   value: platform.id,
   label: platform.name,
   textValue: `${platform.name} ${platform.id}`,
-  leadingItems: <PlatformIcon platform={platform.id} size={16} />,
+  leadingItems: (<PlatformIcon platform={platform.id} size={16} />) as ReactNode,
 }));
+
+type PlatformOption = (typeof platformOptions)[number];
 
 function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
   return {
@@ -294,6 +296,31 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     [selectedPlatform?.key, setPlatform, setSelectedFeatures, organization]
   );
 
+  // Ensure the selected platform is always present in the dropdown options.
+  // When the framework suggestion modal picks a specific framework (e.g.
+  // javascript-nextjs from a "javascript" base language selection), the key
+  // is already in the static list. But if a platform was set externally and
+  // isn't in the list, prepend it so the Select can resolve and display it.
+  const manualPickerOptions = useMemo(() => {
+    const key = currentPlatformKey;
+    if (!key || platformOptions.some(o => o.value === key)) {
+      return platformOptions;
+    }
+    const info = getPlatformInfo(key);
+    if (!info) {
+      return platformOptions;
+    }
+    return [
+      {
+        value: info.id,
+        label: info.name,
+        textValue: `${info.name} ${info.id}`,
+        leadingItems: (<PlatformIcon platform={info.id} size={16} />) as ReactNode,
+      },
+      ...platformOptions,
+    ];
+  }, [currentPlatformKey]);
+
   // If the user previously selected a platform manually (not in the detected
   // list), show the manual picker so their selection is visible.
   const currentPlatformIsDetected = resolvedPlatforms.some(
@@ -366,9 +393,9 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
           <motion.div {...SCM_STEP_FADE_IN}>
             <Stack gap="md" align="center">
               <Heading as="h3">{t('Select a platform')}</Heading>
-              <Select
+              <Select<PlatformOption>
                 placeholder={t('Search 100+ SDKs by name, package, or description...')}
-                options={platformOptions}
+                options={manualPickerOptions}
                 value={currentPlatformKey ?? null}
                 onChange={option => {
                   if (option) {
@@ -377,6 +404,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                 }}
                 searchable
                 components={{Control: ScmSearchControl}}
+                styles={{container: base => ({...base, width: '100%'})}}
               />
               {hasScmConnected && (
                 <Button
