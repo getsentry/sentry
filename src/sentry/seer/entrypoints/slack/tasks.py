@@ -70,11 +70,11 @@ def process_mention_for_slack(
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
-            lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.ORG_NOT_FOUND)
+            lifecycle.record_failure(failure_reason=ProcessMentionHaltReason.ORG_NOT_FOUND)
             return
 
         if not SlackExplorerEntrypoint.has_access(organization):
-            lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.NO_EXPLORER_ACCESS)
+            lifecycle.record_failure(failure_reason=ProcessMentionHaltReason.NO_EXPLORER_ACCESS)
             return
 
         try:
@@ -86,7 +86,7 @@ def process_mention_for_slack(
                 slack_user_id=slack_user_id,
             )
         except (ValueError, EntrypointSetupError) as e:
-            lifecycle.record_halt(halt_reason=e)
+            lifecycle.record_failure(failure_reason=e)
             return
 
         user = _resolve_user(
@@ -94,8 +94,8 @@ def process_mention_for_slack(
             slack_user_id=slack_user_id,
         )
         if not user:
+            lifecycle.record_failure(failure_reason=ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
             _send_link_identity_prompt(entrypoint=entrypoint)
-            lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
             return
 
         prompt = extract_prompt(text, bot_user_id)
