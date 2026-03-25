@@ -112,7 +112,7 @@ type Props = {
 };
 
 export function GlobalModal({onClose}: Props) {
-  const {renderer, options, visible} = useGlobalModal();
+  const {renderer, options, visible, triggerElement} = useGlobalModal();
   const location = useLocation();
 
   const closeEvents = options.closeEvents ?? 'all';
@@ -171,8 +171,9 @@ export function GlobalModal({onClose}: Props) {
     const reset = () => {
       scrollLock.release();
       root?.removeAttribute('aria-hidden');
-      focusTrap.current?.deactivate();
+      focusTrap.current?.deactivate({returnFocus: false});
       document.removeEventListener('keydown', handleEscapeClose);
+      triggerElement?.focus();
     };
 
     if (visible) {
@@ -186,7 +187,7 @@ export function GlobalModal({onClose}: Props) {
     }
 
     return reset;
-  }, [portal, handleEscapeClose, visible, scrollLock]);
+  }, [portal, handleEscapeClose, visible, scrollLock, triggerElement]);
 
   // Close the modal when the browser history changes.
   //
