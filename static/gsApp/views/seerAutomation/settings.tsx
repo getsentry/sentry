@@ -15,6 +15,10 @@ import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {
+  SCMOverviewSection,
+  useSCMOverviewSection,
+} from 'sentry/views/settings/seer/overview/scmOverviewSection';
 
 import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
@@ -32,6 +36,8 @@ const schema = z.object({
 export function SeerAutomationSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+
+  const scmOverviewData = useSCMOverviewSection();
 
   const orgEndpoint = `/organizations/${organization.slug}/`;
   const orgMutationOpts = mutationOptions({
@@ -75,6 +81,11 @@ export function SeerAutomationSettings() {
         )}
       />
       <SeerSettingsPageContent>
+        <SCMOverviewSection
+          organizationSlug={organization.slug}
+          canWrite={canWrite}
+          {...scmOverviewData}
+        />
         <FieldGroup
           title={
             <Flex gap="md">
@@ -244,6 +255,7 @@ export function SeerAutomationSettings() {
             )}
           </AutoSaveForm>
         </FieldGroup>
+
         <FieldGroup title={t('Advanced Settings')}>
           <AutoSaveForm
             name="enableSeerEnhancedAlerts"
