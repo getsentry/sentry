@@ -11,7 +11,6 @@ from django.utils import timezone
 from sentry import features, ratelimits
 from sentry.issues.grouptype import GroupType
 from sentry.processing_errors.grouptype import (
-    NATIVE_ERROR_TYPES,
     NativeConfigurationType,
     ProcessingErrorDetectorHandler,
     ProcessingErrorPacketValue,
