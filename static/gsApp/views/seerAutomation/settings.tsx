@@ -50,31 +50,38 @@ export function SeerAutomationSettings() {
   });
   const codingAgentOptions = rawAgentOptions.map(option => ({
     value:
-      option.value === 'seer' || option.value === 'none'
-        ? option.value
-        : option.value.id!,
+      option.value === 'seer'
+        ? 'seer'
+        : option.value === 'none'
+          ? null
+          : option.value.id!,
     label: option.label,
   }));
 
   const codingAgentMutationOpts = mutationOptions({
     mutationFn: (data: {defaultCodingAgent: string}) => {
-      const selected = data.defaultCodingAgent;
-      const selectedIntegration = rawAgentOptions.find(
-        option => option.value === selected || option.value?.id === selected
+      const selectedValue = data.defaultCodingAgent;
+      const selectedIntegration = rawAgentOptions.find(option =>
+        typeof option.value === 'string'
+          ? option.value === selectedValue
+          : option.value?.id === selectedValue
       );
-      const selectedIntegrationType = selectedIntegration?.type;
+      const defaultCodingAgent =
+        typeof selectedIntegration?.value === 'string'
+          ? selectedIntegration.value
+          : selectedIntegration?.value.provider;
+      const defaultCodingAgentIntegrationId =
+        typeof selectedIntegration?.value === 'string'
+          ? null
+          : (selectedIntegration?.value.id ?? null);
+
       return fetchMutation<Organization>({
         method: 'PUT',
         url: orgEndpoint,
-        data:
-          selected === 'seer'
-            ? {defaultCodingAgent: selected, defaultCodingAgentIntegrationId: null}
-            : selected === 'none'
-              ? {defaultCodingAgent: null, defaultCodingAgentIntegrationId: null}
-              : {
-                  defaultCodingAgent: selectedIntegrationType ?? selected,
-                  defaultCodingAgentIntegrationId: Number(selected),
-                },
+        data: {
+          defaultCodingAgent,
+          defaultCodingAgentIntegrationId,
+        },
       });
     },
     onSuccess: updateOrganization,

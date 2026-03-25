@@ -8,8 +8,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
 import {DateTimeField} from 'sentry/components/deprecatedforms/dateTimeField';
-import Form from 'sentry/components/deprecatedforms/form';
-import InputField from 'sentry/components/deprecatedforms/inputField';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {InputField} from 'sentry/components/deprecatedforms/inputField';
 import NumberField, {
   NumberField as NumberFieldNoContext,
 } from 'sentry/components/deprecatedforms/numberField';

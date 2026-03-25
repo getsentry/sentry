@@ -2,23 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-
 import SeerAutomation from 'getsentry/views/seerAutomation/seerAutomation';
 
 describe('SeerAutomation', () => {
-  beforeEach(() => {
-    const organization = OrganizationFixture();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
-      method: 'GET',
-      body: {
-        hasSupportedScmIntegration: true,
-        isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
-        isSeerConfigured: true,
-      },
-    });
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.resetAllMocks();
   });
 
   it('shows no-active-subscription banner inline for legacy Seer cohorts', () => {
@@ -67,56 +56,114 @@ describe('SeerAutomation', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('can update the default coding agent setting', async () => {
-    const organization = OrganizationFixture({
-      features: ['seat-based-seer-enabled'],
+  describe('default coding agent setting', () => {
+    it('sends provider name and integration id when an external agent is selected', async () => {
+      // Start with no agent set so the initial value is 'none'
+      const organization = OrganizationFixture({
+        features: ['seat-based-seer-enabled'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [{id: '123', name: 'Cursor', provider: 'cursor'}],
+        },
+      });
+
+      const orgPutRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture(),
+      });
+
+      render(<SeerAutomation />, {organization});
+
+      const select = await screen.findByRole('textbox', {name: /Default Coding Agent/i});
+      act(() => select.focus());
+      await userEvent.click(select);
+      await userEvent.click(await screen.findByText('Cursor'));
+
+      await waitFor(() => expect(orgPutRequest).toHaveBeenCalledTimes(1));
+      expect(orgPutRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/`,
+        expect.objectContaining({
+          data: {defaultCodingAgent: 'cursor', defaultCodingAgentIntegrationId: '123'},
+        })
+      );
     });
 
-    const mockCodingAgentIntegration: CodingAgentIntegration = {
-      id: '123',
-      name: 'Cursor',
-      provider: 'cursor',
-    };
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-      method: 'GET',
-      body: {
-        integrations: [mockCodingAgentIntegration],
-      },
-    });
-
-    const orgPutRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-      method: 'PUT',
-      body: OrganizationFixture({
-        defaultCodingAgent: 'cursor_background_agent',
+    it('sends seer and clears integration id when Seer Agent is selected', async () => {
+      // Start with an external integration set so the initial value is '123'
+      const organization = OrganizationFixture({
+        features: ['seat-based-seer-enabled'],
         defaultCodingAgentIntegrationId: 123,
-      }),
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [{id: '123', name: 'Cursor', provider: 'cursor'}],
+        },
+      });
+
+      const orgPutRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture(),
+      });
+
+      render(<SeerAutomation />, {organization});
+
+      const select = await screen.findByRole('textbox', {name: /Default Coding Agent/i});
+      act(() => select.focus());
+      await userEvent.click(select);
+      await userEvent.click(await screen.findByText('Seer Agent'));
+
+      await waitFor(() => expect(orgPutRequest).toHaveBeenCalledTimes(1));
+      expect(orgPutRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/`,
+        expect.objectContaining({
+          data: {defaultCodingAgent: 'seer', defaultCodingAgentIntegrationId: null},
+        })
+      );
     });
 
-    render(<SeerAutomation />, {organization});
+    it('sends none and clears integration id when No Handoff is selected', async () => {
+      // Start with seer selected so the initial value is 'seer'
+      const organization = OrganizationFixture({
+        features: ['seat-based-seer-enabled'],
+        defaultCodingAgent: 'seer',
+      });
 
-    const select = await screen.findByRole('textbox', {
-      name: /Default Coding Agent/i,
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {integrations: []},
+      });
+
+      const orgPutRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture(),
+      });
+
+      render(<SeerAutomation />, {organization});
+
+      const select = await screen.findByRole('textbox', {name: /Default Coding Agent/i});
+      act(() => select.focus());
+      await userEvent.click(select);
+      await userEvent.click(await screen.findByText('No Handoff'));
+
+      await waitFor(() => expect(orgPutRequest).toHaveBeenCalledTimes(1));
+      expect(orgPutRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/`,
+        expect.objectContaining({
+          data: {defaultCodingAgent: 'none', defaultCodingAgentIntegrationId: null},
+        })
+      );
     });
-
-    act(() => {
-      select.focus();
-    });
-
-    await userEvent.click(select);
-    const cursorOption = await screen.findByText('Cursor');
-    await userEvent.click(cursorOption);
-
-    await waitFor(() => {
-      expect(orgPutRequest).toHaveBeenCalledTimes(1);
-    });
-    expect(orgPutRequest).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/`,
-      expect.objectContaining({
-        data: {defaultCodingAgent: '123', defaultCodingAgentIntegrationId: 123},
-      })
-    );
   });
 
   it('can update default code review setting', async () => {
@@ -134,9 +181,7 @@ describe('SeerAutomation', () => {
     const orgPutRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
-      body: OrganizationFixture({
-        autoEnableCodeReview: true,
-      }),
+      body: OrganizationFixture({autoEnableCodeReview: true}),
     });
 
     render(<SeerAutomation />, {organization});
@@ -149,9 +194,7 @@ describe('SeerAutomation', () => {
 
     await userEvent.click(toggle);
 
-    await waitFor(() => {
-      expect(orgPutRequest).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(() => expect(orgPutRequest).toHaveBeenCalledTimes(1));
     expect(orgPutRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/`,
       expect.objectContaining({
