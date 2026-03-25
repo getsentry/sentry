@@ -359,8 +359,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
             text = data.get("text")
             thread_ts = data.get("thread_ts") or data.get("ts")
 
-            if not channel_id or not text or not thread_ts:
-                lifecycle.record_halt(AppMentionHaltReason.MISSING_CHANNEL_OR_TEXT)
+            if not channel_id or not text or not thread_ts or not slack_request.user_id:
+                lifecycle.record_halt(AppMentionHaltReason.MISSING_EVENT_DATA)
                 return self.respond()
 
             try:
