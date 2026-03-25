@@ -4,9 +4,9 @@ import logging
 import random
 import uuid
 from collections.abc import MutableMapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import time
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -22,7 +22,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -1520,117 +1519,12 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
         set_project_flag_and_signal(project, "has_flags", first_flag_received)
 
 
-SeerAutomationSkipReason = Literal[
-    "already_has_fixability_score",
-    "already_triggered",
-    "automation_already_dispatched",
-    "fixability_too_low",
-    "issue_too_old",
-    "lock_already_held",
-    "no_connected_repos",
-    "not_eligible",
-    "rate_limited",
-    "summary_already_cached",
-    "summary_already_dispatched",
-]
-
-
-def _get_default_seer_automation_skip_reason(
-    job: PostProcessJob,
-) -> SeerAutomationSkipReason | None:
-    """Return skip reason for the default (non-seat-based) automation path, or None if eligible."""
-    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
-    from sentry.seer.autofix.utils import (
-        is_issue_eligible_for_seer_automation,
-        is_seer_scanner_rate_limited,
-    )
-
-    event = job["event"]
-    group = event.group
-
-    if group.seer_fixability_score is not None:
-        return "already_has_fixability_score"
-
-    if not is_issue_eligible_for_seer_automation(group):
-        return "not_eligible"
-
-    lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock = locks.get(lock_key, duration=1, name=lock_name)
-    if lock.locked():
-        return "lock_already_held"
-
-    if is_seer_scanner_rate_limited(group.project, group.organization):
-        return "rate_limited"
-
-    return None
-
-
-def _get_seat_based_seer_automation_skip_reason(
-    job: PostProcessJob,
-) -> SeerAutomationSkipReason | None:
-    """Return skip reason for the seat-based automation path, or None if eligible."""
-    from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-    from sentry.seer.autofix.utils import (
-        has_project_connected_repos,
-        is_issue_eligible_for_seer_automation,
-        is_seer_scanner_rate_limited,
-    )
-
-    event = job["event"]
-    group = event.group
-
-    if group.times_seen_with_pending < 10:
-        cache_key = get_issue_summary_cache_key(group.id)
-        if cache.get(cache_key) is not None:
-            return "summary_already_cached"
-
-        if not is_issue_eligible_for_seer_automation(group):
-            return "not_eligible"
-
-        summary_dispatch_cache_key = f"seer-summary-dispatched:{group.id}"
-        if not cache.add(summary_dispatch_cache_key, True, timeout=30):
-            return "summary_already_dispatched"
-
-        if is_seer_scanner_rate_limited(group.project, group.organization):
-            return "rate_limited"
-
-        return None
-
-    # Event count >= 10: run automation
-    if group.seer_autofix_last_triggered is not None:
-        return "already_triggered"
-
-    if group.first_seen < (timezone.now() - timedelta(days=14)):
-        return "issue_too_old"
-
-    if group.seer_fixability_score is not None:
-        if (
-            group.seer_fixability_score < FixabilityScoreThresholds.MEDIUM.value
-            and not group.issue_type.always_trigger_seer_automation
-        ):
-            return "fixability_too_low"
-
-    if not is_issue_eligible_for_seer_automation(group):
-        return "not_eligible"
-
-    automation_dispatch_cache_key = f"seer-automation-dispatched:{group.id}"
-    if not cache.add(automation_dispatch_cache_key, True, timeout=300):
-        return "automation_already_dispatched"
-
-    if not has_project_connected_repos(group.organization.id, group.project.id):
-        return "no_connected_repos"
-
-    # Check if we need a summary first and are rate limited
-    cache_key = get_issue_summary_cache_key(group.id)
-    if cache.get(cache_key) is None:
-        if is_seer_scanner_rate_limited(group.project, group.organization):
-            return "rate_limited"
-
-    return None
-
-
 def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+    from sentry.seer.autofix.trigger import (
+        get_default_seer_automation_skip_reason,
+        get_seat_based_seer_automation_skip_reason,
+    )
     from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
     from sentry.tasks.autofix import (
         generate_issue_summary_only,
@@ -1642,27 +1536,19 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     group = event.group
 
     if not is_seer_seat_based_tier_enabled(group.organization):
-        skip_reason = _get_default_seer_automation_skip_reason(job)
+        skip_reason = get_default_seer_automation_skip_reason(group)
         if skip_reason:
             metrics.incr(
                 "seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"}
-            )
-            logger.info(
-                "seer.automation.filtered",
-                extra={"group_id": group.id, "reason": skip_reason, "tier": "default"},
             )
             return
 
         generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
-        skip_reason = _get_seat_based_seer_automation_skip_reason(job)
+        skip_reason = get_seat_based_seer_automation_skip_reason(group)
         if skip_reason:
             metrics.incr(
                 "seer.automation.filtered", tags={"reason": skip_reason, "tier": "seat_based"}
-            )
-            logger.info(
-                "seer.automation.filtered",
-                extra={"group_id": group.id, "reason": skip_reason, "tier": "seat_based"},
             )
             return
 
