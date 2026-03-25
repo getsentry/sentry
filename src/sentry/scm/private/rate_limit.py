@@ -138,6 +138,11 @@ class DynamicRateLimiter:
         metadata service-providers return in their API responses and use that metadata to rate-
         limit our own requests eagerly.
 
+        Service-providers will provide their capacity limits and their quota consumption figures.
+        We use this data to update our internal representation so that we most accurately mirror
+        true usage figures. If every use of a service-provider transits the SCM this method is
+        unnecessary. This method only exists because there is direct integration usage.
+
         :param capacity: The actual total number of requests available per window.
         :param consumed: The total number of requests the service-provider is telling us they have received.
         :param next_window_start: The next rate-limit window after the current window.
