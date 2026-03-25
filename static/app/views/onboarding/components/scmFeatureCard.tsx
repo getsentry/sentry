@@ -29,18 +29,25 @@ export function ScmFeatureCard({
   onClick,
 }: ScmFeatureCardProps) {
   return (
-    <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
+    <Tooltip
+      title={disabledReason}
+      disabled={!disabledReason}
+      delay={500}
+      style={{height: '100%'}}
+    >
       <ScmCardButton
         onClick={onClick}
         role="checkbox"
         aria-checked={isSelected}
         disabled={disabled}
+        style={{width: '100%', height: '100%'}}
       >
         <Container
           border={isSelected ? 'accent' : 'secondary'}
           padding="xl"
           radius="md"
-          style={isSelected ? undefined : {borderBottomWidth: 3}}
+          height="100%"
+          style={isSelected ? {marginBottom: 2} : {borderBottomWidth: 3}}
         >
           <Flex gap="lg" align="start">
             <Container padding="xs 0 0 0">
