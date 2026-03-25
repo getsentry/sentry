@@ -27,14 +27,6 @@ interface SectionConfig {
   type: DiffStatus;
 }
 
-// export const SECTION_TYPE_ORDER: DiffStatus[] = [
-//   DiffStatus.CHANGED,
-//   DiffStatus.ADDED,
-//   DiffStatus.REMOVED,
-//   DiffStatus.RENAMED,
-//   DiffStatus.UNCHANGED,
-// ];
-
 export const SECTION_ORDER: SectionConfig[] = [
   {
     type: DiffStatus.CHANGED,
@@ -113,7 +105,10 @@ export function SnapshotSidebarContent({
 
   useEffect(() => {
     if (sectionParam && sectionRef.current) {
-      sectionRef.current.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+      sectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
       setSectionParam(null);
     }
   }, [sectionParam, setSectionParam]);
