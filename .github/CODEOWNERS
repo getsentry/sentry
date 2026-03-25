@@ -598,7 +598,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 ## ML & AI
 /static/app/components/events/autofix/                      @getsentry/machine-learning-ai
-/static/app/endpoints/                                      @getsentry/machine-learning-ai
 /static/app/views/seerExplorer/                             @getsentry/machine-learning-ai
 /src/sentry/seer/                                           @getsentry/machine-learning-ai
 /tests/sentry/seer/                                         @getsentry/machine-learning-ai
@@ -797,7 +796,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## Frontend Platform (keep last as we want highest specificity)
 /static/app/utils/theme/                              @getsentry/design-engineering
 /static/app/components/core/                          @getsentry/design-engineering
-/static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/components/pageFilters/                   @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
