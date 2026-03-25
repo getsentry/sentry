@@ -2,6 +2,7 @@ import functools
 from typing import Callable, Protocol
 
 from django.conf import settings
+from redis import RedisError
 
 from sentry.scm.types import Referrer
 from sentry.utils import redis
@@ -189,10 +190,15 @@ class DynamicRateLimiter:
             #
             # TODO: If one day a significant majority of usage of GitHub transits the SCM this can
             #       go away and we can just set the limit blindly.
-            accounted_usage = self.rate_limit_provider.get_accounted_usage(
-                [key_fn(referrer) for referrer in self.referrer_allocation]
-            )
-            kvs[key_fn("shared")] = (max(0, consumed - accounted_usage), expiration)
+            try:
+                accounted_usage = self.rate_limit_provider.get_accounted_usage(
+                    [key_fn(referrer) for referrer in self.referrer_allocation]
+                )
+                kvs[key_fn("shared")] = (max(0, consumed - accounted_usage), expiration)
+            except IndeterminateResult:
+                # If we could not fetch the full accounted usage we don't bother updating the
+                # shared quota value. It can be done on a later iteration.
+                pass
 
         if kvs:
             self.rate_limit_provider.set_key_values(kvs)
@@ -215,24 +221,45 @@ class RedisRateLimitProvider:
         :param usage_key: The location of the quota counter.
         :param expiration: The number of seconds until the key expires.
         """
-        with self.cluster.pipeline() as pipe:
-            pipe.get(total_key)
-            pipe.incr(usage_key)
-            pipe.expire(usage_key, expiration)
+        try:
+            with self.cluster.pipeline() as pipe:
+                pipe.get(total_key)
+                pipe.incr(usage_key)
+                pipe.expire(usage_key, expiration)
 
-            result = pipe.execute()
-            return (int(result[0]) if result[0] is not None else None, result[1])
+                result = pipe.execute()
+                return (int(result[0]) if result[0] is not None else None, result[1])
+        except (RedisError, IndexError):
+            # Fail open if we could not properly handle the rate-limits. We may have miss the
+            # increment of the usage key. This will eventually show up as a consumption of shared
+            # quota. This could lead to starvation if this function fails at significant rates and
+            # request volume for the allocated referrers is high.
+            return (None, 0)
 
     def get_accounted_usage(self, keys: list[str]) -> int:
         """Return the sum of a given set of keys."""
-        with self.cluster.pipeline() as pipe:
-            for key in keys:
-                pipe.get(key)
-            return sum(int(r) for r in pipe.execute() if r is not None)
+        try:
+            with self.cluster.pipeline() as pipe:
+                for key in keys:
+                    pipe.get(key)
+
+                values = pipe.execute(raise_on_error=True)
+                assert len(values) == len(keys)
+                return sum(int(k) for k in values if k is not None)
+        except (AssertionError, RedisError):
+            raise IndeterminateResult
 
     def set_key_values(self, kvs: dict[str, tuple[int, int | None]]) -> None:
         """For a given set of key, value pairs set them in the Redis Cluster."""
-        with self.cluster.pipeline() as pipe:
-            for key, (value, expiration) in kvs.items():
-                pipe.set(key, value, ex=expiration)
-            pipe.execute()
+        try:
+            with self.cluster.pipeline() as pipe:
+                for key, (value, expiration) in kvs.items():
+                    pipe.set(key, value, ex=expiration)
+                pipe.execute()
+        except RedisError:
+            # Partial updates do not break the system. Shared quota or a total update may not
+            # have been written. They can be written on the next request.
+            return None
+
+
+class IndeterminateResult(Exception): ...

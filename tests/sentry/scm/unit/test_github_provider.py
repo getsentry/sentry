@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from sentry.integrations.github.client import GitHubApiClient
+from sentry.scm.errors import SCMProviderException
 from sentry.scm.private.providers.github import (
     MINIMIZE_COMMENT_MUTATION,
     GitHubProvider,
@@ -986,6 +987,113 @@ def test_is_rate_limited_returns_false() -> None:
     provider, _ = make_provider()
 
     assert provider.is_rate_limited("shared") is False
+
+
+def _make_api_client() -> GitHubProviderApiClient:
+    return GitHubProviderApiClient(
+        client=MagicMock(spec=GitHubApiClient),
+        organization_id=1,
+        rate_limit_provider=NoOpRateLimitProvider(),
+    )
+
+
+class TestGitHubProviderApiClientGraphql:
+    def test_returns_data_on_success(self):
+        api_client = _make_api_client()
+        api_client.post = MagicMock(  # type: ignore[assignment]
+            return_value=FakeResponse({"data": {"viewer": {"login": "octocat"}}})
+        )
+
+        result = api_client.graphql("{ viewer { login } }", {})
+
+        assert result == {"viewer": {"login": "octocat"}}
+        api_client.post.assert_called_once_with(
+            "/graphql", data={"query": "{ viewer { login } }"}, headers={}
+        )
+
+    def test_includes_variables_when_provided(self):
+        api_client = _make_api_client()
+        api_client.post = MagicMock(  # type: ignore[assignment]
+            return_value=FakeResponse({"data": {"node": {"id": "123"}}})
+        )
+
+        api_client.graphql("query($id: ID!) { node(id: $id) { id } }", {"id": "123"})
+
+        call_data = (
+            api_client.post.call_args[1]["data"]
+            if api_client.post.call_args[1]
+            else api_client.post.call_args[0][1]
+        )
+        assert call_data["variables"] == {"id": "123"}
+
+    def test_excludes_variables_when_empty(self):
+        api_client = _make_api_client()
+        api_client.post = MagicMock(  # type: ignore[assignment]
+            return_value=FakeResponse({"data": {}})
+        )
+
+        api_client.graphql("{ viewer { login } }", {})
+
+        call_data = (
+            api_client.post.call_args[1]["data"]
+            if api_client.post.call_args[1]
+            else api_client.post.call_args[0][1]
+        )
+        assert "variables" not in call_data
+
+    def test_raises_on_non_dict_response(self):
+        api_client = _make_api_client()
+        api_client.post = MagicMock(  # type: ignore[assignment]
+            return_value=FakeResponse([{"unexpected": "list"}])
+        )
+
+        with pytest.raises(SCMProviderException, match="not in expected format"):
+            api_client.graphql("{ viewer { login } }", {})
+
+    def test_raises_on_response_missing_data_and_errors(self):
+        api_client = _make_api_client()
+        api_client.post = MagicMock(  # type: ignore[assignment]
+            return_value=FakeResponse({"something": "else"})
+        )
+
+        with pytest.raises(SCMProviderException, match="not in expected format"):
+            api_client.graphql("{ viewer { login } }", {})
+
+    def test_raises_on_errors_without_data(self):
+        api_client = _make_api_client()
+        api_client.post = MagicMock(  # type: ignore[assignment]
+            return_value=FakeResponse(
+                {"errors": [{"message": "Field not found"}, {"message": "Unauthorized"}]}
+            )
+        )
+
+        with pytest.raises(SCMProviderException, match="Field not found\nUnauthorized"):
+            api_client.graphql("{ viewer { login } }", {})
+
+    def test_returns_data_on_partial_success_with_errors(self):
+        api_client = _make_api_client()
+        api_client.post = MagicMock(  # type: ignore[assignment]
+            return_value=FakeResponse(
+                {
+                    "data": {"viewer": {"login": "octocat"}},
+                    "errors": [{"message": "Some warning"}],
+                }
+            )
+        )
+
+        result = api_client.graphql("{ viewer { login } }", {})
+
+        assert result == {"viewer": {"login": "octocat"}}
+
+    def test_returns_empty_dict_when_data_key_missing_but_errors_empty(self):
+        api_client = _make_api_client()
+        api_client.post = MagicMock(  # type: ignore[assignment]
+            return_value=FakeResponse({"errors": []})
+        )
+
+        result = api_client.graphql("{ viewer { login } }", {})
+
+        assert result == {}
 
 
 def test_public_methods_are_accounted_for() -> None:
