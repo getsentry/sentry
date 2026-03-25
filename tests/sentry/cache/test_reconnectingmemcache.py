@@ -18,7 +18,7 @@ def _make_cache(reconnect_age=300):
 
     cache._reconnect_age = reconnect_age
     cache._backend_var = contextvars.ContextVar(f"reconnecting_memcache_{id(cache)}", default=None)
-    cache._servers = [("localhost", 11211)]
+    cache._servers = [("localhost", 11211)]  # type: ignore[attr-defined]
     cache._options = {}
     cache._class = MagicMock(side_effect=lambda *a, **kw: MagicMock())
     return cache
