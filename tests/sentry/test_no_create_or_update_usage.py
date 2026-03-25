@@ -22,6 +22,7 @@ ALLOWLIST_FILES: set[str] = {
     "src/sentry/models/releases/set_commits.py",
     "src/sentry/models/options/organization_option.py",
     "src/sentry/utils/mockdata/core.py",
+    "src/sentry/tasks/assemble.py",
     "src/sentry/services/nodestore/django/backend.py",
 }
 
