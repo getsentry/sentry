@@ -204,7 +204,7 @@ import {Text} from '@sentry/scraps/text';
 // ❌ Don't create styled text components
 const Label = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSizes.small};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 // ❌ Don't use raw elements
@@ -242,7 +242,7 @@ import {Heading} from '@sentry/scraps/text';
 
 // ❌ Don't style heading elements
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
 `;
 
@@ -421,7 +421,7 @@ const Component = styled('div')`
   display: flex;
   flex-direction: column;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 // ✅ Split into layout and typography primitives
