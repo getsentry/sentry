@@ -7,7 +7,7 @@ import {Item, Section} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import * as Sentry from '@sentry/react';
 
-import error from 'sentry-images/spot/computer-missing.svg';
+import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
@@ -53,7 +53,10 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Preload the empty state image so it's ready if/when there are no results
-  preload(error, {as: 'image'});
+  // Guard against non-string imports (e.g. SVG objects in test environments)
+  if (typeof errorIllustration === 'string') {
+    preload(errorIllustration, {as: 'image'});
+  }
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     if (selectedAction?.type === 'group' && selectedAction.actions.length > 0) {
@@ -341,7 +344,7 @@ function CommandPaletteNoResults() {
       padding="2xl lg"
       height="400px"
     >
-      <Image src={error} alt="No results" width="400px" />
+      <Image src={errorIllustration} alt="No results" width="400px" />
       <Stack align="center" gap="md">
         <Container padding="0 2xl">
           <Stack gap="sm">
