@@ -50,6 +50,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.seer.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.event_frames import EventFrame
 
 logger = logging.getLogger(__name__)
@@ -341,7 +342,7 @@ def _get_trace_tree_for_event(
 
     try:
         with sentry_sdk.start_span(op="seer.autofix.get_trace_tree_for_event"):
-            with concurrent.futures.ThreadPoolExecutor() as executor:
+            with ContextPropagatingThreadPoolExecutor() as executor:
                 future = executor.submit(_fetch_trace)
                 return future.result(timeout=timeout)
     except concurrent.futures.TimeoutError:

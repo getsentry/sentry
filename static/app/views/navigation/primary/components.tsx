@@ -316,7 +316,7 @@ function PrimaryNavigationUnreadIndicator({
       {p => (
         <StatusIndicator
           {...mergeProps(p, props)}
-          variant={variant === 'accent' ? 'info' : variant}
+          variant={variant}
           data-unread-indicator
         />
       )}
