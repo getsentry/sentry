@@ -47,7 +47,6 @@ import {
   HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
   ListClose,
   RightAlignedCell,
-  SelectableList,
   Subtitle,
   TimeConsumingDomainsWidgetEmptyStateWarning,
   TimeSpentInDatabaseWidgetEmptyStateWarning,
@@ -108,7 +107,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, organization, InteractiveTitle} = props;
+  const {organization, InteractiveTitle} = props;
   const {setPageDanger} = usePageAlert();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
@@ -799,52 +798,24 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       }
     });
 
-  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] =
-    organization.features.includes('performance-new-widget-designs')
-      ? [
-          {
-            component: provided => (
-              <Accordion
-                expandedIndex={selectedListIndex}
-                setExpandedIndex={setSelectListIndex}
-                items={assembleAccordionItems(provided)}
-              />
-            ),
-            // accordion items height + chart height
-            height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
-            noPadding: true,
-          },
-        ]
-      : [
-          {
-            component: provided => (
-              <DurationChart
-                {...provided.widgetData.chart}
-                {...provided}
-                disableMultiAxis
-                disableXAxis
-                chartColors={props.chartColor ? [props.chartColor] : undefined}
-                isLineChart
-              />
-            ),
-            height: props.chartHeight,
-          },
-          {
-            component: provided => (
-              <SelectableList
-                selectedIndex={selectedListIndex}
-                setSelectedIndex={setSelectListIndex}
-                items={getItems(provided)}
-              />
-            ),
-            height: 124,
-            noPadding: true,
-          },
-        ];
+  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] = [
+    {
+      component: provided => (
+        <Accordion
+          expandedIndex={selectedListIndex}
+          setExpandedIndex={setSelectListIndex}
+          items={assembleAccordionItems(provided)}
+        />
+      ),
+      // accordion items height + chart height
+      height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
+      noPadding: true,
+    },
+  ];
 
   const moduleURLBuilder = useModuleURLBuilder();
 
-  const getContainerActions = (provided: ComponentData) => {
+  const getContainerActions = () => {
     const route: string =
       (
         {
@@ -871,11 +842,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           </LinkButton>
         </div>
       </Fragment>
-    ) : (
-      ContainerActions && (
-        <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
-      )
-    );
+    ) : null;
   };
 
   return (
@@ -885,7 +852,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       Subtitle={() => (
         <Subtitle>{props.subTitle ?? t('Found in the following transactions')}</Subtitle>
       )}
-      HeaderActions={provided => getContainerActions(provided)}
+      HeaderActions={() => getContainerActions()}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />
