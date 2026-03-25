@@ -1,5 +1,5 @@
 import {useCallback, useEffect} from 'react';
-import {LayoutGroup, motion} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -22,6 +22,7 @@ import {ScmStepFooter} from './components/scmStepFooter';
 import {ScmStepHeader} from './components/scmStepHeader';
 import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import {useScmProviders} from './components/useScmProviders';
+import {SCM_STEP_FADE_IN, scmStepFadeIn} from './consts';
 import type {StepProps} from './types';
 
 export function ScmConnect({onComplete}: StepProps) {
@@ -86,10 +87,10 @@ export function ScmConnect({onComplete}: StepProps) {
         tag={t('Optional')}
       />
 
-      <LayoutGroup>
-        <ScmStepContent>
-          {effectiveIntegration ? (
-            <MotionStack gap="xl" exit={{opacity: 0}} key="connected">
+      <ScmStepContent>
+        {effectiveIntegration ? (
+          <Stack gap="xl">
+            <motion.div {...SCM_STEP_FADE_IN}>
               <Tag variant="success" icon={<IconCheckmark />}>
                 {t(
                   'Connected to %s org %s',
@@ -97,54 +98,60 @@ export function ScmConnect({onComplete}: StepProps) {
                   effectiveIntegration.name
                 )}
               </Tag>
+            </motion.div>
+            <motion.div {...scmStepFadeIn(0.1)}>
               <ScmRepoSelector integration={effectiveIntegration} />
-              {selectedRepository && <MotionScmBenefitsCard exit={{opacity: 0}} />}
-            </MotionStack>
-          ) : (
-            <MotionStack gap="2xl" exit={{opacity: 0}} key="not-connected">
+            </motion.div>
+            {selectedRepository && (
+              <motion.div {...SCM_STEP_FADE_IN}>
+                <ScmBenefitsCard />
+              </motion.div>
+            )}
+          </Stack>
+        ) : (
+          <Stack gap="2xl">
+            <motion.div {...SCM_STEP_FADE_IN}>
               <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
+            </motion.div>
+            <motion.div {...scmStepFadeIn(0.15)}>
               <ScmBenefitsCard showTitle />
-            </MotionStack>
-          )}
-        </ScmStepContent>
+            </motion.div>
+          </Stack>
+        )}
+      </ScmStepContent>
 
-        <MotionScmStepFooter layout="position">
-          {!selectedRepository && (
-            <Button
-              analyticsEventKey="onboarding.scm_connect_skip_clicked"
-              analyticsEventName="Onboarding: SCM Connect Skip Clicked"
-              analyticsParams={{
-                has_integration: !!effectiveIntegration,
-              }}
-              onClick={() => onComplete()}
-            >
-              {t('Skip for now')}
-            </Button>
-          )}
+      <ScmStepFooter>
+        {!selectedRepository && (
           <Button
-            priority="primary"
-            analyticsEventKey="onboarding.scm_connect_continue_clicked"
-            analyticsEventName="Onboarding: SCM Connect Continue Clicked"
+            analyticsEventKey="onboarding.scm_connect_skip_clicked"
+            analyticsEventName="Onboarding: SCM Connect Skip Clicked"
             analyticsParams={{
-              provider: effectiveIntegration?.provider.key ?? '',
-              repo: selectedRepository?.name ?? '',
+              has_integration: !!effectiveIntegration,
             }}
-            onClick={() => {
-              if (effectiveIntegration && !selectedIntegration) {
-                setSelectedIntegration(effectiveIntegration);
-              }
-              onComplete();
-            }}
-            disabled={!selectedRepository?.id}
+            onClick={() => onComplete()}
           >
-            {t('Continue')}
+            {t('Skip for now')}
           </Button>
-        </MotionScmStepFooter>
-      </LayoutGroup>
+        )}
+        <Button
+          priority="primary"
+          analyticsEventKey="onboarding.scm_connect_continue_clicked"
+          analyticsEventName="Onboarding: SCM Connect Continue Clicked"
+          analyticsParams={{
+            provider: effectiveIntegration?.provider.key ?? '',
+            repo: selectedRepository?.name ?? '',
+          }}
+          onClick={() => {
+            if (effectiveIntegration && !selectedIntegration) {
+              setSelectedIntegration(effectiveIntegration);
+            }
+            onComplete();
+          }}
+          disabled={!selectedRepository?.id}
+        >
+          {t('Continue')}
+        </Button>
+      </ScmStepFooter>
     </Flex>
   );
 }
-
-const MotionScmStepFooter = motion.create(ScmStepFooter);
-const MotionStack = motion.create(Stack);
-const MotionScmBenefitsCard = motion.create(ScmBenefitsCard);
