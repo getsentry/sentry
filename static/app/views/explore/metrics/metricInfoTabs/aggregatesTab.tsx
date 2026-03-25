@@ -11,6 +11,7 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
@@ -25,6 +26,7 @@ import {
   TransparentLoadingMask,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   createTraceMetricFilter,
   getMetricsUnit,
@@ -46,6 +48,8 @@ interface AggregatesTabProps {
 }
 
 export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTabProps) {
+  const organization = useOrganization();
+  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const topEvents = useTopEvents();
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -114,7 +118,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   }, [groupBys]);
 
   const isLastColumn = (index: number) => {
-    return index === fields.length - 1;
+    return !hasMetricsUIRefresh && index === fields.length - 1;
   };
 
   // Dividers: between last groupBy and first aggregate, and between all aggregates
