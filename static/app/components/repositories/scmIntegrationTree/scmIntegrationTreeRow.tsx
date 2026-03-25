@@ -441,8 +441,8 @@ function RemoveButton({
       onClick={() => setIsConfirming(true)}
       aria-label={t('Remove %s', repoName)}
       tooltipProps={{
-				disabled: canAccess,
-    		title: t('You must be an organization owner, manager or admin to uninstall'),
+        disabled: canAccess,
+        title: t('You must be an organization owner, manager or admin to uninstall'),
       }}
     >
       {t('Remove')}
