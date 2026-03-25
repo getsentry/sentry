@@ -23,6 +23,7 @@
 /bin/mock*                                              @getsentry/app-backend
 /src/sentry/data/samples/                               @getsentry/app-backend
 /src/sentry/cache/                                      @getsentry/app-backend
+/tests/sentry/cache/                                    @getsentry/app-backend
 /src/sentry/conf/                                       @getsentry/app-backend
 /src/sentry/db/models/                                  @getsentry/app-backend
 /src/sentry/models/                                     @getsentry/app-backend
