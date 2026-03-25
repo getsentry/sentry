@@ -173,7 +173,7 @@ class WorkflowNameTest(APITestCase):
         assert self.rpc_user
         assert (
             workflow.name
-            == f"Critical - Email {self.rpc_user.email}, Notify {self.og_team_table["team"]} via {self.opsgenie_integration.provider.title()}, Warning - Email #{self.og_team.slug}...(+2)"
+            == f"Critical - Email {self.rpc_user.email}, Notify {self.og_team_table['team']} via {self.opsgenie_integration.provider.title()}, Warning - Email #{self.og_team.slug}...(+2)"
         )
 
     def test_missing_org_member(self) -> None:

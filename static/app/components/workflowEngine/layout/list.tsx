@@ -1,9 +1,9 @@
 import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface WorkflowEngineListLayoutProps {
   actions: React.ReactNode;
@@ -18,7 +18,7 @@ interface WorkflowEngineListLayoutProps {
  * Precomposed full-width layout for Automations / Monitors index pages.
  * The `children` are rendered as the main body content.
  */
-function WorkflowEngineListLayout({
+export function WorkflowEngineListLayout({
   children,
   actions,
   title,
@@ -50,5 +50,3 @@ function WorkflowEngineListLayout({
     </Layout.Page>
   );
 }
-
-export default WorkflowEngineListLayout;

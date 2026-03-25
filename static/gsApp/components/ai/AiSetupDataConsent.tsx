@@ -13,20 +13,19 @@ import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import StartTrialButton from 'getsentry/components/startTrialButton';
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
 
@@ -34,7 +33,7 @@ type AiSetupDataConsentProps = {
   groupId?: string;
 };
 
-function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
+export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -50,9 +49,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const hasAutofixQuota = isGroupMode
     ? groupSetup.hasAutofixQuota
     : orgSetup.billing.hasAutofixQuota;
-  const orgHasAcknowledged = isGroupMode
-    ? setupData?.setupAcknowledgement.orgHasAcknowledged
-    : orgSetup.setupAcknowledgement.orgHasAcknowledged;
+  const orgHasAcknowledged = true;
   const refetch = isGroupMode ? groupSetup.refetch : orgSetup.refetch;
 
   // Get the appropriate Seer category (SEER_USER for seat-based, SEER_AUTOFIX for legacy)
@@ -298,8 +295,6 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   );
 }
 
-export default AiSetupDataConsent;
-
 const SayHelloHeader = styled('h3')`
   margin: 0;
 `;
@@ -307,12 +302,12 @@ const SayHelloHeader = styled('h3')`
 const SingleCard = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   background-color: ${p => p.theme.tokens.background.primary};
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
@@ -323,7 +318,7 @@ const MeetSeerHeader = styled('div')`
 `;
 
 const BulletList = styled('ul')`
-  margin: 0 0 ${space(1)} 0;
+  margin: 0 0 ${p => p.theme.space.md} 0;
 `;
 
 const Paragraph = styled('p')`
@@ -333,18 +328,18 @@ const Paragraph = styled('p')`
 const TouchCustomerMessage = styled('p')`
   color: ${p => p.theme.tokens.content.promotion};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const LegalText = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    /* margin: 0 ${space(0.5)} 0 ${space(1)}; */
+    /* margin: 0 ${p => p.theme.space.xs} 0 ${p => p.theme.space.md}; */
   }
 `;
 

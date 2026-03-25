@@ -1,10 +1,11 @@
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model
+from sentry.db.models.fields.encryption.encrypted_json_field import EncryptedJSONField
 
 
-@region_silo_model
+@cell_silo_model
 class DataForwarder(DefaultFieldsModel):
     """
     Configuration for data forwarding to external services (Segment, SQS, or Splunk).
@@ -29,7 +30,7 @@ class DataForwarder(DefaultFieldsModel):
             ("splunk", "Splunk"),
         ],
     )
-    config = models.JSONField(default=dict)
+    config = EncryptedJSONField(default=dict)
 
     class Meta:
         app_label = "sentry"

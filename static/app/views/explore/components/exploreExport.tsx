@@ -2,12 +2,12 @@ import type React from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
-import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import {DataExport, ExportQueryType} from 'sentry/components/dataExport';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface QueryInfo {
@@ -87,13 +87,13 @@ export function ExploreExport(props: ExploreExportProps) {
         onClick={handleExport}
         data-test-id="export-download-csv"
         icon={<IconDownload />}
-        title={
-          disabled
+        tooltipProps={{
+          title: disabled
             ? disabledTooltip
             : t(
                 "There aren't that many results, start your export and it'll download immediately."
-              )
-        }
+              ),
+        }}
       >
         {t('Export')}
       </Button>

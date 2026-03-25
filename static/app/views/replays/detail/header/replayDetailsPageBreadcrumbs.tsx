@@ -8,28 +8,28 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useLiveRefresh} from 'sentry/components/replays/replayLiveIndicator';
 import {IconChevron, IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
+export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
   const organization = useOrganization();
   const location = useLocation();
@@ -163,7 +163,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             </div>
             {isHovered && (
               <Button
-                title={t('Copy link to replay at current timestamp')}
+                tooltipProps={{title: t('Copy link to replay at current timestamp')}}
                 aria-label={t('Copy link to replay at current timestamp')}
                 onClick={() =>
                   copy(replayUrlWithTimestamp, {
@@ -178,7 +178,9 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
           </Flex>
           {shouldShowRefreshButton ? (
             <Button
-              title={t('Replay is outdated. Refresh for latest activity.')}
+              tooltipProps={{
+                title: t('Replay is outdated. Refresh for latest activity.'),
+              }}
               data-test-id="refresh-button"
               size="zero"
               priority="link"

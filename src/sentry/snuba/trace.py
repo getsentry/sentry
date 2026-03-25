@@ -1,10 +1,11 @@
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from sentry.uptime.subscriptions.regions import get_region_config
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -17,19 +18,26 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    TraceItemFilter,
+)
 from snuba_sdk import Column as SnubaColumn
 from snuba_sdk import Function
 
+from sentry.issues.grouptype import registry as grouptype_registry
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.common_columns import COMMON_COLUMNS
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.uptime_results.attributes import UPTIME_ATTRIBUTE_DEFINITIONS
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.uptime.eap_utils import get_columns_for_uptime_result
@@ -53,7 +61,7 @@ class SerializedIssue(SerializedEvent):
     issue_id: int
     level: str
     start_timestamp: float
-    end_timestamp: NotRequired[datetime]
+    end_timestamp: NotRequired[float]
     culprit: str | None
     short_id: str | None
     issue_type: str
@@ -92,7 +100,27 @@ class SerializedUptimeCheck(SerializedEvent):
     additional_attributes: dict[str, Any]
 
 
-def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -> SerializedIssue:
+class TraceIssueOccurrenceData(TypedDict):
+    occurrence: IssueOccurrence
+    issue_id: int
+
+
+class TraceOccurrenceEventData(TypedDict):
+    start_timestamp: float
+    end_timestamp: float
+    project_slug: str
+    transaction: str
+
+
+class TraceOccurrenceEvent(TypedDict):
+    event_type: Literal["occurrence"]
+    event_data: TraceOccurrenceEventData
+    issue_data: TraceIssueOccurrenceData
+
+
+def _serialize_rpc_issue(
+    event: dict[str, Any], group_cache: dict[int, Group]
+) -> SerializedIssue | None:
     def _qualify_short_id(project: str, short_id: int | None) -> str | None:
         """Logic for qualified_short_id is copied from property on the Group model
         to prevent an N+1 query from accessing project.slug everytime"""
@@ -103,26 +131,30 @@ def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -
 
     if event.get("event_type") == "occurrence":
         occurrence = event["issue_data"]["occurrence"]
-        span = event["span"]
+        event_data = event["event_data"]
         issue_id = event["issue_data"]["issue_id"]
         if issue_id in group_cache:
             issue = group_cache[issue_id]
         else:
-            issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
+            try:
+                issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
+            except Group.DoesNotExist as e:
+                logger.error(e)
+                return None
             group_cache[issue_id] = issue
         return SerializedIssue(
             event_id=occurrence.event_id,
             project_id=occurrence.project_id,
-            project_slug=span["project.slug"],
-            start_timestamp=span["precise.start_ts"],
-            end_timestamp=span["precise.finish_ts"],
-            transaction=span["transaction"],
+            project_slug=event_data["project_slug"],
+            start_timestamp=event_data["start_timestamp"],
+            end_timestamp=event_data["end_timestamp"],
+            transaction=event_data["transaction"],
             description=occurrence.issue_title,
             level=occurrence.level,
             issue_id=issue_id,
             event_type="occurrence",
             culprit=issue.culprit,
-            short_id=_qualify_short_id(span["project.slug"], issue.short_id),
+            short_id=_qualify_short_id(event_data["project_slug"], issue.short_id),
             issue_type=issue.type,
         )
     elif event.get("event_type") == "error":
@@ -135,7 +167,11 @@ def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -
         if issue_id in group_cache:
             issue = group_cache[issue_id]
         else:
-            issue = Group.objects.get(id=issue_id, project__id=event["project.id"])
+            try:
+                issue = Group.objects.get(id=issue_id, project__id=event["project.id"])
+            except Group.DoesNotExist as e:
+                logger.error(e)
+                return None
             group_cache[issue_id] = issue
 
         return SerializedIssue(
@@ -160,7 +196,7 @@ def _serialize_rpc_event(
     event: dict[str, Any],
     group_cache: dict[int, Group],
     additional_attributes: list[str] | None = None,
-) -> SerializedEvent | SerializedIssue | SerializedUptimeCheck:
+) -> SerializedEvent | SerializedIssue | SerializedUptimeCheck | None:
     if event.get("event_type") not in ("span", "uptime_check"):
         return _serialize_rpc_issue(event, group_cache)
 
@@ -170,11 +206,25 @@ def _serialize_rpc_event(
         if attribute in event
     }
     children = [
-        _serialize_rpc_event(child, group_cache, additional_attributes)
-        for child in event["children"]
+        child
+        for child in [
+            _serialize_rpc_event(child, group_cache, additional_attributes)
+            for child in event["children"]
+        ]
+        if child is not None
     ]
-    errors = [_serialize_rpc_issue(error, group_cache) for error in event["errors"]]
-    occurrences = [_serialize_rpc_issue(error, group_cache) for error in event["occurrences"]]
+    errors = [
+        error
+        for error in [_serialize_rpc_issue(error, group_cache) for error in event["errors"]]
+        if error is not None
+    ]
+    occurrences = [
+        occurrence
+        for occurrence in [
+            _serialize_rpc_issue(error, group_cache) for error in event["occurrences"]
+        ]
+        if occurrence is not None
+    ]
 
     if event.get("event_type") == "uptime_check":
         return SerializedUptimeCheck(
@@ -277,12 +327,107 @@ def _run_errors_query(errors_query: DiscoverQueryBuilder):
     return error_data
 
 
-def _perf_issues_query(snuba_params: SnubaParams, trace_id: str) -> DiscoverQueryBuilder:
+def _run_errors_query_eap(
+    snuba_params: SnubaParams,
+    trace_id: str,
+    referrer: str,
+    error_id: str | None = None,
+) -> list[dict[str, Any]]:
+    if not trace_id:
+        return []
+
+    selected_columns = [
+        "id",
+        "project_id",
+        "project.name",
+        "timestamp",
+        "span_id",
+        "transaction",
+        "group_id",
+        "title",
+        "message",
+        "level",
+    ]
+
+    try:
+        result = Occurrences.run_table_query(
+            params=snuba_params,
+            query_string=f"trace:{trace_id}",
+            selected_columns=selected_columns,
+            orderby=["id"],
+            offset=0,
+            limit=ERROR_LIMIT,
+            referrer=referrer,
+            config=SearchResolverConfig(),
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        eap_data = result.get("data", [])
+    except Exception:
+        logger.exception(
+            "Fetching error occurrences for trace from EAP failed",
+            extra={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization else None
+                ),
+                "project_ids": snuba_params.project_ids,
+                "referrer": referrer,
+            },
+        )
+        return []
+
+    # Replicate the legacy to_other(id, error_id, 0, 1) ordering bias:
+    # move the row matching error_id to the front of the list
+    # TODO: is there a better way to do this?
+    if error_id is not None and eap_data:
+        target_idx = None
+        for i, row in enumerate(eap_data):
+            if row.get("id") == error_id:
+                target_idx = i
+                break
+        if target_idx is not None and target_idx > 0:
+            eap_data.insert(0, eap_data.pop(target_idx))
+
+    transformed: list[dict[str, Any]] = []
+    for row in eap_data:
+        transformed.append(
+            {
+                "id": row.get("id", ""),
+                "project.name": row.get("project.name", ""),
+                "project.id": row.get("project_id"),
+                "timestamp": row.get("timestamp", ""),
+                "timestamp_ms": row.get("timestamp", ""),
+                "trace.span": row.get("span_id", ""),
+                "transaction": row.get("transaction", ""),
+                "issue": row.get("group_id"),
+                "issue.id": row.get("group_id"),
+                "title": row.get("title", ""),
+                "message": row.get("message", ""),
+                "tags[level]": row.get("level", ""),
+                "event_type": "error",
+            }
+        )
+
+    return transformed
+
+
+def _perf_issues_query(
+    snuba_params: SnubaParams,
+    trace_id: str,
+    organization: Organization | None = None,
+) -> DiscoverQueryBuilder:
+    query = f"trace:{trace_id}"
+
+    if organization:
+        visible_type_ids = [gt.type_id for gt in grouptype_registry.get_visible(organization)]
+        if visible_type_ids:
+            query = f"trace:{trace_id} occurrence_type_id:[{','.join(map(str, visible_type_ids))}]"
+
     occurrence_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params={},
         snuba_params=snuba_params,
-        query=f"trace:{trace_id}",
+        query=query,
         selected_columns=["event_id", "occurrence_id", "project_id"],
         config=QueryBuilderConfig(
             functions_acl=["groupArray"],
@@ -302,9 +447,11 @@ def _perf_issues_query(snuba_params: SnubaParams, trace_id: str) -> DiscoverQuer
 
 
 @sentry_sdk.tracing.trace
-def _run_perf_issues_query(occurrence_query: DiscoverQueryBuilder):
-    result = occurrence_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
-    occurrence_data = occurrence_query.process_results(result)["data"]
+def _run_perf_issues_query(
+    occurrence_query: DiscoverQueryBuilder,
+) -> list[TraceIssueOccurrenceData]:
+    snuba_result = occurrence_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
+    occurrence_data = occurrence_query.process_results(snuba_result)["data"]
 
     occurrence_ids = defaultdict(list)
     occurrence_issue_ids = defaultdict(list)
@@ -320,7 +467,7 @@ def _run_perf_issues_query(occurrence_query: DiscoverQueryBuilder):
                 project_id,
             )
         )
-    result = []
+    result: list[TraceIssueOccurrenceData] = []
     for issue in issue_occurrences:
         if issue:
             for issue_id in occurrence_issue_ids.get(issue.id, []):
@@ -368,13 +515,16 @@ def _uptime_results_query(
     )
 
 
-def _run_uptime_results_query(uptime_query: TraceItemTableRequest) -> list[TraceItemTableResponse]:
+def _run_uptime_results_query(
+    uptime_query: TraceItemTableRequest,
+) -> list[TraceItemTableResponse]:
     return table_rpc([uptime_query])
 
 
 def _serialize_columnar_uptime_item(
     row_dict: dict[str, AttributeValue],
     project_slugs: dict[int, str],
+    check_id_to_occurrences: Mapping[str, list[TraceIssueOccurrenceData]] | None = None,
 ) -> dict[str, Any]:
     """Convert a columnar uptime row to a serialized uptime check span format"""
     columns_by_name = {col.internal_name: col for col in UPTIME_ATTRIBUTE_DEFINITIONS.values()}
@@ -419,6 +569,29 @@ def _serialize_columnar_uptime_item(
             if resolved_val is not None:
                 additional_attrs[resolved_column.public_alias] = resolved_val
 
+    start_timestamp = actual_check_time_us / 1_000_000
+    end_timestamp = (actual_check_time_us + check_duration_us) / 1_000_000
+
+    check_id_attr = row_dict.get("check_id")
+    check_id = check_id_attr.val_str if check_id_attr else None
+    occurrences: list[TraceOccurrenceEvent] = (
+        [
+            {
+                "event_type": "occurrence",
+                "event_data": {
+                    "start_timestamp": start_timestamp,
+                    "end_timestamp": end_timestamp,
+                    "project_slug": project_slug,
+                    "transaction": "uptime.check",
+                },
+                "issue_data": issue_data,
+            }
+            for issue_data in (check_id_to_occurrences or {}).get(check_id, [])
+        ]
+        if check_id
+        else []
+    )
+
     uptime_check = {
         "event_type": "uptime_check",
         "event_id": item_id_str,
@@ -428,15 +601,15 @@ def _serialize_columnar_uptime_item(
         "transaction_id": trace_id,
         "name": request_url,
         "op": "uptime.request",
-        "start_timestamp": actual_check_time_us / 1_000_000,
-        "end_timestamp": (actual_check_time_us + check_duration_us) / 1_000_000,
+        "start_timestamp": start_timestamp,
+        "end_timestamp": end_timestamp,
         "duration": check_duration_us / 1_000.0,
         "description": f"Uptime Check Request [{check_status}]",
         "region_name": region_name,
         "additional_attributes": additional_attrs,
         "children": [],
         "errors": [],
-        "occurrences": [],
+        "occurrences": occurrences,
     }
 
     return uptime_check
@@ -450,6 +623,7 @@ def query_trace_data(
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
     referrer: Referrer = Referrer.API_TRACE_VIEW_GET_EVENTS,
+    organization: Organization | None = None,
 ) -> list[SerializedEvent]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -461,12 +635,14 @@ def query_trace_data(
     # up. Because of that, tests can fail during tear down as there are active connections
     # to the database preventing a DROP.
     errors_query = _errors_query(snuba_params, trace_id, error_id)
-    occurrence_query = _perf_issues_query(snuba_params, trace_id)
+    occurrence_query = _perf_issues_query(snuba_params, trace_id, organization)
     uptime_query = _uptime_results_query(snuba_params, trace_id) if include_uptime else None
 
     # 1 worker each for spans, errors, performance issues, and optionally uptime
     max_workers = 4 if include_uptime else 3
-    query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=max_workers)
+    query_thread_pool = ContextPropagatingThreadPoolExecutor(
+        thread_name_prefix=__name__, max_workers=max_workers
+    )
     with query_thread_pool:
         spans_future = query_thread_pool.submit(
             Spans.run_trace_query,
@@ -492,6 +668,32 @@ def query_trace_data(
     errors_data = errors_future.result()
     occurrence_data = occurrence_future.result()
     uptime_data = uptime_future.result() if uptime_future else []
+
+    callsite = "snuba.trace.errors_query"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_errors_data = _run_errors_query_eap(
+            snuba_params=snuba_params,
+            trace_id=trace_id,
+            referrer=referrer.value,
+            error_id=error_id,
+        )
+        errors_data = EAPOccurrencesComparator.check_and_choose(
+            control_data=errors_data,
+            experimental_data=eap_errors_data,
+            callsite=callsite,
+            is_experimental_data_a_null_result=len(eap_errors_data) == 0,
+            reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
+                {e["id"] for e in snuba}
+            ),
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization else None
+                ),
+                "project_ids": snuba_params.project_ids,
+            },
+        )
+
     result: list[dict[str, Any]] = []
     root_span: dict[str, Any] | None = None
 
@@ -519,8 +721,19 @@ def query_trace_data(
                     "id", "slug"
                 )
             }
+
+            check_id_to_occurrences: defaultdict[str, list[TraceIssueOccurrenceData]] = defaultdict(
+                list
+            )
+            for event in occurrence_data:
+                occurrence = event["occurrence"]
+                check_id = occurrence.evidence_data.get("check_id")
+                if check_id:
+                    check_id_to_occurrences[check_id].append(event)
+
             uptime_checks = [
-                _serialize_columnar_uptime_item(item, project_slugs) for item in trace_items
+                _serialize_columnar_uptime_item(item, project_slugs, check_id_to_occurrences)
+                for item in trace_items
             ]
             uptime_checks.sort(
                 key=lambda s: s.get("additional_attributes", {}).get("request_sequence", 0)
@@ -563,16 +776,20 @@ def query_trace_data(
                 errors = id_to_error.pop(span["id"])
                 span["errors"].extend(errors)
             if span["id"] in id_to_occurrence:
-                span["occurrences"].extend(
-                    [
-                        {
-                            "event_type": "occurrence",
-                            "span": span,
-                            "issue_data": occurrence,
-                        }
-                        for occurrence in id_to_occurrence[span["id"]]
-                    ]
-                )
+                occurrences: list[TraceOccurrenceEvent] = [
+                    {
+                        "event_type": "occurrence",
+                        "event_data": {
+                            "start_timestamp": span["precise.start_ts"],
+                            "end_timestamp": span["precise.finish_ts"],
+                            "project_slug": span["project.slug"],
+                            "transaction": span["transaction"],
+                        },
+                        "issue_data": occurrence,
+                    }
+                    for occurrence in id_to_occurrence[span["id"]]
+                ]
+                span["occurrences"].extend(occurrences)
 
         # These are offset from the params start & end
         if span_min_ts is not None:
@@ -591,4 +808,10 @@ def query_trace_data(
             result.extend(errors)
     group_cache: dict[int, Group] = {}
     with sentry_sdk.start_span(op="serializing_data"):
-        return [_serialize_rpc_event(root, group_cache, additional_attributes) for root in result]
+        return [
+            event
+            for event in [
+                _serialize_rpc_event(root, group_cache, additional_attributes) for root in result
+            ]
+            if event is not None
+        ]

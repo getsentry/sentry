@@ -79,5 +79,4 @@ const storeConfig: HookStoreDefinition = {
  * This functionality is primarily used by the SASS sentry.io product.
  */
 
-const HookStore = createStore(storeConfig);
-export default HookStore;
+export const HookStore = createStore(storeConfig);

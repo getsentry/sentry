@@ -1,4 +1,5 @@
 import _thread
+import contextvars
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from queue import Full
@@ -6,9 +7,11 @@ from threading import Event
 from unittest import mock
 
 import pytest
+import sentry_sdk
 
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.concurrent import (
+    ContextPropagatingThreadPoolExecutor,
     FutureSet,
     SynchronousExecutor,
     ThreadedExecutor,
@@ -281,3 +284,60 @@ def test_threaded_executor() -> None:
     low_priority_waiting.set()  # let the task finish
     assert low_priority_future.result(timeout=1) == 2
     assert low_priority_future.done()
+
+
+# --- ContextPropagatingThreadPoolExecutor tests ---
+
+_test_var: contextvars.ContextVar[str] = contextvars.ContextVar("test_var")
+
+
+def test_context_propagating_executor_submit() -> None:
+    _test_var.set("hello")
+
+    def get_var():
+        return _test_var.get()
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(get_var)
+        assert future.result(timeout=2) == "hello"
+
+
+def test_context_propagating_executor_map() -> None:
+    _test_var.set("from_parent")
+
+    def get_var_with_arg(x):
+        return (_test_var.get(), x)
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(get_var_with_arg, [1, 2, 3]))
+
+    assert results == [("from_parent", 1), ("from_parent", 2), ("from_parent", 3)]
+
+
+def test_context_propagating_executor_isolation() -> None:
+    """Mutations in worker threads don't leak to the parent or other tasks."""
+    _test_var.set("original")
+
+    def mutate_var(value):
+        _test_var.set(value)
+        return _test_var.get()
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+        assert executor.submit(mutate_var, "changed_1").result(timeout=2) == "changed_1"
+        assert executor.submit(mutate_var, "changed_2").result(timeout=2) == "changed_2"
+
+    # Parent context is unaffected
+    assert _test_var.get() == "original"
+
+
+def test_context_propagating_executor_sentry_scope() -> None:
+    """Sentry SDK scopes are propagated via contextvars."""
+    sentry_sdk.get_current_scope().set_tag("test_key", "test_value")
+
+    def read_scope_tag():
+        return sentry_sdk.get_current_scope()._tags.get("test_key")
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+        result = executor.submit(read_scope_tag).result(timeout=2)
+
+    assert result == "test_value"

@@ -123,7 +123,6 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(data[1]["topValues"]) == 1
 
     def test_date_range_filtering(self) -> None:
-
         event1 = self.store_event(
             data={
                 "fingerprint": ["group-1"],

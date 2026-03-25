@@ -18,7 +18,8 @@ class GlobalSelectionPage(BasePage):
         self.browser.click('[data-test-id="page-filter-project-selector"]')
 
     def select_project_by_slug(self, slug):
-        project_item_selector = f'//*[@data-test-id="menu-list-item-label" and text()="{slug}"]'
+        # Use .// to search for text in descendant nodes (handles nested Flex/Text components)
+        project_item_selector = f'//*[@data-test-id="menu-list-item-label"][.//text()="{slug}"]'
 
         self.open_project_selector()
         self.browser.wait_until(xpath=project_item_selector)
@@ -28,7 +29,8 @@ class GlobalSelectionPage(BasePage):
         self.browser.click('[data-test-id="page-filter-environment-selector"]')
 
     def select_environment(self, environment):
-        environment_path = f'//*[@data-test-id="menu-list-item-label" and text()="{environment}"]'
+        # Use .// to search for text in descendant nodes (handles nested Flex/Text components)
+        environment_path = f'//*[@data-test-id="menu-list-item-label"][.//text()="{environment}"]'
 
         self.open_environment_selector()
         self.browser.wait_until(xpath=environment_path)

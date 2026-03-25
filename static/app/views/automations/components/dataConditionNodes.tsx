@@ -64,6 +64,11 @@ import {
 } from 'sentry/views/automations/components/actionFilters/issuePriority';
 import {IssuePriorityDeescalating} from 'sentry/views/automations/components/actionFilters/issuePriorityDeescalating';
 import {
+  IssueTypeDetails,
+  IssueTypeNode,
+  validateIssueTypeCondition,
+} from 'sentry/views/automations/components/actionFilters/issueType';
+import {
   LatestAdoptedReleaseDetails,
   LatestAdoptedReleaseNode,
   validateLatestAdoptedReleaseCondition,
@@ -200,6 +205,15 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       dataCondition: IssueCategoryNode,
       details: IssueCategoryDetails,
       validate: validateIssueCategoryCondition,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_TYPE,
+    {
+      label: t('Issue type'),
+      dataCondition: IssueTypeNode,
+      details: IssueTypeDetails,
+      validate: validateIssueTypeCondition,
     },
   ],
   [

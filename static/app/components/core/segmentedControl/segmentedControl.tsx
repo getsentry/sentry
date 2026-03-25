@@ -15,7 +15,6 @@ import {DO_NOT_USE_getButtonStyles} from '@sentry/scraps/button';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {space} from 'sentry/styles/space';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
 type Priority = 'default' | 'primary';
@@ -187,6 +186,7 @@ function Segment<Value extends string>({
   const content = (
     <SegmentWrap
       size={size}
+      shapeVariant={props.children ? 'rectangular' : 'square'}
       isSelected={isSelected}
       isDisabled={isDisabled}
       priority={priority}
@@ -258,6 +258,7 @@ const GroupWrap = styled('div')<{
 const SegmentWrap = styled('label')<{
   isSelected: boolean;
   priority: Priority;
+  shapeVariant: 'rectangular' | 'square';
   size: FormSize;
   isDisabled?: boolean;
 }>`
@@ -278,6 +279,7 @@ const SegmentWrap = styled('label')<{
       ...p,
       disabled: p.isDisabled,
       priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default',
+      shapeVariant: p.shapeVariant,
     }),
   })}
 
@@ -327,7 +329,7 @@ const LabelWrap = styled('span')<{
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+  gap: ${p => (p.size === 'xs' ? p.theme.space.xs : p.theme.space.sm)};
   z-index: 1;
   color: ${p => getTextColor(p)};
 `;

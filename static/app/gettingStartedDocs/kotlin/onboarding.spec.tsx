@@ -3,7 +3,7 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PackageManager} from './utils';
-import docs from '.';
+import {docs} from '.';
 
 describe('GettingStartedWithKotlin', () => {
   it('renders gradle docs correctly', async () => {
@@ -49,7 +49,7 @@ describe('GettingStartedWithKotlin', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          /<artifactId>sentry-maven-plugin<\/artifactId>\s*<version>3\.99\.9<\/version>/m
+          /<artifactId>sentry-maven-plugin<\/artifactId>\s*<version>3\.99\.9<\/version>/
         )
       )
     ).toBeInTheDocument();

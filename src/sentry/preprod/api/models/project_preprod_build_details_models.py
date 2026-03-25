@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
@@ -10,15 +9,10 @@ from sentry.preprod.build_distribution_utils import (
     get_download_count_for_artifact,
     is_installable_artifact,
 )
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import Platform, PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.size.tasks import StatusCheckErrorType
 
 logger = logging.getLogger(__name__)
-
-
-class Platform(StrEnum):
-    APPLE = "apple"
-    ANDROID = "android"
 
 
 class AppleAppInfo(BaseModel):
@@ -59,6 +53,8 @@ class DistributionInfo(BaseModel):
     is_installable: bool
     download_count: int
     release_notes: str | None = None
+    error_code: str | None = None
+    error_message: str | None = None
 
 
 class StatusCheckResultSuccess(BaseModel):
@@ -153,24 +149,9 @@ class BuildDetailsApiResponse(BaseModel):
     base_build_info: BuildDetailsAppInfo | None = None
 
 
-def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
-    match artifact_type:
-        case PreprodArtifact.ArtifactType.XCARCHIVE:
-            return Platform.APPLE
-        case PreprodArtifact.ArtifactType.AAB:
-            return Platform.ANDROID
-        case PreprodArtifact.ArtifactType.APK:
-            return Platform.ANDROID
-        case _:
-            raise ValueError(f"Unknown artifact type: {artifact_type}")
-
-
 def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppInfo:
     """Factory function to create BuildDetailsAppInfo from a PreprodArtifact."""
-    platform = None
-    # artifact_type can be null before preprocessing has completed
-    if artifact.artifact_type is not None:
-        platform = platform_from_artifact_type(artifact.artifact_type)
+    platform = artifact.platform
 
     apple_app_info = None
     if platform == Platform.APPLE:
@@ -193,7 +174,7 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
             )
         )
 
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    mobile_app_info = artifact.get_mobile_app_info()
 
     return BuildDetailsAppInfo(
         app_id=artifact.app_id,
@@ -284,7 +265,6 @@ def to_size_info(
 def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
 ) -> BuildDetailsApiResponse:
-
     size_metrics_list = list(artifact.preprodartifactsizemetrics_set.all())
 
     base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
@@ -304,10 +284,18 @@ def transform_preprod_artifact_to_build_details(
 
     app_info = create_build_details_app_info(artifact)
     is_installable = is_installable_artifact(artifact)
+
+    error_code_str = None
+    if artifact.installable_app_error_code is not None:
+        error_code_map = dict(PreprodArtifact.InstallableAppErrorCode.as_choices())
+        error_code_str = error_code_map.get(artifact.installable_app_error_code)
+
     distribution_info = DistributionInfo(
         is_installable=is_installable,
         download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
         release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
+        error_code=error_code_str,
+        error_message=artifact.installable_app_error_message,
     )
 
     vcs_info = BuildDetailsVcsInfo(

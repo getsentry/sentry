@@ -1,25 +1,25 @@
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
+import type {DataWidgetViewerModalOptions} from 'sentry/components/modals/dataWidgetViewerModal';
 import type {SaveQueryModalProps} from 'sentry/components/modals/explore/saveQueryModal';
 import type {ImportDashboardFromFileModalProps} from 'sentry/components/modals/importDashboardFromFileModal';
 import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
-import type {TokenRegenerationConfirmationModalProps} from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {LinkToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/linkToDashboardModal';
-import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
 import type {Category} from 'sentry/components/platformPicker';
-import ModalStore from 'sentry/stores/modalStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 import type {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Event} from 'sentry/types/event';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Theme} from 'sentry/utils/theme';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
 
 export type ModalOptions = ModalTypes['options'];
@@ -315,19 +315,32 @@ export async function openDashboardWidgetQuerySelectorModal(
 export async function openWidgetViewerModal({
   onClose,
   ...options
-}: WidgetViewerModalOptions & {onClose?: () => void}) {
-  const {
-    default: Modal,
-    modalCss,
-    backdropCss,
-  } = await import('sentry/components/modals/widgetViewerModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {
-    closeEvents: 'none',
-    modalCss,
-    backdropCss,
-    onClose,
-  });
+}: DataWidgetViewerModalOptions & {onClose?: () => void}) {
+  if (options.widget.displayType === DisplayType.TEXT) {
+    const {
+      default: Modal,
+      modalCss,
+      backdropCss,
+    } = await import('sentry/components/modals/textWidgetViewerModal');
+    openModal(deps => <Modal {...deps} {...options} />, {
+      closeEvents: 'none',
+      modalCss,
+      backdropCss,
+      onClose,
+    });
+  } else {
+    const {
+      default: Modal,
+      modalCss,
+      backdropCss,
+    } = await import('sentry/components/modals/dataWidgetViewerModal');
+    openModal(deps => <Modal {...deps} {...options} />, {
+      closeEvents: 'none',
+      modalCss,
+      backdropCss,
+      onClose,
+    });
+  }
 }
 
 export async function openCreateNewIntegrationModal() {
@@ -415,15 +428,6 @@ export async function openAddTempestCredentialsModal(options: {
 export async function openSaveQueryModal(options: SaveQueryModalProps) {
   const {default: Modal} =
     await import('sentry/components/modals/explore/saveQueryModal');
-
-  openModal(deps => <Modal {...deps} {...options} />);
-}
-
-export async function openTokenRegenerationConfirmationModal(
-  options: TokenRegenerationConfirmationModalProps
-) {
-  const {default: Modal} =
-    await import('sentry/components/modals/tokenRegenerationConfirmationModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
 }

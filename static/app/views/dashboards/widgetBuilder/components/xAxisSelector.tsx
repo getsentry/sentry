@@ -4,23 +4,23 @@ import styled from '@emotion/styled';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTags from 'sentry/utils/useTags';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
-import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
 export function WidgetBuilderXAxisSelector() {
@@ -30,7 +30,7 @@ export function WidgetBuilderXAxisSelector() {
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
 
-  const tags: TagCollection = useTags();
+  const tags = useTags();
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
@@ -39,13 +39,11 @@ export function WidgetBuilderXAxisSelector() {
     hiddenKeys = HIDDEN_PREPROD_ATTRIBUTES;
   }
 
-  // Only use string tags for categorical X-axis (numeric values don't make good
-  // categories). This has a major caveat that _some_ numerical tags like HTTP
-  // response status _are_ good for grouping, so we may want to allow that.
-  const {tags: stringSpanTags, isLoading: isLoadingSpanTags} = useTraceItemTags(
-    'string',
-    hiddenKeys
-  );
+  const {traceItemType, ...traceItemOptions} = useWidgetBuilderTraceItemConfig();
+  const {attributes: stringSpanTags, isLoading: isLoadingStringTags} =
+    useTraceItemDatasetAttributes(traceItemType, traceItemOptions, 'string', hiddenKeys);
+  const {attributes: numericSpanTags, isLoading: isLoadingNumericTags} =
+    useTraceItemDatasetAttributes(traceItemType, traceItemOptions, 'number', hiddenKeys);
 
   const datasetConfig = getDatasetConfig(state.dataset);
 
@@ -55,20 +53,21 @@ export function WidgetBuilderXAxisSelector() {
     state.dataset === WidgetType.LOGS ||
     state.dataset === WidgetType.TRACEMETRICS;
 
-  const isLoading = isEAPDataset && isLoadingSpanTags;
+  const isLoading = isEAPDataset && (isLoadingStringTags || isLoadingNumericTags);
 
   const fieldOptions = useMemo(() => {
-    // For EAP, use the EAP-style tags and format them directly, we've already
-    // narrowed down to just string tags
+    // For EAP, use EAP-style tags. Both string and number tags are valid
+    // categories (e.g. run_id, HTTP status codes).
     if (isEAPDataset) {
-      return Object.values(stringSpanTags).map(tag => ({
+      const allTags = {...stringSpanTags, ...numericSpanTags};
+      return Object.values(allTags).map(tag => ({
         label: prettifyTagKey(tag.name),
         value: tag.key,
         trailingItems: () => <TypeBadge valueKind={FieldValueKind.TAG} />,
       }));
     }
 
-    // For other datasets, use getGroupByFieldOptions and filter for string types only
+    // For other datasets, use getGroupByFieldOptions and filter to string/number types
     if (datasetConfig.getGroupByFieldOptions) {
       const options = datasetConfig.getGroupByFieldOptions(organization, tags);
       return Object.values(options)
@@ -81,7 +80,8 @@ export function WidgetBuilderXAxisSelector() {
             return false;
           }
 
-          return option.value.meta.dataType === 'string';
+          const dataType = option.value.meta.dataType;
+          return dataType === 'string' || dataType === 'number';
         })
         .map(option => ({
           label: option.value.meta.name,
@@ -91,7 +91,7 @@ export function WidgetBuilderXAxisSelector() {
     }
 
     return [];
-  }, [isEAPDataset, datasetConfig, organization, tags, stringSpanTags]);
+  }, [isEAPDataset, datasetConfig, organization, tags, stringSpanTags, numericSpanTags]);
 
   // Extract the current X-axis field from state.fields.
   // For categorical bars, state.fields contains both X-axis fields (FIELD kind)
@@ -129,7 +129,7 @@ export function WidgetBuilderXAxisSelector() {
         tooltipText={t('Select the field to use for X-axis categories.')}
       />
       <FullWidthCompactSelect
-        searchable
+        search
         loading={isLoading}
         value={currentXAxisField}
         options={fieldOptions}

@@ -5,9 +5,10 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconSlashForward} from 'sentry/icons';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 
 export interface Crumb {
   /**
@@ -17,7 +18,7 @@ export interface Crumb {
 
   /**
    * It will keep the page filter values (projects, environments, time) in the
-   * querystring when navigating (GlobalSelectionLink)
+   * querystring when navigating using extractSelectionParameters
    */
   preservePageFilters?: boolean;
 
@@ -115,10 +116,18 @@ interface BreadcrumbLinkProps extends LinkProps {
 }
 
 function BreadcrumbLink(props: BreadcrumbLinkProps) {
-  const {preservePageFilters, ...rest} = props;
-  if (preservePageFilters) {
-    return <GlobalSelectionLink {...rest} />;
+  const {preservePageFilters, to, ...rest} = props;
+  const location = useLocation();
+
+  if (!to) {
+    return <Link to={to} {...rest} />;
   }
 
-  return <Link {...rest} />;
+  const toWithQuery = preservePageFilters
+    ? typeof to === 'string'
+      ? {pathname: to, query: extractSelectionParameters(location.query)}
+      : {...to, query: {...extractSelectionParameters(location.query), ...to.query}}
+    : to;
+
+  return <Link to={toWithQuery} {...rest} />;
 }

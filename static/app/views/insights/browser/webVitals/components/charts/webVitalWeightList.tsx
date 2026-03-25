@@ -4,11 +4,8 @@ import styled from '@emotion/styled';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
-import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-
-import {ORDER} from './performanceScoreChart';
+import {ORDER, type WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
 interface WebVitalsWeightListProps {
   weights: Record<WebVitals, number>;
@@ -53,9 +50,9 @@ const ListItem = styled('li')``;
 
 const Dot = styled('span')<{color: string}>`
   display: inline-block;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};
-  width: ${space(1)};
-  height: ${space(1)};
+  width: ${p => p.theme.space.md};
+  height: ${p => p.theme.space.md};
   background-color: ${p => p.color};
 `;

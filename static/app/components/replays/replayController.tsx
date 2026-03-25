@@ -5,14 +5,13 @@ import {useResizeObserver} from '@react-aria/utils';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
+import {ReplayPreferenceDropdown} from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
-import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
-import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
+import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
+import {TimeAndScrubberGrid} from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconChevron, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -36,7 +35,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
     <Grid flow="column" align="center" gap="md">
       <Button
         size="sm"
-        title={t('Rewind 10s')}
+        tooltipProps={{title: t('Rewind 10s')}}
         icon={<IconRewind10 size="sm" />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
         aria-label={t('Rewind 10 seconds')}
@@ -46,7 +45,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
       <Button
         disabled={isLoading}
         size="sm"
-        title={t('Next breadcrumb')}
+        tooltipProps={{title: t('Next breadcrumb')}}
         icon={<IconChevron size="sm" direction="right" />}
         onClick={() => {
           if (!replay) {
@@ -67,7 +66,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   );
 }
 
-export default function ReplayController({
+export function ReplayController({
   toggleFullscreen,
   hideFastForward = false,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
@@ -111,7 +110,7 @@ export default function ReplayController({
 
 const ButtonGrid = styled('div')<{isCompact: boolean}>`
   display: flex;
-  gap: 0 ${space(2)};
+  gap: 0 ${p => p.theme.space.xl};
   flex-direction: row;
   justify-content: space-between;
   ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}

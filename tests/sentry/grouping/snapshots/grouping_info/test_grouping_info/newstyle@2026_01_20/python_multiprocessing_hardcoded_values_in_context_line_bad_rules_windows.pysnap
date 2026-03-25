@@ -25,7 +25,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -69,7 +69,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -113,7 +113,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -157,7 +157,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -201,7 +201,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -245,7 +245,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -289,7 +289,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -333,7 +333,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -377,7 +377,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -421,7 +421,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -465,7 +465,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -509,7 +509,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -553,7 +553,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -597,7 +597,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -641,7 +641,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -685,7 +685,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -729,7 +729,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -773,7 +773,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -817,7 +817,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -861,7 +861,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -905,7 +905,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -949,7 +949,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -993,7 +993,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1037,7 +1037,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1081,7 +1081,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1125,7 +1125,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1169,7 +1169,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1213,7 +1213,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1257,7 +1257,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1301,7 +1301,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1345,7 +1345,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1389,7 +1389,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1433,7 +1433,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1477,7 +1477,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by custom stack trace rule (function:run_app +app v+app)",
+                    "hint": "marked in-app by custom stacktrace rule (function:run_app +app v+app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1842,7 +1842,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": true,
-                    "hint": "un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -2194,7 +2194,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -2986,7 +2986,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -3030,7 +3030,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -3074,7 +3074,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -3118,7 +3118,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -3162,7 +3162,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -3206,7 +3206,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -3250,7 +3250,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "un-ignored by custom stack trace rule (function:run_app +group v+group)",
+                    "hint": "un-ignored by custom stacktrace rule (function:run_app +group v+group)",
                     "id": "frame",
                     "name": null,
                     "values": [

@@ -19,6 +19,7 @@ from snuba_sdk import (
     Query,
     Request,
 )
+from taskbroker_client.retry import Retry
 
 from sentry import options, quotas
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
@@ -39,8 +40,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     set_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options.project_option import ProjectOption
@@ -52,7 +52,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.namespaces import telemetry_experience_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
@@ -82,19 +81,12 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
     total_num_classes: int | float
 
 
-def _get_segments_org_ids() -> set[int]:
-    """
-    Returns the set of organization IDs that should use SEGMENTS measure.
-    """
-    return set(options.get("dynamic-sampling.transactions.segment-metric-orgs") or [])
-
-
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=10 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions() -> None:
@@ -105,47 +97,19 @@ def boost_low_volume_transactions() -> None:
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
     )
 
-    segments_org_ids = _get_segments_org_ids()
-
-    # Process orgs using segment metrics (opted-in via option)
-    if segments_org_ids:
-        for orgs in GetActiveOrgs(
-            max_projects=MAX_PROJECTS_PER_QUERY,
-            granularity=Granularity(60),
-            measure=SamplingMeasure.SEGMENTS,
-        ):
-            # Filter to only orgs in the segments option
-            segment_orgs = [org_id for org_id in orgs if org_id in segments_org_ids]
-            metrics.incr(
-                "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
-                tags={"metric_type": "segment"},
-                amount=len(segment_orgs),
-            )
-            if segment_orgs:
-                _process_orgs_for_boost_low_volume_transactions(
-                    segment_orgs, num_big_trans, num_small_trans, measure=SamplingMeasure.SEGMENTS
-                )
-
-    # Process orgs using transaction metrics (default)
     for orgs in GetActiveOrgs(
         max_projects=MAX_PROJECTS_PER_QUERY,
         granularity=Granularity(60),
-        measure=SamplingMeasure.TRANSACTIONS,
+        measure=SamplingMeasure.SEGMENTS,
     ):
-        # Filter out orgs that use segment metrics
-        transaction_orgs = [org_id for org_id in orgs if org_id not in segments_org_ids]
         metrics.incr(
             "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
-            tags={"metric_type": "transaction"},
-            amount=len(transaction_orgs),
+            tags={"metric_type": "segment"},
+            amount=len(orgs),
         )
-        if transaction_orgs:
-            _process_orgs_for_boost_low_volume_transactions(
-                transaction_orgs,
-                num_big_trans,
-                num_small_trans,
-                measure=SamplingMeasure.TRANSACTIONS,
-            )
+        _process_orgs_for_boost_low_volume_transactions(
+            orgs, num_big_trans, num_small_trans, measure=SamplingMeasure.SEGMENTS
+        )
 
 
 def _process_orgs_for_boost_low_volume_transactions(
@@ -188,7 +152,7 @@ def _process_orgs_for_boost_low_volume_transactions(
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=4 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:
@@ -212,7 +176,6 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
 
     if is_project_mode_sampling(organization):
         sample_rate = ProjectOption.objects.get_value(project_id, "sentry:target_sample_rate")
-        source = "project_setting"
     else:
         # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
         # resort to the blended sample rate of the org.
@@ -223,18 +186,6 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
                 organization_id=org_id
             ),
         )
-        source = "boost_low_volume_projects" if success else "blended_sample_rate"
-
-    sample_function(
-        function=log_sample_rate_source,
-        _sample_rate=0.1,
-        org_id=org_id,
-        project_id=project_id,
-        used_for="boost_low_volume_transactions",
-        source=source,
-        sample_rate=sample_rate,
-    )
-
     if sample_rate is None:
         sentry_sdk.capture_message(
             "Sample rate of project not found when trying to adjust the sample rates of "
@@ -300,9 +251,7 @@ class FetchProjectTransactionTotals:
     project in the given organizations
     """
 
-    def __init__(
-        self, orgs: Sequence[int], measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS
-    ):
+    def __init__(self, orgs: Sequence[int], measure: SamplingMeasure = SamplingMeasure.SEGMENTS):
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
 
@@ -396,7 +345,6 @@ class FetchProjectTransactionTotals:
         return self._get_from_cache()
 
     def _get_from_cache(self) -> ProjectTransactionsTotals:
-
         if self._cache_empty():
             raise StopIteration()
 
@@ -439,7 +387,7 @@ class FetchProjectTransactionVolumes:
         orgs: list[int],
         large_transactions: bool,
         max_transactions: int,
-        measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
+        measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
     ):
         self.large_transactions = large_transactions
         self.max_transactions = max_transactions

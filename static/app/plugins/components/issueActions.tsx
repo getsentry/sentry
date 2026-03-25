@@ -3,13 +3,13 @@ import {Fragment} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
-import Form from 'sentry/components/deprecatedforms/form';
-import FormState from 'sentry/components/forms/state';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {FormState} from 'sentry/components/forms/state';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
-import GroupStore from 'sentry/stores/groupStore';
+import {PluginComponentBase} from 'sentry/plugins/pluginComponentBase';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -60,7 +60,7 @@ type State = {
   unlinkFieldList?: Field[];
 } & PluginComponentBase['state'];
 
-class IssueActions extends PluginComponentBase<Props, State> {
+export class IssueActions extends PluginComponentBase<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -572,5 +572,3 @@ class IssueActions extends PluginComponentBase<Props, State> {
     );
   }
 }
-
-export default IssueActions;

@@ -9,10 +9,7 @@ export function hasLogsOnReplays(
   project?: Project | null,
   replay?: ReplayRecord | null
 ): boolean {
-  const hasFeatureFlag =
-    isLogsEnabled(organization) && organization.features.includes('ourlogs-replay-ui');
-
-  if (!hasFeatureFlag) {
+  if (!isLogsEnabled(organization)) {
     return false;
   }
 

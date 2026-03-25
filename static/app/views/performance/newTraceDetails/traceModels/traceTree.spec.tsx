@@ -182,7 +182,7 @@ const eapTraceWithOccurences = makeEAPTrace([
       makeEAPSpan({
         event_id: 'eap-span-2',
         is_transaction: false,
-        occurrences: [makeEAPOccurrence({event_id: 'eap-occurence-1'})],
+        occurrences: [makeEAPOccurrence({event_id: 'eap-occurrence-1'})],
       }),
     ],
   }),
@@ -615,7 +615,7 @@ describe('TraceTree', () => {
       expect(eapSpan?.errors.size).toBe(1);
     });
 
-    it('adds eap occurences to tree nodes', () => {
+    it('adds eap occurrences to tree nodes', () => {
       const tree = TraceTree.FromTrace(eapTraceWithOccurences, traceOptions);
 
       expect(tree.root.children[0]!.occurrences.size).toBe(1);
@@ -818,6 +818,78 @@ describe('TraceTree', () => {
           expect.objectContaining({type: 'lcp', label: 'LCP', measurement: {value: 200}}),
         ])
       );
+    });
+
+    it('standalone LCP span indicator takes priority over pageload LCP indicator', () => {
+      const standaloneStart = start + 1.5;
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'pageload-span',
+            op: 'pageload',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            measurements: {
+              'measurements.lcp': 500,
+            },
+            children: [],
+          }),
+          makeEAPSpan({
+            event_id: 'standalone-lcp-span',
+            op: 'ui.webvital.lcp',
+            start_timestamp: standaloneStart,
+            end_timestamp: standaloneStart + 0.1,
+            is_transaction: false,
+            measurements: {
+              'measurements.lcp': 500,
+            },
+            children: [],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
+      expect(lcpIndicators).toHaveLength(1);
+      expect(lcpIndicators[0]!.start).toBe(standaloneStart * 1e3 + 500);
+    });
+
+    it('applies standalone LCP measurement offset from trace origin when present', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'pageload-span',
+            op: 'pageload',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            additional_attributes: {
+              'tags[performance.timeOrigin,number]': start,
+            },
+            measurements: {
+              'measurements.lcp': 500,
+            },
+            children: [],
+          }),
+          makeEAPSpan({
+            event_id: 'standalone-lcp-span',
+            op: 'ui.webvital.lcp',
+            start_timestamp: start + 1.5,
+            end_timestamp: start + 1.6,
+            is_transaction: false,
+            measurements: {
+              'measurements.lcp': 1240,
+            },
+            children: [],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
+      expect(lcpIndicators).toHaveLength(1);
+      expect(lcpIndicators[0]!.start).toBe(start * 1e3 + 1240);
     });
 
     it('handles cycles in EAP trace structure without infinite loop', () => {

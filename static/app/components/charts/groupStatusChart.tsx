@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -33,7 +33,7 @@ type Props = {
   showSecondaryPoints?: boolean;
 };
 
-function GroupStatusChart({
+export function GroupStatusChart({
   stats,
   groupStatus,
   height = 24,
@@ -77,7 +77,7 @@ function GroupStatusChart({
         color: theme.tokens.content.secondary,
         fontFamily: 'Rubik',
         fontSize: 10,
-        formatter: `${formattedMarkLine}`,
+        formatter: formattedMarkLine,
       },
     });
 
@@ -138,8 +138,6 @@ function GroupStatusChart({
     </LazyRender>
   );
 }
-
-export default GroupStatusChart;
 
 const ChartAnimationWrapper = styled('div')`
   animation: fade-in 0.5s;

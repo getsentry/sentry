@@ -1,5 +1,6 @@
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 import type {UseMonitorsScheduleSamplesOptions} from './useMonitorsScheduleSamples';
@@ -32,7 +33,12 @@ export function useMonitorsScheduleSampleWindow({
   };
 
   return useApiQuery<ScheduleSampleWindowResponse>(
-    [`/organizations/${organization.slug}/monitors-schedule-window/`, {query}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/monitors-schedule-window/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query},
+    ],
     {
       staleTime: 0,
       retry: false,

@@ -22,7 +22,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -88,7 +87,7 @@ export function HeaderCell({
   );
 }
 
-function DetectorListTable({
+export function DetectorListTable({
   detectors,
   isPending,
   isError,
@@ -214,11 +213,11 @@ function DetectorListTable({
                       ? t('Collapse visualization')
                       : t('Expand visualization')
                   }
-                  title={
-                    isVisualizationExpanded
+                  tooltipProps={{
+                    title: isVisualizationExpanded
                       ? t('Collapse visualization')
-                      : t('Expand visualization')
-                  }
+                      : t('Expand visualization'),
+                  }}
                   onClick={() => setIsVisualizationExpanded(v => !v)}
                 />
               </VisualizationExpandButton>
@@ -453,7 +452,7 @@ const DetectorListSimpleTable = styled(SimpleTable)<{
   isVisualizationExpanded: boolean;
 }>`
   grid-template-columns: 1fr;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='type'],
   [data-column-name='last-issue'],
@@ -509,7 +508,7 @@ const VisualizationHeaderContainer = styled(Container)`
 const VisualizationExpandButton = styled('div')`
   grid-row: 1;
   grid-column: -1;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   display: none;
   z-index: 4;
 
@@ -519,5 +518,3 @@ const VisualizationExpandButton = styled('div')`
     justify-content: center;
   }
 `;
-
-export default DetectorListTable;

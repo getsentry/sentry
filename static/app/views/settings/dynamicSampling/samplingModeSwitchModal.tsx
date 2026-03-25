@@ -1,8 +1,7 @@
-import {useId} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -12,13 +11,9 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
-import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 
@@ -34,7 +29,19 @@ interface Props {
   initialTargetRate?: number;
 }
 
-const {FormProvider, useFormState, useFormField} = organizationSamplingForm;
+const schema = z.object({
+  targetSampleRate: z
+    .string()
+    .min(1, t('This field is required.'))
+    .refine(val => !isNaN(Number(val)), {message: t('Please enter a valid number.')})
+    .refine(
+      val => {
+        const n = Number(val);
+        return n >= 0 && n <= 100;
+      },
+      {message: t('Must be between 0% and 100%')}
+    ),
+});
 
 function SamplingModeSwitchModal({
   Header,
@@ -44,13 +51,7 @@ function SamplingModeSwitchModal({
   samplingMode,
   initialTargetRate = 1,
 }: Props & ModalRenderProps) {
-  const formState = useFormState({
-    initialValues: {
-      targetSampleRate: formatPercent(initialTargetRate),
-    },
-  });
-
-  const {mutate: updateOrganization, isPending} = useUpdateOrganization({
+  const {mutateAsync: updateOrganization, isPending} = useUpdateOrganization({
     onMutate: () => {
       addLoadingMessage(t('Switching sampling mode...'));
     },
@@ -63,37 +64,35 @@ function SamplingModeSwitchModal({
     },
   });
 
-  const handleSubmit = () => {
-    if (!formState.isValid) {
-      return;
-    }
-    const changes: Parameters<typeof updateOrganization>[0] = {
-      samplingMode,
-    };
-    if (samplingMode === 'organization') {
-      changes.targetSampleRate = parsePercent(formState.fields.targetSampleRate.value);
-    }
-    updateOrganization(changes);
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      targetSampleRate: formatPercent(initialTargetRate || 0),
+    },
+    validators: {
+      onDynamic: schema,
+    },
+    onSubmit: ({value}) => {
+      const changes: Parameters<typeof updateOrganization>[0] = {samplingMode};
+      if (samplingMode === 'organization') {
+        changes.targetSampleRate = parsePercent(value.targetSampleRate);
+      }
+      return updateOrganization(changes).catch(() => {});
+    },
+  });
 
   return (
-    <FormProvider formState={formState}>
-      <form
-        onSubmit={event => {
-          event.preventDefault();
-          handleSubmit();
-        }}
-        noValidate
-      >
-        <Header>
-          <h5>
-            {samplingMode === 'organization'
-              ? t('Deactivate Advanced Mode')
-              : t('Activate Advanced Mode')}
-          </h5>
-        </Header>
-        <Body>
-          <p>
+    <form.AppForm form={form}>
+      <Header>
+        <h5>
+          {samplingMode === 'organization'
+            ? t('Deactivate Advanced Mode')
+            : t('Activate Advanced Mode')}
+        </h5>
+      </Header>
+      <Body>
+        <Stack gap="2xl">
+          <span>
             {samplingMode === 'organization'
               ? tct(
                   'Deactivating advanced mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [learnMoreLink:Learn more]',
@@ -114,9 +113,27 @@ function SamplingModeSwitchModal({
                     ),
                   }
                 )}
-          </p>
-          {samplingMode === 'organization' && <TargetRateInput disabled={isPending} />}
-          <p>
+          </span>
+          {samplingMode === 'organization' ? (
+            <form.AppField name="targetSampleRate">
+              {field => (
+                <field.Layout.Stack label={t('Global Target Sample Rate')} required>
+                  {/* Match the width of PercentInput (120px) */}
+                  <div style={{width: 120}}>
+                    <field.Input
+                      type="number"
+                      step="any"
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={isPending}
+                      trailingItems={<strong>%</strong>}
+                    />
+                  </div>
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+          ) : null}
+          <span>
             {samplingMode === 'organization'
               ? tct(
                   'By deactivating advanced mode, [strong:you will lose your manually configured sample rates].',
@@ -125,66 +142,22 @@ function SamplingModeSwitchModal({
                   }
                 )
               : t('You can deactivate advanced mode at any time.')}
-          </p>
-        </Body>
-        <Footer>
-          <Flex gap="xl">
-            <Button disabled={isPending} onClick={closeModal}>
-              {t('Cancel')}
-            </Button>
-            <Button
-              priority="primary"
-              disabled={isPending || !formState.isValid}
-              onClick={handleSubmit}
-            >
-              {samplingMode === 'organization' ? t('Deactivate') : t('Activate')}
-            </Button>
-          </Flex>
-        </Footer>
-      </form>
-    </FormProvider>
+          </span>
+        </Stack>
+      </Body>
+      <Footer>
+        <Flex gap="xl">
+          <Button disabled={isPending} onClick={closeModal}>
+            {t('Cancel')}
+          </Button>
+          <form.SubmitButton priority="primary">
+            {samplingMode === 'organization' ? t('Deactivate') : t('Activate')}
+          </form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
-
-function TargetRateInput({disabled}: {disabled?: boolean}) {
-  const id = useId();
-  const {value, onChange, error} = useFormField('targetSampleRate');
-
-  return (
-    <FieldGroup
-      label={t('Global Target Sample Rate')}
-      css={css`
-        padding-bottom: ${space(0.5)};
-      `}
-      inline={false}
-      showHelpInTooltip
-      flexibleControlStateSize
-      stacked
-      required
-    >
-      <Stack gap="xs">
-        <PercentInput
-          id={id}
-          aria-label={t('Global Target Sample Rate')}
-          value={value}
-          onChange={event => onChange(event.target.value)}
-          disabled={disabled}
-        />
-        <ErrorMessage>
-          {error
-            ? error
-            : // Placholder character to keep the space occupied
-              '\u200b'}
-        </ErrorMessage>
-      </Stack>
-    </FieldGroup>
-  );
-}
-
-const ErrorMessage = styled('div')`
-  color: ${p => p.theme.colors.red400};
-  font-size: ${p => p.theme.font.size.xs};
-`;
 
 export function openSamplingModeSwitchModal(props: Props) {
   openModal(dialogProps => <SamplingModeSwitchModal {...dialogProps} {...props} />);

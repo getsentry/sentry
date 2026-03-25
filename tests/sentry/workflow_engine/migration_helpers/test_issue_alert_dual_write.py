@@ -2,7 +2,7 @@ import pytest
 from jsonschema.exceptions import ValidationError
 
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
@@ -21,7 +21,6 @@ from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
-    delete_migrated_issue_alert,
     update_migrated_issue_alert,
 )
 from sentry.workflow_engine.models import (
@@ -125,7 +124,6 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         assert workflow.enabled is True
 
     def test_ignores_per_user_rule_snooze(self) -> None:
-
         RuleSnooze.objects.create(rule=self.issue_alert, user_id=self.user.id)
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
 
@@ -368,14 +366,9 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
         assert not DataConditionGroupAction.objects.filter(condition_group=if_dcg).exists()
         assert not Action.objects.all().exists()
 
-    def test_delete_issue_alert(self) -> None:
-        delete_migrated_issue_alert(self.issue_alert)
-
-        self.assert_issue_alert_deleted(self.workflow, self.when_dcg, self.if_dcg)
-
     def test_delete_issue_alert__rule_deletion_task(self) -> None:
         self.issue_alert.update(status=ObjectStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(self.issue_alert, days=0)
+        CellScheduledDeletion.schedule(self.issue_alert, days=0)
 
         with self.tasks():
             run_scheduled_deletions()
@@ -384,7 +377,7 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
 
     def test_delete_issue_alert__project_deletion_task(self) -> None:
         self.project.update(status=ObjectStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(self.project, days=0)
+        CellScheduledDeletion.schedule(self.project, days=0)
 
         with self.tasks():
             run_scheduled_deletions()
@@ -393,7 +386,7 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
 
     def test_delete_issue_alert__org_deletion_task(self) -> None:
         self.organization.update(status=ObjectStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(self.organization, days=0)
+        CellScheduledDeletion.schedule(self.organization, days=0)
 
         with self.tasks():
             run_scheduled_deletions()

@@ -9,14 +9,14 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
-from sentry.apidocs.parameters import GlobalParams, ReleaseParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -122,11 +122,11 @@ def create_deploy(
     )
 
     for project in projects:
-        ReleaseProjectEnvironment.objects.create_or_update(
+        ReleaseProjectEnvironment.objects.update_or_create(
             release=release,
             environment=env,
             project=project,
-            values={"last_deploy_id": deploy.id},
+            defaults={"last_deploy_id": deploy.id},
         )
 
     Deploy.notify_if_ready(deploy.id)
@@ -135,7 +135,7 @@ def create_deploy(
 
 
 @extend_schema(tags=["Releases"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
@@ -145,7 +145,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
     @extend_schema(
         operation_id="List a Release's Deploys",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, CursorQueryParam],
         responses={200: DeployResponseSerializer(many=True)},
     )
     def get(self, request: Request, organization, version) -> Response:

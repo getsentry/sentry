@@ -11,13 +11,13 @@ baz`;
 
     render(<SplitDiff base={base} target={target} />);
 
-    const rows = within(screen.getByTestId('split-diff')).getAllByRole('row');
-    const firstRowCells = within(rows[0]!).getAllByRole('cell');
-    const secondRowCells = within(rows[1]!).getAllByRole('cell');
+    const diff = screen.getByTestId('split-diff');
+    const leftCells = within(diff).getAllByTestId('split-diff-left-cell');
+    const rightCells = within(diff).getAllByTestId('split-diff-right-cell');
 
-    expect(firstRowCells[0]).toHaveTextContent('foo');
-    expect(firstRowCells[2]).toHaveTextContent('foo');
-    expect(secondRowCells[0]).toHaveTextContent('bar');
-    expect(secondRowCells[2]).toHaveTextContent('baz');
+    expect(leftCells[0]).toHaveTextContent('foo');
+    expect(rightCells[0]).toHaveTextContent('foo');
+    expect(leftCells[1]).toHaveTextContent('bar');
+    expect(rightCells[1]).toHaveTextContent('baz');
   });
 });

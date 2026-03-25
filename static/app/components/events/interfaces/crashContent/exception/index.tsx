@@ -1,4 +1,4 @@
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -7,7 +7,7 @@ import {StackView} from 'sentry/types/stacktrace';
 
 import {Content} from './content';
 import {LineCoverageProvider} from './lineCoverageContext';
-import RawContent from './rawContent';
+import {RawContent} from './rawContent';
 
 type Props = {
   event: Event;

@@ -240,7 +240,7 @@ class KeyResults:
         return self.meta
 
     def merge(self, other: "KeyResults") -> "KeyResults":
-        new_results: "KeyResults" = KeyResults()
+        new_results: KeyResults = KeyResults()
 
         for org_id, strings in [*other.results.items(), *self.results.items()]:
             new_results.results[org_id].update(strings)

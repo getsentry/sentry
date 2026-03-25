@@ -42,10 +42,7 @@ class BulkDeleteQuery:
         where = []
         if self.dtfield and self.days is not None:
             where.append(
-                "{} < '{}'::timestamptz".format(
-                    quote_name(self.dtfield),
-                    (timezone.now() - timedelta(days=self.days)).isoformat(),
-                )
+                f"{quote_name(self.dtfield)} < '{(timezone.now() - timedelta(days=self.days)).isoformat()}'::timestamptz"
             )
         if self.project_id:
             where.append(f"project_id = {self.project_id}")
@@ -71,21 +68,16 @@ class BulkDeleteQuery:
         else:
             order_clause = ""
 
-        query = """
-            delete from {table}
+        query = f"""
+            delete from {self.model._meta.db_table}
             where id = any(array(
                 select id
-                from {table}
-                {where}
-                {order}
+                from {self.model._meta.db_table}
+                {where_clause}
+                {order_clause}
                 limit {chunk_size}
             ));
-        """.format(
-            table=self.model._meta.db_table,
-            chunk_size=chunk_size,
-            where=where_clause,
-            order=order_clause,
-        )
+        """
 
         return self._continuous_query(query)
 

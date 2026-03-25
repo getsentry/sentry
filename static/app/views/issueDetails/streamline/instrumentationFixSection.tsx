@@ -20,12 +20,12 @@ import {
 } from 'sentry/components/events/autofix/v2/artifactCards';
 import {ExplorerStatusCard} from 'sentry/components/events/autofix/v2/autofixStatusCard';
 import {ExplorerNextSteps} from 'sentry/components/events/autofix/v2/nextSteps';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
@@ -150,7 +150,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
           icon={<IconRefresh />}
           onClick={() => reset()}
           aria-label={t('Start over')}
-          title={t('Start over')}
+          tooltipProps={{title: t('Start over')}}
         />
       }
     >

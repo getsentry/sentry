@@ -1,5 +1,9 @@
 import enum
 
+# An issue group must have >= this number of occurrences in order to be
+# a target for 'workflow' autofix.
+AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10
+
 
 class FixabilityScoreThresholds(enum.Enum):
     SUPER_HIGH = 0.76
@@ -39,6 +43,16 @@ class AutofixStatus(str, enum.Enum):
     NEED_MORE_INFORMATION = "NEED_MORE_INFORMATION"
     CANCELLED = "CANCELLED"
     WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
+
+
+class AutofixReferrer(enum.StrEnum):
+    GROUP_AUTOFIX_ENDPOINT = "api.group_ai_autofix"
+    ISSUE_SUMMARY_FIXABILITY = "issue_summary.fixability"
+    ISSUE_SUMMARY_ALERT_FIXABILITY = "issue_summary.alert_fixability"
+    ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"
+    SLACK = "slack"
+    ON_COMPLETION_HOOK = "autofix.on_completion_hook"
+    UNKNOWN = "unknown"
 
 
 class SeerAutomationSource(enum.Enum):

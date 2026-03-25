@@ -12,37 +12,36 @@ import memoize from 'lodash/memoize';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import HeatMapChart from 'sentry/components/charts/heatMapChart';
+import {HeatMapChart} from 'sentry/components/charts/heatMapChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import MenuItem from 'sentry/components/menuItem';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {MenuItem} from 'sentry/components/menuItem';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import Panel from 'sentry/components/panels/panel';
-import PerformanceDuration from 'sentry/components/performanceDuration';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import Truncate from 'sentry/components/truncate';
+import {Panel} from 'sentry/components/panels/panel';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {
   TableDataRow,
   TableData as TagTableData,
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
-import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
+import {TagTransactionsQuery} from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
@@ -96,7 +95,7 @@ const getPortal = memoize((): HTMLElement => {
   return portal;
 });
 
-function TagsHeatMap(
+export function TagsHeatMap(
   props: Props & {
     isLoading: boolean;
     tableData: TagTableData | null;
@@ -113,6 +112,7 @@ function TagsHeatMap(
     aggregateColumn,
   } = props;
 
+  const theme = useTheme();
   const {view} = useDomainViewFilters();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartElement, setChartElement] = useState<VirtualReference | undefined>();
@@ -201,10 +201,10 @@ function TagsHeatMap(
     },
 
     grid: {
-      left: space(3),
-      right: space(3),
+      left: theme.space['2xl'],
+      right: theme.space['2xl'],
       top: '25px', // Need to bump top spacing past space(3) so the chart title doesn't overlap.
-      bottom: space(4),
+      bottom: theme.space['3xl'],
     },
   };
 
@@ -308,7 +308,6 @@ function TagsHeatMap(
     }
   );
 
-  const theme = useTheme();
   const portaledContent =
     !chartElement || !overlayState.isOpen ? null : (
       <PositionWrapper
@@ -443,7 +442,8 @@ function TagsHeatMap(
 }
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(3)} ${space(3)} 0 ${space(3)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']} 0
+    ${p => p.theme.space['2xl']};
   margin-bottom: 0;
   border-bottom: 0;
   border-bottom-left-radius: 0;
@@ -494,5 +494,3 @@ function DropdownItem({
     </StyledMenuItem>
   );
 }
-
-export default TagsHeatMap;

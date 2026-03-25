@@ -20,6 +20,7 @@ from snuba_sdk import (
     Query,
     Request,
 )
+from taskbroker_client.retry import Retry
 
 from sentry import options, quotas
 from sentry.constants import ObjectStatus
@@ -51,8 +52,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options import OrganizationOption
@@ -65,7 +65,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.namespaces import telemetry_experience_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
@@ -81,42 +80,32 @@ ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
 OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount]
 
 
-def _get_segments_org_ids() -> set[int]:
-    """
-    Returns the set of organization IDs that should use SEGMENTS measure.
-    """
-    return set(options.get("dynamic-sampling.boost_low_volume_projects.segment-metric-orgs") or [])
-
-
+@metrics.wraps("dynamic_sampling.partition_by_measure")
 def _partition_orgs_by_measure(
     org_ids: list[int],
 ) -> dict[SamplingMeasure, list[int]]:
     """
     Partition organizations by their sampling measure.
-    Returns (segments_orgs, span_orgs, transactions_orgs).
+    Project-mode orgs are filtered out. SPANS orgs (AM3/project-mode) are
+    split off when the check_span_feature_flag option is enabled.
+    All remaining orgs use SEGMENTS.
     """
     modes_per_org = OrganizationOption.objects.get_value_bulk_id(org_ids, "sentry:sampling_mode")
     filtered_org_ids = {
         org_id for org_id, mode in modes_per_org.items() if mode != DynamicSamplingMode.PROJECT
     }
-    segments_org_ids: set[int] = _get_segments_org_ids()
-    filtered_segments_org_ids: set[int] = filtered_org_ids & segments_org_ids
-    transactions_org_ids: set[int] = filtered_org_ids - segments_org_ids
 
     if not options.get("dynamic-sampling.check_span_feature_flag"):
         return {
-            SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
-            SamplingMeasure.SEGMENTS: sorted(filtered_segments_org_ids),
+            SamplingMeasure.SEGMENTS: sorted(filtered_org_ids),
         }
+
     span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
     filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
-    filtered_segments_org_ids = filtered_segments_org_ids - filtered_span_org_ids
-    filtered_transactions_org_ids = transactions_org_ids - filtered_span_org_ids
-
+    remaining_org_ids: set[int] = filtered_org_ids - filtered_span_org_ids
     return {
-        SamplingMeasure.SEGMENTS: sorted(filtered_segments_org_ids),
+        SamplingMeasure.SEGMENTS: sorted(remaining_org_ids),
         SamplingMeasure.SPANS: sorted(filtered_span_org_ids),
-        SamplingMeasure.TRANSACTIONS: sorted(filtered_transactions_org_ids),
     }
 
 
@@ -125,46 +114,23 @@ def _partition_orgs_by_measure(
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=20 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects() -> None:
     """
     Task to adjusts the sample rates of all projects in all active organizations.
     """
-    processed_org_ids: set[int] = set()
-
-    segments_org_ids = _get_segments_org_ids()
-    if segments_org_ids:
-        for orgs in GetActiveOrgs(
-            max_projects=MAX_PROJECTS_PER_QUERY,
-            granularity=Granularity(60),
-            measure=SamplingMeasure.SEGMENTS,
-        ):
-            orgs_by_measure = _partition_orgs_by_measure(orgs)
-
-            # Process SEGMENTS and SPANS from this scan. TRANSACTIONS orgs
-            # will be discovered by the TRANSACTIONS scan below.
-            for measure, org_ids in orgs_by_measure.items():
-                if measure == SamplingMeasure.TRANSACTIONS:
-                    continue
-                _record_partitioning_metrics({measure: org_ids})
-                _process_orgs_for_boost(org_ids, measure)
-                processed_org_ids.update(org_ids)
-
     for orgs in GetActiveOrgs(
         max_projects=MAX_PROJECTS_PER_QUERY,
         granularity=Granularity(60),
-        measure=SamplingMeasure.TRANSACTIONS,
+        measure=SamplingMeasure.SEGMENTS,
     ):
         orgs_by_measure = _partition_orgs_by_measure(orgs)
 
         for measure, org_ids in orgs_by_measure.items():
-            if measure == SamplingMeasure.SEGMENTS:
-                continue
-            remaining = [oid for oid in org_ids if oid not in processed_org_ids]
-            _record_partitioning_metrics({measure: remaining})
-            _process_orgs_for_boost(remaining, measure)
+            _record_partitioning_metrics({measure: org_ids})
+            _process_orgs_for_boost(org_ids, measure)
 
 
 def _process_orgs_for_boost(
@@ -203,6 +169,7 @@ def _record_partitioning_metrics(orgs_by_measure: dict[SamplingMeasure, list[int
             "dynamic_sampling.partition_by_measure.measure",
             amount=len(org_ids),
             tags={"measure": measure.value},
+            sample_rate=1,
         )
 
 
@@ -211,7 +178,7 @@ def _record_partitioning_metrics(orgs_by_measure: dict[SamplingMeasure, list[int
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=3 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
@@ -233,7 +200,7 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     for m, org_ids in orgs_by_measure.items():
         for oid in org_ids:
             measures[oid] = m
-    measure = measures.get(org_id, SamplingMeasure.TRANSACTIONS)
+    measure = measures.get(org_id, SamplingMeasure.SEGMENTS)
 
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
         org_ids=[org_id],
@@ -251,7 +218,7 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=3 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(
@@ -479,27 +446,6 @@ def calculate_sample_rates_of_projects(
         org_id=org_id,
         default_sample_rate=default_sample_rate,
     )
-
-    if success:
-        sample_function(
-            function=log_sample_rate_source,
-            _sample_rate=0.1,
-            org_id=org_id,
-            project_id=None,
-            used_for="boost_low_volume_projects",
-            source="sliding_window_org",
-            sample_rate=sample_rate,
-        )
-    else:
-        sample_function(
-            function=log_sample_rate_source,
-            _sample_rate=0.1,
-            org_id=org_id,
-            project_id=None,
-            used_for="boost_low_volume_projects",
-            source="blended_sample_rate",
-            sample_rate=sample_rate,
-        )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
     if sample_rate is None:

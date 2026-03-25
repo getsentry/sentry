@@ -1,3 +1,5 @@
+from typing import Any, Mapping
+
 import pytest
 from jsonschema import ValidationError
 
@@ -10,7 +12,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestAssignedToCondition(ConditionTestCase):
     condition = Condition.ASSIGNED_TO
-    payload = {
+    payload: Mapping[str, Any] = {
         "id": AssignedToFilter.id,
         "targetType": "Member",
         "targetIdentifier": 0,

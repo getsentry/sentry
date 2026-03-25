@@ -16,7 +16,7 @@ from sentry import analytics, options
 from sentry.analytics.events.relocation_created import RelocationCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
@@ -157,7 +157,7 @@ def get_autopause_value(provenance: Relocation.Provenance) -> int | None:
             return None
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class RelocationIndexEndpoint(Endpoint):
     owner = ApiOwner.HYBRID_CLOUD
     publish_status = {

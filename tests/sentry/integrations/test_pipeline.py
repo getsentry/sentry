@@ -27,12 +27,12 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.users.models.identity import Identity
 from sentry.workflow_engine.models.action import Action
 
@@ -52,9 +52,9 @@ def naive_build_integration(data):
 )
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
-    regions = (
-        Region("na", 0, "North America", RegionCategory.MULTI_TENANT),
-        Region("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
+    cells = (
+        Cell("na", 0, "North America", RegionCategory.MULTI_TENANT),
+        Cell("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
     )
     external_id = "dummy_id-123"
 
@@ -69,12 +69,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
         with patch.multiple(
             self.provider,
             needs_default_identity=False,
-            is_region_restricted=False,
+            is_cell_restricted=False,
         ):
             yield
 
-    def _setup_region_restriction(self):
-        self.provider.is_region_restricted = True
+    def _setup_cell_restriction(self):
+        self.provider.is_cell_restricted = True
         na_orgs = [
             self.create_organization(name="na_org"),
             self.create_organization(name="na_org_2"),
@@ -90,7 +90,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             for org in na_orgs:
                 integration.add_organization(org)
                 mapping = OrganizationMapping.objects.get(organization_id=org.id)
-                mapping.update(region_name="na")
+                mapping.update(cell_name="na")
 
     def test_with_data(self, *args) -> None:
         data = {
@@ -141,40 +141,40 @@ class FinishPipelineTestCase(IntegrationTestCase):
             ).exists()
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_provider_should_check_region_violation(self, *args) -> None:
-        """Ensures we validate regions if `provider.is_region_restricted` is set to True"""
-        self.provider.is_region_restricted = True
+    def test_provider_should_check_cell_violation(self, *args) -> None:
+        """Ensures we validate cells if `provider.is_cell_restricted` is set to True"""
+        self.provider.is_cell_restricted = True
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch(
-            "sentry.integrations.pipeline.is_violating_region_restriction"
+            "sentry.integrations.pipeline.is_violating_cell_restriction"
         ) as mock_check_violation:
             self.pipeline.finish_pipeline()
             assert mock_check_violation.called
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_provider_should_not_check_region_violation(self, *args) -> None:
-        """Ensures we don't reject regions if `provider.is_region_restricted` is set to False"""
+    def test_provider_should_not_check_cell_violation(self, *args) -> None:
+        """Ensures we don't reject cells if `provider.is_cell_restricted` is set to False"""
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch(
-            "sentry.integrations.pipeline.is_violating_region_restriction"
+            "sentry.integrations.pipeline.is_violating_cell_restriction"
         ) as mock_check_violation:
             self.pipeline.finish_pipeline()
             assert not mock_check_violation.called
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_is_violating_region_restriction_success(self, *args) -> None:
-        """Ensures pipeline can complete if all integration organizations reside in one region."""
-        self._setup_region_restriction()
+    def test_is_violating_cell_restriction_success(self, *args) -> None:
+        """Ensures pipeline can complete if all integration organizations reside in one cell."""
+        self._setup_cell_restriction()
 
-        # Installing organization is from the same region
+        # Installing organization is from the same cell
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            mapping.update(region_name="na")
+            mapping.update(cell_name="na")
 
         self.pipeline.state.data = {"external_id": self.external_id}
         with (
-            override_regions(self.regions),
+            override_cells(self.cells),
             patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp,
         ):
             self.pipeline.finish_pipeline()
@@ -182,21 +182,21 @@ class FinishPipelineTestCase(IntegrationTestCase):
             assert success
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_is_violating_region_restriction_failure(self, *args) -> None:
-        """Ensures pipeline can produces an error if all integration organizations do not reside in one region."""
-        self._setup_region_restriction()
+    def test_is_violating_cell_restriction_failure(self, *args) -> None:
+        """Ensures pipeline can produces an error if all integration organizations do not reside in one cell."""
+        self._setup_cell_restriction()
 
-        # Installing organization is from a different region
+        # Installing organization is from a different cell
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            mapping.update(region_name="eu")
+            mapping.update(cell_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
-        with override_regions(self.regions):
+        with override_cells(self.cells):
             response = self.pipeline.finish_pipeline()
             assert isinstance(response, HttpResponse)
-            error_message = "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."
+            error_message = "This integration has already been installed on another Sentry organization which resides in a different cell. Installation could not be completed."
             assert error_message in response.content.decode()
 
             if SiloMode.get_current_mode() == SiloMode.MONOLITH:
@@ -459,7 +459,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.plugins.migrator.Migrator.run")
     def test_disabled_plugin_when_fully_migrated(self, run, *args) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 organization_id=self.organization.id,
                 name="user/repo",
@@ -486,7 +486,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # partially copied from IntegrationTestCase.setUp()
         # except the user is not an owner
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.request = self.make_request(member_user)
@@ -527,7 +527,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user, superuser=True)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.request = self.make_request(member_user, is_superuser=True)
@@ -557,7 +557,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user, superuser=True)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.request = self.make_request(member_user, is_superuser=True)
@@ -590,7 +590,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # partially copied from IntegrationTestCase.setUp()
         # except the user is not an owner
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.request = self.make_request(member_user)
@@ -690,7 +690,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         self.assertDialogSuccess(resp)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             action = Action.objects.get(id=action.id)
             assert action.status == ObjectStatus.ACTIVE
             # Ensure that the second action is still disabled

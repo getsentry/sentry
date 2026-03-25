@@ -115,7 +115,7 @@ def process_event(
 
         if cached_value is not None:
             logger.warning(
-                "pre-process-forwarder detected a duplicated event" " with id:%s for project:%s.",
+                "pre-process-forwarder detected a duplicated event with id:%s for project:%s.",
                 event_id,
                 project_id,
             )

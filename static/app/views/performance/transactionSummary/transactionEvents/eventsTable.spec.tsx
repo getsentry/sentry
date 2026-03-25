@@ -4,10 +4,10 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import EventView from 'sentry/utils/discover/eventView';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
-import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 import {
   EVENTS_TABLE_RESPONSE_FIELDS,
   MOCK_EVENTS_TABLE_DATA,
@@ -251,6 +251,42 @@ describe('Performance GridEditable Table', () => {
       'href',
       '/organizations/org-slug/insights/summary/trace/1234/?project=1&source=performance_transaction_summary&timestamp=1590075078&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
     );
+  });
+
+  it('does not render trace link when trace id is missing', async () => {
+    const initialData = initializeData();
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+
+    render(
+      <EventsTable
+        theme={theme}
+        eventView={eventView}
+        organization={organization}
+        routes={initialData.router.routes}
+        location={initialData.router.location}
+        setError={() => {}}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
+      />
+    );
+
+    // First event has a trace and should render a trace link
+    expect(await screen.findByRole('link', {name: '1234'})).toBeInTheDocument();
+
+    // Second event has no trace - its (no value) should not be a link
+    const noValueElement = screen.getByText('(no value)');
+    expect(noValueElement.closest('a')).toBeNull();
   });
 
   it('renders replay id', async () => {

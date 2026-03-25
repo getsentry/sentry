@@ -2,18 +2,18 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {EventsRequest as _EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import DurationChart from 'sentry/views/performance/charts/chart';
+import {Chart as DurationChart} from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {transformDiscoverToSingleValue} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToSingleValue';
 import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
@@ -31,7 +31,7 @@ import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
-  overall: WidgetDataResult & ReturnType<typeof transformDiscoverToSingleValue>;
+  overall: WidgetDataResult;
 };
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {

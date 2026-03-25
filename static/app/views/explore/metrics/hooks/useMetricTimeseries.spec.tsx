@@ -1,11 +1,10 @@
 import type {ReactNode} from 'react';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
@@ -68,7 +67,7 @@ describe('useMetricTimeseries', () => {
         timeSeries: [
           {
             ...mockTimeSeries,
-            yAxis: 'per_second(value)',
+            yAxis: 'sum(value)',
             values: [
               {
                 ...mockTimeSeries.values[0]!,
@@ -130,166 +129,153 @@ describe('useMetricTimeseries', () => {
     );
   });
 
-  describe('with tracemetrics-overlay-charts-ui feature', () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-overlay-charts-ui'],
-    });
+  it('requests multiple yAxis values from the API', async () => {
+    const mockTimeSeries1 = TimeSeriesFixture();
+    const mockTimeSeries2 = TimeSeriesFixture();
+    const mockTimeSeries3 = TimeSeriesFixture();
 
-    beforeEach(() => {
-      jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-      jest.clearAllMocks();
-    });
-
-    it('requests multiple yAxis values from the API', async () => {
-      const mockTimeSeries1 = TimeSeriesFixture();
-      const mockTimeSeries2 = TimeSeriesFixture();
-      const mockTimeSeries3 = TimeSeriesFixture();
-
-      const mockRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-timeseries/',
-        body: {
-          timeSeries: [
-            {
-              ...mockTimeSeries1,
-              yAxis: 'p50(value,test_metric,distribution,-)',
-            },
-            {
-              ...mockTimeSeries2,
-              yAxis: 'p75(value,test_metric,distribution,-)',
-            },
-            {
-              ...mockTimeSeries3,
-              yAxis: 'p99(value,test_metric,distribution,-)',
-            },
-          ],
-        },
-        method: 'GET',
-      });
-
-      renderHookWithProviders(useMetricTimeseries, {
-        initialProps: {
-          traceMetric: {name: 'test_metric', type: 'distribution'},
-          enabled: true,
-        },
-        additionalWrapper: MockMetricQueryParamsContextWithMultiVisualize,
-        organization,
-      });
-
-      await waitFor(() => {
-        expect(mockRequest).toHaveBeenCalledTimes(1);
-      });
-
-      expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-timeseries/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: [
-              'p50(value,test_metric,distribution,-)',
-              'p75(value,test_metric,distribution,-)',
-              'p99(value,test_metric,distribution,-)',
-            ],
-          }),
-        })
-      );
-    });
-
-    it('triggers high accuracy for all visualizes', async () => {
-      const mockTimeSeries = TimeSeriesFixture();
-
-      const mockNormalRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-timeseries/',
-        body: {
-          timeSeries: [
-            {
-              ...mockTimeSeries,
-              yAxis: 'p50(value,test_metric,distribution,-)',
-              values: [
-                {
-                  ...mockTimeSeries.values[0]!,
-                  value: 0,
-                },
-              ],
-              meta: {
-                ...mockTimeSeries.meta,
-                dataScanned: 'partial',
-              },
-            },
-            {
-              ...mockTimeSeries,
-              yAxis: 'p75(value,test_metric,distribution,-)',
-              values: [
-                {
-                  ...mockTimeSeries.values[0]!,
-                  value: 0,
-                },
-              ],
-              meta: {
-                ...mockTimeSeries.meta,
-                dataScanned: 'partial',
-              },
-            },
-            {
-              ...mockTimeSeries,
-              yAxis: 'p99(value,test_metric,distribution,-)',
-              values: [
-                {
-                  ...mockTimeSeries.values[0]!,
-                  value: 0,
-                },
-              ],
-              meta: {
-                ...mockTimeSeries.meta,
-                dataScanned: 'partial',
-              },
-            },
-          ],
-        },
-        method: 'GET',
-        match: [
-          function (_url: string, options: Record<string, any>) {
-            return options.query.sampling === SAMPLING_MODE.NORMAL;
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          {
+            ...mockTimeSeries1,
+            yAxis: 'p50(value,test_metric,distribution,-)',
+          },
+          {
+            ...mockTimeSeries2,
+            yAxis: 'p75(value,test_metric,distribution,-)',
+          },
+          {
+            ...mockTimeSeries3,
+            yAxis: 'p99(value,test_metric,distribution,-)',
           },
         ],
-      });
+      },
+      method: 'GET',
+    });
 
-      const mockHighAccuracyRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-timeseries/',
-        match: [
-          function (_url: string, options: Record<string, any>) {
-            return options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY;
+    renderHookWithProviders(useMetricTimeseries, {
+      initialProps: {
+        traceMetric: {name: 'test_metric', type: 'distribution'},
+        enabled: true,
+      },
+      additionalWrapper: MockMetricQueryParamsContextWithMultiVisualize,
+    });
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: [
+            'p50(value,test_metric,distribution,-)',
+            'p75(value,test_metric,distribution,-)',
+            'p99(value,test_metric,distribution,-)',
+          ],
+        }),
+      })
+    );
+  });
+
+  it('triggers high accuracy for all visualizes', async () => {
+    const mockTimeSeries = TimeSeriesFixture();
+
+    const mockNormalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          {
+            ...mockTimeSeries,
+            yAxis: 'p50(value,test_metric,distribution,-)',
+            values: [
+              {
+                ...mockTimeSeries.values[0]!,
+                value: 0,
+              },
+            ],
+            meta: {
+              ...mockTimeSeries.meta,
+              dataScanned: 'partial',
+            },
+          },
+          {
+            ...mockTimeSeries,
+            yAxis: 'p75(value,test_metric,distribution,-)',
+            values: [
+              {
+                ...mockTimeSeries.values[0]!,
+                value: 0,
+              },
+            ],
+            meta: {
+              ...mockTimeSeries.meta,
+              dataScanned: 'partial',
+            },
+          },
+          {
+            ...mockTimeSeries,
+            yAxis: 'p99(value,test_metric,distribution,-)',
+            values: [
+              {
+                ...mockTimeSeries.values[0]!,
+                value: 0,
+              },
+            ],
+            meta: {
+              ...mockTimeSeries.meta,
+              dataScanned: 'partial',
+            },
           },
         ],
-        method: 'GET',
-      });
-
-      renderHookWithProviders(useMetricTimeseries, {
-        initialProps: {
-          traceMetric: {name: 'test_metric', type: 'distribution'},
-          enabled: true,
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.NORMAL;
         },
-        additionalWrapper: MockMetricQueryParamsContextWithMultiVisualize,
-        organization,
-      });
-
-      expect(mockNormalRequest).toHaveBeenCalledTimes(1);
-
-      await waitFor(() => {
-        expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1);
-      });
-
-      expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-timeseries/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sampling: SAMPLING_MODE.HIGH_ACCURACY,
-            yAxis: [
-              'p50(value,test_metric,distribution,-)',
-              'p75(value,test_metric,distribution,-)',
-              'p99(value,test_metric,distribution,-)',
-            ],
-          }),
-        })
-      );
+      ],
     });
+
+    const mockHighAccuracyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY;
+        },
+      ],
+      method: 'GET',
+    });
+
+    renderHookWithProviders(useMetricTimeseries, {
+      initialProps: {
+        traceMetric: {name: 'test_metric', type: 'distribution'},
+        enabled: true,
+      },
+      additionalWrapper: MockMetricQueryParamsContextWithMultiVisualize,
+    });
+
+    expect(mockNormalRequest).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+          yAxis: [
+            'p50(value,test_metric,distribution,-)',
+            'p75(value,test_metric,distribution,-)',
+            'p99(value,test_metric,distribution,-)',
+          ],
+        }),
+      })
+    );
   });
 });

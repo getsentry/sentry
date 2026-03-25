@@ -9,72 +9,89 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import {isNumericString} from 'sentry/utils';
-import type {JsonPathOp, JsonPathOperand} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeComparisonType,
+  type UptimeJsonPathOp,
+  type UptimeJsonPathOperand,
+  type UptimeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer, STRING_OPERAND_OPTIONS} from './opCommon';
 import {
   getJsonPathCombinedLabelAndTooltip,
   getJsonPathOperandValue,
+  isNumericComparison,
   normalizeJsonPathOp,
 } from './utils';
 
 interface AssertionOpJsonPathProps {
-  onChange: (op: JsonPathOp) => void;
+  onChange: (op: UptimeJsonPathOp) => void;
   onRemove: () => void;
-  value: JsonPathOp;
+  value: UptimeJsonPathOp;
+  erroredOp?: UptimeOp;
 }
 
 export function AssertionOpJsonPath({
   value,
   onChange,
   onRemove,
+  erroredOp,
 }: AssertionOpJsonPathProps) {
   const inputId = useId();
 
-  const normalizedOp: JsonPathOp = normalizeJsonPathOp(value);
+  const normalizedOp = normalizeJsonPathOp(value);
 
   const operandValue = getJsonPathOperandValue(normalizedOp.operand);
   const {combinedLabel, combinedTooltip} =
     getJsonPathCombinedLabelAndTooltip(normalizedOp);
 
-  const isNumeric = isNumericString(operandValue);
+  const isNumericValue = isNumericString(operandValue);
+  const isNumericComparisonSelected = isNumericComparison(normalizedOp.operator.cmp);
 
-  const comparisonOptions = COMPARISON_OPTIONS.filter(opt => {
-    if (opt.value === 'always' || opt.value === 'never') {
-      return false;
-    }
-    if (!isNumeric && (opt.value === 'less_than' || opt.value === 'greater_than')) {
-      return false;
-    }
-    return true;
+  const comparisonOptions = COMPARISON_OPTIONS.filter(
+    opt =>
+      opt.value !== UptimeComparisonType.ALWAYS &&
+      opt.value !== UptimeComparisonType.NEVER
+  ).map(opt => {
+    const isNumericOnly = isNumericComparison(opt.value);
+    return {
+      ...opt,
+      disabled: isNumericOnly && !isNumericValue,
+      tooltip:
+        isNumericOnly && !isNumericValue
+          ? t('Only available for numeric values')
+          : undefined,
+    };
   });
 
-  useEffect(() => {
-    // Normalize the op based on whether the operand is numeric.
-    //
-    // - Non-numeric: disallow < and > comparisons (force equals).
-    // - Numeric: force a literal operand (hide/disable glob).
-    let nextValue: JsonPathOp | null = null;
+  const stringOperandOptions = STRING_OPERAND_OPTIONS.map(opt => ({
+    ...opt,
+    disabled: isNumericComparisonSelected,
+    tooltip: isNumericComparisonSelected
+      ? t('Only available for string comparisons')
+      : undefined,
+  }));
 
-    if (
-      !isNumeric &&
-      (normalizedOp.operator.cmp === 'less_than' ||
-        normalizedOp.operator.cmp === 'greater_than')
-    ) {
-      nextValue = {...normalizedOp, operator: {cmp: 'equals'}};
+  useEffect(() => {
+    let nextOp: UptimeJsonPathOp | null = null;
+
+    // Non-numeric with < or > selected: force back to equals
+    if (!isNumericValue && isNumericComparisonSelected) {
+      nextOp = {...normalizedOp, operator: {cmp: UptimeComparisonType.EQUALS}};
     }
 
-    if (isNumeric && normalizedOp.operand.jsonpath_op === 'glob') {
-      nextValue = {
-        ...(nextValue ?? normalizedOp),
+    // Glob operand with < or > selected: force to literal (glob is invalid for numeric comparisons)
+    if (isNumericComparisonSelected && normalizedOp.operand.jsonpath_op === 'glob') {
+      nextOp = {
+        ...(nextOp ?? normalizedOp),
         operand: {jsonpath_op: 'literal', value: operandValue},
       };
     }
 
-    if (nextValue) {
-      onChange(nextValue);
+    if (nextOp) {
+      onChange(nextOp);
     }
-  }, [isNumeric, onChange, operandValue, normalizedOp]);
+  }, [isNumericValue, isNumericComparisonSelected, onChange, normalizedOp, operandValue]);
 
   const jsonPathInput = (
     <Container flexGrow={2}>
@@ -108,7 +125,7 @@ export function AssertionOpJsonPath({
                   size="zero"
                   priority="transparent"
                   showChevron={false}
-                  title={combinedTooltip}
+                  tooltipProps={{title: combinedTooltip}}
                   aria-label={t('JSON path operators trigger')}
                 >
                   <Text monospace>{combinedLabel}</Text>
@@ -124,31 +141,27 @@ export function AssertionOpJsonPath({
                 }
                 options={comparisonOptions}
               />
-              {!isNumeric && (
-                <CompositeSelect.Region
-                  label={t('String operand types')}
-                  value={normalizedOp.operand.jsonpath_op}
-                  onChange={option => {
-                    const newOperand: JsonPathOperand =
-                      option.value === 'literal'
-                        ? {jsonpath_op: 'literal', value: operandValue}
-                        : {jsonpath_op: 'glob', pattern: {value: operandValue}};
-                    onChange({...normalizedOp, operand: newOperand});
-                  }}
-                  options={STRING_OPERAND_OPTIONS}
-                />
-              )}
+              <CompositeSelect.Region
+                label={t('String operand types')}
+                value={normalizedOp.operand.jsonpath_op}
+                onChange={option => {
+                  const newOperand: UptimeJsonPathOperand =
+                    option.value === 'literal'
+                      ? {jsonpath_op: 'literal', value: operandValue}
+                      : {jsonpath_op: 'glob', pattern: {value: operandValue}};
+                  onChange({...normalizedOp, operand: newOperand});
+                }}
+                options={stringOperandOptions}
+              />
             </CompositeSelect>
           </InputGroup.LeadingItems>
           <InputGroup.Input
             value={operandValue}
             onChange={e => {
               const nextValue = e.target.value;
-              const nextIsNumeric = isNumericString(nextValue);
 
-              const newOperand: JsonPathOperand = nextIsNumeric
-                ? {jsonpath_op: 'literal', value: nextValue}
-                : normalizedOp.operand.jsonpath_op === 'glob'
+              const newOperand: UptimeJsonPathOperand =
+                normalizedOp.operand.jsonpath_op === 'glob'
                   ? {jsonpath_op: 'glob', pattern: {value: nextValue}}
                   : {jsonpath_op: 'literal', value: nextValue};
               onChange({...normalizedOp, operand: newOperand});
@@ -168,6 +181,7 @@ export function AssertionOpJsonPath({
       label={t('JSON Path')}
       onRemove={onRemove}
       inputId={inputId}
+      erroredOp={erroredOp}
       tooltip={tct(
         'The assertion evaluates to true if the JSON path matches. See the [link:JSON Path RFC] for more information.',
         {

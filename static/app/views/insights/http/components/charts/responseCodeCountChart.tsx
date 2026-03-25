@@ -1,7 +1,7 @@
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {type MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -131,12 +131,17 @@ function getResponseCode(series: TimeSeries) {
   return responseCodeGroupBy.value;
 }
 
-function isNumeric(maybeNumber: string | number | null | undefined) {
-  if (!maybeNumber) {
+function isNumeric(
+  maybeNumber: string | number | boolean | null | undefined
+): maybeNumber is string | number {
+  if (typeof maybeNumber === 'boolean') {
     return false;
   }
   if (typeof maybeNumber === 'number') {
     return true;
+  }
+  if (!maybeNumber) {
+    return false;
   }
   return /^\d+$/.test(maybeNumber);
 }

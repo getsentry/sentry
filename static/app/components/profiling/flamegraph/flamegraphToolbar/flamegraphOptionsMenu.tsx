@@ -13,7 +13,7 @@ import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flam
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface FlamegraphOptionsMenuProps {
   canvasPoolManager: CanvasPoolManager;
@@ -47,7 +47,7 @@ function FlamegraphOptionsMenu({
     });
   }, [canvasPoolManager, organization, profileType]);
 
-  const continuousLocationDescriptor: {end: string; start: string} | null = useMemo(
+  const continuousLocationDescriptor = useMemo(
     () => {
       if (
         typeof location.query.start !== 'string' ||
@@ -103,7 +103,7 @@ function FlamegraphOptionsMenu({
           size="xs"
           icon={<IconChevron direction="left" />}
           aria-label={t('View Previous 30 Minutes')}
-          title={t('View Previous 30 Minutes')}
+          tooltipProps={{title: t('View Previous 30 Minutes')}}
         />
       ) : null}
       {continuousLocationDescriptor ? (
@@ -120,7 +120,7 @@ function FlamegraphOptionsMenu({
           size="xs"
           icon={<IconChevron direction="right" />}
           aria-label={t('View Next 30 Minutes')}
-          title={t('View Next 30 Minutes')}
+          tooltipProps={{title: t('View Next 30 Minutes')}}
         />
       ) : null}
     </Fragment>

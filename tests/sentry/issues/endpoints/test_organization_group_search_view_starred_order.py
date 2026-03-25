@@ -3,7 +3,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
-from sentry.testutils.cases import APITestCase, TransactionTestCase
+from sentry.testutils.cases import APITestCase, TestCase
 
 
 class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
@@ -181,7 +181,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         }
 
 
-class OrganizationGroupSearchViewStarredOrderTransactionTest(TransactionTestCase):
+class OrganizationGroupSearchViewStarredOrderTransactionTest(TestCase):
     endpoint = "sentry-api-0-organization-group-search-view-starred-order"
 
     def setUp(self) -> None:

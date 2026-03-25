@@ -6,6 +6,7 @@ import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 
@@ -15,24 +16,23 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
-import useApi from 'sentry/utils/useApi';
+import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
-import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
-import type {Position} from './layoutUtils';
+import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -46,17 +46,16 @@ import {
   getNextAvailablePosition,
   pickDefinedStoreKeys,
 } from './layoutUtils';
-import SortableWidget from './sortableWidget';
+import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
-import type WidgetLegendSelectionState from './widgetLegendSelectionState';
+import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
 const DESKTOP = 'desktop';
 const MOBILE = 'mobile';
-export const NUM_DESKTOP_COLS = 6;
 const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
@@ -92,7 +91,7 @@ type Props = {
   onEditWidget?: (widget: Widget) => void;
   onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
-  useTimeseriesVisualization?: boolean;
+  widgetInterval?: string;
 };
 
 interface LayoutState extends Record<string, Layout[]> {
@@ -100,7 +99,7 @@ interface LayoutState extends Record<string, Layout[]> {
   [MOBILE]: Layout[];
 }
 
-function Dashboard({
+export function Dashboard({
   dashboard,
   handleAddCustomWidget,
   handleUpdateWidgetList,
@@ -116,7 +115,7 @@ function Dashboard({
   onEditWidget,
   onNewWidgetScrollComplete,
   onSetNewWidget,
-  useTimeseriesVisualization,
+  widgetInterval,
 }: Props) {
   const theme = useTheme();
   const location = useLocation();
@@ -134,9 +133,21 @@ function Dashboard({
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const forceCheckTimeout = useRef<number | undefined>(undefined);
+  const isGeneratedDashboard = location.query.seerRunId !== undefined;
 
   const debouncedHandleResize = useMemo(
-    () => debounce(() => setWindowWidth(window.innerWidth), 250),
+    () =>
+      debounce(() => {
+        const start = performance.now();
+        setWindowWidth(window.innerWidth);
+        scheduleMicroTask(() => {
+          const duration = performance.now() - start;
+          Sentry.metrics.distribution('dashboards.widget.onResize', duration, {
+            unit: 'millisecond',
+            attributes: {page: 'dashboard'},
+          });
+        });
+      }, 250),
     []
   );
 
@@ -189,7 +200,6 @@ function Dashboard({
       }
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
-      GroupStore.reset();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -376,7 +386,7 @@ function Dashboard({
   }, []);
 
   const addWidgetLayout = useMemo(() => {
-    let position: Position = BOTTOM_MOBILE_VIEW_POSITION;
+    let position = BOTTOM_MOBILE_VIEW_POSITION;
     if (!isMobile) {
       const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
@@ -435,6 +445,7 @@ function Dashboard({
               isEmbedded={isEmbedded}
               isPreview={isPreview}
               isPrebuiltDashboard={defined(dashboard.prebuiltId)}
+              isGeneratedDashboard={isGeneratedDashboard}
               dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
               dashboardPermissions={dashboard.permissions}
               dashboardCreator={dashboard.createdBy}
@@ -443,7 +454,7 @@ function Dashboard({
               index={String(index)}
               newlyAddedWidget={newlyAddedWidget}
               onNewWidgetScrollComplete={onNewWidgetScrollComplete}
-              useTimeseriesVisualization={useTimeseriesVisualization}
+              widgetInterval={widgetInterval}
             />
           </div>
         ))}
@@ -457,8 +468,6 @@ function Dashboard({
   );
 }
 
-export default Dashboard;
-
 // A widget being dragged has a z-index of 3
 // Allow the Add Widget tile to show above widgets when moved
 const AddWidgetWrapper = styled('div')`
@@ -467,7 +476,7 @@ const AddWidgetWrapper = styled('div')`
 `;
 
 const GridLayout = styled(WidthProvider(Responsive))`
-  margin: -${space(2)};
+  margin: -${p => p.theme.space.xl};
 
   .react-grid-item.react-grid-placeholder {
     background: ${p => p.theme.tokens.background.transparent.accent.muted};
@@ -478,8 +487,8 @@ const GridLayout = styled(WidthProvider(Responsive))`
 const ResizeHandle = styled(Button)`
   position: absolute;
   z-index: 2;
-  bottom: ${space(0.5)};
-  right: ${space(0.5)};
+  bottom: ${p => p.theme.space.xs};
+  right: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
   cursor: nwse-resize;
 

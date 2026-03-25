@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 
@@ -58,7 +57,7 @@ export function OrganizationSampleRateInput({
         <Flex gap="md">
           {showBulkEditButton && (
             <Button
-              title={t('Proportionally scale project rates')}
+              tooltipProps={{title: t('Proportionally scale project rates')}}
               aria-label={t('Proportionally scale project rates')}
               priority="transparent"
               size="sm"
@@ -101,17 +100,17 @@ export function OrganizationSampleRateInput({
 
 const SampleRateRow = styled('div')`
   display: flex;
-  padding: ${space(1.5)} ${space(2)} ${space(1)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl} ${p => p.theme.space.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
 `;
 
 const Description = styled('div')`
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const Label = styled('label')`

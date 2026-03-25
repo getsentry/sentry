@@ -9,9 +9,9 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay} from 'sentry/types/relay';
 
-import createTrustedRelaysResponseError from './createTrustedRelaysResponseError';
-import Form from './form';
-import Modal from './modal';
+import {createTrustedRelaysResponseError} from './createTrustedRelaysResponseError';
+import {Form} from './form';
+import {Modal} from './modal';
 
 type FormProps = React.ComponentProps<typeof Form>;
 type Values = FormProps['values'];
@@ -32,10 +32,10 @@ type State = {
   values: Values;
 };
 
-class DialogManager<P extends Props = Props, S extends State = State> extends Component<
-  P,
-  S
-> {
+export class ModalManager<
+  P extends Props = Props,
+  S extends State = State,
+> extends Component<P, S> {
   state = this.getDefaultState();
 
   componentDidMount() {
@@ -236,5 +236,3 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
     );
   }
 }
-
-export default DialogManager;

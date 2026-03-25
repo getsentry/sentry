@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import Footer from 'getsentry/components/upsellModal/footer';
+import {Footer} from 'getsentry/components/upsellModal/footer';
 
 describe('Business Landing Footer', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
@@ -14,7 +14,7 @@ describe('Business Landing Footer', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: subscription,
     });

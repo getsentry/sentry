@@ -10,7 +10,7 @@ import type {
 
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
-import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
+import {BaseChart, type BaseChartProps} from 'sentry/components/charts/baseChart';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import type {
   EChartClickHandler,
@@ -39,7 +39,7 @@ const TRUNCATED_LABEL_MAX_LENGTH = 15;
 const ROTATION_CATEGORY_THRESHOLD = 10;
 const ROTATED_LABEL_ANGLE = 45;
 
-export interface CategoricalSeriesWidgetVisualizationProps {
+interface CategoricalSeriesWidgetVisualizationProps {
   /**
    * An array of `CategoricalPlottable` objects to render on the chart.
    */
@@ -139,10 +139,15 @@ export function CategoricalSeriesWidgetVisualization(
 
     // If the categories are still too long after "smart" truncation, apply naive truncation
     const trimmedTotal = trimmed.reduce((sum, c) => sum + c.length, 0);
-    const truncateLength =
-      trimmedTotal > TOTAL_CHARACTER_THRESHOLD
-        ? TRUNCATED_LABEL_MAX_LENGTH
-        : (props.truncateCategoryLabels ?? true);
+
+    let truncateLength: number | boolean;
+    if (typeof props.truncateCategoryLabels === 'number') {
+      truncateLength = props.truncateCategoryLabels;
+    } else if (trimmedTotal > TOTAL_CHARACTER_THRESHOLD) {
+      truncateLength = TRUNCATED_LABEL_MAX_LENGTH;
+    } else {
+      truncateLength = props.truncateCategoryLabels ?? true;
+    }
 
     // NOTE: In the end, ECharts still applies its own legend overlap logic, and
     // might choose to hide some labels. By doing our own truncation and
@@ -168,7 +173,8 @@ export function CategoricalSeriesWidgetVisualization(
       // @ts-expect-error: ECharts types `showMaxLabel` incorrect as a boolean, the documentation also allows `null`
       showMinLabel: null,
       rotate: shouldRotate ? ROTATED_LABEL_ANGLE : 0,
-      ...(shouldRotate ? {interval: 0, hideOverlap: false} : {}),
+      ...(shouldRotate ? {interval: 0} : {}),
+      hideOverlap: true,
       formatter: (value: string) => formattedLabels.get(value) ?? value,
     },
     axisLine: {
@@ -269,7 +275,7 @@ export function CategoricalSeriesWidgetVisualization(
               false
             );
 
-            let formattedValue: string = ECHARTS_MISSING_DATA_VALUE;
+            let formattedValue = ECHARTS_MISSING_DATA_VALUE;
 
             // Technically we've already filtered out invalid values in `filteredParams` above, but TypeScript isn't easy to appease.
             if (Array.isArray(param.value)) {

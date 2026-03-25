@@ -16,7 +16,7 @@
     "key": "sentry:last_worker_version",
     "last_updated": "2023-06-27T21:40:01.312Z",
     "last_updated_by": "unknown",
-    "value": "\"23.7.0.dev0\""
+    "value": "23.7.0.dev0"
   }
 },
 {
@@ -26,7 +26,7 @@
     "key": "sentry:install-id",
     "last_updated": "2023-06-23T00:03:42.785Z",
     "last_updated_by": "unknown",
-    "value": "\"1bc81f9440424e908a73ca377581cb52682db68a\""
+    "value": "1bc81f9440424e908a73ca377581cb52682db68a"
   }
 },
 {
@@ -36,7 +36,7 @@
     "key": "sentry:latest_version",
     "last_updated": "2023-06-27T21:25:02.602Z",
     "last_updated_by": "unknown",
-    "value": "\"23.6.1\""
+    "value": "23.6.1"
   }
 },
 {
@@ -181,7 +181,7 @@
     "created_at": "2023-06-22T22:59:55.602Z",
     "last_used_at": null,
     "type": 1,
-    "config": "\"\""
+    "config": ""
   }
 },
 {
@@ -192,7 +192,7 @@
     "created_at": "2023-06-22T22:59:56.602Z",
     "last_used_at": null,
     "type": 1,
-    "config": "\"\""
+    "config": ""
   }
 },
 {
@@ -235,7 +235,7 @@
     "date_updated": "2023-06-22T23:00:00.123Z",
     "date_added": "2023-06-22T22:54:27.960Z",
     "name": "Super Admin",
-    "permissions": "['broadcasts.admin', 'users.admin', 'options.admin']"
+    "permissions": ["broadcasts.admin", "users.admin", "options.admin"]
   }
 },
 {
@@ -375,7 +375,7 @@
     "project": 1,
     "environment_id": null,
     "label": "Send a notification for new issues",
-    "data": "{\"match\":\"all\",\"conditions\":[{\"id\":\"sentry.rules.conditions.first_seen_event.FirstSeenEventCondition\"}],\"actions\":[{\"id\":\"sentry.mail.actions.NotifyEmailAction\",\"targetType\":\"IssueOwners\",\"targetIdentifier\":null,\"fallthroughType\":\"ActiveMembers\"}]}",
+    "data": {"match":"all","conditions":[{"id":"sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}],"actions":[{"id":"sentry.mail.actions.NotifyEmailAction","targetType":"IssueOwners","targetIdentifier":null,"fallthroughType":"ActiveMembers"}]},
     "status": 0,
     "source": 0,
     "owner": null,
@@ -425,7 +425,7 @@
   "fields": {
     "project": 1,
     "key": "sentry:origins",
-    "value": "[\"*\"]"
+    "value": ["*"]
   }
 },
 {

@@ -1,5 +1,5 @@
-import EditableText from 'sentry/components/editableText';
-import FormField from 'sentry/components/forms/formField';
+import {EditableText} from 'sentry/components/editableText';
+import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
 

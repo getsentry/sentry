@@ -20,6 +20,8 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
+from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.integration import integration_service
@@ -39,6 +41,8 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
+    ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationProviderError,
 )
@@ -123,6 +127,10 @@ class GitlabIntegration(
     def integration_name(self) -> str:
         return IntegrationProviderSlug.GITLAB
 
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
+
     def get_client(self) -> GitLabApiClient:
         try:
             # eagerly populate this just for the error message
@@ -155,10 +163,15 @@ class GitlabIntegration(
     def get_repositories(
         self, query: str | None = None, page_number_limit: int | None = None
     ) -> list[dict[str, Any]]:
-        # Note: gitlab projects are the same things as repos everywhere else
-        group = self.get_group_id()
-        resp = self.get_client().search_projects(group, query)
-        return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
+        try:
+            # Note: gitlab projects are the same things as repos everywhere else
+            group = self.get_group_id()
+            resp = self.get_client().search_projects(group, query)
+            return [
+                {"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp
+            ]
+        except (ApiForbiddenError, ApiUnauthorized) as e:
+            raise IntegrationConfigurationError(self.message_from_error(e)) from e
 
     def source_url_matches(self, url: str) -> bool:
         return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
@@ -246,13 +259,26 @@ class GitlabIntegration(
 
         config = self.org_integration.config
 
+        # Check webhook version BEFORE updating config to determine if migration is needed
+        current_webhook_version = config.get(GITLAB_WEBHOOK_VERSION_KEY, 0)
+
         config.update(data)
+
         org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
         )
         if org_integration is not None:
             self.org_integration = org_integration
+
+        # Only update webhooks if:
+        # 1. A sync setting was enabled, AND
+        # 2. The webhook version is outdated
+        if current_webhook_version < GITLAB_WEBHOOK_VERSION:
+            update_all_project_webhooks.delay(
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
+            )
 
     # CommitContextIntegration methods
 
@@ -460,7 +486,7 @@ class InstallationGuideView:
         return render_to_response(
             template="sentry/integrations/gitlab-config.html",
             context={
-                "next_url": f'{absolute_uri("/extensions/gitlab/setup/")}?completed_installation_guide',
+                "next_url": f"{absolute_uri('/extensions/gitlab/setup/')}?completed_installation_guide",
                 "setup_values": [
                     {"label": "Name", "value": "Sentry"},
                     {"label": "Redirect URI", "value": absolute_uri("/extensions/gitlab/setup/")},

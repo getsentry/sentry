@@ -1,10 +1,10 @@
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import FeatureTourModal from 'sentry/components/modals/featureTourModal';
+import {FeatureTourModal} from 'sentry/components/modals/featureTourModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,7 +20,12 @@ type Props = {
   projectId?: string;
 };
 
-function MissingReleasesButtons({organization, health, projectId, platform}: Props) {
+export function MissingReleasesButtons({
+  organization,
+  health,
+  projectId,
+  platform,
+}: Props) {
   function handleTourAdvance(step: number, duration: number) {
     trackAnalytics('project_detail.releases_tour.advance', {
       organization,
@@ -54,7 +59,9 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
         external
         href={health ? DOCS_HEALTH_URL : DOCS_URL}
         disabled={setupDisabled}
-        title={setupDisabled ? setupDisabledTooltip : undefined}
+        tooltipProps={{title: setupDisabled ? setupDisabledTooltip : undefined}}
+        analyticsEventKey="project_detail.releases_setup_clicked"
+        analyticsEventName="Project Detail: Releases Start Setup Clicked"
       >
         {t('Start Setup')}
       </LinkButton>
@@ -67,7 +74,12 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
           doneUrl={health ? DOCS_HEALTH_URL : DOCS_URL}
         >
           {({showModal}) => (
-            <Button size="sm" onClick={showModal}>
+            <Button
+              size="sm"
+              onClick={showModal}
+              analyticsEventKey="project_detail.releases_tour_clicked"
+              analyticsEventName="Project Detail: Releases Get Tour Clicked"
+            >
               {t('Get Tour')}
             </Button>
           )}
@@ -76,5 +88,3 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
     </Grid>
   );
 }
-
-export default MissingReleasesButtons;

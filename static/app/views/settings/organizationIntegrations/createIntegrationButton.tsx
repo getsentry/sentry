@@ -1,12 +1,12 @@
 import {Button} from '@sentry/scraps/button';
 
 import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type CreateIntegrationButtonProps = {
   analyticsView: IntegrationView['view'];
@@ -15,7 +15,7 @@ type CreateIntegrationButtonProps = {
 /**
  * Button to open the modal to create a new public/internal integration (Sentry App)
  */
-function CreateIntegrationButton({analyticsView}: CreateIntegrationButtonProps) {
+export function CreateIntegrationButton({analyticsView}: CreateIntegrationButtonProps) {
   const organization = useOrganization();
   const permissionTooltipText = t(
     'Manager or Owner permissions are required to create a new integration'
@@ -28,7 +28,7 @@ function CreateIntegrationButton({analyticsView}: CreateIntegrationButtonProps) 
           size="sm"
           priority="primary"
           disabled={!hasAccess}
-          title={hasAccess ? undefined : permissionTooltipText}
+          tooltipProps={{title: hasAccess ? undefined : permissionTooltipText}}
           onClick={() => {
             openCreateNewIntegrationModal();
             trackIntegrationAnalytics(PlatformEvents.OPEN_CREATE_MODAL, {
@@ -43,5 +43,3 @@ function CreateIntegrationButton({analyticsView}: CreateIntegrationButtonProps) 
     </Access>
   );
 }
-
-export default CreateIntegrationButton;

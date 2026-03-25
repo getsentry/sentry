@@ -5,8 +5,8 @@ import isEqual from 'lodash/isEqual';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
-import FormContext from 'sentry/components/deprecatedforms/formContext';
-import FormState from 'sentry/components/forms/state';
+import {FormContext} from 'sentry/components/deprecatedforms/formContext';
+import {FormState} from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 
 type FormProps = {
@@ -42,7 +42,7 @@ type FormClassState = {
   state: FormState;
 };
 
-class Form<
+export class Form<
   Props extends FormProps = FormProps,
   State extends FormClassState = FormClassState,
 > extends Component<Props, State> {
@@ -191,5 +191,3 @@ class Form<
 // Note: this is so we can use this as a selector for SelectField
 // We need to keep `Form` as a React Component because ApiForm extends it :/
 export const StyledForm = styled('form')``;
-
-export default Form;

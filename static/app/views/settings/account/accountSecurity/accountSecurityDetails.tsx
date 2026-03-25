@@ -12,22 +12,22 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
-import RecoveryCodes from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
-import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
+import {RecoveryCodes} from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
+import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {AuthenticatorHeader} from './components/authenticatorHeader';
 
@@ -167,13 +167,13 @@ export default function AccountSecurityDetails() {
             {authenticator.isEnrolled && authenticator.removeButton && (
               <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
                 <Button
-                  title={
-                    deleteDisabled
+                  tooltipProps={{
+                    title: deleteDisabled
                       ? t(
                           "Two-factor authentication is required for at least one organization you're a member of."
                         )
-                      : undefined
-                  }
+                      : undefined,
+                  }}
                   priority="danger"
                 >
                   {authenticator.removeButton}

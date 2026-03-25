@@ -36,11 +36,10 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
-from sentry.api.base import Endpoint, internal_region_silo_endpoint
+from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
@@ -48,9 +47,11 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
@@ -74,8 +75,8 @@ from sentry.seer.assisted_query.traces_tools import (
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
+from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
@@ -90,7 +91,9 @@ from sentry.seer.explorer.tools import (
     execute_trace_table_query,
     get_baseline_tag_distribution,
     get_comparative_attribute_distributions,
+    get_event_details,
     get_issue_and_event_details_v2,
+    get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -101,8 +104,8 @@ from sentry.seer.explorer.tools import (
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.issue_detection import create_issue_occurrence
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.utils import filter_repo_by_provider
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -169,7 +172,7 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
     return False
 
 
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
 class SeerRpcSignatureAuthentication(StandardAuthentication):
     """
     Authentication for seer RPC requests.
@@ -192,7 +195,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         return (AnonymousUser(), token)
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class SeerRpcServiceEndpoint(Endpoint):
     """
     RPC endpoint for seer microservice to call. Authenticated with a shared secret.
@@ -249,8 +252,6 @@ class SeerRpcServiceEndpoint(Endpoint):
             sentry_sdk.capture_exception()
             raise ParseError from e
         except ObjectDoesNotExist as e:
-            # Let this fall through, this is normal.
-            sentry_sdk.capture_exception()
             raise NotFound from e
         except SnubaRPCRateLimitExceeded as e:
             sentry_sdk.capture_exception()
@@ -272,8 +273,6 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 def get_organization_project_ids(*, org_id: int) -> dict:
     """Get all active projects (IDs and slugs) for an organization"""
-    from sentry.models.project import Project
-
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
@@ -294,12 +293,7 @@ class SentryOrganizaionIdsAndSlugs(TypedDict):
 
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
-    org: Organization = Organization.objects.get(id=org_id)
-    seer_org_acknowledgement = get_seer_org_acknowledgement(org)
-    github_extension_enabled = org_id in options.get("github-extension.enabled-orgs")
-    return {
-        "consent": seer_org_acknowledgement or github_extension_enabled,
-    }
+    return {"consent": True}
 
 
 def get_attributes_and_values(
@@ -527,8 +521,6 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         dict: Status of the webhook sending operation
     """
     # Validate event_name by constructing the full event type and checking if it's valid
-    from sentry.sentry_apps.metrics import SentryAppEventType
-
     event_type = f"seer.{event_name}"
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
@@ -551,7 +543,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         )
         return {"success": False, "error": "Organization not found or not active"}
 
-    if SeerOperator.has_access(organization=organization):
+    if SeerAutofixOperator.has_access(organization=organization):
         process_autofix_updates.apply_async(
             kwargs={
                 "event_type": sentry_app_event_type,
@@ -559,9 +551,6 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
                 "organization_id": organization_id,
             }
         )
-
-    if not features.has("organizations:seer-webhooks", organization):
-        return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
 
     broadcast_webhooks_for_organization.delay(
         resource_name="seer",
@@ -610,6 +599,35 @@ def trigger_coding_agent_launch(
             },
         )
         return {"success": False}
+
+
+def has_repo_code_mappings(
+    *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
+) -> dict[str, bool]:
+    """
+    Validate that a repository exists and belongs to the given organization.
+
+    Args:
+        organization_id: The Sentry organization ID
+        provider: The SCM provider (e.g., "github", "github_enterprise", w/ or w/o "integrations:" prefix)
+        external_id: The repository's external ID in the provider's system
+        owner: The repository owner (e.g., "getsentry")
+        name: The repository name (e.g., "sentry")
+
+    Returns:
+        dict: {"has_code_mappings": bool}
+    """
+    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+
+    if not repo:
+        return {"has_code_mappings": False}
+
+    has_mappings = RepositoryProjectPathConfig.objects.filter(
+        organization_id=organization_id,
+        repository_id=repo.id,
+    ).exists()
+
+    return {"has_code_mappings": has_mappings}
 
 
 def validate_repo(
@@ -753,6 +771,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "trigger_coding_agent_launch": trigger_coding_agent_launch,
     #
     # Bug prediction
+    "has_repo_code_mappings": has_repo_code_mappings,
     "get_issues_by_function_name": by_function_name.fetch_issues,
     "get_issues_related_to_exception_type": by_error_type.fetch_issues,
     "get_issues_by_raw_query": by_text_query.fetch_issues,
@@ -775,6 +794,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
+    "get_issue_details": get_issue_details,
+    "get_event_details": get_event_details,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,

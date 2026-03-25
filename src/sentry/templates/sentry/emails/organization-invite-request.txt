@@ -1,6 +1,7 @@
+{% load sentry_helpers %}
 Request for Access
 
-{{ inviter_name }} has requested to invite {{ email }} to the {{ organization_name }} organization.
+{{ inviter_name|sanitize_periods }} has requested to invite {{ email }} to the {{ organization_name }} organization.
 
 View access requests by clicking the link below:
 

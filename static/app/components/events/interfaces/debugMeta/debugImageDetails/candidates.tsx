@@ -8,19 +8,18 @@ import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
+import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Image} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 
-import Status from './candidate/status';
-import Candidate from './candidate';
+import {Status} from './candidate/status';
+import {Candidate} from './candidate';
 import {INTERNAL_SOURCE} from './utils';
 
 const filterOptionCategories = {
@@ -50,7 +49,7 @@ type State = {
   searchTerm: string;
 };
 
-class Candidates extends Component<Props, State> {
+export class Candidates extends Component<Props, State> {
   state: State = {
     searchTerm: '',
     filterOptions: [],
@@ -371,8 +370,6 @@ class Candidates extends Component<Props, State> {
   }
 }
 
-export default Candidates;
-
 const Wrapper = styled('div')`
   display: grid;
 `;
@@ -387,9 +384,9 @@ const Header = styled('div')`
 `;
 
 const Title = styled('div')`
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   grid-template-columns: repeat(2, max-content);
   align-items: center;
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -398,7 +395,7 @@ const Title = styled('div')`
   flex: 1;
 
   @media (min-width: ${props => props.theme.breakpoints.sm}) {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
@@ -414,5 +411,5 @@ const StyledPanelTable = styled(PanelTable)`
 `;
 
 const StyledSearchBarAction = styled(SearchBarAction)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;

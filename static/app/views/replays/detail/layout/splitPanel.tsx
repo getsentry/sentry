@@ -2,10 +2,10 @@ import {useCallback} from 'react';
 import debounce from 'lodash/debounce';
 
 import type {SplitPanelProps} from 'sentry/components/splitPanel';
-import SplitPanel from 'sentry/components/splitPanel';
-import useSplitPanelTracking from 'sentry/utils/replays/hooks/useSplitPanelTracking';
+import {SplitPanel} from 'sentry/components/splitPanel';
+import {useSplitPanelTracking} from 'sentry/utils/replays/hooks/useSplitPanelTracking';
 
-function ReplaySplitPanel(props: SplitPanelProps) {
+export function ReplaySplitPanel(props: SplitPanelProps) {
   const {availableSize} = props;
   const isLeftRight = 'left' in props;
 
@@ -28,5 +28,3 @@ function ReplaySplitPanel(props: SplitPanelProps) {
 
   return <SplitPanel {...props} onMouseDown={handleMouseDown} onResize={handleResize} />;
 }
-
-export default ReplaySplitPanel;

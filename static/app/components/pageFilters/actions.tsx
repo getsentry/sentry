@@ -8,6 +8,7 @@ import * as qs from 'query-string';
 import {
   ALL_ACCESS_PROJECTS,
   DATE_TIME_KEYS,
+  getDefaultPageFilterSelection,
   URL_PARAM,
 } from 'sentry/components/pageFilters/constants';
 import {
@@ -18,11 +19,9 @@ import {
   getPageFilterStorage,
   setPageFiltersStorage,
 } from 'sentry/components/pageFilters/persistence';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import type {PageFiltersStringified} from 'sentry/components/pageFilters/types';
-import {getDefaultSelection} from 'sentry/components/pageFilters/utils';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -30,7 +29,6 @@ import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 type EnvironmentId = Environment['id'];
 
@@ -74,11 +72,6 @@ type PageFiltersUpdate = {
  * Represents the input for updating the date time of page filters
  */
 type DateTimeUpdate = Pick<PageFiltersUpdate, 'start' | 'end' | 'period' | 'utc'>;
-
-/**
- * Output object used for updating query parameters
- */
-type PageFilterQuery = PageFiltersStringified & Record<string, Location['query'][string]>;
 
 /**
  * This can be null which will not perform any router side effects, and instead updates store.
@@ -184,7 +177,7 @@ export function initializeUrlState({
     allowEmptyPeriod: true,
   });
 
-  const {datetime: defaultDatetime, ...defaultFilters} = getDefaultSelection();
+  const {datetime: defaultDatetime, ...defaultFilters} = getDefaultPageFilterSelection();
   const {datetime: customDatetime, ...customDefaultFilters} = defaultSelection ?? {};
 
   const pageFilters: PageFilters = {
@@ -204,12 +197,6 @@ export function initializeUrlState({
   const hasDatetimeInUrl = Object.keys(pick(queryParams, DATE_TIME_KEYS)).length > 0;
   const hasProjectOrEnvironmentInUrl =
     Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
-
-  // We should only check and update the desync state if the site has just been loaded
-  // (not counting route changes). To check this, we can use the `isReady` state: if it's
-  // false, then the site was just loaded. Once it's true, `isReady` stays true
-  // through route changes.
-  let shouldCheckDesyncedURLState = !PageFiltersStore.getState().isReady;
 
   /**
    * Check to make sure that the project ID exists in the projects list. Invalid project
@@ -241,15 +228,6 @@ export function initializeUrlState({
   if (hasProjectOrEnvironmentInUrl) {
     pageFilters.projects = parsed.project?.filter(validateProjectId) || [];
     pageFilters.environments = parsed.environment?.filter(validateEnvironment) || [];
-
-    if (
-      pageFilters.projects.length < (parsed.project?.length ?? 0) ||
-      pageFilters.environments.length < (parsed.environment?.length ?? 0)
-    ) {
-      // don't check desync state since we're going to remove invalid projects/envs from
-      // the URL query
-      shouldCheckDesyncedURLState = false;
-    }
   }
 
   const storedPageFilters = skipLoadLastUsed
@@ -269,7 +247,6 @@ export function initializeUrlState({
 
       if (pageFilters.projects.length < (storedState.project?.length ?? 0)) {
         shouldUpdateLocalStorage = true; // update storage to remove invalid projects
-        shouldCheckDesyncedURLState = false;
       }
     }
 
@@ -283,13 +260,24 @@ export function initializeUrlState({
 
       if (pageFilters.environments.length < (storedState.environment?.length ?? 0)) {
         shouldUpdateLocalStorage = true; // update storage to remove invalid environments
-        shouldCheckDesyncedURLState = false;
       }
     }
 
     if (!hasDatetimeInUrl && pinnedFilters.has('datetime')) {
       pageFilters.datetime = getDatetimeFromState(storedState);
       shouldUsePinnedDatetime = true;
+    }
+  }
+
+  // When the organization only has a single project, automatically select it
+  // instead of defaulting to "My Projects" or "All Projects".
+  if (
+    memberProjects.length + nonMemberProjects.length === 1 &&
+    pageFilters.projects.length === 0
+  ) {
+    const onlyProject = memberProjects[0] ?? nonMemberProjects[0];
+    if (onlyProject) {
+      pageFilters.projects = [getProjectIdFromProject(onlyProject)];
     }
   }
 
@@ -357,13 +345,6 @@ export function initializeUrlState({
       new Set(['projects', 'environments']),
       storageNamespace
     );
-  }
-
-  if (shouldCheckDesyncedURLState) {
-    checkDesyncedUrlState(router, shouldForceProject);
-  } else {
-    // Clear desync state on route changes
-    PageFiltersStore.updateDesyncedFilters(new Set());
   }
 
   const newDatetime = shouldUseMaxPickableDays
@@ -524,100 +505,6 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
 }
 
 /**
- * Checks if the URL state has changed in synchronization from the local
- * storage state, and persists that check into the store.
- *
- * If shouldForceProject is enabled, then we do not record any url desync
- * for the project.
- */
-async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boolean) {
-  // Cannot compare URL state without the router
-  if (!router || !PageFiltersStore.getState().shouldPersist) {
-    return;
-  }
-
-  const {query} = router.location;
-
-  // XXX(epurkhiser): Since this is called immediately after updating the
-  // store, wait for a tick since stores are not updated fully synchronously.
-  // This function *should* be called only after persistPageFilters has been
-  // called as well This function *should* be called only after
-  // persistPageFilters has been called as well
-  await new Promise(resolve => window.setTimeout(resolve, 0));
-
-  const {organization} = OrganizationStore.getState();
-
-  // Can't do anything if we don't have an organization
-  if (organization === null) {
-    return;
-  }
-
-  const storedPageFilters = getPageFilterStorage(organization.slug);
-
-  // If we don't have any stored page filters then we do not check desynced state
-  if (!storedPageFilters) {
-    PageFiltersStore.updateDesyncedFilters(new Set<PinnedPageFilter>());
-    return;
-  }
-
-  const currentQuery = getStateFromQuery(query, {
-    allowAbsoluteDatetime: true,
-    allowEmptyPeriod: true,
-  });
-
-  const differingFilters = new Set<PinnedPageFilter>();
-  const {pinnedFilters, state: storedState} = storedPageFilters;
-
-  // Are selected projects different?
-  if (
-    pinnedFilters.has('projects') &&
-    currentQuery.project !== null &&
-    !valueIsEqual(currentQuery.project, storedState.project) &&
-    !shouldForceProject
-  ) {
-    differingFilters.add('projects');
-  }
-
-  // Are selected environments different?
-  if (
-    pinnedFilters.has('environments') &&
-    currentQuery.environment !== null &&
-    !valueIsEqual(currentQuery.environment, storedState.environment)
-  ) {
-    differingFilters.add('environments');
-  }
-
-  const dateTimeInQuery =
-    currentQuery.end !== null ||
-    currentQuery.start !== null ||
-    currentQuery.utc !== null ||
-    currentQuery.period !== null;
-
-  // Is the datetime filter different?
-  if (
-    pinnedFilters.has('datetime') &&
-    dateTimeInQuery &&
-    (currentQuery.period !== storedState.period ||
-      currentQuery.start?.getTime() !== storedState.start?.getTime() ||
-      currentQuery.end?.getTime() !== storedState.end?.getTime() ||
-      currentQuery.utc !== storedState.utc)
-  ) {
-    differingFilters.add('datetime');
-  }
-
-  PageFiltersStore.updateDesyncedFilters(differingFilters);
-}
-
-/**
- * Commits the new desynced filter values and clears the desynced filters list.
- */
-export function saveDesyncedFilters() {
-  const {desyncedFilters} = PageFiltersStore.getState();
-  [...desyncedFilters].forEach(filter => persistPageFilters(filter, {save: true}));
-  PageFiltersStore.updateDesyncedFilters(new Set());
-}
-
-/**
  * Merges an UpdateParams object into a Location['query'] object. Results in a
  * PageFilterQuery
  *
@@ -660,7 +547,7 @@ function getNewQueryParams(
   // Only set a stats period if we don't have an absolute date
   const statsPeriod = !start && !end ? obj.period || currentQueryState.period : null;
 
-  const newQuery: PageFilterQuery = {
+  const newQuery = {
     project: project?.map(String),
     environment,
     start: statsPeriod ? null : start instanceof Date ? getUtcDateString(start) : start,
@@ -671,32 +558,5 @@ function getNewQueryParams(
   };
 
   const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));
-
-  return Object.fromEntries(paramEntries) as PageFilterQuery;
-}
-
-export function revertToPinnedFilters(orgSlug: string, router: InjectedRouter) {
-  const {selection, desyncedFilters} = PageFiltersStore.getState();
-  const storedFilterState = getPageFilterStorage(orgSlug)?.state;
-
-  if (!storedFilterState) {
-    return;
-  }
-
-  const newParams = {
-    project: desyncedFilters.has('projects')
-      ? storedFilterState.project
-      : selection.projects,
-    environment: desyncedFilters.has('environments')
-      ? storedFilterState.environment
-      : selection.environments,
-    ...(desyncedFilters.has('datetime')
-      ? pick(storedFilterState, DATE_TIME_KEYS)
-      : selection.datetime),
-  };
-
-  updateParams(newParams, router, {
-    keepCursor: true,
-  });
-  PageFiltersStore.updateDesyncedFilters(new Set());
+  return Object.fromEntries(paramEntries);
 }

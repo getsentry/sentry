@@ -7,12 +7,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMouseTracking from 'sentry/utils/useMouseTracking';
-import useOrganization from 'sentry/utils/useOrganization';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import PerformanceScoreRing from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
+import {useMouseTracking} from 'sentry/utils/useMouseTracking';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import type {
   ProjectScore,
   WebVitals,
@@ -38,14 +37,14 @@ type ProjectData = {
 };
 
 type Props = {
-  height: number;
   projectScore: ProjectScore;
   ringBackgroundColors: readonly string[];
   ringSegmentColors: readonly string[];
   text: React.ReactNode;
-  width: number;
+  autoSize?: boolean;
   barWidth?: number;
   differenceToPreviousPeriod?: ProjectScore;
+  height?: number;
   hideWebVitalLabels?: boolean;
   inPerformanceWidget?: boolean;
   labelHeightPadding?: number;
@@ -53,6 +52,7 @@ type Props = {
   radiusPadding?: number;
   size?: number;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
+  width?: number;
   x?: number;
   y?: number;
 };
@@ -134,25 +134,27 @@ function WebVitalLabel({
   );
 }
 
-function PerformanceScoreRingWithTooltips({
+export function PerformanceScoreRingWithTooltips({
   projectScore,
   projectData,
   ringBackgroundColors,
   ringSegmentColors,
-  width,
-  height,
   text,
   differenceToPreviousPeriod,
   webVitalLabelCoordinates,
+  autoSize = false,
+  width = 220,
+  height = 200,
   barWidth = 16,
   hideWebVitalLabels = false,
   inPerformanceWidget = false,
   size = 140,
   x = 40,
-  y = 25,
+  y: yProp,
   labelHeightPadding = 14,
   radiusPadding = 4,
 }: Props) {
+  const y = yProp ?? (autoSize ? (height - size) / 2 : 25);
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -206,7 +208,11 @@ function PerformanceScoreRingWithTooltips({
   );
 
   return (
-    <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
+    <ProgressRingContainer
+      ref={elem}
+      {...mouseTrackingProps}
+      style={autoSize ? {width: '100%', height: '100%'} : undefined}
+    >
       {webVitalTooltip && (
         <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
           <Flex justify="between" align="center">
@@ -232,7 +238,11 @@ function PerformanceScoreRingWithTooltips({
           <PerformanceScoreRingTooltipArrow />
         </PerformanceScoreRingTooltip>
       )}
-      <svg height={height} width={width}>
+      <svg
+        height={autoSize ? '100%' : height}
+        width={autoSize ? '100%' : width}
+        viewBox={`0 0 ${width} ${height}`}
+      >
         {!hideWebVitalLabels && (
           <Fragment>
             {Object.keys(weights).map((key, index) => {
@@ -377,7 +387,7 @@ const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translate3d(${p => p.x - 100}px, ${p => p.y - 74}px, 0px);
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   width: 200px;
   height: 60px;
   display: flex;
@@ -410,7 +420,7 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
 
 const Dot = styled('span')<{color: string}>`
   display: inline-block;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
   border-radius: 10px;
   width: 10px;
   height: 10px;
@@ -420,5 +430,3 @@ const Dot = styled('span')<{color: string}>`
 const TooltipValue = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default PerformanceScoreRingWithTooltips;

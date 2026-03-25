@@ -2,11 +2,11 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {
   makeMonitorCreatePathname,
@@ -55,13 +55,13 @@ export function DetectorListActions({detectorType, children}: DetectorListAction
         icon={<IconAdd />}
         size="sm"
         disabled={!canCreateDetector}
-        title={
-          canCreateDetector
+        tooltipProps={{
+          title: canCreateDetector
             ? undefined
             : getPermissionTooltipText({
                 detectorType,
-              })
-        }
+              }),
+        }}
       >
         {t('Create Monitor')}
       </LinkButton>

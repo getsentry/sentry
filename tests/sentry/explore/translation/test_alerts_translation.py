@@ -50,7 +50,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org)
 
     def test_snapshot_snuba_query_with_performance_metrics(self) -> None:
-
         snuba_query = create_snuba_query(
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.PerformanceMetrics,
@@ -1590,3 +1589,158 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+
+    @patch("sentry.snuba.tasks._create_rpc_in_snuba")
+    def test_bypass_flag_check(self, mock_create_rpc) -> None:
+        mock_create_rpc.return_value = "test-subscription-id"
+
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.PerformanceMetrics,
+            query="transaction.duration:>100",
+            aggregate="count()",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
+        )
+        original_dataset = snuba_query.dataset
+
+        query_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+
+        data_source = self.create_data_source(
+            organization=self.org,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+
+        detector_data_condition_group = self.create_data_condition_group(
+            organization=self.org,
+        )
+
+        detector = self.create_detector(
+            name="Test Detector",
+            type=MetricIssue.slug,
+            project=self.project,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            workflow_condition_group=detector_data_condition_group,
+        )
+
+        data_source.detectors.add(detector)
+
+        assert snuba_query.dataset == Dataset.PerformanceMetrics.value
+
+        # Now translate and update the subscription with tasks enabled
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query, bypass_flag_check=True)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.query_snapshot is not None
+        assert snuba_query.query_snapshot["dataset"] == original_dataset
+
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert snuba_query.aggregate == "count(span.duration)"
+        assert snuba_query.query == "(span.duration:>100) AND is_transaction:1"
+        assert snuba_query.extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.value
+
+        event_types = list(
+            SnubaQueryEventType.objects.filter(snuba_query=snuba_query).values_list(
+                "type", flat=True
+            )
+        )
+        assert len(event_types) == 1
+        assert event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.value
+
+        assert mock_create_rpc.called
+        assert mock_create_rpc.call_count == 1
+
+    @patch("sentry.snuba.tasks._delete_from_snuba")
+    @patch("sentry.snuba.tasks._create_snql_in_snuba")
+    @patch("sentry.snuba.tasks._create_rpc_in_snuba")
+    def test_bypass_flag_check_rollback(
+        self, mock_create_rpc, mock_create_snql, mock_delete
+    ) -> None:
+        mock_create_rpc.return_value = "test-subscription-id"
+        mock_create_snql.return_value = "rollback-subscription-id"
+        mock_delete.return_value = None
+
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
+            query="transaction.duration:>100",
+            aggregate="count()",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
+        )
+
+        query_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+
+        data_source = self.create_data_source(
+            organization=self.org,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+
+        detector_data_condition_group = self.create_data_condition_group(
+            organization=self.org,
+        )
+
+        detector = self.create_detector(
+            name="Test Detector",
+            type=MetricIssue.slug,
+            project=self.project,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            workflow_condition_group=detector_data_condition_group,
+        )
+
+        data_source.detectors.add(detector)
+
+        original_type = snuba_query.type
+        original_dataset = snuba_query.dataset
+        original_query = snuba_query.query
+        original_aggregate = snuba_query.aggregate
+        original_time_window = snuba_query.time_window
+
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query, bypass_flag_check=True)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+
+        assert mock_create_rpc.called
+        assert mock_create_rpc.call_count == 1
+
+        with self.tasks():
+            rollback_detector_query_and_update_subscription_in_snuba(
+                snuba_query, bypass_flag_check=True
+            )
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.type == original_type
+        assert snuba_query.dataset == original_dataset
+        assert snuba_query.query == original_query
+        assert snuba_query.aggregate == original_aggregate
+        assert snuba_query.time_window == original_time_window
+
+        event_types = list(
+            SnubaQueryEventType.objects.filter(snuba_query=snuba_query).values_list(
+                "type", flat=True
+            )
+        )
+        assert len(event_types) == 1
+        assert event_types[0] == SnubaQueryEventType.EventType.TRANSACTION.value
+
+        assert mock_create_snql.called
+        assert mock_create_snql.call_count == 1

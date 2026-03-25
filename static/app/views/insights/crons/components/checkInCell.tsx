@@ -8,20 +8,19 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import ShortId from 'sentry/components/shortId';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {ShortId} from 'sentry/components/shortId';
 import {
   StatusIndicator,
   type StatusIndicatorProps,
 } from 'sentry/components/statusIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {CheckIn, CheckInCellKey} from 'sentry/views/insights/crons/types';
@@ -149,7 +148,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
         size="zero"
         priority="transparent"
         text={id.replaceAll('-', '')}
-        title={t('Copy full check-in identifier')}
+        tooltipProps={{title: t('Copy full check-in identifier')}}
         aria-label={t('Copy Check-In ID')}
       />
     </Flex>
@@ -490,7 +489,7 @@ function ProcessingLatencyIndicator({checkIn}: ProcessingLatencyProps) {
 
 const TimestampContainer = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   font-variant-numeric: tabular-nums;
 `;

@@ -69,7 +69,6 @@ def get_level_key(
     level: str | None,
     event_id: str,
 ) -> PayloadUnionType:
-
     if level == "debug":
         return EventLinkPayloadDebugId(
             type=type,

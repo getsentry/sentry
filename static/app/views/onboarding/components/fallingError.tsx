@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 type RenderProps = {
   fallCount: number;
@@ -20,7 +20,7 @@ type State = {
   isFalling: boolean;
 };
 
-class FallingError extends Component<Props, State> {
+export class FallingError extends Component<Props, State> {
   state: State = {
     isFalling: false,
     fallCount: 0,
@@ -140,5 +140,3 @@ class FallingError extends Component<Props, State> {
     });
   }
 }
-
-export default FallingError;

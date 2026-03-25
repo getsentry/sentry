@@ -16,7 +16,7 @@ from sentry.api.endpoints.chunk import (
     MAX_CONCURRENCY,
     MAX_REQUEST_SIZE,
 )
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.models.apitoken import ApiToken
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
@@ -57,7 +57,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data["maxFileSize"] == MAX_FILE_SIZE
         assert response.data["concurrency"] == MAX_CONCURRENCY
         assert response.data["hashAlgorithm"] == HASH_ALGORITHM
-        assert response.data["url"] == generate_region_url() + self.url
+        assert response.data["url"] == generate_locality_url() + self.url
         assert response.data["accept"] == CHUNK_UPLOAD_ACCEPT
 
         with override_options({"system.upload-url-prefix": "test"}):
@@ -82,7 +82,7 @@ class ChunkUploadTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["chunkSize"] == settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE
-        assert response.data["url"] == generate_region_url() + self.url
+        assert response.data["url"] == generate_locality_url() + self.url
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_chunk_parameters_launchpad_auth_different_org(self) -> None:
@@ -148,7 +148,7 @@ class ChunkUploadTest(APITestCase):
             HTTP_USER_AGENT="sentry-cli/1.70.0",
             format="json",
         )
-        assert response.data["url"] == generate_region_url() + self.url
+        assert response.data["url"] == generate_locality_url() + self.url
 
         response = self.client.get(
             self.url,
@@ -156,7 +156,7 @@ class ChunkUploadTest(APITestCase):
             HTTP_USER_AGENT="sentry-cli/0.69.3",
             format="json",
         )
-        assert response.data["url"] == generate_region_url() + self.url
+        assert response.data["url"] == generate_locality_url() + self.url
 
         # user overridden upload url prefix has priority, even when calling from sentry-cli that supports relative urls
         with override_options({"system.upload-url-prefix": "test"}):
@@ -175,7 +175,7 @@ class ChunkUploadTest(APITestCase):
                 HTTP_USER_AGENT="sentry-cli/1.70.1",
                 format="json",
             )
-            assert response.data["url"] == generate_region_url() + self.url
+            assert response.data["url"] == generate_locality_url() + self.url
 
     def test_region_upload_urls(self) -> None:
         response = self.client.get(
@@ -192,7 +192,7 @@ class ChunkUploadTest(APITestCase):
             HTTP_USER_AGENT="sentry-cli/0.69.3",
             format="json",
         )
-        assert response.data["url"] == generate_region_url() + self.url
+        assert response.data["url"] == generate_locality_url() + self.url
 
         response = self.client.get(
             self.url,
@@ -209,7 +209,7 @@ class ChunkUploadTest(APITestCase):
             format="json",
         )
 
-        assert response.data["url"] == generate_region_url() + self.url
+        assert response.data["url"] == generate_locality_url() + self.url
 
         with override_options({"hybrid_cloud.disable_relative_upload_urls": True}):
             response = self.client.get(
@@ -218,7 +218,7 @@ class ChunkUploadTest(APITestCase):
                 HTTP_USER_AGENT="sentry-cli/2.29.99",
                 format="json",
             )
-            assert response.data["url"] == generate_region_url() + self.url
+            assert response.data["url"] == generate_locality_url() + self.url
 
     def test_wrong_api_token(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):

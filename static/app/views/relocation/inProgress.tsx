@@ -1,9 +1,9 @@
 import {motion} from 'framer-motion';
 
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import testableTransition from 'sentry/utils/testableTransition';
-import Wrapper from 'sentry/views/relocation/components/wrapper';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {Wrapper} from 'sentry/views/relocation/components/wrapper';
 
 import type {StepProps} from './types';
 

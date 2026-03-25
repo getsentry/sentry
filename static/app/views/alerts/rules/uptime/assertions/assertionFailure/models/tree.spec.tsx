@@ -6,13 +6,13 @@ import {
   makeOrOp,
   makeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/assertions/testUtils';
-import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
 
 import {Tree} from './tree';
 
 describe('Assertion Failure Tree model', () => {
   it('Builds the expected tree', () => {
-    const assertion: Assertion = {
+    const assertion: UptimeAssertion = {
       root: makeAndOp({
         id: 'op-1',
         children: [
@@ -38,7 +38,7 @@ describe('Assertion Failure Tree model', () => {
   });
 
   it('Merges logical ops - root', () => {
-    const assertion: Assertion = {
+    const assertion: UptimeAssertion = {
       root: makeAndOp({
         id: 'op-1',
         children: [
@@ -58,7 +58,7 @@ describe('Assertion Failure Tree model', () => {
   });
 
   it('Merges logical ops - non-root', () => {
-    const assertion: Assertion = {
+    const assertion: UptimeAssertion = {
       root: makeAndOp({
         id: 'op-1',
         children: [

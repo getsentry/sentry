@@ -6,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {QueryField as TableQueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
@@ -19,6 +18,7 @@ export interface QueryFieldProps {
   canDelete?: boolean;
   canDrag?: boolean;
   disabled?: boolean;
+  extraActions?: ReactNode;
   fieldValidationError?: ReactNode;
   isDragging?: boolean;
   listeners?: DraggableSyntheticListeners;
@@ -26,7 +26,7 @@ export interface QueryFieldProps {
   ref?: React.Ref<HTMLDivElement>;
   renderTagOverride?: (
     kind: FieldValueKind,
-    label: string,
+    label: ReactNode,
     meta: FieldValue['meta']
   ) => ReactNode;
   style?: React.CSSProperties;
@@ -46,6 +46,7 @@ export function QueryField({
   fieldValidationError,
   isDragging,
   disabled,
+  extraActions,
   renderTagOverride,
 }: QueryFieldProps) {
   return (
@@ -72,13 +73,14 @@ export function QueryField({
             renderTagOverride={renderTagOverride}
           />
           {fieldValidationError ? fieldValidationError : null}
+          {extraActions}
           {canDelete && (
             <Button
               size="zero"
               priority="transparent"
               onClick={onDelete}
               icon={<IconDelete />}
-              title={t('Remove group')}
+              tooltipProps={{title: t('Remove group')}}
               aria-label={t('Remove group')}
               disabled={disabled}
             />
@@ -100,6 +102,6 @@ const QueryFieldWrapper = styled('div')`
   width: 100%;
 
   > * + * {
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space.md};
   }
 `;

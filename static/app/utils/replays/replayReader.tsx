@@ -4,22 +4,22 @@ import memoize from 'lodash/memoize';
 import {duration, type Duration} from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
-import {domId} from 'sentry/utils/domId';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
-import localStorageWrapper from 'sentry/utils/localStorage';
-import clamp from 'sentry/utils/number/clamp';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {clamp} from 'sentry/utils/number/clamp';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
-import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
-import hydrateBreadcrumbs, {
+import {extractDomNodes} from 'sentry/utils/replays/extractDomNodes';
+import {
+  hydrateBreadcrumbs,
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
-import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
-import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
+import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
+import {hydrateFrames} from 'sentry/utils/replays/hydrateFrames';
 import {
   clipEndFrame,
   recordingEndFrame,
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
-import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
+import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
 import {replayerDomQuery} from 'sentry/utils/replays/replayerDomQuery';
 import type {
@@ -162,7 +162,7 @@ function removeDuplicateNavCrumbs(
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
 
-export default class ReplayReader {
+export class ReplayReader {
   static factory({
     attachments,
     errors,
@@ -214,7 +214,7 @@ export default class ReplayReader {
     clipWindow,
     eventTimestampMs,
   }: RequiredNotNull<ReplayReaderParams>) {
-    this._cacheKey = domId('replayReader-');
+    this._cacheKey = 'replayReader-' + Math.random().toString(36).substring(2, 12);
     this._fetching = fetching;
 
     if (replayRecord.is_archived) {

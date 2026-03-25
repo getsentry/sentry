@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {IconGrabbable} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 type DividerProps = {
@@ -37,12 +36,12 @@ const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   &[data-slide-direction='leftright'] {
     cursor: ew-resize;
     height: 100%;
-    width: ${space(2)};
+    width: ${p => p.theme.space.xl};
   }
   &[data-slide-direction='updown'] {
     cursor: ns-resize;
     width: 100%;
-    height: ${space(2)};
+    height: ${p => p.theme.space.xl};
 
     & > svg {
       transform: rotate(90deg);
@@ -99,7 +98,7 @@ export type SplitPanelProps = CommonProps &
       }
   );
 
-function SplitPanel(props: SplitPanelProps) {
+export function SplitPanel(props: SplitPanelProps) {
   const {
     availableSize,
     SplitDivider = BaseSplitDivider,
@@ -222,5 +221,3 @@ const SplitPanelContainer = styled('div')<{
     pointer-events: none !important;
   }
 `;
-
-export default SplitPanel;

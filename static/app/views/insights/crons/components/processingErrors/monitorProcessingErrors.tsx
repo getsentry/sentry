@@ -11,13 +11,12 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {
   CheckInPayload,
   CheckinProcessingError,
@@ -103,7 +102,7 @@ export function MonitorProcessingErrors({
                     icon={<IconClose size="xs" />}
                     aria-label={t('Dismiss Errors')}
                     size="zero"
-                    title={t('Dismiss Errors')}
+                    tooltipProps={{title: t('Dismiss Errors')}}
                     priority="transparent"
                     onClick={() =>
                       openConfirmModal({
@@ -170,17 +169,17 @@ export function MonitorProcessingErrors({
 const ErrorsList = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ProjectGroupsList = styled(ErrorsList)`
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 `;
 
 const ErrorGroup = styled('div')`
   display: Flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const DismissButton = styled(Button)`

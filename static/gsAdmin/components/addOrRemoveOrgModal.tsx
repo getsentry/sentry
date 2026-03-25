@@ -3,10 +3,10 @@ import {Fragment, useState} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import TextField from 'sentry/components/forms/fields/inputField';
-import SentryOrganizationRoleSelectorField from 'sentry/components/forms/fields/sentryOrganizationRoleSelectorField';
-import Form from 'sentry/components/forms/form';
-import useApi from 'sentry/utils/useApi';
+import {InputField as TextField} from 'sentry/components/forms/fields/inputField';
+import {SentryOrganizationRoleSelectorField} from 'sentry/components/forms/fields/sentryOrganizationRoleSelectorField';
+import {Form} from 'sentry/components/forms/form';
+import {useApi} from 'sentry/utils/useApi';
 
 interface AddOrRemoveOrgModalProps extends ModalRenderProps {
   userId: string;

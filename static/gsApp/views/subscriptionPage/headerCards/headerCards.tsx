@@ -1,8 +1,8 @@
 import {Grid} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import type {Subscription} from 'getsentry/types';
 import {
@@ -11,11 +11,11 @@ import {
   isTrialPlan,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
-import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
-import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
-import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
-import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
+import {BillingInfoCard} from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
+import {LinksCard} from 'getsentry/views/subscriptionPage/headerCards/linksCard';
+import {NextBillCard} from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
+import {PaygCard} from 'getsentry/views/subscriptionPage/headerCards/paygCard';
+import {SeerAutomationAlert} from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 interface HeaderCardsProps {
   organization: Organization;
@@ -72,9 +72,10 @@ function getCards(organization: Organization, subscription: Subscription) {
   return cards;
 }
 
-function HeaderCards({organization, subscription}: HeaderCardsProps) {
+export function HeaderCards({organization, subscription}: HeaderCardsProps) {
   const cards = getCards(organization, subscription);
-  const {isCollapsed: navIsCollapsed} = useNavContext();
+  const {view} = useSecondaryNavigation();
+  const navIsCollapsed = view !== 'expanded';
 
   return (
     <ErrorBoundary mini>
@@ -94,5 +95,3 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
     </ErrorBoundary>
   );
 }
-
-export default HeaderCards;

@@ -755,9 +755,7 @@ describe('EapSpanNode', () => {
     });
 
     it('should match by name', () => {
-      const extra = createMockExtra({
-        organization: OrganizationFixture({features: ['performance-otel-friendly-ui']}),
-      });
+      const extra = createMockExtra();
       const value = makeEAPSpan({
         op: 'custom.op',
         description: 'Custom description',

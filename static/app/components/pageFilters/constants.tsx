@@ -1,3 +1,6 @@
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import type {PageFilters} from 'sentry/types/core';
+
 export const URL_PARAM = {
   START: 'start',
   END: 'end',
@@ -24,3 +27,19 @@ const DATE_TIME = {
 export const DATE_TIME_KEYS = [...Object.values(DATE_TIME), 'statsPeriod'];
 
 export const ALL_ACCESS_PROJECTS = -1;
+
+/**
+ * Make a default page filters selection object
+ */
+export function getDefaultPageFilterSelection(): PageFilters {
+  return {
+    projects: [],
+    environments: [],
+    datetime: {
+      start: null,
+      end: null,
+      period: DEFAULT_STATS_PERIOD,
+      utc: null,
+    },
+  };
+}

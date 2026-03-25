@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import sentry_sdk
 from django.db import IntegrityError
 from django.db.models import F, Q
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,7 +15,7 @@ from rest_framework.serializers import ListField
 from sentry import analytics, features, release_health
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
+from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
@@ -37,6 +38,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseWithVersionSerializer,
 )
 from sentry.api.utils import get_auth_api_token_type
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -274,7 +276,7 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
     cache.set_many(dict(zip(should_update.values(), [True] * len(should_update))), 60)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
@@ -316,6 +318,10 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             include_all_accessible=False,
         )
 
+    @extend_schema(
+        operation_id="List an Organization's Releases",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         if (
             features.has("organizations:releases-serializer-v2", organization, actor=request.user)
@@ -393,9 +399,18 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            queryset = queryset.annotate_prerelease_column()
+            order_by_build_code = features.has(
+                "organizations:semver-ordering-with-build-code", organization
+            )
 
-            order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
+            queryset = queryset.annotate_prerelease_column()
+            if order_by_build_code:
+                queryset = queryset.annotate_build_code_column()
+
+            semver_cols = (
+                Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
+            )
+            order_by = [F(col).desc(nulls_last=True) for col in semver_cols]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
             # when we filter by status, so when we fix that we should also consider the best way to
             # make this work as expected.
@@ -446,13 +461,15 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             paginator_cls = ReleasesMergingOffsetPaginator
             paginator_kwargs.update(
-                data_load_func=lambda offset, limit: release_health.backend.get_project_releases_by_stability(
-                    project_ids=filter_params["project_id"],
-                    environments=filter_params.get("environment"),
-                    scope=sort,
-                    offset=offset,
-                    stats_period=summary_stats_period,
-                    limit=limit,
+                data_load_func=lambda offset, limit: (
+                    release_health.backend.get_project_releases_by_stability(
+                        project_ids=filter_params["project_id"],
+                        environments=filter_params.get("environment"),
+                        scope=sort,
+                        offset=offset,
+                        stats_period=summary_stats_period,
+                        limit=limit,
+                    )
                 ),
                 data_count_func=lambda: release_health.backend.get_project_releases_count(
                     organization_id=organization.id,
@@ -565,9 +582,17 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
+            order_by_build_code = features.has(
+                "organizations:semver-ordering-with-build-code", organization
+            )
             queryset = queryset.annotate_prerelease_column()
+            if order_by_build_code:
+                queryset = queryset.annotate_build_code_column()
 
-            order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
+            semver_cols = (
+                Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
+            )
+            order_by = [F(col).desc(nulls_last=True) for col in semver_cols]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
             # when we filter by status, so when we fix that we should also consider the best way to
             # make this work as expected.
@@ -618,13 +643,15 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
-                data_load_func=lambda offset, limit: release_health.backend.get_project_releases_by_stability(
-                    project_ids=filter_params["project_id"],
-                    environments=filter_params.get("environment"),
-                    scope=sort,
-                    offset=offset,
-                    stats_period=summary_stats_period,
-                    limit=limit,
+                data_load_func=lambda offset, limit: (
+                    release_health.backend.get_project_releases_by_stability(
+                        project_ids=filter_params["project_id"],
+                        environments=filter_params.get("environment"),
+                        scope=sort,
+                        offset=offset,
+                        stats_period=summary_stats_period,
+                        limit=limit,
+                    )
                 ),
                 data_count_func=lambda: release_health.backend.get_project_releases_count(
                     organization_id=organization.id,
@@ -866,7 +893,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         return Response(serializer.errors, status=400)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

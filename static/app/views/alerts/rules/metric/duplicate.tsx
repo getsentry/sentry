@@ -2,14 +2,14 @@ import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   DuplicateActionFields,
@@ -33,7 +33,7 @@ interface MetricRuleDuplicateProps extends RouteComponentProps {
 /**
  * Show metric rules form with values from an existing rule.
  */
-function MetricRuleDuplicate({
+export function MetricRuleDuplicate({
   project,
   sessionId,
   userTeamIds,
@@ -52,9 +52,7 @@ function MetricRuleDuplicate({
     ruleId: duplicateRuleId,
   });
   const handleSubmitSuccess = (data: any) => {
-    const alertRuleId: string | undefined = data
-      ? (data.id as string | undefined)
-      : undefined;
+    const alertRuleId = data ? (data.id as string | undefined) : undefined;
 
     const target = alertRuleId
       ? {
@@ -114,5 +112,3 @@ function MetricRuleDuplicate({
     </Layout.Main>
   );
 }
-
-export default MetricRuleDuplicate;

@@ -190,9 +190,9 @@ class SentryAppParser(Serializer):
             if scope in SENTRY_TOKEN_ONLY_SCOPES:
                 continue
 
-            assert (
-                self.access is not None
-            ), "Access is required to validate scopes in SentryAppParser"
+            assert self.access is not None, (
+                "Access is required to validate scopes in SentryAppParser"
+            )
             # add an error if the requester lacks permissions being requested
             if not self.access.has_scope(scope) and not self.active_staff:
                 validation_errors.append(

@@ -79,7 +79,6 @@ class FlaggedInsight(BaseModel):
 
 
 class TreemapElement(BaseModel):
-
     model_config = ConfigDict(frozen=True)
 
     name: str
@@ -139,8 +138,8 @@ class AppComponent(BaseModel):
     install_size: int
 
 
+# Keep in sync with public API response types in sentry.preprod.api.models.public.size_analysis
 class SizeAnalysisResults(BaseModel):
-
     model_config = ConfigDict(frozen=True)
 
     analysis_duration: float
@@ -201,6 +200,7 @@ class InsightDiffItem(BaseModel):
     group_diffs: list[DiffItem]
 
 
+# Keep in sync with public API response types in sentry.preprod.api.models.public.size_analysis
 class ComparisonResults(BaseModel):
     diff_items: list[DiffItem]
     insight_diff_items: list[InsightDiffItem]

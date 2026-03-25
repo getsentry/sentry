@@ -13,7 +13,7 @@ interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title' | 'co
   title?: React.ReactNode;
 }
 
-function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
+export function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
   const theme = useTheme();
 
   return (
@@ -46,5 +46,3 @@ function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
     </Flex>
   );
 }
-
-export default EmptyMessage;

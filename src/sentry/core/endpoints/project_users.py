@@ -1,20 +1,22 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectEndpoint
 from sentry.api.paginator import CallbackPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.eventuser import EventUserSerializer
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.eventuser import EventUser
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectUsersEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
@@ -28,6 +30,10 @@ class ProjectUsersEndpoint(ProjectEndpoint):
     )
     permission_classes = (ProjectAndStaffPermission,)
 
+    @extend_schema(
+        operation_id="List a Project's Users",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, project) -> Response:
         """
         List a Project's Users

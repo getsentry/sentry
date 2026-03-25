@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 
 function TestComponent({other}: {other: string}) {
   const {customMeasurements} = useCustomMeasurements();
@@ -34,7 +34,7 @@ function mockMeasurementsMeta() {
 describe('useCustomMeasurements', () => {
   it('provides customMeasurements from the custom measurements context', async () => {
     const {organization} = initializeOrg({
-      organization: {features: ['dashboards-mep']},
+      organization: {features: []},
       projects: [],
     });
     const measurementsMetaMock = mockMeasurementsMeta();

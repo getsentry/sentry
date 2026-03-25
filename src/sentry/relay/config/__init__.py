@@ -69,6 +69,7 @@ EXPOSABLE_FEATURES = [
     "organizations:indexed-spans-extraction",
     "organizations:relay-otlp-traces-endpoint",
     "organizations:relay-otel-logs-endpoint",
+    "organizations:relay-new-error-processing",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
@@ -77,8 +78,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-v2-experimental-processing",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
-    "organizations:span-v2-otlp-processing",
-    "organizations:new-replay-processing",
+    "projects:relay-upload-endpoint",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -985,73 +985,6 @@ def _get_default_browser_performance_profiles(
     ]
 
 
-def _get_mobile_performance_profiles(
-    organization: Organization,
-) -> list[dict[str, Any]]:
-    if not features.has(
-        "organizations:performance-calculate-mobile-perf-score-relay", organization
-    ):
-        return []
-
-    return [
-        {
-            "name": "Mobile",
-            "version": "mobile.alpha",
-            "scoreComponents": [
-                {
-                    "measurement": "time_to_initial_display",
-                    "weight": 0.25,
-                    "p10": 1800.0,
-                    "p50": 3000.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "time_to_full_display",
-                    "weight": 0.25,
-                    "p10": 2500.0,
-                    "p50": 4000.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "app_start_warm",
-                    "weight": 0.25,
-                    "p10": 200.0,
-                    "p50": 500.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "app_start_cold",
-                    "weight": 0.25,
-                    "p10": 200.0,
-                    "p50": 500.0,
-                    "optional": True,
-                },
-            ],
-            "condition": {
-                "op": "and",
-                "inner": [
-                    {
-                        "op": "or",
-                        "inner": [
-                            {
-                                "op": "eq",
-                                "name": "event.sdk.name",
-                                "value": "sentry.cocoa",
-                            },
-                            {
-                                "op": "eq",
-                                "name": "event.sdk.name",
-                                "value": "sentry.java.android",
-                            },
-                        ],
-                    },
-                    {"op": "eq", "name": "event.contexts.trace.op", "value": "ui.load"},
-                ],
-            },
-        }
-    ]
-
-
 def _get_project_config(
     project: Project, project_keys: Iterable[ProjectKey] | None = None
 ) -> ProjectConfig:
@@ -1148,7 +1081,6 @@ def _get_project_config(
     performance_score_profiles = [
         *_get_desktop_browser_performance_profiles(project.organization),
         *_get_mobile_browser_performance_profiles(project.organization),
-        *_get_mobile_performance_profiles(project.organization),
         *_get_default_browser_performance_profiles(project.organization),
     ]
     if performance_score_profiles:
@@ -1180,6 +1112,11 @@ def _get_project_config(
         }
         if retentions_config:
             config["retentions"] = retentions_config
+
+    with sentry_sdk.start_span(op="get_trimming_configs"):
+        trimming_configs = quotas.backend.get_trimming_configs(project.organization)
+        if trimming_configs:
+            config["trimming"] = trimming_configs
 
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
@@ -1277,7 +1214,7 @@ class _ConfigBase:
 
     def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore[arg-type]
+            return utils.json.dumps(self.to_dict(), sort_keys=True)
         except Exception as e:
             return f"Content Error:{e}"
 
@@ -1322,8 +1259,8 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
     """
     if setting is None:
         raise ValueError(
-            "Could not find filter state for filter {}."
-            " You need to register default filter state in projectoptions.defaults.".format(flt.id)
+            f"Could not find filter state for filter {flt.id}."
+            " You need to register default filter state in projectoptions.defaults."
         )
 
     is_enabled = setting != "0"

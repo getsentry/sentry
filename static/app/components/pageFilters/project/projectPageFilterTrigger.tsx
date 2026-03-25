@@ -3,15 +3,12 @@ import styled from '@emotion/styled';
 import {Badge} from '@sentry/scraps/badge';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {DesyncedFilterIndicator} from 'sentry/components/pageFilters/desyncedFilter';
 import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 interface ProjectPageFilterTriggerProps extends Omit<TriggerProps, 'value'> {
-  desynced: boolean;
   memberProjects: Project[];
   nonMemberProjects: Project[];
   ready: boolean;
@@ -23,21 +20,29 @@ export function ProjectPageFilterTrigger({
   memberProjects,
   nonMemberProjects,
   ready,
-  desynced,
   ...props
 }: ProjectPageFilterTriggerProps) {
   const isMemberProjectsSelected = memberProjects.every(p =>
     value.includes(parseInt(p.id, 10))
   );
 
-  const isNonMemberProjectsSelected = nonMemberProjects.every(p =>
-    value.includes(parseInt(p.id, 10))
-  );
+  // "My Projects" / "All Projects" labels only apply when there are multiple projects.
+  // With a single-project org, always show the project name.
+  const totalProjects = memberProjects.length + nonMemberProjects.length;
+  const allProjects = [...memberProjects, ...nonMemberProjects];
+  const allProjectIds = allProjects.map(p => parseInt(p.id, 10));
 
-  const isMyProjectsSelected = isMemberProjectsSelected && memberProjects.length > 0;
+  // Check if value contains all project IDs (order-independent comparison)
+  const containsAllProjects =
+    allProjectIds.length > 0 &&
+    value.length === allProjectIds.length &&
+    allProjectIds.every(id => value.includes(id));
+
+  const isMyProjectsSelected =
+    isMemberProjectsSelected && memberProjects.length > 0 && totalProjects > 1;
 
   const isAllProjectsSelected =
-    value.length === 0 || (isMyProjectsSelected && isNonMemberProjectsSelected);
+    value.length === 0 || (totalProjects > 1 && containsAllProjects);
 
   const selectedProjects = value
     .slice(0, 2) // we only need to know about the first two projects
@@ -85,7 +90,6 @@ export function ProjectPageFilterTrigger({
     >
       <TriggerLabelWrap>
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
-        {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
       {remainingCount > 0 && (
         <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
@@ -109,8 +113,7 @@ const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
-  margin-top: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

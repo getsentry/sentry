@@ -5,8 +5,8 @@ import {ProjectSdkUpdatesFixture} from 'sentry-fixture/projectSdkUpdates';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import importedUsePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {usePageFilters as importedUsePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 
 jest.mock('sentry/components/pageFilters/usePageFilters');
@@ -32,7 +32,6 @@ describe('NoDataMessage', () => {
       isReady: true,
       shouldPersist: true,
       pinnedFilters: new Set(),
-      desyncedFilters: new Set(),
     }));
   });
 

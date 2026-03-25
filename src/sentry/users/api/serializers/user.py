@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Any, DefaultDict, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -122,7 +122,6 @@ class UserSerializer(Serializer):
     def _get_identities(
         self, item_list: Sequence[User], user: User | RpcUser | AnonymousUser
     ) -> dict[int, list[AuthIdentity]]:
-
         if not (env.request and has_elevated_mode(env.request)):
             item_list = [x for x in item_list if x.id == user.id]
 
@@ -163,7 +162,6 @@ class UserSerializer(Serializer):
         user: User | AnonymousUser | RpcUser,
         **kwargs: Any,
     ) -> UserSerializerResponse | UserSerializerResponseSelf:
-
         d: UserSerializerResponse = {
             "id": str(obj.id),
             "name": obj.get_display_name(),
@@ -179,14 +177,17 @@ class UserSerializer(Serializer):
             "lastActive": obj.last_active,
             "isSuperuser": obj.is_superuser,
             "isStaff": obj.is_staff,
-            "emails": [
-                {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
-                for e in attrs["emails"]
-            ],
+            "emails": [],
             # TODO(epurkhiser): This can be removed once we confirm the
             # frontend does not use it
             "experiments": {},
         }
+
+        if self._user_is_requester(obj, user) or user.is_superuser:
+            d["emails"] = [
+                {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
+                for e in attrs["emails"]
+            ]
 
         if self._user_is_requester(obj, user):
             d = cast(UserSerializerResponseSelf, d)
@@ -205,7 +206,7 @@ class UserSerializer(Serializer):
             )
 
             d["options"] = {
-                "theme": options.get("theme") or "light",
+                "theme": options.get("theme") or "system",
                 "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
                 "defaultIssueEvent": options.get("default_issue_event") or "recommended",
@@ -284,7 +285,7 @@ class DetailedUserSerializer(UserSerializer):
             status=OrganizationStatus.ACTIVE,
         ).values_list("organization_id", flat=True)
 
-        active_memberships: DefaultDict[int, int] = defaultdict(int)
+        active_memberships: defaultdict[int, int] = defaultdict(int)
         for membership in memberships:
             if membership.organization_id in active_organizations:
                 active_memberships[membership.user_id] += 1
@@ -428,7 +429,7 @@ class UserSerializerWithOrgMemberships(UserSerializer):
         )
         active_organization_ids = active_org_id_to_slug.keys()
 
-        user_org_memberships: DefaultDict[int, set[str]] = defaultdict(set)
+        user_org_memberships: defaultdict[int, set[str]] = defaultdict(set)
         for membership in memberships:
             if membership.organization_id in active_organization_ids:
                 user_org_memberships[membership.user_id].add(

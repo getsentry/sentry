@@ -1,11 +1,7 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
-const TimeRangeItemLabel = styled('div')`
-  margin-left: ${space(0.5)};
-  margin-top: ${space(0.25)};
-  margin-bottom: ${space(0.25)};
+export const TimeRangeItemLabel = styled('div')`
+  margin-left: ${p => p.theme.space.xs};
+  margin-top: ${p => p.theme.space['2xs']};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;
-
-export default TimeRangeItemLabel;

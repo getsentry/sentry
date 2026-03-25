@@ -4,7 +4,6 @@ import type {Location} from 'history';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 import {
@@ -27,7 +26,6 @@ interface SpansQueryParamsProviderProps {
 export function SpansQueryParamsProvider({children}: SpansQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const organization = useOrganization();
 
   // Store location in a ref so we can access the latest value without including
   // it in the dependency array. This makes setWritableQueryParams stable and
@@ -36,8 +34,8 @@ export function SpansQueryParamsProvider({children}: SpansQueryParamsProviderPro
   locationRef.current = location;
 
   const readableQueryParams = useMemo(
-    () => getReadableQueryParamsFromLocation(location, organization),
-    [location, organization]
+    () => getReadableQueryParamsFromLocation(location),
+    [location]
   );
 
   const setWritableQueryParams = useCallback(

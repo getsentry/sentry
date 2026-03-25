@@ -1,34 +1,44 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
+import {AnimatePresence, motion} from 'framer-motion';
+
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {HotkeysLabel} from 'sentry/components/hotkeysLabel';
+import {IconSeer} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
-import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
-import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
-import EmptyState from 'sentry/views/seerExplorer/emptyState';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/askUserQuestionBlock';
+import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
+import {EmptyState} from 'sentry/views/seerExplorer/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/explorerMenu';
-import FileChangeApprovalBlock from 'sentry/views/seerExplorer/fileChangeApprovalBlock';
+import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/fileChangeApprovalBlock';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import InputSection from 'sentry/views/seerExplorer/inputSection';
+import {InputSection} from 'sentry/views/seerExplorer/inputSection';
 import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
-import PanelContainers, {
+import {
   BlocksContainer,
+  PanelContainers,
 } from 'sentry/views/seerExplorer/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
-import SeerFab from 'sentry/views/seerExplorer/seerFab';
-import TopBar from 'sentry/views/seerExplorer/topBar';
+import {TopBar} from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
@@ -39,7 +49,7 @@ import {
   usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
 
-function ExplorerPanel() {
+export function ExplorerPanel() {
   const {isOpen: isVisible, openExplorerPanel} = useExplorerPanel();
   const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
@@ -64,6 +74,8 @@ function ExplorerPanel() {
   const allowHoverFocusChange = useRef<boolean>(true);
   const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
+
+  const hasPageFrame = useHasPageFrameFeature();
 
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
 
@@ -100,14 +112,14 @@ function ExplorerPanel() {
     switchToRun,
     respondToUserInput,
     createPR,
+    overrideCtxEngEnable,
+    setOverrideCtxEngEnable,
   } = useSeerExplorer();
 
-  const copySessionEnabled = Boolean(
-    sessionData?.status === 'completed' && !!runId && !!organization?.slug
-  );
-
+  const copySessionEnabled = Boolean(runId && organization?.slug);
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
-    blocks: sessionData?.blocks || [],
+    blocks: sessionData?.blocks,
+    status: sessionData?.status,
     organization,
     projects,
     enabled: copySessionEnabled,
@@ -330,10 +342,7 @@ function ExplorerPanel() {
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-  const conversationsUrl =
-    runId && organization?.slug
-      ? getConversationsUrl(organization.slug, runId)
-      : undefined;
+  const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -341,6 +350,13 @@ function ExplorerPanel() {
       window.open(langfuseUrl, '_blank');
     }
   }, [langfuseUrl]);
+
+  const handleOpenConversations = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (conversationsUrl) {
+      window.open(conversationsUrl, '_blank');
+    }
+  }, [conversationsUrl]);
 
   const openFeedbackForm = useFeedbackForm();
 
@@ -376,6 +392,7 @@ function ExplorerPanel() {
         onNew: startNewSession,
         onFeedback: openFeedbackForm ? handleFeedback : undefined,
         onLangfuse: handleOpenLangfuse,
+        onConversations: handleOpenConversations,
       },
       onChangeSession: switchToRun,
       menuAnchorRef: sessionHistoryButtonRef,
@@ -488,10 +505,7 @@ function ExplorerPanel() {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
       if (e.key === 'Escape') {
-        if (isPolling && !readOnly && !interruptRequested && !isFileApprovalPending) {
-          e.preventDefault();
-          interruptRun();
-        } else if (readOnly || !isFileApprovalPending) {
+        if (readOnly || !isFileApprovalPending) {
           // Don't minimize if file approval is pending (Escape is used to reject)
           e.preventDefault();
           setIsMinimized(true);
@@ -529,11 +543,8 @@ function ExplorerPanel() {
   }, [
     isVisible,
     isMenuOpen,
-    isPolling,
     readOnly,
     focusedBlockIndex,
-    interruptRun,
-    interruptRequested,
     isMinimized,
     isFileApprovalPending,
     isQuestionPending,
@@ -623,6 +634,13 @@ function ExplorerPanel() {
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
         sessionHistoryButtonRef={sessionHistoryButtonRef}
+        overrideCtxEngEnable={overrideCtxEngEnable}
+        onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
+        showContextEngineToggle={
+          !!organization?.features.includes(
+            'seer-explorer-context-engine-fe-override-ui-flag'
+          )
+        }
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
@@ -765,13 +783,62 @@ function ExplorerPanel() {
     return null;
   }
 
+  if (hasPageFrame) {
+    // When an organization has page frame enabled, Seer is a button inside the top bar.
+    return null;
+  }
+
   return createPortal(
     <Fragment>
       {panelContent}
-      <SeerFab hide={isVisible || isSeerDrawerOpen} onOpen={openExplorerPanel} />
+      <SeerFloatingActionButton
+        visible={!isVisible && !isSeerDrawerOpen}
+        onClick={openExplorerPanel}
+      />
     </Fragment>,
     document.body
   );
 }
 
-export default ExplorerPanel;
+const MotionButton = motion.create(Button);
+
+interface SeerFloatingActionButtonProps extends React.ComponentProps<
+  typeof MotionButton
+> {
+  visible: boolean;
+}
+
+function SeerFloatingActionButton(props: SeerFloatingActionButtonProps) {
+  const {visible, ...rest} = props;
+  const theme = useTheme();
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <Container
+          position="fixed"
+          bottom={theme.space.lg}
+          right={theme.space.lg}
+          style={{zIndex: theme.zIndex.sidebarPanel}}
+        >
+          <MotionButton
+            initial={{opacity: 0, scale: 0.9, y: 20}}
+            animate={{opacity: 1, scale: 1, y: 0}}
+            exit={{opacity: 0, scale: 0.9, y: 20}}
+            transition={{duration: 0.2, ease: [0.4, 0, 0.2, 1]}}
+            size="sm"
+            {...rest}
+          >
+            <Flex align="center" gap="sm">
+              <IconSeer size="sm" />
+              <Text size="sm">{t('Ask Seer')}</Text>
+              <Text size="xs" variant="muted">
+                <HotkeysLabel value={['command+/', 'ctrl+/']} />
+              </Text>
+            </Flex>
+          </MotionButton>
+        </Container>
+      )}
+    </AnimatePresence>
+  );
+}

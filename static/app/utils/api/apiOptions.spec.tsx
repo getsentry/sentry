@@ -1,24 +1,15 @@
+/** @jest-environment jsdom */
 import {skipToken, useQuery} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ApiResult} from 'sentry/api';
-import {apiOptions, selectWithHeaders} from 'sentry/utils/api/apiOptions';
-import {
-  DEFAULT_QUERY_CLIENT_CONFIG,
-  QueryClient,
-  QueryClientProvider,
-} from 'sentry/utils/queryClient';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 type Promisable<T> = T | Promise<T>;
-type QueryFunctionResult<T> = Promisable<ApiResult<T>>;
-
-const wrapper = ({children}: {children?: React.ReactNode}) => (
-  <QueryClientProvider client={new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG)}>
-    {children}
-  </QueryClientProvider>
-);
+type QueryFunctionResult<T> = Promisable<ApiResponse<T>>;
 
 describe('apiOptions', () => {
   it('should encode path parameters correctly', () => {
@@ -33,7 +24,8 @@ describe('apiOptions', () => {
       }
     );
 
-    expect(options.queryKey[0]).toBe('/organizations/my-org/releases/v%201.0.0/');
+    const {url} = parseQueryKey(options.queryKey);
+    expect(url).toBe('/organizations/my-org/releases/v%201.0.0/');
   });
 
   it('should not include empty options in queryKey', () => {
@@ -42,7 +34,10 @@ describe('apiOptions', () => {
       path: {tokenId: '123'},
     });
 
-    expect(options.queryKey).toEqual(['/api-tokens/123/']);
+    expect(options.queryKey).toEqual([
+      {infinite: false, version: 'v2'},
+      '/api-tokens/123/',
+    ]);
   });
 
   it('should stringify number path params', () => {
@@ -51,7 +46,8 @@ describe('apiOptions', () => {
       path: {tokenId: 123},
     });
 
-    expect(options.queryKey[0]).toBe('/api-tokens/123/');
+    const {url} = parseQueryKey(options.queryKey);
+    expect(url).toBe('/api-tokens/123/');
   });
 
   it('should not do accidental replacements', () => {
@@ -61,7 +57,10 @@ describe('apiOptions', () => {
       path: {id: '123', id1: '456'},
     });
 
-    expect(options.queryKey).toEqual(['/projects/456/123']);
+    expect(options.queryKey).toEqual([
+      {infinite: false, version: 'v2'},
+      '/projects/456/123',
+    ]);
   });
 
   it('should allow skipToken as path', () => {
@@ -73,9 +72,15 @@ describe('apiOptions', () => {
     }
 
     expect(getOptions('123').queryFn).toEqual(expect.any(Function));
-    expect(getOptions('123').queryKey).toEqual(['/api-tokens/123/']);
+    expect(getOptions('123').queryKey).toEqual([
+      {infinite: false, version: 'v2'},
+      '/api-tokens/123/',
+    ]);
     expect(getOptions(null).queryFn).toEqual(skipToken);
-    expect(getOptions(null).queryKey).toEqual(['/api-tokens/$tokenId/']);
+    expect(getOptions(null).queryKey).toEqual([
+      {infinite: false, version: 'v2'},
+      '/api-tokens/$tokenId/',
+    ]);
   });
 
   it('should extract content data per default', async () => {
@@ -88,9 +93,8 @@ describe('apiOptions', () => {
       body: ['Project 1', 'Project 2'],
     });
 
-    const {result} = renderHook(() => useQuery(options), {wrapper});
-
-    await waitFor(() => result.current.isSuccess);
+    const {result} = renderHookWithProviders(() => useQuery(options));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(result.current.data).toEqual(['Project 1', 'Project 2']);
   });
@@ -105,27 +109,25 @@ describe('apiOptions', () => {
       body: ['Project 1', 'Project 2'],
       headers: {
         Link: 'my-link',
-        'X-Hits': 'some-hits',
+        'X-Hits': '14',
       },
     });
 
-    const {result} = renderHook(
-      () =>
-        useQuery({...options, select: selectWithHeaders(['Link', 'X-Hits'] as const)}),
-      {wrapper}
+    const {result} = renderHookWithProviders(() =>
+      useQuery({...options, select: _ => _})
     );
 
-    await waitFor(() => result.current.isSuccess);
+    await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(result.current.data).toEqual({
-      content: ['Project 1', 'Project 2'],
-      headers: {Link: 'my-link', 'X-Hits': 'some-hits'},
+      json: ['Project 1', 'Project 2'],
+      headers: {Link: 'my-link', 'X-Hits': 14, 'X-Max-Hits': undefined},
     });
 
-    // headers should be narrowly typed
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<{
       Link: string | undefined;
-      'X-Hits': string | undefined;
+      'X-Hits': number | undefined;
+      'X-Max-Hits': number | undefined;
     }>();
   });
 

@@ -5,10 +5,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import EventView from 'sentry/utils/discover/eventView';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
-import ScreensOverviewTable, {
+import {
+  ScreensOverviewTable,
   type Row,
 } from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 

@@ -1,5 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
+import {useCallback, useLayoutEffect, useMemo, useRef} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -10,9 +9,10 @@ import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette
 import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCommandPaletteState';
-import {SvgIcon} from 'sentry/icons/svgIcon';
+import {useDsnLookupActions} from 'sentry/components/commandPalette/useDsnLookupActions';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {unreachable} from 'sentry/utils/unreachable';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {
@@ -29,9 +29,9 @@ function actionToMenuItem(
     label: action.display.label,
     details: action.display.details,
     leadingItems: action.display.icon ? (
-      <IconWrap align="center" justify="center">
-        {action.display.icon}
-      </IconWrap>
+      <Flex align="start" justify="center" width="100%" height="100%" paddingTop="2xs">
+        <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
+      </Flex>
     ) : undefined,
     children: action.type === 'group' ? action.actions.map(actionToMenuItem) : [],
     hideCheck: true,
@@ -41,6 +41,7 @@ function actionToMenuItem(
 export function CommandPaletteContent() {
   const {actions, selectedAction, selectAction, clearSelection, query, setQuery} =
     useCommandPaletteState();
+  useDsnLookupActions(query);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -111,30 +112,23 @@ export function CommandPaletteContent() {
   }, [selectedAction, setQuery]);
 
   return (
-    <Fragment>
-      <CommandPaletteList
-        onActionKey={handleActionByKey}
-        inputRef={inputRef}
-        query={query}
-        setQuery={setQuery}
-        clearSelection={clearSelection}
-        selectedAction={selectedAction}
-      >
-        {groupedMenuItems.map(({key: sectionKey, label, children}) => (
-          <Section key={sectionKey} title={label}>
-            {children.map(({key: actionKey, ...action}) => (
-              <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
-                {action.label}
-              </Item>
-            ))}
-          </Section>
-        ))}
-      </CommandPaletteList>
-    </Fragment>
+    <CommandPaletteList
+      onActionKey={handleActionByKey}
+      inputRef={inputRef}
+      query={query}
+      setQuery={setQuery}
+      clearSelection={clearSelection}
+      selectedAction={selectedAction}
+    >
+      {groupedMenuItems.map(({key: sectionKey, label, children}) => (
+        <Section key={sectionKey} title={label}>
+          {children.map(({key: actionKey, ...action}) => (
+            <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
+              {action.label}
+            </Item>
+          ))}
+        </Section>
+      ))}
+    </CommandPaletteList>
   );
 }
-
-const IconWrap = styled(Flex)`
-  width: ${() => SvgIcon.ICON_SIZES.md};
-  height: ${() => SvgIcon.ICON_SIZES.md};
-`;

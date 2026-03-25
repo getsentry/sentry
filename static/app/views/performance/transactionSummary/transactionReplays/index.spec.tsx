@@ -6,14 +6,14 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import ConfigStore from 'sentry/stores/configStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
-import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
 
 type InitializeOrgProps = {
@@ -29,8 +29,7 @@ type InitializeOrgProps = {
 };
 
 jest.mock('sentry/utils/useMedia', () => ({
-  __esModule: true,
-  default: jest.fn(() => true),
+  useMedia: jest.fn(() => true),
 }));
 
 const mockEventsUrl = '/organizations/org-slug/events/';
@@ -274,7 +273,7 @@ describe('TransactionReplays', () => {
   it('should hide replay content when user does not have granular replay permissions', async () => {
     renderComponent({
       organizationProps: {
-        features: ['performance-view', 'session-replay', 'granular-replay-permissions'],
+        features: ['performance-view', 'session-replay'],
         hasGranularReplayPermissions: true,
         replayAccessMembers: [999], // User ID 1 is not in this list
       },

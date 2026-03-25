@@ -7,8 +7,10 @@ from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.templates.seer import (
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerExplorerError,
     _get_next_stopping_point,
 )
+from sentry.notifications.platform.types import ParagraphBlock
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 
@@ -73,19 +75,6 @@ class SeerAutofixUpdateTest(TestCase):
             group_link=f"https://sentry.io/issues/{MOCK_GROUP_ID}?seerDrawer=true",
         )
 
-    def test_next_point(self) -> None:
-        update = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        assert update.next_point == AutofixStoppingPoint.SOLUTION
-
-        update = self._create_update(AutofixStoppingPoint.SOLUTION)
-        assert update.next_point == AutofixStoppingPoint.CODE_CHANGES
-
-        update = self._create_update(AutofixStoppingPoint.CODE_CHANGES)
-        assert update.next_point == AutofixStoppingPoint.OPEN_PR
-
-        update = self._create_update(AutofixStoppingPoint.OPEN_PR)
-        assert update.next_point is None
-
     def test_has_next_trigger_simple(self) -> None:
         update = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         assert update.has_next_trigger is True
@@ -115,3 +104,30 @@ class SeerAutofixUpdateTest(TestCase):
         coding_update = self._create_update(AutofixStoppingPoint.CODE_CHANGES)
         assert solution_update.has_next_trigger is ENABLE_SEER_CODING_DEFAULT
         assert coding_update.has_next_trigger is ENABLE_SEER_CODING_DEFAULT
+
+
+class SeerExplorerErrorTemplateTest(TestCase):
+    def test_render(self) -> None:
+        from sentry.notifications.platform.templates.seer import SeerExplorerErrorTemplate
+
+        data = SeerExplorerError(error_message="Seer could not explore your organization.")
+        template = SeerExplorerErrorTemplate()
+        rendered = template.render(data)
+
+        assert rendered.subject == "Seer had some trouble..."
+        assert len(rendered.body) == 1
+        assert isinstance(rendered.body[0], ParagraphBlock)
+        assert rendered.body[0].blocks[0].text == "Seer could not explore your organization."
+
+    def test_render_custom_title(self) -> None:
+        from sentry.notifications.platform.templates.seer import SeerExplorerErrorTemplate
+
+        data = SeerExplorerError(
+            error_message="Timeout.",
+            error_title="Explorer failed",
+        )
+        template = SeerExplorerErrorTemplate()
+        rendered = template.render(data)
+
+        assert rendered.subject == "Explorer failed"
+        assert rendered.body[0].blocks[0].text == "Timeout."

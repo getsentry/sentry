@@ -1,8 +1,8 @@
 import type {Member} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import UserBadge, {type UserBadgeProps} from './userBadge';
+import {UserBadge, type UserBadgeProps} from './userBadge';
 
 export interface MemberBadgeProps extends Omit<UserBadgeProps, 'user'> {
   member: Member;
@@ -26,7 +26,7 @@ function getMemberUser(member: Member): AvatarUser {
   };
 }
 
-function MemberBadge({member, disableLink, ...props}: MemberBadgeProps) {
+export function MemberBadge({member, disableLink, ...props}: MemberBadgeProps) {
   const user = getMemberUser(member);
   const org = useOrganization({allowNull: true});
 
@@ -37,5 +37,3 @@ function MemberBadge({member, disableLink, ...props}: MemberBadgeProps) {
 
   return <UserBadge to={membersUrl} user={user} {...props} />;
 }
-
-export default MemberBadge;

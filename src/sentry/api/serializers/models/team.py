@@ -391,7 +391,6 @@ class TeamSCIMSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[Team], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Team, dict[str, Any]]:
-
         result: dict[int, dict[str, Any]] = {
             team.id: ({"members": []} if "members" in self.expand else {}) for team in item_list
         }

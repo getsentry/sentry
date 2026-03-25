@@ -2,8 +2,9 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export const ISSUE_TYPES = [
   'web_vitals',
@@ -44,48 +45,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   },
   widgets: [
     {
-      id: 'score-breakdown-wheel',
-      description: t('The overall performance rating of this page.'),
-      title: t('Performance Score'),
-      displayType: DisplayType.WHEEL,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
-            'performance_score(measurements.score.total)',
-            'count_scores(measurements.score.total)',
-            'count_scores(measurements.score.lcp)',
-            'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.inp)',
-            'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.ttfb)',
-          ],
-          aggregates: [],
-          columns: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
-            'performance_score(measurements.score.total)',
-            'count_scores(measurements.score.total)',
-            'count_scores(measurements.score.lcp)',
-            'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.inp)',
-            'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.ttfb)',
-          ],
-          orderby: '',
-        },
-      ],
+      ...SCORE_BREAKDOWN_WHEEL_WIDGET,
       layout: {
         y: 0,
         w: 2,
@@ -240,7 +200,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'ttfb-p75-meter',
-      title: t('P75 Time To First Byte'),
+      title: t('P75 Time to First Byte'),
       description: t(
         'Time until first byte is delivered to the client. Bad TTFB makes the server feel unresponsive.'
       ),
@@ -318,8 +278,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.inp)',
-            'performance_score(measurements.score.total)',
-            'opportunity_score(measurements.score.total)',
+            'equation|performance_score(measurements.score.total)',
+            'equation|opportunity_score(measurements.score.total)',
           ],
           aggregates: [],
           columns: [
@@ -331,10 +291,10 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.inp)',
-            'performance_score(measurements.score.total)',
-            'opportunity_score(measurements.score.total)',
+            'equation|performance_score(measurements.score.total)',
+            'equation|opportunity_score(measurements.score.total)',
           ],
-          orderby: `-opportunity_score(measurements.score.total)`,
+          orderby: `-equation|opportunity_score(measurements.score.total)`,
           fieldAliases: [
             t('Pages'),
             t('Project'),
@@ -366,4 +326,5 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.VITAL},
 };

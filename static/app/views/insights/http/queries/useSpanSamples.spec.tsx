@@ -3,7 +3,7 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {NonDefaultSpanSampleFields} from 'sentry/views/insights/common/queries/useSpanSamples';
@@ -66,7 +66,7 @@ describe('useSpanSamples', () => {
 
   it('queries for current selection', async () => {
     const request = MockApiClient.addMockResponse({
-      url: `/api/0/organizations/${organization.slug}/spans-samples/`,
+      url: `/organizations/${organization.slug}/spans-samples/`,
       method: 'GET',
       body: {
         data: [
@@ -112,7 +112,7 @@ describe('useSpanSamples', () => {
     expect(result.current.isPending).toBe(true);
 
     expect(request).toHaveBeenCalledWith(
-      '/api/0/organizations/org-slug/spans-samples/',
+      '/organizations/org-slug/spans-samples/',
       expect.objectContaining({
         method: 'GET',
         query: {

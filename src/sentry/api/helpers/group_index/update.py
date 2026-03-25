@@ -22,7 +22,6 @@ from sentry import analytics, features, options
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.db.models.query import create_or_update
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import GroupCategory
@@ -347,19 +346,25 @@ def get_group_list(
 
     Returns: List of Group objects filtered to only valid groups in the org/projects
     """
-    groups = []
+    groups: list[Group] = []
     # Convert all group IDs to integers and filter out any non-integer values
     group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
     if group_ids_int:
         return list(
             Group.objects.filter(
                 project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
-            )
+            ).select_related("project")
         )
     else:
+        project_ids = {p.id for p in projects}
         for group_id in group_ids:
             if isinstance(group_id, str):
-                groups.append(Group.objects.by_qualified_short_id(organization_id, group_id))
+                try:
+                    group = Group.objects.by_qualified_short_id(organization_id, group_id)
+                except Group.DoesNotExist:
+                    continue
+                if group.project_id in project_ids:
+                    groups.append(group)
 
     return groups
 
@@ -886,13 +891,23 @@ def greatest_semver_release(project: Project) -> Release | None:
 
 
 def get_semver_releases(project: Project) -> QuerySet[Release]:
-    return (
+    order_by_build_code = features.has(
+        "organizations:semver-ordering-with-build-code", project.organization
+    )
+
+    semver_cols = (
+        Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
+    )
+
+    qs = (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
         .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
-        .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
+    if order_by_build_code:
+        qs = qs.annotate_build_code_column()
+    return qs.order_by(*[f"-{col}" for col in semver_cols])
 
 
 def handle_is_subscribed(
@@ -912,11 +927,11 @@ def handle_is_subscribed(
         # subscribed" to "you were subscribed since you were
         # assigned" just by clicking the "subscribe" button (and you
         # may no longer be assigned to the issue anyway).
-        GroupSubscription.objects.create_or_update(
+        GroupSubscription.objects.update_or_create(
             user_id=acting_user.id if acting_user else None,
             group=group,
             project=project_lookup[group.project_id],
-            values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
+            defaults={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
         )
 
     return {"reason": SUBSCRIPTION_REASON_MAP.get(GroupSubscriptionReason.unknown, "unknown")}
@@ -974,12 +989,11 @@ def handle_has_seen(
     if has_seen:
         for group in group_list:
             if is_member_map.get(group.project_id):
-                create_or_update(
-                    GroupSeen,
+                GroupSeen.objects.update_or_create(
                     group=group,
                     user_id=user_id,
                     project=project_lookup[group.project_id],
-                    values={"last_seen": django_timezone.now()},
+                    defaults={"last_seen": django_timezone.now()},
                 )
     elif has_seen is False and user_id is not None:
         GroupSeen.objects.filter(

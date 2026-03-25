@@ -5,9 +5,13 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {closeModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
@@ -16,7 +20,9 @@ import type {
   TabularData,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
 import {CHART_MAX_SERIES_LENGTH, COHORT_2_COLOR, MODAL_CHART_HEIGHT} from './constants';
@@ -30,6 +36,7 @@ type SingleModeOptions = {
   attributeDistribution: AttributeDistribution[number];
   cohortCount: number;
   mode: 'single';
+  query: string;
 };
 
 type ComparisonModeOptions = {
@@ -37,6 +44,7 @@ type ComparisonModeOptions = {
   cohort1Total: number;
   cohort2Total: number;
   mode: 'comparison';
+  query: string;
 };
 
 export type AttributeBreakdownViewerModalOptions =
@@ -239,9 +247,12 @@ function PopulationIndicatorComponent({
 }
 
 export default function AttributeBreakdownViewerModal(props: Props) {
-  const {Header, Body, mode} = props;
-  const theme = useTheme();
+  const {Header, Body, mode, query} = props;
+  const {selection} = usePageFilters();
 
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const organization = useOrganization();
   const primaryColor = theme.chart.getColorPalette(0)?.[0];
   const secondaryColor = COHORT_2_COLOR;
 
@@ -263,11 +274,11 @@ export default function AttributeBreakdownViewerModal(props: Props) {
       ...computedData.tableData,
       data: computedData.tableData.data.slice(0, CHART_MAX_SERIES_LENGTH),
     };
-    const query =
+    const chartQuery =
       computedData.mode === 'comparison'
         ? COMPARISON_MODE_CHART_QUERY
         : SINGLE_MODE_CHART_QUERY;
-    return transformTableToCategoricalSeries(query, slicedTableData);
+    return transformTableToCategoricalSeries(chartQuery, slicedTableData);
   }, [computedData.tableData, computedData.mode]);
 
   const hasPlottableValues = useMemo(() => {
@@ -341,6 +352,62 @@ export default function AttributeBreakdownViewerModal(props: Props) {
             scrollable
             tableData={computedData.tableData}
             columns={computedData.tableColumns}
+            onTriggerCellAction={(action, value) => {
+              const search = new MutableSearch(query ?? '');
+              switch (action) {
+                case Actions.OPEN_ROW_IN_EXPLORE:
+                  search.addFilterValue(computedData.attributeName, `${value}`);
+                  navigate(
+                    getExploreUrl({
+                      organization,
+                      selection,
+                      query: search.formatString(),
+                    })
+                  );
+                  closeModal();
+                  return;
+                case Actions.ADD:
+                  search.addFilterValue(computedData.attributeName, `${value}`);
+                  navigate(
+                    getExploreUrl({
+                      organization,
+                      selection,
+                      table: 'attribute_breakdowns',
+                      query: search.formatString(),
+                    })
+                  );
+                  closeModal();
+                  return;
+                case Actions.EXCLUDE:
+                  search.addFilterValue(`!${computedData.attributeName}`, `${value}`);
+                  navigate(
+                    getExploreUrl({
+                      organization,
+                      selection,
+                      table: 'attribute_breakdowns',
+                      query: search.formatString(),
+                    })
+                  );
+                  closeModal();
+                  return;
+                case Actions.COPY_TO_CLIPBOARD:
+                  closeModal();
+                  return;
+                default:
+                  return;
+              }
+            }}
+            allowedCellActions={cellInfo => {
+              if (cellInfo.column.key === t('Value')) {
+                return [
+                  Actions.OPEN_ROW_IN_EXPLORE,
+                  Actions.EXCLUDE,
+                  Actions.ADD,
+                  Actions.COPY_TO_CLIPBOARD,
+                ];
+              }
+              return [];
+            }}
           />
         </Flex>
       </Body>

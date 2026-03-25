@@ -9,8 +9,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 
@@ -45,7 +46,8 @@ export function LandingWidgetSelector({
   onDataState,
   widgetHeight,
 }: LandingWidgetSelectorProps) {
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
 
   const [selectedWidget, setSelectedWidget] = useSyncedLocalStorageState<WidgetOption>(
@@ -55,11 +57,14 @@ export function LandingWidgetSelector({
 
   const onWidgetChange = useCallback(
     (opt: any) => {
-      const newQuery = omit(router.location.query, [cursorName]);
-      router.push({
-        pathname: router.location.pathname,
-        query: newQuery,
-      });
+      const newQuery = omit(location.query, [cursorName]);
+      navigate(
+        {
+          pathname: location.pathname,
+          query: newQuery,
+        },
+        {replace: true}
+      );
       setSelectedWidget(opt.value);
       trackAnalytics('profiling_views.landing.widget_change', {
         organization,
@@ -67,7 +72,7 @@ export function LandingWidgetSelector({
         target: getAnalyticsName(opt.value),
       });
     },
-    [cursorName, router, selectedWidget, setSelectedWidget, organization]
+    [cursorName, location, navigate, selectedWidget, setSelectedWidget, organization]
   );
 
   const functionQuery = useMemo(() => {

@@ -126,9 +126,9 @@ PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS = {
 
 # Ensure that required fields are defined at runtime
 for field in {constants.TIMESTAMP_ALIAS, constants.TRACE_ALIAS}:
-    assert (
-        field in PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS
-    ), f"{field} must be defined for profile functions"
+    assert field in PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS, (
+        f"{field} must be defined for profile functions"
+    )
 
 PROFILE_FUNCTIONS_VIRTUAL_CONTEXTS = {
     key: VirtualColumnDefinition(

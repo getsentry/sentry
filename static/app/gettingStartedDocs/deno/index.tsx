@@ -4,12 +4,12 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
 
+import {agentMonitoring} from './agentMonitoring';
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   feedbackOnboardingJsLoader,
+  agentMonitoringOnboarding: agentMonitoring,
 };
-
-export default docs;

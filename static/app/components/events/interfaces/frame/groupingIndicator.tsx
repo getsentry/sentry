@@ -9,7 +9,7 @@ type Props = {
   className?: string;
 };
 
-function GroupingIndicator({className}: Props) {
+export function GroupingIndicator({className}: Props) {
   return (
     <StyledTooltip
       title={t('This frame appears in all other events related to this issue')}
@@ -20,8 +20,6 @@ function GroupingIndicator({className}: Props) {
     </StyledTooltip>
   );
 }
-
-export default GroupingIndicator;
 
 const StyledTooltip = styled(Tooltip)`
   align-items: center;

@@ -5,6 +5,9 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
+import sentry_sdk
+from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -15,15 +18,18 @@ from sentry.seer.code_review.models import (
     SeerCodeReviewTaskRequestForPrReview,
 )
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
-from sentry.taskworker.retry import Retry
-from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
-from ..utils import convert_enum_keys_to_strings, get_seer_endpoint_for_event, make_seer_request
+from ..utils import (
+    convert_enum_keys_to_strings,
+    get_seer_path_for_request,
+    make_seer_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +48,7 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    tags: Mapping[str, object],
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
@@ -61,11 +68,35 @@ def schedule_task(
         )
         return
 
-    # Convert enum to string for Celery serialization
+    # Validate payload before scheduling to catch schema mismatches early
+    from pydantic import ValidationError
+
+    try:
+        validated_payload: (
+            SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
+        )
+        if github_event == GithubWebhookType.PULL_REQUEST and github_event_action == "closed":
+            validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(transformed_event)
+        else:
+            validated_payload = SeerCodeReviewTaskRequestForPrReview.parse_obj(transformed_event)
+        # Convert to dict and handle enum keys (Pydantic v1 converts string keys to enums,
+        # but JSON requires string keys, so we need to convert them back)
+        payload = convert_enum_keys_to_strings(validated_payload.dict())
+        # When upgrading to Pydantic v2, we can remove the convert_enum_keys_to_strings call.
+        # Pydantic v2 will automatically convert enum keys to strings.
+        # payload = validated_payload.model_dump(mode="json")
+    except ValidationError:
+        logger.warning("%s.validation_failed_before_scheduling", PREFIX)
+        record_webhook_filtered(
+            github_event, github_event_action, WebhookFilteredReason.INVALID_PAYLOAD
+        )
+        return
+
     process_github_webhook_event.delay(
-        github_event=github_event.value,
-        event_payload=transformed_event,
+        seer_path=get_seer_path_for_request(github_event.value, github_event_action),
+        event_payload=payload,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        tags=tags,
     )
     record_webhook_enqueued(github_event, github_event_action)
 
@@ -74,52 +105,36 @@ def schedule_task(
     name="sentry.seer.code_review.tasks.process_github_webhook_event",
     namespace=seer_code_review_tasks,
     retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=RETRYABLE_ERRORS),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_github_webhook_event(
     *,
     enqueued_at_str: str,
-    github_event: str,
+    seer_path: str,
     event_payload: Mapping[str, Any],
+    tags: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     """
-    Process GitHub webhook event by forwarding to Seer if applicable.
+    Forward a validated code-review payload to Seer.
 
     Args:
         enqueued_at_str: The timestamp when the task was enqueued
-        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
-        event_payload: The payload of the webhook event
-        **kwargs: Parameters to pass to webhook handler functions
+        seer_path: The path to the Seer API endpoint to call
+        event_payload: The payload (already validated before scheduling)
+        tags: Sentry SDK tags to set on this task's scope for error correlation
+        **kwargs: Absorbs legacy serialized task arguments from in-flight work
     """
     status = "success"
     should_record_latency = True
     try:
-        path = get_seer_endpoint_for_event(github_event).value
+        if tags:
+            sentry_sdk.set_tags(tags)
+        viewer_context: SeerViewerContext | None = None
+        if tags and (org_id := tags.get("sentry_organization_id")):
+            viewer_context = SeerViewerContext(organization_id=int(org_id))
 
-        # Validate payload with Pydantic (except for CHECK_RUN events which use minimal payload)
-        if github_event != GithubWebhookType.CHECK_RUN:
-            # Parse with appropriate model based on request type to enforce
-            # organization_id and integration_id requirements for PR closed
-            request_type = event_payload.get("request_type")
-            validated_payload: (
-                SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
-            )
-            if request_type == "pr-closed":
-                validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(event_payload)
-            else:
-                validated_payload = SeerCodeReviewTaskRequestForPrReview.parse_obj(event_payload)
-            # Convert to dict and handle enum keys (Pydantic v1 converts string keys to enums,
-            # but JSON requires string keys, so we need to convert them back)
-            payload = convert_enum_keys_to_strings(validated_payload.dict())
-            # When upgrading to Pydantic v2, we can remove the convert_enum_keys_to_strings call.
-            # Pydantic v2 will automatically convert enum keys to strings.
-            # payload = validated_payload.model_dump(mode="json")
-        else:
-            payload = event_payload
-
-        log_seer_request(event_payload, github_event)
-        make_seer_request(path=path, payload=payload)
+        make_seer_request(path=seer_path, payload=event_payload, viewer_context=viewer_context)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.
@@ -133,27 +148,6 @@ def process_github_webhook_event(
             metrics.incr(f"{PREFIX}.error", tags={"error_status": status}, sample_rate=1.0)
         if should_record_latency:
             record_latency(status, enqueued_at_str)
-
-
-def log_seer_request(event_payload: Mapping[str, Any], github_event: str) -> None:
-    repo_data = event_payload.get("data", {}).get("repo", {})
-    trigger_at_str = event_payload.get("data", {}).get("config", {}).get("trigger_at")
-    logger.info(
-        "%s.sending_request_to_seer",
-        PREFIX,
-        extra={
-            "provider": repo_data.get("provider"),
-            "repo_owner": repo_data.get("owner"),
-            "repo_name": repo_data.get("name"),
-            "pr_id": event_payload.get("data", {}).get("pr_id"),
-            "commit_sha": repo_data.get("base_commit_sha"),
-            "request_type": event_payload.get("request_type"),
-            "github_event": github_event,
-            "github_to_seer_latency_ms": (
-                calculate_latency_ms(trigger_at_str) if trigger_at_str else None
-            ),
-        },
-    )
 
 
 def record_latency(status: str, enqueued_at_str: str) -> None:

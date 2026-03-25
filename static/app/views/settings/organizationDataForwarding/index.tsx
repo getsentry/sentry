@@ -6,16 +6,16 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataForwarderOnboarding} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderOnboarding';
 import {DataForwarderRow} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderRow';
 import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
@@ -77,7 +77,9 @@ export default function OrganizationDataForwarding() {
                         });
                       }}
                       disabled={!hasAccess || !hasAvailability || !hasFeature}
-                      title={getCreateTooltip({hasAvailability, hasAccess, hasFeature})}
+                      tooltipProps={{
+                        title: getCreateTooltip({hasAvailability, hasAccess, hasFeature}),
+                      }}
                     >
                       {t('Setup a new Forwarder')}
                     </LinkButton>

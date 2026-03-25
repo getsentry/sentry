@@ -11,15 +11,15 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useApi from 'sentry/utils/useApi';
-import useMedia from 'sentry/utils/useMedia';
+import {useApi} from 'sentry/utils/useApi';
+import {useMedia} from 'sentry/utils/useMedia';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
@@ -40,7 +40,7 @@ import {
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
-import CartDiff from 'getsentry/views/amCheckout/components/cartDiff';
+import {CartDiff} from 'getsentry/views/amCheckout/components/cartDiff';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -739,7 +739,7 @@ function TotalSummary({
               priority="danger"
               onClick={() => onSubmit(true)}
               disabled={buttonDisabled || previewDataLoading}
-              title={buttonDisabled ? buttonDisabledText : undefined}
+              tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
               icon={<IconLightning />}
             >
               {isSubmitting ? t('Checking out...') : t('Migrate Now')}
@@ -750,7 +750,7 @@ function TotalSummary({
             priority="primary"
             onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
-            title={buttonDisabled ? buttonDisabledText : undefined}
+            tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
             icon={<IconLock locked />}
           >
             {isSubmitting ? t('Checking out...') : buttonText}
@@ -768,7 +768,7 @@ function TotalSummary({
   );
 }
 
-function Cart({
+export function Cart({
   activePlan,
   formData,
   subscription,
@@ -998,8 +998,6 @@ function Cart({
     </Stack>
   );
 }
-
-export default Cart;
 
 const StyledButton = styled(Button)`
   display: flex;

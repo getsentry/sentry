@@ -1,6 +1,5 @@
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any, TypedDict, cast
 
 from rest_framework.request import Request
@@ -14,10 +13,10 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.utils import handle_query_errors
@@ -30,9 +29,11 @@ from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events import fields
 from sentry.seer.endpoints.compare import compare_distributions
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import snuba_rpc
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba_rpc import trace_item_stats_rpc
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ logger = logging.getLogger(__name__)
 PARALLELIZATION_FACTOR = 2
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -48,12 +49,6 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
     owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
-
-        if not features.has(
-            "organizations:performance-spans-suspect-attributes", organization, actor=request.user
-        ):
-            return Response(status=404)
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -110,6 +105,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             {"referrer": Referrer.API_TRACE_EXPLORER_STATS.value},
         )
 
+        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
         scored_attrs_rrr = compare_distributions(
             baseline=cohort_2_distribution,
             outliers=cohort_1_distribution,
@@ -122,6 +118,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             meta={
                 "referrer": Referrer.API_TRACE_EXPLORER_STATS.value,
             },
+            viewer_context=viewer_context,
         )
         logger.info("scored_attrs_rrr: %s", scored_attrs_rrr)
 
@@ -329,7 +326,7 @@ def query_attribute_distributions(
                 referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
             )
 
-    with ThreadPoolExecutor(
+    with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__,
         max_workers=PARALLELIZATION_FACTOR * 2 + 2,  # 2 cohorts * threads + 2 totals queries
     ) as query_thread_pool:

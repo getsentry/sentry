@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar, DefaultDict
+from typing import Any, ClassVar
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -55,12 +55,11 @@ class WorkflowEngineIncidentSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> defaultdict[GroupOpenPeriod, dict[str, Any]]:
-
         from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
             WorkflowEngineDetectorSerializer,
         )
 
-        results: DefaultDict[GroupOpenPeriod, dict[str, Any]] = defaultdict()
+        results: defaultdict[GroupOpenPeriod, dict[str, Any]] = defaultdict()
         open_periods_to_detectors = self.get_open_periods_to_detectors(item_list)
         alert_rules = {
             alert_rule["id"]: alert_rule  # we are serializing detectors to look like alert rules

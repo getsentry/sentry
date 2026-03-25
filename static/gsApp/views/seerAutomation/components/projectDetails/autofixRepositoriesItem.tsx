@@ -6,19 +6,19 @@ import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import type {
   BranchOverride,
   SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
 import {isOverrideValid} from 'sentry/components/events/autofix/utils/isOverrideValid';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct, tn} from 'sentry/locale';
 
-import AutofixRepositoriesItemBranchOverride from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesItemBranchOverride';
+import {AutofixRepositoriesItemBranchOverride} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesItemBranchOverride';
 
 interface Props {
   canWrite: boolean;
@@ -37,8 +37,7 @@ function areOverridesEqual(a: BranchOverride[], b: BranchOverride[]) {
   return a.every((override, idx) => {
     const other = b[idx];
     return (
-      other &&
-      override.branch_name === other.branch_name &&
+      override.branch_name === other?.branch_name &&
       override.tag_name === other.tag_name &&
       override.tag_value === other.tag_value
     );

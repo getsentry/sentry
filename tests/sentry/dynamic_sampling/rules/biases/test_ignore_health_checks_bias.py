@@ -52,7 +52,7 @@ def test_generate_trace_bias_rules(default_project) -> None:
                 "op": "or",
             },
             "id": 1002,
-            "samplingValue": {"type": "sampleRate", "value": 0.2},
+            "samplingValue": {"type": "sampleRate", "value": 1.0 / 3},
             "type": "trace",
         }
     ]
@@ -99,6 +99,15 @@ def matches_health_check_globs(transaction_name: str) -> bool:
         ("healthcheck", "*healthcheck*"),
         ("my-service-healthcheck", "*healthcheck*"),
         ("healthcheck-endpoint", "*healthcheck*"),
+        # Pattern: *health-check*
+        ("/health-check", "*health-check*"),
+        ("/health-check/", "*health-check*"),
+        ("/api/health-check", "*health-check*"),
+        ("GET /health-check", "*health-check*"),
+        ("GET /api/v1/health-check", "*health-check*"),
+        ("health-check", "*health-check*"),
+        ("my-service-health-check", "*health-check*"),
+        ("health-check-endpoint", "*health-check*"),
         # Pattern: *heartbeat*
         ("/heartbeat", "*heartbeat*"),
         ("/api/heartbeat", "*heartbeat*"),
@@ -166,9 +175,9 @@ def test_health_check_globs_match_health_endpoints(
     transaction_name: str, expected_glob: str
 ) -> None:
     """Verify that actual health check endpoints are matched by the glob patterns."""
-    assert matches_health_check_globs(
-        transaction_name
-    ), f"Expected '{transaction_name}' to match health check glob '{expected_glob}'"
+    assert matches_health_check_globs(transaction_name), (
+        f"Expected '{transaction_name}' to match health check glob '{expected_glob}'"
+    )
 
 
 @pytest.mark.parametrize(
@@ -208,6 +217,6 @@ def test_health_check_globs_match_health_endpoints(
 )
 def test_health_check_globs_do_not_match_regular_endpoints(transaction_name: str) -> None:
     """Verify that regular endpoints and URLs containing 'health' in domain names are NOT filtered."""
-    assert not matches_health_check_globs(
-        transaction_name
-    ), f"Expected '{transaction_name}' to NOT match health check globs"
+    assert not matches_health_check_globs(transaction_name), (
+        f"Expected '{transaction_name}' to NOT match health check globs"
+    )

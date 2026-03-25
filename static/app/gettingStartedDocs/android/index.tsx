@@ -7,7 +7,7 @@ import {onboarding} from './onboarding';
 import {profiling} from './profiling';
 import {sessionReplay} from './sessionReplay';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: feedback,
@@ -16,5 +16,3 @@ const docs: Docs = {
   logsOnboarding: logs,
   metricsOnboarding: metrics,
 };
-
-export default docs;

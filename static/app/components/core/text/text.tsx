@@ -14,6 +14,13 @@ export interface BaseTextProps {
    */
   align?: Responsive<'left' | 'center' | 'right' | 'justify'>;
   bold?: boolean;
+
+  /**
+   * Determines the cursor style when hovering over the text.
+   * @default 'default'
+   */
+  cursor?: 'default' | 'pointer' | 'text' | 'move' | 'not-allowed' | 'wait' | 'help';
+
   /**
    * Density determines the line height of the text.
    * Defaults to 1.2, but supports the following density variants:
@@ -74,9 +81,11 @@ export interface BaseTextProps {
 
   /**
    * Variant determines the style of the text.
+   * - Use a semantic variant (e.g. `primary`, `muted`) to apply a token-based color.
+   * - Use `inherit` to explicitly inherit the color from the parent element.
    * @default primary
    */
-  variant?: ContentVariant | 'muted';
+  variant?: ContentVariant | 'muted' | 'inherit';
 
   /**
    * Determines where line breaks appear when wrapping the text.
@@ -94,7 +103,7 @@ export type ExclusiveTextEllipsisProps =
   | {ellipsis?: true; wrap?: never}
   | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
-interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
+interface TextAttributes<T extends TextPrimitive = 'span'>
   extends
     BaseTextProps,
     Omit<
@@ -119,6 +128,8 @@ interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
    * Forbid color HTML attribute from being passed to the component, all usage should be variant-based.
    */
   color?: never;
+  dateTime?: T extends 'time' ? string : never;
+
   /**
    * This could have been avoided by using React.JSX.IntrinsicElements<T>, however doing so would be
    * grosely inefficient, as it would cause type helpers like DistributedOmit to traverse the entire
@@ -141,12 +152,45 @@ interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
   style?: React.CSSProperties;
 }
 
-export type TextProps<T extends 'span' | 'p' | 'label' | 'div'> = TextAttributes<T> &
+type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time' | 'legend';
+
+export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;
 
+export type TextPropsWithRenderFunction<T extends TextPrimitive = 'span'> =
+  BaseTextProps &
+    ExclusiveTextEllipsisProps & {
+      children: (props: {className: string}) => React.ReactNode | undefined;
+      as?: never;
+      color?: never;
+      dateTime?: never;
+      htmlFor?: never;
+      ref?: never;
+      size?: Responsive<TextSize>;
+    } & Partial<
+      Record<
+        // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
+        // Therefore, we need to exclude it from the map, or the children will produce a never type.
+        Exclude<
+          keyof React.DetailedHTMLProps<
+            React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+            HTMLElementTagNameMap[T]
+          >,
+          'children'
+        >,
+        never
+      >
+    >;
+
 export const Text = styled(
-  <T extends 'span' | 'p' | 'label' | 'div' = 'span'>(props: TextProps<T>) => {
-    const {children, ...rest} = props;
+  <T extends TextPrimitive = 'span'>(
+    props: TextProps<T> | TextPropsWithRenderFunction<T>
+  ) => {
+    if (typeof props.children === 'function') {
+      // When using render prop, only pass className to the child function
+      return props.children({className: (props as any).className});
+    }
+    const {children, ...rest} = props as TextProps<T>;
     const Component = props.as || 'span';
     return <Component {...(rest as any)}>{children}</Component>;
   },
@@ -160,12 +204,14 @@ export const Text = styled(
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
   text-decoration: ${p => getTextDecoration(p)};
+  cursor: ${p => p.cursor ?? undefined};
 
   color: ${p =>
-    p.variant
-      ? (p.theme.tokens.content[p.variant === 'muted' ? 'secondary' : p.variant] ??
-        p.theme.tokens.content.primary)
-      : p.theme.tokens.content.primary};
+    p.variant === 'inherit'
+      ? undefined
+      : p.theme.tokens.content[
+          p.variant === 'muted' ? 'secondary' : (p.variant ?? 'primary')
+        ]};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
@@ -212,6 +258,6 @@ export const Text = styled(
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
    * https://github.com/styled-components/styled-components/issues/1803
    */
-` as unknown as <T extends 'span' | 'p' | 'label' | 'div' = 'span'>(
-  props: TextProps<T>
+` as unknown as <T extends TextPrimitive = 'span'>(
+  props: TextProps<T> | TextPropsWithRenderFunction<T>
 ) => React.ReactElement;

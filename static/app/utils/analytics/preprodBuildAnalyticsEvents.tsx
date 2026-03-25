@@ -1,5 +1,6 @@
 import type {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import type {Organization} from 'sentry/types/organization';
+import type {ArtifactType} from 'sentry/views/settings/project/preprod/types';
 
 type BasePreprodBuildEvent = {
   organization: Organization;
@@ -7,6 +8,11 @@ type BasePreprodBuildEvent = {
   platform?: string | null;
   project_slug?: string;
   project_type?: string | null;
+};
+
+type PreprodSettingsEvent = {
+  organization: Organization;
+  project_slug: string;
 };
 
 export type BuildListPageSource =
@@ -60,6 +66,14 @@ export type PreprodBuildEventParameters = {
   'preprod.releases.mobile-builds.tab-clicked': {
     organization: Organization;
   };
+  'preprod.settings.status_check_rule_created': PreprodSettingsEvent;
+  'preprod.settings.status_check_rule_deleted': PreprodSettingsEvent;
+  'preprod.settings.status_check_rule_updated': PreprodSettingsEvent & {
+    artifact_type: ArtifactType;
+    measurement: string;
+    metric: string;
+    value: number;
+  };
 };
 
 type PreprodBuildAnalyticsKey = keyof PreprodBuildEventParameters;
@@ -85,4 +99,10 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.builds.onboarding.docs_clicked': 'Preprod Builds: Onboarding Docs Clicked',
   'preprod.releases.mobile-builds.tab-clicked':
     'Preprod Releases: Mobile Builds Tab Clicked',
+  'preprod.settings.status_check_rule_created':
+    'Preprod Settings: Status Check Rule Created',
+  'preprod.settings.status_check_rule_deleted':
+    'Preprod Settings: Status Check Rule Deleted',
+  'preprod.settings.status_check_rule_updated':
+    'Preprod Settings: Status Check Rule Updated',
 };

@@ -4,8 +4,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
+import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {
   OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
@@ -32,11 +36,11 @@ TABLE_QUERY.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
 TABLE_QUERY.addOp(')');
 TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
-const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'requests-widget',
-      title: 'Requests',
+      title: t('Requests'),
       description: '',
       displayType: DisplayType.LINE,
       thresholds: null,
@@ -52,7 +56,6 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
             `count(${SpanFields.SPAN_DURATION})`,
             `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
           ],
-          fieldMeta: [null, {valueType: 'percentage', valueUnit: null}],
           columns: [],
           fieldAliases: [],
           conditions: `${SpanFields.SPAN_OP}:http.server`,
@@ -64,7 +67,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
     },
     {
       id: 'api-latency-widget',
-      title: t('Api Latency'),
+      title: t('API Latency'),
       description: '',
       displayType: DisplayType.LINE,
       interval: '1h',
@@ -108,11 +111,11 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   0
 );
 
-const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'jobs-chart',
-      title: 'Jobs',
+      title: t('Jobs'),
       description: '',
       legendType: 'breakdown',
       displayType: DisplayType.LINE,
@@ -130,7 +133,6 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
             `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
-          fieldMeta: [null, {valueType: 'percentage', valueUnit: null}],
           fieldAliases: [],
           conditions: `${SpanFields.SPAN_OP}:queue.process`,
           orderby: `count(${SpanFields.SPAN_DURATION})`,
@@ -149,15 +151,12 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [
-            SpanFields.NORMALIZED_DESCRIPTION,
-            `p75(${SpanFields.SPAN_SELF_TIME})`,
-          ],
-          aggregates: [`p75(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [SpanFields.NORMALIZED_DESCRIPTION, `p75(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`p75(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
           fieldAliases: [''],
-          conditions: `${SpanFields.DB_SYSTEM}:[${Object.values(SupportedDatabaseSystem).join(',')}]`,
-          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
+          conditions: BASE_FILTER_STRING,
+          orderby: `-sum(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
@@ -172,7 +171,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
     },
     {
       id: 'cache-miss-rates-chart',
-      title: 'Cache Miss Rates',
+      title: t('Cache Miss Rates'),
       description: '',
       legendType: 'breakdown',
       displayType: DisplayType.LINE,
@@ -188,13 +187,12 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
             `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [SpanFields.TRANSACTION],
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
           fieldAliases: [''],
           conditions: `${SpanFields.SPAN_OP}:[cache.get,cache.get_item]`,
           orderby: `-equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
         },
       ],
-      limit: 4,
+      limit: 3,
       widgetType: WidgetType.SPANS,
     },
   ],
@@ -204,7 +202,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
 
 const TRANSACTIONS_TABLE: Widget = {
   id: 'backend-overview-transactions-table',
-  title: 'Transactions',
+  title: t('Transactions'),
   description: '',
   displayType: DisplayType.TABLE,
   interval: '5m',
@@ -240,28 +238,17 @@ const TRANSACTIONS_TABLE: Widget = {
         SpanFields.PROJECT,
       ],
       fieldAliases: [
-        t('Starred'),
-        'Http Method',
+        '',
+        t('HTTP Method'),
         t('Transaction'),
         t('Operation'),
         t('Project'),
         t('TPM'),
-        'P50()',
-        'P95()',
+        WIDGET_COLUMN_LABELS.p50,
+        WIDGET_COLUMN_LABELS.p95,
         t('Failure rate'),
         t('Users'),
-        t('Time Spent'),
-      ],
-      fieldMeta: [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        {valueType: 'percentage', valueUnit: null},
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       conditions: TABLE_QUERY.formatString(),
       orderby: '-sum(span.duration)',
@@ -273,7 +260,7 @@ const TRANSACTIONS_TABLE: Widget = {
     x: 0,
     w: 6,
     h: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
     y: 7,
   },
 };
@@ -295,5 +282,14 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
-  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  widgets: [
+    ...BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
+    ...BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
+    TRANSACTIONS_TABLE,
+  ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['firstTransactionEvent'],
+    description: 'Get started with backend tracing',
+  },
 };

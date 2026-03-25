@@ -59,6 +59,15 @@ export const mobile: PlatformKey[] = [
   'cocoa-swift',
 ];
 
+export const android: PlatformKey[] = ['android', 'java-android'];
+
+export const apple: PlatformKey[] = [
+  'apple-ios',
+  'apple-macos',
+  'cocoa-objc',
+  'cocoa-swift',
+];
+
 // Mirrors `BACKEND` in src/sentry/utils/platform_categories.py
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
 export const backend: PlatformKey[] = [
@@ -277,7 +286,7 @@ export const platformsWithNestedInstrumentationGuides: PlatformKey[] = [
 ];
 
 // List of platforms that have performance onboarding checklist content
-export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
+export const withPerformanceOnboarding = new Set<PlatformKey>([
   'javascript',
   'javascript-react',
   'javascript-nextjs',
@@ -290,7 +299,7 @@ export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
 
 // List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
 // views such as Performance onboarding checklist.
-export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
+export const withoutPerformanceSupport = new Set<PlatformKey>([
   'elixir',
   'minidump',
   'nintendo-switch',
@@ -299,7 +308,7 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that have logging onboarding checklist content
-export const withLoggingOnboarding: Set<PlatformKey> = new Set([
+export const withLoggingOnboarding = new Set<PlatformKey>([
   'android',
   'apple',
   'apple-ios',
@@ -396,13 +405,10 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
-export const withoutLoggingSupport: Set<PlatformKey> = new Set([
-  'elixir',
-  'dotnet-xamarin',
-]);
+export const withoutLoggingSupport = new Set<PlatformKey>(['elixir', 'dotnet-xamarin']);
 
 // List of platforms that have metrics onboarding checklist content
-export const withMetricsOnboarding: Set<PlatformKey> = new Set([
+export const withMetricsOnboarding = new Set<PlatformKey>([
   'android',
   'flutter',
   'apple',
@@ -489,24 +495,32 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
-export const withoutMetricsSupport: Set<PlatformKey> = new Set(['dotnet-xamarin']);
+export const withoutMetricsSupport = new Set<PlatformKey>(['dotnet-xamarin']);
 
-export const limitedMetricsSupportPrefixes: Set<string> = new Set([
+export const limitedMetricsSupportPrefixes = new Set<string>([
   'android',
   'apple',
   'bun',
   'dart',
+  'deno',
   'dotnet',
   'electron',
   'go',
+  'godot',
   'java',
   'javascript',
+  'native',
+  'nintendo-switch',
   'node',
+  'playstation',
   'python',
   'php',
   'react-native',
   'ruby',
   'flutter',
+  'unity',
+  'unreal',
+  'xbox',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -836,6 +850,8 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('javascript')),
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
+  'deno',
+  'bun',
 ]);
 
 export const javascriptMetaFrameworks: readonly PlatformKey[] = [

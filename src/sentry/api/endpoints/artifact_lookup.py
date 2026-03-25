@@ -13,7 +13,7 @@ from symbolic.exceptions import SymbolicError
 from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.serializers import serialize
@@ -29,6 +29,7 @@ from sentry.models.distribution import Distribution
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.api")
@@ -48,7 +49,7 @@ class _Artifact(TypedDict):
     headers: NotRequired[dict[str, object]]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
@@ -91,13 +92,21 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             metrics.incr("sourcemaps.download.artifact_bundle")
         elif ty == "release_file":
-            # NOTE: `ReleaseFile` does have a `project_id`, but that seems to
-            # be always empty, so using the `organization_id` instead.
             file_m = (
-                ReleaseFile.objects.filter(id=ty_id, organization_id=project.organization.id)
+                ReleaseFile.objects.filter(
+                    id=ty_id,
+                    organization_id=project.organization.id,
+                )
                 .select_related("file")
                 .first()
             )
+            if (
+                file_m is not None
+                and not ReleaseProject.objects.filter(
+                    project=project, release_id=file_m.release_id
+                ).exists()
+            ):
+                file_m = None
             metrics.incr("sourcemaps.download.release_file")
 
         if file_m is None:
@@ -252,15 +261,16 @@ def get_legacy_release_bundles(release: Release, dist: Distribution | None) -> s
             artifact_count=0,
             # similarly the special `type` is also used for release archives.
             file__type=RELEASE_BUNDLE_TYPE,
-        ).values_list("id", flat=True)
-        # TODO: this `order_by` might be incredibly slow
-        # we want to have a hard limit on the returned bundles here. and we would
-        # want to pick the most recently uploaded ones. that should mostly be
-        # relevant for customers that upload multiple bundles, or are uploading
-        # newer files for existing releases. In that case the symbolication is
-        # already degraded, so meh...
-        # .order_by("-file__timestamp")
-        [:MAX_BUNDLES_QUERY]
+        ).values_list("id", flat=True)[
+            # TODO: this `order_by` might be incredibly slow
+            # we want to have a hard limit on the returned bundles here. and we would
+            # want to pick the most recently uploaded ones. that should mostly be
+            # relevant for customers that upload multiple bundles, or are uploading
+            # newer files for existing releases. In that case the symbolication is
+            # already degraded, so meh...
+            # .order_by("-file__timestamp")
+            :MAX_BUNDLES_QUERY
+        ]
     )
 
 

@@ -1,23 +1,11 @@
 import {useMemo, useState} from 'react';
-import type Fuse from 'fuse.js';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
-import {strGetFn} from 'sentry/components/search/sources/utils';
-import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {fzf} from 'sentry/utils/search/fzf';
 
 type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
   priority: number;
-};
-
-const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<CommandPaletteActionWithPriority> = {
-  keys: ['display.label', 'display.details'],
-  getFn: strGetFn,
-  shouldSort: true,
-  minMatchCharLength: 1,
-  includeScore: true,
-  threshold: 0.2,
-  ignoreLocation: true,
 };
 
 /**
@@ -70,6 +58,7 @@ function flattenActions(
 export function useCommandPaletteState() {
   const [query, setQuery] = useState('');
   const actions = useCommandPaletteActions();
+
   const [selectedAction, setSelectedAction] =
     useState<CommandPaletteActionWithKey | null>(null);
 
@@ -84,17 +73,40 @@ export function useCommandPaletteState() {
     return flattenActions(actions);
   }, [actions, selectedAction]);
 
-  const fuseSearch = useFuzzySearch(displayedActions, FUZZY_SEARCH_CONFIG);
   const filteredActions = useMemo(() => {
-    if (!fuseSearch || query.length === 0) {
+    if (query.length === 0) {
       // Do not display child actions before search
       return displayedActions.filter(a => a.priority === 0);
     }
-    return fuseSearch
-      .search(query)
-      .map(a => a.item)
-      .toSorted((a, b) => a.priority - b.priority);
-  }, [fuseSearch, query, displayedActions]);
+
+    const normalizedQuery = query.toLowerCase();
+
+    const scored = displayedActions.map(action => {
+      const label = typeof action.display.label === 'string' ? action.display.label : '';
+      const details =
+        typeof action.display.details === 'string' ? action.display.details : '';
+      const keywords = action.keywords?.join(' ') ?? '';
+      const searchText = [label, details, keywords].filter(Boolean).join(' ');
+      const result = fzf(searchText, normalizedQuery, false);
+      return {action, score: result.score, matched: result.end !== -1};
+    });
+
+    const matched = scored.filter(r => r.matched);
+    const unmatchedSearchResults = scored.filter(
+      r => !r.matched && r.action.groupingKey === 'search-result'
+    );
+
+    const sortedMatches = matched.toSorted((a, b) => {
+      const priorityDiff = a.action.priority - b.action.priority;
+      if (priorityDiff !== 0) return priorityDiff;
+      return b.score - a.score;
+    });
+
+    return [
+      ...sortedMatches.map(r => r.action),
+      ...unmatchedSearchResults.map(r => r.action),
+    ];
+  }, [query, displayedActions]);
 
   return {
     actions: filteredActions,

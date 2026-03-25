@@ -31,7 +31,7 @@ export function ReleasesSort({environments, sortBy, onChange}: Props) {
           {...triggerProps}
           size="xs"
           icon={<IconSort />}
-          title={t('Sort Releases')}
+          tooltipProps={{title: t('Sort Releases')}}
           aria-label={t('Sort Releases')}
         />
       )}

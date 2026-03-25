@@ -7,7 +7,7 @@ from django.db.models import UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -35,7 +35,7 @@ class ExploreSavedQueryDataset(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
-@region_silo_model
+@cell_silo_model
 class ExploreSavedQueryProject(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -48,7 +48,7 @@ class ExploreSavedQueryProject(Model):
         unique_together = (("project", "explore_saved_query"),)
 
 
-@region_silo_model
+@cell_silo_model
 class ExploreSavedQueryLastVisited(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -69,7 +69,7 @@ class ExploreSavedQueryLastVisited(DefaultFieldsModel):
         ]
 
 
-@region_silo_model
+@cell_silo_model
 class ExploreSavedQuery(DefaultFieldsModel):
     """
     A saved Explore query
@@ -126,7 +126,6 @@ class ExploreSavedQuery(DefaultFieldsModel):
 
 
 class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
-
     def get_last_position(self, organization: Organization, user_id: int) -> int:
         """
         Returns the last position of a user's starred queries in an organization.
@@ -274,7 +273,7 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
             return True
 
 
-@region_silo_model
+@cell_silo_model
 class ExploreSavedQueryStarred(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 

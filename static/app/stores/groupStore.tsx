@@ -2,13 +2,12 @@ import {createStore} from 'reflux';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import IndicatorStore from 'sentry/stores/indicatorStore';
+import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types/group';
-import toArray from 'sentry/utils/array/toArray';
-import parseApiError from 'sentry/utils/parseApiError';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {toArray} from 'sentry/utils/array/toArray';
+import {parseApiError} from 'sentry/utils/parseApiError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-import SelectedGroupStore from './selectedGroupStore';
 import type {StrictStoreDefinition} from './types';
 
 function showAlert(msg: string, type: Indicator['type']) {
@@ -147,7 +146,6 @@ const storeConfig: GroupStoreDefinition = {
     const idSet = new Set(itemIds);
     this.state = mergePendingChanges(this.items, this.pendingChanges);
     this.trigger(idSet);
-    SelectedGroupStore.onGroupChange(idSet);
   },
 
   mergeItems(items: Item[]) {
@@ -438,9 +436,7 @@ const storeConfig: GroupStoreDefinition = {
     // Looks like the `PUT /api/0/projects/:orgId/:projectId/issues/` endpoint
     // actually returns a 204, so there is no `response` body
     this.items = this.items.filter(
-      item =>
-        !mergedIdSet.has(item.id) ||
-        (response?.merge && item.id === response.merge.parent)
+      item => !mergedIdSet.has(item.id) || item.id === response?.merge?.parent
     );
 
     if (ids.length > 0) {
@@ -509,5 +505,4 @@ const storeConfig: GroupStoreDefinition = {
   },
 };
 
-const GroupStore = createStore(storeConfig);
-export default GroupStore;
+export const GroupStore = createStore(storeConfig);

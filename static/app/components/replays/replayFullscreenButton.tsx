@@ -7,9 +7,9 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconContract, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
+import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
 
 type Props = {
   toggleFullscreen: () => void;
@@ -42,7 +42,9 @@ export function ReplayFullscreenButton({toggleFullscreen}: Props) {
   return (
     <Button
       size="sm"
-      title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
+      tooltipProps={{
+        title: isFullscreen ? t('Exit full screen') : t('Enter full screen'),
+      }}
       aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
       icon={isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />}
       onClick={handleFullscreenToggle}

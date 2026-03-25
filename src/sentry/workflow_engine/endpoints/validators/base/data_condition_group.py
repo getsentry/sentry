@@ -1,12 +1,22 @@
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionValidator
+from sentry.workflow_engine.endpoints.validators.base.data_condition import (
+    BaseDataConditionValidator,
+    DataConditionInput,
+)
 from sentry.workflow_engine.endpoints.validators.utils import remove_items_by_api_input
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.models import DataConditionGroup
+from sentry.workflow_engine.models.data_condition import TRIGGER_CONDITIONS, DataCondition
+
+
+class DataConditionGroupInput(TypedDict):
+    id: NotRequired[str]
+    logicType: str
+    conditions: NotRequired[list[DataConditionInput]]
 
 
 class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
@@ -22,6 +32,18 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
             conditions.append(condition_validator.validated_data)
 
         return conditions
+
+    def _validate_logic_type(self, condition_data: list[dict[str, Any]], logic_type: str) -> None:
+        """
+        Validate that if we're passed a "trigger" it has the logic type 'any-short'. We only validate on create
+        because we have conditions grandfathered into logic type 'all' that were migrated from issue alerts that would
+        break upon updating.
+        """
+        for condition in condition_data:
+            if (condition.get("type") in TRIGGER_CONDITIONS) and (
+                logic_type != DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
+            ):
+                raise serializers.ValidationError("Triggers' logic type must be 'any-short'")
 
     def update_or_create_condition(
         self, condition_data: dict[str, Any], organization_id: int
@@ -63,8 +85,8 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         conditions = validated_data.pop("conditions", None)
         if conditions:
             for condition_data in conditions:
-                if not condition_data.get("condition_group_id"):
-                    condition_data["condition_group_id"] = instance.id
+                # Always set condition_group_id programmatically to prevent cross-org IDOR
+                condition_data["condition_group_id"] = instance.id
                 self.update_or_create_condition(condition_data, context_org.id)
 
         # update the condition group
@@ -72,6 +94,9 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         return instance
 
     def create(self, validated_data: dict[str, Any]) -> DataConditionGroup:
+        logic_type = validated_data.get("logic_type", DataConditionGroup.Type.ANY.value)
+        self._validate_logic_type(validated_data.get("conditions", []), logic_type)
+
         with transaction.atomic(router.db_for_write(DataConditionGroup)):
             condition_group = DataConditionGroup.objects.create(
                 logic_type=validated_data["logic_type"],
@@ -79,8 +104,8 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
             )
 
             for condition in validated_data["conditions"]:
-                if not condition.get("condition_group_id"):
-                    condition["condition_group_id"] = condition_group.id
+                # Always set condition_group_id programmatically to prevent cross-org IDOR
+                condition["condition_group_id"] = condition_group.id
                 condition_validator = BaseDataConditionValidator()
                 condition_validator.create(condition)
 

@@ -78,10 +78,10 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 self.add_event(f"group-{i}", backend, "error")
 
             if performance_issues:
-                self.add_event(f"group-{event_count+1}", backend, "performance")
+                self.add_event(f"group-{event_count + 1}", backend, "performance")
 
             if generic_issues:
-                self.add_event(f"group-{event_count+2}", backend, "generic")
+                self.add_event(f"group-{event_count + 2}", backend, "generic")
 
             with self.tasks():
                 deliver_digest(self.key)
@@ -227,9 +227,9 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         utc_body = utc_email.body
 
         # Pacific email should show PST/PDT timezone
-        assert (
-            "PST" in pacific_body or "PDT" in pacific_body
-        ), f"Pacific email should use Pacific timezone, but body was: {pacific_body}"
+        assert "PST" in pacific_body or "PDT" in pacific_body, (
+            f"Pacific email should use Pacific timezone, but body was: {pacific_body}"
+        )
 
         # UTC email should show UTC timezone
         assert "UTC" in utc_body, f"UTC email should show UTC timezone, but body was: {utc_body}"
@@ -241,12 +241,12 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         # The subjects should be different due to timezone formatting
         # (though the time difference might be small depending on when the test runs)
         # At minimum, they should both contain readable date information
-        assert (
-            "new alert" in pacific_subject.lower()
-        ), f"Pacific subject should contain alert text: {pacific_subject}"
-        assert (
-            "new alert" in utc_subject.lower()
-        ), f"UTC subject should contain alert text: {utc_subject}"
+        assert "new alert" in pacific_subject.lower(), (
+            f"Pacific subject should contain alert text: {pacific_subject}"
+        )
+        assert "new alert" in utc_subject.lower(), (
+            f"UTC subject should contain alert text: {utc_subject}"
+        )
 
 
 class DigestSlackNotification(SlackActivityNotificationTest):

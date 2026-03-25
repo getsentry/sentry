@@ -9,21 +9,26 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
-import GridEditable, {
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Pagination} from 'sentry/components/pagination';
+import {Placeholder} from 'sentry/components/placeholder';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
-import TimeSince from 'sentry/components/timeSince';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
+import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
+import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -45,6 +50,9 @@ import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface TableData {
   agents: string[];
@@ -85,16 +93,43 @@ const rightAlignColumns = new Set([
   'timestamp',
 ]);
 
+const DEFAULT_LIMIT = 10;
+
 interface TracesTableProps {
-  openTraceViewDrawer: ReturnType<typeof useTraceViewDrawer>['openTraceViewDrawer'];
+  dashboardFilters?: DashboardFilters;
+  frameless?: boolean;
+  limit?: number;
+  linkToTraceView?: boolean;
+  openTraceViewDrawer?: ReturnType<typeof useTraceViewDrawer>['openTraceViewDrawer'];
+  tableWidths?: number[];
 }
 
-export function TracesTable({openTraceViewDrawer}: TracesTableProps) {
+export function TracesTable({
+  openTraceViewDrawer,
+  frameless,
+  dashboardFilters,
+  limit = DEFAULT_LIMIT,
+  tableWidths,
+  linkToTraceView,
+}: TracesTableProps) {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
-    columns: defaultColumnOrder,
+    columns:
+      // If table widths are provided, use them to override the default column widths
+      tableWidths?.length === defaultColumnOrder.length
+        ? defaultColumnOrder.map((column, index) => ({
+            ...column,
+            width: tableWidths[index],
+          }))
+        : defaultColumnOrder,
   });
 
-  const combinedQuery = useCombinedQuery(getHasAiSpansFilter());
+  const combinedQuery =
+    applyDashboardFilters(
+      useCombinedQuery(getHasAiSpansFilter()),
+      dashboardFilters,
+      WidgetType.SPANS // This widget technically has its own widget type, but it uses the spans dataset
+    ) ?? '';
+
   const {cursor, setCursor} = useTableCursor();
 
   const tracesRequest = useTraces({
@@ -102,7 +137,7 @@ export function TracesTable({openTraceViewDrawer}: TracesTableProps) {
     sort: `-timestamp`,
     keepPreviousData: true,
     cursor,
-    limit: 10,
+    limit,
   });
 
   const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
@@ -155,6 +190,8 @@ export function TracesTable({openTraceViewDrawer}: TracesTableProps) {
       fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
+      extrapolationMode: 'none',
     },
     Referrer.TRACES_TABLE
   );
@@ -242,28 +279,46 @@ export function TracesTable({openTraceViewDrawer}: TracesTableProps) {
           dataRow={dataRow}
           query={combinedQuery}
           openTraceViewDrawer={openTraceViewDrawer}
+          linkToTraceView={linkToTraceView}
         />
       );
     },
-    [combinedQuery, openTraceViewDrawer]
+    [combinedQuery, openTraceViewDrawer, linkToTraceView]
   );
 
+  const additionalGridProps = frameless
+    ? {
+        bodyStyle: FRAMELESS_STYLES,
+        resizable: true,
+        scrollable: true,
+        height: '100%',
+      }
+    : {};
+
+  const tableComponent = (
+    <GridEditable
+      isLoading={tracesRequest.isPending}
+      error={tracesRequest.error}
+      data={tableData}
+      stickyHeader
+      columnOrder={columnOrder}
+      columnSortBy={EMPTY_ARRAY}
+      grid={{
+        renderBodyCell,
+        renderHeadCell,
+        onResizeColumn: handleResizeColumn,
+      }}
+      {...additionalGridProps}
+    />
+  );
+
+  if (frameless) {
+    return <FramelessContainer>{tableComponent}</FramelessContainer>;
+  }
   return (
     <Container>
       <GridEditableContainer>
-        <GridEditable
-          isLoading={tracesRequest.isPending}
-          error={tracesRequest.error}
-          data={tableData}
-          stickyHeader
-          columnOrder={columnOrder}
-          columnSortBy={EMPTY_ARRAY}
-          grid={{
-            renderBodyCell,
-            renderHeadCell,
-            onResizeColumn: handleResizeColumn,
-          }}
-        />
+        {tableComponent}
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
       <StyledPagination pageLinks={pageLinks} onCursor={setCursor} />
@@ -276,23 +331,41 @@ const BodyCell = memo(function BodyCell({
   dataRow,
   query,
   openTraceViewDrawer,
+  linkToTraceView,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
-  openTraceViewDrawer: (traceSlug: string, spanId?: string, timestamp?: number) => void;
   query: string;
+  linkToTraceView?: boolean;
+  openTraceViewDrawer?: (traceSlug: string, spanId?: string, timestamp?: number) => void;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const location = useLocation();
 
   switch (column.key) {
     case 'traceId':
+      if (linkToTraceView || !openTraceViewDrawer) {
+        const traceUrl = getTraceDetailsUrl({
+          organization,
+          traceSlug: dataRow.traceId,
+          dateSelection: normalizeDateTimeParams(selection.datetime),
+          timestamp: dataRow.timestamp / 1000,
+          location: {
+            ...location,
+            query: {},
+          },
+          source: TraceViewSources.AGENT_MONITORING,
+          tab: TraceLayoutTabKeys.AI_SPANS,
+        });
+        return <Link to={traceUrl}>{dataRow.traceId.slice(0, 8)}</Link>;
+      }
       return (
         <span>
           <TraceIdButton
             priority="link"
             onClick={() =>
-              openTraceViewDrawer(dataRow.traceId, undefined, dataRow.timestamp / 1000)
+              openTraceViewDrawer?.(dataRow.traceId, undefined, dataRow.timestamp / 1000)
             }
           >
             {dataRow.traceId.slice(0, 8)}
@@ -454,6 +527,14 @@ function AgentTags({agents}: {agents: string[]}) {
     </Flex>
   );
 }
+
+const FramelessContainer = styled('div')`
+  height: 100%;
+
+  tbody {
+    align-content: start;
+  }
+`;
 
 const GridEditableContainer = styled('div')`
   position: relative;

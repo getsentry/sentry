@@ -147,9 +147,9 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            assert isinstance(
-                request.user, (User, RpcUser)
-            ), "User must be authenticated to update a Sentry App"
+            assert isinstance(request.user, (User, RpcUser)), (
+                "User must be authenticated to update a Sentry App"
+            )
             updated_app = SentryAppUpdater(
                 sentry_app=sentry_app,
                 name=result.get("name"),
@@ -224,9 +224,9 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 for install in sentry_app.installations.all():
                     try:
                         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
-                            assert (
-                                request.user.is_authenticated
-                            ), "User must be authenticated to delete installation"
+                            assert request.user.is_authenticated, (
+                                "User must be authenticated to delete installation"
+                            )
                             SentryAppInstallationNotifier(
                                 sentry_app_installation=install, user=request.user, action="deleted"
                             ).run()

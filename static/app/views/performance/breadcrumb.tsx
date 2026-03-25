@@ -8,7 +8,7 @@ import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {DOMAIN_VIEW_BASE_TITLE} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 
-import type Tab from './transactionSummary/tabs';
+import type {Tab} from './transactionSummary/tabs';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 
 type Props = {
@@ -24,7 +24,7 @@ type Props = {
   };
 };
 
-function Breadcrumb(props: Props) {
+export function Breadcrumb(props: Props) {
   function getCrumbs() {
     const crumbs: Crumb[] = [];
     const {organization, location, transaction, spanSlug, eventSlug, traceSlug} = props;
@@ -58,12 +58,10 @@ export const getTabCrumbs = ({
   eventSlug,
   traceSlug,
   view,
-  shouldUseOTelFriendlyUI,
 }: {
   location: Location;
   organization: Organization;
   eventSlug?: string;
-  shouldUseOTelFriendlyUI?: boolean;
   spanSlug?: SpanSlug;
   traceSlug?: string;
   transaction?: {
@@ -86,17 +84,11 @@ export const getTabCrumbs = ({
     view,
   };
 
-  shouldUseOTelFriendlyUI
-    ? crumbs.push({
-        to: transactionSummaryRouteWithQuery(routeQuery),
-        label: t('Service Entry Span Summary'),
-        preservePageFilters: true,
-      })
-    : crumbs.push({
-        to: transactionSummaryRouteWithQuery(routeQuery),
-        label: t('Transaction Summary'),
-        preservePageFilters: true,
-      });
+  crumbs.push({
+    to: transactionSummaryRouteWithQuery(routeQuery),
+    label: t('Transaction Summary'),
+    preservePageFilters: true,
+  });
 
   if (spanSlug) {
     crumbs.push({
@@ -117,5 +109,3 @@ export const getTabCrumbs = ({
 
   return crumbs;
 };
-
-export default Breadcrumb;

@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-import AddIntegration from './addIntegration';
+import {AddIntegration} from './addIntegration';
 
 interface AddIntegrationButtonProps
   extends

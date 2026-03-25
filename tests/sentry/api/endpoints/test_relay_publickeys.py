@@ -72,7 +72,6 @@ class RelayPublicKeysConfigTest(APITestCase):
         assert keys[self.non_existing_key] is None
 
     def test_get_project_config_external(self) -> None:
-
         with disable_internal_networks():
             result = self._call_endpoint(self.external_relay)
 
@@ -96,7 +95,6 @@ class RelayPublicKeysConfigTest(APITestCase):
         assert keys[self.non_existing_key] is None
 
     def _call_endpoint(self, calling_relay):
-
         raw_json, signature = self.private_key.pack(
             {
                 "relay_ids": [

@@ -4,14 +4,14 @@ import {useTheme} from '@emotion/react';
 import {Button} from '@sentry/scraps/button';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -148,7 +148,7 @@ export default function OverviewTimeConsumingQueriesWidget(
           <SpanDescriptionCell
             projectId={Number(item[SpanFields.PROJECT_ID])}
             group={item[SpanFields.SPAN_GROUP]}
-            description={item[SpanFields.NORMALIZED_DESCRIPTION]}
+            description={item[SpanFields.NORMALIZED_DESCRIPTION] ?? ''}
             moduleName={ModuleName.DB}
           />
           <TimeSpentCell

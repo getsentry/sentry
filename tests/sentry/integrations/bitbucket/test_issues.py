@@ -326,9 +326,7 @@ class BitbucketIssueTest(APITestCase):
                 "default": "",
                 "type": "textarea",
                 "required": False,
-                "help": (
-                    "Leave blank if you don't want to " "add a comment to the Bitbucket issue."
-                ),
+                "help": ("Leave blank if you don't want to add a comment to the Bitbucket issue."),
             },
         ]
 

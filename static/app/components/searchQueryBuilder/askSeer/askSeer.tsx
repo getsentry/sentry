@@ -2,7 +2,7 @@ import type {ComboBoxState} from '@react-stately/combobox';
 
 import {makeOrganizationSeerSetupQueryKey} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {setupCheckQueryKey} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
 import {AskSeerOption} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {
@@ -13,7 +13,7 @@ import {
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {useIsFetching, useIsMutating} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();

@@ -14,9 +14,9 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import {DataCategory} from 'sentry/types/core';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode, type Subscription} from 'getsentry/types';
-import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
+import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 
 describe('ProductBreakdownPanel', () => {
   const organization = OrganizationFixture();
@@ -539,7 +539,7 @@ describe('ProductBreakdownPanel', () => {
       />
     );
     await screen.findByRole('heading', {name: 'Seer'});
-    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(await screen.findByText('Included volume')).toBeInTheDocument();
     expect(screen.queryByText('Business plan')).not.toBeInTheDocument();
     expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
     expect(screen.getByText('Gifted')).toBeInTheDocument();
@@ -619,7 +619,7 @@ describe('ProductBreakdownPanel', () => {
       />
     );
     await screen.findByRole('heading', {name: 'Seer'});
-    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(await screen.findByText('Included volume')).toBeInTheDocument();
     expect(screen.getByText('Enterprise (Business) plan')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();

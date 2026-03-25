@@ -9,19 +9,18 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import type {Client} from 'sentry/api';
-import GroupList from 'sentry/components/issues/groupList';
-import Pagination from 'sentry/components/pagination';
-import QueryCount from 'sentry/components/queryCount';
+import {GroupList} from 'sentry/components/issues/groupList';
+import {Pagination} from 'sentry/components/pagination';
+import {QueryCount} from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withApi} from 'sentry/utils/withApi';
+import {withOrganization} from 'sentry/utils/withOrganization';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
 import type {ReleaseBounds} from 'sentry/views/releases/utils';
@@ -443,7 +442,7 @@ const ControlsWrapper = styled('div')`
 const OpenInButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const StyledPagination = styled(Pagination)`

@@ -46,7 +46,7 @@ type State = {
   response: SessionApiResponse | null;
 };
 
-class SessionsRequest extends Component<Props, State> {
+export class SessionsRequest extends Component<Props, State> {
   state: State = {
     reloading: false,
     errored: false,
@@ -153,5 +153,3 @@ class SessionsRequest extends Component<Props, State> {
     });
   }
 }
-
-export default SessionsRequest;

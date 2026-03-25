@@ -24,9 +24,9 @@ class NotificationSettingBase(DefaultFieldsModelExisting):
 
     def save(self, *args, **kwargs):
         try:
-            assert not (
-                self.user_id is None and self.team_id is None
-            ), "Notification setting missing user & team"
+            assert not (self.user_id is None and self.team_id is None), (
+                "Notification setting missing user & team"
+            )
         except AssertionError as err:
             sentry_sdk.capture_exception(err)
         super().save(*args, **kwargs)

@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
@@ -46,6 +46,7 @@ from sentry.snuba import (
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
+from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
@@ -53,6 +54,7 @@ from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, EAPPageTokenCursor
 from sentry.utils.snuba import SnubaError
 
@@ -86,7 +88,7 @@ class EventsApiResponse(TypedDict):
 
 
 @extend_schema(tags=["Explore"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -106,12 +108,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
-            "organizations:dashboards-mep",
-            "organizations:mep-rollout-flag",
             "organizations:performance-use-metrics",
             "organizations:profiling",
             "organizations:dynamic-sampling",
-            "organizations:use-metrics-layer",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
@@ -200,15 +199,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         batch_features = self.get_features(organization, request)
 
-        use_metrics = (
-            (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and batch_features.get("organizations:dynamic-sampling", False)
-            )
-            or batch_features.get("organizations:performance-use-metrics", False)
-            or batch_features.get("organizations:dashboards-mep", False)
-        )
-
         try:
             use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
         except ValueError:
@@ -273,8 +263,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=use_aggregate_conditions,
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
-                has_metrics=use_metrics,
-                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                has_metrics=True,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 fallback_to_transactions=True,
@@ -421,7 +410,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     # Unable to infer based on selected fields and query string, so run both queries.
                     else:
                         map = {}
-                        with ThreadPoolExecutor(max_workers=3) as exe:
+                        with ContextPropagatingThreadPoolExecutor(max_workers=3) as exe:
                             futures = {
                                 exe.submit(
                                     _data_fn, dataset_query, offset, limit, scoped_query
@@ -545,6 +534,13 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
+                    return SearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions,
+                        auto_fields=True,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
+                    )
+                elif scoped_dataset == ProcessingErrors:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,

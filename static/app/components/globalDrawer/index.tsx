@@ -11,13 +11,15 @@ import type {Interpolation, Theme} from '@emotion/react';
 import {AnimatePresence, type Transition} from 'framer-motion';
 import type {Location} from 'history';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {useScrollLock} from '@sentry/scraps/useScrollLock';
+
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DrawerComponents} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 export interface DrawerOptions {
   /**
@@ -118,14 +120,19 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
-    overwriteDrawerConfig({renderer, options});
-    options.onOpen?.();
-  }, []);
-  const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(
-    () => overwriteDrawerConfig(undefined),
-    []
+  const scrollLock = useScrollLock(document.body);
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
+    (renderer, options) => {
+      scrollLock.acquire();
+      overwriteDrawerConfig({renderer, options});
+      options.onOpen?.();
+    },
+    [scrollLock]
   );
+  const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(() => {
+    scrollLock.release();
+    overwriteDrawerConfig(undefined);
+  }, [scrollLock]);
 
   const handleClose = useCallback(() => {
     currentDrawerConfig?.options?.onClose?.();
@@ -242,6 +249,6 @@ export function GlobalDrawer({children}: any) {
  * openDrawer(() => <button onClick={closeDrawer}>Close!</button>)
  * ```
  */
-export default function useDrawer() {
+export function useDrawer() {
   return useContext(DrawerContext);
 }

@@ -22,7 +22,6 @@ from sentry.testutils.cases import TestCase
 
 
 class SyncArtifactBundlesTest(TestCase):
-
     def setUp(self) -> None:
         self.source_org = self.create_organization(slug="source_org")
         self.target_org = self.create_organization(slug="target_org")
@@ -80,7 +79,6 @@ class SyncArtifactBundlesTest(TestCase):
         return timezone.now() - timedelta(days=3)
 
     def test_sync_artifact_bundles_no_bundles(self) -> None:
-
         _sync_artifact_bundles(
             source_org=self.source_org,
             target_org=self.target_org,

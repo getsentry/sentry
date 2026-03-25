@@ -9,7 +9,7 @@ import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import type {Organization} from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {
   DashboardWidgetSource,
@@ -872,6 +872,7 @@ describe('constructAddQueryToDashboardLink', () => {
         displayType: DisplayType.AREA,
         yAxis: ['count()', 'count_unique(user)'],
         source: DashboardWidgetSource.DISCOVERV2,
+        axisRange: 'auto',
       });
     });
     it('should construct a link with the correct params - topN', () => {
@@ -904,6 +905,7 @@ describe('constructAddQueryToDashboardLink', () => {
         yAxis: ['count()'],
         limit: 5,
         source: DashboardWidgetSource.DISCOVERV2,
+        axisRange: 'auto',
       });
     });
     it('should construct a link with the correct params - daily top N', () => {
@@ -936,6 +938,43 @@ describe('constructAddQueryToDashboardLink', () => {
         yAxis: ['count()'],
         limit: 5,
         source: DashboardWidgetSource.DISCOVERV2,
+        axisRange: 'auto',
+      });
+    });
+    it('should preserve group by columns and display type for logs widgets', () => {
+      const eventView = new EventView({
+        ...baseView,
+        display: DisplayType.AREA,
+        name: 'logs query',
+        fields: [
+          {field: 'sentry.severity_text'},
+          {field: 'sentry.service'},
+          {field: 'count()'},
+        ],
+      });
+      const {query} = constructAddQueryToDashboardLink({
+        eventView,
+        organization,
+        location,
+        source: DashboardWidgetSource.LOGS,
+        yAxis: ['count()'],
+        widgetType: WidgetType.LOGS,
+      });
+      expect(query).toEqual({
+        start: undefined,
+        end: undefined,
+        description: '',
+        query: [''],
+        sort: [''],
+        legendAlias: [''],
+        field: ['sentry.severity_text', 'sentry.service'],
+        title: 'logs query',
+        dataset: WidgetType.LOGS,
+        displayType: DisplayType.AREA,
+        yAxis: ['count()'],
+        limit: undefined,
+        source: DashboardWidgetSource.LOGS,
+        axisRange: 'auto',
       });
     });
   });
