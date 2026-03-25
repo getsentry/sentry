@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -27,7 +27,10 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
-import {SEGMENT_SPANS_CURSOR} from 'sentry/views/performance/eap/utils';
+import {
+  SEGMENT_SPANS_CURSOR,
+  SEGMENT_SPANS_SORT,
+} from 'sentry/views/performance/eap/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const LIMIT = 50;
@@ -79,6 +82,10 @@ export function OverviewSpansTable({eventView, transactionName}: Props) {
 
   const searchQuery = decodeScalar(location.query.query, '');
   const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR]);
+  const sort = decodeSorts(location.query?.[SEGMENT_SPANS_SORT])[0] ?? {
+    field: 'timestamp',
+    kind: 'desc' as const,
+  };
 
   const defaultQuery = new MutableSearch(searchQuery);
   defaultQuery.setFilterValues('is_transaction', ['true']);
@@ -117,7 +124,7 @@ export function OverviewSpansTable({eventView, transactionName}: Props) {
     {
       search: defaultQuery,
       fields: FIELDS,
-      sorts: [{field: 'span.duration' as const, kind: 'desc' as const}],
+      sorts: [sort],
       limit: LIMIT,
       cursor,
       pageFilters: selection,
@@ -148,11 +155,14 @@ export function OverviewSpansTable({eventView, transactionName}: Props) {
         error={error}
         data={consolidatedData}
         columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
+        columnSortBy={[{key: sort.field, order: sort.kind}]}
         grid={{
           renderHeadCell: column =>
             renderHeadCell({
               column,
+              sort,
+              location,
+              sortParameterName: SEGMENT_SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
