@@ -1,6 +1,7 @@
 import functools
 import logging
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor
 from typing import Literal
 
 import orjson
@@ -15,7 +16,6 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
-from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +40,7 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.batched = mode == "batched-parallel"
         # either use multi-process pool or a thread pool
         if self.batched:
-            self.worker: ContextPropagatingThreadPoolExecutor | None = (
-                ContextPropagatingThreadPoolExecutor()
-            )
+            self.worker: ThreadPoolExecutor | None = ThreadPoolExecutor()
             self.pool: MultiprocessingPool | None = None
         else:
             # make sure num_processes is not None
@@ -104,9 +102,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
         logger.exception("failed to process message payload")
 
 
-def process_batch(
-    worker: ContextPropagatingThreadPoolExecutor, messages: Message[ValuesBatch[KafkaPayload]]
-) -> None:
+def process_batch(worker: ThreadPoolExecutor, messages: Message[ValuesBatch[KafkaPayload]]) -> None:
     from sentry.issues.occurrence_consumer import process_occurrence_batch
 
     try:
