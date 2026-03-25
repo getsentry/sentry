@@ -1,5 +1,6 @@
 import {
   act,
+  render,
   renderGlobalModal,
   screen,
   userEvent,
@@ -222,6 +223,41 @@ describe('GlobalModal', () => {
 
     // Modal should still be open
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('restores focus to the button that opened the modal', async () => {
+    const {waitForModalToHide} = renderGlobalModal();
+    render(
+      <button onClick={() => openModal(() => <div>Modal content</div>)}>
+        Open Modal
+      </button>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open Modal'}));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    await waitForModalToHide();
+
+    expect(screen.getByRole('button', {name: 'Open Modal'})).toHaveFocus();
+  });
+
+  it('restores focus to the button focused when a keyboard shortcut opens the modal', async () => {
+    const {waitForModalToHide} = renderGlobalModal();
+    render(<button>My Button</button>);
+
+    // Simulate keyboard navigation landing on the button
+    screen.getByRole('button', {name: 'My Button'}).focus();
+    expect(screen.getByRole('button', {name: 'My Button'})).toHaveFocus();
+
+    // Simulate a keyboard shortcut handler (e.g. Cmd+K) opening the modal
+    act(() => openModal(() => <div>Modal content</div>));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    await waitForModalToHide();
+
+    expect(screen.getByRole('button', {name: 'My Button'})).toHaveFocus();
   });
 
   it('renders interactive tooltip inside the modal', async () => {
