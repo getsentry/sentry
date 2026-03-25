@@ -151,6 +151,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "python-fastapi",
     "python-flask",
     "python-gcpfunctions",
+    "python-litestar",
     "python-pylons",
     "python-pymongo",
     "python-pyramid",
