@@ -1,8 +1,11 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -15,13 +18,13 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
-import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {getProviderConfigUrl} from 'sentry/components/repositories/scmIntegrationTree/providerConfigLink';
 import {useScmIntegrationTreeData} from 'sentry/components/repositories/scmIntegrationTree/useScmIntegrationTreeData';
 import {ScmRepoTreeModal} from 'sentry/components/repositories/scmRepoTreeModal';
 import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {
   IntegrationRepository,
   OrganizationIntegration,
@@ -29,8 +32,6 @@ import type {
 import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {SeerOverview} from 'sentry/views/settings/seer/overview/components';
 
 interface SCMOverviewSectionData {
   connectedRepos: IntegrationRepository[];
@@ -46,7 +47,7 @@ interface SCMOverviewSectionData {
   }>;
 }
 
-function useSCMOverviewSection(): SCMOverviewSectionData {
+export function useSCMOverviewSection(): SCMOverviewSectionData {
   const {
     scmIntegrations,
     connectedIdentifiers,
@@ -103,178 +104,172 @@ function useSCMOverviewSection(): SCMOverviewSectionData {
   };
 }
 
-interface SCMOverviewSectionViewProps extends SCMOverviewSectionData {
+interface Props extends SCMOverviewSectionData {
   canWrite: boolean;
   organizationSlug: string;
 }
 
-export function SCMOverviewSectionView({
-  canWrite,
-  organizationSlug,
-  isPending,
-  isError,
-  isReposPending,
-  supportedScmIntegrations,
-  seerRepos,
-  connectedRepos,
-  unconnectedRepos,
-  refetchIntegrations,
-}: SCMOverviewSectionViewProps) {
-  const stat = (
-    <SeerOverview.Stat
-      label={tn('Repository Connected', 'Repositories Connected', connectedRepos.length)}
-      value={SeerOverview.formatStatValue(
-        connectedRepos.length,
-        seerRepos.length,
-        isPending
-      )}
-      isPending={isReposPending}
-    />
-  );
-
+export function SCMOverviewSection(props: Props) {
+  const {
+    isError,
+    isPending,
+    organizationSlug,
+    refetchIntegrations,
+    seerRepos,
+    supportedScmIntegrations,
+  } = props;
   return (
-    <SeerOverview.Section>
-      <SeerOverview.SectionHeader title={t('Source Code Management')}>
-        {isPending ? null : (
-          <Link to={`/settings/${organizationSlug}/seer/scm/`}>
-            <Flex align="center" gap="xs">
-              {t('Configure')} <IconSettings size="xs" />
-            </Flex>
-          </Link>
-        )}
-      </SeerOverview.SectionHeader>
-      {isPending ? (
-        stat
-      ) : isError ? (
-        <Fragment>
-          {stat}
-          <Flex align="center" justify="center">
-            <LoadingError
-              message={t('Error loading repositories')}
-              onRetry={refetchIntegrations}
-            />
-          </Flex>
-        </Fragment>
-      ) : supportedScmIntegrations.length === 0 ? (
-        <Stack
-          column="1 / -1"
-          align="center"
-          justify="center"
-          justifySelf="center"
-          gap="lg"
-          maxWidth="360px"
-        >
-          <InstallIntegrationButton onClose={refetchIntegrations} />
-          <Text size="sm" variant="secondary" align="center">
-            {t(
-              'In order for Seer to work you must make sure at least one integration (Github, Gitlab etc) and at least one repo are connected to Sentry.'
-            )}
+    <FieldGroup
+      title={
+        <Flex justify="between" gap="md" flexGrow={1}>
+          <span>{t('Repositories')}</span>
+          <Text uppercase={false}>
+            <Link to={`/settings/${organizationSlug}/seer/scm/`}>
+              <Flex align="center" gap="xs">
+                {t('Configure')} <IconSettings size="xs" />
+              </Flex>
+            </Link>
           </Text>
-        </Stack>
-      ) : (
-        <Fragment>
-          {stat}
-          {seerRepos.length === 0 ? (
-            <CreateReposButton seerIntegrations={supportedScmIntegrations} />
-          ) : (
-            <ConnectAllReposButton
-              organizationSlug={organizationSlug}
-              disabled={!canWrite || connectedRepos.length === seerRepos.length}
-              unconnectedRepos={unconnectedRepos}
-              onDone={refetchIntegrations}
-            />
-          )}
-        </Fragment>
-      )}
-    </SeerOverview.Section>
-  );
-}
-
-interface Props {
-  canWrite: boolean;
-}
-
-export function SCMOverviewSection({canWrite}: Props) {
-  const organization = useOrganization();
-  const data = useSCMOverviewSection();
-  return (
-    <SCMOverviewSectionView
-      canWrite={canWrite}
-      organizationSlug={organization.slug}
-      {...data}
-    />
-  );
-}
-
-function InstallIntegrationButton({onClose}: {onClose: () => void}) {
-  return (
-    <Button
-      priority="primary"
-      size="sm"
-      icon={<IconAdd />}
-      onClick={() => {
-        openModal(
-          deps => <ScmRepoTreeModal {...deps} title={t('Install Integration')} />,
-          {
-            modalCss: css`
-              width: 700px;
-            `,
-            onClose,
-          }
-        );
-      }}
+        </Flex>
+      }
     >
-      {t('Install an Integration')}
-    </Button>
+      {isPending ? (
+        <Flex align="center" gap="md">
+          <LoadingIndicator size={16} style={{margin: '0'}} />
+          <Text size="sm" variant="muted">
+            {t('Loading source code providers and repositories...')}
+          </Text>
+        </Flex>
+      ) : isError ? (
+        <AlertRoundBottom
+          system
+          variant="danger"
+          data-test-id="loading-error"
+          trailingItems={
+            <Alert.Button onClick={refetchIntegrations} priority="default">
+              {t('Retry')}
+            </Alert.Button>
+          }
+        >
+          {t('Error loading repositories')}
+        </AlertRoundBottom>
+      ) : supportedScmIntegrations.length === 0 ? (
+        <NoIntegrations {...props} />
+      ) : seerRepos.length === 0 ? (
+        <NoRepos {...props} />
+      ) : (
+        <AddedRepos {...props} />
+      )}
+    </FieldGroup>
   );
 }
 
-function CreateReposButton({
-  seerIntegrations,
-}: {
-  seerIntegrations: OrganizationIntegration[];
-}) {
-  const externalLinks = seerIntegrations
-    .map(integration => getProviderConfigUrl(integration))
-    .filter(defined);
-  if (externalLinks.length === 0) {
-    return (
-      <Text size="sm" variant="muted">
-        {t('Configure your provider to allow Sentry to see your repos.')}
-      </Text>
-    );
-  }
+function NoIntegrations({refetchIntegrations}: {refetchIntegrations: () => void}) {
   return (
-    <Stack gap="lg">
-      <Text size="sm" variant="muted">
-        {t('Allow Access so Sentry can see your repos.')}
-      </Text>
-      <ul>
-        {seerIntegrations.map(integration => {
-          const href = getProviderConfigUrl(integration);
-          if (!href) {
-            return null;
-          }
-          return (
-            <li key={integration.id}>
-              <Tooltip title={t('External installation settings')} skipWrapper>
-                <ExternalLink href={href} onClick={e => e.stopPropagation()}>
-                  <Flex align="center" gap="sm">
-                    <RepoProviderIcon provider={integration.provider.key} size="xs" />
-                    {integration.domainName ?? integration.provider.name}
-                    <IconOpen size="xs" />
-                  </Flex>
-                </ExternalLink>
-              </Tooltip>
-            </li>
+    <Stack align="center" justifySelf="center" gap="lg" maxWidth="360px">
+      <Button
+        priority="primary"
+        size="sm"
+        icon={<IconAdd />}
+        onClick={() => {
+          openModal(
+            deps => <ScmRepoTreeModal {...deps} title={t('Install Integration')} />,
+            {
+              modalCss: css`
+                width: 700px;
+              `,
+              onClose: refetchIntegrations,
+            }
           );
-        })}
-      </ul>
+        }}
+      >
+        {t('Install an Integration')}
+      </Button>
+      <Text size="sm" variant="secondary" align="center">
+        {t(
+          'In order for Seer to work you must make sure at least one integration and at least one repo added to Sentry.'
+        )}
+      </Text>
     </Stack>
   );
 }
 
-function ConnectAllReposButton({
+function NoRepos({supportedScmIntegrations}: Props) {
+  const externalLinks = supportedScmIntegrations
+    .map(integration => getProviderConfigUrl(integration))
+    .filter(defined);
+
+  return (
+    <Flex align="center" gap="lg">
+      <Stack width="50%" gap="xs">
+        <Text>{t('0 Repositories Added')}</Text>
+        <Text size="sm" variant="muted">
+          {externalLinks.length === 0
+            ? t('Configure your provider to allow Sentry to see your repos.')
+            : t('Allow Access so Sentry can see your repos.')}
+        </Text>
+      </Stack>
+      <Flex>
+        <List>
+          {supportedScmIntegrations.map(integration => {
+            const href = getProviderConfigUrl(integration);
+            if (!href) {
+              return null;
+            }
+            return (
+              <li key={integration.id}>
+                <Tooltip title={t('External installation settings')} skipWrapper>
+                  <ExternalLink href={href} onClick={e => e.stopPropagation()}>
+                    <Flex align="center" gap="sm">
+                      <RepoProviderIcon provider={integration.provider.key} size="xs" />
+                      {integration.domainName ?? integration.provider.name}
+                      <IconOpen size="xs" />
+                    </Flex>
+                  </ExternalLink>
+                </Tooltip>
+              </li>
+            );
+          })}
+        </List>
+      </Flex>
+    </Flex>
+  );
+}
+
+function AddedRepos({
+  canWrite,
+  connectedRepos,
+  isReposPending,
+  organizationSlug,
+  refetchIntegrations,
+  seerRepos,
+  unconnectedRepos,
+}: Props) {
+  return (
+    <Flex align="center" gap="lg">
+      <Stack width="50%" gap="xs">
+        <Flex align="center" gap="sm">
+          {isReposPending ? <LoadingIndicator size={16} style={{margin: '0'}} /> : null}
+          {seerRepos.length === 1
+            ? t('1 Repository Added')
+            : t('%s of %s Repositories Added', connectedRepos.length, seerRepos.length)}
+        </Flex>
+
+        <Text size="sm" variant="muted">
+          {t('Repositories shared with Sentry must be added before they can use used.')}
+        </Text>
+      </Stack>
+      <AddAllReposButton
+        organizationSlug={organizationSlug}
+        disabled={!canWrite || connectedRepos.length === seerRepos.length}
+        unconnectedRepos={unconnectedRepos}
+        onDone={refetchIntegrations}
+      />
+    </Flex>
+  );
+}
+
+function AddAllReposButton({
   organizationSlug,
   disabled,
   unconnectedRepos,
@@ -334,7 +329,7 @@ function ConnectAllReposButton({
   }
 
   return (
-    <Flex alignSelf="end">
+    <Flex align="center">
       <Button
         priority="primary"
         size="xs"
@@ -348,3 +343,14 @@ function ConnectAllReposButton({
     </Flex>
   );
 }
+
+const AlertRoundBottom = styled(Alert)`
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
+  overflow: hidden;
+`;
+
+const List = styled('ul')`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+`;
