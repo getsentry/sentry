@@ -35,31 +35,25 @@ describe('OrganizationSampling', () => {
     });
   });
 
-  it('pre-fills the input with the organization target sample rate', () => {
+  it('renders initial state with correct input value and button states', () => {
     render(<OrganizationSampling />, {organization});
 
     expect(screen.getByRole('spinbutton')).toHaveValue(50);
-  });
-
-  it('Reset button is disabled when the form is clean', () => {
-    render(<OrganizationSampling />, {organization});
-
+    expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
   });
 
-  it('Apply Changes button is always enabled when user has access', () => {
-    render(<OrganizationSampling />, {organization});
-
-    expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeEnabled();
-  });
-
-  it('enables Reset button after changing the rate', async () => {
+  it('resets the input back to the saved value when Reset is clicked', async () => {
     render(<OrganizationSampling />, {organization});
 
     await userEvent.clear(screen.getByRole('spinbutton'));
     await userEvent.type(screen.getByRole('spinbutton'), '30');
 
     expect(screen.getByRole('button', {name: 'Reset'})).toBeEnabled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
+
+    expect(screen.getByRole('spinbutton')).toHaveValue(50);
   });
 
   it('does not call the API when value is out of range', async () => {
@@ -75,7 +69,9 @@ describe('OrganizationSampling', () => {
     await userEvent.type(screen.getByRole('spinbutton'), '150');
     await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
 
-    // Zod validation prevents the API call
+    // jsdom doesn't support formNoValidate, so browser-native max={100}
+    // blocks the submit before Zod can run. The error message can't be
+    // asserted here — it works correctly in real browsers.
     expect(putMock).not.toHaveBeenCalled();
   });
 
@@ -146,17 +142,7 @@ describe('OrganizationSampling', () => {
     );
   });
 
-  it('resets the input back to the saved value when Reset is clicked', async () => {
-    render(<OrganizationSampling />, {organization});
-
-    await userEvent.clear(screen.getByRole('spinbutton'));
-    await userEvent.type(screen.getByRole('spinbutton'), '30');
-    await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
-
-    expect(screen.getByRole('spinbutton')).toHaveValue(50);
-  });
-
-  it('disables the Apply Changes button for users without org:write access', () => {
+  it('disables Apply Changes and input for users without org:write access', () => {
     const orgWithoutAccess = OrganizationFixture({
       access: [],
       targetSampleRate: 0.5,
