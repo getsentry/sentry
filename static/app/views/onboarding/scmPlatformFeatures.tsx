@@ -29,6 +29,7 @@ import {ScmPlatformCard} from 'sentry/views/onboarding/components/scmPlatformCar
 import {ScmSearchControl} from './components/scmSearchControl';
 import {ScmStepFooter} from './components/scmStepFooter';
 import {ScmStepHeader} from './components/scmStepHeader';
+import {ScmVirtualizedMenuList} from './components/scmVirtualizedMenuList';
 import {
   useScmPlatformDetection,
   type DetectedPlatform,
@@ -296,11 +297,9 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     [selectedPlatform?.key, setPlatform, setSelectedFeatures, organization]
   );
 
-  // Ensure the selected platform is always present in the dropdown options.
-  // When the framework suggestion modal picks a specific framework (e.g.
-  // javascript-nextjs from a "javascript" base language selection), the key
-  // is already in the static list. But if a platform was set externally and
-  // isn't in the list, prepend it so the Select can resolve and display it.
+  // Ensure the selected platform is always present in the dropdown options
+  // so the Select can resolve and display it. When the framework suggestion
+  // modal picks a key not in the static list, prepend it.
   const manualPickerOptions = useMemo(() => {
     const key = currentPlatformKey;
     if (!key || platformOptions.some(o => o.value === key)) {
@@ -403,7 +402,10 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                   }
                 }}
                 searchable
-                components={{Control: ScmSearchControl}}
+                components={{
+                  Control: ScmSearchControl,
+                  MenuList: ScmVirtualizedMenuList,
+                }}
                 styles={{container: base => ({...base, width: '100%'})}}
               />
               {hasScmConnected && (
