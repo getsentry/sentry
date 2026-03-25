@@ -6,12 +6,13 @@ import throttle from 'lodash/throttle';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {COL_WIDTH_UNDEFINED} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
@@ -41,6 +42,18 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
+
+const METRIC_NAME_COLUMN: TableColumn<string> = {
+  key: TraceMetricKnownFieldKey.METRIC_NAME,
+  name: TraceMetricKnownFieldKey.METRIC_NAME,
+  type: 'string',
+  isSortable: false,
+  column: {
+    kind: 'field',
+    field: TraceMetricKnownFieldKey.METRIC_NAME,
+  },
+  width: COL_WIDTH_UNDEFINED,
+};
 
 interface AggregatesTabProps {
   traceMetric: TraceMetric;
@@ -98,18 +111,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
   const displayColumns = useMemo(() => {
     if (groupBys.length === 0) {
-      const metricNameColumn = {
-        key: TraceMetricKnownFieldKey.METRIC_NAME,
-        name: TraceMetricKnownFieldKey.METRIC_NAME,
-        type: 'string' as const,
-        isSortable: false,
-        column: Object.freeze({
-          kind: 'field' as const,
-          field: TraceMetricKnownFieldKey.METRIC_NAME,
-        }),
-        width: COL_WIDTH_UNDEFINED,
-      };
-      return [metricNameColumn, ...columns];
+      return [METRIC_NAME_COLUMN, ...columns];
     }
     return columns;
   }, [groupBys.length, columns]);
