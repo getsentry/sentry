@@ -162,19 +162,16 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
   const removeRepo = useCallback(
     async (repo: Repository) => {
       const previousData = queryClient.getQueryData(reposQueryOptions.queryKey);
-      queryClient.setQueryData(
-        reposQueryOptions.queryKey,
-        (old: InfiniteData<{json: Repository[]}> | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map(page => ({
-              ...page,
-              json: page.json.filter(r => r.id !== repo.id),
-            })),
-          };
-        }
-      );
+      queryClient.setQueryData(reposQueryOptions.queryKey, old => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map(page => ({
+            ...page,
+            json: page.json.filter(r => r.id !== repo.id),
+          })),
+        };
+      });
       try {
         await hideRepository(api, organization.slug, repo.id);
         addSuccessMessage(t('Removed %s', repo.name));
@@ -208,19 +205,21 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
             repo.identifier,
             integration
           );
-          queryClient.setQueryData(
-            reposQueryOptions.queryKey,
-            (old: InfiniteData<{json: Repository[]}> | undefined) => {
-              if (!old) return old;
-              return {
-                ...old,
-                pages: [
-                  {...old.pages[0]!, json: [newRepo, ...(old.pages[0]?.json ?? [])]},
-                  ...old.pages.slice(1),
-                ],
-              };
+          queryClient.setQueryData(reposQueryOptions.queryKey, old => {
+            if (!old) {
+              return old;
             }
-          );
+            return {
+              ...old,
+              pages: [
+                {
+                  ...old.pages[0]!,
+                  json: [{...newRepo, settings: null}, ...(old.pages[0]?.json ?? [])],
+                },
+                ...old.pages.slice(1),
+              ],
+            };
+          });
           addSuccessMessage(t('Added %s', repo.name));
         }
       } finally {
