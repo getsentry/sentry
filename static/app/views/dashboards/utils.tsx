@@ -209,8 +209,7 @@ export function getWidgetDiscoverUrl(
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  index = 0,
-  isMetricsData = false
+  index = 0
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
@@ -271,10 +270,6 @@ export function getWidgetDiscoverUrl(
     query.conditions,
     dashboardFilters
   );
-
-  if (isMetricsData) {
-    discoverLocation.query.fromMetric = 'true';
-  }
 
   // Pass empty string when projects is empty to preserve "My Projects" selection in URL
   const projectParam =

@@ -55,7 +55,6 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
 import {
   getMenuOptions,
@@ -223,7 +222,6 @@ function WidgetCard(props: Props) {
     query.aggregates.some(aggregate => aggregate.includes('session.duration'))
   );
 
-  const {isMetricsData} = useDashboardsMEPContext();
   const extractionStatus = useExtractionStatus({queryKey: widget});
   const onDemandWarning = useOnDemandWarning({widget});
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
@@ -328,7 +326,6 @@ function WidgetCard(props: Props) {
         organization,
         selection,
         widget,
-        Boolean(isMetricsData),
         props.widgetLimitReached,
         props.hasEditAccess,
         location,
