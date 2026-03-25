@@ -209,17 +209,13 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             comparison=True,
             condition_result=True,
         )
-        workflow_filters = self.create_data_condition_group()
-        self.create_workflow_data_condition_group(
-            workflow=workflow, condition_group=workflow_filters
-        )
+        action_group, _ = self.create_workflow_action(workflow)
         self.create_data_condition(  # filter condition
-            condition_group=workflow_filters,
+            condition_group=action_group,
             type=Condition.EVENT_ATTRIBUTE,
             comparison={"attribute": "platform", "match": "eq", "value": "python"},
             condition_result=True,
         )
-        self.create_workflow_action(workflow)
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
