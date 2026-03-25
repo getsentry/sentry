@@ -126,7 +126,7 @@ export function OrganizationSampling() {
                           <form.SubmitButton
                             disabled={!hasAccess || !canSubmit || !isDirty}
                           >
-                            {t('Save changes')}
+                            {t('Apply Changes')}
                           </form.SubmitButton>
                         </Tooltip>
                       </Fragment>
