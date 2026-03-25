@@ -489,6 +489,8 @@ class SeerExplorerOperator[CachePayloadT]:
                     category_key=category_key,
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
+                    is_interactive=True,
+                    enable_coding=False,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(
