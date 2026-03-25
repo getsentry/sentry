@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -17,6 +16,7 @@ import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/sampling
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
+import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/utils/targetSampleRateSchema';
 import {
   useProjectSampleCounts,
   type ProjectionSamplePeriod,
@@ -26,20 +26,6 @@ import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils
 const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'
 );
-
-const schema = z.object({
-  targetSampleRate: z
-    .string()
-    .min(1, t('This field is required.'))
-    .refine(val => !isNaN(Number(val)), {message: t('Please enter a valid number.')})
-    .refine(
-      val => {
-        const n = Number(val);
-        return n >= 0 && n <= 100;
-      },
-      {message: t('Must be between 0% and 100%')}
-    ),
-});
 
 export function OrganizationSampling() {
   const organization = useOrganization();
@@ -59,7 +45,7 @@ export function OrganizationSampling() {
       targetSampleRate: initialTargetSampleRate,
     },
     validators: {
-      onDynamic: schema,
+      onDynamic: targetSampleRateSchema,
     },
     onSubmit: async ({value, formApi}) => {
       try {
@@ -122,13 +108,11 @@ export function OrganizationSampling() {
                             'You do not have permission to update these settings.'
                           )}
                         >
-                          <Button
-                            priority="primary"
-                            type="submit"
-                            disabled={!hasAccess || !canSubmit || !isDirty || isPending}
+                          <form.SubmitButton
+                            disabled={!hasAccess || !canSubmit || !isDirty}
                           >
                             {t('Save changes')}
-                          </Button>
+                          </form.SubmitButton>
                         </Tooltip>
                       </Fragment>
                     }
