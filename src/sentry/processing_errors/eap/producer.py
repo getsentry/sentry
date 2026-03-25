@@ -75,6 +75,19 @@ def produce_processing_errors_to_eap(
 
         count = 0
         for index, error in enumerate(processing_errors):
+            # Skip invalid entries (e.g., None values) in the errors list
+            if not isinstance(error, Mapping):
+                logger.warning(
+                    "Skipping invalid processing error entry",
+                    extra={
+                        "event_id": event_data["event_id"],
+                        "project_id": project.id,
+                        "error_index": index,
+                        "error_type": type(error).__name__,
+                    },
+                )
+                continue
+
             attributes: dict[str, Any] = {
                 "event_id": event_data["event_id"],
                 "error_type": error.get("type", "unknown"),
