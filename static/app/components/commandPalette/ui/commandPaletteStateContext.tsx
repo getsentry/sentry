@@ -10,10 +10,7 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type CommandPaletteState = {
-  modal: {
-    open: boolean;
-    restoreFocusToElement: Element | null;
-  };
+  open: boolean;
   query: string;
   selectedAction: CommandPaletteActionWithKey | null;
 };
@@ -21,8 +18,7 @@ export type CommandPaletteState = {
 export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
 
 export type CommandPaletteAction =
-  | {restoreFocusToElement: Element | null; type: 'open modal'}
-  | {type: 'close modal'}
+  | {type: 'toggle modal'}
   | {query: string; type: 'set query'}
   | {action: CommandPaletteActionWithKey; type: 'set selected action'}
   | {type: 'trigger action'}
@@ -38,13 +34,11 @@ function commandPaletteReducer(
 ): CommandPaletteState {
   const type = action.type;
   switch (type) {
-    case 'open modal':
+    case 'toggle modal':
       return {
         ...state,
-        modal: {open: true, restoreFocusToElement: action.restoreFocusToElement},
+        open: !state.open,
       };
-    case 'close modal':
-      return {...state, modal: {open: false, restoreFocusToElement: null}};
     case 'set query':
       return {...state, query: action.query};
     case 'set selected action':
@@ -87,11 +81,7 @@ export function CommandPaletteStateProvider({
   const [state, dispatch] = useReducer(commandPaletteReducer, {
     query: '',
     selectedAction: null,
-
-    modal: {
-      open: false,
-      restoreFocusToElement: null,
-    },
+    open: false,
   });
 
   return (

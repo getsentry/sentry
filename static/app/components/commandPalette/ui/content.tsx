@@ -1,6 +1,5 @@
 import {Fragment, useCallback} from 'react';
 
-import {closeModal} from 'sentry/actionCreators/modal';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {
   useCommandPaletteDispatch,
@@ -12,7 +11,11 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-export function CommandPaletteContent() {
+interface CommandPaletteContentProps {
+  onClose: () => void;
+}
+
+export function CommandPaletteContent({onClose}: CommandPaletteContentProps) {
   const navigate = useNavigate();
 
   const {query} = useCommandPaletteState();
@@ -37,9 +40,9 @@ export function CommandPaletteContent() {
           unreachable(actionType);
           break;
       }
-      closeModal();
+      onClose();
     },
-    [navigate, dispatch]
+    [navigate, dispatch, onClose]
   );
 
   return (
