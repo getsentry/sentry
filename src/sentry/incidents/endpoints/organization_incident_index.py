@@ -27,6 +27,7 @@ from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleActivity, AlertRuleActivityType
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.environment import Environment
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
@@ -291,7 +292,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                 source_id_as_int=Cast("data_source__source_id", output_field=BigIntegerField())
             )
             .filter(
-                data_source__type="snuba_query_subscription",
+                data_source__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
                 source_id_as_int__in=subscription_qs.values("id"),
             )
             .values("detector_id")
