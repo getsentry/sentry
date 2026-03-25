@@ -29,9 +29,9 @@ class Migration(CheckedMigration):
         # Addresses https://sentry.sentry.io/issues/7295196781/
         SafeRunSQL(
             """
-            DROP TABLE IF EXISTS sentry_alertruleactivationconditions CASCADE;
+            DROP TABLE IF EXISTS  sentry_alertruleactivationcondition CASCADE;
             """,
-            hints={"tables": ["sentry_alertruleactivationconditions"]},
+            hints={"tables": ["sentry_alertruleactivationcondition"]},
         ),
         SafeRunSQL(
             """
