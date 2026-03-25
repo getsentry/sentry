@@ -1,3 +1,4 @@
+import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
@@ -14,7 +15,13 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {
+  fetchMutation,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+  type ApiQueryKey,
+} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -61,6 +68,7 @@ function getReportOnlyInstructions(keyList: ProjectKey[]) {
 export default function ProjectCspReports() {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
+  const queryClient = useQueryClient();
 
   const {
     data: keyList,
@@ -109,17 +117,32 @@ export default function ProjectCspReports() {
   }
 
   const projectEndpoint = `/projects/${organization.slug}/${projectId}/`;
+  const projectQueryKey: ApiQueryKey = [
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
+    }),
+  ];
 
-  function getCspMutationOptions() {
-    return {
-      mutationFn: (data: Partial<CspSchema>) =>
-        fetchMutation({
-          url: projectEndpoint,
-          method: 'PUT',
-          data: {options: data},
-        }),
-    };
-  }
+  const cspMutationOptions = mutationOptions({
+    mutationFn: (data: Partial<CspSchema>) =>
+      fetchMutation<Project>({
+        url: projectEndpoint,
+        method: 'PUT',
+        data: {options: data},
+      }),
+    onSuccess: (updatedProject: Project) => {
+      setApiQueryData<Project>(queryClient, projectQueryKey, previousData => {
+        if (!previousData) {
+          return updatedProject;
+        }
+        return {
+          ...previousData,
+          ...updatedProject,
+          options: {...previousData.options, ...updatedProject.options},
+        };
+      });
+    },
+  });
 
   return (
     <FormSearch route="/settings/:orgId/projects/:projectId/security-headers/csp/">
@@ -141,7 +164,7 @@ export default function ProjectCspReports() {
                   | boolean
                   | undefined) ?? false
               }
-              mutationOptions={getCspMutationOptions()}
+              mutationOptions={cspMutationOptions}
             >
               {field => (
                 <field.Layout.Row
@@ -166,7 +189,7 @@ export default function ProjectCspReports() {
                 (project.options?.['sentry:csp_ignored_sources'] as string | undefined) ??
                 ''
               }
-              mutationOptions={getCspMutationOptions()}
+              mutationOptions={cspMutationOptions}
             >
               {field => (
                 <field.Layout.Stack
