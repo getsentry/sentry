@@ -53,7 +53,7 @@ export function ScmFeatureCard({
                 </Text>
                 <Checkbox
                   readOnly
-                  size="xs"
+                  size="sm"
                   tabIndex={-1}
                   role="presentation"
                   checked={isSelected}
