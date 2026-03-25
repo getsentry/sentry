@@ -145,9 +145,7 @@ describe('SeerDrawerNextStep', () => {
       );
       expect(screen.getByText('Are you happy with this root cause?')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Yes, make an implementation plan'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeInTheDocument();
     });
 
     it('calls startStep with solution on yes click', async () => {
@@ -159,9 +157,7 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Yes, make an implementation plan'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Yes, make a plan'}));
       expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
     });
 
@@ -180,7 +176,7 @@ describe('SeerDrawerNextStep', () => {
         screen.getByRole('button', {name: 'Rethink root cause'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Nevermind, make an implementation plan'})
+        screen.getByRole('button', {name: 'Nevermind, make a plan'})
       ).toBeInTheDocument();
     });
 
@@ -213,9 +209,7 @@ describe('SeerDrawerNextStep', () => {
         />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Nevermind, make an implementation plan'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Nevermind, make a plan'}));
       expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
     });
 
@@ -270,9 +264,7 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      expect(
-        screen.getByText('Are you happy with this implementation plan?')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Are you happy with this plan?')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Yes, write a code fix'})
@@ -303,9 +295,7 @@ describe('SeerDrawerNextStep', () => {
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       expect(screen.getByRole('textbox')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Rethink implementation plan'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Rethink plan'})).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Nevermind, write a code fix'})
       ).toBeInTheDocument();
@@ -322,9 +312,7 @@ describe('SeerDrawerNextStep', () => {
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Consider edge cases');
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Rethink implementation plan'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Rethink plan'}));
       expect(autofix.startStep).toHaveBeenCalledWith(
         'solution',
         1,

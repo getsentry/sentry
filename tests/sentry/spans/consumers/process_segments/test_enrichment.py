@@ -403,6 +403,43 @@ def test_emit_ops_breakdown() -> None:
     # assert updates["span_ops_2.total.time"]["value"] == 14400000.01
 
 
+def test_ops_breakdown_excludes_segment_span() -> None:
+    """Regression test: segment span with an op matching the breakdown config
+    (e.g. http.server matching "http") must not be included in the breakdown.
+    The breakdown should only reflect child spans."""
+
+    segment_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        start_timestamp=1577836800.0,  # 2020-01-01 00:00:00
+        end_timestamp=1577858400.0,  # 2020-01-01 06:00:00 (6 hours)
+        span_id="ffffffffffffffff",
+        span_op="http.server",
+    )
+
+    child_http_span = build_mock_span(
+        project_id=1,
+        start_timestamp=1577836800.0,  # 2020-01-01 00:00:00
+        end_timestamp=1577840400.0,  # 2020-01-01 01:00:00 (1 hour)
+        span_id="aaaaaaaaaaaaaaaa",
+        parent_span_id=segment_span["span_id"],
+        span_op="http",
+    )
+
+    all_spans = [child_http_span, segment_span]
+    breakdowns_config = {
+        "span_ops": {"type": "spanOperations", "matches": ["http"]},
+    }
+
+    _, enriched_spans = TreeEnricher.enrich_spans(all_spans)
+
+    # The segment span has op "http.server" which matches "http", but it must
+    # be excluded from the breakdown to avoid inflating the result.
+    child_only = [s for s in enriched_spans if not s.get("is_segment")]
+    result = compute_breakdowns(child_only, breakdowns_config)
+    assert result["span_ops.ops.http"]["value"] == 3600000.0  # 1 hour (child only)
+
+
 def test_write_tags_for_performance_issue_detection():
     segment_span = _mock_performance_issue_span(
         is_segment=True,

@@ -493,10 +493,11 @@ def resolve_repository_ids(
 
 
 def _write_preference_project_options(project: Project, preference: SeerProjectPreference) -> None:
-    project.update_option(
-        "sentry:seer_automated_run_stopping_point",
-        preference.automated_run_stopping_point or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    )
+    stopping_point = preference.automated_run_stopping_point
+    if stopping_point and stopping_point != SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT:
+        project.update_option("sentry:seer_automated_run_stopping_point", stopping_point)
+    else:
+        project.delete_option("sentry:seer_automated_run_stopping_point")
 
     handoff = preference.automation_handoff
     if handoff is not None:
@@ -509,10 +510,10 @@ def _write_preference_project_options(project: Project, preference: SeerProjectP
             "sentry:seer_automation_handoff_auto_create_pr", handoff.auto_create_pr
         )
     else:
-        project.update_option("sentry:seer_automation_handoff_point", None)
-        project.update_option("sentry:seer_automation_handoff_target", None)
-        project.update_option("sentry:seer_automation_handoff_integration_id", None)
-        project.update_option("sentry:seer_automation_handoff_auto_create_pr", False)
+        project.delete_option("sentry:seer_automation_handoff_point")
+        project.delete_option("sentry:seer_automation_handoff_target")
+        project.delete_option("sentry:seer_automation_handoff_integration_id")
+        project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
 
 
 def _write_preferences_to_sentry_db(
@@ -526,10 +527,13 @@ def _write_preferences_to_sentry_db(
         return
 
     with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
-        # Delete existing rows.
-        SeerProjectRepository.objects.filter(
-            project_id__in={project.id for project, _ in project_preferences}
-        ).delete()
+        project_ids = {project.id for project, _ in project_preferences}
+
+        # Lock project rows to serialize concurrent preference writes.
+        list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
+
+        # Delete existing project repos and branch overrides.
+        SeerProjectRepository.objects.filter(project_id__in=project_ids).delete()
 
         # Collect project repos to create.
         project_repos_to_create: list[SeerProjectRepository] = []

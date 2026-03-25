@@ -783,18 +783,15 @@ export function ExplorerPanel() {
     return null;
   }
 
-  if (hasPageFrame) {
-    // When an organization has page frame enabled, Seer is a button inside the top bar.
-    return null;
-  }
-
   return createPortal(
     <Fragment>
       {panelContent}
-      <SeerFloatingActionButton
-        visible={!isVisible && !isSeerDrawerOpen}
-        onClick={openExplorerPanel}
-      />
+      {!hasPageFrame && (
+        <SeerFloatingActionButton
+          visible={!isVisible && !isSeerDrawerOpen}
+          onClick={openExplorerPanel}
+        />
+      )}
     </Fragment>,
     document.body
   );

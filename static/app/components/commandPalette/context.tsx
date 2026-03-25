@@ -2,10 +2,10 @@ import {createContext, useCallback, useContext, useReducer} from 'react';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
+import {CommandPaletteStateProvider} from './ui/commandPaletteStateContext';
 import type {CommandPaletteActionWithKey} from './types';
 
 type CommandPaletteProviderProps = {children: React.ReactNode};
-
 type CommandPaletteActions = CommandPaletteActionWithKey[];
 
 type Unregister = () => void;
@@ -88,7 +88,7 @@ export function CommandPaletteProvider({children}: CommandPaletteProviderProps) 
   return (
     <CommandPaletteRegistrationContext.Provider value={registerActions}>
       <CommandPaletteActionsContext.Provider value={actions}>
-        {children}
+        <CommandPaletteStateProvider>{children}</CommandPaletteStateProvider>
       </CommandPaletteActionsContext.Provider>
     </CommandPaletteRegistrationContext.Provider>
   );
