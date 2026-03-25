@@ -42,6 +42,7 @@ const BASE_FIELDS: SpanProperty[] = [
   'user.email',
   'user.username',
   'user.ip',
+  'request.method',
   'span.duration',
   'trace',
   'timestamp',
@@ -53,12 +54,19 @@ const BASE_FIELDS: SpanProperty[] = [
 ];
 
 type OverviewSpansColumn = GridColumnHeader<
-  'span_id' | 'span.duration' | 'trace' | 'timestamp' | 'replayId' | 'profile.id'
+  | 'span_id'
+  | 'request.method'
+  | 'span.duration'
+  | 'trace'
+  | 'timestamp'
+  | 'replayId'
+  | 'profile.id'
 >;
 
 const BASE_COLUMN_ORDER: OverviewSpansColumn[] = [
   {key: 'trace', name: t('Trace ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'span_id', name: t('Span ID'), width: COL_WIDTH_UNDEFINED},
+  {key: 'request.method', name: t('HTTP Method'), width: COL_WIDTH_UNDEFINED},
   {key: 'span.duration', name: t('Total Duration'), width: COL_WIDTH_UNDEFINED},
   {key: 'timestamp', name: t('Timestamp'), width: COL_WIDTH_UNDEFINED},
 ];
