@@ -808,8 +808,8 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                     continue
 
                 if cache_payload.get("organization_id") != organization.id:
-                    lifecycle.add_extra("org_mismatch", str(entrypoint_key))
-                    continue
+                    lifecycle.record_failure(failure_reason="org_mismatch")
+                    return
 
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_EXPLORER_UPDATE,
