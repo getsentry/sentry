@@ -228,6 +228,20 @@ describe('MetricPanel', () => {
       expect(await screen.findByText('A')).toBeInTheDocument();
     });
 
+    it('does not render telemetry column headers in the samples table', async () => {
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      });
+
+      // Wait for the samples table to render
+      expect(await screen.findByText('Timestamp')).toBeInTheDocument();
+
+      expect(screen.queryByText('Logs')).not.toBeInTheDocument();
+      expect(screen.queryByText('Spans')).not.toBeInTheDocument();
+      expect(screen.queryByText('Errors')).not.toBeInTheDocument();
+    });
+
     it('does not render orientation controls', async () => {
       render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
         organization,
