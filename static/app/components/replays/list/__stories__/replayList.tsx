@@ -7,7 +7,7 @@ import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ApiResult} from 'sentry/api';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
 import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

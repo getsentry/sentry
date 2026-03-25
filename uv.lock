@@ -190,6 +190,20 @@ wheels = [
 ]
 
 [[package]]
+name = "codeowners-coverage"
+version = "0.3.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "click", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pathspec", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/codeowners_coverage-0.3.0-py3-none-any.whl", hash = "sha256:d30abe67e36cdcee67b75f6364b04f61b382816e5040c84c3f85b0a1e96d2508" },
+]
+
+[[package]]
 name = "confluent-kafka"
 version = "2.8.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1470,10 +1484,10 @@ wheels = [
 
 [[package]]
 name = "pathspec"
-version = "0.9.0"
+version = "1.0.4"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pathspec-0.9.0-py2.py3-none-any.whl", hash = "sha256:7d15c4ddb0b5c802d161efc417ec1a2558ea2653c2e8ad9c19098201dc1c993a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pathspec-1.0.4-py3-none-any.whl", hash = "sha256:fb6ae2fd4e7c921a165808a552060e722767cfa526f99ca5156ed2ce45a5c723" },
 ]
 
 [[package]]
@@ -1736,13 +1750,13 @@ wheels = [
 
 [[package]]
 name = "pytest-django"
-version = "4.9.0"
+version = "4.12.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_django-4.9.0-py3-none-any.whl", hash = "sha256:1d83692cb39188682dbb419ff0393867e9904094a549a7d38a3154d5731b2b99" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_django-4.12.0-py3-none-any.whl", hash = "sha256:3ff300c49f8350ba2953b90297d23bf5f589db69545f56f1ec5f8cff5da83e85" },
 ]
 
 [[package]]
@@ -2212,6 +2226,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "codeowners-coverage", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "covdefaults", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "devservices", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "django-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2346,7 +2361,7 @@ requires-dist = [
     { name = "sentry-arroyo", specifier = ">=2.38.1" },
     { name = "sentry-conventions", specifier = ">=0.3.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
-    { name = "sentry-kafka-schemas", specifier = ">=2.1.26" },
+    { name = "sentry-kafka-schemas", specifier = ">=2.1.27" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-protos", specifier = ">=0.8.7" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
@@ -2378,6 +2393,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "codeowners-coverage", specifier = ">=0.3.0" },
     { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "devservices", specifier = ">=1.2.4" },
     { name = "django-stubs", specifier = ">=5.2.9" },
@@ -2397,7 +2413,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "pytest", specifier = ">=8.1.2" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
-    { name = "pytest-django", specifier = ">=4.9.0" },
+    { name = "pytest-django", specifier = ">=4.12.0" },
     { name = "pytest-fail-slow", specifier = ">=0.3.0" },
     { name = "pytest-json-report", specifier = ">=1.5.0" },
     { name = "pytest-rerunfailures", specifier = ">=15.0" },
@@ -2494,7 +2510,7 @@ wheels = [
 
 [[package]]
 name = "sentry-kafka-schemas"
-version = "2.1.26"
+version = "2.1.27"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "fastjsonschema", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2505,7 +2521,7 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_kafka_schemas-2.1.26-py2.py3-none-any.whl", hash = "sha256:1db4ebdc049ffbbbbd5d2240c2e6d2ad36a98162769fd10f1c06edbee9226147" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_kafka_schemas-2.1.27-py2.py3-none-any.whl", hash = "sha256:c9f2ad159702623c9e5e2b33e19033f5d0f1ff2ccd1e50ad864d0f99d41c5714" },
 ]
 
 [[package]]

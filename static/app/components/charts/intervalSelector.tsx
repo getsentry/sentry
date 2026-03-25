@@ -9,7 +9,7 @@ import {
   makeItem,
 } from 'sentry/components/timeRangeSelector/utils';
 import {t, tn} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {INTERVAL_DISPLAY_MODES} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 

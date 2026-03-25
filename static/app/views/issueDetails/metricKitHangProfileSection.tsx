@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   hasFlamegraphData,
   StacktraceFlamegraph,
@@ -28,7 +28,7 @@ export function getHangProfileData(event: Event): HangProfileData | null {
         if (hasFlamegraphData(value.stacktrace?.frames)) {
           return {
             frames: value.stacktrace!.frames!,
-            exceptionValue: value.value,
+            exceptionValue: value.value ?? '',
           };
         }
       }

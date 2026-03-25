@@ -122,7 +122,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
       options={enabledOptions}
       value={[...groupBys]}
       loading={isLoading}
-      disabled={enabledOptions.length === 0}
+      disabled={!traceMetricFilter}
       onChange={handleChange}
       style={{width: '100%'}}
     />

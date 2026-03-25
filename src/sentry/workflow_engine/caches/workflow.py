@@ -26,6 +26,7 @@ class _WorkflowCacheKey(NamedTuple):
 _workflow_cache = CacheMapping[_WorkflowCacheKey, set[Workflow]](
     lambda key: f"{key.detector_id}:{key.env_id}",
     namespace=WORKFLOW_CACHE_PREFIX,
+    ttl_seconds=CACHE_TTL,
 )
 
 
@@ -216,7 +217,7 @@ def _populate_detector_caches(
             }
         )
 
-    _workflow_cache.set_many(data, CACHE_TTL)
+    _workflow_cache.set_many(data)
 
 
 @scopedstats.timer()

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
 
 from botocore.exceptions import ClientError
@@ -31,6 +30,7 @@ from sentry.projects.services.project import project_service
 from sentry.silo.base import control_silo_function
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.sdk import capture_exception
 
 from .client import ConfigurationError, gen_aws_client
@@ -421,7 +421,7 @@ class AwsLambdaSetupLayerPipelineView:
         failures = []
         success_count = 0
 
-        with ThreadPoolExecutor(
+        with ContextPropagatingThreadPoolExecutor(
             max_workers=options.get("aws-lambda.thread-count")
         ) as _lambda_setup_thread_pool:
             # use threading here to parallelize requests

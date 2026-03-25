@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Container, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
@@ -13,6 +14,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
  */
 export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
   const hasPageFrame = useHasPageFrameFeature();
+  const primaryNavigation = usePrimaryNavigation();
   const secondaryNavigation = useContext(SecondaryNavigationContext);
 
   const {withPadding, ...rest} = props;
@@ -22,10 +24,29 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
       <StyledPageFrameStack
         flex="1"
         as="main"
+        roundedCorner={primaryNavigation.layout === 'sidebar'}
         padding={props.withPadding ? '2xl 3xl' : undefined}
-        radius={secondaryNavigation?.view === 'expanded' ? 'lg 0 0 0' : undefined}
-        borderTop={secondaryNavigation?.view === 'expanded' ? 'primary' : undefined}
-        borderLeft={secondaryNavigation?.view === 'expanded' ? 'primary' : undefined}
+        radius={
+          secondaryNavigation?.view === 'expanded'
+            ? primaryNavigation.layout === 'sidebar'
+              ? 'lg 0 0 0'
+              : undefined
+            : undefined
+        }
+        borderTop={
+          primaryNavigation.layout === 'mobile'
+            ? 'primary'
+            : secondaryNavigation?.view === 'expanded'
+              ? 'primary'
+              : undefined
+        }
+        borderLeft={
+          secondaryNavigation?.view === 'expanded'
+            ? primaryNavigation.layout === 'sidebar'
+              ? 'primary'
+              : undefined
+            : undefined
+        }
         background="secondary"
         {...rest}
       />
@@ -37,9 +58,9 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
   );
 }
 
-const StyledPageFrameStack = styled(Stack)`
+const StyledPageFrameStack = styled(Stack)<{roundedCorner: boolean}>`
   > :first-child {
-    border-top-left-radius: ${p => p.theme.radius.lg};
+    border-top-left-radius: ${p => (p.roundedCorner ? p.theme.radius.lg : undefined)};
   }
 `;
 
