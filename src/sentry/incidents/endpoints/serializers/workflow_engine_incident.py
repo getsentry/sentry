@@ -58,7 +58,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         **kwargs: Any,
     ) -> defaultdict[GroupOpenPeriod, dict[str, Any]]:
         from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
-            WorkflowEngineDetectorSerializer,
+            DetailedWorkflowEngineDetectorSerializer,
         )
 
         results: defaultdict[GroupOpenPeriod, dict[str, Any]] = defaultdict(dict)
@@ -68,7 +68,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
             for alert_rule in serialize(
                 list(open_periods_to_detectors.values()),
                 user,
-                WorkflowEngineDetectorSerializer(expand=self.expand),
+                DetailedWorkflowEngineDetectorSerializer(expand=self.expand),
             )
         }
         alert_rule_detectors = AlertRuleDetector.objects.filter(
