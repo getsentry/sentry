@@ -45,6 +45,11 @@ const motionCurves: Record<
 
 // Disable transitions in acceptance tests or node testing environments.
 const IS_ACCEPTANCE_OR_TESTING = IS_ACCEPTANCE_TEST || NODE_ENV === 'test';
+const EMPTY_TRANSITION: Transition = {
+  duration: 0,
+  staggerChildren: 0,
+  type: false,
+};
 
 const motionCurveWithDuration = (
   durations: Record<MotionDuration, number>,
@@ -58,19 +63,19 @@ const motionCurveWithDuration = (
 
   const framerMotion: Record<MotionDuration, Transition> = {
     fast: IS_ACCEPTANCE_OR_TESTING
-      ? {}
+      ? EMPTY_TRANSITION
       : {
           duration: durations.fast / 1000,
           ease: easing,
         },
     moderate: IS_ACCEPTANCE_OR_TESTING
-      ? {}
+      ? EMPTY_TRANSITION
       : {
           duration: durations.moderate / 1000,
           ease: easing,
         },
     slow: IS_ACCEPTANCE_OR_TESTING
-      ? {}
+      ? EMPTY_TRANSITION
       : {
           duration: durations.slow / 1000,
           ease: easing,
