@@ -50,11 +50,9 @@ export function SeerAutomationSettings() {
   });
   const codingAgentOptions = rawAgentOptions.map(option => ({
     value:
-      option.value === 'seer'
-        ? 'seer'
-        : option.value === 'none'
-          ? null
-          : option.value.id!,
+      option.value === 'seer' || option.value === 'none'
+        ? option.value
+        : option.value.id!,
     label: option.label,
   }));
 
@@ -79,7 +77,7 @@ export function SeerAutomationSettings() {
         method: 'PUT',
         url: orgEndpoint,
         data: {
-          defaultCodingAgent,
+          defaultCodingAgent: defaultCodingAgent === 'none' ? null : defaultCodingAgent,
           defaultCodingAgentIntegrationId,
         },
       });
