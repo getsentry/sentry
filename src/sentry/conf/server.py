@@ -976,6 +976,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
+    "sentry.workflow_engine.tasks.cleanup",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
     # Used for tests
@@ -1000,6 +1001,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
+    },
+    "prune-old-fire-history": {
+        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_fire_history",
+        "schedule": timedelta(minutes=2),
     },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
