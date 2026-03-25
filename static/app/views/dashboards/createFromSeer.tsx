@@ -212,6 +212,7 @@ export default function CreateFromSeer() {
         };
         setDashboard(newDashboard);
         reportedWidgetErrors.current.clear();
+        setWidgetErrorsMap(new Map());
       }
     }
   }, [organization, seerRunId, isUpdating, sessionStatus, session, sessionUpdatedAt]);
@@ -221,7 +222,7 @@ export default function CreateFromSeer() {
   // Prevent repeat errors on the same widget
   const reportedWidgetErrors = useRef(new Set<string>());
   // Maps widget tempId to error message
-  const widgetErrorsMap = useRef(new Map<string, WidgetError>());
+  const [widgetErrorsMap, setWidgetErrorsMap] = useState(new Map<string, WidgetError>());
 
   const handleWidgetError = useCallback(
     (widget: Widget, errorMessage: string) => {
@@ -231,9 +232,13 @@ export default function CreateFromSeer() {
       }
       reportedWidgetErrors.current.add(errorKey);
       if (widget.tempId !== undefined) {
-        widgetErrorsMap.current.set(widget.tempId, {
-          widgetTitle: widget.title,
-          errorMessage,
+        setWidgetErrorsMap(prev => {
+          const next = new Map(prev);
+          next.set(widget.tempId!, {
+            widgetTitle: widget.title,
+            errorMessage,
+          });
+          return next;
         });
       }
 
@@ -267,6 +272,7 @@ export default function CreateFromSeer() {
       completedAtRef.current = null;
       hasValidatedRef.current = false;
       reportedWidgetErrors.current.clear();
+      setWidgetErrorsMap(new Map());
       try {
         const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
         const {url} = parseQueryKey(queryKey);
@@ -308,7 +314,7 @@ export default function CreateFromSeer() {
     if (widget.tempId === undefined) {
       return [];
     }
-    const error = widgetErrorsMap.current.get(widget.tempId);
+    const error = widgetErrorsMap.get(widget.tempId);
     return error ? [error] : [];
   });
 
