@@ -307,11 +307,11 @@ function VisualizationWidgetContent({
         // TODO: to simplify things, we only support one widget query for explore urls right now
         // Otherwise we have to map the correct widget query to the timeseries result
         if (
+          organization.features.includes('visibility-explore-view') &&
           firstColumn &&
           typeof firstColumnGroupByValue === 'string' &&
           widget.queries.length === 1 &&
-          widget.widgetType === WidgetType.SPANS &&
-          organization.features.includes('visibility-explore-view')
+          widget.widgetType === WidgetType.SPANS
         ) {
           const exploreQuery = new MutableSearch(widget.queries[0]?.conditions ?? '');
           exploreQuery.addFilterValue(firstColumn, firstColumnGroupByValue);
