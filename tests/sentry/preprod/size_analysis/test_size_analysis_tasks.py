@@ -3,7 +3,11 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeComparison,
+    PreprodArtifactSizeMetrics,
+)
 from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisGroupType,
     _artifact_to_tags,
@@ -219,6 +223,25 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
 
             # Should only be called once for the shared empty query
             assert mock_lookup.call_count == 1
+
+    def test_creates_comparison_record(self):
+        now = timezone.now()
+        self._create_artifact_with_metrics(
+            max_install_size=4000000,
+            date_added=now - timedelta(hours=2),
+        )
+        head = self._create_artifact_with_metrics(
+            max_install_size=5000000,
+            date_added=now - timedelta(hours=1),
+        )
+        self._create_diff_detector()
+
+        with self.feature("organizations:preprod-issues"):
+            maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+
+        assert PreprodArtifactSizeComparison.objects.count() == 1
+        comparison = PreprodArtifactSizeComparison.objects.first()
+        assert comparison is not None
 
 
 class MaybeEmitIssuesFromSizeResultsTest(TestCase):

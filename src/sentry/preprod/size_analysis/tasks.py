@@ -631,16 +631,13 @@ def _maybe_emit_issues_from_diff_size_results(
                 base = None
             query_to_base[normalized_query] = base
 
-    for detector in detectors:
-        query = detector.config.get("query", "")
-        normalized_query = query.strip() if query else ""
-        base_artifact = query_to_base.get(normalized_query)
-        if base_artifact is None:
-            logger.info(
-                "preprod.size_analysis.diff_results.no_base",
-                extra={"detector_id": detector.id, "artifact_id": artifact.id},
-            )
+    # Run comparisons for unique sequential bases (persists file-level diffs)
+    base_artifact_to_metric: dict[int, PreprodArtifactSizeMetrics] = {}
+    seen_base_ids: set[int] = set()
+    for base_artifact in query_to_base.values():
+        if base_artifact is None or base_artifact.id in seen_base_ids:
             continue
+        seen_base_ids.add(base_artifact.id)
 
         base_metrics = list(
             PreprodArtifactSizeMetrics.objects.filter(
@@ -653,6 +650,31 @@ def _maybe_emit_issues_from_diff_size_results(
             continue
 
         base_metric = base_metrics[0]
+        base_artifact_to_metric[base_artifact.id] = base_metric
+
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+            PreprodArtifactSizeComparison.objects.get_or_create(
+                head_size_analysis=head_metric,
+                base_size_analysis=base_metric,
+                organization_id=org_id,
+                defaults={"state": PreprodArtifactSizeComparison.State.PENDING},
+            )
+        _run_size_analysis_comparison(org_id, head_metric, base_metric)
+
+    for detector in detectors:
+        query = detector.config.get("query", "")
+        normalized_query = query.strip() if query else ""
+        base_artifact = query_to_base.get(normalized_query)
+        if base_artifact is None:
+            logger.info(
+                "preprod.size_analysis.diff_results.no_base",
+                extra={"detector_id": detector.id, "artifact_id": artifact.id},
+            )
+            continue
+
+        base_metric = base_artifact_to_metric.get(base_artifact.id)
+        if base_metric is None:
+            continue
 
         metadata: SizeAnalysisMetadata = {
             "platform": _get_platform(artifact),
