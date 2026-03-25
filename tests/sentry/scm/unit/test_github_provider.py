@@ -10,7 +10,7 @@ from sentry.scm.private.providers.github import (
     GitHubProvider,
     GitHubProviderApiClient,
 )
-from sentry.scm.types import Repository
+from sentry.scm.types import Referrer, Repository
 from tests.sentry.scm.test_fixtures import (
     make_github_branch,
     make_github_check_run,
@@ -78,6 +78,9 @@ class RecordingClient:
         if not self.responses[operation]:
             raise AssertionError(f"No queued response for {operation}")
         return self.responses[operation].pop(0)
+
+    def is_rate_limited(self, referrer: Referrer) -> bool:
+        return False
 
     def get(
         self,
@@ -147,12 +150,26 @@ class RecordingClient:
         return self._pop("graphql")
 
 
+class NoOpRateLimitProvider:
+    def get_and_set_rate_limit(
+        self, total_key: str, usage_key: str, expiration: int
+    ) -> tuple[int | None, int]:
+        return (None, 0)
+
+    def get_accounted_usage(self, keys: list[str]) -> int:
+        return 0
+
+    def set_key_values(self, kvs: dict[str, tuple[int, int | None]]) -> None:
+        pass
+
+
 def make_provider(client: RecordingClient | None = None) -> tuple[GitHubProvider, RecordingClient]:
     transport = client or RecordingClient()
     provider = GitHubProvider(
         MagicMock(spec=GitHubApiClient),
         organization_id=1,
         repository=make_repository(),
+        rate_limit_provider=NoOpRateLimitProvider(),
     )
     provider.client = transport  # type: ignore[assignment]
     return provider, transport
@@ -953,7 +970,12 @@ def test_provider_initialization_wraps_api_client() -> None:
     raw_client = MagicMock(spec=GitHubApiClient)
     repository = make_repository()
 
-    provider = GitHubProvider(raw_client, organization_id=99, repository=repository)
+    provider = GitHubProvider(
+        raw_client,
+        organization_id=99,
+        repository=repository,
+        rate_limit_provider=NoOpRateLimitProvider(),
+    )
 
     assert isinstance(provider.client, GitHubProviderApiClient)
     assert provider.organization_id == 99
