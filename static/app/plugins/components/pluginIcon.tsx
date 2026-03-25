@@ -69,6 +69,7 @@ const PLUGIN_ICONS = {
   redmine,
   segment,
   slack,
+  'slack-staging': slack,
   splunk,
   trello,
   twilio,

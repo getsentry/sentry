@@ -70,6 +70,17 @@ class SlackRequest:
         self._user: RpcUser | None = None
         self._data: MutableMapping[str, Any] = {}
 
+    def _is_staging_request(self) -> bool:
+        return "/extensions/slack-staging/" in self.request.path
+
+    @property
+    def _provider_slug(self) -> str:
+        return (
+            IntegrationProviderSlug.SLACK_STAGING.value
+            if self._is_staging_request()
+            else IntegrationProviderSlug.SLACK.value
+        )
+
     def validate(self) -> None:
         """
         Ensure everything is present to properly process this request
@@ -100,7 +111,7 @@ class SlackRequest:
         except Exception:
             pass
         context = integration_service.get_integration_identity_context(
-            integration_provider=IntegrationProviderSlug.SLACK.value,
+            integration_provider=self._provider_slug,
             integration_external_id=team_id,
             identity_external_id=user_id,
             identity_provider_external_id=team_id,
@@ -163,7 +174,7 @@ class SlackRequest:
 
         if self._provider is None:
             self._provider = identity_service.get_provider(
-                provider_type=IntegrationProviderSlug.SLACK.value, provider_ext_id=self.team_id
+                provider_type=self._provider_slug, provider_ext_id=self.team_id
             )
 
         if self._provider is not None:
@@ -197,8 +208,12 @@ class SlackRequest:
         # XXX(meredith): Signing secrets are the preferred way
         # but self-hosted could still have an older slack bot
         # app that just has the verification token.
-        signing_secret = options.get("slack.signing-secret")
-        verification_token = options.get("slack.verification-token")
+        if self._is_staging_request():
+            signing_secret = options.get("slack-staging.signing-secret")
+            verification_token = None
+        else:
+            signing_secret = options.get("slack.signing-secret")
+            verification_token = options.get("slack.verification-token")
 
         if signing_secret:
             if self._check_signing_secret(signing_secret):
@@ -226,7 +241,7 @@ class SlackRequest:
     def validate_integration(self) -> None:
         if not self._integration:
             self._integration = integration_service.get_integration(
-                provider=IntegrationProviderSlug.SLACK.value,
+                provider=self._provider_slug,
                 external_id=self.team_id,
                 status=ObjectStatus.ACTIVE,
             )

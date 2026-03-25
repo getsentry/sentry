@@ -3,7 +3,10 @@ import logging
 from django.http import Http404, HttpRequest
 from django.http.response import HttpResponseBase
 
-from sentry.integrations.pipeline import IntegrationPipelineError, initialize_integration_pipeline
+from sentry.integrations.pipeline import (
+    IntegrationPipelineError,
+    initialize_integration_pipeline,
+)
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 from sentry.web.helpers import render_to_response
 
