@@ -15,7 +15,6 @@ import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/pro
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
-import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {
   useProjectSampleCounts,
@@ -46,7 +45,9 @@ export function OrganizationSampling() {
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
 
-  const initialTargetSampleRate = formatPercent(organization.targetSampleRate ?? 1);
+  const initialTargetSampleRate = (
+    (organization.targetSampleRate ?? 1) * 100
+  )?.toString();
   const [savedTargetSampleRate, setSavedTargetSampleRate] = useState(
     initialTargetSampleRate
   );
