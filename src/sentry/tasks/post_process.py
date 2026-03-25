@@ -1590,8 +1590,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                 return
 
             if group.seer_explorer_autofix_last_triggered is not None:
-                if features.has("organizations:autofix-on-explorer", group.organization):
-                    return
+                return
 
             # Don't run automation on old issues
             if group.first_seen < (timezone.now() - timedelta(days=14)):
