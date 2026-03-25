@@ -28,5 +28,12 @@ class Migration(CheckedMigration):
 
     operations = [
         # Addresses https://sentry.sentry.io/issues/7295196781/
-        SafeDeleteModel(name="AlertRuleActivationCondition", deletion_action=DeletionAction.DELETE),
+        SafeDeleteModel(
+            name="AlertRuleActivationCondition",
+            deletion_action=DeletionAction.DELETE,
+        ),
+        SafeDeleteModel(
+            name="AlertRuleActivations",
+            deletion_action=DeletionAction.DELETE,
+        ),
     ]
