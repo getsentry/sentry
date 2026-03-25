@@ -68,6 +68,7 @@ import {
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
+  DENO_AGENT_INTEGRATIONS,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from './utils/agentIntegrations';
@@ -240,10 +241,13 @@ export function Onboarding() {
 
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const isDenoPlatform = project?.platform === 'deno';
 
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
-    : NODE_AGENT_INTEGRATIONS;
+    : isDenoPlatform
+      ? DENO_AGENT_INTEGRATIONS
+      : NODE_AGENT_INTEGRATIONS;
 
   const integrationOptions = {
     integration: {
