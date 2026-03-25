@@ -155,8 +155,7 @@ class WorkflowEngineIncidentDetailsTest(APITestCase):
     def test_unmapped_real_identifier_returns_404(self) -> None:
         # Real identifier with no IncidentGroupOpenPeriod row and not a fake ID → 404.
         incident = self.create_incident()
-        resp = self.get_response(self.organization.slug, incident.identifier)
-        assert resp.status_code == 404
+        self.get_error_response(self.organization.slug, incident.identifier, status_code=404)
 
     def test_fake_id_cross_org_returns_404(self) -> None:
         other_org = self.create_organization(owner=self.user)
