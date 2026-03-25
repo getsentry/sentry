@@ -3,7 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import * as modalActions from 'sentry/actionCreators/modal';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import {CommandPaletteContent} from 'sentry/components/commandPalette/ui/content';
+import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 
 function RegisterActions({actions}: {actions: CommandPaletteAction[]}) {
@@ -21,7 +21,7 @@ function GlobalActionsComponent({
   return (
     <CommandPaletteProvider>
       <RegisterActions actions={actions} />
-      <CommandPaletteContent onClose={modalActions.closeModal} />
+      <CommandPalette onAction={jest.fn()} />
       {children}
     </CommandPaletteProvider>
   );

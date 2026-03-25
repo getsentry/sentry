@@ -1,28 +1,27 @@
-import {createContext, useContext, useReducer} from 'react';
+import {createContext, useContext, useReducer, useRef} from 'react';
 
-import {
-  openCommandPaletteDeprecated,
-  toggleCommandPalette,
-} from 'sentry/actionCreators/modal';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {unreachable} from 'sentry/utils/unreachable';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
-import {useOrganization} from 'sentry/utils/useOrganization';
+
+export type LinkedList = {
+  previous: LinkedList | null;
+  value: {action: CommandPaletteActionWithKey; query: string};
+};
 
 export type CommandPaletteState = {
-  open: boolean;
+  action: LinkedList | null;
+  input: React.RefObject<HTMLInputElement | null>;
   query: string;
-  selectedAction: CommandPaletteActionWithKey | null;
 };
 
 export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
 
 export type CommandPaletteAction =
-  | {type: 'toggle modal'}
+  | {type: 'reset'}
   | {query: string; type: 'set query'}
-  | {action: CommandPaletteActionWithKey; type: 'set selected action'}
+  | {action: CommandPaletteActionWithKey; type: 'push action'}
   | {type: 'trigger action'}
-  | {type: 'clear selected action'};
+  | {type: 'pop action'};
 
 const CommandPaletteStateContext = createContext<CommandPaletteState | null>(null);
 const CommandPaletteDispatchContext =
@@ -34,19 +33,31 @@ function commandPaletteReducer(
 ): CommandPaletteState {
   const type = action.type;
   switch (type) {
-    case 'toggle modal':
+    case 'reset':
       return {
         ...state,
-        open: !state.open,
+        action: null,
+        query: '',
       };
     case 'set query':
       return {...state, query: action.query};
-    case 'set selected action':
-      return {...state, selectedAction: action.action, query: ''};
-    case 'clear selected action':
-      return {...state, selectedAction: null};
+    case 'push action':
+      return {
+        ...state,
+        action: {
+          value: {action: action.action, query: state.query},
+          previous: state.action,
+        },
+        query: '',
+      };
+    case 'pop action':
+      return {
+        ...state,
+        action: state.action?.previous ?? null,
+        query: state.action?.value?.query ?? state.query,
+      };
     case 'trigger action':
-      return {...state, selectedAction: null, query: ''};
+      return {...state, action: null, query: ''};
     default:
       unreachable(type);
       return state;
@@ -78,10 +89,11 @@ interface CommandPaletteStateProviderProps {
 export function CommandPaletteStateProvider({
   children,
 }: CommandPaletteStateProviderProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [state, dispatch] = useReducer(commandPaletteReducer, {
+    input: inputRef,
     query: '',
-    selectedAction: null,
-    open: false,
+    action: null,
   });
 
   return (
@@ -93,24 +105,20 @@ export function CommandPaletteStateProvider({
   );
 }
 
-export function CommandPaletteHotkeys() {
-  const state = useCommandPaletteState();
-  const dispatch = useCommandPaletteDispatch();
-  const organization = useOrganization();
-
-  useHotkeys([
-    {
-      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-      includeInputs: true,
-      callback: () => {
-        if (organization.features.includes('cmd-k-supercharged')) {
-          toggleCommandPalette({}, organization, state, dispatch, 'keyboard');
-        } else {
-          openCommandPaletteDeprecated();
-        }
-      },
-    },
-  ]);
-
-  return null;
+/**
+ * Traverses the linked list from oldest to newest and returns the labels of
+ * all actions in the stack, suitable for building breadcrumb strings.
+ */
+export function getActionPath(state: CommandPaletteState): string {
+  const path: string[] = [];
+  let node = state.action;
+  while (node !== null) {
+    const label =
+      typeof node.value.action.display.label === 'string'
+        ? node.value.action.display.label
+        : '';
+    path.unshift(label);
+    node = node.previous;
+  }
+  return path.reverse().join(' -> ');
 }
