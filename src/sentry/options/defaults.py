@@ -893,6 +893,9 @@ register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MOD
 # the number of threads we should use to install Lambdas
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Intercom Integration
+register("intercom.sentry-api-secret", flags=FLAG_NOSTORE | FLAG_CREDENTIAL, default="")
+
 # Snuba
 register(
     "snuba.search.pre-snuba-candidates-optimizer",
