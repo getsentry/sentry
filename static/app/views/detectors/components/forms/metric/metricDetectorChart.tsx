@@ -42,6 +42,7 @@ import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/use
 import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
+import {getChartQueryInterval} from 'sentry/views/detectors/utils/getChartQueryInterval';
 
 const CHART_HEIGHT = 180;
 
@@ -182,6 +183,17 @@ export function MetricDetectorChart({
     ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
     : extrapolationMode;
 
+  // Skip rolling window for dynamic detection to avoid mismatch with anomaly detection
+  const rollingWindow =
+    detectionType === 'dynamic'
+      ? undefined
+      : getChartQueryInterval({
+          timeWindow: interval,
+          statsPeriod: selectedTimePeriod,
+        });
+  const rollingQueryInterval = rollingWindow?.queryInterval;
+  const rollingWindowSize = rollingWindow?.windowSize ?? 1;
+
   const {
     series,
     comparisonSeries,
@@ -201,6 +213,7 @@ export function MetricDetectorChart({
     comparisonDelta,
     eventTypes,
     extrapolationMode: adjustedExtrapolationMode,
+    queryInterval: rollingQueryInterval,
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
@@ -392,6 +405,27 @@ export function MetricDetectorChart({
               unit,
               serverOutputType,
             }).formatTooltipValue,
+            // Override the tooltip time label to show the full rolling window range
+            ...(rollingWindowSize > 1 &&
+              rollingQueryInterval && {
+                formatAxisLabel: (
+                  value: number,
+                  isTimestamp: boolean,
+                  utc: boolean,
+                  showTimeInTooltip: boolean,
+                  addSecondsToTimeFormat: boolean
+                ) =>
+                  String(
+                    defaultFormatAxisLabel(
+                      value - (rollingWindowSize - 1) * rollingQueryInterval * 1000,
+                      isTimestamp,
+                      utc,
+                      showTimeInTooltip,
+                      addSecondsToTimeFormat,
+                      rollingWindowSize * rollingQueryInterval * 1000
+                    )
+                  ),
+              }),
           }}
         />
       )}

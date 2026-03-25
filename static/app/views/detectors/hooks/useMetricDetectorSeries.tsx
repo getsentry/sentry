@@ -15,6 +15,8 @@ import type {
 } from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {applyRollingWindow} from 'sentry/views/detectors/utils/applyRollingWindow';
+import {getAggregateRollingStrategy} from 'sentry/views/detectors/utils/getAggregateRollingStrategy';
 
 interface UseMetricDetectorSeriesProps {
   aggregate: string;
@@ -29,6 +31,11 @@ interface UseMetricDetectorSeriesProps {
   end?: string | null;
   extrapolationMode?: ExtrapolationMode;
   options?: Partial<UseApiQueryOptions<any>>;
+  /**
+   * Finer query interval in seconds. When provided, the API is queried at this
+   * interval and a rolling window is applied to match the detector's evaluation.
+   */
+  queryInterval?: number;
   start?: string | null;
   statsPeriod?: string | null;
 }
@@ -68,6 +75,7 @@ export function useMetricDetectorSeries({
   comparisonDelta,
   options,
   extrapolationMode,
+  queryInterval,
 }: UseMetricDetectorSeriesProps): UseMetricDetectorSeriesResult {
   const organization = useOrganization();
   const datasetConfig = useMemo(
@@ -77,7 +85,7 @@ export function useMetricDetectorSeries({
   const seriesQueryOptions = datasetConfig.getSeriesQueryOptions({
     organization,
     aggregate,
-    interval,
+    interval: queryInterval ?? interval,
     query,
     environment: environment || '',
     projectId,
@@ -119,11 +127,27 @@ export function useMetricDetectorSeries({
         ? datasetConfig.transformComparisonSeriesData(data as any)
         : [];
 
+    // Apply rolling window if querying at a finer interval than the detector window
+    const windowSize = queryInterval ? Math.round(interval / queryInterval) : 1;
+    if (windowSize > 1) {
+      const strategy = getAggregateRollingStrategy(aggregate);
+      return {
+        series: applySharedSeriesOptions(
+          transformedSeries.map(s => applyRollingWindow(s, windowSize, strategy))
+        ),
+        comparisonSeries: applySharedSeriesOptions(
+          transformedComparisonSeries.map(s =>
+            applyRollingWindow(s, windowSize, strategy)
+          )
+        ),
+      };
+    }
+
     return {
       series: applySharedSeriesOptions(transformedSeries),
       comparisonSeries: applySharedSeriesOptions(transformedComparisonSeries),
     };
-  }, [datasetConfig, data, aggregate, comparisonDelta]);
+  }, [datasetConfig, data, aggregate, comparisonDelta, queryInterval, interval]);
 
   // Extract unit and type metadata from the API response meta field
   if (data && 'meta' in data) {
