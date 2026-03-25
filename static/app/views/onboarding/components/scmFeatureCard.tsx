@@ -36,14 +36,21 @@ export function ScmFeatureCard({
         aria-checked={isSelected}
         disabled={disabled}
       >
-        <Container border={isSelected ? 'accent' : 'secondary'} padding="lg" radius="md">
-          <Flex gap="md" align="start">
+        <Container
+          border={isSelected ? 'accent' : 'secondary'}
+          padding="xl"
+          radius="md"
+          style={isSelected ? undefined : {borderBottomWidth: 3}}
+        >
+          <Flex gap="lg" align="start">
             <Container padding="xs 0 0 0">
               {containerProps => <Icon size="sm" {...containerProps} />}
             </Container>
             <Flex direction="column" gap="xs" flex="1">
               <Flex justify="between" align="center">
-                <Text bold>{label}</Text>
+                <Text bold size="lg">
+                  {label}
+                </Text>
                 <Checkbox
                   readOnly
                   size="xs"
@@ -53,9 +60,7 @@ export function ScmFeatureCard({
                   disabled={disabled}
                 />
               </Flex>
-              <Text variant="muted" size="sm">
-                {description}
-              </Text>
+              <Text variant="muted">{description}</Text>
             </Flex>
           </Flex>
         </Container>

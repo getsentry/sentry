@@ -10,6 +10,7 @@ import {
   OnboardingContextProvider,
   type OnboardingSessionState,
 } from 'sentry/components/onboarding/onboardingContext';
+import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
@@ -374,5 +375,144 @@ describe('ScmPlatformFeatures', () => {
 
     expect(screen.getByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
     expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
+  });
+
+  describe('analytics', () => {
+    let trackAnalyticsSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    });
+
+    it('fires step viewed event on mount', async () => {
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper(),
+        }
+      );
+
+      await screen.findByRole('heading', {name: 'Select a platform'});
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_platform_features_step_viewed',
+        expect.objectContaining({organization})
+      );
+    });
+
+    it('fires platform selected event when clicking a detected platform', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {
+          platforms: [
+            DetectedPlatformFixture(),
+            DetectedPlatformFixture({
+              platform: 'python-django',
+              language: 'Python',
+              priority: 2,
+            }),
+          ],
+        },
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+          }),
+        }
+      );
+
+      // Wait for detected platforms, then click the second one
+      const djangoCard = await screen.findByRole('radio', {name: /Django/});
+      await userEvent.click(djangoCard);
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_platform_selected',
+        expect.objectContaining({
+          platform: 'python-django',
+          source: 'detected',
+        })
+      );
+    });
+
+    it('fires feature toggled event when toggling a feature', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {
+          platforms: [DetectedPlatformFixture({platform: 'python', language: 'Python'})],
+        },
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          }),
+        }
+      );
+
+      await screen.findByText('What do you want to set up?');
+
+      await userEvent.click(screen.getByRole('checkbox', {name: /Tracing/}));
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_platform_feature_toggled',
+        expect.objectContaining({
+          feature: ProductSolution.PERFORMANCE_MONITORING,
+          enabled: true,
+          platform: 'python',
+        })
+      );
+    });
+
+    it('fires change platform event when clicking the link', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {platforms: [DetectedPlatformFixture()]},
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+          }),
+        }
+      );
+
+      const changeButton = await screen.findByRole('button', {
+        name: "Doesn't look right? Change platform",
+      });
+      await userEvent.click(changeButton);
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_platform_change_platform_clicked',
+        expect.objectContaining({organization})
+      );
+    });
   });
 });
