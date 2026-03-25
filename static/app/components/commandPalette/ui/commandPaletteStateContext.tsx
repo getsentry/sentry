@@ -104,7 +104,7 @@ export function CommandPaletteHotkeys() {
       includeInputs: true,
       callback: () => {
         if (organization.features.includes('cmd-k-supercharged')) {
-          toggleCommandPalette({}, state, dispatch);
+          toggleCommandPalette({}, organization, state, dispatch, 'keyboard');
         } else {
           openCommandPaletteDeprecated();
         }
