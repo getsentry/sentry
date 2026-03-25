@@ -145,12 +145,18 @@ export function getManualConfigureStep(
     packageName = '@sentry/node',
     importMode,
     configFileName,
+    sentryImport,
+    docUrl = 'https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation',
   }: {
     configFileName?: string;
+    docUrl?: string;
     importMode?: 'esm' | 'cjs' | 'esm-only';
     packageName?: `@sentry/${string}`;
+    sentryImport?: string;
   } = {}
 ): OnboardingStep[] {
+  const importStatement = sentryImport ?? getImport(packageName, importMode).join('\n');
+
   return [
     {
       title: t('Configure'),
@@ -165,7 +171,7 @@ export function getManualConfigureStep(
             {
               label: configFileName ?? 'JavaScript',
               language: 'javascript',
-              code: `${getImport(packageName, importMode).join('\n')}
+              code: `${importStatement}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -181,11 +187,7 @@ Sentry.init({
         {
           type: 'custom',
           content: (
-            <ManualInstrumentationNote
-              docsLink={
-                <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-              }
-            />
+            <ManualInstrumentationNote docsLink={<ExternalLink href={docUrl} />} />
           ),
         },
       ],

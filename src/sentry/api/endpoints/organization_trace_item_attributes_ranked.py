@@ -1,6 +1,5 @@
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any, TypedDict, cast
 
 from rest_framework.request import Request
@@ -34,6 +33,7 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import snuba_rpc
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba_rpc import trace_item_stats_rpc
 
 logger = logging.getLogger(__name__)
@@ -326,7 +326,7 @@ def query_attribute_distributions(
                 referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
             )
 
-    with ThreadPoolExecutor(
+    with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__,
         max_workers=PARALLELIZATION_FACTOR * 2 + 2,  # 2 cohorts * threads + 2 totals queries
     ) as query_thread_pool:
