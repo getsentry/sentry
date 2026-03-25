@@ -36,7 +36,6 @@ maps to a subdomain (`us.sentry.io`, `de.sentry.io` or `s4s2.sentry.io`).
 > **Note**: "region" is the old name for "cell". The codebase is actively being migrated.
 > See [Active Migration](#active-migration) for details.
 
-
 ## Paths Into a Cell
 
 There are three high-level paths by which requests or data reach a cell.
@@ -87,6 +86,7 @@ For single-cell localities the ingest-router is an optional pass-through.
 
 **API Gateway** (`ApiGatewayMiddleware` -> `apigateway.py`) — synchronously proxies
 org-scoped API requests that arrive at `sentry.io` but belong on a cell:
+
 - Org slug/id in path, resolve cell via `get_cell_for_organization()`
 - Error embed (`sentry-error-page-embed`) -> parse locality from DSN subdomain
 - `REGION_PINNED_URL_NAMES` proxy to the monolith cell (the original US cell). Legacy endpoints like `/api/0/issues/{id}/` have no org slug so the gateway can't resolve the cell dynamically; they always route to US and will 404 for issues in other cells
@@ -102,7 +102,6 @@ inbound webhooks arrive at control, which identifies target cells via `Organizat
 
 **RPC** — synchronous cross-silo calls. Each service is local to one silo; the other calls
 it remotely. For creating or modifying RPC services -> **hybrid-cloud-rpc** skill.
-
 
 ## Cross-Cell Data Access
 
@@ -132,12 +131,11 @@ Project.objects.filter(teams__organizationmember__user_id=user_id)
 
 ### Resolution Patterns
 
-| Pattern | When to use |
-|---|---|
+| Pattern                         | When to use                                                                                                                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Control index + RPC fan-out** | Real-time accuracy required; moderate org count per user. Use `OrganizationMemberMapping` to get org IDs, then `organization_service` RPC per org (or batch by cell via `OrganizationMapping`). |
-| **Denormalize to control silo** | High QPS, paginated lists, eventual consistency acceptable. Replicate needed fields to a `@control_silo_model` via outboxes — single local query, no RPC. See **hybrid-cloud-outboxes** skill. |
-| **API gateway fan-out** | Temporary stopgap only — breaks pagination, latency = slowest cell. |
-
+| **Denormalize to control silo** | High QPS, paginated lists, eventual consistency acceptable. Replicate needed fields to a `@control_silo_model` via outboxes — single local query, no RPC. See **hybrid-cloud-outboxes** skill.  |
+| **API gateway fan-out**         | Temporary stopgap only — breaks pagination, latency = slowest cell.                                                                                                                             |
 
 ## Active Migration
 
@@ -173,7 +171,6 @@ Endpoints decorated with `@internal_cell_silo_endpoint` are exempt from the chec
 - `TO_BE_BROKEN` — known broken, no owner; deferred indefinitely (only relocation, do not add entries)
 - `TO_BE_INVESTIGATED_ECOSYSTEM_TEAM` — deferred until the ecosystem team determines the right fix
 
-
 #### Rolling Deploy Safety
 
 **Never assume atomic deployment.** There are two independent deployment boundaries to consider:
@@ -196,12 +193,12 @@ Both old and new versions of each service can handle both.
 are on the new code.
 
 This applies to:
+
 - Python symbols exported from sentry and imported by getsentry (keep old name as alias)
 - RPC request/response fields (adding, removing, or renaming)
 - DB columns: new columns must be nullable or have defaults; don't drop a column in the same deploy that stops writing it; when **renaming a Python field**, set `db_column="old_name"` to avoid a schema migration entirely — the DB column stays unchanged and is safe across rolling deploys
 - API response shape changes
 - Any data written to outboxes, queues, or caches that may be read by older code
-
 
 #### region -> cell Rename
 
@@ -222,16 +219,17 @@ Most existing `region` usage maps 1:1 to `cell`, but some (especially where the 
 the context before renaming.
 
 **Do NOT rename:**
+
 - `db_column="region_name"` — DB schema stays for backward compatibility; only the Python attribute name changes
 - AWS/cloud references (`aws-lambda.host-region`, etc.), such as in AWS integrations
 - Uptime regions — probe/check locations, a separate concept from cells and localities
 - Customer's billing `region` in getsentry — postal address state/province for tax, etc, unrelated to cell infrastructure
 
 **Rename with caution** — sentry and getsentry deploy independently on different schedules, so both old and new names must work simultaneously during the transition:
+
 - **Metrics** (`metrics.incr("region.*")`) — dashboards and alerts reference metric names; emit both old and new names until getsentry dashboards are updated, then drop the old.
 - **Runtime options** (`options.get("hybridcloud.regionsiloclient.*")`) — values are set in production via `sentry-options-automator` in getsentry; register the new key alongside the old, migrate getsentry config, then remove the old key in a later deploy
 - **Settings** — these are configured in getsentry and ops codebase and through settings files and environment variables; use extreme caution to avoid breaking production with a bad rename. Follow the two-phase pattern.
-
 
 ### Known Issues
 
@@ -248,23 +246,21 @@ Several org lifecycle operations have no existing org slug to route by, so Synap
 
 **Org creation**: `Locality.new_org_cell` to route new orgs to the correct cell within the selected locality.
 
-
 #### Integration Views and Cell Routing
 
 `TeamLinkageView` (link-team, unlink-team) is broken in two ways: it uses signed URLs with `integration_id` instead of org slug so Synapse can't route it, and it queries `OrganizationMember.get_for_integration()` (cell-silo) so it only sees orgs in the current locality anyway.
 
 **The fix**:
+
 1. `@control_silo_view` — makes the URL reachable without Synapse
 2. Replace `OrganizationMember.get_for_integration()` with `OrganizationMemberMapping` + `integration_service.get_organization_integrations()` for cross-cell membership
 3. Fetch `Team` and write `ExternalActor` via RPC into the correct cell — requires new RPC methods (see **hybrid-cloud-rpc** skill)
 
 `IdentityLinkageView` is already `@control_silo_view` and doesn't need migration.
 
-
 #### Jira Issue Details Cross-Cell Fan-out
 
 The Jira sidebar panel ("Sentry -> Linked Issues") is blocked from multi-cell installation via `is_cell_restricted = True` instead of being fixed properly. The descriptor points to `JiraSentryIssueDetailsView` (`@cell_silo_view`), which queries a single cell's DB. `JiraSentryIssueDetailsControlView` (`@control_silo_view`) already exists at `/extensions/jira/issue-details/{issue.key}/` with correct `find_cells_for_orgs` fan-out — the fix is to point the descriptor at that URL and remove `is_cell_restricted`.
-
 
 #### Relocation Endpoint Routing
 
