@@ -260,7 +260,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         if step == "open_pr":
             if not run_id:
-                return Response({"detail": "run_id is required for open_pr"})
+                return Response({"detail": "run_id is required for open_pr"}, status=400)
             trigger_push_changes(group, run_id)
             return Response({"run_id": run_id}, status=202)
 

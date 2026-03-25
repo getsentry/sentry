@@ -1015,6 +1015,21 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert response.status_code == 202, f"Failed for {flag}: {response.data}"
             assert response.data == {"run_id": 123}
 
+    def test_open_pr_no_run_id(self):
+        self.login_as(user=self.user)
+
+        for flag in EXPLORER_FLAGS:
+            group = self.create_group()
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={"step": "open_pr"},
+                    format="json",
+                )
+
+            assert response.status_code == 400, f"Failed for {flag}: {response.data}"
+            assert response.data["detail"] == "run_id is required for open_pr"
+
 
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:seer-explorer")
