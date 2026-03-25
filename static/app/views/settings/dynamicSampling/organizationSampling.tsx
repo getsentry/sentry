@@ -78,74 +78,72 @@ export function OrganizationSampling() {
   const sampleCountsQuery = useProjectSampleCounts({period});
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <form.Subscribe selector={s => ({isDirty: s.isDirty, canSubmit: s.canSubmit})}>
-          {({isDirty, canSubmit}) => (
-            <Fragment>
-              <OnRouteLeave
-                message={UNSAVED_CHANGES_MESSAGE}
-                when={locationChange =>
-                  locationChange.currentLocation.pathname !==
-                    locationChange.nextLocation.pathname && isDirty
-                }
-              />
-              <HeadingRow>
-                <ProjectionPeriodControl period={period} onChange={setPeriod} />
-                <SamplingModeSwitch />
-              </HeadingRow>
-              {sampleCountsQuery.isError ? (
-                <LoadingError onRetry={sampleCountsQuery.refetch} />
-              ) : (
-                <form.AppField name="targetSampleRate">
-                  {field => (
-                    <ProjectsPreviewTable
-                      sampleCounts={sampleCountsQuery.data}
-                      isLoading={sampleCountsQuery.isPending}
-                      period={period}
-                      targetSampleRate={field.state.value}
-                      savedTargetSampleRate={savedTargetSampleRate}
-                      onTargetSampleRateChange={field.handleChange}
-                      targetSampleRateError={
-                        field.state.meta.errors[0] as string | undefined
-                      }
-                      actions={
-                        <Fragment>
+    <form.AppForm form={form}>
+      <form.Subscribe selector={s => ({isDirty: s.isDirty, canSubmit: s.canSubmit})}>
+        {({isDirty, canSubmit}) => (
+          <Fragment>
+            <OnRouteLeave
+              message={UNSAVED_CHANGES_MESSAGE}
+              when={locationChange =>
+                locationChange.currentLocation.pathname !==
+                  locationChange.nextLocation.pathname && isDirty
+              }
+            />
+            <HeadingRow>
+              <ProjectionPeriodControl period={period} onChange={setPeriod} />
+              <SamplingModeSwitch />
+            </HeadingRow>
+            {sampleCountsQuery.isError ? (
+              <LoadingError onRetry={sampleCountsQuery.refetch} />
+            ) : (
+              <form.AppField name="targetSampleRate">
+                {field => (
+                  <ProjectsPreviewTable
+                    sampleCounts={sampleCountsQuery.data}
+                    isLoading={sampleCountsQuery.isPending}
+                    period={period}
+                    targetSampleRate={field.state.value}
+                    savedTargetSampleRate={savedTargetSampleRate}
+                    onTargetSampleRateChange={field.handleChange}
+                    targetSampleRateError={
+                      field.state.meta.errors[0] as string | undefined
+                    }
+                    actions={
+                      <Fragment>
+                        <Button
+                          disabled={!isDirty || isPending}
+                          onClick={() => form.reset()}
+                        >
+                          {t('Reset')}
+                        </Button>
+                        <Tooltip
+                          disabled={hasAccess}
+                          title={t(
+                            'You do not have permission to update these settings.'
+                          )}
+                        >
                           <Button
-                            disabled={!isDirty || isPending}
-                            onClick={() => form.reset()}
+                            priority="primary"
+                            type="submit"
+                            disabled={!hasAccess || !canSubmit || !isDirty || isPending}
                           >
-                            {t('Reset')}
+                            {t('Save changes')}
                           </Button>
-                          <Tooltip
-                            disabled={hasAccess}
-                            title={t(
-                              'You do not have permission to update these settings.'
-                            )}
-                          >
-                            <Button
-                              priority="primary"
-                              type="submit"
-                              disabled={!hasAccess || !canSubmit || !isDirty || isPending}
-                            >
-                              {t('Save changes')}
-                            </Button>
-                          </Tooltip>
-                        </Fragment>
-                      }
-                    />
-                  )}
-                </form.AppField>
-              )}
-              <SubTextParagraph>
-                {t(
-                  'Inactive projects are not listed and will be sampled at 100% initially.'
+                        </Tooltip>
+                      </Fragment>
+                    }
+                  />
                 )}
-              </SubTextParagraph>
-            </Fragment>
-          )}
-        </form.Subscribe>
-      </form.FormWrapper>
+              </form.AppField>
+            )}
+            <SubTextParagraph>
+              {t(
+                'Inactive projects are not listed and will be sampled at 100% initially.'
+              )}
+            </SubTextParagraph>
+          </Fragment>
+        )}
+      </form.Subscribe>
     </form.AppForm>
   );
 }
