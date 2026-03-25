@@ -17,8 +17,8 @@ import {ScmPlatformFeatures} from './scmPlatformFeatures';
 
 jest.mock('sentry/actionCreators/modal');
 
-// Provide a small platform list so CompactSelect stays below the
-// virtualizeThreshold (50) and renders all options in JSDOM.
+// Provide a small platform list so the Select dropdown renders
+// all options without virtualization in JSDOM.
 jest.mock('sentry/data/platforms', () => {
   const actual = jest.requireActual('sentry/data/platforms');
   return {
@@ -285,11 +285,9 @@ describe('ScmPlatformFeatures', () => {
 
     await screen.findByRole('heading', {name: 'Select a platform'});
 
-    // Open the CompactSelect and select a base language
-    await userEvent.click(screen.getByRole('button', {name: 'None'}));
-    await userEvent.click(
-      await screen.findByRole('option', {name: 'Browser JavaScript'})
-    );
+    // Type into the Select to search and pick a base language
+    await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
+    await userEvent.click(await screen.findByText('Browser JavaScript'));
 
     await waitFor(() => {
       expect(mockOpenModal).toHaveBeenCalled();
@@ -316,9 +314,9 @@ describe('ScmPlatformFeatures', () => {
 
     await screen.findByRole('heading', {name: 'Select a platform'});
 
-    // Open the CompactSelect and select a console platform
-    await userEvent.click(screen.getByRole('button', {name: 'None'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'Nintendo Switch'}));
+    // Type into the Select to search and pick a console platform
+    await userEvent.type(screen.getByRole('textbox'), 'Nintendo');
+    await userEvent.click(await screen.findByText('Nintendo Switch'));
 
     await waitFor(() => {
       expect(mockOpenConsoleModal).toHaveBeenCalled();
