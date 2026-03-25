@@ -59,6 +59,10 @@ export function SeerAutomationSettings() {
   const codingAgentMutationOpts = mutationOptions({
     mutationFn: (data: {defaultCodingAgent: string}) => {
       const selected = data.defaultCodingAgent;
+      const selectedIntegration = rawAgentOptions.find(
+        option => option.value === selected || option.value?.id === selected
+      );
+      const selectedIntegrationType = selectedIntegration?.type;
       return fetchMutation<Organization>({
         method: 'PUT',
         url: orgEndpoint,
@@ -68,7 +72,7 @@ export function SeerAutomationSettings() {
             : selected === 'none'
               ? {defaultCodingAgent: null, defaultCodingAgentIntegrationId: null}
               : {
-                  defaultCodingAgent: selected,
+                  defaultCodingAgent: selectedIntegrationType ?? selected,
                   defaultCodingAgentIntegrationId: Number(selected),
                 },
       });
