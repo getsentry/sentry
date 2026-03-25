@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.apitoken import ApiToken
 from sentry.models.options.organization_option import OrganizationOption
@@ -344,6 +345,16 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         self.login_as(demo_user)
         with override_options({"demo-mode.enabled": False, "demo-mode.users": [demo_user.id]}):
             self.get_error_response(name="demo org", slug="demo-org", status_code=403)
+            assert not Organization.objects.filter(slug="demo-org").exists()
+
+    @patch.object(OrganizationPermission, "has_permission", return_value=True)
+    def test_demo_user_handler_level_guard(self, mock_perm: MagicMock) -> None:
+        """The handler itself blocks demo users even if the permission layer is bypassed."""
+        demo_user = self.create_user("demo@example.com")
+        self.login_as(demo_user)
+        with override_options({"demo-mode.enabled": True, "demo-mode.users": [demo_user.id]}):
+            response = self.get_error_response(name="demo org", slug="demo-org", status_code=403)
+            assert response.data["detail"] == "Demo users are not allowed to create organizations."
             assert not Organization.objects.filter(slug="demo-org").exists()
 
 
