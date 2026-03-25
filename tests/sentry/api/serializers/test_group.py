@@ -483,8 +483,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
             seer_explorer_autofix_last_triggered=new_time,
         )
 
-        with self.feature("organizations:autofix-on-explorer"):
-            result = serialize(group, user)
+        result = serialize(group, user)
         assert result["seerAutofixLastTriggered"] == old_time
         assert result["seerExplorerAutofixLastTriggered"] == new_time
 
