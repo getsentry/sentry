@@ -863,6 +863,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/conduit/                                @getsentry/sre-infrastructure-engineering
 # End of Conduit
 
+# Cell architecture
+/.agents/skills/cell-architecture                    @getsentry/sre-infrastructure-engineering
+# End of cell architecture
+
 # Foundational Storage
 /src/sentry/objectstore/                              @getsentry/foundational-storage
 /tests/sentry/objectstore/                            @getsentry/foundational-storage
