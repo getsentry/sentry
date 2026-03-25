@@ -426,23 +426,21 @@ class ArtifactBundlePostAssembler:
 
             # If a release version is passed, we want to create the weak association between a bundle and a release.
             if self.release:
-                ReleaseArtifactBundle.objects.create_or_update(
+                ReleaseArtifactBundle.objects.update_or_create(
                     organization_id=self.organization.id,
                     release_name=self.release,
                     # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
                     # tables.
                     dist_name=self.dist or NULL_STRING,
                     artifact_bundle=artifact_bundle,
-                    values=new_date_added,
                     defaults=new_date_added,
                 )
 
             for project_id in self.project_ids:
-                ProjectArtifactBundle.objects.create_or_update(
+                ProjectArtifactBundle.objects.update_or_create(
                     organization_id=self.organization.id,
                     project_id=project_id,
                     artifact_bundle=artifact_bundle,
-                    values=new_date_added,
                     defaults=new_date_added,
                 )
 
