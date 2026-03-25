@@ -434,20 +434,19 @@ function RemoveButton({
   }
 
   return (
-    <Tooltip
-      disabled={canAccess}
-      title={t('You must be an organization owner, manager or admin to uninstall')}
+    <Button
+      size="xs"
+      icon={<IconDelete />}
+      disabled={!canAccess || isToggling}
+      onClick={() => setIsConfirming(true)}
+      aria-label={t('Remove %s', repoName)}
+      tooltipProps={{
+				disabled: canAccess,
+    		title: t('You must be an organization owner, manager or admin to uninstall'),
+      }}
     >
-      <Button
-        size="xs"
-        icon={<IconDelete />}
-        disabled={!canAccess || isToggling}
-        onClick={() => setIsConfirming(true)}
-        aria-label={t('Remove %s', repoName)}
-      >
-        {t('Remove')}
-      </Button>
-    </Tooltip>
+      {t('Remove')}
+    </Button>
   );
 }
 
