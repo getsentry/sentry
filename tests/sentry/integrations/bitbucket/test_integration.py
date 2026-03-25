@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote, urlencode
 
@@ -7,6 +10,10 @@ from django.urls import reverse
 
 from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
@@ -268,3 +275,93 @@ class BitbucketIntegrationTest(APITestCase):
             installation.get_repository_choices(None, {})
         assert mock_record_halt.call_count == 0
         assert mock_record_failure.call_count == 1
+
+
+@control_silo_test
+class BitbucketApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.subject = "connect:1234567"
+        self.shared_secret = "234567890"
+        self.integration = self.create_provider_integration(
+            provider="bitbucket",
+            external_id=self.subject,
+            name="sentryuser",
+            metadata={
+                "base_url": "https://api.bitbucket.org",
+                "shared_secret": self.shared_secret,
+            },
+        )
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "bitbucket"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    @responses.activate
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "authorize"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "bitbucket"
+        assert "authorizeUrl" in resp.data["data"]
+        assert "bitbucket.org/site/addons/authorize" in resp.data["data"]["authorizeUrl"]
+
+    @responses.activate
+    def test_missing_jwt(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({})
+        assert resp.status_code == 400
+
+    @responses.activate
+    @patch(
+        "sentry.integrations.bitbucket.integration.get_integration_from_jwt",
+        side_effect=AtlassianConnectValidationError("Invalid JWT"),
+    )
+    def test_invalid_jwt(self, mock_verify: MagicMock) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({"jwt": "invalid-token"})
+        assert resp.status_code == 400
+        assert "Unable to verify installation" in resp.data["jwt"][0]
+
+    @responses.activate
+    @patch("sentry.integrations.bitbucket.integration.get_integration_from_jwt")
+    def test_full_pipeline_flow(self, mock_verify: MagicMock) -> None:
+        mock_verify.return_value = RpcIntegration(
+            id=self.integration.id,
+            provider=self.integration.provider,
+            external_id=self.subject,
+            name=self.integration.name,
+            metadata=self.integration.metadata,
+            status=self.integration.status,
+        )
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "authorize"
+
+        resp = self._advance_step({"jwt": "valid-jwt-token"})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=self.integration,
+        ).exists()
