@@ -120,9 +120,11 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
   const hasScmConnected = !!selectedRepository;
 
-  const {detectedPlatforms, isPending: isDetecting} = useScmPlatformDetection(
-    hasScmConnected ? selectedRepository.id : undefined
-  );
+  const {
+    detectedPlatforms,
+    isPending: isDetecting,
+    isError: isDetectionError,
+  } = useScmPlatformDetection(hasScmConnected ? selectedRepository.id : undefined);
 
   const currentFeatures = useMemo(
     () => selectedFeatures ?? [ProductSolution.ERROR_MONITORING],
@@ -314,9 +316,11 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     p => p.platform === currentPlatformKey
   );
   const hasDetectedPlatforms = resolvedPlatforms.length > 0 || isDetecting;
+  // Fall through to manual picker on detection error
   const showDetectedPlatforms =
     hasScmConnected &&
     !showManualPicker &&
+    !isDetectionError &&
     hasDetectedPlatforms &&
     (!currentPlatformKey || currentPlatformIsDetected);
 

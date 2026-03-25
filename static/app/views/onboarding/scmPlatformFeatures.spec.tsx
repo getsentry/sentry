@@ -162,6 +162,33 @@ describe('ScmPlatformFeatures', () => {
     expect(screen.getByRole('heading', {name: 'Select a platform'})).toBeInTheDocument();
   });
 
+  it('falls back to manual picker when platform detection fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/42/platforms/`,
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    render(
+      <ScmPlatformFeatures
+        onComplete={jest.fn()}
+        stepIndex={2}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedRepository: mockRepository,
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Select a platform'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Recommended SDK')).not.toBeInTheDocument();
+  });
+
   it('renders manual picker when no repository in context', async () => {
     render(
       <ScmPlatformFeatures
