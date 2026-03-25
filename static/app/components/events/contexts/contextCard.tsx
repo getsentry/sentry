@@ -3,7 +3,7 @@ import startCase from 'lodash/startCase';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
   getContextIcon,

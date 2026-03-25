@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
   BreadcrumbsDrawer,

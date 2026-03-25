@@ -45,6 +45,7 @@ from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 from sentry.workflow_engine.models import (
@@ -1592,19 +1593,4 @@ class GetProjectRulesDeltaTest(APITestCase):
         we_rule = we_response.data[0]
         assert legacy_rule["id"] == str(rule.id)
 
-        known_differences: set[str] = set()
-
-        mismatches: list[str] = []
-        for field in set(list(legacy_rule.keys()) + list(we_rule.keys())):
-            if field in known_differences:
-                continue
-            if field not in we_rule:
-                mismatches.append(f"Missing from workflow engine: {field}")
-            elif field not in legacy_rule:
-                mismatches.append(f"Extra in workflow engine: {field}")
-            elif legacy_rule[field] != we_rule[field]:
-                mismatches.append(f"{field}: legacy={legacy_rule[field]!r}, we={we_rule[field]!r}")
-
-        assert not mismatches, "Legacy vs workflow engine serializer differences:\n" + "\n".join(
-            mismatches
-        )
+        assert_serializer_parity(old=legacy_rule, new=we_rule)

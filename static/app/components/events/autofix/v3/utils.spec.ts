@@ -67,7 +67,10 @@ function makeSolutionArtifact(
     data: {
       one_line_summary: 'Add null check before accessing property',
       steps: [
-        {title: 'Add guard clause', description: 'Check for null before accessing .name'},
+        {
+          title: 'Add guard clause',
+          description: 'Check for null before accessing .name',
+        },
         {title: 'Add test', description: 'Cover the null input case'},
       ],
     },
@@ -144,7 +147,7 @@ describe('artifactToMarkdown', () => {
     it('renders full solution with steps', () => {
       expect(artifactToMarkdown(makeSolutionArtifact())).toBe(
         [
-          '# Implementation Plan',
+          '# Plan',
           '',
           'Add null check before accessing property',
           '',
@@ -169,9 +172,7 @@ describe('artifactToMarkdown', () => {
           steps: [],
         },
       });
-      expect(artifactToMarkdown(artifact)).toBe(
-        ['# Implementation Plan', '', 'Quick fix'].join('\n')
-      );
+      expect(artifactToMarkdown(artifact)).toBe(['# Plan', '', 'Quick fix'].join('\n'));
     });
   });
 

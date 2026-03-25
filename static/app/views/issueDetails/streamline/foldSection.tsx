@@ -13,7 +13,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Separator, type SeparatorProps} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

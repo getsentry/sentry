@@ -23,8 +23,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {DeprecatedAsyncComponent} from 'sentry/components/deprecatedAsyncComponent';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
@@ -80,7 +80,7 @@ import {
 } from 'sentry/views/alerts/utils/constants';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-import RuleNodeList from './ruleNodeList';
+import {RuleNodeList} from './ruleNodeList';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
