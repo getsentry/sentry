@@ -1,9 +1,9 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError
-from sentry.seer.entrypoints.slack.metrics import ProcessMentionHaltReason
+from sentry.seer.entrypoints.slack.metrics import ProcessMentionFailureReason
 from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
-from sentry.testutils.asserts import assert_halt_metric
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 
 TASK_KWARGS = {
@@ -60,7 +60,7 @@ class ProcessMentionForSlackTest(TestCase):
         mock_explorer_cls.has_access.assert_not_called()
         mock_explorer_cls.assert_not_called()
         mock_operator_cls.assert_not_called()
-        assert_halt_metric(mock_record, ProcessMentionHaltReason.ORG_NOT_FOUND)
+        assert_failure_metric(mock_record, ProcessMentionFailureReason.ORG_NOT_FOUND)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
@@ -72,7 +72,7 @@ class ProcessMentionForSlackTest(TestCase):
 
         mock_explorer_cls.assert_not_called()
         mock_operator_cls.assert_not_called()
-        assert_halt_metric(mock_record, ProcessMentionHaltReason.NO_EXPLORER_ACCESS)
+        assert_failure_metric(mock_record, ProcessMentionFailureReason.NO_EXPLORER_ACCESS)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
@@ -84,7 +84,7 @@ class ProcessMentionForSlackTest(TestCase):
         self._run_task()
 
         mock_operator_cls.assert_not_called()
-        assert_halt_metric(mock_record, EntrypointSetupError("not found"))
+        assert_failure_metric(mock_record, EntrypointSetupError("not found"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks._send_link_identity_prompt")
@@ -110,7 +110,7 @@ class ProcessMentionForSlackTest(TestCase):
 
         mock_send_link.assert_called_once_with(entrypoint=mock_entrypoint)
         mock_operator_cls.assert_not_called()
-        assert_halt_metric(mock_record, ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
+        assert_failure_metric(mock_record, ProcessMentionFailureReason.IDENTITY_NOT_LINKED)
 
     @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackExplorerEntrypoint")
