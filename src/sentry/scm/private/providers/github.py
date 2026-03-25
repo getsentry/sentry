@@ -125,7 +125,13 @@ mutation MinimizeComment($commentId: ID!, $reason: ReportedContentClassifiers!) 
 """
 
 
+# Mapping of referrer, percentage pairs. For a given referrer X% of quota is reserved for that
+# identifier. Excess use of the allocated quota does not result in a rate-limit error. Once
+# reserved quota is exhausted the referrer will fall back to the shared quota pool.
+#
+# WARN: "shared" is a reserved referrer name and may not be used.
 REFERRER_ALLOCATION: dict[Referrer, float] = {"emerge": 0.05}
+assert "shared" not in REFERRER_ALLOCATION
 
 GITHUB_RATE_LIMIT_WINDOW = 3600
 GITHUB_RATE_LIMIT_CAPACITY = "x-ratelimit-limit"
