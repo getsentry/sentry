@@ -365,7 +365,7 @@ function DisconnectedRepoRow({
   style: CSSProperties;
 }) {
   return (
-    <RowContainer style={style} role="row" aria-level={3}>
+    <RowContainer style={style} role="row" aria-level={2}>
       <Flex align="center" gap="sm" height="100%" paddingRight="lg">
         <Flex
           flex={1}
