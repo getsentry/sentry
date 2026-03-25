@@ -1,6 +1,6 @@
 import {PlatformIcon} from 'platformicons';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {PlatformKey} from 'sentry/types/project';
@@ -25,15 +25,17 @@ export function ScmPlatformCard({
   return (
     <ScmCardButton onClick={onClick} role="radio" aria-checked={isSelected}>
       <Container border={isSelected ? 'accent' : 'secondary'} padding="md lg" radius="md">
-        <Flex gap="md" align="center">
+        <Grid gap="md" align="center" columns="max-content min-content">
           <PlatformIcon platform={platform} size={28} />
           <Stack gap="0">
-            <Text bold>{name}</Text>
-            <Text variant="muted" size="sm">
+            <Text bold textWrap="nowrap">
+              {name}
+            </Text>
+            <Text variant="muted" size="sm" textWrap="nowrap">
               {type}
             </Text>
           </Stack>
-        </Flex>
+        </Grid>
       </Container>
     </ScmCardButton>
   );
