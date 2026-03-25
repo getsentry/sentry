@@ -23,6 +23,7 @@
 /bin/mock*                                              @getsentry/app-backend
 /src/sentry/data/samples/                               @getsentry/app-backend
 /src/sentry/cache/                                      @getsentry/app-backend
+/tests/sentry/cache/                                    @getsentry/app-backend
 /src/sentry/conf/                                       @getsentry/app-backend
 /src/sentry/db/models/                                  @getsentry/app-backend
 /src/sentry/models/                                     @getsentry/app-backend
@@ -594,6 +595,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/js/fixtures/detectedPlatform.ts                                           @getsentry/value-discovery
 /static/app/views/projectInstall/                                                @getsentry/value-discovery
 /src/sentry/onboarding_tasks/                                                    @getsentry/value-discovery
+/static/app/components/pipeline/                                                 @getsentry/value-discovery
 ## End of Value Discovery
 
 ## ML & AI
@@ -795,15 +797,18 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 ## Frontend Platform (keep last as we want highest specificity)
 /static/app/utils/theme/                              @getsentry/design-engineering
+/static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/components/core/                          @getsentry/design-engineering
 /static/app/components/pageFilters/                   @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
+/static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering
 /static/less/                                         @getsentry/design-engineering
 /static/app/views/settings/                           @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
 /static/app/bootstrap/                                @getsentry/design-engineering
+/static/app/components/commandPalette/                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering
 /knip.config.ts                                        @getsentry/design-engineering
@@ -861,6 +866,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/conduit/                                  @getsentry/sre-infrastructure-engineering
 /tests/sentry/conduit/                                @getsentry/sre-infrastructure-engineering
 # End of Conduit
+
+# Cell architecture
+/.agents/skills/cell-architecture                    @getsentry/sre-infrastructure-engineering
+# End of cell architecture
 
 # Foundational Storage
 /src/sentry/objectstore/                              @getsentry/foundational-storage
