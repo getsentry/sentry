@@ -461,9 +461,11 @@ function SecondaryNavigationLink({
   const isActive =
     incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
 
-  const {layout} = usePrimaryNavigation();
+  const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const hasPageFrame = useHasPageFrameFeature();
+  const {setView} = useSecondaryNavigation();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   const sharedLinkProps = {
     ...linkProps,
@@ -481,6 +483,13 @@ function SecondaryNavigationLink({
       // When this is rendered inside a hovercard (when the nav is collapsed)
       // this will dismiss it when clicking on a link.
       closeCollapsedNavigationHovercard();
+
+      // On touch devices with page frame, close the nav panel when navigating to a secondary item.
+      // MobilePageFrameNavigation watches for view === 'collapsed' and calls setIsOpen(false).
+      if (isMobilePageFrame && !features.hover) {
+        setView('collapsed');
+      }
+
       onClick?.(e);
     },
   };
@@ -912,10 +921,12 @@ function SecondaryNavigationReorderableLink({
   const navigate = useNavigate();
   const isActive =
     incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
-  const {layout} = usePrimaryNavigation();
+  const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {isDragging} = useReorderableItemContext();
   const hasPageFrame = useHasPageFrameFeature();
+  const {setView} = useSecondaryNavigation();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   function handleNavigate() {
     if (isDragging) {
@@ -928,6 +939,13 @@ function SecondaryNavigationReorderableLink({
       });
     }
     closeCollapsedNavigationHovercard();
+
+    // On touch devices with page frame, close the nav panel when navigating to a secondary item.
+    // MobilePageFrameNavigation watches for view === 'collapsed' and calls setIsOpen(false).
+    if (isMobilePageFrame && !features.hover) {
+      setView('collapsed');
+    }
+
     onNavigate?.();
     navigate(to, {state: {source: SIDEBAR_NAVIGATION_SOURCE}});
   }
