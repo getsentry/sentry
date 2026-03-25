@@ -64,7 +64,10 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   );
 
   // 3. Fetch already-connected repos, auto-paginate to get all
-  const reposQueryOptions = organizationRepositoriesInfiniteOptions({organization});
+  const reposQueryOptions = organizationRepositoriesInfiniteOptions({
+    organization,
+    staleTime: 0,
+  });
   const {
     data: reposPages,
     hasNextPage: reposHasNextPage,
