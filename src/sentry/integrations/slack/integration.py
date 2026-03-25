@@ -10,6 +10,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from sentry import options
+from sentry.identity.oauth2 import OAuth2ApiStep
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
@@ -37,7 +38,7 @@ from sentry.notifications.platform.slack.provider import (
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
@@ -338,6 +339,20 @@ class SlackIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [self._identity_pipeline_view()]
 
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [
+            OAuth2ApiStep(
+                authorize_url="https://slack.com/oauth/v2/authorize",
+                client_id=options.get("slack.client-id"),
+                client_secret=options.get("slack.client-secret"),
+                access_token_url="https://slack.com/api/oauth.v2.access",
+                scope=" ".join(self._get_oauth_scopes()),
+                redirect_url=absolute_uri("/extensions/slack/setup/"),
+                bind_key="oauth_data",
+                extra_authorize_params={"user_scope": " ".join(self.user_scopes)},
+            ),
+        ]
+
     def _get_team_info(self, access_token: str) -> Any:
         # Manually add authorization since this method is part of slack installation
 
@@ -352,7 +367,13 @@ class SlackIntegrationProvider(IntegrationProvider):
             raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        data = state["identity"]["data"]
+        # TODO: legacy views write token data to state["identity"]["data"] via
+        # NestedPipelineView. API steps write directly to state["oauth_data"].
+        # Remove the legacy path once the old views are retired.
+        if "oauth_data" in state:
+            data = state["oauth_data"]
+        else:
+            data = state["identity"]["data"]
         assert data["ok"]
 
         access_token = data["access_token"]

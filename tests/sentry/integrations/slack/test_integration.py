@@ -1,9 +1,13 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import orjson
 import pytest
 import responses
+from django.urls import reverse
 from responses.matchers import query_string_matcher
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
@@ -11,6 +15,7 @@ from slack_sdk.web import SlackResponse
 from sentry import audit_log
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
@@ -653,3 +658,107 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             channel_id=self.channel_id, thread_ts=self.thread_ts
         )
         assert result == []
+
+
+@control_silo_test
+class SlackApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def tearDown(self) -> None:
+        responses.reset()
+        super().tearDown()
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "slack"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _get_pipeline_signature(self, resp: Any) -> str:
+        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+
+    @responses.activate
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "slack"
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert "slack.com/oauth/v2/authorize" in oauth_url
+        assert "user_scope=" in oauth_url
+
+    @responses.activate
+    def test_oauth_step_missing_code(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({})
+        assert resp.status_code == 400
+
+    @responses.activate
+    @patch("sentry.integrations.slack.integration.WebClient")
+    def test_full_pipeline_flow(self, mock_web_client_cls: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_web_client_cls.return_value = mock_client
+        mock_client.team_info.return_value = SlackResponse(
+            client=mock_client,
+            http_verb="GET",
+            api_url="https://slack.com/api/team.info",
+            req_args={},
+            data={
+                "ok": True,
+                "team": {
+                    "name": "Test Team",
+                    "id": "T1234",
+                    "domain": "test-team",
+                    "icon": {"image_132": "https://example.com/icon.png"},
+                },
+            },
+            headers={},
+            status_code=200,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://slack.com/api/oauth.v2.access",
+            json={
+                "ok": True,
+                "access_token": "xoxb-test-token",
+                "scope": "channels:read,chat:write",
+                "team": {"name": "Test Team", "id": "T1234"},
+                "authed_user": {"id": "U1234"},
+            },
+        )
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "slack-auth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="slack")
+        assert integration.external_id == "T1234"
+        assert integration.name == "Test Team"
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
