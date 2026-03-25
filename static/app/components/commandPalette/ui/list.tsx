@@ -343,12 +343,16 @@ function CommandPaletteNoResults() {
     >
       <Image src={error} alt="No results" width="400px" />
       <Stack align="center" gap="md">
-        <Text size="md" align="center">
+        <Container padding="0 2xl">
+        <Stack gap="sm">
+        <Text size="md" align="center" >
           {t("Whoops… we couldn't find any results matching your search.")}
         </Text>
         <Text size="md" align="center">
-          {t('Try rephrasing your query maybe?')}
+          {t("May we suggest rephrasing your query?")}
         </Text>
+        </Stack>
+        </Container>
         <Container paddingTop="xl">
         <FeedbackButton
           priority="primary"
