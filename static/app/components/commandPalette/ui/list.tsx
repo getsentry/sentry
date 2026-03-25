@@ -30,7 +30,9 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {fzf} from 'sentry/utils/search/fzf';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {
   children: CommandPaletteActionMenuItem[];
@@ -335,6 +337,15 @@ function flattenActions(
 }
 
 function CommandPaletteNoResults() {
+  const organization = useOrganization();
+  const {query, selectedAction} = useCommandPaletteState();
+
+  useEffect(() => {
+    const action = selectedAction?.display.label;
+    trackAnalytics('command_palette.no_results', {organization, query, action});
+    Sentry.logger.info('Command palette returned no results', {query, action});
+  }, [organization, query, selectedAction]);
+
   return (
     <Flex
       direction="column"
