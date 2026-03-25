@@ -13,10 +13,12 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 export function CommandPaletteContent() {
+  const navigate = useNavigate();
+
   const {query} = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+
   useDsnLookupActions(query);
-  const navigate = useNavigate();
 
   const handleSelect = useCallback(
     (action: CommandPaletteActionWithKey) => {

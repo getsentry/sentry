@@ -25,7 +25,7 @@ import {
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
 import {IconArrow, IconSearch} from 'sentry/icons';
-import {SvgIcon} from 'sentry/icons/svgIcon';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
 
@@ -114,56 +114,62 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
 
   return (
     <Fragment>
-      <Flex direction="column" align="start" gap="md" borderBottom="muted">
+      <Flex direction="column" align="start" gap="md">
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
-          <InputGroup>
-            <InputGroup.LeadingItems>
-              {selectedAction ? (
-                <Button
-                  size="xs"
-                  priority="transparent"
-                  icon={<IconArrow direction="left" />}
-                  onClick={() => {
-                    dispatch({type: 'clear selected action'});
-                    inputRef.current?.focus();
-                  }}
-                  aria-label={t('Return to all options')}
-                />
-              ) : (
-                <IconSearch size="sm" variant="muted" />
-              )}
-            </InputGroup.LeadingItems>
-            <InputGroup.Input
-              ref={inputRef}
-              value={query}
-              aria-label={t('Search commands')}
-              placeholder={selectedAction?.display?.label ?? t('Type for actions…')}
-              autoFocus
-              {...mergeProps(collectionProps, {
-                onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                  dispatch({type: 'set query', query: e.target.value});
-                  treeState.selectionManager.setFocusedKey(null);
-                },
-                onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-                  if (e.key === 'Backspace' && query === '') {
-                    dispatch({type: 'clear selected action'});
-                    e.preventDefault();
+          {p => {
+            return (
+              <InputGroup {...p}>
+                <InputGroup.LeadingItems>
+                  {selectedAction ? (
+                    <Button
+                      size="xs"
+                      priority="transparent"
+                      icon={<IconArrow direction="left" />}
+                      onClick={() => {
+                        dispatch({type: 'clear selected action'});
+                        inputRef.current?.focus();
+                      }}
+                      aria-label={t('Return to all options')}
+                    />
+                  ) : (
+                    <IconSearch size="sm" variant="muted" />
+                  )}
+                </InputGroup.LeadingItems>
+                <InputGroup.Input
+                  autoFocus
+                  ref={inputRef}
+                  value={query}
+                  aria-label={t('Search commands')}
+                  placeholder={
+                    selectedAction?.display?.label ?? t('Search for commands...')
                   }
-
-                  if (e.key === 'Enter' || e.key === 'Tab') {
-                    const key = treeState.selectionManager.focusedKey;
-                    if (key !== null && key !== undefined) {
-                      const action = filteredActions.find(a => a.key === key);
-                      if (action) {
-                        dispatch({type: 'trigger action'});
-                        onAction(action);
+                  {...mergeProps(collectionProps, {
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                      dispatch({type: 'set query', query: e.target.value});
+                      treeState.selectionManager.setFocusedKey(null);
+                    },
+                    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === 'Backspace' && query === '') {
+                        dispatch({type: 'clear selected action'});
+                        e.preventDefault();
                       }
-                    }
-                  }
-                },
-              })}
-            />
-          </InputGroup>
+
+                      if (e.key === 'Enter' || e.key === 'Tab') {
+                        const key = treeState.selectionManager.focusedKey;
+                        if (key !== null && key !== undefined) {
+                          const action = filteredActions.find(a => a.key === key);
+                          if (action) {
+                            dispatch({type: 'trigger action'});
+                            onAction(action);
+                          }
+                        }
+                      }
+                    },
+                  })}
+                />
+              </InputGroup>
+            );
+          }}
         </Flex>
       </Flex>
       {treeState.collection.size === 0 ? (
@@ -180,7 +186,7 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
             keyDownHandler={() => true}
             overlayIsOpen
             size="md"
-            aria-label="Search results"
+            aria-label={t('Search results')}
             selectionMode="none"
             shouldUseVirtualFocus
             onAction={key => {
@@ -210,7 +216,7 @@ function groupActionsBySection(
       ? (COMMAND_PALETTE_GROUP_KEY_CONFIG[action.groupingKey]?.label ?? '')
       : '';
     const list = itemsBySection.get(sectionLabel) ?? [];
-    list.push(actionToMenuItem(action));
+    list.push(makeMenuItemFromAction(action));
     itemsBySection.set(sectionLabel, list);
   }
   return Array.from(itemsBySection.keys())
@@ -259,58 +265,27 @@ function search(
   ];
 }
 
-function CommandPaletteNoResults() {
-  return (
-    <Flex
-      direction="column"
-      align="center"
-      justify="center"
-      gap="lg"
-      padding="xl lg"
-      height="400px"
-    >
-      <Image src={error} alt="No results" width="400px" />
-      <Stack align="center" gap="md">
-        <Text size="md" align="center">
-          {t("Whoops… we couldn't find any results matching your search.")}
-        </Text>
-        <Text size="md" align="center">
-          {t('Try rephrasing your query maybe?')}
-        </Text>
-      </Stack>
-    </Flex>
-  );
-}
-
-const ResultsList = styled(Flex)`
-  ul,
-  li {
-    scroll-margin: ${p => p.theme.space['3xl']} 0;
-  }
-
-  li[data-focused] > ${InnerWrap} {
-    outline: 2px solid ${p => p.theme.tokens.focus.default};
-  }
-`;
-
-const IconWrap = styled(Flex)`
-  width: ${() => SvgIcon.ICON_SIZES.md};
-  height: ${() => SvgIcon.ICON_SIZES.md};
-`;
-
-function actionToMenuItem(
+function makeMenuItemFromAction(
   action: CommandPaletteActionWithKey
 ): CommandPaletteActionMenuItem {
   return {
     key: action.key,
     label: action.display.label,
     details: action.display.details,
-    leadingItems: action.display.icon ? (
-      <IconWrap align="center" justify="center">
-        {action.display.icon}
-      </IconWrap>
-    ) : undefined,
-    children: action.type === 'group' ? action.actions.map(actionToMenuItem) : [],
+    leadingItems: (
+      <Flex
+        height="100%"
+        align="start"
+        justify="center"
+        width="14px"
+        // This centers the icon vertically with the main text, regardless
+        // of the icon details presence or not.
+        paddingTop="2xs"
+      >
+        <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
+      </Flex>
+    ),
+    children: action.type === 'group' ? action.actions.map(makeMenuItemFromAction) : [],
     hideCheck: true,
   };
 }
@@ -349,3 +324,42 @@ function flattenActions(
 
   return flattened;
 }
+
+function CommandPaletteNoResults() {
+  return (
+    <Flex
+      direction="column"
+      align="center"
+      justify="center"
+      gap="lg"
+      padding="xl lg"
+      height="400px"
+    >
+      <Image src={error} alt="No results" width="400px" />
+      <Stack align="center" gap="md">
+        <Text size="md" align="center">
+          {t("Whoops… we couldn't find any results matching your search.")}
+        </Text>
+        <Text size="md" align="center">
+          {t('Try rephrasing your query maybe?')}
+        </Text>
+      </Stack>
+    </Flex>
+  );
+}
+
+const ResultsList = styled(Flex)`
+  ul,
+  li {
+    scroll-margin: ${p => p.theme.space['3xl']} 0;
+  }
+
+  ${InnerWrap} {
+    padding-top: ${p => p.theme.space.sm};
+    padding-bottom: ${p => p.theme.space.sm};
+  }
+
+  li[data-focused] > ${InnerWrap} {
+    outline: 2px solid ${p => p.theme.tokens.focus.default};
+  }
+`;
