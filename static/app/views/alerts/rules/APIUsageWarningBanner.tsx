@@ -11,7 +11,8 @@ export function APIUsageWarningBanner({errors}: Props) {
   const hasUnsupportedError = errors?.some(
     ({detail}) =>
       detail.includes('Condition not supported') ||
-      detail.includes('Filter not supported')
+      detail.includes('Filter not supported') ||
+      detail.includes('Multiple if/then blocks are not supported')
   );
 
   if (!hasUnsupportedError) {
