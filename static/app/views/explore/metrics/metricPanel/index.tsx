@@ -1,5 +1,7 @@
 import {useState} from 'react';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -13,10 +15,12 @@ import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetri
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {useTableOrientationControl} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
+import {MetricInfoTabs} from 'sentry/views/explore/metrics/metricInfoTabs';
 import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/sideBySideOrientation';
 import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
+import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -84,16 +88,29 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     panelIndex: queryIndex,
   });
 
+  const visualize = useMetricVisualize();
+
   if (hasMetricsUIRefresh) {
     return (
       <Panel data-test-id="metric-panel">
         <PanelBody>
-          <MetricsGraph
-            timeseriesResult={timeseriesResult}
-            orientation={orientation}
-            isMetricOptionsEmpty={isMetricOptionsEmpty}
-            queryIndex={queryIndex}
-          />
+          <Stack gap="sm">
+            <MetricsGraph
+              timeseriesResult={timeseriesResult}
+              orientation={orientation}
+              isMetricOptionsEmpty={isMetricOptionsEmpty}
+              queryIndex={queryIndex}
+            />
+            {visualize.visible && (
+              <MetricInfoTabs
+                traceMetric={traceMetric}
+                additionalActions={undefined}
+                contentsHidden={infoContentHidden}
+                orientation={orientation}
+                isMetricOptionsEmpty={isMetricOptionsEmpty}
+              />
+            )}
+          </Stack>
         </PanelBody>
       </Panel>
     );
