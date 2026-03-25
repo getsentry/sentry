@@ -16,6 +16,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
@@ -220,6 +221,7 @@ class IncidentListDeltaTest(APITestCase):
     def user(self):
         return self.create_user()
 
+    @freeze_time("2024-12-11 03:21:34")
     def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -268,18 +270,16 @@ class IncidentListDeltaTest(APITestCase):
                 old=old_incident,
                 new=new_incident,
                 known_differences={
+                    # resolveThreshold: WE serializer always creates a resolve condition during migration;
+                    # legacy serializer returns None when AlertRule.resolve_threshold is None.
+                    "alertRule.resolveThreshold",
+                    # triggers.resolveThreshold: same reason as alertRule.resolveThreshold.
+                    "alertRule.triggers.resolveThreshold",
+                    # triggers.label: legacy uses the user-defined trigger name; WE uses "critical"/"warning".
+                    "alertRule.triggers.label",
                     # title: Old system uses Incident.title (set from AlertRule.name at incident creation time),
                     # WE system uses Group.title (the issue title). These are typically different strings.
                     "title",
-                    # dateDetected: Old system has separate date_detected field,
-                    # WE serializer sets dateDetected = date_started (GroupOpenPeriod has no separate detection date).
-                    "dateDetected",
-                    # dateCreated: Old system uses Incident.date_added,
-                    # WE system uses GroupOpenPeriod.date_added. These are created at different times.
-                    "dateCreated",
-                    # alertRule: The nested alert rule serialization is tested separately.
-                    # This test focuses on the incident-level fields.
-                    "alertRule",
                 },
             )
 
