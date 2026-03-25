@@ -37,8 +37,6 @@ export function SeerAutomationSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
-  const showSeerOverview = organization.features.includes('seer-overview');
-
   const scmOverviewData = useSCMOverviewSection();
 
   const orgEndpoint = `/organizations/${organization.slug}/`;
@@ -83,15 +81,11 @@ export function SeerAutomationSettings() {
         )}
       />
       <SeerSettingsPageContent>
-        {showSeerOverview ? (
-          <div>
-            <SCMOverviewSection
-              organizationSlug={organization.slug}
-              canWrite={canWrite}
-              {...scmOverviewData}
-            />
-          </div>
-        ) : null}
+        <SCMOverviewSection
+          organizationSlug={organization.slug}
+          canWrite={canWrite}
+          {...scmOverviewData}
+        />
         <FieldGroup
           title={
             <Flex gap="md">
