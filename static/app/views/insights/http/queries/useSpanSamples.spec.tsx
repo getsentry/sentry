@@ -1,46 +1,27 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import type {NonDefaultSpanSampleFields} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 
-jest.mock('sentry/components/pageFilters/usePageFilters');
-jest.mock('sentry/utils/useLocation');
-
 describe('useSpanSamples', () => {
   const organization = OrganizationFixture();
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: ['prod'],
-        projects: [],
-      },
-    })
-  );
-
-  jest.mocked(useLocation).mockReturnValue({
-    query: {},
-    action: 'PUSH',
-    pathname: '',
-    hash: '',
-    key: '',
-    search: '',
-    state: undefined,
-  });
 
   beforeEach(() => {
     jest.clearAllMocks();
+    PageFiltersStore.onInitializeUrlState({
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+      environments: ['prod'],
+      projects: [],
+    });
   });
 
   it('respects the `enabled` prop', () => {
@@ -57,6 +38,7 @@ describe('useSpanSamples', () => {
           fields: [] satisfies NonDefaultSpanSampleFields[],
           enabled: false,
         },
+        organization,
       }
     );
 
@@ -106,6 +88,7 @@ describe('useSpanSamples', () => {
           fields: [] satisfies NonDefaultSpanSampleFields[],
           referrer: 'api-spec',
         },
+        organization,
       }
     );
 
