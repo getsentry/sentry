@@ -1234,6 +1234,8 @@ static/app/debug/notifications/previews/slackPreview.tsx
 static/app/debug/notifications/previews/teamsPreview.tsx
 static/app/debug/notifications/types.ts
 static/app/debug/notifications/views/index.tsx
+static/app/endpoints/organizations/organizationsConfigIntegrationsQueryOptions.ts
+static/app/endpoints/organizations/organizationsIntegrationsQueryOptions.ts
 static/app/index.tsx
 static/app/locale.spec.tsx
 static/app/main.tsx
@@ -1921,10 +1923,6 @@ tests/sentry/billing/platform/services/usage/test_service.py
 tests/sentry/buffer/__init__.py
 tests/sentry/buffer/test_base.py
 tests/sentry/buffer/test_redis.py
-tests/sentry/cache/__init__.py
-tests/sentry/cache/test_cache.py
-tests/sentry/cache/test_django.py
-tests/sentry/cache/test_redis.py
 tests/sentry/charts/__init__.py
 tests/sentry/charts/test_chartcuterie.py
 tests/sentry/conf/__init__.py
