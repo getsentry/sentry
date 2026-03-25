@@ -1,7 +1,3 @@
-import type {
-  CommandPaletteDispatch,
-  CommandPaletteState,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
@@ -152,28 +148,11 @@ export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export async function toggleCommandPalette(
-  options: ModalOptions = {},
-  state: CommandPaletteState,
-  dispatch: CommandPaletteDispatch
-) {
+export async function openCommandPalette(options: ModalOptions = {}) {
   const {default: Modal, modalCss} =
     await import('sentry/components/commandPalette/ui/modal');
 
-  function closeCommandPaletteModal() {
-    dispatch({type: 'toggle modal'});
-  }
-
-  if (state.open) {
-    closeCommandPaletteModal();
-    closeModal();
-  } else {
-    dispatch({type: 'toggle modal'});
-    openModal(deps => <Modal {...deps} {...options} />, {
-      modalCss,
-      onClose: closeCommandPaletteModal,
-    });
-  }
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 type RecoveryModalOptions = {
