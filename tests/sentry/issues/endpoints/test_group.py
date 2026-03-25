@@ -15,12 +15,34 @@ class GroupAiPermissionTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.permission = GroupAiPermission()
-        self.project = self.create_project()
-        self.group = self.create_group(project=self.project)
+        self.demo_org = self.create_organization(name="demo-org")
+        self.demo_project = self.create_project(organization=self.demo_org)
+        self.demo_group = self.create_group(project=self.demo_project)
         self.demo_user = self.create_user()
+        self.create_member(
+            user=self.demo_user,
+            organization=self.demo_org,
+            role="member",
+            teams=[self.demo_project.teams.first()],
+        )
+
+        # Keep legacy aliases so existing tests still work
+        self.project = self.demo_project
+        self.group = self.demo_group
+
+        # A separate org the demo user has no membership in
+        self.other_org = self.create_organization(name="other-org")
+        self.other_project = self.create_project(organization=self.other_org)
+        self.other_group = self.create_group(project=self.other_project)
 
     def _demo_mode_enabled(self) -> ContextManager[None]:
-        return override_options({"demo-mode.enabled": True, "demo-mode.users": [self.demo_user.id]})
+        return override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [self.demo_user.id],
+                "demo-mode.orgs": [self.demo_org.id],
+            }
+        )
 
     def has_object_perm(
         self,
@@ -51,8 +73,28 @@ class GroupAiPermissionTest(TestCase):
                 assert not self.has_object_perm(method, self.group, user=self.demo_user)
 
     def test_demo_user_demo_mode_disabled(self) -> None:
-        for method in ("GET", "POST", "PUT", "DELETE"):
-            assert not self.has_object_perm(method, self.group, user=self.demo_user)
+        """When demo mode is off, demo user goes through normal auth — no special bypass."""
+        with override_options({"demo-mode.users": [self.demo_user.id]}):
+            # Has membership in demo_org → normal auth grants access
+            assert self.has_object_perm("GET", self.demo_group, user=self.demo_user)
+            # No membership in other_org → normal auth denies
+            assert not self.has_object_perm("GET", self.other_group, user=self.demo_user)
+
+    def test_demo_user_blocked_from_non_demo_org_group(self) -> None:
+        """Demo user must not access groups belonging to a non-demo org."""
+        with self._demo_mode_enabled():
+            for method in ("GET", "POST"):
+                assert not self.has_object_perm(method, self.other_group, user=self.demo_user), (
+                    f"Demo user got access to non-demo org group via {method}"
+                )
+
+    def test_demo_user_allowed_on_demo_org_group(self) -> None:
+        """Demo user can access groups in the demo org."""
+        with self._demo_mode_enabled():
+            for method in ("GET", "POST"):
+                assert self.has_object_perm(method, self.demo_group, user=self.demo_user), (
+                    f"Demo user denied access to demo org group via {method}"
+                )
 
     def test_regular_user_with_access(self) -> None:
         user = self.create_user()
