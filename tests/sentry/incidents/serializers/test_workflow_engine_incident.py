@@ -25,6 +25,9 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         super().setUp()
         self.add_warning_trigger()
         self.add_incident_data()
+        # Incident serializer uses DetailedWorkflowEngineDetectorSerializer, which always
+        # includes eventTypes and snooze to match DetailedAlertRuleSerializer behaviour.
+        self.expected.update({"eventTypes": ["error"], "snooze": False})
         self.incident_identifier = str(self.incident_group_open_period.incident_identifier)
         self.expected["eventTypes"] = sorted(
             SnubaQueryEventType.EventType(et.type).name.lower()
