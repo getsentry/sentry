@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
@@ -6,7 +5,7 @@ import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
-import {StackIndicatorBar} from 'sentry/components/stream/stackIndicatorBar';
+import {SupergroupRow} from 'sentry/components/stream/supergroupRow';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import {useSuperGroupForIssues} from 'sentry/utils/supergroup/useSuperGroupForIssues';
@@ -14,6 +13,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {NoGroupsHandler} from './noGroupsHandler';
@@ -52,6 +52,12 @@ const COLUMNS: GroupListColumn[] = [
   'assignee',
   'lastTriggered',
 ];
+
+const NESTED_COLUMNS: GroupListColumn[] = ['event', 'users', 'priority', 'assignee'];
+
+type RenderItem =
+  | {id: string; type: 'issue'}
+  | {matchingIds: string[]; supergroup: SupergroupDetail; type: 'supergroup'};
 
 function LoadingSkeleton({
   pageSize,
@@ -126,6 +132,58 @@ export function GroupListBody({
   );
 }
 
+/**
+ * Build a render plan that groups issues by supergroup.
+ * Issues sharing a supergroup are collected into a single entry
+ * positioned where the first member appears.
+ */
+function buildRenderItems(
+  groupIds: string[],
+  getSuperGroupForIssue: (id: string) => SupergroupDetail | null | undefined,
+  enabled: boolean
+): RenderItem[] {
+  if (!enabled) {
+    return groupIds.map(id => ({type: 'issue' as const, id}));
+  }
+
+  const sgForId = new Map<string, SupergroupDetail | null>();
+  const sgMembers = new Map<number, string[]>();
+
+  for (const id of groupIds) {
+    const sg = getSuperGroupForIssue(id);
+    if (sg && sg.group_ids.length > 1) {
+      sgForId.set(id, sg);
+      if (!sgMembers.has(sg.id)) {
+        sgMembers.set(sg.id, []);
+      }
+      sgMembers.get(sg.id)!.push(id);
+    } else {
+      sgForId.set(id, null);
+    }
+  }
+
+  const seen = new Set<number>();
+  const items: RenderItem[] = [];
+
+  for (const id of groupIds) {
+    const sg = sgForId.get(id);
+    if (sg) {
+      if (!seen.has(sg.id)) {
+        seen.add(sg.id);
+        items.push({
+          type: 'supergroup',
+          supergroup: sg,
+          matchingIds: sgMembers.get(sg.id)!,
+        });
+      }
+    } else {
+      items.push({type: 'issue', id});
+    }
+  }
+
+  return items;
+}
+
 function GroupList({
   groupIds,
   memberList,
@@ -147,54 +205,48 @@ function GroupList({
   );
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
-  const seenSupergroups = new Set<number>();
+  const renderItems = buildRenderItems(groupIds, getSuperGroupForIssue, hasTopIssuesUI);
+
+  const renderStreamGroup = (id: string, columns: GroupListColumn[]) => {
+    const group = GroupStore.get(id) as Group | undefined;
+    if (!group) {
+      return null;
+    }
+    return (
+      <StreamGroup
+        key={id}
+        group={group}
+        statsPeriod={groupStatsPeriod}
+        query={query}
+        hasGuideAnchor={id === topIssue}
+        memberList={group.project ? memberList[group.project.slug] : undefined}
+        displayReprocessingLayout={displayReprocessingLayout}
+        useFilteredStats
+        canSelect={!selectDisabled}
+        onPriorityChange={priority => onActionTaken([id], {priority})}
+        withColumns={columns}
+      />
+    );
+  };
 
   return (
     <PanelBody>
-      {groupIds.map(id => {
-        const hasGuideAnchor = id === topIssue;
-        const group = GroupStore.get(id) as Group | undefined;
-
-        if (!group) {
-          return null;
+      {renderItems.map(item => {
+        if (item.type === 'issue') {
+          return renderStreamGroup(item.id, COLUMNS);
         }
 
-        const sg = hasTopIssuesUI ? getSuperGroupForIssue(id) : null;
-        const isFirstInStack =
-          sg && sg.group_ids.length > 1 && !seenSupergroups.has(sg.id);
-        if (sg) {
-          seenSupergroups.add(sg.id);
-        }
-
-        // Collapse duplicate supergroup members — they're accessible via the stack bar
-        if (sg && sg.group_ids.length > 1 && !isFirstInStack) {
-          return null;
-        }
+        const {supergroup, matchingIds} = item;
 
         return (
-          <Fragment key={id}>
-            <StreamGroup
-              group={group}
-              statsPeriod={groupStatsPeriod}
-              query={query}
-              hasGuideAnchor={hasGuideAnchor}
-              memberList={group.project ? memberList[group.project.slug] : undefined}
-              displayReprocessingLayout={displayReprocessingLayout}
-              useFilteredStats
-              canSelect={!selectDisabled}
-              onPriorityChange={priority => onActionTaken([id], {priority})}
-              withColumns={COLUMNS}
-            />
-            {isFirstInStack && (
-              <StackIndicatorBar
-                supergroup={sg}
-                otherCount={sg.group_ids.length - 1}
-                currentGroupId={id}
-              />
-            )}
-          </Fragment>
+          <SupergroupRow
+            key={`sg-${supergroup.id}`}
+            supergroup={supergroup}
+            matchedCount={matchingIds.length}
+          />
         );
       })}
     </PanelBody>
   );
 }
+

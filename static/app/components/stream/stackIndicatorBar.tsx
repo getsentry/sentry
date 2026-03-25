@@ -18,16 +18,17 @@ import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 const EXPANDED_COLUMNS: GroupListColumn[] = ['event', 'users', 'priority', 'assignee'];
 
 interface Props {
-  currentGroupId: string;
+  excludeGroupIds: string[];
   otherCount: number;
   supergroup: SupergroupDetail;
 }
 
-export function StackIndicatorBar({supergroup, otherCount, currentGroupId}: Props) {
+export function StackIndicatorBar({supergroup, otherCount, excludeGroupIds}: Props) {
   const [expanded, setExpanded] = useState(false);
   const organization = useOrganization();
 
-  const otherIds = supergroup.group_ids.map(String).filter(id => id !== currentGroupId);
+  const excludeSet = new Set(excludeGroupIds);
+  const otherIds = supergroup.group_ids.map(String).filter(id => !excludeSet.has(id));
 
   const issueIdQuery =
     otherIds.length === 1
@@ -44,23 +45,28 @@ export function StackIndicatorBar({supergroup, otherCount, currentGroupId}: Prop
     {staleTime: 30_000, enabled: expanded && otherIds.length > 0}
   );
 
+  const hasMore = otherCount > 0;
+
   return (
     <Fragment>
-      <Bar onClick={() => setExpanded(prev => !prev)}>
-        <InteractionStateLayer />
-        <CurvedArrow aria-hidden>&#8627;</CurvedArrow>
+      <Bar onClick={hasMore ? () => setExpanded(prev => !prev) : undefined}>
+        {hasMore && <InteractionStateLayer />}
         <StyledIconStack size="xs" />
-        <Text size="xs" bold>
-          {t('%s related issues', otherCount)}
-        </Text>
-        <Dot />
+        {hasMore ? (
+          <Fragment>
+            <Text size="xs" bold>
+              {t('%s related issues', otherCount)}
+            </Text>
+            <Dot />
+          </Fragment>
+        ) : null}
         <Title size="xs" variant="muted">
           {supergroup.title}
         </Title>
-        <ExpandIcon size="xs" direction={expanded ? 'up' : 'down'} />
+        {hasMore && <ExpandIcon size="xs" direction={expanded ? 'up' : 'down'} />}
       </Bar>
 
-      {expanded && (
+      {expanded && hasMore && (
         <ExpandedContent>
           {isPending
             ? Array.from({length: Math.min(otherCount, 5)}).map((_, i) => (
@@ -86,27 +92,19 @@ export function StackIndicatorBar({supergroup, otherCount, currentGroupId}: Prop
   );
 }
 
-const Bar = styled('button')`
+const Bar = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
   width: 100%;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.xl};
-  background: ${p => p.theme.tokens.background.secondary};
-  border: none;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  cursor: pointer;
   color: ${p => p.theme.tokens.content.secondary};
   font-family: inherit;
   font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4;
   text-align: left;
-`;
-
-const CurvedArrow = styled('span')`
-  font-size: ${p => p.theme.font.size.lg};
-  line-height: 1;
 `;
 
 const StyledIconStack = styled(IconStack)`
@@ -135,6 +133,5 @@ const ExpandIcon = styled(IconChevron)`
 
 const ExpandedContent = styled('div')`
   border-left: 3px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
