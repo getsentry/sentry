@@ -34,6 +34,7 @@ from sentry.constants import (
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
     CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
+    DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
@@ -511,6 +512,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
     consoleSdkInviteQuota: int
+    dashboardsAsyncQueueParallelLimit: int
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -793,6 +795,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
         )
 
+        context["dashboardsAsyncQueueParallelLimit"] = obj.get_option(
+            "sentry:dashboards-async-queue-parallel-limit",
+            DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
+        )
+
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
@@ -824,6 +831,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
         "consoleSdkInviteQuota",
+        "dashboardsAsyncQueueParallelLimit",
         "hasGranularReplayPermissions",
         "replayAccessMembers",
     ]
