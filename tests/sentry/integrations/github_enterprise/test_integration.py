@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import asdict
 from datetime import datetime, timezone
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -7,6 +10,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import orjson
 import pytest
 import responses
+from django.urls import reverse
 
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.github_enterprise.integration import (
@@ -15,6 +19,7 @@ from sentry.integrations.github_enterprise.integration import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
     FileBlameInfo,
@@ -22,7 +27,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -1170,3 +1175,185 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                     "body": "**** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     I've changed it"
                 },
             )
+
+
+@control_silo_test
+class GitHubEnterpriseApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    ghe_host = "github.example.com"
+    ghe_url = f"https://{ghe_host}"
+    installation_id = "12345"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def tearDown(self) -> None:
+        responses.reset()
+        super().tearDown()
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "github_enterprise"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _submit_config(self, **overrides: Any) -> Any:
+        data = {
+            "url": self.ghe_url,
+            "id": "1",
+            "name": "sentry-app",
+            "verifySsl": True,
+            "webhookSecret": "webhook-secret-123",
+            "privateKey": "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----",
+            "clientId": "client-id-abc",
+            "clientSecret": "client-secret-xyz",
+        }
+        data.update(overrides)
+        return self._advance_step(data)
+
+    def _get_pipeline_signature(self, resp: Any) -> str:
+        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+
+    def _stub_ghe_oauth(self) -> None:
+        responses.add(
+            responses.POST,
+            f"{self.ghe_url}/login/oauth/access_token",
+            json={
+                "access_token": "test-access-token",
+                "token_type": "bearer",
+            },
+        )
+
+    def _stub_ghe_user(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.ghe_url}/api/v3/user",
+            json={"id": 42, "login": "testuser"},
+        )
+
+    def _stub_ghe_installation(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.ghe_url}/api/v3/app/installations/{self.installation_id}",
+            json={
+                "id": int(self.installation_id),
+                "app_id": 1,
+                "account": {
+                    "login": "Test-Org",
+                    "avatar_url": f"{self.ghe_url}/avatar.png",
+                    "html_url": f"{self.ghe_url}/Test-Org",
+                    "type": "Organization",
+                },
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{self.ghe_url}/api/v3/user/installations",
+            json={
+                "installations": [
+                    {
+                        "id": int(self.installation_id),
+                        "app_id": 1,
+                        "account": {
+                            "login": "Test-Org",
+                            "avatar_url": f"{self.ghe_url}/avatar.png",
+                            "html_url": f"{self.ghe_url}/Test-Org",
+                            "type": "Organization",
+                        },
+                    }
+                ]
+            },
+        )
+
+    @responses.activate
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "installation_config"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 3
+        assert resp.data["provider"] == "github_enterprise"
+
+    @responses.activate
+    def test_config_step_advance(self) -> None:
+        self._initialize_pipeline()
+        resp = self._submit_config()
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "app_install_redirect"
+        assert resp.data["stepIndex"] == 1
+        assert "appInstallUrl" in resp.data["data"]
+        assert "sentry-app" in resp.data["data"]["appInstallUrl"]
+
+    @responses.activate
+    def test_config_step_validation_missing_required_fields(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({"url": self.ghe_url})
+        assert resp.status_code == 400
+        for field in ("id", "name", "webhookSecret", "privateKey", "clientId", "clientSecret"):
+            assert resp.data[field] == ["This field is required."]
+
+    @responses.activate
+    def test_app_install_step_no_installation_id(self) -> None:
+        self._initialize_pipeline()
+        self._submit_config()
+        resp = self._advance_step({})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "stay"
+        assert "appInstallUrl" in resp.data["data"]
+
+    @responses.activate
+    def test_app_install_step_with_installation_id(self) -> None:
+        self._initialize_pipeline()
+        self._submit_config()
+        resp = self._advance_step({"installationId": self.installation_id})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "oauth_login"
+        assert "oauthUrl" in resp.data["data"]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert self.ghe_host in oauth_url
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token"
+    )
+    def test_full_pipeline_flow(self, mock_jwt: MagicMock) -> None:
+        self._stub_ghe_oauth()
+        self._stub_ghe_user()
+        self._stub_ghe_installation()
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "installation_config"
+
+        resp = self._submit_config()
+        assert resp.data["step"] == "app_install_redirect"
+
+        resp = self._advance_step({"installationId": self.installation_id})
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "auth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="github_enterprise")
+        assert integration.metadata["installation_id"] == int(self.installation_id)
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
