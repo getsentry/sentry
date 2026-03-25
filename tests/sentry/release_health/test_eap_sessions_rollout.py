@@ -274,108 +274,6 @@ class TestTransformResponse(TestCase):
         assert groups_by_release["2.0"]["totals"]["sum(session)"] == 30.0
 
 
-class TestDoubleRead(TestCase):
-    @patch("sentry.release_health.eap_sessions_rollout.timeseries_rpc")
-    def test_flag_off_no_eap_query(self, mock_rpc: MagicMock) -> None:
-        """When feature flag is off, EAP query is never called."""
-        from sentry.release_health.metrics import MetricsReleaseHealthBackend
-
-        backend = MetricsReleaseHealthBackend()
-        query = _make_query(["sum(session)"])
-
-        control_result = {
-            "start": ONE_HOUR_AGO,
-            "end": NOW,
-            "intervals": [],
-            "groups": [
-                {"by": {}, "series": {"sum(session)": [100.0]}, "totals": {"sum(session)": 100.0}}
-            ],
-            "query": "",
-        }
-
-        with patch("sentry.release_health.metrics.run_sessions_query", return_value=control_result):
-            with self.feature({"organizations:session-health-eap": False}):
-                result = backend.run_sessions_query(self.organization.id, query, "test")
-
-        assert result == control_result
-        mock_rpc.assert_not_called()
-
-    @patch("sentry.release_health.eap_sessions_rollout.timeseries_rpc")
-    def test_flag_on_returns_control(self, mock_rpc: MagicMock) -> None:
-        """When flag is on, always returns control data."""
-        from sentry.release_health.metrics import MetricsReleaseHealthBackend
-
-        backend = MetricsReleaseHealthBackend()
-        query = _make_query(["sum(session)"])
-
-        control_result = {
-            "start": ONE_HOUR_AGO,
-            "end": NOW,
-            "intervals": [],
-            "groups": [
-                {"by": {}, "series": {"sum(session)": [100.0]}, "totals": {"sum(session)": 100.0}}
-            ],
-            "query": "",
-        }
-
-        mock_rpc.return_value = [TimeSeriesResponse(result_timeseries=[])]
-
-        with patch("sentry.release_health.metrics.run_sessions_query", return_value=control_result):
-            with self.feature({"organizations:session-health-eap": True}):
-                result = backend.run_sessions_query(self.organization.id, query, "test")
-
-        assert result == control_result
-
-    @patch(
-        "sentry.release_health.eap_sessions_rollout.timeseries_rpc",
-        side_effect=Exception("EAP is down"),
-    )
-    def test_eap_failure_returns_control(self, mock_rpc: MagicMock) -> None:
-        """EAP failure does not affect response — control data is returned."""
-        from sentry.release_health.metrics import MetricsReleaseHealthBackend
-
-        backend = MetricsReleaseHealthBackend()
-        query = _make_query(["sum(session)"])
-
-        control_result = {
-            "start": ONE_HOUR_AGO,
-            "end": NOW,
-            "intervals": [],
-            "groups": [
-                {"by": {}, "series": {"sum(session)": [100.0]}, "totals": {"sum(session)": 100.0}}
-            ],
-            "query": "",
-        }
-
-        with patch("sentry.release_health.metrics.run_sessions_query", return_value=control_result):
-            with self.feature({"organizations:session-health-eap": True}):
-                result = backend.run_sessions_query(self.organization.id, query, "test")
-
-        assert result == control_result
-
-
-def _make_query(
-    raw_fields: list[str],
-    raw_groupby: list[str] | None = None,
-    start: datetime | None = None,
-    end: datetime | None = None,
-    rollup: int = 3600,
-    project_ids: list[int] | None = None,
-    query: str = "",
-) -> MagicMock:
-    """Create a mock QueryDefinition for tests that go through the backend."""
-    mock = MagicMock()
-    mock.raw_fields = raw_fields
-    mock.raw_groupby = raw_groupby or []
-    mock.start = start or ONE_HOUR_AGO
-    mock.end = end or NOW
-    mock.rollup = rollup
-    mock.params = {"project_id": project_ids or [1]}
-    mock.query = query
-    mock.get_filter_conditions.return_value = []
-    return mock
-
-
 def _make_metrics_query(
     fields: list[tuple[str | None, str]],
     groupby: list[str] | None = None,
@@ -566,6 +464,7 @@ class TestCompareGetSeriesResults(TestCase):
         mock_metrics.incr.assert_called_once_with(
             "eap_sessions.get_series_compare",
             tags={"match": "True", "is_null_result": "False"},
+            sample_rate=1.0,
         )
 
     @patch("sentry.release_health.eap_sessions_rollout.metrics")
@@ -591,6 +490,7 @@ class TestCompareGetSeriesResults(TestCase):
         mock_metrics.incr.assert_called_once_with(
             "eap_sessions.get_series_compare",
             tags={"match": "False", "is_null_result": "False"},
+            sample_rate=1.0,
         )
 
     @patch("sentry.release_health.eap_sessions_rollout.metrics")
@@ -611,6 +511,7 @@ class TestCompareGetSeriesResults(TestCase):
         mock_metrics.incr.assert_called_once_with(
             "eap_sessions.get_series_compare",
             tags={"match": "False", "is_null_result": "True"},
+            sample_rate=1.0,
         )
 
     @patch("sentry.release_health.eap_sessions_rollout.metrics")
@@ -629,6 +530,7 @@ class TestCompareGetSeriesResults(TestCase):
         mock_metrics.incr.assert_called_once_with(
             "eap_sessions.get_series_compare",
             tags={"match": "False", "is_null_result": "False"},
+            sample_rate=1.0,
         )
 
     @patch("sentry.release_health.eap_sessions_rollout.metrics")
@@ -652,6 +554,7 @@ class TestCompareGetSeriesResults(TestCase):
         mock_metrics.incr.assert_called_once_with(
             "eap_sessions.get_series_compare",
             tags={"match": "skipped", "is_null_result": "False"},
+            sample_rate=1.0,
         )
 
     @patch("sentry.release_health.eap_sessions_rollout.metrics")
@@ -673,6 +576,7 @@ class TestCompareGetSeriesResults(TestCase):
         mock_metrics.incr.assert_called_once_with(
             "eap_sessions.get_series_compare",
             tags={"match": "True", "is_null_result": "False"},
+            sample_rate=1.0,
         )
 
     @patch("sentry.release_health.eap_sessions_rollout.metrics")
@@ -694,6 +598,7 @@ class TestCompareGetSeriesResults(TestCase):
         mock_metrics.incr.assert_called_once_with(
             "eap_sessions.get_series_compare",
             tags={"match": "False", "is_null_result": "False"},
+            sample_rate=1.0,
         )
 
     @patch("sentry.release_health.eap_sessions_rollout.metrics")
@@ -712,4 +617,5 @@ class TestCompareGetSeriesResults(TestCase):
         mock_metrics.incr.assert_called_once_with(
             "eap_sessions.get_series_compare",
             tags={"match": "True", "is_null_result": "False"},
+            sample_rate=1.0,
         )

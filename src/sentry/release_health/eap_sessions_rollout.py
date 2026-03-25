@@ -1,6 +1,6 @@
 """Double-read rollout for session health data from EAP.
 
-Queries EAP in parallel with existing metrics and compares results.
+Queries EAP in addition to existing metrics and compares results.
 Always returns the control (metrics) data. User-facing behavior never changes.
 """
 
