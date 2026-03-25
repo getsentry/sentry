@@ -7,10 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {
-  organizationIntegrationsCodingAgents,
-  type CodingAgentIntegration,
-} from 'sentry/components/events/autofix/useAutofix';
+import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -45,11 +42,12 @@ export function SeerAutomationSettings() {
     onSuccess: updateOrganization,
   });
 
-  const {data: integrations} = useQuery({
+  const {data: integrationsData} = useQuery({
     ...organizationIntegrationsCodingAgents(organization),
-    select: data => data.json.integrations ?? [],
   });
-  const rawAgentOptions = useAgentOptions({integrations: integrations ?? []});
+  const rawAgentOptions = useAgentOptions({
+    integrations: integrationsData?.integrations ?? [],
+  });
   const codingAgentOptions = rawAgentOptions.map(option => ({
     value:
       option.value === 'seer' || option.value === 'none'
