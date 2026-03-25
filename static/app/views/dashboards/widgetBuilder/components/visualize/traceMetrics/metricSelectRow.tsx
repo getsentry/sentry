@@ -39,7 +39,8 @@ function getUpdatedAggregatesMultiMetric(
 
   const nextAggregateKey = isValid
     ? currentAggregateKey
-    : (validAggregateOptions[0]?.value as AggregationKeyWithAlias | undefined);
+    : (DEFAULT_AGGREGATE_BY_TYPE[newTraceMetric.type] ??
+      (validAggregateOptions[0]?.value as AggregationKeyWithAlias));
 
   if (!nextAggregateKey) {
     return undefined;
@@ -52,6 +53,12 @@ function getUpdatedAggregatesMultiMetric(
 
   return updatedAggregates;
 }
+
+const DEFAULT_AGGREGATE_BY_TYPE: Record<string, AggregationKeyWithAlias> = {
+  counter: 'sum',
+  distribution: 'sum',
+  gauge: 'avg',
+};
 
 export function MetricSelectRow({
   disabled,
@@ -103,7 +110,8 @@ export function MetricSelectRow({
 
                   if (!isValid && validAggregateOptions.length > 0) {
                     return buildTraceMetricAggregate(
-                      validAggregateOptions[0]!.value as AggregationKeyWithAlias,
+                      DEFAULT_AGGREGATE_BY_TYPE[newTraceMetric.type] ??
+                        (validAggregateOptions[0]?.value as AggregationKeyWithAlias),
                       newTraceMetric
                     );
                   }
