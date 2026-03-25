@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useMemo} from 'react';
+import {Fragment, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
@@ -17,6 +17,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
+import {
+  useCommandPaletteDispatch,
+  useCommandPaletteState,
+} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
 import {IconArrow} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
@@ -86,23 +90,14 @@ function flattenActions(
 }
 
 interface CommandPaletteListProps {
-  clearSelection: () => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
   onAction: (action: CommandPaletteActionWithKey) => void;
-  query: string;
-  selectedAction: CommandPaletteActionWithKey | null;
-  setQuery: (query: string) => void;
 }
 
-export function CommandPaletteList({
-  clearSelection,
-  selectedAction,
-  onAction,
-  inputRef,
-  query,
-  setQuery,
-}: CommandPaletteListProps) {
+export function CommandPaletteList({onAction}: CommandPaletteListProps) {
+  const {query, selectedAction} = useCommandPaletteState();
+  const dispatch = useCommandPaletteDispatch();
   const actions = useCommandPaletteActions();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     if (selectedAction?.type === 'group' && selectedAction.actions.length > 0) {
@@ -134,6 +129,12 @@ export function CommandPaletteList({
     const firstItem = treeState.collection.at(0);
     return firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
   }, [treeState.collection]);
+
+  useLayoutEffect(() => {
+    if (selectedAction) {
+      inputRef.current?.focus();
+    }
+  }, [selectedAction, inputRef]);
 
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
@@ -181,7 +182,7 @@ export function CommandPaletteList({
               size="sm"
               icon={<IconArrow direction="left" />}
               onClick={() => {
-                clearSelection();
+                dispatch({type: 'clear_selection'});
                 inputRef.current?.focus();
               }}
               aria-label={t('Return to all options')}
@@ -195,12 +196,12 @@ export function CommandPaletteList({
             autoFocus
             {...mergeProps(collectionProps, {
               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                setQuery(e.target.value);
+                dispatch({type: 'set_query', query: e.target.value});
                 treeState.selectionManager.setFocusedKey(null);
               },
               onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
                 if (e.key === 'Backspace' && query === '') {
-                  clearSelection();
+                  dispatch({type: 'clear_selection'});
                   e.preventDefault();
                 }
 
@@ -219,47 +220,31 @@ export function CommandPaletteList({
         </Flex>
       </Flex>
       {treeState.collection.size === 0 ? (
-        <Flex
+        <CommandPaletteNoResults />
+      ) : (
+        <ResultsList
           direction="column"
-          align="center"
-          justify="center"
-          gap="lg"
-          padding="xl lg"
-          height="400px"
+          width="100%"
+          maxHeight="min(calc(100vh - 128px - 4rem), 400px)"
+          overflow="auto"
         >
-          <Image src={error} alt="No results" width="400px" />
-          <Stack align="center" gap="md">
-            <Text size="md" align="center">
-              {t("Whoops… we couldn't find any results matching your search.")}
-            </Text>
-            <Text size="md" align="center">
-              {t('Try rephrasing your query maybe?')}
-            </Text>
-          </Stack>
-        </Flex>
-      ) : null}
-      <ResultsList
-        direction="column"
-        width="100%"
-        maxHeight="min(calc(100vh - 128px - 4rem), 400px)"
-        overflow="auto"
-      >
-        <ListBox
-          listState={treeState}
-          keyDownHandler={() => true}
-          overlayIsOpen
-          size="md"
-          aria-label="Search results"
-          selectionMode="none"
-          onAction={key => {
-            const action = filteredActions.find(a => a.key === key);
-            if (action) {
-              onAction(action);
-            }
-          }}
-          shouldUseVirtualFocus
-        />
-      </ResultsList>
+          <ListBox
+            listState={treeState}
+            keyDownHandler={() => true}
+            overlayIsOpen
+            size="md"
+            aria-label="Search results"
+            selectionMode="none"
+            onAction={key => {
+              const action = filteredActions.find(a => a.key === key);
+              if (action) {
+                onAction(action);
+              }
+            }}
+            shouldUseVirtualFocus
+          />
+        </ResultsList>
+      )}
     </Fragment>
   );
 }
@@ -320,6 +305,29 @@ function search(
     ...sortedMatches.map(r => r.action),
     ...unmatchedSearchResults.map(r => r.action),
   ];
+}
+
+function CommandPaletteNoResults() {
+  return (
+    <Flex
+      direction="column"
+      align="center"
+      justify="center"
+      gap="lg"
+      padding="xl lg"
+      height="400px"
+    >
+      <Image src={error} alt="No results" width="400px" />
+      <Stack align="center" gap="md">
+        <Text size="md" align="center">
+          {t("Whoops… we couldn't find any results matching your search.")}
+        </Text>
+        <Text size="md" align="center">
+          {t('Try rephrasing your query maybe?')}
+        </Text>
+      </Stack>
+    </Flex>
+  );
 }
 
 const CommandInput = styled('input')`

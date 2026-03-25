@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect, useRef} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
@@ -13,11 +13,10 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 export function CommandPaletteContent() {
-  const {selectedAction, query} = useCommandPaletteState();
+  const {query} = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
   useDsnLookupActions(query);
   const navigate = useNavigate();
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSelect = useCallback(
     (action: CommandPaletteActionWithKey) => {
@@ -41,23 +40,9 @@ export function CommandPaletteContent() {
     [navigate, dispatch]
   );
 
-  useLayoutEffect(() => {
-    if (selectedAction) {
-      dispatch({type: 'set_query', query: ''});
-      inputRef.current?.focus();
-    }
-  }, [selectedAction, dispatch]);
-
   return (
     <Fragment>
-      <CommandPaletteList
-        query={query}
-        onAction={handleSelect}
-        inputRef={inputRef}
-        setQuery={q => dispatch({type: 'set_query', query: q})}
-        clearSelection={() => dispatch({type: 'clear_selection'})}
-        selectedAction={selectedAction}
-      />
+      <CommandPaletteList onAction={handleSelect} />
     </Fragment>
   );
 }

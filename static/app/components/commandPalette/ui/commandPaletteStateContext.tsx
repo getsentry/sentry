@@ -26,7 +26,7 @@ function commandPaletteReducer(
     case 'set_query':
       return {...state, query: action.query};
     case 'select_action':
-      return {...state, selectedAction: action.action};
+      return {...state, selectedAction: action.action, query: ''};
     case 'clear_selection':
       return {...state, selectedAction: null};
     default:
