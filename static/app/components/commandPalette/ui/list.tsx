@@ -11,6 +11,7 @@ import error from 'sentry-images/spot/computer-missing.svg';
 import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {Image} from '@sentry/scraps/image';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
@@ -23,7 +24,7 @@ import {
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconSearch} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
@@ -114,56 +115,55 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
   return (
     <Fragment>
       <Flex direction="column" align="start" gap="md" borderBottom="muted">
-        <Flex
-          position="relative"
-          direction="row"
-          align="center"
-          gap="xs"
-          padding="0 md"
-          width="100%"
-        >
-          {selectedAction && (
-            <Button
-              priority="transparent"
-              size="sm"
-              icon={<IconArrow direction="left" />}
-              onClick={() => {
-                dispatch({type: 'clear selected action'});
-                inputRef.current?.focus();
-              }}
-              aria-label={t('Return to all options')}
-            />
-          )}
-          <CommandInput
-            ref={inputRef}
-            value={query}
-            aria-label={t('Search commands')}
-            placeholder={selectedAction?.display?.label ?? t('Type for actions…')}
-            autoFocus
-            {...mergeProps(collectionProps, {
-              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                dispatch({type: 'set query', query: e.target.value});
-                treeState.selectionManager.setFocusedKey(null);
-              },
-              onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-                if (e.key === 'Backspace' && query === '') {
-                  dispatch({type: 'clear selected action'});
-                  e.preventDefault();
-                }
+        <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
+          <InputGroup>
+            <InputGroup.LeadingItems>
+              {selectedAction ? (
+                <Button
+                  size="xs"
+                  priority="transparent"
+                  icon={<IconArrow direction="left" />}
+                  onClick={() => {
+                    dispatch({type: 'clear selected action'});
+                    inputRef.current?.focus();
+                  }}
+                  aria-label={t('Return to all options')}
+                />
+              ) : (
+                <IconSearch size="sm" variant="muted" />
+              )}
+            </InputGroup.LeadingItems>
+            <InputGroup.Input
+              ref={inputRef}
+              value={query}
+              aria-label={t('Search commands')}
+              placeholder={selectedAction?.display?.label ?? t('Type for actions…')}
+              autoFocus
+              {...mergeProps(collectionProps, {
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                  dispatch({type: 'set query', query: e.target.value});
+                  treeState.selectionManager.setFocusedKey(null);
+                },
+                onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Backspace' && query === '') {
+                    dispatch({type: 'clear selected action'});
+                    e.preventDefault();
+                  }
 
-                if (e.key === 'Enter' || e.key === 'Tab') {
-                  const key = treeState.selectionManager.focusedKey;
-                  if (key !== null && key !== undefined) {
-                    const action = filteredActions.find(a => a.key === key);
-                    if (action) {
-                      dispatch({type: 'trigger action'});
-                      onAction(action);
+                  if (e.key === 'Enter' || e.key === 'Tab') {
+                    const key = treeState.selectionManager.focusedKey;
+                    if (key !== null && key !== undefined) {
+                      const action = filteredActions.find(a => a.key === key);
+                      if (action) {
+                        dispatch({type: 'trigger action'});
+                        onAction(action);
+                      }
                     }
                   }
-                }
-              },
-            })}
-          />
+                },
+              })}
+            />
+          </InputGroup>
         </Flex>
       </Flex>
       {treeState.collection.size === 0 ? (
@@ -281,20 +281,6 @@ function CommandPaletteNoResults() {
     </Flex>
   );
 }
-
-const CommandInput = styled('input')`
-  width: 100%;
-  background: transparent;
-  padding: ${p => p.theme.space.md};
-  border: none;
-  flex: 1;
-  font-size: ${p => p.theme.font.size.lg};
-  line-height: 2;
-
-  &:focus {
-    outline: none;
-  }
-`;
 
 const ResultsList = styled(Flex)`
   ul,
