@@ -57,6 +57,7 @@ from sentry.scm.types import (
     ReviewSide,
     TreeEntry,
 )
+from sentry.shared_integrations.exceptions import ApiError
 
 # GitHub's Checks API status values map to generic BuildStatus.
 # "requested", "waiting", and "pending" are GitHub Actions-internal states that
@@ -237,7 +238,7 @@ class GitHubProviderApiClient:
 
             response.raise_for_status()
             return response
-        except requests.RequestException as e:
+        except (requests.RequestException, ApiError) as e:
             raise SCMProviderException(str(e)) from e
 
     def get(
