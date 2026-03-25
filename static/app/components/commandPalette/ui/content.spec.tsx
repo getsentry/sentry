@@ -21,7 +21,7 @@ function GlobalActionsComponent({
   return (
     <CommandPaletteProvider>
       <RegisterActions actions={actions} />
-      <CommandPaletteContent />
+      <CommandPaletteContent onClose={modalActions.closeModal} />
       {children}
     </CommandPaletteProvider>
   );

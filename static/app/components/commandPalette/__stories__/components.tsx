@@ -45,7 +45,7 @@ export function CommandPaletteDemo() {
   return (
     <CommandPaletteProvider>
       <RegisterActions actions={demoActions} />
-      <CommandPaletteContent />
+      <CommandPaletteContent onClose={() => {}} />
     </CommandPaletteProvider>
   );
 }
