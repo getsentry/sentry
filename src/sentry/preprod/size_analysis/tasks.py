@@ -28,6 +28,11 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import metrics
+
+# Threshold type categories for filtering detectors by path.
+# These must stay in sync with the enum in PreprodSizeAnalysisGroupType.detector_settings.config_schema.
+DIFF_THRESHOLD_TYPES = frozenset({"absolute_diff", "relative_diff"})
+ABSOLUTE_THRESHOLD_TYPES = frozenset({"absolute"})
 from sentry.utils.json import dumps_htmlsafe
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors.detector import process_detectors
@@ -583,6 +588,15 @@ def _maybe_emit_issues(
         )
         return
 
+    # Only process diff-based detectors from the comparison path
+    detectors = [d for d in detectors if d.config.get("threshold_type") in DIFF_THRESHOLD_TYPES]
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.no_diff_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
     diff = comparison_results.size_metric_diff_item
     head_artifact = head_metric.preprod_artifact
     base_artifact = base_metric.preprod_artifact
@@ -620,6 +634,92 @@ def _maybe_emit_issues(
     results = process_detectors(data_packet, detectors)
     logger.info(
         "preprod.size_analysis.process_detectors.completed",
+        extra={
+            "project_id": project_id,
+            "detector_count": len(results),
+        },
+    )
+
+
+def maybe_emit_issues_from_absolute_size_results(
+    head_metric: PreprodArtifactSizeMetrics,
+) -> None:
+    try:
+        _maybe_emit_issues_from_absolute_size_results(head_metric=head_metric)
+    except Exception:
+        logger.exception("Error emitting issues from absolute size results")
+
+
+def _maybe_emit_issues_from_absolute_size_results(
+    head_metric: PreprodArtifactSizeMetrics,
+) -> None:
+    project = head_metric.preprod_artifact.project
+    project_id = project.id
+    organization_id = project.organization.id
+
+    if not features.has("organizations:preprod-issues", project.organization):
+        logger.info(
+            "preprod.size_analysis.size_results.issues.disabled",
+            extra={
+                "project_id": project_id,
+                "organization_id": organization_id,
+            },
+        )
+        return
+
+    detectors = list(
+        Detector.objects.filter(
+            project_id=project_id,
+            type=PreprodSizeAnalysisGroupType.slug,
+            enabled=True,
+        )
+    )
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.size_results.no_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
+    # Only process absolute detectors from the single-build path
+    detectors = [d for d in detectors if d.config.get("threshold_type") in ABSOLUTE_THRESHOLD_TYPES]
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.size_results.no_absolute_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
+    head_artifact = head_metric.preprod_artifact
+
+    metadata: SizeAnalysisMetadata = {
+        "platform": _get_platform(head_artifact),
+        "head_metric_id": head_metric.id,
+        "head_artifact_id": head_artifact.id,
+        "head_artifact": head_artifact,
+    }
+
+    size_data: SizeAnalysisValue = {
+        "head_install_size_bytes": head_metric.max_install_size or 0,
+        "head_download_size_bytes": head_metric.max_download_size or 0,
+        "metadata": metadata,
+    }
+
+    data_packet: SizeAnalysisDataPacket = DataPacket(
+        source_id=f"preprod-size-analysis:{project_id}",
+        packet=size_data,
+    )
+
+    logger.info(
+        "preprod.size_analysis.size_results.process_detectors.starting",
+        extra={
+            "project_id": project_id,
+            "detector_count": len(detectors),
+        },
+    )
+    results = process_detectors(data_packet, detectors)
+    logger.info(
+        "preprod.size_analysis.size_results.process_detectors.completed",
         extra={
             "project_id": project_id,
             "detector_count": len(results),

@@ -17,7 +17,6 @@ from snuba_sdk import (
 )
 
 from sentry import features
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects
@@ -224,7 +223,6 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
     organization that the user has access to.
     """
 
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

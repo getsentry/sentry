@@ -3,7 +3,10 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -51,7 +54,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [`count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          fieldAliases: [t('Count')],
+          fieldAliases: [WIDGET_COLUMN_LABELS.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -69,7 +72,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [`count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          fieldAliases: [t('Count')],
+          fieldAliases: [WIDGET_COLUMN_LABELS.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -93,7 +96,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
             `p95(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
-          fieldAliases: [t('Avg Duration'), t('P95 Duration')],
+          fieldAliases: [WIDGET_COLUMN_LABELS.avg, WIDGET_COLUMN_LABELS.p95],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
       ],

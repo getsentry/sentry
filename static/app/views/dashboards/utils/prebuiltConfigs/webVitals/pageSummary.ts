@@ -210,7 +210,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'ttfb-p75-meter',
-      title: t('P75 Time To First Byte'),
+      title: t('P75 Time to First Byte'),
       description: t(
         'Time until first byte is delivered to the client. Bad TTFB makes the server feel unresponsive.'
       ),

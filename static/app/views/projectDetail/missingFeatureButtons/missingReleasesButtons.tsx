@@ -1,7 +1,7 @@
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import FeatureTourModal from 'sentry/components/modals/featureTourModal';
+import {FeatureTourModal} from 'sentry/components/modals/featureTourModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';

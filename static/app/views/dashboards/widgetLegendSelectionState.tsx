@@ -21,7 +21,7 @@ const WIDGET_ID_DELIMITER = ':';
 
 const SERIES_NAME_DELIMITER = '|~|';
 
-class WidgetLegendSelectionState {
+export class WidgetLegendSelectionState {
   dashboard: DashboardDetails | null;
   location: Location;
   organization: Organization;
@@ -270,5 +270,3 @@ class WidgetLegendSelectionState {
     return unselectedSeries;
   }
 }
-
-export default WidgetLegendSelectionState;

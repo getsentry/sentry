@@ -13,7 +13,7 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';

@@ -30,17 +30,17 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
+            {hasTopIssuesUI && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/supergroups/`}
+                  analyticsItemName="issues_supergroups"
+                >
+                  {t('Supergroups')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
           </SecondaryNavigation.List>
-          {hasTopIssuesUI && (
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link
-                to={`${baseUrl}/supergroups/`}
-                analyticsItemName="issues_supergroups"
-              >
-                {t('Supergroups')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
-          )}
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-types">

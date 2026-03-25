@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import {
   getPlatform,

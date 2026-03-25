@@ -202,7 +202,6 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'per_second',
           value: 'per_second',
-          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
         {
           label: 'per_minute',
@@ -217,6 +216,7 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'sum',
           value: 'sum',
+          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
       ],
     },
@@ -268,7 +268,6 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'p75',
           value: 'p75',
-          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
         {
           label: 'p90',
@@ -303,6 +302,7 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'sum',
           value: 'sum',
+          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
         {
           label: 'count',
@@ -328,8 +328,8 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
 };
 
 export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
-  counter: 'per_second',
-  distribution: 'p75',
+  counter: 'sum',
+  distribution: 'sum',
   gauge: 'avg',
 };
 

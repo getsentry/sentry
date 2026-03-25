@@ -124,4 +124,167 @@ describe('CommandPaletteContent', () => {
     expect(onChild).toHaveBeenCalled();
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
+
+  describe('search', () => {
+    it('typing a query filters results to matching items only', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'route');
+
+      expect(
+        await screen.findByRole('option', {name: 'Go to route'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Other'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Parent action'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('non-matching items are not shown', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'xyzzy');
+
+      expect(screen.queryAllByRole('option')).toHaveLength(0);
+    });
+
+    it('clearing the query restores all top-level items', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'route');
+      expect(
+        await screen.findByRole('option', {name: 'Go to route'})
+      ).toBeInTheDocument();
+
+      await userEvent.clear(input);
+
+      expect(
+        await screen.findByRole('option', {name: 'Go to route'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Other'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Parent action'})).toBeInTheDocument();
+    });
+
+    it('child actions are hidden when query is empty', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      await screen.findByRole('option', {name: 'Parent action'});
+
+      expect(
+        screen.queryByRole('option', {name: 'Child action'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('child actions are directly searchable without drilling into the group', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'child');
+
+      expect(
+        await screen.findByRole('option', {name: 'Parent action → Child action'})
+      ).toBeInTheDocument();
+    });
+
+    it('search is case-insensitive', async () => {
+      render(<GlobalActionsComponent actions={globalActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'ROUTE');
+
+      expect(
+        await screen.findByRole('option', {name: 'Go to route'})
+      ).toBeInTheDocument();
+    });
+
+    it('actions are ranked by match quality — better matches appear first', async () => {
+      const actions: CommandPaletteAction[] = [
+        {
+          type: 'navigate',
+          to: '/a/',
+          display: {label: 'Something with issues buried'},
+          groupingKey: 'navigate',
+        },
+        {
+          type: 'navigate',
+          to: '/b/',
+          display: {label: 'Issues'},
+          groupingKey: 'navigate',
+        },
+      ];
+      render(<GlobalActionsComponent actions={actions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'issues');
+
+      const options = await screen.findAllByRole('option');
+      expect(options[0]).toHaveAccessibleName('Issues');
+      expect(options[1]).toHaveAccessibleName('Something with issues buried');
+    });
+
+    it('top-level actions rank before child actions when both match the query', async () => {
+      const actions: CommandPaletteAction[] = [
+        {
+          type: 'group',
+          display: {label: 'Group'},
+          groupingKey: 'navigate',
+          actions: [{type: 'navigate', to: '/child/', display: {label: 'Issues'}}],
+        },
+        {
+          type: 'navigate',
+          to: '/top/',
+          display: {label: 'Issues'},
+          groupingKey: 'navigate',
+        },
+      ];
+      render(<GlobalActionsComponent actions={actions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'issues');
+
+      const options = await screen.findAllByRole('option');
+      expect(options[0]).toHaveAccessibleName('Issues');
+      expect(options[1]).toHaveAccessibleName('Group → Issues');
+    });
+
+    it('actions with matching keywords are included in results', async () => {
+      const actions: CommandPaletteAction[] = [
+        {
+          type: 'navigate',
+          to: '/shortcuts/',
+          display: {label: 'Keyboard shortcuts'},
+          keywords: ['hotkeys', 'keybindings'],
+          groupingKey: 'help',
+        },
+      ];
+      render(<GlobalActionsComponent actions={actions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'hotkeys');
+
+      expect(
+        await screen.findByRole('option', {name: 'Keyboard shortcuts'})
+      ).toBeInTheDocument();
+    });
+
+    it("searching within a drilled-in group filters that group's children", async () => {
+      const actions: CommandPaletteAction[] = [
+        {
+          type: 'group',
+          display: {label: 'Theme'},
+          groupingKey: 'navigate',
+          actions: [
+            {type: 'callback', onAction: jest.fn(), display: {label: 'Light'}},
+            {type: 'callback', onAction: jest.fn(), display: {label: 'Dark'}},
+          ],
+        },
+      ];
+      render(<GlobalActionsComponent actions={actions} />);
+
+      // Drill into the group
+      await userEvent.click(await screen.findByRole('option', {name: 'Theme'}));
+      await screen.findByRole('option', {name: 'Light'});
+
+      // Now type a query that only matches one child
+      const input = screen.getByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'dark');
+
+      expect(await screen.findByRole('option', {name: 'Dark'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Light'})).not.toBeInTheDocument();
+    });
+  });
 });
