@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
@@ -14,11 +13,9 @@ import {useParams} from 'sentry/utils/useParams';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupUserFeedback} from 'sentry/views/issueDetails/useGroupUserFeedback';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 function GroupUserFeedback() {
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
   const params = useParams<{groupId: string}>();
 
@@ -57,7 +54,7 @@ function GroupUserFeedback() {
 
   if (isPending || isPendingGroup) {
     return (
-      <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
+      <StyledLayoutBody>
         <Layout.Main width="full">
           <LoadingIndicator />
         </Layout.Main>
@@ -69,9 +66,9 @@ function GroupUserFeedback() {
   const hasUserFeedback = group.project.hasUserReports;
 
   return (
-    <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
+    <StyledLayoutBody>
       <Layout.Main width="full">
-        {hasStreamlinedUI && hasUserFeedback && (
+        {hasUserFeedback && (
           <FilterMessage>
             {t('The feedback shown below is not subject to search filters.')}
             <StyledBreak />
@@ -101,18 +98,14 @@ const StyledEventUserFeedback = styled(EventUserFeedback)`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
-  ${p =>
-    p.hasStreamlinedUI &&
-    css`
-      border: 1px solid ${p.theme.tokens.border.primary};
-      border-radius: ${p.theme.radius.md};
-      padding: ${p.theme.space.lg} 0;
+const StyledLayoutBody = styled(Layout.Body)`
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space.lg} 0;
 
-      @media (min-width: ${p.theme.breakpoints.md}) {
-        padding: ${p.theme.space.lg};
-      }
-    `}
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: ${p => p.theme.space.lg};
+  }
 `;
 
 const FilterMessage = styled('div')`
