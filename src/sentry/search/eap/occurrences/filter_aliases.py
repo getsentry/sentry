@@ -7,7 +7,7 @@ from sentry.search.events.types import SnubaParams
 
 
 def issue_filter_converter(
-    params: SnubaParams, search_filter: SearchFilter, resolver: Any = None
+    params: SnubaParams, search_filter: SearchFilter, resolver: Any
 ) -> list[SearchFilter]:
     """
     Map ``issue`` search filters onto ``group_id``.

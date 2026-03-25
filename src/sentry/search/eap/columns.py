@@ -596,7 +596,7 @@ def datetime_processor(datetime_value: str | float) -> str:
 def project_context_constructor(
     column_name: str,
 ) -> Callable[[SnubaParams, Any], VirtualColumnContext]:
-    def context_constructor(params: SnubaParams, resolver: Any = None) -> VirtualColumnContext:
+    def context_constructor(params: SnubaParams, _resolver: Any) -> VirtualColumnContext:
         return VirtualColumnContext(
             from_column_name="sentry.project_id",
             to_column_name=column_name,

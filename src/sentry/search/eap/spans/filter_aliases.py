@@ -1,5 +1,5 @@
 import string
-from typing import Literal
+from typing import Any, Literal
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
@@ -47,7 +47,7 @@ def release_filter_converter(
 
 
 def release_stage_filter_converter(
-    params: SnubaParams, search_filter: SearchFilter, _resolver=None
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
 ) -> list[SearchFilter]:
     organization_id = params.organization_id
     if organization_id is None:
@@ -81,7 +81,7 @@ def release_stage_filter_converter(
 
 
 def semver_filter_converter(
-    params: SnubaParams, search_filter: SearchFilter, _resolver=None
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
 ) -> list[SearchFilter]:
     organization_id = params.organization_id
     if organization_id is None:
@@ -145,7 +145,7 @@ def semver_filter_converter(
 
 
 def semver_package_filter_converter(
-    params: SnubaParams, search_filter: SearchFilter, _resolver=None
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
 ) -> list[SearchFilter]:
     organization_id = params.organization_id
     if organization_id is None:
@@ -178,7 +178,7 @@ def semver_package_filter_converter(
 
 
 def semver_build_filter_converter(
-    params: SnubaParams, search_filter: SearchFilter, _resolver=None
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
 ) -> list[SearchFilter]:
     organization_id = params.organization_id
     if organization_id is None:
@@ -220,7 +220,7 @@ def semver_build_filter_converter(
 
 
 def trace_filter_converter(
-    params: SnubaParams, search_filter: SearchFilter, _resolver=None
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
 ) -> list[SearchFilter]:
     operator = search_filter.operator
     value = search_filter.value.value

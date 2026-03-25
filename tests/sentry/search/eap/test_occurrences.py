@@ -1,3 +1,5 @@
+"""Test Occurrences related utils in SearchResolver"""
+
 from sentry.api import event_search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.search.eap.resolver import collect_issue_short_ids_from_parsed_terms
