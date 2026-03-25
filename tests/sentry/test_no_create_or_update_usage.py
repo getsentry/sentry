@@ -16,11 +16,8 @@ ALLOWLIST_FILES: set[str] = {
     "src/sentry/onboarding_tasks/backends/organization_onboarding_task.py",
     "src/sentry/models/featureadoption.py",
     "src/sentry/models/options/organization_option.py",
-    "src/sentry/audit_log/services/log/impl.py",
     "src/sentry/utils/mockdata/core.py",
-    "src/sentry/core/endpoints/organization_details.py",
     "src/sentry/tasks/assemble.py",
-    "src/sentry/tasks/commits.py",
     "src/sentry/services/nodestore/django/backend.py",
 }
 
