@@ -24,6 +24,8 @@ interface BaseProps extends Omit<
   min?: number;
   /** Name for the hidden input element (for form submissions) */
   name?: string;
+  /** Called when the user finishes adjusting the slider (on mouse/pointer/touch release or keyboard commit). */
+  onChangeEnd?: (value: number) => void;
   ref?: React.Ref<HTMLInputElement>;
   step?: number;
   /** Tick mark configuration. Use `count` for evenly spaced ticks, `interval` for fixed spacing, or `values` for explicit positions. Set `labels` to show value labels below ticks. */
@@ -57,6 +59,7 @@ export function Slider({
   formatOptions,
   name,
   id,
+  onChangeEnd,
   className,
   ref,
   ...props
@@ -73,18 +76,7 @@ export function Slider({
   } = props;
   const effectiveValue = value === '' ? undefined : value;
 
-  // Separate event handler props (onXxx) so they can be forwarded to the
-  // hidden <input> where user interactions actually occur, rather than the
-  // wrapper <div> where they would never fire.
-  const eventHandlerProps: Record<string, unknown> = {};
-  const htmlProps: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(restProps)) {
-    if (/^on[A-Z]/.test(key)) {
-      eventHandlerProps[key] = val;
-    } else {
-      htmlProps[key] = val;
-    }
-  }
+  const htmlProps = restProps;
 
   const numberFormatter = useNumberFormatter(formatOptions ?? {});
 
@@ -93,13 +85,17 @@ export function Slider({
     maxValue: max,
     step,
     isDisabled: disabled,
-    'aria-label': htmlProps['aria-label'] as string | undefined,
-    'aria-labelledby': htmlProps['aria-labelledby'] as string | undefined,
+    'aria-label': htmlProps['aria-label'],
+    'aria-labelledby': htmlProps['aria-labelledby'],
     ...(effectiveValue !== undefined && {value: [effectiveValue]}),
     ...(defaultValue !== undefined &&
       effectiveValue === undefined && {defaultValue: [defaultValue]}),
     onChange: (values: number | number[]) =>
       onChange?.(Array.isArray(values) ? (values[0] ?? min) : values),
+    onChangeEnd: onChangeEnd
+      ? (values: number | number[]) =>
+          onChangeEnd(Array.isArray(values) ? (values[0] ?? min) : values)
+      : undefined,
   };
 
   const state = useSliderState({...ariaProps, numberFormatter});
@@ -189,7 +185,6 @@ export function Slider({
             <input
               ref={inputRef}
               {...inputProps}
-              {...eventHandlerProps}
               name={name}
               id={id ?? inputProps.id}
               aria-invalid={htmlProps['aria-invalid'] as boolean | undefined}

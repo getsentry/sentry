@@ -56,19 +56,17 @@ type SliderProps = {
    */
   min?: number;
 
+  onChange?: (
+    value: SliderProps['value'],
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void;
+
   /**
    * This is called when *any* MouseUp or KeyUp event happens.
    * Used for "smart" Fields to trigger a "blur" event. `onChange` can
    * be triggered quite frequently
    */
-  onBlur?: (
-    event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>
-  ) => void;
-
-  onChange?: (
-    value: SliderProps['value'],
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => void;
+  onChangeEnd?: (value: number) => void;
   /**
    * Placeholder for custom input
    */
@@ -95,8 +93,8 @@ export function RangeSlider({
   placeholder,
   formatLabel,
   className,
-  onBlur,
   onChange,
+  onChangeEnd,
   ref,
   disabledReason,
   showLabel = true,
@@ -155,16 +153,6 @@ export function RangeSlider({
     setSliderValue(parseFloat(e.target.value) || 0);
   }
 
-  function handleBlur(
-    e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>
-  ) {
-    if (typeof onBlur !== 'function') {
-      return;
-    }
-
-    onBlur(e);
-  }
-
   function getSliderData() {
     if (!allowedValues) {
       const {min, max, step} = props;
@@ -205,8 +193,7 @@ export function RangeSlider({
             step={step}
             disabled={disabled}
             onChange={handleSliderChange}
-            onMouseUp={handleBlur}
-            onKeyUp={handleBlur}
+            onChangeEnd={onChangeEnd}
             value={sliderValue}
             aria-valuetext={labelText}
             aria-label={props['aria-label']}
