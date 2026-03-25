@@ -22,7 +22,7 @@ import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';

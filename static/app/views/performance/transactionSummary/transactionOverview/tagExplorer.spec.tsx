@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';

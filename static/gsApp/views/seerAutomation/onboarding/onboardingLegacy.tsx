@@ -23,7 +23,7 @@ import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Panel} from 'sentry/components/panels/panel';

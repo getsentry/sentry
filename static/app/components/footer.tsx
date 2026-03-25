@@ -46,6 +46,11 @@ function BaseFooter({className}: Props) {
   const secondaryNavigation = useContext(SecondaryNavigationContext);
   const hasPageFrame = useHasPageFrameFeature();
 
+  if (hasPageFrame) {
+    // @TODO(JonasBadalic): Remove ~ footer CSS rules once this flag is GA'd
+    return null;
+  }
+
   return (
     <Container
       as="footer"

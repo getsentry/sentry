@@ -65,14 +65,12 @@ export function CopyLLMPromptButton() {
  * Contextual note prepended when the instructions follow onboarding setup
  * steps so the LLM knows to complete those first.
  */
-export const LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE = `> IMPORTANT: FOLLOW THE SETUP STEPS PROVIDED ABOVE THIS SECTION FIRST.
-> They contain the correct DSN and project-specific SDK configuration. DO NOT SKIP THEM.
-> Then use the guide below to add Sentry manual instrumentation for AI Agent Monitoring.
-> Complete the verification step LAST.`;
+export const LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE = `> The setup steps above contain the correct DSN and project-specific SDK configuration — complete them first.
+> Then use the guide below for additional instrumentation and agent naming.`;
 
 export const LLM_ONBOARDING_INSTRUCTIONS = `# Instrument Sentry AI Agent Monitoring
 
-Follow this decision tree to instrument AI Agent Monitoring.
+Use this guide alongside the setup steps above.
 
 ## 1. Verify Sentry + Tracing
 
@@ -85,61 +83,45 @@ Follow this decision tree to instrument AI Agent Monitoring.
 - Python: https://docs.sentry.io/platforms/python/
 
 **Verify tracing is enabled** (REQUIRED for AI monitoring):
-\`\`\`javascript
-// JS - must have tracesSampleRate > 0, min SDK version 10.28.0
-Sentry.init({ dsn: "...", tracesSampleRate: 1.0, sendDefaultPii: true })
-\`\`\`
-\`\`\`python
-# Python - must have traces_sample_rate > 0
-sentry_sdk.init(dsn="...", traces_sample_rate=1.0, send_default_pii=True)
-\`\`\`
-
-If missing, add \`tracesSampleRate: 1.0\` / \`traces_sample_rate=1.0\` and \`sendDefaultPii: true\` / \`send_default_pii=True\`.
+- JS: \`tracesSampleRate: 1.0\` and \`sendDefaultPii: true\` in \`Sentry.init\`. Min SDK version \`10.28.0\`.
+- Python: \`traces_sample_rate=1.0\` and \`send_default_pii=True\` in \`sentry_sdk.init()\`.
 
 ## 2. Check for Supported AI Libraries
 
-Check in this order - **use the highest-level framework found** (e.g., if using Vercel AI SDK with OpenAI provider, use Vercel integration, not OpenAI):
+Check in this order — **use the highest-level framework found** (e.g., if using Vercel AI SDK with OpenAI provider, use Vercel integration, not OpenAI):
 
-| Library (check in order) | Node.js | Browser | Python Integration |
-|--------------------------|---------|---------|-------------------|
-| Vercel AI SDK | Auto-enabled (needs \`experimental_telemetry\`) | - | - |
-| LangGraph | Auto-enabled | \`instrumentLangGraph()\` | Auto-enabled |
-| LangChain | Auto-enabled | \`createLangChainCallbackHandler()\` | Auto-enabled |
-| OpenAI Agents | - | - | Auto-enabled |
-| Pydantic AI | - | - | Auto-enabled |
-| LiteLLM | - | - | \`LiteLLMIntegration()\` |
-| OpenAI | Auto-enabled | \`instrumentOpenAiClient()\` | Auto-enabled |
-| Anthropic | Auto-enabled | \`instrumentAnthropicAiClient()\` | Auto-enabled |
-| Google GenAI | Auto-enabled | \`instrumentGoogleGenAiClient()\` | Auto-enabled |
+| Library | Node.js | Browser | Python | How to Name the Agent |
+|---------|---------|---------|--------|-----------------------|
+| Vercel AI SDK | Auto (needs \`experimental_telemetry\`) | - | - | \`experimental_telemetry.functionId\` |
+| LangGraph | Auto | \`instrumentLangGraph()\` | Auto | \`name\` param on \`create_agent\` |
+| LangChain | Auto | \`createLangChainCallbackHandler()\` | Auto | \`name\` param on \`create_agent\` |
+| OpenAI Agents | - | - | Auto | \`name\` param on \`Agent()\` (required) |
+| Pydantic AI | - | - | Auto | \`name\` param on \`Agent()\` |
+| Mastra | Auto | - | - | \`name\` + \`id\` params on \`Agent()\` (required) |
+| LiteLLM | - | - | \`LiteLLMIntegration()\` | Manual instrumentation (see 3B) |
+| OpenAI | Auto | \`instrumentOpenAiClient()\` | Auto | Manual instrumentation (see 3B) |
+| Anthropic | Auto | \`instrumentAnthropicAiClient()\` | Auto | Manual instrumentation (see 3B) |
+| Google GenAI | Auto | \`instrumentGoogleGenAiClient()\` | Auto | Manual instrumentation (see 3B) |
 
-**If supported library found → Step 3A** (Enable Automatic Integration: Node.js, Browser and Python)
+**If supported library found → Step 3A**
 **If no supported library → Step 3B** (Manual span instrumentation)
+
+**IMPORTANT: Always set the agent name.** It enables agent-specific dashboards, trace grouping, and alerting.
 
 ## 3A. Enable Automatic Integration
 
 ### Node.js (Auto-enabled)
 
-For Node.js applications (\`@sentry/node\`, \`@sentry/nestjs\`, etc.), AI integrations are **automatically enabled**. Just initialize Sentry with tracing:
-
-\`\`\`javascript
-import * as Sentry from "@sentry/node";
-
-Sentry.init({
-  dsn: "...",
-  tracesSampleRate: 1.0,  // Required for AI monitoring
-  sendDefaultPii: true,   // Add data like inputs and responses to/from LLMs and tools
-});
-
-// That's it! The SDK automatically instruments supported AI libraries
-\`\`\`
+For Node.js (\`@sentry/node\`, \`@sentry/nestjs\`, etc.), AI integrations are **automatically enabled** — just ensure Sentry is initialized with tracing.
 
 **Vercel AI SDK Extra Step:** Pass \`experimental_telemetry\` to every call:
 \`\`\`javascript
 const result = await generateText({
-  model: openai("gpt-4o"),
+  model: openai("gpt-5.4"),
   prompt: "Tell me a joke",
   experimental_telemetry: {
     isEnabled: true,
+    functionId: "my_agent",  // Names the agent in Sentry
     recordInputs: true,
     recordOutputs: true,
   },
@@ -148,99 +130,43 @@ const result = await generateText({
 
 ### Browser (Manual Client Wrapping)
 
-For browser applications (\`@sentry/browser\`, \`@sentry/react\`, etc.), you must **manually wrap each AI client** using helper functions.
-
-**Step 1:** Initialize Sentry with tracing:
-\`\`\`javascript
-import * as Sentry from "@sentry/react";
-
-Sentry.init({
-  dsn: "...",
-  tracesSampleRate: 1.0,  // Required for AI monitoring
-  sendDefaultPii: true,   // Add data like inputs and responses to/from LLMs and tools
-});
-\`\`\`
-
-**Step 2:** Wrap your AI client instances with helper functions:
+For browser apps (\`@sentry/browser\`, \`@sentry/react\`), **manually wrap each AI client**:
 
 **OpenAI:**
 \`\`\`javascript
-import OpenAI from "openai";
-
-const openai = new OpenAI();
-const client = Sentry.instrumentOpenAiClient(openai, {
+const client = Sentry.instrumentOpenAiClient(new OpenAI(), {
   recordInputs: true,
   recordOutputs: true,
-});
-
-// Use the wrapped client instead of the original
-const response = await client.chat.completions.create({
-  model: "gpt-4o",
-  messages: [{ role: "user", content: "Hello!" }],
 });
 \`\`\`
 
 **Anthropic:**
 \`\`\`javascript
-import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic();
-const client = Sentry.instrumentAnthropicAiClient(anthropic, {
+const client = Sentry.instrumentAnthropicAiClient(new Anthropic(), {
   recordInputs: true,
   recordOutputs: true,
-});
-
-const response = await client.messages.create({
-  model: "claude-3-5-sonnet-20241022",
-  max_tokens: 1024,
-  messages: [{ role: "user", content: "Hello!" }],
 });
 \`\`\`
 
 **Google Gen AI:**
 \`\`\`javascript
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(apiKey);
-const client = Sentry.instrumentGoogleGenAiClient(genAI, {
+const client = Sentry.instrumentGoogleGenAiClient(new GoogleGenAI({ apiKey }), {
   recordInputs: true,
   recordOutputs: true,
 });
-
-const model = client.getGenerativeModel({ model: "gemini-pro" });
 \`\`\`
 
 **LangChain:**
 \`\`\`javascript
-import { ChatOpenAI } from "@langchain/openai";
-
-// Create a callback handler
 const callbackHandler = Sentry.createLangChainCallbackHandler({
   recordInputs: true,
   recordOutputs: true,
 });
-
-const llm = new ChatOpenAI();
-
-// Use the callback handler when invoking
-await llm.invoke("Tell me a joke", {
-  callbacks: [callbackHandler],
-});
+await llm.invoke("Tell me a joke", { callbacks: [callbackHandler] });
 \`\`\`
 
 **LangGraph:**
 \`\`\`javascript
-import { ChatOpenAI } from "@langchain/openai";
-import { createReactAgent } from "@langchain/langgraph/prebuilt";
-
-const llm = new ChatOpenAI({
-  modelName: "gpt-4o",
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const agent = createReactAgent({ llm, tools: [] });
-
-// Instrument the agent
 Sentry.instrumentLangGraph(agent, {
   recordInputs: true,
   recordOutputs: true,
@@ -249,41 +175,46 @@ Sentry.instrumentLangGraph(agent, {
 
 **Important:** You must wrap EACH client instance separately. The helpers are not global integrations.
 
-### Python (Most Libraries are auto-enabled, except LiteLLM)
+### Python
 
-#### Auto-enabled Libraries (see table above):
+Most Python AI libraries are **auto-enabled** — just ensure Sentry is initialized with tracing.
 
-For most Python AI libraries, integrations are **automatically enabled**. Just initialize Sentry:
-
+**LiteLLM** requires explicit integration:
 \`\`\`python
-import sentry_sdk
-
-sentry_sdk.init(
-    dsn="...",
-    # Required for AI monitoring
-    traces_sample_rate=1.0,
-    # Add data like request headers and IP for users, if applicable;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-)
-\`\`\`
-
-#### LiteLLM:
-
-\`\`\`python
-import sentry_sdk
 from sentry_sdk.integrations.litellm import LiteLLMIntegration
 sentry_sdk.init(
     dsn="...",
-    # Required for AI monitoring
     traces_sample_rate=1.0,
-    # Add data like inputs and responses;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
-    integrations=[
-        LiteLLMIntegration(),
-    ],
+    integrations=[LiteLLMIntegration()],
 )
+\`\`\`
+
+### How to Name Agents per Framework
+
+**OpenAI Agents SDK** — \`name\` is required:
+\`\`\`python
+agent = Agent(name="my_agent", instructions="You are a helpful assistant.", model="gpt-5.4")
+\`\`\`
+
+**Pydantic AI:**
+\`\`\`python
+agent = Agent("openai:gpt-5.4", name="my_agent")
+\`\`\`
+
+**LangGraph / LangChain:**
+\`\`\`python
+agent = create_agent(model, tools, name="my_agent")
+\`\`\`
+
+**Mastra** (Node.js) — \`id\` and \`name\` are required:
+\`\`\`javascript
+const agent = new Agent({
+  id: "my-agent",
+  name: "My Agent",
+  instructions: "You are a helpful assistant.",
+  model: "openai/gpt-5.4",
+});
 \`\`\`
 
 ## 3B. Manual Instrumentation
@@ -291,8 +222,7 @@ sentry_sdk.init(
 Create spans with these exact \`op\` values and attributes:
 
 ### AI Request (LLM call)
-- **op:** \`"gen_ai.request"\`
-- **name:** \`"chat <model>"\`
+- **op:** \`"gen_ai.request"\`, **name:** \`"chat <model>"\`
 - **Required:** \`gen_ai.request.model\`
 - **Recommended:** \`gen_ai.usage.input_tokens\`, \`gen_ai.usage.output_tokens\`
 
@@ -306,8 +236,7 @@ with sentry_sdk.start_span(op="gen_ai.request", name=f"chat {model}") as span:
 \`\`\`
 
 ### Invoke Agent
-- **op:** \`"gen_ai.invoke_agent"\`
-- **name:** \`"invoke_agent <AgentName>"\`
+- **op:** \`"gen_ai.invoke_agent"\`, **name:** \`"invoke_agent <AgentName>"\`
 - **Required:** \`gen_ai.request.model\`, \`gen_ai.agent.name\`
 
 \`\`\`python
@@ -318,8 +247,7 @@ with sentry_sdk.start_span(op="gen_ai.invoke_agent", name=f"invoke_agent {agent_
 \`\`\`
 
 ### Execute Tool
-- **op:** \`"gen_ai.execute_tool"\`
-- **name:** \`"execute_tool <tool_name>"\`
+- **op:** \`"gen_ai.execute_tool"\`, **name:** \`"execute_tool <tool_name>"\`
 - **Required:** \`gen_ai.tool.name\`
 
 \`\`\`python
@@ -330,20 +258,12 @@ with sentry_sdk.start_span(op="gen_ai.execute_tool", name=f"execute_tool {tool_n
     span.set_data("gen_ai.tool.output", json.dumps(result))
 \`\`\`
 
-### Handoff (agent-to-agent)
-- **op:** \`"gen_ai.handoff"\`
-- **name:** \`"handoff from <A> to <B>"\`
-
-\`\`\`python
-with sentry_sdk.start_span(op="gen_ai.handoff", name=f"handoff from {a} to {b}"):
-    pass
-\`\`\`
-
 ## Key Rules
 
-1. **All complex data must be JSON-stringified** - span attributes only accept primitives
-2. **\`gen_ai.request.model\` is required** on \`gen_ai.request\` and \`gen_ai.invoke_agent\` spans
-3. **Nest spans correctly:** \`gen_ai.invoke_agent\` spans should contain \`gen_ai.request\` and \`gen_ai.execute_tool\` spans as children
-4. **JS min version:** \`@sentry/node@10.28.0\` or later
-5. **Enable PII:** \`sendDefaultPii: true\` (JS) / \`send_default_pii=True\` (Python) to capture inputs/outputs
+1. **Always set the agent name** — enables per-agent dashboards, trace grouping, and alerting
+2. **All complex data must be JSON-stringified** — span attributes only accept primitives
+3. **\`gen_ai.request.model\` is required** on \`gen_ai.request\` and \`gen_ai.invoke_agent\` spans
+4. **Nest spans correctly:** \`gen_ai.invoke_agent\` should contain \`gen_ai.request\` and \`gen_ai.execute_tool\` as children
+5. **JS min version:** \`@sentry/node@10.28.0\` or later
+6. **Enable PII:** \`sendDefaultPii: true\` (JS) / \`send_default_pii=True\` (Python) to capture inputs/outputs
 `;

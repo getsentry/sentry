@@ -1,6 +1,6 @@
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -32,6 +32,7 @@ from sentry.services.eventstore import backend as eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -396,7 +397,9 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         for p in profile_data
     ]
 
-    with ThreadPoolExecutor(max_workers=min(len(profiles_to_fetch), 5)) as executor:
+    with ContextPropagatingThreadPoolExecutor(
+        max_workers=min(len(profiles_to_fetch), 5)
+    ) as executor:
         future_to_profile = {
             executor.submit(
                 _fetch_and_process_profile,

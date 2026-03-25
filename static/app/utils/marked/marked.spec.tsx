@@ -3,6 +3,7 @@
 import {
   asyncSanitizedMarked,
   sanitizedMarked,
+  sanitizedMarkedNoHeadings,
   singleLineRenderer,
 } from 'sentry/utils/marked/marked';
 import {loadPrismLanguage} from 'sentry/utils/prism';
@@ -90,6 +91,20 @@ describe('marked', () => {
     );
     expect(sanitizedMarked('```jsx\n<Component>Hello</Component>\n```')).toBe(
       `<pre><code class="language-jsx">&lt;Component&gt;Hello&lt;/Component&gt;\n</code></pre>\n`
+    );
+  });
+
+  it('sanitizedMarkedNoHeadings renders headings as bold text', () => {
+    expect(sanitizedMarkedNoHeadings('# Heading 1')).toBe('<strong>Heading 1</strong>');
+    expect(sanitizedMarkedNoHeadings('## Heading 2')).toBe('<strong>Heading 2</strong>');
+    expect(sanitizedMarkedNoHeadings('### Heading 3')).toBe('<strong>Heading 3</strong>');
+  });
+
+  it('sanitizedMarkedNoHeadings renders non-heading markdown normally', () => {
+    expect(sanitizedMarkedNoHeadings('**bold**')).toBe('<p><strong>bold</strong></p>\n');
+    expect(sanitizedMarkedNoHeadings('`code`')).toBe('<p><code>code</code></p>\n');
+    expect(sanitizedMarkedNoHeadings('[link](https://example.com)')).toBe(
+      '<p><a href="https://example.com">link</a></p>\n'
     );
   });
 

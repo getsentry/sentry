@@ -28,7 +28,7 @@ import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';

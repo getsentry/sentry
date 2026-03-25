@@ -27,14 +27,14 @@ type State = {
   currentValue: string | null;
 };
 
-class ThresholdControl extends Component<Props, State> {
+export class ThresholdControl extends Component<Props, State> {
   state: State = {
     currentValue: null,
   };
 
   handleThresholdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow number and partial number inputs
-    if (!/^[0-9]*\.?[0-9]*$/.test(event.target.value)) {
+    if (!/^\d*\.?\d*$/.test(event.target.value)) {
       return;
     }
 
@@ -186,5 +186,3 @@ const ThresholdContainer = styled('div')<{comparisonType: AlertRuleComparisonTyp
 const PercentWrapper = styled('div')`
   margin-left: ${p => p.theme.space.md};
 `;
-
-export default ThresholdControl;

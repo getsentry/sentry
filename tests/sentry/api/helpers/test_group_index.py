@@ -1192,7 +1192,7 @@ class DeleteGroupsTest(TestCase):
         assert send_robust.called
 
     @patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     @patch("sentry.signals.issue_deleted.send_robust")
     def test_delete_groups_deletes_seer_records_by_hash(

@@ -6,8 +6,11 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
+import type {
+  EventView,
+  ImmutableEventView,
+  LocationQuery,
+} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import type {UseQueryOptions} from 'sentry/utils/queryClient';

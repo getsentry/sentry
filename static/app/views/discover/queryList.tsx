@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
@@ -34,7 +34,7 @@ import {
   handleUpdateHomepageQuery,
 } from './savedQuery/utils';
 import MiniGraph from './miniGraph';
-import QueryCard from './querycard';
+import {QueryCard} from './querycard';
 import {
   getPrebuiltQueries,
   handleAddQueryToDashboard,
