@@ -29,8 +29,8 @@ const UNSAVED_CHANGES_MESSAGE = t(
 export const targetSampleRateSchema = z.object({
   targetSampleRate: z
     .string()
-    .min(1, t('This field is required.'))
-    .refine(val => !isNaN(Number(val)), {message: t('Please enter a valid number.')})
+    .min(1, t('Please enter a valid number'))
+    .refine(val => !isNaN(Number(val)), {message: t('Please enter a valid number')})
     .refine(
       val => {
         const n = Number(val);
@@ -106,9 +106,7 @@ export function OrganizationSampling() {
                     targetSampleRate={field.state.value}
                     savedTargetSampleRate={savedTargetSampleRate}
                     onTargetSampleRateChange={field.handleChange}
-                    targetSampleRateError={
-                      field.state.meta.errors[0] as string | undefined
-                    }
+                    targetSampleRateError={field.state.meta.errors[0]?.message}
                     actions={
                       <Fragment>
                         <Button
@@ -125,6 +123,7 @@ export function OrganizationSampling() {
                         >
                           <form.SubmitButton
                             disabled={!hasAccess || !canSubmit || !isDirty}
+                            formNoValidate
                           >
                             {t('Apply Changes')}
                           </form.SubmitButton>
