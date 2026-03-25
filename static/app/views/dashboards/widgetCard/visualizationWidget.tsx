@@ -310,7 +310,8 @@ function VisualizationWidgetContent({
           firstColumn &&
           typeof firstColumnGroupByValue === 'string' &&
           widget.queries.length === 1 &&
-          widget.widgetType === WidgetType.SPANS
+          widget.widgetType === WidgetType.SPANS &&
+          organization.features.includes('visibility-explore-view')
         ) {
           const exploreQuery = new MutableSearch(widget.queries[0]?.conditions ?? '');
           exploreQuery.addFilterValue(firstColumn, firstColumnGroupByValue);
