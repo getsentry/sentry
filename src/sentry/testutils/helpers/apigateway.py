@@ -137,9 +137,9 @@ def provision_middleware():
 @override_settings(ROOT_URLCONF=__name__)
 class ApiGatewayTestCase(APITestCase):
     # Subclasses will generally need to be decorated with
-    #     @*_silo_test(regions=[ApiGatewayTestCase.REGION])
+    #     @*_silo_test(regions=[ApiGatewayTestCase.CELL])
 
-    REGION = Cell(
+    CELL = Cell(
         name="us",
         snowflake_id=1,
         address="http://us.internal.sentry.io",
@@ -150,21 +150,21 @@ class ApiGatewayTestCase(APITestCase):
         super().setUp()
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/get",
+            f"{self.CELL.address}/get",
             body=json.dumps({"proxy": True}),
             content_type="application/json",
             adding_headers={"test": "header"},
         )
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/error",
+            f"{self.CELL.address}/error",
             body=json.dumps({"proxy": True}),
             status=400,
             content_type="application/json",
             adding_headers={"test": "header"},
         )
 
-        self.organization = self.create_organization(region=self.REGION)
+        self.organization = self.create_organization(region=self.CELL)
 
         # Echos the request body and header back for verification
         def return_request_body(request):
@@ -175,7 +175,7 @@ class ApiGatewayTestCase(APITestCase):
             params = parse_qs(request.url.split("?")[1])
             return (200, request.headers, json.dumps(params).encode())
 
-        responses.add_callback(responses.GET, f"{self.REGION.address}/echo", return_request_params)
-        responses.add_callback(responses.POST, f"{self.REGION.address}/echo", return_request_body)
+        responses.add_callback(responses.GET, f"{self.CELL.address}/echo", return_request_params)
+        responses.add_callback(responses.POST, f"{self.CELL.address}/echo", return_request_body)
 
         self.middleware = provision_middleware()

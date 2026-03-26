@@ -30,7 +30,7 @@ from sentry.utils import json
 url_name = "sentry-api-0-projets"
 
 
-@control_silo_test(cells=[ApiGatewayTestCase.REGION], include_monolith_run=True)
+@control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
 class ProxyTestCase(ApiGatewayTestCase):
     @responses.activate
     def test_simple(self) -> None:
@@ -275,7 +275,7 @@ CB_ENABLED = {
 }
 
 
-@control_silo_test(regions=[ApiGatewayTestCase.REGION])
+@control_silo_test(cells=[ApiGatewayTestCase.CELL])
 class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
     def _make_breaker_mock(self, *, allow_request: bool) -> MagicMock:
         mock_breaker = MagicMock()

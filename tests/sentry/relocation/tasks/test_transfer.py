@@ -130,7 +130,7 @@ class FindRelocationTransferRegionTest(TestCase):
         assert not RegionRelocationTransfer.objects.filter(id=transfer.id).exists()
 
 
-@control_silo_test(regions=TEST_REGIONS)
+@control_silo_test(cells=TEST_REGIONS)
 class ProcessRelocationTransferControlTest(TestCase):
     def test_missing_transfer(self) -> None:
         res = process_relocation_transfer_control(transfer_id=999)

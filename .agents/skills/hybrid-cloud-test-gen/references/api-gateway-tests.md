@@ -26,7 +26,7 @@ from sentry.utils import json
 ## Template: Standard API Gateway Test
 
 ```python
-@control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)
+@control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
 class Test{Feature}ApiGateway(ApiGatewayTestCase):
 
     @responses.activate
@@ -137,7 +137,7 @@ In CONTROL mode, proxied responses are streamed. Use `close_streaming_response()
 ## Key Patterns
 
 - **`ApiGatewayTestCase`** sets up a test region, mock HTTP callbacks, and the API gateway middleware. It extends `APITestCase`.
-- **`@control_silo_test(regions=[...], include_monolith_run=True)`** runs the test in both CONTROL and MONOLITH modes.
+- **`@control_silo_test(cells=[...], include_monolith_run=True)`** runs the test in both CONTROL and MONOLITH modes.
 - **Every test method MUST use `@responses.activate`** because gateway tests mock HTTP calls to the region address.
 - **`verify_request_params(params, headers)`** is a callback that asserts query params and headers match.
 - **`verify_request_body(body, headers)`** asserts POST body matches.
