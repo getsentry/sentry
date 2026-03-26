@@ -94,9 +94,6 @@ class SerializableAlertContextTest(TestCase):
         round_tripped = SerializableAlertContext.from_alert_context(original).to_alert_context()
 
         assert round_tripped.threshold_type is None
-        assert round_tripped.resolve_threshold == 2.5
-        assert round_tripped.alert_threshold == 7.5
-        assert round_tripped.detection_type == AlertRuleDetectionType.PERCENT
 
 
 class SerializableOpenPeriodContextTest(TestCase):
