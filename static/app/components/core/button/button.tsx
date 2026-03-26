@@ -43,9 +43,6 @@ export function Button({
     busy,
   });
 
-  const contentTransition = `opacity ${busy ? theme.motion.smooth.moderate : theme.motion.exit.moderate}, transform ${busy ? theme.motion.smooth.moderate : theme.motion.exit.moderate}`;
-  const loaderTransition = `opacity ${busy ? theme.motion.enter.fast : theme.motion.exit.fast}, transform ${busy ? theme.motion.enter.fast : theme.motion.exit.fast}`;
-
   return (
     <Tooltip
       skipWrapper
@@ -79,9 +76,10 @@ export function Button({
             as="span"
             align="center"
             style={{
-              transition: contentTransition,
+              transition: busy ? theme.motion.smooth.fast : theme.motion.exit.fast,
+              transitionProperty: 'opacity, transform',
               opacity: busy ? 0 : 1,
-              transform: busy ? 'scale(1.1)' : 'scale(1)',
+              transform: busy ? `translateY(${theme.space['2xs']})` : 'translateY(0)',
             }}
           >
             {props.icon && (
@@ -113,9 +111,10 @@ export function Button({
               inset="0"
               style={{
                 marginInline: '-4px',
-                transition: loaderTransition,
+                transition: busy ? theme.motion.exit.fast : theme.motion.smooth.fast,
+                transitionProperty: 'opacity, transform',
                 opacity: busy ? 1 : 0,
-                transform: busy ? 'scale(1)' : 'scale(0.9)',
+                transform: busy ? 'translateY(0)' : `translateY(-${theme.space['2xs']})`,
                 pointerEvents: busy ? undefined : 'none',
               }}
             >
