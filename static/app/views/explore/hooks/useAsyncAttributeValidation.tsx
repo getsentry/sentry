@@ -45,12 +45,12 @@ export function useAsyncAttributeValidation(
     ParseResult | null
   >({
     mutationFn: (parsedQuery: ParseResult | null) => {
+      if (!parsedQuery || parsedQuery?.length === 0) {
+        return Promise.resolve({attributes: {}} as ValidateAttributesResponse);
+      }
+
       const keySet = new Set<string>();
       if (parsedQuery) {
-        if (parsedQuery.length === 0) {
-          return Promise.resolve({attributes: {}} as ValidateAttributesResponse);
-        }
-
         for (const token of parsedQuery) {
           if (token.type === Token.FILTER) {
             keySet.add(getKeyName(token.key));
