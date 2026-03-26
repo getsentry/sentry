@@ -16,6 +16,7 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
   monitors: ['monitors'],
   settings: ['settings'],
   prevent: ['prevent'],
+  sandbox: ['sandbox'],
   admin: ['manage'],
 } as const;
 

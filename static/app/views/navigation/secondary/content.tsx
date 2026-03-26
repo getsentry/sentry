@@ -25,6 +25,8 @@ export function SecondaryNavigationContent(): ReactNode {
       return <MonitorsSecondaryNavigation />;
     case 'prevent':
       return null;
+    case 'sandbox':
+      return null;
     case 'settings':
       return <SettingsSecondaryNavigation />;
     case 'admin':

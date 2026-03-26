@@ -2766,6 +2766,12 @@ function buildRoutes(): RouteObject[] {
     children: legacyOrgRedirectChildren,
   };
 
+  const sandboxRoutes: SentryRouteObject = {
+    path: '/sandbox/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/sandbox')),
+  };
+
   const organizationRoutes: SentryRouteObject = {
     component: errorHandler(OrganizationLayout),
     children: [
@@ -2776,6 +2782,7 @@ function buildRoutes(): RouteObject[] {
       issueRoutes,
       alertRoutes,
       monitorRoutes,
+      sandboxRoutes,
       preprodRoutes,
       pullRequestRoutes,
       replayRoutes,

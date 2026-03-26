@@ -21,6 +21,7 @@ import {
   IconDashboard,
   IconGraph,
   IconIssues,
+  IconLab,
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
@@ -273,6 +274,19 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
           </PrimaryNavigation.Link>
         </PrimaryNavigation.ListItem>
       </Feature>
+
+      {/* <Feature features={['dev-sandbox']}> */}
+      <PrimaryNavigation.ListItem>
+        <PrimaryNavigation.Link
+          to={`/${prefix}/sandbox/`}
+          analyticsKey="sandbox"
+          label={t('Sandbox')}
+          {...makeNavigationItemProps('sandbox', `/${prefix}/sandbox/`)}
+        >
+          <IconLab />
+        </PrimaryNavigation.Link>
+      </PrimaryNavigation.ListItem>
+      {/* </Feature> */}
 
       <NavigationTourElement id={NavigationTour.SETTINGS} title={null} description={null}>
         {tourProps => (
