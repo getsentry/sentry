@@ -72,7 +72,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const theme = useTheme();
 
   const actions = useCommandPaletteActions();
-
+  const organization = useOrganization();
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
 
@@ -156,6 +156,11 @@ export function CommandPalette(props: CommandPaletteProps) {
       }
 
       if (action.type === 'group') {
+        trackAnalytics('command_palette.action_selected', {
+          organization,
+          action: action.display.label,
+          query: state.query,
+        });
         dispatch({type: 'push action', action});
         return;
       }
@@ -163,7 +168,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       dispatch({type: 'trigger action'});
       props.onAction(action);
     },
-    [filteredActions, dispatch, props, treeState]
+    [filteredActions, dispatch, props, treeState, organization, state.query]
   );
 
   return (

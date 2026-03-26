@@ -38,12 +38,14 @@ import type {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/compon
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   ErrorCell,
   NumberPlaceholder,
 } from 'sentry/views/insights/pages/agents/utils/cells';
 import {
   getAgentRunsFilter,
+  getHasAgentNameFilter,
   getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -163,8 +165,8 @@ export function TracesTable({
 
   const agentsRequest = useSpans(
     {
-      search: `${getAgentRunsFilter()} has:gen_ai.agent.name trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}]`,
-      fields: ['trace', 'gen_ai.agent.name', 'timestamp'],
+      search: `${getAgentRunsFilter()} ${getHasAgentNameFilter()} trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}]`,
+      fields: ['trace', 'gen_ai.agent.name', 'gen_ai.function_id', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'asc'}],
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -177,9 +179,12 @@ export function TracesTable({
       return new Map();
     }
     return agentsRequest.data.reduce((acc, span) => {
-      const agentsSet = acc.get(span.trace) ?? new Set();
-      agentsSet.add(span['gen_ai.agent.name']);
-      acc.set(span.trace, agentsSet);
+      const agentName = resolveAgentName(span);
+      if (agentName) {
+        const agentsSet = acc.get(span.trace) ?? new Set();
+        agentsSet.add(agentName);
+        acc.set(span.trace, agentsSet);
+      }
       return acc;
     }, new Map<string, Set<string>>());
   }, [agentsRequest.data]);

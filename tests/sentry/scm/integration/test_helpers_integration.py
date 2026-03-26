@@ -10,15 +10,12 @@ from sentry.scm.private.helpers import (
     fetch_repository,
     fetch_service_provider,
     initialize_provider,
-    is_rate_limited,
-    is_rate_limited_with_allocation_policy,
     map_integration_to_provider,
     map_repository_model_to_repository,
 )
 from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.types import Referrer, Repository
+from sentry.scm.types import Repository
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import freeze_time
 
 
 class TestFetchRepository(TestCase):
@@ -189,135 +186,6 @@ class TestFetchServiceProvider(TestCase):
         }
         result = fetch_service_provider(self.organization.id, repository)
         assert result is None
-
-
-class TestIsRateLimited(TestCase):
-    def test_returns_false_when_under_limit(self):
-        with freeze_time("2000-01-01"):
-            result = is_rate_limited(
-                organization_id=self.organization.id,
-                referrer="shared",
-                provider="github",
-                limit=5,
-                window=60,
-            )
-
-            assert result is False
-
-    def test_returns_true_when_limit_exceeded(self):
-        with freeze_time("2000-01-01"):
-            for _ in range(5):
-                is_rate_limited(
-                    organization_id=self.organization.id,
-                    referrer="shared",
-                    provider="github",
-                    limit=5,
-                    window=60,
-                )
-
-            result = is_rate_limited(
-                organization_id=self.organization.id,
-                referrer="shared",
-                provider="github",
-                limit=5,
-                window=60,
-            )
-
-            assert result is True
-
-    def test_different_keys_are_independent(self):
-        with freeze_time("2000-01-01"):
-            for _ in range(5):
-                is_rate_limited(
-                    organization_id=self.organization.id,
-                    referrer="shared",
-                    provider="github",
-                    limit=5,
-                    window=60,
-                )
-
-            result = is_rate_limited(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                limit=5,
-                window=60,
-            )
-
-            assert result is False
-
-
-class TestIsRateLimitedWithAllocationPolicy(TestCase):
-    def test_returns_false_when_under_allocated_limit(self):
-        with freeze_time("2000-01-01"):
-            allocation_policy: dict[Referrer, int] = {"emerge": 10, "shared": 100}
-
-            result = is_rate_limited_with_allocation_policy(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                window=60,
-                allocation_policy=allocation_policy,
-            )
-
-            assert result is False
-
-    def test_falls_back_to_shared_pool_when_allocation_exhausted(self):
-        with freeze_time("2000-01-01"):
-            allocation_policy: dict[Referrer, int] = {"emerge": 2, "shared": 100}
-
-            # Exhaust the dedicated allocation.
-            for _ in range(2):
-                is_rate_limited_with_allocation_policy(
-                    organization_id=self.organization.id,
-                    referrer="emerge",
-                    provider="github",
-                    window=60,
-                    allocation_policy=allocation_policy,
-                )
-
-            # Falls back to the shared pool which still has quota.
-            result = is_rate_limited_with_allocation_policy(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                window=60,
-                allocation_policy=allocation_policy,
-            )
-
-            assert result is False
-
-    def test_returns_true_when_allocation_and_shared_pool_exhausted(self):
-        with freeze_time("2000-01-01"):
-            allocation_policy: dict[Referrer, int] = {"emerge": 1, "shared": 1}
-
-            # Exhaust the dedicated allocation.
-            is_rate_limited_with_allocation_policy(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                window=60,
-                allocation_policy=allocation_policy,
-            )
-
-            # Exhaust the shared pool.
-            is_rate_limited_with_allocation_policy(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                window=60,
-                allocation_policy=allocation_policy,
-            )
-
-            result = is_rate_limited_with_allocation_policy(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                window=60,
-                allocation_policy=allocation_policy,
-            )
-
-            assert result is True
 
 
 def _make_active_repository(organization_id: int) -> Repository:
