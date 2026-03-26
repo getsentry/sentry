@@ -284,7 +284,7 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
 
     # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
     if updated_rows_count > 0:
-        metrics.incr("artifact_bundle_renewal.were_renewed")
+        metrics.incr("artifact_bundle_renewal.were_renewed", updated_rows_count)
 
 
 # ===== Querying of Artifact Bundles =====
