@@ -20,12 +20,9 @@ Unsupported actions:
 
 import datetime
 import functools
-import logging
 from collections.abc import Callable
 from typing import Any, Iterable
 from urllib.parse import urlencode
-
-logger = logging.getLogger(__name__)
 
 from sentry.integrations.gitlab.client import GitLabApiClient
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
