@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from django.utils import timezone
+
 from sentry import features
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -76,13 +78,25 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             )
             return
 
-        # Send webhook for the completed step
-        cls._send_step_webhook(organization, run_id, state)
+        group_id = state.metadata.get("group_id") if state.metadata else None
+        if group_id is None:
+            group = None
+        else:
+            try:
+                group = Group.objects.get(id=group_id)
+            except Group.DoesNotExist:
+                group = None
 
-        cls._maybe_trigger_supergroups_embedding(organization, run_id, state)
+        # Send webhook for the completed step
+        cls._send_step_webhook(organization, run_id, state, group)
+
+        cls._maybe_trigger_supergroups_embedding(organization, run_id, state, group)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
-        cls._maybe_continue_pipeline(organization, run_id, state)
+        cls._maybe_continue_pipeline(organization, run_id, state, group)
+
+        if group is not None:
+            group.update(seer_explorer_autofix_last_triggered=timezone.now())
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:
@@ -95,19 +109,27 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         return None
 
     @classmethod
-    def _send_step_webhook(cls, organization, run_id, state: SeerRunState):
+    def _send_step_webhook(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group: Group | None,
+    ):
         """
         Send webhook for the completed step.
 
         Determines which step just completed and sends the appropriate webhook event.
         """
+        if group is None:
+            return
+
         current_step = cls._get_current_step(state)
 
-        webhook_payload = {"run_id": run_id}
-
-        group_id = state.metadata.get("group_id") if state.metadata else None
-        if group_id is not None:
-            webhook_payload["group_id"] = group_id
+        webhook_payload = {
+            "run_id": run_id,
+            "group_id": group.id,
+        }
 
         # Iterate through blocks in reverse order (most recent first)
         # to find which step just completed
@@ -213,19 +235,15 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         organization: Organization,
         run_id: int,
         state: SeerRunState,
+        group: Group | None,
     ) -> None:
         """Trigger supergroups embedding if feature flag is enabled."""
         current_step = cls._get_current_step(state)
         if current_step != AutofixStep.ROOT_CAUSE:
             return
 
-        group_id = state.metadata.get("group_id") if state.metadata else None
-        if group_id is None:
-            return
-
-        try:
-            group = Group.objects.get(id=group_id)
-        except Group.DoesNotExist:
+        if group is None:
+            group_id = state.metadata.get("group_id") if state.metadata else None
             logger.warning(
                 "autofix.supergroup_embedding.group_not_found",
                 extra={"group_id": group_id},
@@ -242,7 +260,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         try:
             trigger_supergroups_embedding(
                 organization_id=organization.id,
-                group_id=group_id,
+                group_id=group.id,
                 project_id=group.project_id,
                 artifact_data=root_cause_artifact.data,
             )
@@ -252,7 +270,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 extra={
                     "run_id": run_id,
                     "organization_id": organization.id,
-                    "group_id": group_id,
+                    "group_id": group.id,
                 },
             )
 
@@ -289,6 +307,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         organization: Organization,
         run_id: int,
         state: SeerRunState,
+        group: Group | None,
     ) -> None:
         """
         Continue to the next step if stopping_point hasn't been reached.
@@ -307,12 +326,16 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             return
 
         stopping_point = AutofixStoppingPoint(metadata["stopping_point"])
-        group_id = metadata.get("group_id")
 
-        if not group_id:
+        if group is None:
+            group_id = state.metadata.get("group_id") if state.metadata else None
             logger.warning(
-                "autofix.on_completion_hook.no_group_id_in_metadata",
-                extra={"run_id": run_id, "organization_id": organization.id},
+                "autofix.on_completion_hook.group_not_found",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "group_id": group_id,
+                },
             )
             return
 
@@ -331,10 +354,10 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
         # Check if we should trigger coding agent handoff instead of continuing
         handoff_config = cls._get_handoff_config_if_applicable(
-            stopping_point, current_step, group_id
+            stopping_point, current_step, group.id
         )
         if handoff_config:
-            cls._trigger_coding_agent_handoff(organization, run_id, group_id, handoff_config)
+            cls._trigger_coding_agent_handoff(organization, run_id, group.id, handoff_config)
             return
 
         # Special case: if stopping_point is open_pr and we just finished code_changes, push changes
@@ -359,20 +382,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 extra={
                     "run_id": run_id,
                     "organization_id": organization.id,
-                },
-            )
-            return
-
-        # Get the group
-        try:
-            group = Group.objects.get(id=group_id, project__organization=organization)
-        except Group.DoesNotExist:
-            logger.warning(
-                "autofix.on_completion_hook.group_not_found",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "group_id": group_id,
                 },
             )
             return
