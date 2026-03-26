@@ -269,6 +269,7 @@ export type NonNullableStringFields =
   | SpanFields.KIND
   | SpanFields.STATUS_MESSAGE
   | SpanFields.GEN_AI_AGENT_NAME
+  | SpanFields.GEN_AI_FUNCTION_ID
   | SpanFields.GEN_AI_REQUEST_MODEL
   | SpanFields.GEN_AI_REQUEST_MESSAGES
   | SpanFields.GEN_AI_INPUT_MESSAGES
