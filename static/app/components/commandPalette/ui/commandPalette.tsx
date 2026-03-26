@@ -51,7 +51,7 @@ interface CommandPaletteProps {
 
 export function CommandPalette(props: CommandPaletteProps) {
   const actions = useCommandPaletteActions();
-
+  const organization = useOrganization();
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
 
@@ -147,7 +147,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       dispatch({type: 'trigger action'});
       props.onAction(action);
     },
-    [filteredActions, dispatch, props, treeState, state.query]
+    [filteredActions, dispatch, props, treeState, organization, state.query]
   );
 
   return (
