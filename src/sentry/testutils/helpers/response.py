@@ -21,6 +21,9 @@ async def _async_streaming_response_content(response: StreamingHttpResponse) -> 
     data = []
     async for chunk in response:
         data.append(chunk)
+    iterator = response._iterator  # type: ignore[attr-defined]
+    if hasattr(iterator, "aclose"):
+        await iterator.aclose()
     return b"".join(data)
 
 
