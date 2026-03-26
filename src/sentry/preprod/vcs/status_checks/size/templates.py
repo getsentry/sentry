@@ -575,17 +575,6 @@ def _format_file_size(size_bytes: int | None) -> str:
 
 def _format_bytes_base10(size_bytes: int) -> str:
     """Format file size using decimal (base-10) units. Matches the frontend implementation of formatBytesBase10."""
-    units = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
-    threshold = 1000
+    from sentry.preprod.utils import format_bytes_base10
 
-    if size_bytes < threshold:
-        return f"{size_bytes} {units[0]}"
-
-    u = 0
-    number = float(size_bytes)
-    max_unit = len(units) - 1
-    while number >= threshold and u < max_unit:
-        number /= threshold
-        u += 1
-
-    return f"{number:.1f} {units[u]}"
+    return format_bytes_base10(size_bytes)
