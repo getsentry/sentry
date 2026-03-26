@@ -185,6 +185,7 @@ type UpdateTokenValueAction = {
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_TOKEN_VALUE';
   value: string;
+  op?: TermOperator;
 };
 
 type MultiSelectFilterValueAction = {
@@ -605,7 +606,8 @@ function replaceTokensWithText(
 export function modifyFilterValue(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newValue: string
+  newValue: string,
+  newOp?: TermOperator
 ): string {
   if (isDateToken(token)) {
     return modifyFilterValueDate(query, token, newValue);
@@ -614,7 +616,31 @@ export function modifyFilterValue(
   // stop the user from entering multiple wildcards by themselves
   newValue = newValue.replace(/\*\*+/g, '*');
 
-  return replaceQueryToken(query, token.value, newValue);
+  // No operator change — just replace the value (existing behavior)
+  if (newOp === undefined) {
+    return replaceQueryToken(query, token.value, newValue);
+  }
+
+  // Operator change — replace the entire filter token atomically
+  const negated =
+    newOp === TermOperator.NOT_EQUAL ||
+    newOp === TermOperator.DOES_NOT_CONTAIN ||
+    newOp === TermOperator.DOES_NOT_START_WITH ||
+    newOp === TermOperator.DOES_NOT_END_WITH;
+
+  let internalOp: TermOperator;
+  if (newOp === TermOperator.DOES_NOT_CONTAIN) {
+    internalOp = TermOperator.CONTAINS;
+  } else if (newOp === TermOperator.NOT_EQUAL) {
+    internalOp = TermOperator.DEFAULT;
+  } else {
+    internalOp = newOp;
+  }
+
+  const prefix = negated ? '!' : '';
+  const keyStr = stringifyToken(token.key);
+  const replacement = `${prefix}${keyStr}:${internalOp}${newValue}`;
+  return replaceQueryToken(query, token, replacement);
 }
 
 function updateFilterMultipleValues(
@@ -1049,7 +1075,7 @@ export function useQueryBuilderState({
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
-            query: modifyFilterValue(state.query, action.token, action.value),
+            query: modifyFilterValue(state.query, action.token, action.value, action.op),
           };
         case 'UPDATE_LOGIC_OPERATOR':
           return updateLogicOperator(state, action);
