@@ -5,6 +5,7 @@ from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
 from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, CodebaseState
+from sentry.seer.models.seer_api_models import SeerPermissionError
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -1029,6 +1030,27 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 400, f"Failed for {flag}: {response.data}"
             assert response.data["detail"] == "run_id is required for open_pr"
+
+    @patch(
+        "sentry.seer.endpoints.group_ai_autofix.trigger_push_changes",
+        side_effect=SeerPermissionError("Unknown run id for group"),
+    )
+    def test_open_pr_permission_error(self, mock_trigger_push_changes):
+        self.login_as(user=self.user)
+
+        for flag in EXPLORER_FLAGS:
+            group = self.create_group()
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "open_pr",
+                        "run_id": 123,
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 404, f"Failed for {flag}: {response.data}"
 
 
 @with_feature("organizations:gen-ai-features")
