@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmailField} from 'sentry/components/forms/fields/emailField';
 import {Form} from 'sentry/components/forms/form';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -41,45 +42,49 @@ export default function OrganizationJoinRequest() {
 
   if (submitSuccess) {
     return (
-      <NarrowLayout maxWidth="550px">
-        <SuccessModal>
-          <StyledIconMegaphone size="2xl" />
-          <StyledHeader>{t('Request Sent')}</StyledHeader>
-          <StyledText>{t('Your request to join has been sent.')}</StyledText>
-          <ReceiveEmailMessage>
-            {t('You will receive an email when your request is approved.')}
-          </ReceiveEmailMessage>
-        </SuccessModal>
-      </NarrowLayout>
+      <Layout.Page withPadding>
+        <NarrowLayout maxWidth="550px">
+          <SuccessModal>
+            <StyledIconMegaphone size="2xl" />
+            <StyledHeader>{t('Request Sent')}</StyledHeader>
+            <StyledText>{t('Your request to join has been sent.')}</StyledText>
+            <ReceiveEmailMessage>
+              {t('You will receive an email when your request is approved.')}
+            </ReceiveEmailMessage>
+          </SuccessModal>
+        </NarrowLayout>
+      </Layout.Page>
     );
   }
 
   return (
-    <NarrowLayout maxWidth="650px">
-      <StyledIconMegaphone size="2xl" />
-      <StyledHeader data-test-id="join-request">{t('Request to Join')}</StyledHeader>
-      <StyledText>
-        {tct('Ask the admins if you can join the [orgId] organization.', {
-          orgId,
-        })}
-      </StyledText>
-      <Form
-        requireChanges
-        apiEndpoint={`/organizations/${orgId}/join-request/`}
-        apiMethod="POST"
-        submitLabel={t('Request to Join')}
-        onSubmitSuccess={handleSubmitSuccess}
-        onSubmitError={handleSubmitError}
-        onCancel={handleCancel}
-      >
-        <StyledEmailField
-          name="email"
-          inline={false}
-          label={t('Email Address')}
-          placeholder="name@example.com"
-        />
-      </Form>
-    </NarrowLayout>
+    <Layout.Page withPadding>
+      <NarrowLayout maxWidth="650px">
+        <StyledIconMegaphone size="2xl" />
+        <StyledHeader data-test-id="join-request">{t('Request to Join')}</StyledHeader>
+        <StyledText>
+          {tct('Ask the admins if you can join the [orgId] organization.', {
+            orgId,
+          })}
+        </StyledText>
+        <Form
+          requireChanges
+          apiEndpoint={`/organizations/${orgId}/join-request/`}
+          apiMethod="POST"
+          submitLabel={t('Request to Join')}
+          onSubmitSuccess={handleSubmitSuccess}
+          onSubmitError={handleSubmitError}
+          onCancel={handleCancel}
+        >
+          <StyledEmailField
+            name="email"
+            inline={false}
+            label={t('Email Address')}
+            placeholder="name@example.com"
+          />
+        </Form>
+      </NarrowLayout>
+    </Layout.Page>
   );
 }
 

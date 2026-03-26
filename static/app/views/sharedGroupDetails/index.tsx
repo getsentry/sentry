@@ -6,6 +6,7 @@ import {Link} from '@sentry/scraps/link';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import {Footer} from 'sentry/components/footer';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -72,43 +73,45 @@ function SharedGroupDetails() {
   const org = {...group.project.organization, features: []};
 
   return (
-    <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
-      <OrganizationContext value={org}>
-        <div className="app">
-          <div className="pattern-bg" />
-          <div className="container">
-            <div className="box box-modal">
-              <div className="box-header">
-                <Link className="logo" to="/">
-                  <span className="icon-sentry-logo-full" />
-                </Link>
-                {group.permalink && (
-                  <Link className="details" to={group.permalink}>
-                    {t('Details')}
+    <Layout.Page>
+      <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
+        <OrganizationContext value={org}>
+          <div className="app">
+            <div className="pattern-bg" />
+            <div className="container">
+              <div className="box box-modal">
+                <div className="box-header">
+                  <Link className="logo" to="/">
+                    <span className="icon-sentry-logo-full" />
                   </Link>
-                )}
-              </div>
-              <div className="box-content">
-                <SharedGroupHeader group={group} />
-                <Container
-                  padding="3xl"
-                  className="group-overview event-details-container"
-                >
-                  <BorderlessEventEntries
-                    organization={org}
-                    group={group}
-                    event={group.latestEvent}
-                    project={group.project}
-                    isShare
-                  />
-                </Container>
-                <Footer />
+                  {group.permalink && (
+                    <Link className="details" to={group.permalink}>
+                      {t('Details')}
+                    </Link>
+                  )}
+                </div>
+                <div className="box-content">
+                  <SharedGroupHeader group={group} />
+                  <Container
+                    padding="3xl"
+                    className="group-overview event-details-container"
+                  >
+                    <BorderlessEventEntries
+                      organization={org}
+                      group={group}
+                      event={group.latestEvent}
+                      project={group.project}
+                      isShare
+                    />
+                  </Container>
+                  <Footer />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </OrganizationContext>
-    </SentryDocumentTitle>
+        </OrganizationContext>
+      </SentryDocumentTitle>
+    </Layout.Page>
   );
 }
 

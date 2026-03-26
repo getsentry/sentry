@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {logout} from 'sentry/actionCreators/account';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -261,62 +262,66 @@ function AcceptOrganizationInvite() {
 
   if (isError) {
     return (
-      <NarrowLayout>
-        <Alert.Container>
-          <Alert variant="warning" showIcon={false}>
-            {tct(
-              'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
-              {
-                switchLink: (
-                  <Link
-                    to=""
-                    data-test-id="existing-member-link"
-                    onClick={e => {
-                      e.preventDefault();
-                      logout(api, `/accept/${params.memberId}/${params.token}/`);
-                    }}
-                  />
-                ),
-              }
-            )}
-          </Alert>
-        </Alert.Container>
-      </NarrowLayout>
+      <Layout.Page withPadding>
+        <NarrowLayout>
+          <Alert.Container>
+            <Alert variant="warning" showIcon={false}>
+              {tct(
+                'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
+                {
+                  switchLink: (
+                    <Link
+                      to=""
+                      data-test-id="existing-member-link"
+                      onClick={e => {
+                        e.preventDefault();
+                        logout(api, `/accept/${params.memberId}/${params.token}/`);
+                      }}
+                    />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
+        </NarrowLayout>
+      </Layout.Page>
     );
   }
 
   return (
-    <NarrowLayout>
-      <SentryDocumentTitle title={t('Accept Organization Invite')} />
-      <SettingsPageHeader title={t('Accept organization invite')} />
-      {isAcceptError && (
-        <Alert.Container>
-          <Alert variant="danger" showIcon={false}>
-            {t('Failed to join this organization. Please try again')}
-          </Alert>
-        </Alert.Container>
-      )}
-      <InviteDescription data-test-id="accept-invite">
-        {tct('[orgSlug] is using Sentry to track and debug errors.', {
-          orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
-        })}
-      </InviteDescription>
-      {inviteDetails.needsAuthentication ? (
-        <AuthenticationActions inviteDetails={inviteDetails} />
-      ) : inviteDetails.existingMember ? (
-        <ExistingMemberAlert />
-      ) : inviteDetails.needs2fa ? (
-        <Warning2fa inviteDetails={inviteDetails} />
-      ) : inviteDetails.requireSso ? (
-        <AuthenticationActions inviteDetails={inviteDetails} />
-      ) : (
-        <AcceptActions
-          inviteDetails={inviteDetails}
-          isAccepting={isAccepting}
-          acceptInvite={acceptInvite}
-        />
-      )}
-    </NarrowLayout>
+    <Layout.Page withPadding>
+      <NarrowLayout>
+        <SentryDocumentTitle title={t('Accept Organization Invite')} />
+        <SettingsPageHeader title={t('Accept organization invite')} />
+        {isAcceptError && (
+          <Alert.Container>
+            <Alert variant="danger" showIcon={false}>
+              {t('Failed to join this organization. Please try again')}
+            </Alert>
+          </Alert.Container>
+        )}
+        <InviteDescription data-test-id="accept-invite">
+          {tct('[orgSlug] is using Sentry to track and debug errors.', {
+            orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
+          })}
+        </InviteDescription>
+        {inviteDetails.needsAuthentication ? (
+          <AuthenticationActions inviteDetails={inviteDetails} />
+        ) : inviteDetails.existingMember ? (
+          <ExistingMemberAlert />
+        ) : inviteDetails.needs2fa ? (
+          <Warning2fa inviteDetails={inviteDetails} />
+        ) : inviteDetails.requireSso ? (
+          <AuthenticationActions inviteDetails={inviteDetails} />
+        ) : (
+          <AcceptActions
+            inviteDetails={inviteDetails}
+            isAccepting={isAccepting}
+            acceptInvite={acceptInvite}
+          />
+        )}
+      </NarrowLayout>
+    </Layout.Page>
   );
 }
 

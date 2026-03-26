@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ApiForm} from 'sentry/components/forms/apiForm';
 import {HiddenField} from 'sentry/components/forms/fields/hiddenField';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -22,12 +23,14 @@ import {useParams} from 'sentry/utils/useParams';
 function OrganizationRestore() {
   const params = useParams<{orgId: string}>();
   return (
-    <SentryDocumentTitle title={t('Restore Organization')}>
-      <NarrowLayout>
-        <h3>{t('Deletion Scheduled')}</h3>
-        <OrganizationRestoreBody orgSlug={params.orgId} />
-      </NarrowLayout>
-    </SentryDocumentTitle>
+    <Layout.Page withPadding>
+      <SentryDocumentTitle title={t('Restore Organization')}>
+        <NarrowLayout>
+          <h3>{t('Deletion Scheduled')}</h3>
+          <OrganizationRestoreBody orgSlug={params.orgId} />
+        </NarrowLayout>
+      </SentryDocumentTitle>
+    </Layout.Page>
   );
 }
 

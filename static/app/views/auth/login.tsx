@@ -5,6 +5,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -76,60 +77,62 @@ function Login() {
   ];
 
   return (
-    <Fragment>
-      <Header>
-        <Heading>{t('Sign in to continue')}</Heading>
-        <TabsContainer>
-          <Tabs
-            value={activeTab}
-            onChange={tab => {
-              setActiveTab(tab);
-            }}
-          >
-            <TabList>
-              {tabs
-                .map(([key, label, disabled]) => {
-                  if (disabled) {
-                    return null;
-                  }
-                  return <TabList.Item key={key}>{label}</TabList.Item>;
-                })
-                .filter(n => !!n)}
-            </TabList>
-          </Tabs>
-        </TabsContainer>
-      </Header>
-      {isPending && <LoadingIndicator />}
+    <Layout.Page withPadding>
+      <Fragment>
+        <Header>
+          <Heading>{t('Sign in to continue')}</Heading>
+          <TabsContainer>
+            <Tabs
+              value={activeTab}
+              onChange={tab => {
+                setActiveTab(tab);
+              }}
+            >
+              <TabList>
+                {tabs
+                  .map(([key, label, disabled]) => {
+                    if (disabled) {
+                      return null;
+                    }
+                    return <TabList.Item key={key}>{label}</TabList.Item>;
+                  })
+                  .filter(n => !!n)}
+              </TabList>
+            </Tabs>
+          </TabsContainer>
+        </Header>
+        {isPending && <LoadingIndicator />}
 
-      {isError && (
-        <StyledLoadingError
-          message={t('Unable to load authentication configuration')}
-          onRetry={refetch}
-        />
-      )}
-      {!isPending && authConfig !== null && !isError && (
-        <FormWrapper hasAuthProviders={hasAuthProviders}>
-          {orgId !== undefined && (
-            <Alert.Container>
-              <Alert
-                variant="warning"
-                trailingItems={
-                  <LinkButton to="/" size="xs">
-                    Reload
-                  </LinkButton>
-                }
-              >
-                {tct(
-                  "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
-                  {org: orgId}
-                )}
-              </Alert>
-            </Alert.Container>
-          )}
-          <FormComponent {...{authConfig}} />
-        </FormWrapper>
-      )}
-    </Fragment>
+        {isError && (
+          <StyledLoadingError
+            message={t('Unable to load authentication configuration')}
+            onRetry={refetch}
+          />
+        )}
+        {!isPending && authConfig !== null && !isError && (
+          <FormWrapper hasAuthProviders={hasAuthProviders}>
+            {orgId !== undefined && (
+              <Alert.Container>
+                <Alert
+                  variant="warning"
+                  trailingItems={
+                    <LinkButton to="/" size="xs">
+                      Reload
+                    </LinkButton>
+                  }
+                >
+                  {tct(
+                    "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
+                    {org: orgId}
+                  )}
+                </Alert>
+              </Alert.Container>
+            )}
+            <FormComponent {...{authConfig}} />
+          </FormWrapper>
+        )}
+      </Fragment>
+    </Layout.Page>
   );
 }
 

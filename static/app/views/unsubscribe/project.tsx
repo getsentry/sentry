@@ -4,6 +4,7 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {ApiForm} from 'sentry/components/forms/apiForm';
 import {HiddenField} from 'sentry/components/forms/fields/hiddenField';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -20,16 +21,18 @@ export default function UnsubscribeProject() {
   const signature = decodeScalar(location.query._);
   const params = useParams();
   return (
-    <SentryDocumentTitle title={t('Unsubscribe')}>
-      <NarrowLayout>
-        <h3>{t('Unsubscribe')}</h3>
-        <UnsubscribeBody
-          signature={signature}
-          orgSlug={params.orgId!}
-          issueId={params.id!}
-        />
-      </NarrowLayout>
-    </SentryDocumentTitle>
+    <Layout.Page withPadding>
+      <SentryDocumentTitle title={t('Unsubscribe')}>
+        <NarrowLayout>
+          <h3>{t('Unsubscribe')}</h3>
+          <UnsubscribeBody
+            signature={signature}
+            orgSlug={params.orgId!}
+            issueId={params.id!}
+          />
+        </NarrowLayout>
+      </SentryDocumentTitle>
+    </Layout.Page>
   );
 }
 

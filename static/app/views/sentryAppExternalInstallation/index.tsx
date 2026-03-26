@@ -9,6 +9,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryAppDetailsModal} from 'sentry/components/modals/sentryAppDetailsModal';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
@@ -30,12 +31,14 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 // Page Layout
 export default function SentryAppExternalInstallation() {
   return (
-    <NarrowLayout>
-      <Content>
-        <h3>{t('Finish integration installation')}</h3>
-        <SentryAppExternalInstallationContent />
-      </Content>
-    </NarrowLayout>
+    <Layout.Page withPadding>
+      <NarrowLayout>
+        <Content>
+          <h3>{t('Finish integration installation')}</h3>
+          <SentryAppExternalInstallationContent />
+        </Content>
+      </NarrowLayout>
+    </Layout.Page>
   );
 }
 

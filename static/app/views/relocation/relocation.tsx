@@ -5,6 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {LogoSentry} from 'sentry/components/logoSentry';
@@ -311,18 +312,20 @@ export function RelocationOnboarding() {
   ) : null;
 
   return (
-    <Stack as="main" flexGrow={1} data-test-id="relocation-onboarding">
-      <SentryDocumentTitle title={stepObj.title} />
-      {headerView}
-      <Container>
-        {backButtonView}
-        {contentView}
-        <AdaptivePageCorners
-          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-        />
-        {errView}
-      </Container>
-    </Stack>
+    <Layout.Page>
+      <Stack as="main" flexGrow={1} data-test-id="relocation-onboarding">
+        <SentryDocumentTitle title={stepObj.title} />
+        {headerView}
+        <Container>
+          {backButtonView}
+          {contentView}
+          <AdaptivePageCorners
+            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+          />
+          {errView}
+        </Container>
+      </Stack>
+    </Layout.Page>
   );
 }
 

@@ -10,6 +10,7 @@ import {Select} from '@sentry/scraps/select';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IdBadge} from 'sentry/components/idBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -393,30 +394,32 @@ export default function IntegrationOrganizationLink() {
   }));
 
   return (
-    <NarrowLayout>
-      <SentryDocumentTitle title={t('Choose Installation Organization')} />
-      <h3>{t('Finish integration installation')}</h3>
-      {renderCallout()}
-      <p>
-        {tct(
-          `Please pick a specific [organization:organization] to link with
+    <Layout.Page withPadding>
+      <NarrowLayout>
+        <SentryDocumentTitle title={t('Choose Installation Organization')} />
+        <h3>{t('Finish integration installation')}</h3>
+        {renderCallout()}
+        <p>
+          {tct(
+            `Please pick a specific [organization:organization] to link with
           your integration installation of [integation].`,
-          {
-            organization: <strong />,
-            integation: <strong>{integrationSlug}</strong>,
-          }
-        )}
-      </p>
-      <FieldGroup label={t('Organization')} inline={false} stacked required>
-        <Select
-          onChange={(option: SelectOption<string>) => selectOrganization(option.value)}
-          value={selectedOrgSlug}
-          placeholder={t('Select an organization')}
-          options={options}
-        />
-      </FieldGroup>
-      {renderBottom}
-    </NarrowLayout>
+            {
+              organization: <strong />,
+              integation: <strong>{integrationSlug}</strong>,
+            }
+          )}
+        </p>
+        <FieldGroup label={t('Organization')} inline={false} stacked required>
+          <Select
+            onChange={(option: SelectOption<string>) => selectOrganization(option.value)}
+            value={selectedOrgSlug}
+            placeholder={t('Select an organization')}
+            options={options}
+          />
+        </FieldGroup>
+        {renderBottom}
+      </NarrowLayout>
+    </Layout.Page>
   );
 }
 

@@ -7,6 +7,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import Hook from 'sentry/components/hook';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {
   OnboardingContextProvider,
@@ -307,84 +308,86 @@ export function OnboardingWithoutContext() {
   }
 
   return (
-    <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
-      <SentryDocumentTitle title={stepObj.title} />
-      <Header>
-        <LogoSvg />
-        {stepIndex !== -1 && (
-          <StyledStepper
-            numSteps={onboardingSteps.length}
-            currentStepIndex={stepIndex}
-            onClick={i => {
-              if (i < stepIndex && shallProjectBeDeleted) {
-                handleGoBack(i);
-                return;
-              }
+    <Layout.Page>
+      <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
+        <SentryDocumentTitle title={stepObj.title} />
+        <Header>
+          <LogoSvg />
+          {stepIndex !== -1 && (
+            <StyledStepper
+              numSteps={onboardingSteps.length}
+              currentStepIndex={stepIndex}
+              onClick={i => {
+                if (i < stepIndex && shallProjectBeDeleted) {
+                  handleGoBack(i);
+                  return;
+                }
 
-              goToStep(onboardingSteps[i]!);
-            }}
+                goToStep(onboardingSteps[i]!);
+              }}
+            />
+          )}
+          <UpsellWrapper>
+            <Hook
+              name="onboarding:targeted-onboarding-header"
+              source="targeted-onboarding"
+            />
+          </UpsellWrapper>
+        </Header>
+        <ContainerVariable
+          hasFooter={containerHasFooter}
+          id={stepObj.id}
+          hasNewWelcomeUI={hasNewWelcomeUI}
+        >
+          <AdaptivePageCorners
+            // Controls the current corner variant
+            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
           />
-        )}
-        <UpsellWrapper>
-          <Hook
-            name="onboarding:targeted-onboarding-header"
-            source="targeted-onboarding"
-          />
-        </UpsellWrapper>
-      </Header>
-      <ContainerVariable
-        hasFooter={containerHasFooter}
-        id={stepObj.id}
-        hasNewWelcomeUI={hasNewWelcomeUI}
-      >
-        <AdaptivePageCorners
-          // Controls the current corner variant
-          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-        />
-        {stepIndex > 0 && (
-          <BackMotionDiv
-            initial="initial"
-            animate="visible"
-            transition={testableTransition()}
-            variants={{
-              initial: {opacity: 0, visibility: 'hidden'},
-              visible: {
-                opacity: 1,
-                transition: testableTransition({delay: 1}),
-                transitionEnd: {
-                  visibility: 'visible',
+          {stepIndex > 0 && (
+            <BackMotionDiv
+              initial="initial"
+              animate="visible"
+              transition={testableTransition()}
+              variants={{
+                initial: {opacity: 0, visibility: 'hidden'},
+                visible: {
+                  opacity: 1,
+                  transition: testableTransition({delay: 1}),
+                  transitionEnd: {
+                    visibility: 'visible',
+                  },
                 },
-              },
-            }}
-          >
-            <Button
-              onClick={() => handleGoBack()}
-              icon={<IconArrow direction="left" />}
-              priority="link"
+              }}
             >
-              {t('Back')}
-            </Button>
-          </BackMotionDiv>
-        )}
-        <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
-          <OnboardingStepVariable id={stepObj.id} hasNewWelcomeUI={hasNewWelcomeUI}>
-            {stepObj.Component && (
-              <stepObj.Component
-                data-test-id={`onboarding-step-${stepObj.id}`}
-                stepIndex={stepIndex}
-                onComplete={platform => {
-                  if (stepObj) {
-                    goNextStep(stepObj, platform);
-                  }
-                }}
-                recentCreatedProject={recentCreatedProject}
-                genSkipOnboardingLink={genSkipOnboardingLink}
-              />
-            )}
-          </OnboardingStepVariable>
-        </AnimatePresence>
-      </ContainerVariable>
-    </Stack>
+              <Button
+                onClick={() => handleGoBack()}
+                icon={<IconArrow direction="left" />}
+                priority="link"
+              >
+                {t('Back')}
+              </Button>
+            </BackMotionDiv>
+          )}
+          <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
+            <OnboardingStepVariable id={stepObj.id} hasNewWelcomeUI={hasNewWelcomeUI}>
+              {stepObj.Component && (
+                <stepObj.Component
+                  data-test-id={`onboarding-step-${stepObj.id}`}
+                  stepIndex={stepIndex}
+                  onComplete={platform => {
+                    if (stepObj) {
+                      goNextStep(stepObj, platform);
+                    }
+                  }}
+                  recentCreatedProject={recentCreatedProject}
+                  genSkipOnboardingLink={genSkipOnboardingLink}
+                />
+              )}
+            </OnboardingStepVariable>
+          </AnimatePresence>
+        </ContainerVariable>
+      </Stack>
+    </Layout.Page>
   );
 }
 

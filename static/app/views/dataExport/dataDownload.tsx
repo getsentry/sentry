@@ -5,6 +5,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {ExportQueryType} from 'sentry/components/dataExport';
 import {DateTime} from 'sentry/components/dateTime';
+import * as LayoutThirds from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
@@ -96,20 +97,22 @@ export default function DataDownload() {
   if (isError) {
     const errDetail = error?.responseJSON?.detail;
     return (
-      <Layout>
-        <main>
-          <Header>
-            <h3>
-              {error.status} - {error.statusText}
-            </h3>
-          </Header>
-          {errDetail && (
-            <Body>
-              <p>{errDetail as string}</p>
-            </Body>
-          )}
-        </main>
-      </Layout>
+      <LayoutThirds.Page>
+        <Layout>
+          <main>
+            <Header>
+              <h3>
+                {error.status} - {error.statusText}
+              </h3>
+            </Header>
+            {errDetail && (
+              <Body>
+                <p>{errDetail as string}</p>
+              </Body>
+            )}
+          </main>
+        </Layout>
+      </LayoutThirds.Page>
     );
   }
 
@@ -369,11 +372,13 @@ export default function DataDownload() {
   };
 
   return (
-    <SentryDocumentTitle title={t('Download Center')}>
-      <Layout>
-        <main>{renderContent()}</main>
-      </Layout>
-    </SentryDocumentTitle>
+    <LayoutThirds.Page>
+      <SentryDocumentTitle title={t('Download Center')}>
+        <Layout>
+          <main>{renderContent()}</main>
+        </Layout>
+      </SentryDocumentTitle>
+    </LayoutThirds.Page>
   );
 }
 

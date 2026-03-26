@@ -10,6 +10,7 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -73,95 +74,97 @@ function OrganizationCreate() {
   );
 
   return (
-    <SentryDocumentTitle title={t('Create Organization')}>
-      <NarrowLayout showLogout>
-        <h3>{t('Create a New Organization')}</h3>
-        <p>
-          {t(
-            "Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users."
-          )}
-        </p>
+    <Layout.Page withPadding>
+      <SentryDocumentTitle title={t('Create Organization')}>
+        <NarrowLayout showLogout>
+          <h3>{t('Create a New Organization')}</h3>
+          <p>
+            {t(
+              "Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users."
+            )}
+          </p>
 
-        <Form
-          initialData={{defaultTeam: true}}
-          submitLabel={t('Create Organization')}
-          apiEndpoint="/organizations/"
-          apiMethod="POST"
-          onSubmit={submitOrganizationCreate}
-          onSubmitSuccess={(createdOrg: OrganizationSummary) => {
-            const hasCustomerDomain =
-              ConfigStore.get('features').has('system:multi-region');
-            let nextUrl = normalizeUrl(
-              `/organizations/${createdOrg.slug}/projects/new/`,
-              {forceCustomerDomain: hasCustomerDomain}
-            );
-            if (hasCustomerDomain) {
-              nextUrl = `${createdOrg.links.organizationUrl}${nextUrl}`;
-            }
-            // redirect to project creation *(BYPASS REACT ROUTER AND FORCE PAGE REFRESH TO GRAB CSRF TOKEN)*
-            // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
-            testableWindowLocation.assign(nextUrl);
-          }}
-          onSubmitError={error => {
-            addErrorMessage(
-              error.responseJSON?.detail ?? t('Unable to create organization.')
-            );
-          }}
-          requireChanges
-        >
-          <TextField
-            id="organization-name"
-            name="name"
-            label={t('Organization Name')}
-            autoComplete="organization"
-            placeholder={t('e.g. My Company')}
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            required
-          />
-          {shouldDisplayRegions() && (
-            <SelectField
-              name="dataStorageLocation"
-              label={t('Data Storage Location')}
-              help={tct(
-                "Choose where to store your organization's data. Please note, you won't be able to change locations once your organization has been created. [learnMore:Learn More]",
-                {learnMore: <a href={DATA_STORAGE_DOCS_LINK} />}
-              )}
-              choices={regionChoices}
+          <Form
+            initialData={{defaultTeam: true}}
+            submitLabel={t('Create Organization')}
+            apiEndpoint="/organizations/"
+            apiMethod="POST"
+            onSubmit={submitOrganizationCreate}
+            onSubmitSuccess={(createdOrg: OrganizationSummary) => {
+              const hasCustomerDomain =
+                ConfigStore.get('features').has('system:multi-region');
+              let nextUrl = normalizeUrl(
+                `/organizations/${createdOrg.slug}/projects/new/`,
+                {forceCustomerDomain: hasCustomerDomain}
+              );
+              if (hasCustomerDomain) {
+                nextUrl = `${createdOrg.links.organizationUrl}${nextUrl}`;
+              }
+              // redirect to project creation *(BYPASS REACT ROUTER AND FORCE PAGE REFRESH TO GRAB CSRF TOKEN)*
+              // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
+              testableWindowLocation.assign(nextUrl);
+            }}
+            onSubmitError={error => {
+              addErrorMessage(
+                error.responseJSON?.detail ?? t('Unable to create organization.')
+              );
+            }}
+            requireChanges
+          >
+            <TextField
+              id="organization-name"
+              name="name"
+              label={t('Organization Name')}
+              autoComplete="organization"
+              placeholder={t('e.g. My Company')}
               inline={false}
+              flexibleControlStateSize
               stacked
               required
             />
-          )}
-          {termsUrl && privacyUrl && (
-            <TermsWrapper hasDataConsent={hasDataConsent}>
-              <CheckboxField
-                name="agreeTerms"
-                label={tct(
-                  'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
-                  {
-                    termsLink: <ExternalLink href={termsUrl} />,
-                    privacyLink: <ExternalLink href={privacyUrl} />,
-                  }
+            {shouldDisplayRegions() && (
+              <SelectField
+                name="dataStorageLocation"
+                label={t('Data Storage Location')}
+                help={tct(
+                  "Choose where to store your organization's data. Please note, you won't be able to change locations once your organization has been created. [learnMore:Learn More]",
+                  {learnMore: <a href={DATA_STORAGE_DOCS_LINK} />}
                 )}
+                choices={regionChoices}
                 inline={false}
                 stacked
                 required
               />
-            </TermsWrapper>
-          )}
-          <DataConsentCheck />
-          {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
-            <div>
-              {tct('[relocationLink:Relocating from self-hosted?]', {
-                relocationLink: <a href={relocationUrl} />,
-              })}
-            </div>
-          )}
-        </Form>
-      </NarrowLayout>
-    </SentryDocumentTitle>
+            )}
+            {termsUrl && privacyUrl && (
+              <TermsWrapper hasDataConsent={hasDataConsent}>
+                <CheckboxField
+                  name="agreeTerms"
+                  label={tct(
+                    'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
+                    {
+                      termsLink: <ExternalLink href={termsUrl} />,
+                      privacyLink: <ExternalLink href={privacyUrl} />,
+                    }
+                  )}
+                  inline={false}
+                  stacked
+                  required
+                />
+              </TermsWrapper>
+            )}
+            <DataConsentCheck />
+            {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
+              <div>
+                {tct('[relocationLink:Relocating from self-hosted?]', {
+                  relocationLink: <a href={relocationUrl} />,
+                })}
+              </div>
+            )}
+          </Form>
+        </NarrowLayout>
+      </SentryDocumentTitle>
+    </Layout.Page>
   );
 }
 

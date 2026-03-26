@@ -2,6 +2,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {Form} from 'sentry/components/forms/form';
 import type {Data} from 'sentry/components/forms/types';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -105,40 +106,45 @@ function AcceptProjectTransfer() {
   const organization = options?.[0]?.value;
 
   return (
-    <NarrowLayout>
-      <SentryDocumentTitle title={t('Accept Project Transfer')} />
-      <SettingsPageHeader title={t('Approve Transfer Project Request')} />
-      <p>
-        {tct(
-          'Projects must be transferred to a specific [organization]. You can grant specific teams access to the project later under the [projectSettings]. (Note that granting access to at least one team is necessary for the project to appear in all parts of the UI.)',
-          {
-            organization: <strong>{t('Organization')}</strong>,
-            projectSettings: <strong>{t('Project Settings')}</strong>,
-          }
-        )}
-      </p>
-      {transferDetails && (
+    <Layout.Page withPadding>
+      <NarrowLayout>
+        <SentryDocumentTitle title={t('Accept Project Transfer')} />
+        <SettingsPageHeader title={t('Approve Transfer Project Request')} />
         <p>
-          {tct('Please select which [organization] you want for the project [project].', {
-            organization: <strong>{t('Organization')}</strong>,
-            project: transferDetails.project.slug,
-          })}
+          {tct(
+            'Projects must be transferred to a specific [organization]. You can grant specific teams access to the project later under the [projectSettings]. (Note that granting access to at least one team is necessary for the project to appear in all parts of the UI.)',
+            {
+              organization: <strong>{t('Organization')}</strong>,
+              projectSettings: <strong>{t('Project Settings')}</strong>,
+            }
+          )}
         </p>
-      )}
-      <Form
-        onSubmit={data => handleSubmitMutation.mutate(data)}
-        submitLabel={t('Transfer Project')}
-        submitPriority="danger"
-        initialData={organization ? {organization} : undefined}
-      >
-        <SelectField
-          options={options}
-          label={t('Organization')}
-          name="organization"
-          style={{borderBottom: 'none'}}
-        />
-      </Form>
-    </NarrowLayout>
+        {transferDetails && (
+          <p>
+            {tct(
+              'Please select which [organization] you want for the project [project].',
+              {
+                organization: <strong>{t('Organization')}</strong>,
+                project: transferDetails.project.slug,
+              }
+            )}
+          </p>
+        )}
+        <Form
+          onSubmit={data => handleSubmitMutation.mutate(data)}
+          submitLabel={t('Transfer Project')}
+          submitPriority="danger"
+          initialData={organization ? {organization} : undefined}
+        >
+          <SelectField
+            options={options}
+            label={t('Organization')}
+            name="organization"
+            style={{borderBottom: 'none'}}
+          />
+        </Form>
+      </NarrowLayout>
+    </Layout.Page>
   );
 }
 
