@@ -889,6 +889,67 @@ describe('Dashboards > WidgetCard', () => {
     expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();
   });
 
+  describe('Open in Explore visibility', () => {
+    const spansWidget: Widget = {
+      title: 'Cache Miss Rate',
+      description: '',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          conditions: 'span.op:[cache.get,cache.get_item]',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          name: '',
+          orderby: '',
+        },
+      ],
+    };
+
+    it('does not show Open in Explore for spans widget without visibility-explore-view', async () => {
+      renderWithProviders(
+        <WidgetCard
+          api={api}
+          widget={spansWidget}
+          selection={selection}
+          isEditingDashboard={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          showContextMenu
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+        />
+      );
+
+      await userEvent.click(await screen.findByLabelText('Widget actions'));
+      expect(screen.queryByText('Open in Explore')).not.toBeInTheDocument();
+    });
+
+    it('shows Open in Explore for spans widget with visibility-explore-view', async () => {
+      renderWithProviders(
+        <WidgetCard
+          api={api}
+          widget={spansWidget}
+          selection={selection}
+          isEditingDashboard={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          showContextMenu
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+        />,
+        ['visibility-explore-view']
+      );
+
+      await userEvent.click(await screen.findByLabelText('Widget actions'));
+      expect(screen.getByText('Open in Explore')).toBeInTheDocument();
+    });
+  });
+
   describe('conflicting filter warning', () => {
     const spanWidget: Widget = {
       title: 'Span Operations',

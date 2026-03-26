@@ -23,12 +23,12 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 type EnvironmentId = Environment['id'];
 
@@ -74,11 +74,6 @@ type PageFiltersUpdate = {
 type DateTimeUpdate = Pick<PageFiltersUpdate, 'start' | 'end' | 'period' | 'utc'>;
 
 /**
- * This can be null which will not perform any router side effects, and instead updates store.
- */
-type Router = InjectedRouter | null | undefined;
-
-/**
  * Reset values in the page filters store
  */
 export function resetPageFilters() {
@@ -108,11 +103,11 @@ function mergeDatetime(
 }
 
 export type InitializeUrlStateParams = {
+  location: Location;
   memberProjects: Project[];
+  navigate: ReactRouter3Navigate;
   nonMemberProjects: Project[];
   organization: Organization;
-  queryParams: Location['query'];
-  router: InjectedRouter;
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
   /**
@@ -155,8 +150,8 @@ export type InitializeUrlStateParams = {
 
 export function initializeUrlState({
   organization,
-  queryParams,
-  router,
+  location,
+  navigate,
   memberProjects,
   nonMemberProjects,
   skipLoadLastUsed,
@@ -171,6 +166,7 @@ export function initializeUrlState({
   storageNamespace,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
+  const queryParams = location.query;
 
   const parsed = getStateFromQuery(queryParams, {
     allowAbsoluteDatetime: showAbsolute,
@@ -364,7 +360,7 @@ export function initializeUrlState({
       };
 
   if (!skipInitializeUrlParams) {
-    updateParams({project, environment, ...newDatetime}, router, {
+    updateParams({project, environment, ...newDatetime}, location, navigate, {
       replace: true,
       keepCursor: true,
     });
@@ -376,7 +372,7 @@ function isProjectsValid(projects: number[]) {
 }
 
 /**
- * Updates store and selection URL param if `router` is supplied
+ * Updates store and selection URL param if `location` and `navigate` is supplied
  *
  * This accepts `environments` from `options` to also update environments
  * simultaneously as environments are tied to a project, so if you change
@@ -384,7 +380,8 @@ function isProjectsValid(projects: number[]) {
  */
 export function updateProjects(
   projects: number[],
-  router?: Router,
+  location?: Location,
+  navigate?: ReactRouter3Navigate,
   options?: Options & {environments?: EnvironmentId[]}
 ) {
   if (!isProjectsValid(projects)) {
@@ -396,7 +393,12 @@ export function updateProjects(
   }
 
   PageFiltersStore.updateProjects(projects, options?.environments ?? null);
-  updateParams({project: projects, environment: options?.environments}, router, options);
+  updateParams(
+    {project: projects, environment: options?.environments},
+    location,
+    navigate,
+    options
+  );
   persistPageFilters('projects', options);
 
   if (options?.environments) {
@@ -405,39 +407,31 @@ export function updateProjects(
 }
 
 /**
- * Updates store and updates global environment selection URL param if `router` is supplied
- *
- * @param {String[]} environments List of environments
- * @param {Object} [router] Router object
- * @param {Object} [options] Options object
- * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ * Updates store and updates global environment selection URL param if `location` and `navigate` is supplied
  */
 export function updateEnvironments(
   environment: EnvironmentId[] | null,
-  router?: Router,
+  location?: Location,
+  navigate?: ReactRouter3Navigate,
   options?: Options
 ) {
   PageFiltersStore.updateEnvironments(environment);
-  updateParams({environment}, router, options);
+  updateParams({environment}, location, navigate, options);
   persistPageFilters('environments', options);
 }
 
 /**
- * Updates store and global datetime selection URL param if `router` is supplied
- *
- * @param {Object} datetime Object with start, end, range keys
- * @param {Object} [router] Router object
- * @param {Object} [options] Options object
- * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ * Updates store and global datetime selection URL param if `location` and `navigate` is supplied
  */
 export function updateDateTime(
   datetime: DateTimeUpdate,
-  router?: Router,
+  location?: Location,
+  navigate?: ReactRouter3Navigate,
   options?: Options
 ) {
   const {selection} = PageFiltersStore.getState();
   PageFiltersStore.updateDateTime({...selection.datetime, ...datetime});
-  updateParams(datetime, router, options);
+  updateParams(datetime, location, navigate, options);
   persistPageFilters('datetime', options);
 }
 
@@ -450,27 +444,27 @@ export function updatePersistence(shouldPersist: boolean) {
 
 /**
  * Updates router/URL with new query params
- *
- * @param obj New query params
- * @param [router] React router object
- * @param [options] Options object
  */
-function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options) {
+function updateParams(
+  obj: PageFiltersUpdate,
+  location?: Location,
+  navigate?: ReactRouter3Navigate,
+  options?: Options
+) {
   // Allow another component to handle routing
-  if (!router) {
+  if (!location || !navigate) {
     return;
   }
 
-  const newQuery = getNewQueryParams(obj, router.location.query, options);
+  const newQuery = getNewQueryParams(obj, location.query, options);
 
   // Only push new location if query params has changed because this will cause a heavy re-render
-  if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
+  if (qs.stringify(newQuery) === qs.stringify(location.query)) {
     return;
   }
 
-  const routerAction = options?.replace ? router.replace : router.push;
-
-  routerAction({pathname: router.location.pathname, query: newQuery});
+  const to = {pathname: location.pathname, query: newQuery};
+  navigate(to, {replace: !!options?.replace});
 }
 
 /**
@@ -510,10 +504,6 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
  *
  * Preserves the old query params, except for `cursor` (can be overridden with
  * keepCursor option)
- *
- * @param obj New query params
- * @param currentQuery The current query parameters
- * @param [options] Options object
  */
 function getNewQueryParams(
   obj: PageFiltersUpdate,
