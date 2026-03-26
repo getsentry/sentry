@@ -337,6 +337,7 @@ class GitLabProvider:
         self,
         tree_sha: SHA,
         recursive: bool = True,
+        pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitTree]:
         """List the repository tree at a given ref.
