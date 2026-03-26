@@ -287,7 +287,7 @@ function useNavigationActions(): CommandPaletteAction[] {
           actions: projectSettingsChildren,
         })
       : null,
-  ].filter(Boolean);
+  ].filter(x => x !== null);
 }
 
 function useNavigationToggleCollapsed(): CommandPaletteAction {
