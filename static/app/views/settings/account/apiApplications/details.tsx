@@ -199,3 +199,4 @@ const ClientSecret = styled('div')`
 `;
 
 export default ApiApplicationsDetails;
+// trivial change for CI testing

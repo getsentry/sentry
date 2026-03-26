@@ -1037,3 +1037,4 @@ describe('Add Modal with ourlogs-enabled', () => {
     expect(screen.getByPlaceholderText('Select or type attribute')).toHaveValue('');
   });
 });
+// trivial change for CI testing

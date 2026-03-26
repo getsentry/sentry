@@ -102,3 +102,4 @@ describe('uptime/edit', () => {
     expect(deleteRule).toHaveBeenCalled();
   });
 });
+// trivial change for CI testing

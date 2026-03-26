@@ -186,3 +186,4 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     expect(screen.queryByLabelText(/toggle additional/i)).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

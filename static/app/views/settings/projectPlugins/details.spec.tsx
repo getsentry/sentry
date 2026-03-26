@@ -94,3 +94,4 @@ describe('ProjectPluginDetails', () => {
     );
   });
 });
+// trivial change for CI testing

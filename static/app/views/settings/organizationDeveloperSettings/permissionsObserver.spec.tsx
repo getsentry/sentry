@@ -40,3 +40,4 @@ describe('PermissionsObserver', () => {
     expect(model.getValue('Project--permission')).toBe('write');
   });
 });
+// trivial change for CI testing

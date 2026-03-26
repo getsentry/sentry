@@ -18,3 +18,4 @@ describe('displayNewToken', () => {
     expect(callback).toHaveBeenCalled();
   });
 });
+// trivial change for CI testing

@@ -427,3 +427,4 @@ describe('AttributeField', () => {
     expect(suggestionTexts).toEqual(['message', 'user.email', 'custom.field']);
   });
 });
+// trivial change for CI testing

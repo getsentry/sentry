@@ -12,3 +12,4 @@ export function parsePercent(value: string | undefined | null, fallback = 0) {
 
   return clampPercentRate(numericValue / 100);
 }
+// trivial change for CI testing

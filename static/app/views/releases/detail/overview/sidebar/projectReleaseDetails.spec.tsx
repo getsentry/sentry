@@ -22,3 +22,4 @@ describe('ProjectReleaseDetails', () => {
     expect(container).toHaveTextContent('SemverYes');
   });
 });
+// trivial change for CI testing

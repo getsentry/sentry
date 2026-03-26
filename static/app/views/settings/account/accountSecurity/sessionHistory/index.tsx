@@ -101,3 +101,4 @@ const SessionPanelHeader = styled(PanelHeader)`
   ${tableLayout}
   justify-content: initial;
 `;
+// trivial change for CI testing

@@ -61,3 +61,4 @@ describe('SamplingModeSwitch', () => {
     expect(screen.getByRole('checkbox')).toBeDisabled();
   });
 });
+// trivial change for CI testing

@@ -264,3 +264,4 @@ const ProjectsWrapper = styled('div')`
 const ModalHeaderContainer = styled('h4')`
   max-width: 100%;
 `;
+// trivial change for CI testing

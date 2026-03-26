@@ -195,3 +195,4 @@ describe('ApiApplications', () => {
     });
   });
 });
+// trivial change for CI testing

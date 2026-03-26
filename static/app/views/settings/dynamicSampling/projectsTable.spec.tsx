@@ -95,3 +95,4 @@ describe('ProjectsTable', () => {
     ).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

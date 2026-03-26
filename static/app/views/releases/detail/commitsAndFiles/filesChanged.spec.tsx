@@ -149,3 +149,4 @@ describe('FilesChanged', () => {
     expect(screen.getByText('getsentry/sentry-frontend')).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

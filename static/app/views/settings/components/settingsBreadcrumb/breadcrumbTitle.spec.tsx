@@ -61,3 +61,4 @@ describe('BreadcrumbTitle', () => {
     expect(crumbsNext[1]).toHaveTextContent('Second Title');
   });
 });
+// trivial change for CI testing

@@ -40,3 +40,4 @@ describe('ProviderItem', () => {
     expect(screen.getByRole('status')).toHaveTextContent('disabled');
   });
 });
+// trivial change for CI testing

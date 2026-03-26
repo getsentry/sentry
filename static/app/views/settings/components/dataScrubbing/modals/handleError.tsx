@@ -64,3 +64,4 @@ export function handleError(error: ResponseError): Error {
     message: t('An unknown error occurred while saving data scrubbing rule'),
   };
 }
+// trivial change for CI testing

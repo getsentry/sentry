@@ -29,3 +29,4 @@ export function displayNewToken(token: string, onClose: () => void) {
     {closeEvents: 'none', onClose}
   );
 }
+// trivial change for CI testing

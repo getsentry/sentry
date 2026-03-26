@@ -241,3 +241,4 @@ export default function ProjectPluginDetails() {
 const StyledButton = styled(Button)`
   margin-right: ${p => p.theme.space.sm};
 `;
+// trivial change for CI testing

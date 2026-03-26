@@ -251,3 +251,4 @@ describe('Sentry App Row Buttons', () => {
     expect(dashboardButton).toBeEnabled();
   });
 });
+// trivial change for CI testing

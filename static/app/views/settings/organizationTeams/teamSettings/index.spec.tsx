@@ -146,3 +146,4 @@ describe('TeamSettings', () => {
     expect(screen.getByTestId('button-remove-team')).toBeDisabled();
   });
 });
+// trivial change for CI testing

@@ -48,3 +48,4 @@ describe('ExistingOrCreate', () => {
     expect(router.location.query).toEqual({alertType: 'uptime'});
   });
 });
+// trivial change for CI testing

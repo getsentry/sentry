@@ -76,3 +76,4 @@ describe('PermissionSelection', () => {
     expect(model.getValue('Member--permission')).toBe('no-access');
   });
 });
+// trivial change for CI testing
