@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 // Key name → keyCode mapping (from https://github.com/jaywcjlove/hotkeys)
 const keyNameCodeMapping: Record<string, number> = {
   backspace: 8,
@@ -124,5 +126,20 @@ const universalGlyphs: Record<string, string> = {
 export function resolveKeyGlyph(keyName: string, isMac: boolean): string {
   const key = keyName.toLowerCase();
   const platformGlyphs = isMac ? macGlyphs : genericGlyphs;
-  return platformGlyphs[key] ?? universalGlyphs[key] ?? keyName.toUpperCase();
+  const glyph = platformGlyphs[key] ?? universalGlyphs[key];
+
+  if (glyph) {
+    return glyph;
+  }
+
+  // Single-char keys (e.g. 'k', '/') are expected to fall through — they just get uppercased.
+  // Multi-char keys without a mapping are genuinely missing and should be flagged.
+  if (key.length > 1) {
+    if (process.env.NODE_ENV !== 'production') {
+      throw new Error(`Missing key glyph mapping for "${keyName}"`);
+    }
+    Sentry.logger.warn('Missing key glyph mapping', {keyName});
+  }
+
+  return keyName.toUpperCase();
 }
