@@ -24,7 +24,7 @@ export function ScmPlatformCard({
 }: ScmPlatformCardProps) {
   return (
     <ScmCardButton onClick={onClick} role="radio" aria-checked={isSelected}>
-      <Container border={isSelected ? 'accent' : 'secondary'} padding="md lg" radius="md">
+      <Container border={isSelected ? 'accent' : 'secondary'} padding="lg" radius="md">
         <Grid gap="md" align="center" columns="max-content min-content">
           <PlatformIcon platform={platform} size={28} />
           <Stack gap="0">
