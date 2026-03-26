@@ -23,6 +23,24 @@ interface ValidateAttributesResponse {
 }
 
 const EMPTY_INVALID_KEYS: string[] = [];
+const EMPTY_KEYS: string[] = [];
+
+/**
+ * Extracts and sorts unique filter key names from a parsed search query.
+ * Sorting ensures stable query keys regardless of token order.
+ */
+export function extractFilterKeys(parsedQuery: ParseResult | null): string[] {
+  if (!parsedQuery) {
+    return EMPTY_KEYS;
+  }
+  const keySet = new Set<string>();
+  for (const token of parsedQuery) {
+    if (token.type === Token.FILTER) {
+      keySet.add(getKeyName(token.key));
+    }
+  }
+  return keySet.size > 0 ? [...keySet].sort() : EMPTY_KEYS;
+}
 
 /**
  * Hook that validates trace item filter keys against the API.
