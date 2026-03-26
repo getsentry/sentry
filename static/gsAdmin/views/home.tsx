@@ -6,16 +6,15 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import UserBadge from 'sentry/components/idBadge/userBadge';
-import Truncate from 'sentry/components/truncate';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {Truncate} from 'sentry/components/truncate';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import DebounceSearch from 'admin/components/debounceSearch';
-import Overview from 'admin/views/overview';
+import {DebounceSearch} from 'admin/components/debounceSearch';
+import {Overview} from 'admin/views/overview';
 
-export default function HomePage() {
+export function HomePage() {
   const navigate = useNavigate();
   const regions = ConfigStore.get('regions');
   const [oldSplash, setOldSplash] = useState(false);
@@ -163,16 +162,16 @@ export default function HomePage() {
 }
 
 const RegionPanel = styled('div')`
-  padding: ${space(4)} 0;
+  padding: ${p => p.theme.space['3xl']} 0;
 `;
 
 const SearchLabel = styled('label')`
   display: block;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const SplashWrapper = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;
 
 const HeaderTitle = styled('h3')`
@@ -183,7 +182,7 @@ const HeaderTitle = styled('h3')`
 `;
 
 const OverviewWrap = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space.xl} 0;
 `;
 const SecondaryText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};

@@ -1,7 +1,7 @@
 import type {RefObject} from 'react';
 import {useCallback} from 'react';
 
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface OnClickProps {
@@ -18,7 +18,7 @@ interface Props {
   onShowDetails?: (props: OnClickProps) => void;
 }
 
-export default function useDetailsSplit({
+export function useDetailsSplit({
   containerRef,
   frames,
   handleHeight,

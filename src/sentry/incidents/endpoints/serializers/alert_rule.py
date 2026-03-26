@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Max, Q, prefetch_related_objects
@@ -36,6 +36,12 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
+
+__all__ = [
+    "AlertRuleSerializer",
+    "CombinedRuleSerializer",
+    "DetailedAlertRuleSerializer",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +101,16 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     createdBy: dict
     description: str
     detectionType: str
+
+
+class DetailedAlertRuleSerializerResponse(AlertRuleSerializerResponse, total=False):
+    """
+    Response type for DetailedAlertRuleSerializer, which includes additional
+    snooze-related fields beyond the base AlertRuleSerializerResponse.
+    """
+
+    snoozeForEveryone: bool | None
+    snoozeCreatedBy: str | None
 
 
 @register(AlertRule)
@@ -364,8 +380,8 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs,
-    ) -> AlertRuleSerializerResponse:
-        data = super().serialize(obj, attrs, user)
+    ) -> DetailedAlertRuleSerializerResponse:
+        data = cast(DetailedAlertRuleSerializerResponse, super().serialize(obj, attrs, user))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
         data["snooze"] = False
         return data

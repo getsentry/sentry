@@ -1,19 +1,18 @@
 import {Fragment} from 'react';
 import type {Query} from 'history';
 
-import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import DurationChart from 'sentry/views/performance/charts/chart';
+import {Chart as DurationChart} from 'sentry/views/performance/charts/chart';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 import type {ViewProps} from 'sentry/views/performance/types';
@@ -26,7 +25,7 @@ type Props = ViewProps & {
 /**
  * Fetch and render an area chart that shows user misery over a period
  */
-function UserMiseryChart({
+export function UserMiseryChart({
   project,
   environment,
   organization,
@@ -84,7 +83,7 @@ function UserMiseryChart({
         queryExtras={getMEPQueryParams(mepContext)}
       >
         {({loading, reloading, timeseriesData}) => {
-          const data: Series[] = timeseriesData?.[0]
+          const data = timeseriesData?.[0]
             ? [{...timeseriesData[0], seriesName: yAxis}]
             : [];
           return (
@@ -105,5 +104,3 @@ function UserMiseryChart({
     </Fragment>
   );
 }
-
-export default UserMiseryChart;

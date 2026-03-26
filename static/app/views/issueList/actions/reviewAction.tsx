@@ -1,6 +1,6 @@
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 
-import ActionLink from 'sentry/components/actions/actionLink';
+import {ActionLink} from 'sentry/components/actions/actionLink';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
@@ -12,7 +12,7 @@ type Props = {
   tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
 };
 
-function ReviewAction({disabled, onUpdate, tooltipProps, tooltip}: Props) {
+export function ReviewAction({disabled, onUpdate, tooltipProps, tooltip}: Props) {
   return (
     <ActionLink
       type="button"
@@ -26,5 +26,3 @@ function ReviewAction({disabled, onUpdate, tooltipProps, tooltip}: Props) {
     </ActionLink>
   );
 }
-
-export default ReviewAction;

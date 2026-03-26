@@ -1,5 +1,3 @@
-function SeparatorField() {
+export function SeparatorField() {
   return <hr />;
 }
-
-export default SeparatorField;

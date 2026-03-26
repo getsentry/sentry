@@ -3,11 +3,12 @@ import {useCallback, useMemo, useRef} from 'react';
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
+import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   IssuesConfig,
@@ -15,6 +16,7 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/issues';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DEFAULT_TABLE_LIMIT} from 'sentry/views/dashboards/types';
+import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -42,6 +44,7 @@ export function useIssuesSeriesQuery(
     enabled = true,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -61,7 +64,8 @@ export function useIssuesSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.ISSUE_PLATFORM,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       requestData.generatePathname = () =>
@@ -108,7 +112,7 @@ export function useIssuesSeriesQuery(
     });
 
     return keys;
-  }, [filteredWidget, organization, pageFilters]);
+  }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
   const createQueryFn = useCallback(
     () =>
@@ -187,14 +191,21 @@ export function useIssuesSeriesQuery(
         filteredWidget.queries[requestIndex]!,
         organization
       );
+      const seriesQueryPrefix = getSeriesQueryPrefix(
+        filteredWidget.queries[requestIndex]!,
+        filteredWidget
+      );
 
       transformedResult.forEach((result: Series, resultIndex: number) => {
+        if (seriesQueryPrefix) {
+          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
+        }
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -368,7 +379,7 @@ export function useIssuesTableQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

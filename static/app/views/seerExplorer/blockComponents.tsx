@@ -7,16 +7,17 @@ import {Button} from '@sentry/scraps/button';
 import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
-import {IconChevron, IconLink, IconThumb} from 'sentry/icons';
+import {IconChevron, IconCopy, IconLink, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 
@@ -137,7 +138,7 @@ function getToolStatus(
   return 'success';
 }
 
-function BlockComponent({
+export function BlockComponent({
   block,
   blockIndex,
   runId,
@@ -157,6 +158,7 @@ function BlockComponent({
   readOnly = false,
   ref,
 }: BlockProps) {
+  const {copy} = useCopyToClipboard();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {projects} = useProjects();
@@ -298,7 +300,7 @@ function BlockComponent({
           block_message: block.message.content.slice(0, 100),
           langfuse_url: getLangfuseUrl(runId),
           explorer_url: getExplorerUrl(runId),
-          conversations_url: getConversationsUrl(organization.slug, runId),
+          conversations_url: getConversationsUrl('sentry', runId),
         });
         setFeedbackSubmitted(true); // disable button for rest of the session
       }
@@ -345,6 +347,11 @@ function BlockComponent({
     onDelete?.();
   };
 
+  const handleCopyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    copy(block.message.content);
+  };
+
   const handleNavigateClick = (e: React.MouseEvent, linkIndex: number) => {
     e.stopPropagation();
     if (sortedToolLinks.length === 0) {
@@ -369,6 +376,7 @@ function BlockComponent({
     !isAwaitingQuestion &&
     !readOnly;
   const showFeedbackButtons = block.message.role === 'assistant';
+  const showCopyButton = block.message.role !== 'tool_use';
 
   return (
     <Block
@@ -489,6 +497,16 @@ function BlockComponent({
           <ActionButtonBar gap="xs">
             {showFeedbackButtons && thumbsFeedbackButton('positive')}
             {showFeedbackButtons && thumbsFeedbackButton('negative')}
+            {showCopyButton && (
+              <Button
+                aria-label={t('Copy block content')}
+                icon={<IconCopy />}
+                priority="transparent"
+                size="xs"
+                tooltipProps={{title: t('Copy to clipboard')}}
+                onClick={handleCopyClick}
+              />
+            )}
             <Button
               size="xs"
               priority="transparent"
@@ -506,8 +524,6 @@ function BlockComponent({
 
 BlockComponent.displayName = 'BlockComponent';
 
-export default BlockComponent;
-
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;
   border-top: 1px solid transparent;
@@ -520,12 +536,47 @@ const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
 const BlockChevronIcon = styled(IconChevron)`
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: 18px;
-  margin-left: ${space(2)};
-  margin-right: ${space(1)};
+  margin-left: ${p => p.theme.space.xl};
+  margin-right: ${p => p.theme.space.md};
   flex-shrink: 0;
 `;
 
-const ResponseDot = styled('div')<{
+function getStatusTooltipText(
+  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending'
+): string {
+  switch (status) {
+    case 'loading':
+      return t('Running...');
+    case 'pending':
+      return t('Waiting for approval');
+    case 'content':
+      return t('Response received');
+    case 'success':
+      return t('Completed successfully');
+    case 'failure':
+      return t('Completed with errors');
+    case 'mixed':
+      return t('Completed with partial errors');
+    default:
+      return '';
+  }
+}
+
+function ResponseDot({
+  status,
+  hasOnlyTools,
+}: {
+  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending';
+  hasOnlyTools?: boolean;
+}) {
+  return (
+    <Tooltip title={getStatusTooltipText(status)}>
+      <ResponseDotIndicator status={status} hasOnlyTools={hasOnlyTools} />
+    </Tooltip>
+  );
+}
+
+const ResponseDotIndicator = styled('div')<{
   status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending';
   hasOnlyTools?: boolean;
 }>`
@@ -533,7 +584,7 @@ const ResponseDot = styled('div')<{
   height: 8px;
   border-radius: 50%;
   margin-top: ${p => (p.hasOnlyTools ? '12px' : '22px')};
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
   flex-shrink: 0;
   background: ${p => {
     switch (p.status) {
@@ -580,7 +631,7 @@ const BlockContent = styled(MarkedText)`
   white-space: pre-wrap;
   word-wrap: break-word;
   padding-bottom: 0;
-  margin-bottom: -${space(1)};
+  margin-bottom: -${p => p.theme.space.md};
 
   code:not(pre code) {
     ${p => inlineCodeStyles(p.theme)};
@@ -590,7 +641,7 @@ const BlockContent = styled(MarkedText)`
   li,
   ul,
   ol {
-    margin: -${space(1)} 0;
+    margin: -${p => p.theme.space.md} 0;
   }
 
   h1,
@@ -636,7 +687,7 @@ const BlockContent = styled(MarkedText)`
 
 const UserBlockContent = styled('div')`
   width: 100%;
-  padding: ${space(2)} ${space(2)} ${space(2)} 0;
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0;
   white-space: pre-wrap;
   word-wrap: break-word;
   color: ${p => p.theme.tokens.content.secondary};

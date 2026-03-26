@@ -7,22 +7,22 @@ import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import IdBadge from 'sentry/components/idBadge';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
+import {ReplayCountBadge} from 'sentry/components/replays/replayCountBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
-import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCountForTransactions';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useReplayCountForTransactions} from 'sentry/utils/replayCount/useReplayCountForTransactions';
+import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
@@ -32,7 +32,8 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {Breadcrumb, getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -41,7 +42,7 @@ import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/tr
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
-import Tab from './tabs';
+import {Tab} from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
@@ -58,7 +59,7 @@ type Props = {
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
-function TransactionHeader({
+export function TransactionHeader({
   eventView,
   organization,
   projects,
@@ -125,6 +126,8 @@ function TransactionHeader({
     [getNewRoute, organization, location, projects, currentTab, navigate]
   );
 
+  const isEAP = useTransactionSummaryEAP();
+
   function handleCreateAlertSuccess() {
     trackAnalytics('performance_views.summary.create_alert_clicked', {
       organization,
@@ -157,7 +160,9 @@ function TransactionHeader({
     >
       <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
       <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-      <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+      <TabList.Item key={Tab.TAGS} hidden={isEAP}>
+        {t('Tags')}
+      </TabList.Item>
       <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
@@ -319,7 +324,9 @@ function TransactionHeader({
       >
         <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
         <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-        <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+        <TabList.Item key={Tab.TAGS} hidden={isEAP}>
+          {t('Tags')}
+        </TabList.Item>
         <TabList.Item
           key={Tab.REPLAYS}
           textValue={t('Replays')}
@@ -347,5 +354,3 @@ const TransactionName = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default TransactionHeader;

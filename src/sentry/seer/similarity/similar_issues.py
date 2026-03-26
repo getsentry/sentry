@@ -4,6 +4,7 @@ from collections.abc import Mapping
 import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import options
@@ -14,7 +15,7 @@ from sentry.conf.server import (
 )
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.net.http import connection_from_url
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
@@ -22,9 +23,9 @@ from sentry.seer.similarity.types import (
     SimilarHashNotFoundError,
     SimilarIssuesEmbeddingsRequest,
 )
-from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
+from sentry.tasks.seer.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.utils import json, metrics
-from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -32,17 +33,39 @@ logger = logging.getLogger(__name__)
 
 seer_grouping_connection_pool = connection_from_url(
     settings.SEER_GROUPING_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
+
+
+def make_similar_issues_request(
+    body: SimilarIssuesEmbeddingsRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    retries: int | None = None,
+    timeout: int | float | None = None,
+    metric_tags: dict[str, str | int | bool] | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or seer_grouping_connection_pool,
+        SEER_SIMILAR_ISSUES_URL,
+        body=json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **body}).encode("utf8"),
+        retries=retries,
+        timeout=timeout,
+        metric_tags=metric_tags,
+        viewer_context=viewer_context,
+    )
 
 
 @sentry_sdk.tracing.trace
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
     metric_tags: Mapping[str, str | int | bool] | None = None,
-) -> list[SeerSimilarIssueData]:
+    raise_on_error: bool = False,
+    viewer_context: SeerViewerContext | None = None,
+) -> tuple[list[SeerSimilarIssueData], str | None]:
     """
-    Request similar issues data from seer and normalize the results. Returns similar groups
-    sorted in order of descending similarity.
+    Request similar issues data from seer and normalize the results. Returns a tuple of
+    (similar groups sorted in order of descending similarity, model_used from Seer response).
     """
     event_id = similar_issues_request["event_id"]
     project_id = similar_issues_request["project_id"]
@@ -61,21 +84,20 @@ def get_similarity_data_from_seer(
         extra=logger_extra,
     )
 
+    config = options.get("seer.similarity.circuit-breaker-config")
     circuit_breaker = CircuitBreaker(
         SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
-        options.get("seer.similarity.circuit-breaker-config"),
+        config,
+        CountBasedTripStrategy.from_config(config),
     )
 
     try:
-        response = make_signed_seer_api_request(
-            seer_grouping_connection_pool,
-            SEER_SIMILAR_ISSUES_URL,
-            json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
-                "utf8"
-            ),
+        response = make_similar_issues_request(
+            similar_issues_request,
             retries=options.get("seer.similarity.grouping-ingest-retries"),
             timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             metric_tags={"referrer": referrer} if referrer else {},
+            viewer_context=viewer_context,
         )
     except (TimeoutError, MaxRetryError) as e:
         logger.warning("get_seer_similar_issues.request_error", extra=logger_extra)
@@ -85,7 +107,9 @@ def get_similarity_data_from_seer(
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
         circuit_breaker.record_error()
-        return []
+        if raise_on_error:
+            raise
+        return ([], None)
 
     metric_tags["response_status"] = response.status
 
@@ -114,10 +138,16 @@ def get_similarity_data_from_seer(
         if response.status >= 500:
             circuit_breaker.record_error()
 
-        return []
+        if raise_on_error:
+            raise Exception(
+                f"Received {response.status} from Seer endpoint {SEER_SIMILAR_ISSUES_URL}"
+            )
+        return ([], None)
 
     try:
-        response_data = json.loads(response.data.decode("utf-8")).get("responses")
+        response_json = json.loads(response.data.decode("utf-8"))
+        response_data = response_json.get("responses")
+        model_used = response_json.get("model_used")
     except (
         AttributeError,  # caused by a response with no data and therefore no `.decode` method
         UnicodeError,
@@ -136,7 +166,9 @@ def get_similarity_data_from_seer(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
-        return []
+        if raise_on_error:
+            raise
+        return ([], None)
 
     # TODO: Temporary log to prove things are working as they should. This should come in a pair
     # with the `get_seer_similar_issues.follow_up_seer_request` log in `seer.py`.
@@ -155,7 +187,7 @@ def get_similarity_data_from_seer(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "no_similar_groups"},
         )
-        return []
+        return ([], model_used)
 
     # This may get overwritten as we process the results, but by this point we know that Seer at
     # least found *something*
@@ -311,7 +343,10 @@ def get_similarity_data_from_seer(
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags=metric_tags,
     )
-    return sorted(
-        normalized_results,
-        key=lambda issue_data: issue_data.stacktrace_distance,
+    return (
+        sorted(
+            normalized_results,
+            key=lambda issue_data: issue_data.stacktrace_distance,
+        ),
+        model_used,
     )

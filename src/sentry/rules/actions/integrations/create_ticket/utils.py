@@ -26,13 +26,13 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
     IntegrationResourceNotFoundError,
 )
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
 
 
-@region_silo_function
+@cell_silo_function
 def create_link(
     integration: RpcIntegration,
     installation: IntegrationInstallation,
@@ -98,7 +98,9 @@ def build_description(
     Format the description of the ticket/work item
     """
     project = event.group.project
-    rule_url = f"/organizations/{project.organization.slug}/alerts/rules/{project.slug}/{rule_id}/"
+    rule_url = (
+        f"/organizations/{project.organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/"
+    )
 
     description: str = installation.get_group_description(event.group, event) + generate_footer(
         rule_url

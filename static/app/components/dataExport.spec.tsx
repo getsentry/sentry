@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import {DataExport, ExportQueryType} from 'sentry/components/dataExport';
 import type {Organization} from 'sentry/types/organization';
 
 jest.mock('sentry/actionCreators/indicator');

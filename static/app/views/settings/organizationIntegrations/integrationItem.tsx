@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
@@ -11,7 +10,7 @@ type Props = {
   compact?: boolean;
 };
 
-function IntegrationItem({integration, compact = false}: Props) {
+export function IntegrationItem({integration, compact = false}: Props) {
   return (
     <Flex align="center">
       <div>
@@ -27,14 +26,12 @@ function IntegrationItem({integration, compact = false}: Props) {
   );
 }
 
-export default IntegrationItem;
-
 const Labels = styled('div')<{compact: boolean}>`
   box-sizing: border-box;
   display: flex;
   ${p => (p.compact ? 'align-items: center;' : '')};
   flex-direction: ${p => (p.compact ? 'row' : 'column')};
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
   min-width: 0;
   justify-content: center;
 `;
@@ -50,7 +47,7 @@ const IntegrationName = styled('div')`
 // integration list.
 const DomainName = styled('div')<{compact: boolean}>`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${p => (p.compact ? space(1) : 'inherit')};
+  margin-left: ${p => (p.compact ? p.theme.space.md : 'inherit')};
   margin-top: ${p => (p.compact ? 'inherit' : 0)};
   font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;

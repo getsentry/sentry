@@ -6,18 +6,18 @@ import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {useSpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
@@ -31,6 +31,7 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {getIsAiGenerationNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
@@ -44,7 +45,7 @@ import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDra
 import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
-import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
+import {ReplayPreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -57,12 +58,12 @@ import {LogDetails} from './components/logDetails';
 import {ProfileDetails} from './components/profileDetails';
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
-import Alerts from './sections/alerts';
+import {Alerts} from './sections/alerts';
 import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
 import {hasSpanHTTPInfo, SpanHTTPInfo} from './sections/http';
 import {hasSpanKeys, SpanKeys} from './sections/keys';
-import Measurements, {hasSpanMeasurements} from './sections/measurements';
+import {hasSpanMeasurements, Measurements} from './sections/measurements';
 import {hasSpanTags, Tags} from './sections/tags';
 
 function SpanSections({
@@ -195,6 +196,7 @@ function SpanNodeDetailsContent({
   onTabScrollToNode,
   project,
   hideNodeActions,
+  initiallyCollapseAiIO,
   issues,
   location,
   onParentClick,
@@ -240,8 +242,14 @@ function SpanNodeDetailsContent({
           hideNodeActions={hideNodeActions}
         />
         <AIIOAlert node={node} />
-        <AIInputSection node={node} />
-        <AIOutputSection node={node} />
+        <AIInputSection
+          node={node}
+          initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
+        />
+        <AIOutputSection
+          node={node}
+          initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
+        />
         <MCPInputSection node={node} />
         <MCPOutputSection node={node} />
         <SpanSections
@@ -429,6 +437,7 @@ function EAPSpanNodeDetailsContent({
   location,
   theme,
   hideNodeActions,
+  initiallyCollapseAiIO,
   traceItemData,
   eventTransaction,
   avgSpanDuration,
@@ -450,7 +459,7 @@ function EAPSpanNodeDetailsContent({
   const threadIdAttribute: TraceItemResponseAttribute | undefined = attributes.find(
     attribute => attribute.name === 'thread.id'
   );
-  const threadId: string | undefined =
+  const threadId =
     typeof threadIdAttribute?.value === 'string' ? threadIdAttribute.value : undefined;
 
   const span = useMemo(() => {
@@ -520,8 +529,16 @@ function EAPSpanNodeDetailsContent({
           hideNodeActions={hideNodeActions}
         />
         <AIIOAlert node={node} attributes={attributes} />
-        <AIInputSection node={node} attributes={attributes} />
-        <AIOutputSection node={node} attributes={attributes} />
+        <AIInputSection
+          node={node}
+          attributes={attributes}
+          initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
+        />
+        <AIOutputSection
+          node={node}
+          attributes={attributes}
+          initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
+        />
         <MCPInputSection node={node} attributes={attributes} />
         <MCPOutputSection node={node} attributes={attributes} />
         <Attributes

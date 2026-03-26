@@ -377,7 +377,7 @@ describe('listDisplayNames', () => {
   it('should list categories in order given', () => {
     expect(
       listDisplayNames({
-        plan: plan!,
+        plan,
         categories: [
           DataCategory.SPANS,
           DataCategory.TRANSACTIONS,
@@ -393,8 +393,8 @@ describe('listDisplayNames', () => {
   it('should hide stored spans for no DS', () => {
     expect(
       listDisplayNames({
-        plan: plan!,
-        categories: plan!.checkoutCategories,
+        plan,
+        categories: plan.checkoutCategories,
         hadCustomDynamicSampling: false,
       })
     ).toBe(
@@ -405,8 +405,8 @@ describe('listDisplayNames', () => {
   it('should include stored spans and use accepted spans for DS', () => {
     expect(
       listDisplayNames({
-        plan: plan!,
-        categories: plan!.checkoutCategories,
+        plan,
+        categories: plan.checkoutCategories,
         hadCustomDynamicSampling: true,
       })
     ).toBe(

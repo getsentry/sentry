@@ -22,7 +22,7 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
-from sentry.taskworker.workerchild import timeout_alarm
+from sentry.taskworker.timeout import timeout_alarm
 from sentry.utils import metrics
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.circuit_breaker import (
@@ -123,46 +123,49 @@ def send_and_save_webhook_request(
         )
 
         assert url is not None
-
-        # Fetch org context once — reused by both circuit breaker and hard timeout checks
-        organization_context = organization_service.get_organization_by_id(
-            id=app_platform_event.install.organization_id,
-        )
-
-        # Circuit breaker gate — keyed per app slug
-        circuit_breaker: RateBasedCircuitBreaker | None = None
-        if organization_context is not None and features.has(
-            "organizations:sentry-app-webhook-circuit-breaker",
-            organization_context.organization,
-        ):
-            circuit_breaker = RateBasedCircuitBreaker(
-                f"sentry-app.webhook.{sentry_app.slug}",
-                options.get("sentry-apps.webhook.circuit-breaker.config"),
+        try:
+            organization_context = organization_service.get_organization_by_id(
+                id=app_platform_event.install.organization_id,
+                include_projects=False,
+                include_teams=False,
             )
-            if not circuit_breaker.should_allow_request():
-                dry_run = options.get("sentry-apps.webhook.circuit-breaker.dry-run")
-                if dry_run:
-                    metrics.incr(
-                        "sentry_app.webhook.circuit_breaker.would_block",
-                        tags={"slug": sentry_app.slug},
-                    )
-                    logger.warning(
-                        "sentry_app.webhook.circuit_breaker.would_block",
-                        extra={"slug": sentry_app.slug, "org_id": org_id},
-                    )
-                else:
-                    lifecycle.record_halt(
-                        halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.CIRCUIT_BROKEN}"
-                    )
-                    return Response()
 
-        with circuit_breaker_tracking(circuit_breaker):
-            try:
+            # Circuit breaker gate — keyed per app slug
+            circuit_breaker: RateBasedCircuitBreaker | None = None
+            if organization_context is not None and features.has(
+                "organizations:sentry-app-webhook-circuit-breaker",
+                organization_context.organization,
+            ):
+                circuit_breaker = RateBasedCircuitBreaker(
+                    f"sentry-app.webhook.{sentry_app.slug}",
+                    options.get("sentry-apps.webhook.circuit-breaker.config"),
+                )
+                if not circuit_breaker.should_allow_request():
+                    dry_run = options.get("sentry-apps.webhook.circuit-breaker.dry-run")
+                    if dry_run:
+                        metrics.incr(
+                            "sentry_app.webhook.circuit_breaker.would_block",
+                            tags={"slug": sentry_app.slug},
+                        )
+                        logger.warning(
+                            "sentry_app.webhook.circuit_breaker.would_block",
+                            extra={"slug": sentry_app.slug, "org_id": org_id},
+                        )
+                    else:
+                        lifecycle.record_halt(
+                            halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.CIRCUIT_BROKEN}"
+                        )
+                        return Response()
+
+            with circuit_breaker_tracking(circuit_breaker):
                 if organization_context is not None and features.has(
                     "organizations:sentry-app-webhook-hard-timeout",
                     organization_context.organization,
                 ):
-                    timeout_seconds = int(options.get("sentry-apps.webhook.hard-timeout.sec"))
+                    # We're using a signal based timeout here because we need to interrupt the blocking socket.connect() opeartion.
+                    # See SENTRY-5HA6 for more context. Here we're hanging at the socket.connect() call and the timeout we set
+                    # in safe_urlopen is not being respected.
+                    timeout_seconds = options.get("sentry-apps.webhook.hard-timeout.sec")
                     with timeout_alarm(timeout_seconds, _handle_webhook_timeout):
                         response = safe_urlopen(
                             url=url,
@@ -178,101 +181,101 @@ def send_and_save_webhook_request(
                         timeout=options.get("sentry-apps.webhook.timeout.sec"),
                     )
 
-            except WebhookTimeoutError:
-                lifecycle.record_halt(
-                    halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.HARD_TIMEOUT}"
-                )
-                raise
-            except (Timeout, ConnectionError) as e:
-                error_type = e.__class__.__name__.lower()
-                lifecycle.add_extras(
-                    {
-                        "reason": "send_and_save_webhook_request.timeout",
-                        "error_type": error_type,
-                        "organization_id": org_id,
-                        "integration_slug": sentry_app.slug,
-                        "url": url,
-                    },
-                )
-                track_response_code(error_type, slug, event)
-                buffer.add_request(
-                    response_code=TIMEOUT_STATUS_CODE,
-                    org_id=org_id,
-                    event=event,
-                    url=url,
-                    headers=app_platform_event.headers,
-                )
-                lifecycle.record_halt(e)
-                # Re-raise the exception because some of these tasks might retry on the exception
-                raise
-            except ChunkedEncodingError:
-                lifecycle.record_halt(
-                    halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.CONNECTION_RESET}"
-                )
-                raise
-            except RestrictedIPAddress:
-                lifecycle.record_halt(
-                    halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.RESTRICTED_IP}"
-                )
-                raise
-
-            track_response_code(response.status_code, slug, event)
+        except WebhookTimeoutError:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.HARD_TIMEOUT}"
+            )
+            raise
+        except (Timeout, ConnectionError) as e:
+            error_type = e.__class__.__name__.lower()
+            lifecycle.add_extras(
+                {
+                    "reason": "send_and_save_webhook_request.timeout",
+                    "error_type": error_type,
+                    "organization_id": org_id,
+                    "integration_slug": sentry_app.slug,
+                    "url": url,
+                },
+            )
+            track_response_code(error_type, slug, event)
             buffer.add_request(
-                response_code=response.status_code,
+                response_code=TIMEOUT_STATUS_CODE,
                 org_id=org_id,
                 event=event,
                 url=url,
-                error_id=response.headers.get("Sentry-Hook-Error"),
-                project_id=response.headers.get("Sentry-Hook-Project"),
-                response=response,
                 headers=app_platform_event.headers,
             )
-
-            debug_logging_enabled = (
-                app_platform_event.install.uuid
-                in options.get("sentry-apps.webhook-logging.enabled")["installation_uuid"]
-                or sentry_app.slug
-                in options.get("sentry-apps.webhook-logging.enabled")["sentry_app_slug"]
+            lifecycle.record_halt(e)
+            # Re-raise the exception because some of these tasks might retry on the exception
+            raise
+        except ChunkedEncodingError:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.CONNECTION_RESET}"
             )
-            if debug_logging_enabled:
-                webhook_event = event
-                logger.info(
-                    "sentry_app_webhook_sent",
-                    extra={
-                        "sentry_app_slug": sentry_app.slug,
-                        "organization_id": org_id,
-                        "installation_uuid": app_platform_event.install.uuid,
-                        "resource": app_platform_event.resource,
-                        "action": app_platform_event.action,
-                        "webhook_event": webhook_event,
-                        "url": url,
-                        "response_code": response.status_code,
-                    },
-                )
+            raise
+        except RestrictedIPAddress:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.RESTRICTED_IP}"
+            )
+            raise
 
-            if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
-                lifecycle.record_halt(
-                    halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
-                )
-                raise ApiHostError.from_request(response.request)
+        track_response_code(response.status_code, slug, event)
+        buffer.add_request(
+            response_code=response.status_code,
+            org_id=org_id,
+            event=event,
+            url=url,
+            error_id=response.headers.get("Sentry-Hook-Error"),
+            project_id=response.headers.get("Sentry-Hook-Project"),
+            response=response,
+            headers=app_platform_event.headers,
+        )
 
-            elif response.status_code == status.HTTP_504_GATEWAY_TIMEOUT:
-                lifecycle.record_halt(
-                    halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
-                )
-                raise ApiTimeoutError.from_request(response.request)
+        debug_logging_enabled = (
+            app_platform_event.install.uuid
+            in options.get("sentry-apps.webhook-logging.enabled")["installation_uuid"]
+            or sentry_app.slug
+            in options.get("sentry-apps.webhook-logging.enabled")["sentry_app_slug"]
+        )
+        if debug_logging_enabled:
+            webhook_event = event
+            logger.info(
+                "sentry_app_webhook_sent",
+                extra={
+                    "sentry_app_slug": sentry_app.slug,
+                    "organization_id": org_id,
+                    "installation_uuid": app_platform_event.install.uuid,
+                    "resource": app_platform_event.resource,
+                    "action": app_platform_event.action,
+                    "webhook_event": webhook_event,
+                    "url": url,
+                    "response_code": response.status_code,
+                },
+            )
 
-            elif 400 <= response.status_code < 500:
-                lifecycle.record_halt(
-                    halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{response.status_code}",
-                    sample_log_rate=0.05,
-                )
-                raise ClientError(response.status_code, url, response=response)
+        if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
+            )
+            raise ApiHostError.from_request(response.request)
 
-            try:
-                response.raise_for_status()
-            except RequestException as e:
-                lifecycle.record_halt(e)
-                raise
+        elif response.status_code == status.HTTP_504_GATEWAY_TIMEOUT:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
+            )
+            raise ApiTimeoutError.from_request(response.request)
 
-            return response
+        elif 400 <= response.status_code < 500:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{response.status_code}",
+                sample_log_rate=0.05,
+            )
+            raise ClientError(response.status_code, url, response=response)
+
+        try:
+            response.raise_for_status()
+        except RequestException as e:
+            lifecycle.record_halt(e)
+            raise
+
+        return response

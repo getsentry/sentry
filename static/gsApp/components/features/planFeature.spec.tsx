@@ -6,7 +6,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PlanFeature from 'getsentry/components/features/planFeature';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
 describe('PlanFeature', () => {

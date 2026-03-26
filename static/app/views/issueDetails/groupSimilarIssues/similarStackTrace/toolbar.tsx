@@ -5,12 +5,11 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Confirm from 'sentry/components/confirm';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import ToolbarHeader from 'sentry/components/toolbarHeader';
+import {Confirm} from 'sentry/components/confirm';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
-import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
+import {GroupingStore} from 'sentry/stores/groupingStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -31,7 +30,7 @@ const initialState = {
 
 type State = typeof initialState;
 
-class SimilarToolbar extends Component<Props, State> {
+export class SimilarToolbar extends Component<Props, State> {
   state: State = initialState;
 
   componentWillUnmount() {
@@ -107,12 +106,11 @@ class SimilarToolbar extends Component<Props, State> {
     );
   }
 }
-export default SimilarToolbar;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
   flex: 1;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} 0;
 `;

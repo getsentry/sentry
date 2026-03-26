@@ -2,8 +2,8 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import useBulkEditFeedbacks from 'sentry/components/feedback/list/useBulkEditFeedbacks';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {useBulkEditFeedbacks} from 'sentry/components/feedback/list/useBulkEditFeedbacks';
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
@@ -17,7 +17,7 @@ interface Props extends Pick<
   mailbox: Mailbox;
 }
 
-export default function FeedbackListBulkSelection({
+export function FeedbackListBulkSelection({
   mailbox,
   countSelected,
   selectedIds,

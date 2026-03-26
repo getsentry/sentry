@@ -4,17 +4,16 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import HotkeysLabel from 'sentry/components/hotkeysLabel';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 
@@ -54,7 +53,7 @@ type Props = {
   visibleShortcuts?: Shortcut[];
 };
 
-function SearchDropdown({
+export function SearchDropdown({
   className,
   loading,
   items,
@@ -148,7 +147,7 @@ function SearchDropdown({
                 onClick={() => runShortcut(shortcut)}
               >
                 <HotkeyGlyphWrapper>
-                  <HotkeysLabel
+                  <Hotkey
                     value={shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []}
                   />
                 </HotkeyGlyphWrapper>
@@ -169,8 +168,6 @@ function SearchDropdown({
     </SearchDropdownOverlay>
   );
 }
-
-export default SearchDropdown;
 
 type HeaderItemProps = {
   group: SearchGroup;
@@ -496,12 +493,12 @@ const SearchDropdownOverlay = styled(Overlay)`
   left: -1px;
   right: -1px;
   overflow: hidden;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const Info = styled('div')`
   display: flex;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.secondary};
 
@@ -522,10 +519,10 @@ const SearchDropdownGroupTitle = styled('header')`
   font-size: ${p => p.theme.font.size.md};
 
   margin: 0;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 
   & > svg {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
   }
 `;
 
@@ -550,7 +547,7 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
 const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   scroll-margin: 40px 0;
   font-size: ${p => p.theme.font.size.lg};
-  padding: 4px ${space(2)};
+  padding: 4px ${p => p.theme.space.xl};
 
   min-height: ${p => (p.isChild ? '30px' : '36px')};
   ${p => !p.isChild && `border-top: 1px solid ${p.theme.tokens.border.secondary};`}
@@ -604,7 +601,7 @@ const RestOfWordsContainer = styled('span')<{
 }>`
   color: ${p =>
     p.hasSplit ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
-  margin-left: ${p => (p.isFirstWordHidden ? space(1) : '0px')};
+  margin-left: ${p => (p.isFirstWordHidden ? p.theme.space.md : '0px')};
 `;
 
 const FirstWordWrapper = styled('span')`
@@ -613,7 +610,7 @@ const FirstWordWrapper = styled('span')`
 
 const Documentation = styled('span')`
   flex: 2;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   min-width: 0;
 
   display: block;
@@ -635,14 +632,14 @@ const DropdownFooter = styled(`div`)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const HotkeyGlyphWrapper = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
@@ -654,7 +651,7 @@ const IconWrapper = styled('span')`
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
     align-items: center;
     justify-content: center;
   }
@@ -663,7 +660,7 @@ const IconWrapper = styled('span')`
 const QueryItemWrapper = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
   width: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   display: flex;
   white-space: nowrap;
   word-break: normal;
@@ -684,7 +681,7 @@ const Value = styled('span')<{hasDocs?: boolean}>`
 `;
 
 const IconOpenWithMargin = styled(IconOpen)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const RecommendedItem = styled('div')`

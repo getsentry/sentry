@@ -8,8 +8,8 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import toArray from 'sentry/utils/array/toArray';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -27,10 +27,12 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
+import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -67,6 +69,7 @@ export function useSpansSeriesQuery(
     samplingMode,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -89,7 +92,8 @@ export function useSpansSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.SPANS,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       // Add sampling mode if provided
@@ -133,7 +137,7 @@ export function useSpansSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode]);
+  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
 
   // Create stable queryFn that uses queue from ref
   const createQueryFn = useCallback(
@@ -215,9 +219,16 @@ export function useSpansSeriesQuery(
         filteredWidget.queries[requestIndex]!,
         organization
       );
+      const seriesQueryPrefix = getSeriesQueryPrefix(
+        filteredWidget.queries[requestIndex]!,
+        filteredWidget
+      );
 
       // Maintain color consistency
       transformedResult.forEach((result: Series, resultIndex: number) => {
+        if (seriesQueryPrefix) {
+          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
+        }
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
@@ -242,7 +253,7 @@ export function useSpansSeriesQuery(
     // Check if rawData is the same as before to prevent unnecessary rerenders
     // Compare each data object reference - if they're all the same, reuse previous array
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -461,7 +472,7 @@ export function useSpansTableQuery(
     // Check if rawData is the same as before to prevent unnecessary rerenders
     // Compare each data object reference - if they're all the same, reuse previous array
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

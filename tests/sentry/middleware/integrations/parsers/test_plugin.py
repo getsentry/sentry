@@ -8,10 +8,10 @@ from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_cells
 
 
-@control_silo_test(regions=create_test_regions("us"))
+@control_silo_test(cells=create_test_cells("us"))
 class PluginRequestParserTest(TestCase):
     factory = RequestFactory()
 
@@ -25,9 +25,7 @@ class PluginRequestParserTest(TestCase):
             reverse("sentry-plugins-bitbucket-webhook", args=[self.organization.id]),
         ]
         # No mapping
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="eu"
-        )
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="eu")
         for route in routes:
             request = self.factory.post(route)
             parser = PluginRequestParser(request=request, response_handler=self.get_response)
@@ -44,9 +42,7 @@ class PluginRequestParserTest(TestCase):
             reverse("sentry-plugins-github-webhook", args=[self.organization.id]),
             reverse("sentry-plugins-bitbucket-webhook", args=[self.organization.id]),
         ]
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="us"
-        )
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="us")
         for route in routes:
             request = self.factory.post(route)
             parser = PluginRequestParser(request=request, response_handler=self.get_response)

@@ -37,7 +37,12 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
+from sentry.shared_integrations.exceptions import (
+    ApiConflictError,
+    ApiError,
+    ApiRateLimitedError,
+    UnknownHostError,
+)
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -399,7 +404,7 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
 
-    def get_pull_request(self, repo: str, pull_number: int) -> Any:
+    def get_pull_request(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
 
@@ -407,11 +412,38 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}")
 
+    def get_archive_link(self, repo: str, archive_format: str, ref: str) -> str:
+        """
+        https://docs.github.com/en/rest/repos/contents#download-a-repository-archive-tar-ball-or-zip-ball
+
+        Returns the redirect URL for downloading a repository archive.
+        The API returns a 302; we capture the Location header instead of following it.
+        """
+        resp = self._request(
+            "GET",
+            f"/repos/{repo}/{archive_format}/{ref}",
+            allow_redirects=False,
+            raw_response=True,
+        )
+        if resp.status_code != 302 or "Location" not in resp.headers:
+            raise ApiError.from_response(resp)
+        return resp.headers["Location"]
+
     def get_repo(self, repo: str) -> Any:
         """
         https://docs.github.com/en/rest/repos/repos#get-a-repository
         """
         return self.get(f"/repos/{repo}")
+
+    def get_languages(self, repo: str) -> dict[str, int]:
+        """
+        https://docs.github.com/en/rest/repos/repos#list-repository-languages
+
+        :param repo: "owner/repo" format
+        :returns: {"Python": 50000, "JavaScript": 30000, ...}
+                  Keys are GitHub Linguist names, values are bytes of code.
+        """
+        return self.get(f"/repos/{repo}/languages")
 
     # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
     def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
@@ -433,23 +465,33 @@ class GitHubBaseClient(
     # This method is used by RepoTreesIntegration
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
-        # We do not cache this call since it is a rather large object
-        contents: dict[str, Any] = self.get(
-            f"/repos/{repo_full_name}/git/trees/{tree_sha}",
-            # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
-            params={"recursive": 1},
-        )
-        # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
-        # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
-        # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
-        # XXX: We will need to improve this by iterating through trees without using the recursive parameter
-        if contents.get("truncated"):
-            # e.g. getsentry/DataForThePeople
-            logger.warning(
-                "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
-                repo_full_name,
-            )
-        return contents["tree"]
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture() as lifecycle:
+            try:
+                # We do not cache this call since it is a rather large object
+                contents: dict[str, Any] = self.get(
+                    f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+                    # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
+                    params={"recursive": 1},
+                )
+            except ApiConflictError as e:
+                # Empty repos return a 409 which is expected
+                lifecycle.record_halt(e)
+                raise
+            # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
+            # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
+            # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
+            # XXX: We will need to improve this by iterating through trees without using the recursive parameter
+            if contents.get("truncated"):
+                # e.g. getsentry/DataForThePeople
+                logger.warning(
+                    "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
+                    repo_full_name,
+                )
+            return contents["tree"]
 
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
@@ -496,11 +538,16 @@ class GitHubBaseClient(
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self._get_with_pagination(
-            "/installation/repositories",
-            response_key="repositories",
-            page_number_limit=page_number_limit,
-        )
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_REPOSITORIES,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture():
+            return self._get_with_pagination(
+                "/installation/repositories",
+                response_key="repositories",
+                page_number_limit=page_number_limit,
+            )
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
@@ -646,15 +693,11 @@ class GitHubBaseClient(
     ) -> Any:
         return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
-    def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+    def get_comment_reactions(self, repo: str, comment_id: str) -> list[Any]:
         """
-        https://docs.github.com/en/rest/issues/comments?#get-an-issue-comment
+        https://docs.github.com/en/rest/reactions/reactions#list-reactions-for-an-issue-comment
         """
-        endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
-        response = self.get(endpoint)
-        reactions = response.get("reactions", {})
-        reactions.pop("url", None)
-        return reactions
+        return self._get_with_pagination(f"/repos/{repo}/issues/comments/{comment_id}/reactions")
 
     def create_comment_reaction(self, repo: str, comment_id: str, reaction: GitHubReaction) -> Any:
         """
@@ -701,12 +744,12 @@ class GitHubBaseClient(
             headers=headers,
         )
 
-        result = (
-            contents.content.decode("utf-8")
-            if codeowners
-            else b64decode(contents["content"]).decode("utf-8")
-        )
-        return result
+        if codeowners:
+            if not contents.ok:
+                raise ApiError.from_response(contents)
+            return contents.content.decode("utf-8")
+
+        return b64decode(contents["content"]).decode("utf-8")
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]

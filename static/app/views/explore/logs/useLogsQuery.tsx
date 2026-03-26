@@ -2,14 +2,14 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {logger} from '@sentry/react';
 
 import {type ApiResult} from 'sentry/api';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {
   fetchDataQuery,
   useInfiniteQuery,
@@ -19,7 +19,7 @@ import {
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,
@@ -642,6 +642,7 @@ export function useInfiniteLogsQuery({
     return filteredData;
   }, [data, virtualStreamedTimestamp]);
 
+  const pageCount = data?.pages?.length;
   const _meta = useMemo<EventsMetaType>(() => {
     return (
       data?.pages.reduce(
@@ -655,7 +656,8 @@ export function useInfiniteLogsQuery({
         {fields: {}, units: {}}
       ) ?? {fields: {}, units: {}}
     );
-  }, [data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageCount]);
 
   const _fetchPreviousPage = useCallback(() => {
     if (autoRefresh || hasPreviousPage) {

@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import type {SelectionCallbackParams} from 'sentry/components/charts/useChartXRangeSelection';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 
@@ -21,7 +21,8 @@ type Props = {
 };
 
 export function FloatingTrigger({chartIndex, params, setTab}: Props) {
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {setChartSelection} = useChartSelection();
   const {selectionState, setSelectionState, clearSelection} = params;
@@ -51,12 +52,13 @@ export function FloatingTrigger({chartIndex, params, setTab}: Props) {
         start: getUtcDateString(startTimestamp),
         end: getUtcDateString(endTimestamp),
       },
-      router,
+      location,
+      navigate,
       {save: true}
     );
 
     clearSelection();
-  }, [clearSelection, selectionState, router, organization]);
+  }, [clearSelection, selectionState, location, navigate, organization]);
 
   const handleFindAttributeBreakdowns = useCallback(() => {
     if (!selectionState) return;
@@ -117,7 +119,7 @@ const List = styled('ul')`
 
 const ListItem = styled('li')`
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   cursor: pointer;
   &:hover {

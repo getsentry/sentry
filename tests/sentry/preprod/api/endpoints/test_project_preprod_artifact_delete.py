@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectPreprodArtifactDeleteTest(APITestCase):
-    endpoint = "sentry-api-0-project-preprod-artifact-delete"
+    endpoint = "sentry-api-0-organization-preprod-artifact-delete"
     method = "delete"
 
     def setUp(self):
@@ -52,7 +52,6 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             artifact.id,
             status_code=200,
         )
@@ -75,7 +74,6 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
     def test_delete_artifact_not_found(self):
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             "999999",  # Non-existent artifact ID
             status_code=404,
         )
@@ -92,7 +90,6 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
         )
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             artifact.id,
             status_code=403,
         )
@@ -112,7 +109,6 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             artifact.id,
             status_code=200,
         )

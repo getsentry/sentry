@@ -3,36 +3,36 @@ import styled from '@emotion/styled';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingError from 'sentry/components/loadingError';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import Placeholder from 'sentry/components/placeholder';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {Placeholder} from 'sentry/components/placeholder';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
-import StreamGroup, {
+import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  StreamGroup,
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, PriorityLevel} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
-import GroupListHeader from './groupListHeader';
+import {GroupListHeader} from './groupListHeader';
 
 export type GroupListColumn =
   | 'graph'
@@ -92,7 +92,7 @@ type State = {
 
 const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee'];
 
-function GroupList({
+export function GroupList({
   queryParams,
   endpointPath,
   onFetchSuccess,
@@ -292,8 +292,8 @@ function GroupList({
     dataUpdatedAt,
   ]);
 
-  const columns: GroupListColumn[] = useMemo(
-    () => [...withColumns, 'firstSeen', 'lastSeen'],
+  const columns = useMemo(
+    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
     [withColumns]
   );
 
@@ -374,10 +374,8 @@ function GroupList({
   );
 }
 
-export default GroupList;
-
 const GroupPlaceholder = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};

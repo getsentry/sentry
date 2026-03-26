@@ -1,8 +1,8 @@
 import {z} from 'zod';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -35,7 +35,7 @@ function TestForm({
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="volume">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
@@ -71,7 +71,7 @@ function AutoSaveTestForm({
   label = 'Volume',
 }: AutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="volume"
       schema={testSchema}
       initialValue={initialValue}
@@ -87,7 +87,7 @@ function AutoSaveTestForm({
           />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 
@@ -113,13 +113,17 @@ describe('RangeField disabled', () => {
     expect(screen.getByRole('slider')).toBeDisabled();
   });
 
-  it('shows tooltip with reason when disabled is a string', async () => {
+  it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<TestForm label="Volume" disabled="Feature not available" />);
 
     expect(screen.getByRole('slider')).toBeDisabled();
 
-    // Hover on the slider to trigger tooltip
-    await userEvent.hover(screen.getByRole('slider'));
+    // Lock icon should be visible
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();
@@ -133,7 +137,7 @@ describe('RangeField auto-save', () => {
   // event system for calling props.onChange. The basic rendering and state indicator
   // tests below verify the auto-save integration works correctly.
 
-  it('renders within AutoSaveField context', () => {
+  it('renders within AutoSaveForm context', () => {
     const mutationFn = jest.fn((data: {volume: number}) => Promise.resolve(data));
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={50} />);
@@ -149,11 +153,11 @@ describe('RangeField auto-save', () => {
 
     const slider = screen.getByRole('slider');
     // Just focus and blur without changing the value
-    slider.focus();
+    act(() => slider.focus());
     await userEvent.tab();
 
     // Wait a bit to ensure no mutation is triggered
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await act(() => new Promise(resolve => setTimeout(resolve, 100)));
     expect(mutationFn).not.toHaveBeenCalled();
   });
 });

@@ -8,10 +8,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import type {EventErrorData} from 'sentry/components/events/interfaces/types';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {
   GenericSchemaErrors,
   HttpProcessingErrors,
@@ -20,14 +20,13 @@ import {
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ActionableItemErrors, ActionableItemTypes} from './actionableItemsUtils';
 import {
@@ -482,13 +481,13 @@ export function ActionableItems({event, project}: ActionableItemsProps) {
 }
 
 const Description = styled('div')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 const StyledAlert = styled(Alert)`
   margin: 0 30px;
 `;
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;
 
 const ToggleButton = styled(Button)`

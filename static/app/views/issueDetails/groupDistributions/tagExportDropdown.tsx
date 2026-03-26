@@ -17,7 +17,7 @@ interface Props {
   tagKey: string;
 }
 
-export default function TagExportDropdown({tagKey, group, organization, project}: Props) {
+export function TagExportDropdown({tagKey, group, organization, project}: Props) {
   const [isExportDisabled, setIsExportDisabled] = useState(false);
   const hasDiscoverQuery = organization.features.includes('discover-query');
   const handleDataExport = useDataExport({

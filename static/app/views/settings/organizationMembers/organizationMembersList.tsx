@@ -8,25 +8,24 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SearchBar from 'sentry/components/searchBar';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SearchBar} from 'sentry/components/searchBar';
 import {ORG_ROLES} from 'sentry/constants';
 import {IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
   setApiQueryData,
@@ -34,16 +33,16 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
-import MembersFilter from './components/membersFilter';
-import InviteRequestRow from './inviteRequestRow';
-import OrganizationMemberRow from './organizationMemberRow';
+import {MembersFilter} from './components/membersFilter';
+import {InviteRequestRow} from './inviteRequestRow';
+import {OrganizationMemberRow} from './organizationMemberRow';
 
 const MemberListHeader = HookOrDefault({
   hookName: 'component:member-list-header',
@@ -286,7 +285,6 @@ function OrganizationMembersList() {
 
   const handleQueryChange = (query: string) => {
     navigate({
-      pathname: location.pathname,
       query: {...location.query, query, cursor: undefined},
     });
   };
@@ -437,14 +435,14 @@ const SearchWrapperWithFilter = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const StyledPanelItem = styled('div')`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
   width: 100%;
 `;

@@ -11,9 +11,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
+import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {EMPTY_HIGHLIGHT_DEFAULT} from 'sentry/components/events/highlights/util';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
@@ -54,14 +54,7 @@ describe('HighlightsDataSection', () => {
       url: `/organizations/${organization.slug}/replays/${replayId}/`,
       body: {},
     });
-    render(
-      <HighlightsDataSection
-        event={event}
-        project={project}
-        viewAllRef={{current: null}}
-      />,
-      {organization}
-    );
+    render(<HighlightsDataSection event={event} project={project} />, {organization});
     expect(screen.getByText('Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText("There's nothing here...")).toBeInTheDocument();

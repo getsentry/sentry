@@ -5,9 +5,8 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
+import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 
 interface Props {
@@ -17,7 +16,8 @@ interface Props {
 }
 
 export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
-  const isSupportedProvider = isSupportedAutofixProvider(repo.provider);
+  const isSeerSupportedProvider = useIsSeerSupportedProvider();
+  const isSupportedProvider = isSeerSupportedProvider(repo.provider);
 
   return (
     <RepoListItemContainer
@@ -68,7 +68,7 @@ const RepoListItemContainer = styled('div')<{
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   transition: background-color 0.1s ease;
   opacity: ${p => (p.disabled ? 0.65 : 1)};
-  padding-left: ${space(1.5)};
+  padding-left: ${p => p.theme.space.lg};
 
   &:hover {
     background-color: ${p =>
@@ -98,7 +98,7 @@ const RepoName = styled('div')`
 const RepoProvider = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const StyledCheckbox = styled(Checkbox)`

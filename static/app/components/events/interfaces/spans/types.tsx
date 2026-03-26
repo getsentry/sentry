@@ -1,6 +1,6 @@
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
-import type SpanTreeModel from './spanTreeModel';
+import type {SpanTreeModel} from './spanTreeModel';
 
 export type GapSpanType = {
   isOrphan: boolean;
@@ -71,7 +71,7 @@ type BaseSpanType = RawSpanType & {
   type?: undefined;
 };
 
-export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
+export const rawSpanKeys = new Set<keyof RawSpanType>([
   'trace_id',
   'parent_span_id',
   'span_id',

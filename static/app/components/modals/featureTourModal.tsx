@@ -8,7 +8,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export type TourStep = {
   body: React.ReactNode;
@@ -73,7 +72,7 @@ const defaultProps = {
  * trigger re-renders in the modal contents. This requires a bit of duplicate state
  * to be managed around the current step.
  */
-class FeatureTourModal extends Component<Props, State> {
+export class FeatureTourModal extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -122,8 +121,6 @@ class FeatureTourModal extends Component<Props, State> {
     return <Fragment>{children({showModal: this.handleShow})}</Fragment>;
   }
 }
-
-export default FeatureTourModal;
 
 type ContentsProps = ModalRenderProps &
   Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> &
@@ -201,18 +198,18 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
 
 const CloseButton = styled(Button)`
   position: absolute;
-  top: -${space(2)};
-  right: -${space(1)};
+  top: -${p => p.theme.space.xl};
+  right: -${p => p.theme.space.md};
 `;
 
 const TourHeader = styled('h4')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const TourButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const StepCounter = styled('div')`
@@ -225,12 +222,12 @@ const StepCounter = styled('div')`
 // Styled components that can be used to build tour content.
 export const TourText = styled('p')`
   text-align: center;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 `;
 
 export const TourImage = styled('img')`
   height: 200px;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 
   /** override styles in less files */
   max-width: 380px !important;

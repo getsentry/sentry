@@ -6,17 +6,17 @@ import {t} from 'sentry/locale';
 
 import type {OnDemandBudgets} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
-import ReserveAdditionalVolume from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
+import {ReserveAdditionalVolume} from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
-import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
+import {SpendLimitSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
 import {
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
 } from 'getsentry/views/spendLimits/utils';
 
-function SetSpendLimit({
+export function SetSpendLimit({
   activePlan,
   formData,
   stepNumber,
@@ -76,5 +76,3 @@ function SetSpendLimit({
     </Flex>
   );
 }
-
-export default SetSpendLimit;

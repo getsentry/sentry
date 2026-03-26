@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {UsageSeries} from './types';
@@ -27,7 +27,7 @@ type Props = {
  * We're going with this approach for simplicity sake. By keeping the range
  * as small as possible, this call is quite fast.
  */
-function UsageStatsPerMin({
+export function UsageStatsPerMin({
   organization,
   projectIds,
   dataCategory,
@@ -97,8 +97,6 @@ function UsageStatsPerMin({
     </Wrapper>
   );
 }
-
-export default UsageStatsPerMin;
 
 const Wrapper = styled('div')`
   display: inline-block;

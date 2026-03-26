@@ -1,11 +1,14 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {mapAssertionFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
+import {createMapFormErrors} from 'sentry/views/alerts/rules/uptime/formErrors';
+import {
+  PreviewCheckResultProvider,
+  usePreviewCheckResult,
+} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
@@ -14,7 +17,6 @@ import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/commo
 import type {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
-import {ConnectedAssertionSuggestionsButton} from 'sentry/views/detectors/components/forms/uptime/connectedAssertionSuggestionsButton';
 import {ConnectedTestUptimeMonitorButton} from 'sentry/views/detectors/components/forms/uptime/connectedTestUptimeMonitorButton';
 import {UptimeDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/uptime/detect';
 import {
@@ -65,7 +67,16 @@ function UptimeDetectorForm() {
 }
 
 export function NewUptimeDetectorForm() {
-  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
+  return (
+    <PreviewCheckResultProvider>
+      <NewUptimeDetectorFormContent />
+    </PreviewCheckResultProvider>
+  );
+}
+
+function NewUptimeDetectorFormContent() {
+  const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
+  const previewCheckResult = usePreviewCheckResult();
 
   return (
     <NewDetectorLayout
@@ -74,14 +85,9 @@ export function NewUptimeDetectorForm() {
       initialFormData={{}}
       environment={ENVIRONMENT_CONFIG}
       extraFooterButton={
-        hasRuntimeAssertions ? (
-          <Fragment>
-            {hasAiAssertionSuggestions && <ConnectedAssertionSuggestionsButton />}
-            <ConnectedTestUptimeMonitorButton />
-          </Fragment>
-        ) : undefined
+        hasRuntimeAssertions ? <ConnectedTestUptimeMonitorButton /> : undefined
       }
-      mapFormErrors={mapAssertionFormErrors}
+      mapFormErrors={createMapFormErrors(previewCheckResult)}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
@@ -89,7 +95,16 @@ export function NewUptimeDetectorForm() {
 }
 
 export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDetector}) {
-  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
+  return (
+    <PreviewCheckResultProvider>
+      <EditExistingUptimeDetectorFormContent detector={detector} />
+    </PreviewCheckResultProvider>
+  );
+}
+
+function EditExistingUptimeDetectorFormContent({detector}: {detector: UptimeDetector}) {
+  const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
+  const previewCheckResult = usePreviewCheckResult();
 
   return (
     <EditDetectorLayout
@@ -98,16 +113,9 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
       savedDetectorToFormData={uptimeSavedDetectorToFormData}
       environment={ENVIRONMENT_CONFIG}
       extraFooterButton={
-        hasRuntimeAssertions ? (
-          <Fragment>
-            {hasAiAssertionSuggestions && (
-              <ConnectedAssertionSuggestionsButton size="sm" />
-            )}
-            <ConnectedTestUptimeMonitorButton size="sm" />
-          </Fragment>
-        ) : undefined
+        hasRuntimeAssertions ? <ConnectedTestUptimeMonitorButton size="sm" /> : undefined
       }
-      mapFormErrors={mapAssertionFormErrors}
+      mapFormErrors={createMapFormErrors(previewCheckResult)}
     >
       <UptimeDetectorForm />
     </EditDetectorLayout>

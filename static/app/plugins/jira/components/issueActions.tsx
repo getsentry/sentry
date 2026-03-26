@@ -1,9 +1,9 @@
-import Form from 'sentry/components/deprecatedforms/form';
-import FormState from 'sentry/components/forms/state';
-import DefaultIssueActions from 'sentry/plugins/components/issueActions';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {FormState} from 'sentry/components/forms/state';
+import {IssueActions as DefaultIssueActions} from 'sentry/plugins/components/issueActions';
 import type {Writable} from 'sentry/types/core';
 
-class IssueActions extends DefaultIssueActions {
+export class IssueActions extends DefaultIssueActions {
   changeField = (
     action: DefaultIssueActions['props']['actionType'],
     name: string,
@@ -73,12 +73,7 @@ class IssueActions extends DefaultIssueActions {
           if (field.has_autocomplete) {
             field = Object.assign(
               {
-                url:
-                  '/api/0/issues/' +
-                  this.getGroup().id +
-                  '/plugins/' +
-                  this.props.plugin.slug +
-                  '/autocomplete',
+                url: `/api/0/organizations/${this.getOrganization().slug}/issues/${this.getGroup().id}/plugins/${this.props.plugin.slug}/autocomplete`,
               },
               field
             );
@@ -116,5 +111,3 @@ class IssueActions extends DefaultIssueActions {
     return form;
   }
 }
-
-export default IssueActions;

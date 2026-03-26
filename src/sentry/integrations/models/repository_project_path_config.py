@@ -6,12 +6,12 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
-    region_silo_model,
+    cell_silo_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-@region_silo_model
+@cell_silo_model
 class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -22,13 +22,17 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
         "sentry.OrganizationIntegration", on_delete="CASCADE"
     )
     organization_id = BoundedBigIntegerField(db_index=True)
-    # From a region point of view, you really only have per organization scoping.
+    # From a cell point of view, you really only have per organization scoping.
     integration_id = BoundedBigIntegerField(db_index=False)
     stack_root = models.TextField()
     source_root = models.TextField()
     default_branch = models.TextField(null=True)
     # Indicates if Sentry created this mapping
     automatically_generated = models.BooleanField(default=False, db_default=False)
+
+    # Transient flag: when True, the post_save signal skips side effects.
+    # Used by the bulk endpoint to fire side effects once per batch.
+    _skip_post_save: bool = False
 
     class Meta:
         app_label = "sentry"
@@ -45,10 +49,11 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
 
 
 def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
-    from sentry.models.group import Group
+    if instance._skip_post_save:
+        return
+
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
-    from sentry.utils.cache import cache
 
     def _spawn_update_schema_task():
         """
@@ -64,26 +69,12 @@ def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
         except Project.DoesNotExist:
             pass
 
-    def _clear_commit_context_cache():
-        """
-        Once we have a new code mapping for a project, we want to give all groups in the project
-        a new chance to generate missing suspect commits. We debounce the process_commit_context task
-        if we cannot find the Suspect Committer from the given code mappings. Thus, need to clear the
-        cache to reprocess with the new code mapping
-        """
-
-        group_ids = Group.objects.filter(project_id=instance.project_id).values_list(
-            "id", flat=True
-        )
-        cache_keys = [f"process-commit-context-{group_id}" for group_id in group_ids]
-        cache.delete_many(cache_keys)
-
     transaction.on_commit(_spawn_update_schema_task, router.db_for_write(type(instance)))
-    transaction.on_commit(_clear_commit_context_cache, router.db_for_write(type(instance)))
 
 
 post_save.connect(
     lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=RepositoryProjectPathConfig,
     weak=False,
+    dispatch_uid="repository_project_path_config_post_save",
 )

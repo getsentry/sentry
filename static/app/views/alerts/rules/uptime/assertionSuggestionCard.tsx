@@ -4,9 +4,13 @@ import {Flex, Stack, Surface} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
-import type {AssertionSuggestion} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeAssertionType,
+  UptimeComparisonType,
+  type UptimeAssertionSuggestion,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 function getConfidenceBadgeVariant(confidence: number): 'success' | 'warning' | 'danger' {
   if (confidence >= 0.8) {
@@ -20,7 +24,7 @@ function getConfidenceBadgeVariant(confidence: number): 'success' | 'warning' | 
 
 interface AssertionSuggestionCardProps {
   onApply: () => void;
-  suggestion: AssertionSuggestion;
+  suggestion: UptimeAssertionSuggestion;
 }
 
 export function AssertionSuggestionCard({
@@ -29,13 +33,13 @@ export function AssertionSuggestionCard({
 }: AssertionSuggestionCardProps) {
   const getAssertionLabel = () => {
     switch (suggestion.assertion_type) {
-      case 'status_code':
+      case UptimeAssertionType.STATUS_CODE:
         return tct('Status code [comparison] [value]', {
           comparison: suggestion.comparison.replace('_', ' '),
           value: suggestion.expected_value,
         });
-      case 'json_path':
-        if (suggestion.comparison === 'always') {
+      case UptimeAssertionType.JSON_PATH:
+        if (suggestion.comparison === UptimeComparisonType.ALWAYS) {
           return tct('[path] exists', {
             path: suggestion.json_path,
           });
@@ -45,8 +49,8 @@ export function AssertionSuggestionCard({
           comparison: suggestion.comparison.replace('_', ' '),
           value: `"${suggestion.expected_value}"`,
         });
-      case 'header':
-        if (suggestion.comparison === 'always') {
+      case UptimeAssertionType.HEADER:
+        if (suggestion.comparison === UptimeComparisonType.ALWAYS) {
           return tct('Header [name] exists', {
             name: suggestion.header_name,
           });

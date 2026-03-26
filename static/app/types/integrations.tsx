@@ -1,5 +1,6 @@
 import type {AlertProps} from '@sentry/scraps/alert';
 
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import type {Field} from 'sentry/components/forms/types';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import type {
@@ -434,13 +435,13 @@ export interface Integration extends CommonIntegration {
   scopes?: string[];
 }
 
-type ConfigData = {
+type ConfigData = Record<string, unknown> & {
   installationType?: string;
 };
 
 export interface OrganizationIntegration extends Integration {
   configData: ConfigData | null;
-  configOrganization: Field[];
+  configOrganization: JsonFormAdapterFieldConfig[];
   externalId: string;
   organizationId: string;
 }
@@ -448,7 +449,7 @@ export interface OrganizationIntegration extends Integration {
 // we include the configOrganization when we need it
 export interface IntegrationWithConfig extends Integration {
   configData: ConfigData;
-  configOrganization: Field[];
+  configOrganization: JsonFormAdapterFieldConfig[];
 }
 
 /**
@@ -570,7 +571,7 @@ export type AppOrProviderOrPlugin =
 /**
  * Webhooks and servicehooks
  */
-export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer';
+export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
 
 export type ServiceHook = {
   dateCreated: string;

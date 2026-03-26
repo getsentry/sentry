@@ -1,24 +1,24 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import IdBadge from 'sentry/components/idBadge';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {IdBadge} from 'sentry/components/idBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
@@ -27,13 +27,15 @@ const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restrictin
 type Props = {
   dataCategory: DataCategoryInfo;
   headers: React.ReactNode[];
+  location: Location;
+  navigate: ReactRouter3Navigate;
   usageStats: TableStat[];
   errors?: Record<string, Error>;
   isEmpty?: boolean;
   isError?: boolean;
   isLoading?: boolean;
   showStoredOutcome?: boolean;
-} & WithRouterProps;
+};
 
 export type TableStat = {
   accepted: number;
@@ -67,7 +69,7 @@ class UsageTable extends Component<Props> {
   };
 
   loadProject(projectId: number) {
-    updateProjects([projectId], this.props.router, {
+    updateProjects([projectId], this.props.location, this.props.navigate, {
       save: true,
       environments: [], // Clear environments when switching projects
     });
@@ -174,7 +176,17 @@ class UsageTable extends Component<Props> {
   }
 }
 
-export default withSentryRouter(UsageTable);
+/**
+ * Wrapper that injects `navigate` and `location` hooks into UsageTable.
+ */
+function UsageTableWithHooks(props: Omit<Props, 'navigate' | 'location'>) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  return <UsageTable {...props} navigate={navigate} location={location} />;
+}
+
+// eslint-disable-next-line @sentry/no-default-exports
+export default UsageTableWithHooks;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(7, auto);
@@ -202,5 +214,5 @@ const StyledIdBadge = styled(IdBadge)`
 
 const SubText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;

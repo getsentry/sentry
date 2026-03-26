@@ -16,4 +16,4 @@ const localStorageMock = function () {
   };
 };
 
-export default localStorageMock();
+export const localStorageWrapper = localStorageMock();

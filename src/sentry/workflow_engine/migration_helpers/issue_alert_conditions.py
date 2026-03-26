@@ -1,11 +1,12 @@
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Mapping
 
 from sentry.notifications.types import AssigneeTargetType
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
+from sentry.workflow_engine.endpoints.validators.base.data_condition import DataConditionInput
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 
@@ -17,9 +18,16 @@ class DataConditionKwargs:
     condition_result: bool
     condition_group: DataConditionGroup
 
+    def to_input(self) -> DataConditionInput:
+        return {
+            "type": self.type,
+            "comparison": self.comparison,
+            "conditionResult": self.condition_result,
+        }
+
 
 def create_every_event_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     return DataConditionKwargs(
         type=Condition.EVERY_EVENT,
@@ -30,7 +38,7 @@ def create_every_event_data_condition(
 
 
 def create_escalating_event_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     return DataConditionKwargs(
         type=Condition.REAPPEARED_EVENT,
@@ -41,7 +49,7 @@ def create_escalating_event_data_condition(
 
 
 def create_regression_event_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     return DataConditionKwargs(
         type=Condition.REGRESSION_EVENT,
@@ -52,7 +60,7 @@ def create_regression_event_data_condition(
 
 
 def create_existing_high_priority_issue_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     return DataConditionKwargs(
         type=Condition.EXISTING_HIGH_PRIORITY_ISSUE,
@@ -63,7 +71,7 @@ def create_existing_high_priority_issue_data_condition(
 
 
 def create_event_attribute_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     comparison = {
         "match": data["match"],
@@ -81,7 +89,7 @@ def create_event_attribute_data_condition(
 
 
 def create_first_seen_event_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     return DataConditionKwargs(
         type=Condition.FIRST_SEEN_EVENT,
@@ -92,7 +100,7 @@ def create_first_seen_event_data_condition(
 
 
 def create_new_high_priority_issue_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     return DataConditionKwargs(
         type=Condition.NEW_HIGH_PRIORITY_ISSUE,
@@ -103,7 +111,7 @@ def create_new_high_priority_issue_data_condition(
 
 
 def create_level_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     comparison = {"match": data["match"], "level": int(data["level"])}
 
@@ -116,7 +124,7 @@ def create_level_data_condition(
 
 
 def create_tagged_event_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     comparison = {
         "match": data["match"],
@@ -134,7 +142,7 @@ def create_tagged_event_data_condition(
 
 
 def create_age_comparison_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     comparison_type = AgeComparisonType(data["comparison_type"])
     value = int(data["value"])
@@ -162,7 +170,7 @@ def create_age_comparison_data_condition(
 
 
 def create_assigned_to_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     comparison = {
         "target_type": data["targetType"],
@@ -180,7 +188,7 @@ def create_assigned_to_data_condition(
 
 
 def create_issue_category_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     comparison = {
         "value": int(data["value"]),
@@ -200,8 +208,29 @@ def create_issue_category_data_condition(
     )
 
 
+def create_issue_type_data_condition(
+    data: Mapping[str, Any], dcg: DataConditionGroup
+) -> DataConditionKwargs:
+    comparison: dict[str, Any] = {
+        "value": str(data["value"]),
+    }
+    include_data = data.get("include")
+    if include_data is not None:
+        if isinstance(include_data, bool):
+            comparison["include"] = include_data
+        else:
+            comparison["include"] = include_data != "false"
+
+    return DataConditionKwargs(
+        type=Condition.ISSUE_TYPE,
+        comparison=comparison,
+        condition_result=True,
+        condition_group=dcg,
+    )
+
+
 def create_issue_occurrences_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     comparison = {"value": max(int(data["value"]), 0)}
 
@@ -214,7 +243,7 @@ def create_issue_occurrences_data_condition(
 
 
 def create_latest_release_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     return DataConditionKwargs(
         type=Condition.LATEST_RELEASE,
@@ -225,7 +254,7 @@ def create_latest_release_data_condition(
 
 
 def create_latest_adopted_release_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     comparison = {
         "release_age_type": data["oldest_or_newest"],
@@ -242,7 +271,7 @@ def create_latest_adopted_release_data_condition(
 
 def create_base_event_frequency_data_condition(
     value: int | float,
-    data: dict[str, Any],
+    data: Mapping[str, Any],
     dcg: DataConditionGroup,
     count_type: Condition,
     percent_type: Condition,
@@ -273,7 +302,7 @@ def create_base_event_frequency_data_condition(
 
 
 def create_event_frequency_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     value = int(data["value"])
     return create_base_event_frequency_data_condition(
@@ -286,7 +315,7 @@ def create_event_frequency_data_condition(
 
 
 def create_event_unique_user_frequency_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     value = int(data["value"])
     return create_base_event_frequency_data_condition(
@@ -299,7 +328,7 @@ def create_event_unique_user_frequency_data_condition(
 
 
 def create_percent_sessions_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+    data: Mapping[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     value = float(data["value"])
     return create_base_event_frequency_data_condition(
@@ -312,7 +341,7 @@ def create_percent_sessions_data_condition(
 
 
 def create_event_unique_user_frequency_condition_with_conditions(
-    data: dict[str, Any], dcg: DataConditionGroup, conditions: list[dict[str, Any]] | None = None
+    data: Mapping[str, Any], dcg: DataConditionGroup, conditions: list[dict[str, Any]] | None = None
 ) -> DataCondition:
     comparison_type = data.get("comparisonType", ComparisonType.COUNT)
     comparison_type = ComparisonType(comparison_type)
@@ -363,7 +392,7 @@ def create_event_unique_user_frequency_condition_with_conditions(
 
 
 data_condition_translator_mapping: dict[
-    str, Callable[[dict[str, Any], Any], DataConditionKwargs]
+    str, Callable[[Mapping[str, Any], Any], DataConditionKwargs]
 ] = {
     "sentry.rules.conditions.every_event.EveryEventCondition": create_every_event_data_condition,
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition": create_escalating_event_data_condition,
@@ -380,6 +409,7 @@ data_condition_translator_mapping: dict[
     "sentry.rules.filters.age_comparison.AgeComparisonFilter": create_age_comparison_data_condition,
     "sentry.rules.filters.assigned_to.AssignedToFilter": create_assigned_to_data_condition,
     "sentry.rules.filters.issue_category.IssueCategoryFilter": create_issue_category_data_condition,
+    "sentry.rules.filters.issue_type.IssueTypeFilter": create_issue_type_data_condition,
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter": create_issue_occurrences_data_condition,
     "sentry.rules.filters.latest_release.LatestReleaseFilter": create_latest_release_data_condition,
     "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter": create_latest_adopted_release_data_condition,
@@ -389,9 +419,16 @@ data_condition_translator_mapping: dict[
 }
 
 
-def translate_to_data_condition(data: dict[str, Any], dcg: DataConditionGroup) -> DataCondition:
+def translate_to_data_condition_data(
+    data: Mapping[str, Any], dcg: DataConditionGroup
+) -> DataConditionKwargs:
     translator = data_condition_translator_mapping.get(data["id"])
     if not translator:
         raise ValueError(f"Unsupported condition: {data['id']}")
 
-    return DataCondition(**asdict(translator(data, dcg)))
+    return translator(data, dcg)
+
+
+def translate_to_data_condition(data: Mapping[str, Any], dcg: DataConditionGroup) -> DataCondition:
+    data_condition_data = translate_to_data_condition_data(data, dcg)
+    return DataCondition(**asdict(data_condition_data))

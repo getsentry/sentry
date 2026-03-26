@@ -1,12 +1,12 @@
 import {Link} from '@sentry/scraps/link';
 
-import Access from 'sentry/components/acl/access';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {Access} from 'sentry/components/acl/access';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -25,7 +25,7 @@ type Props = {
   project: Project;
 };
 
-export default function ProjectPlugins({
+export function ProjectPlugins({
   plugins,
   loading,
   error,

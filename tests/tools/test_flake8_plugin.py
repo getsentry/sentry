@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import ast
+from datetime import datetime, timezone
 
-from tools.flake8_plugin import SentryCheck
+from tools.flake8_plugin import SentryCheck, _s015_msg
 
 
 def _run(src: str, filename: str = "getsentry/t.py") -> list[str]:
@@ -240,3 +241,87 @@ def test(monkeypatch) -> None: pass
 """
     expected = ["t.py:1:9: S014 Use `unittest.mock` instead"]
     assert _run(src) == expected
+
+
+def test_S016() -> None:
+    # Direct import of ThreadPoolExecutor should be flagged
+    src = "from concurrent.futures import ThreadPoolExecutor\n"
+    errors = _run(src)
+    assert errors == [
+        "t.py:1:0: S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor`"
+        " instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation.",
+    ]
+
+    # Importing ThreadPoolExecutor alongside other names should still be flagged
+    src = "from concurrent.futures import ThreadPoolExecutor, as_completed\n"
+    errors = _run(src)
+    assert errors == [
+        "t.py:1:0: S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor`"
+        " instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation.",
+    ]
+
+    # Importing other names from concurrent.futures is fine
+    src = "from concurrent.futures import as_completed, wait, Future\n"
+    assert _run(src) == []
+
+    # Importing from our wrapper is fine
+    src = "from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor\n"
+    assert _run(src) == []
+
+
+def test_S015_current_or_future_year() -> None:
+    cy = datetime.now(timezone.utc).year
+    msg = _s015_msg()
+    # Current year at module scope is flagged
+    assert _run(
+        f"from datetime import datetime, timezone\n\n"
+        f"X = datetime({cy}, 1, 1, tzinfo=timezone.utc)\n",
+        filename="tests/x.py",
+    ) == [f"t.py:3:0: {msg}"]
+    # Future year at module scope is flagged
+    assert _run(
+        f"from datetime import datetime, timezone\n\n"
+        f"X = datetime({cy + 1}, 1, 1, tzinfo=timezone.utc)\n",
+        filename="tests/x.py",
+    ) == [f"t.py:3:0: {msg}"]
+    # Older year at module scope is allowed
+    assert (
+        _run(
+            "from datetime import datetime, timezone\n\n"
+            "X = datetime(2020, 1, 1, tzinfo=timezone.utc)\n",
+            filename="tests/x.py",
+        )
+        == []
+    )
+    # Datetime inside function body is allowed
+    assert (
+        _run(
+            f"def f():\n    x = datetime({cy}, 1, 1)\n",
+            filename="tests/x.py",
+        )
+        == []
+    )
+    # freeze_time with current year is flagged
+    assert _run(
+        f"from freezegun import freeze_time\nfrom datetime import datetime, timezone\n\n"
+        f"@freeze_time(datetime({cy}, 1, 1, tzinfo=timezone.utc))\n"
+        f"def t():\n    pass\n",
+        filename="tests/x.py",
+    ) == [f"t.py:4:1: {msg}"]
+    # freeze_time with future year is flagged
+    assert _run(
+        f"from freezegun import freeze_time\nfrom datetime import datetime, timezone\n\n"
+        f"@freeze_time(datetime({cy + 1}, 1, 1, tzinfo=timezone.utc))\n"
+        f"def t():\n    pass\n",
+        filename="tests/x.py",
+    ) == [f"t.py:4:1: {msg}"]
+    # freeze_time with older year is allowed
+    assert (
+        _run(
+            "from freezegun import freeze_time\nfrom datetime import datetime, timezone\n\n"
+            "@freeze_time(datetime(2020, 1, 1, tzinfo=timezone.utc))\n"
+            "def t():\n    pass\n",
+            filename="tests/x.py",
+        )
+        == []
+    )

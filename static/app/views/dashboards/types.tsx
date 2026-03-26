@@ -4,10 +4,21 @@ import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
+import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
+
+export enum DashboardFilter {
+  ONLY_FAVORITES = 'onlyFavorites',
+  EXCLUDE_FAVORITES = 'excludeFavorites',
+  OWNED = 'owned',
+  SHARED = 'shared',
+  EXCLUDE_PREBUILT = 'excludePrebuilt',
+  ONLY_PREBUILT = 'onlyPrebuilt',
+  SHOW_HIDDEN = 'showHidden',
+}
 
 export type LegendType = 'default' | 'breakdown';
 
@@ -18,11 +29,13 @@ export type LegendType = 'default' | 'breakdown';
 export const MAX_WIDGETS = 30;
 
 export const DEFAULT_TABLE_LIMIT = 5;
+export const MAX_TABLE_LIMIT = 10;
 
 export const DEFAULT_CATEGORICAL_BAR_LIMIT = 20;
 export const MAX_CATEGORICAL_BAR_LIMIT = 25;
 
 export const DEFAULT_WIDGET_NAME = t('Custom Widget');
+export const PREBUILT_DASHBOARD_LABEL = t('Sentry Built');
 
 export enum DisplayType {
   AREA = 'area',
@@ -36,6 +49,8 @@ export enum DisplayType {
   TOP_N = 'top_n',
   WHEEL = 'wheel',
   CATEGORICAL_BAR = 'categorical_bar',
+  AGENTS_TRACES_TABLE = 'agents_traces_table',
+  TEXT = 'text',
 }
 
 export enum WidgetType {
@@ -143,6 +158,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  axisRange?: AxisRange;
   changedReason?: WidgetChangedReason[];
   dashboardId?: string;
   datasetSource?: DatasetSource;

@@ -1,33 +1,16 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import {useLocation} from 'sentry/utils/useLocation';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/formatTimeSeriesResultsToChartData';
 import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('PerformanceScoreBreakdownChartWidget', () => {
   const organization = OrganizationFixture();
   let eventsStatsMock: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
@@ -55,15 +38,6 @@ describe('PerformanceScoreBreakdownChartWidget', () => {
   });
 
   it('renders', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
     render(<PerformanceScoreBreakdownChartWidget />, {organization});
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 

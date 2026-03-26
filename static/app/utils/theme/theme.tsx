@@ -11,6 +11,7 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
+import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports
@@ -18,9 +19,11 @@ import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/ligh
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
+import {makeSwatch, type Swatch} from './swatch';
 import type {MotionDuration, MotionEasing} from './types';
 
-type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
+type BaseTheme = typeof baseLightTheme | typeof baseDarkTheme;
+type Tokens = BaseTheme['tokens'];
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -40,6 +43,14 @@ const motionCurves: Record<
   exit: [0.64, 0, 0.8, 0],
 };
 
+// Disable transitions in acceptance tests or node testing environments.
+const IS_ACCEPTANCE_OR_TESTING = IS_ACCEPTANCE_TEST || NODE_ENV === 'test';
+const EMPTY_TRANSITION: Transition = {
+  duration: 0,
+  staggerChildren: 0,
+  type: false,
+};
+
 const motionCurveWithDuration = (
   durations: Record<MotionDuration, number>,
   easing: [number, number, number, number]
@@ -51,18 +62,24 @@ const motionCurveWithDuration = (
   };
 
   const framerMotion: Record<MotionDuration, Transition> = {
-    fast: {
-      duration: durations.fast / 1000,
-      ease: easing,
-    },
-    moderate: {
-      duration: durations.moderate / 1000,
-      ease: easing,
-    },
-    slow: {
-      duration: durations.slow / 1000,
-      ease: easing,
-    },
+    fast: IS_ACCEPTANCE_OR_TESTING
+      ? EMPTY_TRANSITION
+      : {
+          duration: durations.fast / 1000,
+          ease: easing,
+        },
+    moderate: IS_ACCEPTANCE_OR_TESTING
+      ? EMPTY_TRANSITION
+      : {
+          duration: durations.moderate / 1000,
+          ease: easing,
+        },
+    slow: IS_ACCEPTANCE_OR_TESTING
+      ? EMPTY_TRANSITION
+      : {
+          duration: durations.slow / 1000,
+          ease: easing,
+        },
   };
 
   return [motion, framerMotion];
@@ -214,7 +231,6 @@ const commonTheme = {
     settingsSidebarNav: 1018,
     sidebarPanel: 1019,
     sidebar: 1020,
-    orgAndUserMenu: 1030,
 
     // Sentry user feedback modal
     sentryErrorEmbed: 1090,
@@ -289,6 +305,7 @@ export interface SentryTheme extends Omit<
   chart: {
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
   };
+  swatch: Swatch;
   tokens: Tokens;
 }
 
@@ -858,6 +875,11 @@ const lightThemeDefinition = {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
 
+  swatch: makeSwatch(
+    (({lime: _lime, ...rest}) => rest)(color.categorical.light),
+    baseLightTheme.tokens.content.onVibrant
+  ),
+
   colors: lightColors,
 };
 
@@ -892,6 +914,11 @@ export const darkTheme: SentryTheme = {
   chart: {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
+
+  swatch: makeSwatch(
+    (({lime: _lime, ...rest}) => rest)(color.categorical.dark),
+    baseDarkTheme.tokens.content.onVibrant
+  ),
 
   colors: darkColors,
 };

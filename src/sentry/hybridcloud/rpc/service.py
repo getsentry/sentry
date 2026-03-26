@@ -32,20 +32,20 @@ from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.types.region import Region, RegionMappingNotFound
+from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
-    from sentry.hybridcloud.rpc.resolvers import RegionResolutionStrategy
+    from sentry.hybridcloud.rpc.resolvers import CellResolutionStrategy
 
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
 
 _IS_RPC_METHOD_ATTR = "__is_rpc_method"
-_REGION_RESOLUTION_ATTR = "__region_resolution"
-_REGION_RESOLUTION_OPTIONAL_RETURN_ATTR = "__region_resolution_optional_return"
+_CELL_RESOLUTION_ATTR = "__cell_resolution"
+_CELL_RESOLUTION_OPTIONAL_RETURN_ATTR = "__cell_resolution_optional_return"
 
 
 class RpcException(Exception):
@@ -62,14 +62,14 @@ class RpcMethodSignature(SerializableFunctionSignature):
     """Represent the contract for an RPC method.
 
     This class is responsible for serializing and deserializing arguments. If the
-    base service runs in the region silo, this class is also responsible for
-    resolving the arguments to the correct region for a remote call.
+    base service runs in the cell silo, this class is also responsible for
+    resolving the arguments to the correct cell for a remote call.
     """
 
     def __init__(self, base_service_cls: type[RpcService], base_method: Callable[..., Any]) -> None:
         self.base_service_cls = base_service_cls
         super().__init__(base_method, is_instance_method=True)
-        self._region_resolution = self._extract_region_resolution()
+        self._cell_resolution = self._extract_cell_resolution()
 
     def _setup_exception(self, message: str) -> RpcServiceSetupException:
         return RpcServiceSetupException(
@@ -97,42 +97,42 @@ class RpcMethodSignature(SerializableFunctionSignature):
     def get_name_segments(self) -> Sequence[str]:
         return self.service_name, self.method_name
 
-    def _extract_region_resolution(self) -> RegionResolutionStrategy | None:
-        region_resolution = getattr(self.base_function, _REGION_RESOLUTION_ATTR, None)
+    def _extract_cell_resolution(self) -> CellResolutionStrategy | None:
+        cell_resolution = getattr(self.base_function, _CELL_RESOLUTION_ATTR, None)
 
-        is_region_service = self.base_service_cls.local_mode == SiloMode.REGION
-        if not is_region_service and region_resolution is not None:
+        is_cell_service = self.base_service_cls.local_mode == SiloMode.CELL
+        if not is_cell_service and cell_resolution is not None:
             raise self._setup_exception(
-                "@regional_rpc_method should be used only on a service with "
-                "`local_mode = SiloMode.REGION`"
+                "@cell_rpc_method should be used only on a service with "
+                "`local_mode = SiloMode.CELL`"
             )
-        if is_region_service and region_resolution is None:
-            raise self._setup_exception("Needs @regional_rpc_method")
+        if is_cell_service and cell_resolution is None:
+            raise self._setup_exception("Needs @cell_rpc_method")
 
-        return region_resolution
+        return cell_resolution
 
-    def resolve_to_region(self, arguments: ArgumentDict) -> _RegionResolutionResult:
-        if self._region_resolution is None:
-            raise self._setup_exception("Does not run on the region silo")
+    def resolve_to_cell(self, arguments: ArgumentDict) -> _CellResolutionResult:
+        if self._cell_resolution is None:
+            raise self._setup_exception("Does not run on the cell silo")
 
         try:
-            region = self._region_resolution.resolve(arguments)
-            return _RegionResolutionResult(region)
-        except RegionMappingNotFound:
-            if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
-                return _RegionResolutionResult(None, is_early_halt=True)
+            cell = self._cell_resolution.resolve(arguments)
+            return _CellResolutionResult(cell=cell)
+        except CellMappingNotFound:
+            if getattr(self.base_function, _CELL_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
+                return _CellResolutionResult(cell=None, is_early_halt=True)
             else:
                 raise
 
 
 @dataclass(frozen=True)
-class _RegionResolutionResult:
-    region: Region | None
+class _CellResolutionResult:
+    cell: Cell | None
     is_early_halt: bool = False
 
     def __post_init__(self) -> None:
-        if (self.region is None) != self.is_early_halt:
-            raise ValueError("region must be supplied if and only if not halting early")
+        if (self.cell is None) != self.is_early_halt:
+            raise ValueError("cell must be supplied if and only if not halting early")
 
 
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
@@ -177,24 +177,24 @@ def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
     return method
 
 
-def regional_rpc_method(
-    resolve: RegionResolutionStrategy,
+def cell_rpc_method(
+    resolve: CellResolutionStrategy,
     return_none_if_mapping_not_found: bool = False,
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
     """Decorate methods to be exposed as part of the RPC interface.
 
-    In addition, resolves the region based on the resolve callback function.
+    In addition, resolves the cell based on the resolve callback function.
     Should be applied only to methods of an RpcService subclass.
 
     The `return_none_if_mapping_not_found` option indicates that, if we fail to find
-    a region in which to look for the queried object, the decorated method should
+    a cell in which to look for the queried object, the decorated method should
     return `None` indicating that the queried object does not exist. This should be
     set only on methods with an `Optional[...]` return type.
     """
 
     def decorator(method: Callable[..., _T]) -> Callable[..., _T]:
-        setattr(method, _REGION_RESOLUTION_ATTR, resolve)
-        setattr(method, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, return_none_if_mapping_not_found)
+        setattr(method, _CELL_RESOLUTION_ATTR, resolve)
+        setattr(method, _CELL_RESOLUTION_OPTIONAL_RETURN_ATTR, return_none_if_mapping_not_found)
         return rpc_method(method)
 
     return decorator
@@ -342,17 +342,17 @@ class RpcService(abc.ABC):
                         f"Signature was not initialized for {cls.__name__}.{method_name}",
                     )
 
-                if cls.local_mode == SiloMode.REGION:
-                    result = signature.resolve_to_region(kwargs)
+                if cls.local_mode == SiloMode.CELL:
+                    result = signature.resolve_to_cell(kwargs)
                     if result.is_early_halt:
                         return None
-                    region = result.region
+                    cell = result.cell
                 else:
-                    region = None
+                    cell = None
 
                 serial_arguments = signature.serialize_arguments(kwargs)
                 return dispatch_remote_call(
-                    region, cls.key, method_name, serial_arguments, use_test_client=use_test_client
+                    cell, cls.key, method_name, serial_arguments, use_test_client=use_test_client
                 )
 
             return remote_method
@@ -482,39 +482,39 @@ _RPC_CONTENT_CHARSET = "utf-8"
 
 
 def dispatch_remote_call(
-    region: Region | None,
+    cell: Cell | None,
     service_name: str,
     method_name: str,
     serial_arguments: ArgumentDict,
     use_test_client: bool = False,
 ) -> Any:
-    remote_silo_call = _RemoteSiloCall(region, service_name, method_name, serial_arguments)
+    remote_silo_call = _RemoteSiloCall(cell, service_name, method_name, serial_arguments)
     return remote_silo_call.dispatch(use_test_client)
 
 
 @dataclass(frozen=True)
 class _RemoteSiloCall:
-    region: Region | None
+    cell: Cell | None
     service_name: str
     method_name: str
     serial_arguments: ArgumentDict
 
     @property
     def address(self) -> str:
-        if self.region is None:
+        if self.cell is None:
             if not settings.SENTRY_CONTROL_ADDRESS:
                 raise RpcServiceSetupException(
                     self.service_name, self.method_name, "Control silo address is not configured"
                 )
             return settings.SENTRY_CONTROL_ADDRESS
         else:
-            if not self.region.address:
+            if not self.cell.address:
                 raise RpcServiceSetupException(
                     self.service_name,
                     self.method_name,
-                    f"Address for region {self.region.name!r} is not configured",
+                    f"Address for cell {self.cell.name!r} is not configured",
                 )
-            return self.region.address
+            return self.cell.address
 
     @property
     def path(self) -> str:
@@ -532,7 +532,7 @@ class _RemoteSiloCall:
 
     def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
         return dict(
-            rpc_destination_region=self.region.name if self.region else "control",
+            rpc_destination_region=self.cell.name if self.cell else "control",
             rpc_method=f"{self.service_name}.{self.method_name}",
             **additional_tags,
         )
@@ -666,14 +666,14 @@ class _RemoteSiloCall:
             f"remote service method to {self.path} called inside transaction!  Move service calls to outside of transactions."
         )
 
-        if self.region:
-            target_mode = SiloMode.REGION
+        if self.cell:
+            target_mode = SiloMode.CELL
         else:
             target_mode = SiloMode.CONTROL
 
         with (
             SingleProcessSiloModeState.exit(),
-            SingleProcessSiloModeState.enter(target_mode, self.region),
+            SingleProcessSiloModeState.enter(target_mode, self.cell),
         ):
             extra: Mapping[str, Any] = {
                 f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()

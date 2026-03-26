@@ -70,6 +70,13 @@ type ListBlock = BaseBlock<'list'> & {
 type CustomBlock = BaseBlock<'custom'> & {
   content: React.ReactNode;
   bottomMargin?: boolean;
+  /**
+   * Optional markdown representation of this custom block's content.
+   * Because `reactNodeToText` cannot extract rendered output from
+   * component elements, provide this when the custom block renders
+   * a component whose content should appear in the copied markdown.
+   */
+  markdown?: string;
 };
 
 export type ContentBlock =

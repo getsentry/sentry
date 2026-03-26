@@ -1,20 +1,16 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {HTTPLandingPage} from 'sentry/views/insights/http/views/httpLandingPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPLandingPage', () => {
@@ -28,22 +24,14 @@ describe('HTTPLandingPage', () => {
 
   let spanListRequestMock!: jest.Mock;
   let regionFilterRequestMock!: jest.Mock;
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    })
-  );
 
-  const useLocationMock = jest.mocked(useLocation);
+  const baseRouterConfig = {
+    location: {
+      pathname: '/insights/backend/http/',
+      query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
+    },
+    route: '/insights/backend/http/',
+  };
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -56,14 +44,15 @@ describe('HTTPLandingPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    useLocationMock.mockReturnValue({
-      pathname: '/insights/backend/http/',
-      search: '',
-      query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
+      },
     });
 
     ProjectsStore.loadInitialData([
@@ -239,7 +228,7 @@ describe('HTTPLandingPage', () => {
   });
 
   it('fetches module data', async () => {
-    render(<HTTPLandingPage />, {organization});
+    render(<HTTPLandingPage />, {organization, initialRouterConfig: baseRouterConfig});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -366,7 +355,7 @@ describe('HTTPLandingPage', () => {
   });
 
   it('renders a list of domains', async () => {
-    render(<HTTPLandingPage />, {organization});
+    render(<HTTPLandingPage />, {organization, initialRouterConfig: baseRouterConfig});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -406,22 +395,21 @@ describe('HTTPLandingPage', () => {
   });
 
   it('sorts with query params', async () => {
-    useLocationMock.mockReturnValue({
-      pathname: '/insights/backend/http/',
-      search: '',
-      query: {
-        statsPeriod: '10d',
-        'span.domain': 'git',
-        project: '1',
-        [QueryParameterNames.DOMAINS_SORT]: '-avg(span.self_time)',
+    render(<HTTPLandingPage />, {
+      organization,
+      initialRouterConfig: {
+        ...baseRouterConfig,
+        location: {
+          ...baseRouterConfig.location,
+          query: {
+            statsPeriod: '10d',
+            'span.domain': 'git',
+            project: '1',
+            [QueryParameterNames.DOMAINS_SORT]: '-avg(span.self_time)',
+          },
+        },
       },
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
     });
-
-    render(<HTTPLandingPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

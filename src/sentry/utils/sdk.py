@@ -78,18 +78,13 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
+    "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
 }
 
 SAMPLED_ROUTES = {
     "/_warmup/": 0.0,
     "/api/0/auth/validate/": 0.0,
-    # Temporary: 100% sampling for ai-conversations endpoint debugging (sentry org)
-    "/api/0/organizations/sentry/ai-conversations/": 1.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:

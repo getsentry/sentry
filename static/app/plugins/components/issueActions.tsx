@@ -3,13 +3,13 @@ import {Fragment} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
-import Form from 'sentry/components/deprecatedforms/form';
-import FormState from 'sentry/components/forms/state';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {FormState} from 'sentry/components/forms/state';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
-import GroupStore from 'sentry/stores/groupStore';
+import {PluginComponentBase} from 'sentry/plugins/pluginComponentBase';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -60,7 +60,7 @@ type State = {
   unlinkFieldList?: Field[];
 } & PluginComponentBase['state'];
 
-class IssueActions extends PluginComponentBase<Props, State> {
+export class IssueActions extends PluginComponentBase<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -138,21 +138,15 @@ class IssueActions extends PluginComponentBase<Props, State> {
   }
 
   getPluginCreateEndpoint() {
-    return (
-      '/issues/' + this.getGroup().id + '/plugins/' + this.props.plugin.slug + '/create/'
-    );
+    return `/organizations/${this.getOrganization().slug}/issues/${this.getGroup().id}/plugins/${this.props.plugin.slug}/create/`;
   }
 
   getPluginLinkEndpoint() {
-    return (
-      '/issues/' + this.getGroup().id + '/plugins/' + this.props.plugin.slug + '/link/'
-    );
+    return `/organizations/${this.getOrganization().slug}/issues/${this.getGroup().id}/plugins/${this.props.plugin.slug}/link/`;
   }
 
   getPluginUnlinkEndpoint() {
-    return (
-      '/issues/' + this.getGroup().id + '/plugins/' + this.props.plugin.slug + '/unlink/'
-    );
+    return `/organizations/${this.getOrganization().slug}/issues/${this.getGroup().id}/plugins/${this.props.plugin.slug}/unlink/`;
   }
 
   setDependentFieldState(fieldName: any, state: any) {
@@ -165,7 +159,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
 
     const groupId = this.getGroup().id;
     const pluginSlug = this.props.plugin.slug;
-    const url = `/issues/${groupId}/plugins/${pluginSlug}/options/`;
+    const url = `/organizations/${this.getOrganization().slug}/issues/${groupId}/plugins/${pluginSlug}/options/`;
 
     // find the fields that this field is dependent on
     const dependentFormValues = Object.fromEntries(
@@ -407,12 +401,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
                 if (field.has_autocomplete) {
                   field = Object.assign(
                     {
-                      url:
-                        '/api/0/issues/' +
-                        this.getGroup().id +
-                        '/plugins/' +
-                        this.props.plugin.slug +
-                        '/autocomplete',
+                      url: `/api/0/organizations/${this.getOrganization().slug}/issues/${this.getGroup().id}/plugins/${this.props.plugin.slug}/autocomplete`,
                     },
                     field
                   );
@@ -439,12 +428,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
                 if (field.has_autocomplete) {
                   field = Object.assign(
                     {
-                      url:
-                        '/api/0/issues/' +
-                        this.getGroup().id +
-                        '/plugins/' +
-                        this.props.plugin.slug +
-                        '/autocomplete',
+                      url: `/api/0/organizations/${this.getOrganization().slug}/issues/${this.getGroup().id}/plugins/${this.props.plugin.slug}/autocomplete`,
                     },
                     field
                   );
@@ -572,5 +556,3 @@ class IssueActions extends PluginComponentBase<Props, State> {
     );
   }
 }
-
-export default IssueActions;

@@ -22,7 +22,7 @@ import type {Client} from 'sentry/__mocks__/api';
 import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
@@ -203,18 +203,6 @@ DANGEROUS_SET_TEST_HISTORY({
 // Close any open modals before each test
 beforeEach(closeModal);
 
-jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
-  const ActualReactVirtualized = jest.requireActual('react-virtualized');
-  return {
-    ...ActualReactVirtualized,
-    AutoSizer: ({
-      children,
-    }: {
-      children: (props: {height: number; width: number}) => React.ReactNode;
-    }) => children({width: 100, height: 100}),
-  };
-});
-
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
   // guaranteed to be in scope
@@ -252,6 +240,7 @@ jest.mock('@sentry/react', function sentryReact() {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     withProfiler: SentryReact.withProfiler,
     metrics: {
+      count: jest.fn(),
       increment: jest.fn(),
       gauge: jest.fn(),
       set: jest.fn(),
@@ -390,4 +379,11 @@ Object.defineProperty(global.self, 'crypto', {
 
 if (typeof globalThis.structuredClone === 'undefined') {
   globalThis.structuredClone = nodeStructuredClone;
+}
+
+if (typeof globalThis.setImmediate === 'undefined') {
+  // @ts-expect-error setImmediate is not defined in jsdom, but we can use setTimeout as a polyfill
+  globalThis.setImmediate = setTimeout;
+  // @ts-expect-error clearImmediate is not defined in jsdom, but we can use clearTimeout as a polyfill
+  globalThis.clearImmediate = clearTimeout;
 }

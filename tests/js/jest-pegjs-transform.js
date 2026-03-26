@@ -1,7 +1,8 @@
 'use strict';
 
-const nodeCrypto = require('node:crypto');
-const peggy = require('peggy');
+import {createHash} from 'node:crypto';
+
+import peggy from 'peggy';
 
 /**
  * Generate cache key for Jest transformer
@@ -13,11 +14,7 @@ const peggy = require('peggy');
  * @returns {string} MD5 hash for cache key
  */
 function getCacheKey(fileData, _filePath, config, _options) {
-  return nodeCrypto
-    .createHash('md5')
-    .update(fileData)
-    .update(config.configString)
-    .digest('hex');
+  return createHash('md5').update(fileData).update(config.configString).digest('hex');
 }
 
 /**
@@ -31,4 +28,6 @@ function process(sourceText) {
   };
 }
 
-module.exports = {getCacheKey, process};
+const transform = {getCacheKey, process};
+
+export default transform;

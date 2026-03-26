@@ -6,15 +6,19 @@ import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
 import {
@@ -22,16 +26,16 @@ import {
   CopySetupInstructionsGate,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
@@ -96,7 +100,7 @@ type Props = {
   project: Project;
 };
 
-function ReleasesPromo({organization, project}: Props) {
+export function ReleasesPromo({organization, project}: Props) {
   const {data, isPending} = useApiQuery<SentryApp[]>(
     [
       getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
@@ -233,64 +237,65 @@ sentry-cli releases finalize "$VERSION"`;
           )}
         </Text>
 
-        <CopySetupInstructionsGate>
-          <Container>
-            <CopyMarkdownButton getMarkdown={getMarkdown} source="releases_quickstart" />
-          </Container>
-        </CopySetupInstructionsGate>
-
-        <CompactSelect
-          size="sm"
-          options={apps.map(makeAppOption)}
-          value={selectedApp?.slug}
-          emptyMessage={t('No Integrations')}
-          searchable
-          disabled={false}
-          menuFooter={({closeOverlay}) => (
-            <Button
-              tooltipProps={{
-                title: canMakeIntegration
-                  ? undefined
-                  : t(
-                      'You must be an organization owner, manager or admin to create an integration.'
-                    ),
-              }}
-              size="xs"
-              priority="transparent"
-              disabled={!canMakeIntegration}
-              onClick={() => {
-                closeOverlay();
-                openCreateReleaseIntegration({
-                  organization,
-                  project,
-                  onCreateSuccess: (app: SentryApp) => {
-                    setApps([app, ...apps]);
-                    setSelectedApp(app);
-                    generateAndSetNewToken(app.slug);
-                    trackQuickstartCreatedIntegration(app);
-                  },
-                  onCancel: trackCreateIntegrationModalClose,
-                });
-              }}
-            >
-              {t('Add New Integration')}
-            </Button>
-          )}
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              prefix={selectedApp ? t('Token From') : undefined}
-            >
-              {selectedApp ? triggerProps.children : t('Select Integration')}
-            </OverlayTrigger.Button>
-          )}
-          onChange={option => {
-            const app = apps.find(i => i.slug === option.value)!;
-            setSelectedApp(app);
-            generateAndSetNewToken(app.slug);
-          }}
-        />
-
+        <Flex justify="between" align="center">
+          <CompactSelect
+            style={{minWidth: 0}}
+            size="sm"
+            options={apps.map(makeAppOption)}
+            value={selectedApp?.slug}
+            emptyMessage={t('No Integrations')}
+            search
+            disabled={false}
+            menuFooter={({closeOverlay}) => (
+              <MenuComponents.CTAButton
+                tooltipProps={{
+                  title: canMakeIntegration
+                    ? undefined
+                    : t(
+                        'You must be an organization owner, manager or admin to create an integration.'
+                      ),
+                }}
+                disabled={!canMakeIntegration}
+                onClick={() => {
+                  closeOverlay();
+                  openCreateReleaseIntegration({
+                    organization,
+                    project,
+                    onCreateSuccess: (app: SentryApp) => {
+                      setApps([app, ...apps]);
+                      setSelectedApp(app);
+                      generateAndSetNewToken(app.slug);
+                      trackQuickstartCreatedIntegration(app);
+                    },
+                    onCancel: trackCreateIntegrationModalClose,
+                  });
+                }}
+              >
+                {t('Add New Integration')}
+              </MenuComponents.CTAButton>
+            )}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                prefix={selectedApp ? t('Token From') : undefined}
+              >
+                {selectedApp ? triggerProps.children : t('Select Integration')}
+              </OverlayTrigger.Button>
+            )}
+            onChange={option => {
+              const app = apps.find(i => i.slug === option.value)!;
+              setSelectedApp(app);
+              generateAndSetNewToken(app.slug);
+            }}
+          />
+          <CopySetupInstructionsGate>
+            <CopyMarkdownButton
+              borderless
+              getMarkdown={getMarkdown}
+              source="releases_quickstart"
+            />
+          </CopySetupInstructionsGate>
+        </Flex>
         <div ref={containerRef}>
           <CodeBlock
             dark
@@ -305,5 +310,3 @@ sentry-cli releases finalize "$VERSION"`;
     </Panel>
   );
 }
-
-export default ReleasesPromo;

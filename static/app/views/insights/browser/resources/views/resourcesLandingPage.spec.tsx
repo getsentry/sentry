@@ -1,14 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import ResourcesLandingPage from 'sentry/views/insights/browser/resources/views/resourcesLandingPage';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
@@ -25,8 +23,6 @@ const {
 } = SpanFields;
 const {EPM} = SpanFunction;
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks: Record<string, jest.Mock> = {};
@@ -35,6 +31,14 @@ describe('ResourcesLandingPage', () => {
   const organization = OrganizationFixture({
     features: ['insight-modules'],
   });
+
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/frontend/assets/`,
+      query: {statsPeriod: '10d'},
+    },
+    route: `/organizations/:orgId/insights/frontend/assets/`,
+  };
 
   beforeEach(() => {
     setupMocks();
@@ -46,7 +50,7 @@ describe('ResourcesLandingPage', () => {
   });
 
   it('renders a list of resources', async () => {
-    render(<ResourcesLandingPage />, {organization});
+    render(<ResourcesLandingPage />, {organization, initialRouterConfig});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(
@@ -59,7 +63,7 @@ describe('ResourcesLandingPage', () => {
   });
 
   it('fetches domain data', async () => {
-    render(<ResourcesLandingPage />, {organization});
+    render(<ResourcesLandingPage />, {organization, initialRouterConfig});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.domainSelector!.mock.calls).toMatchInlineSnapshot(`
@@ -77,7 +81,9 @@ describe('ResourcesLandingPage', () => {
           "count()",
         ],
         "per_page": 100,
-        "project": [],
+        "project": [
+          "2",
+        ],
         "query": "has:sentry.normalized_description span.category:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
         "referrer": "api.insights.get-span-domains",
         "sampling": "NORMAL",
@@ -93,7 +99,7 @@ describe('ResourcesLandingPage', () => {
   });
 
   it('contains correct query in charts', async () => {
-    render(<ResourcesLandingPage />, {organization});
+    render(<ResourcesLandingPage />, {organization, initialRouterConfig});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.mainTable!.mock.calls).toMatchInlineSnapshot(`
@@ -118,7 +124,9 @@ describe('ResourcesLandingPage', () => {
           "sum(span.self_time)",
         ],
         "per_page": 100,
-        "project": [],
+        "project": [
+          "2",
+        ],
         "query": "has:sentry.normalized_description !sentry.normalized_description:"browser-extension://*" ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) ",
         "referrer": "api.insights.browser.resources.main-table",
         "sampling": "NORMAL",
@@ -135,34 +143,20 @@ describe('ResourcesLandingPage', () => {
 });
 
 const setupMocks = () => {
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    })
-  );
-
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {statsPeriod: '10d'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
-
   ProjectsStore.loadInitialData([
     ProjectFixture({hasInsightsAssets: true, firstTransactionEvent: true}),
   ]);
+
+  PageFiltersStore.onInitializeUrlState({
+    projects: [],
+    environments: [],
+    datetime: {
+      period: '10d',
+      start: null,
+      end: null,
+      utc: false,
+    },
+  });
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,

@@ -11,7 +11,7 @@ from django.db import connections, router, transaction
 from django.db.models import Max, QuerySet
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model
+from sentry.db.models import Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.deletions.tasks.hybrid_cloud import (
     WatermarkBatch,
@@ -31,7 +31,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.savedsearch import SavedSearch
-from sentry.models.tombstone import RegionTombstone
+from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -42,14 +42,14 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import (
     assume_test_silo_mode,
     assume_test_silo_mode_of,
+    cell_silo_test,
     control_silo_test,
-    region_silo_test,
 )
-from sentry.types.region import find_regions_for_user
+from sentry.types.cell import find_cells_for_user
 from sentry.users.models.user import User
 
 
-@region_silo_model
+@cell_silo_model
 class DoNothingIntegrationModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
@@ -149,19 +149,19 @@ def setup_deletable_objects(
     for i in range(count):
         Factories.create_saved_search(f"s-{i}", owner_id=u_id)
 
-    for region_name in find_regions_for_user(u_id):
+    for cell_name in find_cells_for_user(u_id):
         shard = ControlOutbox(
-            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=u_id, region_name=region_name
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=u_id, cell_name=cell_name
         )
         if send_tombstones:
             shard.drain_shard()
 
         return SavedSearch.objects.filter(owner_id=u_id), shard
-    assert False, "find_regions_for_user could not determine a region for production."
+    assert False, "find_cells_for_user could not determine a cell for production."
 
 
 @django_db_all
-def test_region_processing(task_runner: Callable[[], ContextManager[None]]) -> None:
+def test_cell_processing(task_runner: Callable[[], ContextManager[None]]) -> None:
     reset_watermarks()
 
     # Assume we have two groups of objects
@@ -364,7 +364,7 @@ def setup_cross_db_deletion_data(
     )
 
 
-@region_silo_test
+@cell_silo_test
 class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -475,13 +475,13 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
     def test_empty_tombstones_table(self) -> None:
         unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
-        assert RegionTombstone.objects.count() == 0
+        assert CellTombstone.objects.count() == 0
 
         self.run_hybrid_cloud_fk_jobs()
         self.assert_monitors_unchanged(unaffected_data=unaffected_data)
 
 
-@region_silo_test
+@cell_silo_test
 class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -502,15 +502,15 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
         with assume_test_silo_mode_of(User), outbox_runner():
             user.delete()
 
-        tombstone = RegionTombstone.objects.get(
+        tombstone = CellTombstone.objects.get(
             object_identifier=user_id, table_name=User._meta.db_table
         )
 
-        highest_tombstone_id = RegionTombstone.objects.aggregate(Max("id"))
+        highest_tombstone_id = CellTombstone.objects.aggregate(Max("id"))
         monitor_owner_field = Monitor._meta.get_field("owner_user_id")
 
         ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
-            tombstone_cls=RegionTombstone,
+            tombstone_cls=CellTombstone,
             model=Monitor,
             field=monitor_owner_field,
             tombstone_watermark_batch=WatermarkBatch(
@@ -537,9 +537,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
                 user.delete()
 
             in_order_tombstones.append(
-                RegionTombstone.objects.get(
-                    object_identifier=user_id, table_name=User._meta.db_table
-                )
+                CellTombstone.objects.get(object_identifier=user_id, table_name=User._meta.db_table)
             )
 
         bounds_with_expected_results_tests = [
@@ -573,7 +571,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
             monitor_owner_field = Monitor._meta.get_field("owner_user_id")
 
             ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
-                tombstone_cls=RegionTombstone,
+                tombstone_cls=CellTombstone,
                 model=Monitor,
                 field=monitor_owner_field,
                 tombstone_watermark_batch=WatermarkBatch(
@@ -594,7 +592,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
         # correct table name.
         for udata in unaffected_data:
             unaffected_user = udata["user"]
-            RegionTombstone.objects.create(
+            CellTombstone.objects.create(
                 table_name="something_table", object_identifier=unaffected_user.id
             )
 
@@ -603,14 +601,14 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
         with assume_test_silo_mode_of(User), outbox_runner():
             user.delete()
 
-        tombstone = RegionTombstone.objects.get(
+        tombstone = CellTombstone.objects.get(
             object_identifier=user_id, table_name=User._meta.db_table
         )
 
-        highest_tombstone_id = RegionTombstone.objects.aggregate(Max("id"))
+        highest_tombstone_id = CellTombstone.objects.aggregate(Max("id"))
 
         ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
-            tombstone_cls=RegionTombstone,
+            tombstone_cls=CellTombstone,
             model=Monitor,
             field=Monitor._meta.get_field("owner_user_id"),
             tombstone_watermark_batch=WatermarkBatch(
@@ -636,7 +634,7 @@ def reserve_model_ids(model: type[Model], minimum_id: int) -> None:
                 last_id = cursor.fetchone()[0]
 
 
-@region_silo_test
+@cell_silo_test
 class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -658,11 +656,11 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
             user.delete()
 
         highest_model_id = Monitor.objects.aggregate(Max("id"))
-        tombstone = RegionTombstone.objects.get(
+        tombstone = CellTombstone.objects.get(
             object_identifier=user_id, table_name=User._meta.db_table
         )
         ids, oldest_obj = get_ids_cross_db_for_row_watermark(
-            tombstone_cls=RegionTombstone,
+            tombstone_cls=CellTombstone,
             model=Monitor,
             field=Monitor._meta.get_field("owner_user_id"),
             row_watermark_batch=WatermarkBatch(
@@ -684,10 +682,10 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         highest_model_id = Monitor.objects.aggregate(Max("id"))["id__max"]
 
         assert highest_model_id is not None
-        assert not RegionTombstone.objects.filter().exists()
+        assert not CellTombstone.objects.filter().exists()
 
         ids, oldest_obj = get_ids_cross_db_for_row_watermark(
-            tombstone_cls=RegionTombstone,
+            tombstone_cls=CellTombstone,
             model=Monitor,
             field=Monitor._meta.get_field("owner_user_id"),
             row_watermark_batch=WatermarkBatch(
@@ -756,7 +754,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
             monitor_owner_field = Monitor._meta.get_field("owner_user_id")
 
             ids, oldest_obj = get_ids_cross_db_for_row_watermark(
-                tombstone_cls=RegionTombstone,
+                tombstone_cls=CellTombstone,
                 model=Monitor,
                 field=monitor_owner_field,
                 row_watermark_batch=WatermarkBatch(
@@ -779,7 +777,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         # select the intersection of IDs from the monitor tombstones.
         for udata in unaffected_data:
             unaffected_user = udata["user"]
-            RegionTombstone.objects.create(
+            CellTombstone.objects.create(
                 table_name="something_table", object_identifier=unaffected_user.id
             )
 
@@ -788,14 +786,14 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         with assume_test_silo_mode_of(User), outbox_runner():
             user.delete()
 
-        tombstone = RegionTombstone.objects.get(
+        tombstone = CellTombstone.objects.get(
             object_identifier=user_id, table_name=User._meta.db_table
         )
 
         highest_model_id = Monitor.objects.aggregate(Max("id"))["id__max"]
 
         ids, oldest_obj = get_ids_cross_db_for_row_watermark(
-            tombstone_cls=RegionTombstone,
+            tombstone_cls=CellTombstone,
             model=Monitor,
             field=Monitor._meta.get_field("owner_user_id"),
             row_watermark_batch=WatermarkBatch(

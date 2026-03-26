@@ -4,12 +4,12 @@ import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
-import IssueAlertNotificationOptions, {
+import {
+  IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
@@ -62,7 +62,7 @@ const INTERVAL_CHOICES = [
   {value: '30d', label: t('30 days')},
 ];
 
-const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
+export const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
   alertSetting: RuleAction.DEFAULT_ALERT,
   interval: '1m',
   metric: MetricValues.ERRORS,
@@ -126,7 +126,7 @@ export interface IssueAlertOptionsProps extends Partial<AlertRuleOptions> {
   notificationProps?: IssueAlertNotificationProps;
 }
 
-export default function IssueAlertOptions({
+export function IssueAlertOptions({
   alertSetting = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.alertSetting,
   interval = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.interval,
   metric = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.metric,
@@ -213,9 +213,9 @@ export default function IssueAlertOptions({
 }
 
 const Content = styled('div')`
-  padding-top: ${space(2)};
-  padding-bottom: ${space(4)};
+  padding-top: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space['3xl']};
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
 `;

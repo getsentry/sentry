@@ -1,12 +1,20 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+
+if TYPE_CHECKING:
+    from sentry.incidents.endpoints.serializers.alert_rule import (
+        AlertRuleSerializerResponse,
+        DetailedAlertRuleSerializerResponse,
+    )
+
 from sentry.incidents.endpoints.serializers.utils import (
     get_fake_id_from_object_id,
     get_object_id_from_fake_id,
@@ -17,12 +25,15 @@ from sentry.incidents.endpoints.serializers.workflow_engine_data_condition impor
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineIncidentSerializer,
 )
-from sentry.incidents.models.alert_rule import AlertRuleStatus
+from sentry.incidents.models.alert_rule import (
+    AlertRuleStatus,
+    AlertRuleThresholdType,
+)
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import ExtrapolationMode, QuerySubscription, SnubaQueryEventType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -36,6 +47,7 @@ from sentry.workflow_engine.models import (
     Detector,
     DetectorWorkflow,
 )
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -227,6 +239,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             for detector in detectors.values()
             if detector.workflow_condition_group
         ]
+        # NOTE: Assumes DataConditions are limited to what would be dual written.
         detector_trigger_data_conditions = DataCondition.objects.filter(
             condition_group__in=detector_workflow_condition_group_ids,
             condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
@@ -244,7 +257,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 for detector_trigger in detector_trigger_data_conditions
             ],
             condition_group__in=Subquery(workflow_dcg_ids),
-        )
+        ).select_related("condition_group")
 
         dcgas = DataConditionGroupAction.objects.filter(
             condition_group__in=[
@@ -261,26 +274,51 @@ class WorkflowEngineDetectorSerializer(Serializer):
         )
 
         # add trigger and action data
-        serialized_data_conditions: list[dict[str, Any]] = []
-        for trigger in detector_trigger_data_conditions:
-            serialized_data_conditions.extend(
-                serialize(
-                    [trigger],
-                    user,
-                    WorkflowEngineDataConditionSerializer(),
-                    **kwargs,
-                )
-            )
+        # Evaluate queryset once and reuse for both serialization and lookup dict
+        detector_trigger_data_conditions_list = list(detector_trigger_data_conditions)
+        serialized_data_conditions = serialize(
+            detector_trigger_data_conditions_list,
+            user,
+            WorkflowEngineDataConditionSerializer(),
+            **kwargs,
+        )
         self.add_triggers_and_actions(
             result,
             detectors,
             sentry_app_installations_by_sentry_app_id,
             serialized_data_conditions,
         )
+        # derive thresholdType and sensitivity/seasonality from trigger data conditions
+        # Build a dict to avoid N queries when looking up by condition_group_id
+        trigger_dc_by_condition_group_id = {
+            dc.condition_group_id: dc for dc in detector_trigger_data_conditions_list
+        }
+        for detector in detectors.values():
+            wcg = detector.workflow_condition_group
+            if wcg:
+                trigger_dc = trigger_dc_by_condition_group_id.get(wcg.id)
+                if trigger_dc:
+                    if trigger_dc.type == Condition.ANOMALY_DETECTION:
+                        result[detector]["thresholdType"] = trigger_dc.comparison.get(
+                            "threshold_type"
+                        )
+                        result[detector]["sensitivity"] = trigger_dc.comparison.get("sensitivity")
+                        result[detector]["seasonality"] = trigger_dc.comparison.get("seasonality")
+                    else:
+                        result[detector]["thresholdType"] = (
+                            AlertRuleThresholdType.ABOVE.value
+                            if trigger_dc.type == Condition.GREATER
+                            else AlertRuleThresholdType.BELOW.value
+                        )
+                        result[detector]["sensitivity"] = None
+                        result[detector]["seasonality"] = None
+
         self.add_projects(result, detectors)
         self.add_created_by(result, list(detectors.values()))
         self.add_owner(result, list(detectors.values()))
-        # skipping snapshot data
+
+        # Note: originalAlertRuleId comes from AlertRuleActivity snapshots, which were not
+        # migrated to the workflow engine. This field will always be None for detectors.
 
         if "latestIncident" in self.expand:
             # to get the actions for a detector, we need to go from detector -> workflow -> action filters for that workflow -> actions
@@ -309,20 +347,53 @@ class WorkflowEngineDetectorSerializer(Serializer):
             self.add_latest_incident(result, user, detectors, detector_to_action_ids)
 
         # add information from snubaquery
-        data_source_detectors = DataSourceDetector.objects.filter(detector_id__in=detectors.keys())
-        query_subscriptions = QuerySubscription.objects.filter(
-            id__in=[dsd.data_source.source_id for dsd in data_source_detectors]
-        )
+        data_source_detectors = DataSourceDetector.objects.filter(
+            detector_id__in=detectors.keys()
+        ).select_related("data_source")
+        # Assumption: 1 DataSource per Detector
+        dsd_by_detector_id = {dsd.detector_id: dsd for dsd in data_source_detectors}
 
+        query_subscriptions = QuerySubscription.objects.filter(
+            id__in=[int(dsd.data_source.source_id) for dsd in data_source_detectors]
+        ).select_related("snuba_query__environment")
+        qs_by_id = {qs.id: qs for qs in query_subscriptions}
+
+        snuba_query_ids = []
         for detector in detectors.values():
-            data_source_detector = data_source_detectors.get(Q(detector=detector))
-            query_subscription = query_subscriptions.get(
-                Q(id=data_source_detector.data_source.source_id)
+            data_source_detector = dsd_by_detector_id[detector.id]
+            query_subscription = qs_by_id[int(data_source_detector.data_source.source_id)]
+            snuba_query = query_subscription.snuba_query
+            snuba_query_ids.append(snuba_query.id)
+            result[detector]["query"] = snuba_query.query
+            result[detector]["aggregate"] = snuba_query.aggregate
+            result[detector]["timeWindow"] = snuba_query.time_window / 60
+            result[detector]["resolution"] = snuba_query.resolution / 60
+            env = snuba_query.environment
+            result[detector]["environment"] = env.name if env else None
+            result[detector]["queryType"] = snuba_query.type
+            result[detector]["dataset"] = snuba_query.dataset
+            extrapolation_mode = snuba_query.extrapolation_mode
+            result[detector]["extrapolationMode"] = (
+                ExtrapolationMode(extrapolation_mode).name.lower()
+                if extrapolation_mode is not None
+                else None
             )
-            result[detector]["query"] = query_subscription.snuba_query.query
-            result[detector]["aggregate"] = query_subscription.snuba_query.aggregate
-            result[detector]["timeWindow"] = query_subscription.snuba_query.time_window / 60
-            result[detector]["resolution"] = query_subscription.snuba_query.resolution / 60
+            result[detector]["snuba_query_id"] = snuba_query.id
+
+        # Only query for event types if they will be included in the output
+        if "eventTypes" in self.expand:
+            event_types_by_snuba_query: defaultdict[int, list[str]] = defaultdict(list)
+            for event_type in SnubaQueryEventType.objects.filter(
+                snuba_query_id__in=snuba_query_ids
+            ):
+                event_types_by_snuba_query[event_type.snuba_query_id].append(
+                    SnubaQueryEventType.EventType(event_type.type).name.lower()
+                )
+            for detector in detectors.values():
+                sq_id: int | None = result[detector].get("snuba_query_id")
+                result[detector]["event_types"] = sorted(
+                    event_types_by_snuba_query[sq_id] if sq_id is not None else []
+                )
 
         return result
 
@@ -342,30 +413,88 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 # but we need to return *something*
                 alert_rule_id = get_fake_id_from_object_id(obj.id)
 
+        comparison_delta = obj.config.get("comparison_delta")
+
         data: AlertRuleSerializerResponse = {
             "id": str(alert_rule_id),
             "name": obj.name,
             "organizationId": str(obj.project.organization_id),
-            "status": (
-                AlertRuleStatus.PENDING.value
-                if obj.enabled is True
-                else AlertRuleStatus.DISABLED.value
-            ),
+            "status": AlertRuleStatus.PENDING.value,
+            "queryType": attrs.get("queryType"),
+            "dataset": attrs.get("dataset"),
             "query": attrs.get("query"),
             "aggregate": attrs.get("aggregate"),
+            "thresholdType": attrs.get("thresholdType"),
+            "resolveThreshold": triggers[0].get("resolveThreshold") if triggers else None,
             "timeWindow": attrs.get("timeWindow"),
+            "environment": attrs.get("environment"),
             "resolution": attrs.get("resolution"),
             "thresholdPeriod": 1,  # unset on detectors
             "triggers": triggers,
             "projects": sorted(attrs.get("projects", [])),
             "owner": attrs.get("owner", None),
+            "originalAlertRuleId": attrs.get("originalAlertRuleId", None),
+            "comparisonDelta": comparison_delta / 60 if comparison_delta else None,
             "dateModified": obj.date_updated,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by"),
             "description": obj.description if obj.description else "",
+            "sensitivity": attrs.get("sensitivity"),
+            "seasonality": attrs.get("seasonality"),
             "detectionType": obj.config.get("detection_type"),
         }
+
+        if not obj.enabled:
+            data["snooze"] = True
+
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
 
+        extrapolation_mode = attrs.get("extrapolationMode")
+        if extrapolation_mode is not None:
+            data["extrapolationMode"] = extrapolation_mode
+
+        # Only include eventTypes when explicitly requested (e.g., in detail views)
+        # to match DetailedAlertRuleSerializer behavior
+        if "eventTypes" in self.expand:
+            data["eventTypes"] = attrs.get("event_types", [])
+
+        return data
+
+
+class DetailedWorkflowEngineDetectorSerializer(Serializer):
+    """
+    Detailed serializer for detector detail endpoints.
+    Always includes eventTypes and snooze fields to match DetailedAlertRuleSerializer.
+
+    Known differences from DetailedAlertRuleSerializer:
+    - snooze/snoozeForEveryone: Derived from Detector.enabled instead of querying RuleSnooze
+    - snoozeCreatedBy: Not included (RuleSnooze model tracks this, but workflow engine doesn't)
+    - Detector.enabled=False is treated as snoozed for everyone
+    """
+
+    def __init__(self, expand: list[str] | None = None, prepare_component_fields: bool = False):
+        # Force eventTypes to always be in expand for detail views
+        expand = expand or []
+        if "eventTypes" not in expand:
+            expand = list(expand) + ["eventTypes"]
+        self.base_serializer = WorkflowEngineDetectorSerializer(
+            expand=expand, prepare_component_fields=prepare_component_fields
+        )
+
+    def get_attrs(
+        self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> defaultdict[Detector, dict[str, Any]]:
+        return self.base_serializer.get_attrs(item_list, user, **kwargs)
+
+    def serialize(
+        self, obj: Detector, attrs, user, **kwargs
+    ) -> DetailedAlertRuleSerializerResponse:
+        base_data = self.base_serializer.serialize(obj, attrs, user, **kwargs)
+        data: DetailedAlertRuleSerializerResponse = {
+            **base_data,
+            "snooze": not obj.enabled,
+        }
+        if not obj.enabled:
+            data["snoozeForEveryone"] = True
         return data

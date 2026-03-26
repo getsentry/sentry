@@ -256,7 +256,7 @@ function updateDataItemBorderRadius(
   });
 }
 
-function MiniBarChart({
+export function MiniBarChart({
   animateBars = false,
   barOpacity = 0.6,
   emphasisColors,
@@ -275,9 +275,9 @@ function MiniBarChart({
   ...props
 }: Props) {
   const theme = useTheme();
-  const xAxisLineColor: string = theme.tokens.border.transparent.neutral.muted;
+  const xAxisLineColor = theme.tokens.border.transparent.neutral.muted;
 
-  const updatedSeries: BarChartSeries[] = useMemo(() => {
+  const updatedSeries = useMemo(() => {
     if (!series?.length) {
       return [];
     }
@@ -376,5 +376,3 @@ function MiniBarChart({
     />
   );
 }
-
-export default MiniBarChart;

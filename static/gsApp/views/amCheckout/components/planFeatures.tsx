@@ -15,7 +15,7 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 import {DEFAULT_TIER, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {PlanTier, type Plan} from 'getsentry/types';
@@ -218,7 +218,7 @@ function MonitoringAndDataFeatures({
 
   const previousIncluded: Partial<Record<FeatureKey, number>> = {};
   planOptions.forEach(plan => {
-    const planType: PlanType = plan.name.toLowerCase() as PlanType;
+    const planType = plan.name.toLowerCase() as PlanType;
 
     Object.entries(plan.planCategories).forEach(([category, eventBuckets]) => {
       if (!orderedKeys.includes(category as DataCategory)) {
@@ -486,7 +486,7 @@ function FeatureItem({
   );
 }
 
-function PlanFeatures({
+export function PlanFeatures({
   planOptions,
   activePlan,
 }: {
@@ -588,5 +588,3 @@ function PlanFeatures({
     </Flex>
   );
 }
-
-export default PlanFeatures;

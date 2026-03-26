@@ -4,7 +4,7 @@ import abc
 import logging
 from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from datetime import datetime, timedelta
 from typing import Any, Optional, TypedDict, TypeVar, cast
 
@@ -18,7 +18,7 @@ from snuba_sdk import Column, Function
 
 from sentry import constants, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
@@ -27,13 +27,18 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.eap.occurrences.common_queries import count_occurrences_grouped_by_trace_ids
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
@@ -212,8 +217,16 @@ class TraceEvent:
         if len(self.event["issue.ids"]) > 0:
             if self.span_serialized:
                 self.load_span_serialized_performance_issues(light)
-            else:
+            elif snuba_params is not None:
                 self.load_performance_issues(light, snuba_params)
+            else:
+                logger.error(
+                    "Expected either span_serialized or snuba_params to be set",
+                    extra={
+                        "event_id": self.event["id"],
+                        "project_id": self.event["project.id"],
+                    },
+                )
 
     @property
     def nodestore_event(self) -> Event | GroupEvent | None:
@@ -283,7 +296,7 @@ class TraceEvent:
                     }
                 )
 
-    def load_performance_issues(self, light: bool, snuba_params: SnubaParams | None) -> None:
+    def load_performance_issues(self, light: bool, snuba_params: SnubaParams) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
         for group_id in self.event["issue.ids"]:
             group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
@@ -313,6 +326,49 @@ class TraceEvent:
                             query_source=self.query_source,
                         )
                     )["data"]
+
+                    callsite = "api.trace.load_performance_issues"
+                    if EAPOccurrencesComparator.should_check_experiment(callsite):
+                        try:
+                            eap_result = Occurrences.run_table_query(
+                                params=snuba_params,
+                                query_string=f"id:{self.event['id']}",
+                                selected_columns=["issue_occurrence_id"],
+                                orderby=None,
+                                offset=0,
+                                limit=len(occurrence_ids) + 100,
+                                referrer=Referrer.API_TRACE_VIEW_GET_OCCURRENCE_IDS.value,
+                                config=SearchResolverConfig(),
+                                occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+                            )
+                            eap_occurrence_ids = [
+                                {"occurrence_id": row["issue_occurrence_id"]}
+                                for row in eap_result.get("data", [])
+                                if row.get("issue_occurrence_id")
+                            ]
+                        except Exception:
+                            logger.exception(
+                                "Fetching occurrence IDs from EAP failed",
+                                extra={
+                                    "event_id": self.event["id"],
+                                    "project_id": self.event["project.id"],
+                                },
+                            )
+                            eap_occurrence_ids = []
+
+                        occurrence_ids = EAPOccurrencesComparator.check_and_choose(
+                            control_data=occurrence_ids,
+                            experimental_data=eap_occurrence_ids,
+                            callsite=callsite,
+                            is_experimental_data_a_null_result=len(eap_occurrence_ids) == 0,
+                            reasonable_match_comparator=lambda snuba, eap: {
+                                row["occurrence_id"] for row in eap
+                            }.issubset({row["occurrence_id"] for row in snuba}),
+                            debug_context={
+                                "event_id": self.event["id"],
+                                "project_id": self.event["project.id"],
+                            },
+                        )
 
                     issue_occurrences = IssueOccurrence.fetch_multi(
                         [str(occurrence.get("occurrence_id")) for occurrence in occurrence_ids],
@@ -518,7 +574,34 @@ def count_performance_issues(
         referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
         query_source=query_source,
     )
-    return count["data"][0].get("total_groups", 0)
+    snuba_count = count["data"][0].get("total_groups", 0)
+    performance_issues_count = snuba_count
+
+    callsite = "api.trace.count_performance_issues"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_count = count_occurrences_grouped_by_trace_ids(
+            snuba_params=params,
+            trace_ids=[trace_id],
+            referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        ).get(trace_id, 0)
+        performance_issues_count = EAPOccurrencesComparator.check_and_choose(
+            snuba_count,
+            eap_count,
+            callsite,
+            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    params.organization.id if params.organization is not None else None
+                ),
+                "project_ids": [project.id for project in params.projects],
+                "start": params.start.isoformat() if params.start else None,
+                "end": params.end.isoformat() if params.end else None,
+            },
+        )
+
+    return performance_issues_count
 
 
 @sentry_sdk.tracing.trace
@@ -685,6 +768,77 @@ def query_trace_data(
         query.process_results(result)["data"]
         for result, query in zip(results, [transaction_query, error_query, occurrence_query])
     ]
+
+    errors_callsite = "api.trace.query_trace_data.errors"
+    if EAPOccurrencesComparator.should_check_experiment(errors_callsite):
+        try:
+            eap_error_result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string=f"trace:{trace_id}",
+                selected_columns=[
+                    "id",
+                    "project_id",
+                    "project.name",
+                    "timestamp",
+                    "span_id",
+                    "transaction",
+                    "group_id",
+                    "title",
+                    "message",
+                    "level",
+                ],
+                orderby=["id"],
+                offset=0,
+                limit=limit,
+                referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+                config=SearchResolverConfig(),
+                occurrence_category=OccurrenceCategory.ERROR,
+            )
+            eap_errors = [
+                {
+                    "id": row.get("id", ""),
+                    "project": row.get("project.name", ""),
+                    "project.id": row.get("project_id"),
+                    "timestamp": row.get("timestamp", ""),
+                    "timestamp_ms": row.get("timestamp", ""),
+                    "trace.span": row.get("span_id", ""),
+                    "transaction": row.get("transaction", ""),
+                    "issue": row.get("group_id"),
+                    "issue.id": row.get("group_id"),
+                    "title": row.get("title", ""),
+                    "message": row.get("message", ""),
+                    "tags[level]": row.get("level", ""),
+                }
+                for row in eap_error_result.get("data", [])
+            ]
+        except Exception:
+            logger.exception(
+                "Fetching error occurrences for trace from EAP failed in query_trace_data",
+                extra={
+                    "trace_id": trace_id,
+                    "organization_id": (
+                        snuba_params.organization.id if snuba_params.organization else None
+                    ),
+                },
+            )
+            eap_errors = []
+
+        transformed_results[1] = EAPOccurrencesComparator.check_and_choose(
+            control_data=transformed_results[1],
+            experimental_data=eap_errors,
+            callsite=errors_callsite,
+            is_experimental_data_a_null_result=len(eap_errors) == 0,
+            reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
+                {e["id"] for e in snuba}
+            ),
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization else None
+                ),
+                "project_ids": snuba_params.project_ids,
+            },
+        )
 
     # Join group IDs from the occurrence dataset to transactions data
     occurrence_issue_ids = defaultdict(list)
@@ -921,7 +1075,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
         raise NotImplementedError
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -1108,7 +1262,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def update_children(event: TraceEvent, limit: int) -> None:
@@ -1133,7 +1287,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def nodestore_event_map(events: Sequence[SnubaTransaction]) -> dict[str, Event | GroupEvent]:
         event_map = {}
-        with ThreadPoolExecutor(max_workers=20) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=20) as executor:
             future_to_event = {
                 executor.submit(
                     eventstore.backend.get_event_by_id, event["project.id"], event["id"]
@@ -1444,7 +1598,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

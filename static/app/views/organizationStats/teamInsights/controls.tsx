@@ -14,15 +14,14 @@ import {
 } from 'sentry/components/timeRangeSelector';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {TeamWithProjects} from 'sentry/types/project';
 import {uniq} from 'sentry/utils/array/uniq';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import localStorage from 'sentry/utils/localStorage';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {dataDatetime} from './utils';
 
@@ -55,7 +54,7 @@ type Props = Pick<RouteComponentProps, 'router' | 'location'> & {
   showEnvironment?: boolean;
 };
 
-function TeamStatsControls({
+export function TeamStatsControls({
   location,
   router,
   currentTeam,
@@ -73,7 +72,7 @@ function TeamStatsControls({
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
   function handleChangeTeam(teamId: string) {
-    localStorage.setItem(localStorageKey, teamId);
+    localStorageWrapper.setItem(localStorageKey, teamId);
     // TODO(workflow): Preserve environment if it exists for the new team
     setStateOnUrl({team: teamId, environment: undefined});
   }
@@ -159,8 +158,8 @@ function TeamStatsControls({
               ':before': {
                 ...provided[':before'],
                 color: theme.tokens.content.primary,
-                marginRight: space(1.5),
-                marginLeft: space(0.5),
+                marginRight: theme.space.lg,
+                marginLeft: theme.space.xs,
               },
             };
             return {...provided, ...custom};
@@ -170,7 +169,7 @@ function TeamStatsControls({
             display: 'grid',
             gridTemplateColumns: 'max-content 1fr',
             alignItems: 'center',
-            gridGap: space(1),
+            gridGap: theme.space.md,
             ':before': {
               backgroundColor: theme.tokens.background.secondary,
               height: 24,
@@ -221,13 +220,11 @@ function TeamStatsControls({
   );
 }
 
-export default TeamStatsControls;
-
 const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
   display: grid;
   align-items: center;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 246px ${p => (p.showEnvironment ? '246px' : '')} 1fr;

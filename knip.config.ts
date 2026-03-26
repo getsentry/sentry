@@ -1,4 +1,3 @@
-import {compile} from '@mdx-js/mdx';
 import type {KnipConfig} from 'knip';
 
 const isProductionMode = process.argv.includes('--production');
@@ -6,32 +5,28 @@ const isProductionMode = process.argv.includes('--production');
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
-  // dynamic imports _not_ recognized by knip
-  'static/app/bootstrap/initializeMain.tsx',
-  'static/gsApp/initializeBundleMetrics.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
   'static/app/views/integrationPipeline/index.tsx',
   // very dynamically imported
-  'static/app/gettingStartedDocs/**/*.{js,mjs,ts,tsx}',
+  'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
   // --- we should be able to get rid of those: ---
-  // (WIP) design system tokens
-  'static/app/utils/theme/scraps/**/*.tsx',
   // Only used in stories (so far)
   'static/app/components/core/quote/*.tsx',
-  // Prevent exception until we build out coverage
-  'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
   // todo we currently keep all icons
-  'static/app/icons/**/*.{js,mjs,ts,tsx}',
+  'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
-  'static/app/chartcuterie/**/*.{js,mjs,ts,tsx}',
+  'static/app/chartcuterie/**/*.{js,ts,tsx}',
+  // TODO: Remove when used
+  'static/app/components/pipeline/**/*.{js,ts,tsx}',
 ];
 
 const testingEntryPoints = [
-  'static/**/*.spec.{js,mjs,ts,tsx}',
-  'tests/js/**/*.spec.{js,mjs,ts,tsx}',
+  'static/**/*.spec.{js,ts,tsx}',
+  'static/**/*.snapshots.tsx',
+  'tests/js/**/*.spec.{js,ts,tsx}',
   // jest uses this
   'tests/js/test-balancer/index.js',
 ];
@@ -40,8 +35,9 @@ const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storybook.tsx',
   'static/app/stories/playground/*.tsx',
-  'static/**/*.stories.{js,mjs,ts,tsx}',
+  'static/**/*.stories.{js,ts,tsx}',
   'static/**/*.mdx',
+  'build-utils/mdx-plugins.ts',
 ];
 
 const config: KnipConfig = {
@@ -49,27 +45,24 @@ const config: KnipConfig = {
     ...productionEntryPoints.map(entry => `${entry}!`),
     ...testingEntryPoints,
     ...storyBookEntryPoints,
-    'static/eslint/**/index.mjs',
+    'static/eslint/**/index.ts',
     // figma code connect files - consumed by Figma CLI
     'static/**/*.figma.{tsx,jsx}',
   ],
   project: [
-    'static/**/*.{js,mjs,ts,tsx}!',
+    'static/**/*.{js,ts,tsx}!',
     'config/**/*.ts',
-    'tests/js/**/*.{js,mjs,ts,tsx}',
+    'tests/js/**/*.{js,ts,tsx}',
     // fixtures can be ignored in production - it's fine that they are only used in tests
     '!static/**/{fixtures,__fixtures__}/**!',
     // helper files for tests - it's fine that they are only used in tests
-    '!static/**/*{t,T}estUtils*.{js,mjs,ts,tsx}!',
+    '!static/**/*{t,T}estUtils*.{js,ts,tsx}!',
     // helper files for stories - it's fine that they are only used in tests
-    '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
-    '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
+    '!static/app/**/__stories__/*.{js,ts,tsx}!',
+    '!static/app/stories/**/*.{js,ts,tsx}!',
     // ignore eslint plugins in production
-    '!static/eslint/**/*.mjs!',
+    '!static/eslint/**/*.ts!',
   ],
-  compilers: {
-    mdx: async text => String(await compile(text)),
-  },
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
@@ -84,6 +77,7 @@ const config: KnipConfig = {
     '@babel/preset-react', // Still used in jest
     '@babel/preset-typescript', // Still used in jest
     '@emotion/babel-plugin', // Still used in jest
+    'odiff-bin', // raw binary consumed by Python backend, not a JS import
   ],
   rules: {
     binaries: 'off',
@@ -91,6 +85,9 @@ const config: KnipConfig = {
     unlisted: 'off',
   },
   include: ['nsExports', 'nsTypes'],
+  mdx: {
+    config: 'tsconfig.mdx.json',
+  },
 };
 
 export default config;

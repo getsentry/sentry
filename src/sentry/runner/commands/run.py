@@ -8,8 +8,8 @@ import time
 from typing import Any
 
 import click
+import taskbroker_client.constants as taskworker_constants
 
-import sentry.taskworker.constants as taskworker_constants
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
@@ -31,42 +31,6 @@ def _address_validate(
         host = value
         port = None
     return host, port
-
-
-class QueueSetType(click.ParamType):
-    name = "text"
-
-    def convert(self, value: str | None, param: object, ctx: object) -> frozenset[str] | None:
-        if value is None:
-            return None
-        # Providing a compatibility with splitting
-        # the `events` queue until multiple queues
-        # without the need to explicitly add them.
-        queues = set()
-        for queue in value.split(","):
-            if queue == "events":
-                queues.add("events.preprocess_event")
-                queues.add("events.process_event")
-                queues.add("events.save_event")
-
-                from sentry.runner.initializer import show_big_error
-
-                show_big_error(
-                    [
-                        "DEPRECATED",
-                        "`events` queue no longer exists.",
-                        "Switch to using:",
-                        "- events.preprocess_event",
-                        "- events.process_event",
-                        "- events.save_event",
-                    ]
-                )
-            else:
-                queues.add(queue)
-        return frozenset(queues)
-
-
-QueueSet = QueueSetType()
 
 
 @click.group()
@@ -141,13 +105,16 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
     """
     from django.conf import settings
+    from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
+    from sentry.taskworker.adapters import SentryMetricsBackend
     from sentry.taskworker.runtime import app
-    from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
     from sentry.utils.redis import redis_clusters
 
     app.load_modules()
-    run_storage = RunStorage(redis_clusters.get(redis_cluster))
+    run_storage = RunStorage(
+        metrics=SentryMetricsBackend(), redis=redis_clusters.get(redis_cluster)
+    )
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(app, run_storage)
@@ -165,85 +132,6 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
         while True:
             sleep_time = runner.tick()
             time.sleep(sleep_time)
-
-
-@run.command()
-@click.option(
-    "--pidfile",
-    help=(
-        "Optional file used to store the process pid. The "
-        "program will not start if this file already exists and "
-        "the pid is still alive."
-    ),
-)
-@click.option(
-    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
-)
-@click.option("--quiet", "-q", is_flag=True, default=False)
-@click.option("--no-color", is_flag=True, default=False)
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--without-gossip", is_flag=True, default=False)
-@click.option("--without-mingle", is_flag=True, default=False)
-@click.option("--without-heartbeat", is_flag=True, default=False)
-@log_options()
-@configuration
-def cron(**options: Any) -> None:
-    # TODO(taskworker) Remove this stub command
-    while True:
-        click.secho(
-            "The cron command has been removed. Use `sentry run taskworker-scheduler` instead.",
-            fg="yellow",
-        )
-        time.sleep(5)
-
-
-@run.command()
-@click.option(
-    "--hostname",
-    "-n",
-    help=("Set custom hostname, e.g. 'w1.%h'. Expands: %h(hostname), %n (name) and %d, (domain)."),
-)
-@click.option(
-    "--queues",
-    "-Q",
-    type=QueueSet,
-    help=(
-        "List of queues to enable for this worker, separated by "
-        "comma. By default all configured queues are enabled. "
-        "Example: -Q video,image"
-    ),
-)
-@click.option("--exclude-queues", "-X", type=QueueSet)
-@click.option(
-    "--concurrency",
-    "-c",
-    default=1,
-    help=(
-        "Number of child processes processing the queue. The "
-        "default is the number of CPUs available on your "
-        "system."
-    ),
-)
-@click.option(
-    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
-)
-@click.option("--quiet", "-q", is_flag=True, default=False)
-@click.option("--no-color", is_flag=True, default=False)
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--without-gossip", is_flag=True, default=False)
-@click.option("--without-mingle", is_flag=True, default=False)
-@click.option("--without-heartbeat", is_flag=True, default=False)
-@click.option("--max-tasks-per-child", default=10000)
-@click.option("--ignore-unknown-queues", is_flag=True, default=False)
-@log_options()
-@configuration
-def worker(ignore_unknown_queues: bool, **options: Any) -> None:
-    # TODO(taskworker) Remove this stub command
-    while True:
-        click.secho(
-            "The worker command has been removed. Use `sentry run taskworker` instead.", fg="yellow"
-        )
-        time.sleep(5)
 
 
 @run.command()
@@ -327,12 +215,12 @@ def run_taskworker(
     """
     taskworker factory that can be reloaded
     """
-    from sentry.taskworker.client.client import make_broker_hosts
-    from sentry.taskworker.worker import TaskWorker
+    from taskbroker_client.worker import TaskWorker
+    from taskbroker_client.worker.client import make_broker_hosts
 
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
-            app_module="sentry.taskworker.runtime:app",
+            app_module="sentry.taskworker.bootstrap:app",
             broker_hosts=make_broker_hosts(
                 host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
             ),
@@ -360,6 +248,18 @@ def run_taskworker(
     help="Number of messages to send to the kafka topic",
     default=1,
     show_default=True,
+)
+@click.option(
+    "--infinite",
+    is_flag=True,
+    default=False,
+    help="Send tasks indefinitely",
+)
+@click.option(
+    "--infinite-delay-ms",
+    type=int,
+    help="The delay in milliseconds between each task",
+    default=0,
 )
 @click.option(
     "--kwargs",
@@ -406,6 +306,8 @@ def taskbroker_send_tasks(
     args: str,
     kwargs: str,
     repeat: int,
+    infinite: bool,
+    infinite_delay_ms: int,
     bootstrap_servers: str,
     kafka_topic: str,
     namespace: str,
@@ -415,7 +317,9 @@ def taskbroker_send_tasks(
     from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.utils.imports import import_string
 
-    KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
+    if bootstrap_servers:
+        KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
+
     if kafka_topic and namespace:
         options.set("taskworker.route.overrides", {namespace: kafka_topic})
 
@@ -434,13 +338,31 @@ def taskbroker_send_tasks(
         )
         task_args.append(extra_padding_arg)
 
-    checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
-    for i in range(repeat):
-        func.delay(*task_args, **task_kwargs)
-        if i in checkmarks:
-            click.echo(message=f"{int((i / repeat) * 100)}% complete")
+    if not infinite:
+        checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
+        for i in range(repeat):
+            func.delay(*task_args, **task_kwargs)
+            if i in checkmarks:
+                click.echo(message=f"{int((i / repeat) * 100)}% complete")
 
-    click.echo(message=f"Successfully sent {repeat} messages.")
+        click.echo(message=f"Successfully sent {repeat} messages.")
+    else:
+        sent = 0.0
+        start_time = time.time()
+        while True:
+            func.delay(*task_args, **task_kwargs)
+            sent += 1.0
+            interval = time.time() - start_time
+            if sent % 1000 == 0 and interval > 10:
+                throughput = sent / interval
+                click.echo(
+                    message=f"Sent {sent} messages in {interval} seconds. Throughput: {throughput} messages/second."
+                )
+                start_time = time.time()
+                sent = 0.0
+
+            if infinite_delay_ms > 0:
+                time.sleep(infinite_delay_ms / 1000.0)
 
 
 @run.command("consumer")

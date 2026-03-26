@@ -11,6 +11,7 @@ from slack_sdk.models.blocks import (
     ContextBlock,
     InteractiveElement,
     LinkButtonElement,
+    MarkdownBlock,
     MarkdownTextObject,
     PlainTextObject,
     RichTextBlock,
@@ -26,6 +27,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerExplorerError,
+    SeerExplorerResponse,
 )
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -91,6 +94,10 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_autofix_error(data)
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data)
+        elif isinstance(data, SeerExplorerError):
+            return cls._render_explorer_error(data)
+        elif isinstance(data, SeerExplorerResponse):
+            return cls._render_explorer_response(data)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -108,7 +115,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return ButtonElement(
             text=AUTOFIX_CONFIG[data.stopping_point]["label"],
             style="primary",
-            value=data.stopping_point.value,
+            value=data.stopping_point,
             action_id=encode_action_id(
                 action=SlackAction.SEER_AUTOFIX_START.value,
                 organization_id=data.organization_id,
@@ -157,8 +164,15 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             blocks.append(RichTextBlock(elements=[list_element]))
         if data.changes:
             for change in data.changes[:MAX_CHANGES]:
-                change_mrkdwn = f"_In {change['repo_name']}_:\n*{change['title']}*\n{change['description']}\n```\n{change['diff']}```"
-                blocks.append(SectionBlock(text=MarkdownTextObject(text=change_mrkdwn)))
+                change_mrkdwn = [f"_In {change['repo_name']}_:"]
+                if change.get("title"):
+                    change_mrkdwn.append(f"*{change['title']}*")
+
+                if change.get("description"):
+                    change_mrkdwn.append(f"{change['description']}")
+                if change.get("diff"):
+                    change_mrkdwn.append(f"```{change['diff']}```")
+                blocks.append(SectionBlock(text=MarkdownTextObject(text="\n".join(change_mrkdwn))))
         if data.pull_requests:
             action_id = encode_action_id(
                 action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
@@ -179,6 +193,22 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             blocks.append(ActionsBlock(elements=action_elements))
 
         return SlackRenderable(blocks=blocks, text="Seer has emerged with news from its voyage")
+
+    @classmethod
+    def _render_explorer_error(cls, data: SeerExplorerError) -> SlackRenderable:
+        return SlackRenderable(
+            blocks=[
+                SectionBlock(text=data.error_title),
+                SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
+            ],
+            text=f"Seer stumbled: {data.error_title}",
+        )
+
+    @classmethod
+    def _render_explorer_response(cls, data: SeerExplorerResponse) -> SlackRenderable:
+        blocks: list[Block] = [MarkdownBlock(text=data.summary)]
+
+        return SlackRenderable(blocks=blocks, text="Seer Explorer has finished")
 
     @classmethod
     def _render_link_button(

@@ -9,21 +9,20 @@ import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
-import Pagination from 'sentry/components/pagination';
-import TimeSince from 'sentry/components/timeSince';
+import {Pagination} from 'sentry/components/pagination';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
@@ -35,7 +34,7 @@ import {
   handleUpdateHomepageQuery,
 } from './savedQuery/utils';
 import MiniGraph from './miniGraph';
-import QueryCard from './querycard';
+import {QueryCard} from './querycard';
 import {
   getPrebuiltQueries,
   handleAddQueryToDashboard,
@@ -391,7 +390,7 @@ const PaginationRow = styled(Pagination)`
 const QueryGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
@@ -403,7 +402,7 @@ const QueryGrid = styled('div')`
 `;
 
 const DropdownTrigger = styled(Button)`
-  transform: translateX(${space(1)});
+  transform: translateX(${p => p.theme.space.md});
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

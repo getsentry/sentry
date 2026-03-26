@@ -3,25 +3,25 @@ import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {Container} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {
   getPreprodBuildsDisplay,
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
@@ -37,13 +37,11 @@ export default function PreprodBuilds() {
   const projectSlug = releaseContext.project.slug;
   const projectPlatform = releaseContext.project.platform;
   const params = useParams<{release: string}>();
+  const navigate = useNavigate();
   const location = useLocation();
-  const hasDistributionFeature = organization.features.includes(
-    'preprod-build-distribution'
-  );
   const activeDisplay = useMemo(
-    () => getPreprodBuildsDisplay(location.query.display, hasDistributionFeature),
-    [hasDistributionFeature, location.query.display]
+    () => getPreprodBuildsDisplay(location.query.display),
+    [location.query.display]
   );
 
   const {query: urlSearchQuery, cursor} = useLocationQuery({
@@ -62,7 +60,7 @@ export default function PreprodBuilds() {
 
   useEffect(() => {
     if (debouncedLocalSearchQuery !== (urlSearchQuery || '')) {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -71,7 +69,7 @@ export default function PreprodBuilds() {
         },
       });
     }
-  }, [debouncedLocalSearchQuery, urlSearchQuery, location]);
+  }, [debouncedLocalSearchQuery, urlSearchQuery, location, navigate]);
 
   const queryParams: Record<string, any> = {
     per_page: 25,
@@ -135,7 +133,7 @@ export default function PreprodBuilds() {
 
   const handleDisplayChange = useCallback(
     (display: PreprodBuildsDisplay) => {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -144,7 +142,7 @@ export default function PreprodBuilds() {
         },
       });
     },
-    [location]
+    [location, navigate]
   );
 
   const builds = buildsData ?? [];

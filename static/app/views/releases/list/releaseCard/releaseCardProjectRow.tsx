@@ -8,18 +8,17 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import Count from 'sentry/components/count';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
+import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import NotAvailable from 'sentry/components/notAvailable';
+import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
@@ -76,7 +75,7 @@ type Props = {
   adoptionStages?: Release['adoptionStages'];
 };
 
-function ReleaseCardProjectRow({
+export function ReleaseCardProjectRow({
   activeDisplay,
   adoptionStages,
   getHealthData,
@@ -261,10 +260,8 @@ function ReleaseCardProjectRow({
   );
 }
 
-export default ReleaseCardProjectRow;
-
 const ProjectRow = styled(PanelItem)`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     font-size: ${p => p.theme.font.size.md};
   }
@@ -274,14 +271,14 @@ const StyledPlaceholder = styled(Placeholder)`
   height: 15px;
   display: inline-block;
   position: relative;
-  top: ${space(0.25)};
+  top: ${p => p.theme.space['2xs']};
 `;
 
 const AdoptionWrapper = styled('span')`
   flex: 1;
   display: inline-grid;
   grid-template-columns: 30px 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 
   /* Chart tooltips need overflow */
@@ -291,7 +288,7 @@ const AdoptionWrapper = styled('span')`
 const CrashFreeWrapper = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   align-items: center;
   vertical-align: middle;
 `;

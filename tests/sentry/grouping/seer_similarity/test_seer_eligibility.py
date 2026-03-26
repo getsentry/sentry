@@ -250,7 +250,10 @@ class ShouldCallSeerTest(TestCase):
             is False
         )
         mock_record_did_call_seer.assert_any_call(
-            empty_frame_event, call_made=False, blocker="empty-stacktrace-string"
+            empty_frame_event,
+            call_made=False,
+            blocker="empty-stacktrace-string",
+            training_mode=False,
         )
 
     @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
@@ -268,10 +271,10 @@ class ShouldCallSeerTest(TestCase):
             should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is False
         )
         mock_record_did_call_seer.assert_any_call(
-            self.event, call_made=False, blocker="race_condition"
+            self.event, call_made=False, blocker="race_condition", training_mode=False
         )
 
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
     def test_stacktrace_string_not_saved_in_event(
         self, mock_get_similarity_data: MagicMock
     ) -> None:

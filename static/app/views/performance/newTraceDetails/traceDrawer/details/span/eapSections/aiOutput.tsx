@@ -9,27 +9,11 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
-
-function isJson(value: string) {
-  try {
-    JSON.parse(value);
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-function renderAIResponse(text: string) {
-  return isJson(text) ? (
-    <TraceDrawerComponents.MultilineJSON value={text} maxDefaultDepth={2} />
-  ) : (
-    <TraceDrawerComponents.MultilineText>{text}</TraceDrawerComponents.MultilineText>
-  );
-}
 
 interface AIOutputData {
   responseObject: string | null;
@@ -192,10 +176,12 @@ export function AIOutputSection({
   node,
   attributes,
   event,
+  initialCollapse,
 }: {
   node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
+  initialCollapse?: boolean;
 }) {
   if (!getIsAiNode(node) || !hasAIOutputAttribute(node, attributes, event)) {
     return null;
@@ -214,16 +200,18 @@ export function AIOutputSection({
 
   return (
     <FoldSection
+      key={node.id}
       sectionKey={SectionKey.AI_OUTPUT}
       title={t('Output')}
       disableCollapsePersistence
+      initialCollapse={initialCollapse}
     >
       {responseText && (
         <Fragment>
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
-          {renderAIResponse(responseText)}
+          <AIContentRenderer text={responseText} />
         </Fragment>
       )}
       {responseObject && (
@@ -231,7 +219,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response Object')}
           </TraceDrawerComponents.MultilineTextLabel>
-          {renderAIResponse(responseObject)}
+          <AIContentRenderer text={responseObject} />
         </Fragment>
       )}
       {toolCalls && (

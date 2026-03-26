@@ -5,6 +5,7 @@ import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -18,14 +19,12 @@ import {
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
-import useOrganization from 'sentry/utils/useOrganization';
-import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
   /**
@@ -486,7 +485,7 @@ const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.primary};
   border-radius: ${p => p.theme.radius.md};
   width: 360px;

@@ -1,19 +1,19 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {
   ChartContainer,
   ChartControls,
   InlineContainer,
 } from 'sentry/components/charts/styles';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
@@ -30,14 +30,14 @@ import {
 import {TRENDS_FUNCTIONS, TRENDS_PARAMETERS} from 'sentry/views/performance/trends/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
-import LatencyChartControls from './latencyChart/chartControls';
+import {ChartControls as LatencyChartControls} from './latencyChart/chartControls';
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
-import DurationChart from './durationChart';
-import DurationPercentileChart from './durationPercentileChart';
-import LatencyChart from './latencyChart';
-import TrendChart from './trendChart';
-import UserMiseryChart from './userMiseryChart';
-import VitalsChart from './vitalsChart';
+import {DurationChart} from './durationChart';
+import {DurationPercentileChart} from './durationPercentileChart';
+import {LatencyChart} from './latencyChart';
+import {TrendChart} from './trendChart';
+import {UserMiseryChart} from './userMiseryChart';
+import {VitalsChart} from './vitalsChart';
 
 function generateDisplayOptions(
   currentFilter: SpanOperationBreakdownFilter
@@ -80,7 +80,7 @@ type Props = {
   project?: Project;
 };
 
-function TransactionSummaryCharts({
+export function TransactionSummaryCharts({
   totalValue,
   eventView,
   organization,
@@ -236,7 +236,7 @@ function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             projects={project ? [project] : []}
-            withBreakpoint={organization.features.includes('performance-new-trends')}
+            withBreakpoint
           />
         )}
         {display === DisplayModes.VITALS && (
@@ -302,5 +302,3 @@ function TransactionSummaryCharts({
 const ReversedChartControls = styled(ChartControls)`
   flex-direction: row-reverse;
 `;
-
-export default TransactionSummaryCharts;

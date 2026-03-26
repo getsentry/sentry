@@ -1,14 +1,14 @@
 import type {LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
 
-import DiscoverFeature from 'sentry/components/discover/discoverFeature';
+import {DiscoverFeature} from 'sentry/components/discover/discoverFeature';
 import {t} from 'sentry/locale';
 
 /**
  * Provide a button that turns itself off if the current organization
  * doesn't have access to discover results.
  */
-function DiscoverButton(buttonProps: LinkButtonProps) {
+export function DiscoverButton(buttonProps: LinkButtonProps) {
   return (
     <DiscoverFeature>
       {({hasFeature}) => (
@@ -21,5 +21,3 @@ function DiscoverButton(buttonProps: LinkButtonProps) {
     </DiscoverFeature>
   );
 }
-
-export default DiscoverButton;

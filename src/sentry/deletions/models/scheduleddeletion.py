@@ -10,7 +10,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, control_silo_model, region_silo_model
+from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, control_silo_model
 from sentry.deletions import RELOCATED_MODELS
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.services.user import RpcUser
@@ -33,7 +33,7 @@ class BaseScheduledDeletion(Model):
     the tasks/deletion/scheduled.py job in the future.  They are cancellable, and provide automatic, batched cascade
     in an async way for performance reasons.
 
-    Note that BOTH region AND control silos need to be able to schedule deletions of different records that will be
+    Note that BOTH cell AND control silos need to be able to schedule deletions of different records that will be
     reconciled in different places.  For that reason, the ScheduledDeletion model is split into two identical models
     representing this split.  Use the corresponding ScheduledDeletion based on the silo of the model being scheduled
     for deletion.
@@ -139,9 +139,9 @@ class BaseScheduledDeletion(Model):
 class ScheduledDeletion(BaseScheduledDeletion):
     """
     This model schedules deletions to be processed in control and monolith silo modes.  All historic schedule deletions
-    occur in this table.  In the future, when RegionScheduledDeletions have proliferated for the appropriate models,
-    we will allow any region models scheduled in this table to finish processing before ensuring that all models discretely
-    process in either this table or the region table.
+    occur in this table.  In the future, when CellScheduledDeletions have proliferated for the appropriate models,
+    we will allow any cell models scheduled in this table to finish processing before ensuring that all models discretely
+    process in either this table or the cell table.
     """
 
     class Meta:
@@ -150,13 +150,13 @@ class ScheduledDeletion(BaseScheduledDeletion):
         db_table = "sentry_scheduleddeletion"
 
 
-@region_silo_model
-class RegionScheduledDeletion(BaseScheduledDeletion):
+@cell_silo_model
+class CellScheduledDeletion(BaseScheduledDeletion):
     """
-    This model schedules deletions to be processed in region and monolith silo modes.  As new region silo test coverage
+    This model schedules deletions to be processed in cell and monolith silo modes.  As new cell silo test coverage
     increases, new scheduled deletions will begin to occur in this table.  Monolith (current saas) will continue
     processing them alongside the original scheduleddeletions table, but in the future this table will only be
-    processed by region silos.
+    processed by cell silos.
     """
 
     class Meta:
@@ -165,7 +165,7 @@ class RegionScheduledDeletion(BaseScheduledDeletion):
         db_table = "sentry_regionscheduleddeletion"
 
 
-def get_regional_scheduled_deletion(mode: SiloMode) -> type[BaseScheduledDeletion]:
+def get_cell_scheduled_deletion(mode: SiloMode) -> type[BaseScheduledDeletion]:
     if mode != SiloMode.CONTROL:
-        return RegionScheduledDeletion
+        return CellScheduledDeletion
     return ScheduledDeletion

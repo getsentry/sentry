@@ -1,26 +1,41 @@
+import {mutationOptions} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import Access from 'sentry/components/acl/access';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import formGroups from 'sentry/data/forms/cspReports';
+import {Access} from 'sentry/components/acl/access';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {
+  fetchMutation,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+  type ApiQueryKey,
+} from 'sentry/utils/queryClient';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import ReportUri, {
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {
   getSecurityDsn,
+  ReportUri,
 } from 'sentry/views/settings/projectSecurityHeaders/reportUri';
+
+const cspSchema = z.object({
+  'sentry:csp_ignored_sources_defaults': z.boolean(),
+  'sentry:csp_ignored_sources': z.string(),
+});
+
+type CspSchema = z.infer<typeof cspSchema>;
 
 function getInstructions(keyList: ProjectKey[]) {
   return (
@@ -52,6 +67,7 @@ function getReportOnlyInstructions(keyList: ProjectKey[]) {
 export default function ProjectCspReports() {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
+  const queryClient = useQueryClient();
 
   const {
     data: keyList,
@@ -99,8 +115,36 @@ export default function ProjectCspReports() {
     );
   }
 
+  const projectEndpoint = `/projects/${organization.slug}/${projectId}/`;
+  const projectQueryKey: ApiQueryKey = [
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
+    }),
+  ];
+
+  const cspMutationOptions = mutationOptions({
+    mutationFn: (data: Partial<CspSchema>) =>
+      fetchMutation<Project>({
+        url: projectEndpoint,
+        method: 'PUT',
+        data: {options: data},
+      }),
+    onSuccess: (updatedProject: Project) => {
+      setApiQueryData<Project>(queryClient, projectQueryKey, previousData => {
+        if (!previousData) {
+          return updatedProject;
+        }
+        return {
+          ...previousData,
+          ...updatedProject,
+          options: {...previousData.options, ...updatedProject.options},
+        };
+      });
+    },
+  });
+
   return (
-    <div>
+    <FormSearch route="/settings/:orgId/projects/:projectId/security-headers/csp/">
       <SentryDocumentTitle
         title={routeTitleGen(t('Content Security Policy (CSP)'), projectId, false)}
       />
@@ -108,16 +152,60 @@ export default function ProjectCspReports() {
 
       <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
 
-      <Form
-        saveOnBlur
-        apiMethod="PUT"
-        initialData={project.options}
-        apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
-      >
-        <Access access={['project:write']} project={project}>
-          {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
-        </Access>
-      </Form>
+      <Access access={['project:write']} project={project}>
+        {({hasAccess}) => (
+          <FieldGroup title={t('CSP Settings')}>
+            <AutoSaveForm
+              name="sentry:csp_ignored_sources_defaults"
+              schema={cspSchema}
+              initialValue={Boolean(
+                project.options?.['sentry:csp_ignored_sources_defaults']
+              )}
+              mutationOptions={cspMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Use default ignored sources')}
+                  hintText={t(
+                    'Our default list will attempt to ignore common issues and reduce noise.'
+                  )}
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={!hasAccess}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+
+            <AutoSaveForm
+              name="sentry:csp_ignored_sources"
+              schema={cspSchema}
+              initialValue={String(project.options?.['sentry:csp_ignored_sources'] ?? '')}
+              mutationOptions={cspMutationOptions}
+            >
+              {field => (
+                <field.Layout.Stack
+                  label={t('Additional ignored sources')}
+                  hintText={t(
+                    'Discard reports about requests from the given sources. Separate multiple entries with a newline.'
+                  )}
+                >
+                  <field.TextArea
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    autosize
+                    rows={4}
+                    placeholder={'e.g.\nfile://*\n*.example.com\nexample.com'}
+                    disabled={!hasAccess}
+                  />
+                </field.Layout.Stack>
+              )}
+            </AutoSaveForm>
+          </FieldGroup>
+        )}
+      </Access>
 
       <Panel>
         <PanelHeader>{t('About')}</PanelHeader>
@@ -177,6 +265,6 @@ export default function ProjectCspReports() {
           </p>
         </PanelBody>
       </Panel>
-    </div>
+    </FormSearch>
   );
 }

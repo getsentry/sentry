@@ -5,7 +5,10 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
-from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import GetTracesResponse, TraceAttribute
+from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import (
+    GetTracesResponse,
+    TraceAttribute,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 
 from sentry.api.endpoints.organization_traces import process_breakdowns
@@ -23,6 +26,11 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
+        # Shared 10am timestamps in the past to avoid midnight flakiness and future timestamps in CI.
+        self.reference_time_10am = before_now(days=1).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        self.reference_time_10am_3_days_ago = self.reference_time_10am - timedelta(days=2)
 
     def double_write_segment(
         self,
@@ -89,7 +97,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         timestamps = []
 
         # move this 3 days into the past to ensure less flakey tests
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3)
+        now = self.reference_time_10am_3_days_ago
 
         trace_id_1 = uuid4().hex
         timestamps.append(now - timedelta(minutes=10))
@@ -415,7 +423,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
@@ -478,7 +486,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         trace_id = uuid4().hex
         span_id_1 = "1" + uuid4().hex[:15]
         span_id_2 = "1" + uuid4().hex[:15]
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
@@ -565,7 +573,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
@@ -624,11 +632,75 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
+    def test_selected_projects(self) -> None:
+        trace_id = uuid4().hex
+        span_id = "1" + uuid4().hex[:15]
+        parent_span_id = "1" + uuid4().hex[:15]
+        now = self.reference_time_10am
+        ts = now - timedelta(minutes=10)
+        self.create_project()
+
+        self.double_write_segment(
+            project=self.project,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id=span_id,
+            parent_span_id=parent_span_id,
+            timestamp=ts,
+            transaction="foo",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            op="pageload",
+        )
+
+        timestamp = int(ts.timestamp() * 1000)
+
+        query = {
+            "project": [self.project.id],
+            "field": ["id", "parent_span", "span.duration"],
+            "query": "",
+            "maxSpansPerTrace": 3,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
+        assert response.data["data"] == [
+            {
+                "breakdowns": [
+                    {
+                        "duration": 60_100,
+                        "start": timestamp,
+                        "end": timestamp + 60_100,
+                        "sliceStart": 0,
+                        "sliceEnd": 40,
+                        "sliceWidth": 40,
+                        "isRoot": False,
+                        "kind": "project",
+                        "project": self.project.slug,
+                        "sdkName": "sentry.javascript.node",
+                    },
+                ],
+                "duration": 60_100,
+                "end": timestamp + 60_100,
+                "name": "foo",
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 1,
+                "matchingSpans": 1,
+                "project": self.project.slug,
+                "start": timestamp,
+                "trace": trace_id,
+                "rootDuration": 60_100,
+            },
+        ]
+
     def test_case_insensitive_filter(self) -> None:
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
@@ -689,7 +761,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         ]
 
     def test_use_separate_referrers(self) -> None:
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = self.reference_time_10am
         start = now - timedelta(days=2)
         end = now - timedelta(days=1)
         trace_id = uuid4().hex
@@ -865,9 +937,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
     def test_environment_filter(self) -> None:
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
-        timestamp = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(
-            days=3
-        )
+        timestamp = self.reference_time_10am_3_days_ago
 
         self.double_write_segment(
             project=self.project,
@@ -1092,7 +1162,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
 
     def test_span_name_as_name(self) -> None:
         project = self.create_project()
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3)
+        now = self.reference_time_10am_3_days_ago
         trace_id = uuid4().hex
 
         self.double_write_segment(
@@ -1136,7 +1206,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
 
             result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
 
-            assert result_data[0]["name"] == "bar"
+            # transaction name is preferred over span.name
+            assert result_data[0]["name"] == "foo"
 
 
 @pytest.mark.parametrize(

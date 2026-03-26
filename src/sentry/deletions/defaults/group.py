@@ -30,7 +30,9 @@ from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
+from sentry.tasks.seer.delete_seer_grouping_records import (
+    may_schedule_task_to_delete_hashes_from_seer,
+)
 from sentry.utils import metrics
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation

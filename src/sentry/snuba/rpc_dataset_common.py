@@ -180,6 +180,7 @@ class RPCBase:
         config: SearchResolverConfig,
         query_params: SnubaParams,
     ) -> list[TraceItemFilterWithType]:
+        from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
         from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
         from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
         from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
@@ -203,6 +204,11 @@ class RPCBase:
                 additional_queries.metric,
                 TRACE_METRICS_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_METRIC,
+            ),
+            (
+                additional_queries.occurrences,
+                OCCURRENCE_DEFINITIONS,
+                TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
             ),
         ]:
             if queries is not None:
@@ -825,9 +831,12 @@ class RPCBase:
             other_row_conditions = []
             for key in groupby_columns:
                 if key == "project.id":
-                    value = resolver.params.project_slug_map[
-                        event.get("project") or event["project.slug"]
-                    ]
+                    if "project.id" in event:
+                        value = event["project.id"]
+                    else:
+                        value = resolver.params.project_slug_map[
+                            event.get("project") or event["project.slug"]
+                        ]
                 else:
                     value = event[key]
                 resolved_term, context = resolver.resolve_term(
@@ -997,7 +1006,9 @@ class RPCBase:
 
                     groupby_value = groupby_attributes[resolved_groupby.internal_name]
                     if context is not None:
-                        groupby_value = context.constructor(params).value_map[groupby_value]
+                        groupby_value = context.constructor(params, search_resolver).value_map[
+                            groupby_value
+                        ]
                         groupby_attributes[resolved_groupby.internal_name] = groupby_value
 
                     remapped_groupby[col] = groupby_value

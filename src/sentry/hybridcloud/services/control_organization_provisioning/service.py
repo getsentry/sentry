@@ -19,33 +19,18 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     @abstractmethod
     @rpc_method
     def provision_organization(
-        self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
+        self,
+        *,
+        cell_name: str,
+        org_provision_args: OrganizationProvisioningOptions,
     ) -> RpcOrganizationSlugReservation:
         """
         Provisions an organization, an organization member, and team based on the provisioning args passed.
 
         In the event of a slug conflict, a new slug will be generated using the provided slug as a seed.
-        :param region_name: The region to provision the organization in.
+        :param cell_name: The cell to provision the organization in.
         :param org_provision_args: Provisioning and post-provisioning options for the organization.
         :return: RpcOrganizationSlugReservation containing the organization ID and slug.
-        """
-
-    @abstractmethod
-    @rpc_method
-    def idempotent_provision_organization(
-        self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
-    ) -> RpcOrganizationSlugReservation | None:
-        """
-        Provisions an organization, an organization member, and team based on the provisioning args passed.
-
-        In the event of a slug conflict, the conflicting org will be queried. If the provided owning_user_id
-        matches the organization's owning user, the organization will be returned. Otherwise, None will be returned.
-
-        Note: This is not intended to be used for normal organization provisioning; but rather, for use-cases
-        such as integrations which require strong idempotency.
-        :param region_name: The region to provision the organization in.
-        :param org_provision_args: Provisioning and post-provisioning options for the organization.
-        :return: RpcOrganization the organization ID and slug.
         """
 
     @abstractmethod
@@ -53,20 +38,20 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     def update_organization_slug(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         organization_id: int,
         desired_slug: str,
         require_exact: bool = True,
     ) -> RpcOrganizationSlugReservation:
         """
         Updates an organization's slug via an outbox based confirmation flow to ensure that the control
-        and region silos stay in sync.
+        and cell silos stay in sync.
 
         Initially, the organization slug reservation is updated in control silo, which generates a replica
-        outbox to the desired region in order to ensure that a slug change in control _will eventually_
-        result in a slug change on the region side.
+        outbox to the desired cell in order to ensure that a slug change in control _will eventually_
+        result in a slug change on the cell side.
 
-        :param region_name: The region where the organization exists
+        :param cell_name: The cell where the organization exists
         :param organization_id: the ID of the organization whose slug to change
         :param desired_slug: The slug to update the organization with
         :param require_exact: Determines whether the slug can be modified with a unique suffix in the
@@ -79,17 +64,15 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     def bulk_create_organization_slug_reservations(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         slug_mapping: dict[int, str],
     ) -> None:
         """
         Only really intended for bulk organization import usage. Creates unique organization slug
         reservations for the given list of IDs and slug bases for organizations already provisioned
-        in the provided region.
+        in the provided cell.
 
-        :param region_name: The region where the imported organization exist
-        :param organization_ids_and_slugs: A set of ID and base slug tuples to reserve slugs for.
-            This parameter is deprecated. Use slug_mapping instead.
+        :param cell_name: The cell where the imported organizations exist
         :param slug_mapping: A map of organization id -> slug to reserve.
         :return:
         """

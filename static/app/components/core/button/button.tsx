@@ -1,6 +1,8 @@
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -15,13 +17,15 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 export type {ButtonProps};
 
 export function Button({
-  size = 'md',
   disabled,
   type = 'button',
   tooltipProps,
   busy,
+  size: explicitSize,
   ...props
 }: ButtonProps) {
+  const contextSize = useSizeContext();
+  const size = explicitSize ?? contextSize ?? 'md';
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     type,
@@ -45,6 +49,7 @@ export function Button({
         type={type}
         busy={busy}
         {...props}
+        shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
         role="button"
       >
@@ -55,6 +60,7 @@ export function Button({
           minWidth="0"
           height="100%"
           whiteSpace="nowrap"
+          visibility={busy ? 'hidden' : undefined}
         >
           {props.icon && (
             <Flex
@@ -64,6 +70,7 @@ export function Button({
               marginRight={
                 hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : undefined
               }
+              aria-hidden="true"
             >
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
                 {props.icon}
@@ -71,12 +78,47 @@ export function Button({
             </Flex>
           )}
           {props.children}
+          {busy && (
+            <Flex
+              align="center"
+              justify="center"
+              position="absolute"
+              visibility="visible"
+              inset={0}
+            >
+              {({className}) => <BusySpinner className={className} aria-hidden />}
+            </Flex>
+          )}
         </Flex>
       </StyledButton>
     </Tooltip>
   );
 }
 
-const StyledButton = styled('button')<ButtonProps>`
-  ${p => getButtonStyles(p as any)}
+const StyledButton = styled('button')<
+  Omit<ButtonProps, 'size'> & {
+    shapeVariant: 'rectangular' | 'square';
+    size: NonNullable<ButtonProps['size']>;
+  }
+>`
+  ${p => getButtonStyles(p)}
+`;
+
+const spin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const BusySpinner = styled('span')`
+  &::after {
+    content: '';
+    display: block;
+    width: 1em;
+    height: 1em;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    animation: ${spin} 0.6s linear infinite;
+  }
 `;

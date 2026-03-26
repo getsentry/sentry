@@ -13,7 +13,7 @@ from rest_framework.exceptions import APIException
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.types.region import RegionContextError, get_local_region
+from sentry.types.cell import CellContextError, get_local_cell
 from sentry.utils import redis
 
 if TYPE_CHECKING:
@@ -86,8 +86,8 @@ class SnowflakeBitSegment:
 BIT_SEGMENT_SCHEMA = (
     VERSION_ID := SnowflakeBitSegment(5, "Version ID"),
     TIME_DIFFERENCE := SnowflakeBitSegment(32, "Time difference"),
-    REGION_ID := SnowflakeBitSegment(12, "Region ID"),
-    REGION_SEQUENCE := SnowflakeBitSegment(4, "Region sequence"),
+    CELL_ID := SnowflakeBitSegment(12, "Cell ID"),
+    CELL_SEQUENCE := SnowflakeBitSegment(4, "Cell sequence"),
 )
 
 ID_VALIDATOR = SnowflakeBitSegment(
@@ -95,10 +95,10 @@ ID_VALIDATOR = SnowflakeBitSegment(
 )
 assert ID_VALIDATOR.length == 53
 
-MAX_AVAILABLE_REGION_SEQUENCES = 1 << REGION_SEQUENCE.length
-assert MAX_AVAILABLE_REGION_SEQUENCES > 0
+MAX_AVAILABLE_CELL_SEQUENCES = 1 << CELL_SEQUENCE.length
+assert MAX_AVAILABLE_CELL_SEQUENCES > 0
 
-NULL_REGION_ID = 0
+NULL_CELL_ID = 0
 
 
 def msb_0_ordering(value: int, width: int) -> int:
@@ -117,9 +117,9 @@ def generate_snowflake_id(redis_key: str) -> int:
     segment_values[VERSION_ID] = msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length)
 
     try:
-        segment_values[REGION_ID] = get_local_region().snowflake_id
-    except RegionContextError:  # expected if running in monolith mode
-        segment_values[REGION_ID] = NULL_REGION_ID
+        segment_values[CELL_ID] = get_local_cell().snowflake_id
+    except CellContextError:  # expected if running in monolith mode
+        segment_values[CELL_ID] = NULL_CELL_ID
 
     current_time = datetime.now().timestamp()
     # supports up to 130 years
@@ -128,7 +128,7 @@ def generate_snowflake_id(redis_key: str) -> int:
     snowflake_id = 0
     (
         segment_values[TIME_DIFFERENCE],
-        segment_values[REGION_SEQUENCE],
+        segment_values[CELL_SEQUENCE],
     ) = get_sequence_value_from_redis(redis_key, segment_values[TIME_DIFFERENCE])
 
     for segment in BIT_SEGMENT_SCHEMA:
@@ -162,7 +162,7 @@ def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> tu
         timestamp_redis_key = get_timestamp_redis_key(redis_key, timestamp)
 
         # We are decreasing the value by 1 each time since the incr operation in redis
-        # initializes the counter at 1. For our region sequences, we want the value to
+        # initializes the counter at 1. For our cell sequences, we want the value to
         # be from 0-15 and not 1-16
         sequence_value = cluster.incr(timestamp_redis_key)
         sequence_value -= 1
@@ -170,7 +170,7 @@ def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> tu
         if sequence_value == 0:
             cluster.expire(timestamp_redis_key, int(_TTL.total_seconds()))
 
-        if sequence_value < MAX_AVAILABLE_REGION_SEQUENCES:
+        if sequence_value < MAX_AVAILABLE_CELL_SEQUENCES:
             return timestamp, sequence_value
 
     raise Exception("No available ID")

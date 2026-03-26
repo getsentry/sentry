@@ -61,6 +61,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
 from sentry.models.dashboard import (
     Dashboard,
@@ -87,7 +88,6 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -97,7 +97,6 @@ from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectsdk import EventType, ProjectSDK
-from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
@@ -106,6 +105,10 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.models.project_repository import (
+    SeerProjectRepository,
+    SeerProjectRepositoryBranchOverride,
+)
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
@@ -291,7 +294,7 @@ def clear_model(model, *, reset_pks: bool):
                 cursor.execute("SELECT setval(%s, 1, false)", [seq])
 
 
-@assume_test_silo_mode(SiloMode.REGION)
+@assume_test_silo_mode(SiloMode.CELL)
 def clear_database(*, reset_pks: bool = False):
     """
     Deletes all models we care about from the database, in a sequence that ensures we get no
@@ -428,7 +431,7 @@ class ExhaustiveFixtures(Fixtures):
 
         return user
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_exhaustive_organization(
         self,
         slug: str,
@@ -474,7 +477,6 @@ class ExhaustiveFixtures(Fixtures):
         OrganizationOption.objects.create(
             organization=org, key="sentry:scrape_javascript", value=True
         )
-
         owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
         OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
 
@@ -484,12 +486,6 @@ class ExhaustiveFixtures(Fixtures):
         OrganizationAccessRequest.objects.create(member=invited, team=team, requester_id=owner_id)
 
         # Project*
-        project_template = ProjectTemplate.objects.create(name=f"template-{slug}", organization=org)
-        ProjectTemplateOption.objects.create(
-            project_template=project_template, key="mail:subject_prefix", value=f"[{slug}]"
-        )
-
-        # TODO (@saponifi3d): Add project template to project
         project = self.create_project(name=f"project-{slug}", teams=[team], organization=org)
         self.create_project_key(project)
         self.create_project_bookmark(project=project, user=owner)
@@ -652,6 +648,32 @@ class ExhaustiveFixtures(Fixtures):
                 CodeReviewTrigger.ON_NEW_COMMIT,
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ],
+        )
+        seer_project_repo = SeerProjectRepository.objects.create(project=project, repository=repo)
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=seer_project_repo,
+            tag_name="environment",
+            tag_value="production",
+            branch_name="release",
+        )
+
+        CodeReviewEvent.objects.create(
+            organization=org,
+            repository=repo,
+            raw_event_type="pull_request",
+            raw_event_action="opened",
+            trigger_id=f"trigger-{slug}",
+            pr_number=1,
+            pr_title=f"Test PR for {slug}",
+            pr_author="test-author",
+            pr_url="https://github.com/getsentry/getsentry/pull/1",
+            pr_state="open",
+            trigger="on_new_commit",
+            trigger_user="test-user",
+            target_commit_sha="abc123",
+            status=CodeReviewEventStatus.REVIEW_COMPLETED,
+            seer_run_id=f"seer-run-{slug}",
+            comments_posted=2,
         )
 
         # Group*
@@ -891,7 +913,7 @@ class ExhaustiveFixtures(Fixtures):
 
         return app
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_exhaustive_sentry_app_notification(self, app: SentryApp, org: Organization):
         project = Project.objects.filter(organization=org).first()
         self.create_notification_action(organization=org, sentry_app_id=app.id, projects=[project])
@@ -902,7 +924,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_exhaustive_global_configs_regional()
         ControlOption.objects.create(key="bar", value="b")
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_exhaustive_global_configs_regional(self):
         _, public_key = generate_key_pair()
         relay = str(uuid4())

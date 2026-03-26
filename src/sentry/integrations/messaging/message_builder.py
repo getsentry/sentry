@@ -257,10 +257,7 @@ def build_attachment_replay_link(
     group: Group, url_format: str, event: Event | GroupEvent | None = None
 ) -> str | None:
     has_replay = features.has("organizations:session-replay", group.organization)
-    has_slack_links = features.has(
-        "organizations:session-replay-slack-new-issue", group.organization
-    )
-    if has_replay and has_slack_links and group.has_replays():
+    if has_replay and group.has_replays():
         referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
         replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
 
@@ -276,9 +273,13 @@ def build_rule_url(rule: Any, group: Group, project: Project) -> str:
     project_slug = project.slug
     if should_fire_workflow_actions(group.organization, group.type):
         rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
-        rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule_id}/details/"
+        rule_url = (
+            f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule_id}/details/"
+        )
     else:
-        rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
+        rule_url = (
+            f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule.id}/details/"
+        )
 
     return absolute_uri(rule_url)
 

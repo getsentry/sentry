@@ -8,9 +8,9 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
-import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
+import {AutofixHighlightPopup} from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
@@ -26,18 +26,17 @@ import {
   useAutofixData,
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconChat, IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type AutofixChangesProps = {
   groupId: string;
@@ -171,7 +170,7 @@ const CopyButton = styled(Button)`
 
 const CodeText = styled('code')`
   font-family: ${p => p.theme.font.family.mono};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
   display: block;
   min-width: 0;
@@ -289,6 +288,7 @@ export function AutofixChanges({
                 onClick={handleSelectFirstChange}
                 analyticsEventName="Autofix: Changes Chat"
                 analyticsEventKey="autofix.changes.chat"
+                analyticsParams={{group_id: groupId}}
               >
                 <IconChat />
               </Button>
@@ -414,7 +414,7 @@ const PreviewContent = styled('div')`
   display: flex;
   flex-direction: column;
   color: ${p => p.theme.tokens.content.primary};
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const AnimationWrapper = styled(motion.div)`
@@ -432,13 +432,13 @@ const ChangesContainer = styled('div')`
 `;
 
 const Content = styled('div')`
-  padding: 0 0 ${space(1)};
+  padding: 0 0 ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
   text-decoration: underline dashed;
   text-decoration-color: ${p => p.theme.tokens.content.accent};
   text-decoration-thickness: 1px;
@@ -458,19 +458,19 @@ const RepoChangesHeader = styled('div')`
 const MarkdownAlert = styled(MarkedText)`
   border: 1px solid ${p => p.theme.colors.yellow200};
   background-color: ${p => p.theme.colors.yellow100};
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.colors.yellow500};
 `;
 
 const NoChangesPadding = styled('div')`
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
 `;
 
 const Separator = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-  margin: ${space(2)} -${space(2)} 0 -${space(2)};
+  margin: ${p => p.theme.space.xl} -${p => p.theme.space.xl} 0 -${p => p.theme.space.xl};
 `;
 
 const HeaderText = styled('div')`
@@ -478,8 +478,8 @@ const HeaderText = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  margin-right: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 const BottomDivider = styled('div')`

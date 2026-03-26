@@ -1,8 +1,8 @@
 import {useEffect, useState} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {EventView} from 'sentry/utils/discover/eventView';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function TrackResponse(
   eventView: EventView,

@@ -23,7 +23,6 @@ import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterKeySearchItem = {
   description: string;
@@ -169,16 +168,12 @@ export function useSortedFilterKeyItems({
     getFieldDefinition,
     filterKeySections,
     disallowFreeText,
+    disallowLogicalOperators,
     replaceRawSearchKeys,
     matchKeySuggestions,
     enableAISearch,
     getTagKeys,
   } = useSearchQueryBuilder();
-
-  const organization = useOrganization();
-  const hasConditionalsInCombobox = organization.features.includes(
-    'search-query-builder-conditionals-combobox-menus'
-  );
 
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
@@ -241,16 +236,18 @@ export function useSortedFilterKeyItems({
       };
     });
 
+    const logicFilterItems = disallowLogicalOperators ? [] : LOGIC_FILTER_ITEMS;
+
     if (includeSuggestions) {
       return [
         ...searchKeyItems,
         ...getFilterSearchValues(flatKeys, {getFieldDefinition}),
-        ...(hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : []),
+        ...logicFilterItems,
       ];
     }
 
-    return [...searchKeyItems, ...(hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : [])];
-  }, [flatKeys, getFieldDefinition, hasConditionalsInCombobox, includeSuggestions]);
+    return [...searchKeyItems, ...logicFilterItems];
+  }, [disallowLogicalOperators, flatKeys, getFieldDefinition, includeSuggestions]);
 
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 

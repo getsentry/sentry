@@ -61,6 +61,8 @@ class SupportedTraceItemType(str, Enum):
     PROFILE_FUNCTIONS = "profile_functions"
     PREPROD = "preprod"
     ATTACHMENTS = "attachments"
+    PROCESSING_ERRORS = "processing_errors"
+    OCCURRENCES = "occurrences"
 
 
 class AttributeSourceType(str, Enum):
@@ -89,3 +91,4 @@ class AdditionalQueries:
     span: list[str] | None
     log: list[str] | None
     metric: list[str] | None
+    occurrences: list[str] | None

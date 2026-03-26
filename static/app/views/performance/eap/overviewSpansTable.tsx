@@ -4,21 +4,21 @@ import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Pagination, {type CursorHandler} from 'sentry/components/pagination';
-import GridEditable from 'sentry/components/tables/gridEditable';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Pagination, type CursorHandler} from 'sentry/components/pagination';
+import {GridEditable} from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -51,13 +51,15 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const defaultQuery = new MutableSearch('');
-  defaultQuery.addFilterValue('is_transaction', '1');
-  defaultQuery.addFilterValue('transaction', transactionName);
+  const searchQuery = decodeScalar(location.query.query, '');
 
-  const countQuery = new MutableSearch('');
-  countQuery.addFilterValue('is_transaction', '1');
-  countQuery.addFilterValue('transaction', transactionName);
+  const defaultQuery = new MutableSearch(searchQuery);
+  defaultQuery.setFilterValues('is_transaction', ['true']);
+  defaultQuery.setFilterValues('transaction', [transactionName]);
+
+  const countQuery = new MutableSearch(searchQuery);
+  countQuery.setFilterValues('is_transaction', ['true']);
+  countQuery.setFilterValues('transaction', [transactionName]);
 
   const {data: numEvents, error: numEventsError} = useSpans(
     {
@@ -90,7 +92,6 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
       field: 'span.duration',
       kind: 'desc',
     },
-    transactionName,
     p95,
     limit: LIMIT,
   });

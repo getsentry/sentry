@@ -9,13 +9,17 @@ import {
   type RefObject,
 } from 'react';
 import * as Sentry from '@sentry/react';
+import uniqBy from 'lodash/uniqBy';
 
-import {useOrganizationRepositoriesWithSettings} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
   RepositoryWithSettings,
 } from 'sentry/types/integrations';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {useInfiniteQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useIntegrationInstallation} from './useIntegrationInstallation';
 import {useIntegrationProvider} from './useIntegrationProvider';
@@ -71,6 +75,7 @@ const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
 });
 
 export function SeerOnboardingProvider({children}: {children: React.ReactNode}) {
+  const organization = useOrganization();
   const [selectedCodeReviewRepositoriesMap, setSelectedCodeReviewRepositoriesMap] =
     useState<Record<string, boolean>>({});
   const [selectedRootCauseAnalysisRepositories, setRootCauseAnalysisRepositories] =
@@ -85,8 +90,23 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
   // Track if we've initialized the map to avoid overwriting user changes
   const hasInitializedCodeReviewMap = useRef(false);
 
-  const {data: repositories, isFetching: isRepositoriesFetching} =
-    useOrganizationRepositoriesWithSettings();
+  const repositoriesResult = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({
+      organization,
+      query: {per_page: 100},
+    }),
+    select: ({pages}) =>
+      uniqBy(
+        pages.flatMap(page => page.json),
+        'externalId'
+      ).filter(repository => repository.externalId !== null),
+  });
+
+  // Auto-fetch each page, one at a time
+  useFetchAllPages({result: repositoriesResult});
+
+  const {data: repositories, isFetching: isRepositoriesFetching} = repositoriesResult;
+
   const {data: installationData, isPending: isInstallationPending} =
     useIntegrationInstallation('github');
   const {provider, isPending: isProviderPending} = useIntegrationProvider('github');

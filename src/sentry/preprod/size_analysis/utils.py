@@ -4,7 +4,9 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from django.db.models import Q
+
+from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,49 @@ def build_size_metrics_map(
     metrics: list[PreprodArtifactSizeMetrics],
 ) -> dict[tuple[int | None, str | None], PreprodArtifactSizeMetrics]:
     return {(metric.metrics_artifact_type, metric.identifier): metric for metric in metrics}
+
+
+@dataclass
+class MatchedComparison:
+    """A matched head/base metric pair with its comparison object (if any)."""
+
+    head_metric: PreprodArtifactSizeMetrics
+    base_metric: PreprodArtifactSizeMetrics | None
+    comparison: PreprodArtifactSizeComparison | None
+
+
+def match_and_fetch_comparisons(
+    head_size_metrics: list[PreprodArtifactSizeMetrics],
+    base_size_metrics: list[PreprodArtifactSizeMetrics],
+) -> list[MatchedComparison]:
+    """Match head/base metrics by (artifact_type, identifier) and batch-fetch their comparisons."""
+
+    head_metrics_map = build_size_metrics_map(head_size_metrics)
+    base_metrics_map = build_size_metrics_map(base_size_metrics)
+
+    head_base_pairs = []
+    for key, head_metric in head_metrics_map.items():
+        base_metric = base_metrics_map.get(key)
+        if base_metric:
+            head_base_pairs.append((head_metric.id, base_metric.id))
+
+    comparison_objs_by_key: dict[tuple[int, int], PreprodArtifactSizeComparison] = {}
+    if head_base_pairs:
+        q = Q()
+        for head_id, base_id in head_base_pairs:
+            q |= Q(head_size_analysis_id=head_id, base_size_analysis_id=base_id)
+        for obj in PreprodArtifactSizeComparison.objects.filter(q):
+            comparison_objs_by_key[(obj.head_size_analysis_id, obj.base_size_analysis_id)] = obj
+
+    results = []
+    for key, head_metric in head_metrics_map.items():
+        base_metric = base_metrics_map.get(key)
+        comparison = None
+        if base_metric:
+            comparison = comparison_objs_by_key.get((head_metric.id, base_metric.id))
+        results.append(MatchedComparison(head_metric, base_metric, comparison))
+
+    return results
 
 
 def can_compare_size_metrics(

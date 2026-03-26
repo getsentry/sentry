@@ -1,14 +1,15 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {InlineCode} from '@sentry/scraps/code';
 
 import type {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable from 'sentry/components/tables/gridEditable';
-import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import * as Storybook from 'sentry/stories';
 
@@ -166,8 +167,9 @@ export default Storybook.story('GridEditable', story => {
           </div>
           <div>
             <p>
-              In this example we are using <kbd>useQueryBasedColumnResize</kbd>. Notice
-              how the url updates after you drag columns.
+              In this example we are using{' '}
+              <InlineCode>useQueryBasedColumnResize</InlineCode>. Notice how the url
+              updates after you drag columns.
             </p>
             <GridEditable
               data={data}

@@ -1,21 +1,21 @@
 import {useCallback, useMemo} from 'react';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface IssuesAskSeerTranslateResponse {
@@ -295,12 +295,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
     ]
   );
 
-  const areAiFeaturesAllowed =
-    enableAISearch &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
-
-  if (!areAiFeaturesAllowed) {
+  if (!enableAISearch) {
     return null;
   }
 

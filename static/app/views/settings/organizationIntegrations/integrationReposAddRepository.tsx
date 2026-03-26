@@ -4,19 +4,19 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
-import RepositoryStore from 'sentry/stores/repositoryStore';
+import {RepositoryStore} from 'sentry/stores/repositoryStore';
 import type {
   Integration,
   IntegrationRepository,
   Repository,
 } from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IntegrationReposAddRepositoryProps {
   currentRepositories: Repository[];
@@ -143,16 +143,13 @@ export function IntegrationReposAddRepository({
               )
             : t('Please enter a repository name')
       }
-      searchPlaceholder={t('Search Repositories')}
+      search={{placeholder: t('Search Repositories'), filter: false, onChange: setSearch}}
       loading={query.isFetching}
-      searchable
-      onSearch={setSearch}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} busy={adding}>
           {t('Add Repository')}
         </OverlayTrigger.Button>
       )}
-      disableSearchFilter
     />
   );
 }

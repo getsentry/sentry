@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ThresholdControlValue} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
@@ -28,14 +27,14 @@ type State = {
   currentValue: string | null;
 };
 
-class ThresholdControl extends Component<Props, State> {
+export class ThresholdControl extends Component<Props, State> {
   state: State = {
     currentValue: null,
   };
 
   handleThresholdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow number and partial number inputs
-    if (!/^[0-9]*\.?[0-9]*$/.test(event.target.value)) {
+    if (!/^\d*\.?\d*$/.test(event.target.value)) {
       return;
     }
 
@@ -170,7 +169,7 @@ const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
   align-items: center;
   flex-direction: ${p =>
     p.comparisonType === AlertRuleComparisonType.COUNT ? 'row' : 'row-reverse'};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const SelectContainer = styled('div')`
@@ -185,7 +184,5 @@ const ThresholdContainer = styled('div')<{comparisonType: AlertRuleComparisonTyp
 `;
 
 const PercentWrapper = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
-
-export default ThresholdControl;

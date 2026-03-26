@@ -13,45 +13,44 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
-import QueryCount from 'sentry/components/queryCount';
+import {QueryCount} from 'sentry/components/queryCount';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
-import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import CursorPoller from 'sentry/utils/cursorPoller';
+import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
-import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
-import parseApiError from 'sentry/utils/parseApiError';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
+import {parseApiError} from 'sentry/utils/parseApiError';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import usePrevious from 'sentry/utils/usePrevious';
-import IssueListTable from 'sentry/views/issueList/issueListTable';
+import {usePrevious} from 'sentry/utils/usePrevious';
+import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
+import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 
-import IssueListFilters from './filters';
+import {IssueListFilters} from './filters';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
@@ -491,6 +490,7 @@ function IssueListOverview({
     page: parsePageQueryParam(location, 0),
     query,
     num_issues: groups.length,
+    group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
     sort,
     realtime_active: realtimeActive,
@@ -666,7 +666,7 @@ function IssueListOverview({
       : parseInt(location.query.page?.toString() ?? '', 10);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 
-    let cursor: undefined | string = nextCursor;
+    let cursor = nextCursor;
 
     // unset cursor and page when we navigate back to the first page
     // also reset cursor if somehow the previous button is enabled on
@@ -735,11 +735,13 @@ function IssueListOverview({
     itemIds,
     actionType,
     shouldRemove,
+    skipRefetch,
     undo,
   }: {
     actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
     itemIds: string[];
     shouldRemove: boolean;
+    skipRefetch?: boolean;
     undo?: () => void;
   }) => {
     if (itemIds.length > 1) {
@@ -767,6 +769,10 @@ function IssueListOverview({
     actionTakenRef.current = true;
     setQueryCount(newQueryCount);
 
+    if (skipRefetch) {
+      return;
+    }
+
     if (GroupStore.getAllItemIds().length === 0) {
       // If we run out of issues on the last page, navigate back a page to
       // avoid showing an empty state - if not on the last page, just show a spinner
@@ -779,10 +785,6 @@ function IssueListOverview({
   };
 
   const onActionTaken = (itemIds: string[], data: IssueUpdateData) => {
-    if (realtimeActive) {
-      return;
-    }
-
     const groupItems = itemIds.map(id => GroupStore.get(id)).filter(defined);
 
     if ('status' in data) {
@@ -794,11 +796,14 @@ function IssueListOverview({
             query.includes('is:unresolved') ||
             query.includes('is:ignored') ||
             isForReviewQuery(query),
-          undo: () =>
-            undoAction({
-              data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
-              groupItems,
-            }),
+          skipRefetch: realtimeActive,
+          undo: realtimeActive
+            ? undefined
+            : () =>
+                undoAction({
+                  data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
+                  groupItems,
+                }),
         });
         return;
       }
@@ -808,11 +813,14 @@ function IssueListOverview({
           itemIds,
           actionType: 'Archived',
           shouldRemove: query.includes('is:unresolved') || isForReviewQuery(query),
-          undo: () =>
-            undoAction({
-              data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
-              groupItems,
-            }),
+          skipRefetch: realtimeActive,
+          undo: realtimeActive
+            ? undefined
+            : () =>
+                undoAction({
+                  data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
+                  groupItems,
+                }),
         });
         return;
       }
@@ -823,6 +831,7 @@ function IssueListOverview({
         itemIds,
         actionType: 'Reviewed',
         shouldRemove: isForReviewQuery(query),
+        skipRefetch: realtimeActive,
       });
       return;
     }
@@ -835,6 +844,7 @@ function IssueListOverview({
         itemIds,
         actionType: 'Reprioritized',
         shouldRemove: !priorityValues.has(priority),
+        skipRefetch: realtimeActive,
       });
       return;
     }
@@ -931,9 +941,9 @@ const StyledBody = styled('div')`
 
 const StyledMain = styled('section')`
   grid-area: content;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(3)} ${space(4)};
+    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
   }
 `;

@@ -2,7 +2,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
-import useDisableRouteAnalytics from './useDisableRouteAnalytics';
+import {useDisableRouteAnalytics} from './useDisableRouteAnalytics';
 
 describe('useDisableRouteAnalytics', () => {
   const setDisableRouteAnalytics = jest.fn();

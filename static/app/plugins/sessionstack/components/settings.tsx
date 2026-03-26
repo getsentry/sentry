@@ -3,11 +3,11 @@ import isEqual from 'lodash/isEqual';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
-import Form from 'sentry/components/deprecatedforms/form';
-import FormState from 'sentry/components/forms/state';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {FormState} from 'sentry/components/forms/state';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import DefaultSettings from 'sentry/plugins/components/settings';
+import {PluginSettings as DefaultSettings} from 'sentry/plugins/components/settings';
 
 type Props = DefaultSettings['props'];
 
@@ -19,7 +19,7 @@ type State = DefaultSettings['state'] & {
   showOnPremisesConfiguration?: boolean;
 };
 
-class Settings extends DefaultSettings<Props, State> {
+export class Settings extends DefaultSettings<Props, State> {
   REQUIRED_FIELDS = ['account_email', 'api_token', 'website_id'];
   ON_PREMISES_FIELDS = ['api_url', 'player_url'];
 
@@ -93,5 +93,3 @@ class Settings extends DefaultSettings<Props, State> {
     );
   }
 }
-
-export default Settings;

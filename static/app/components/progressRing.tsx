@@ -1,10 +1,9 @@
-import {useMemo} from 'react';
 import type {SerializedStyles, Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 type TextProps = {
   percent: number;
@@ -71,7 +70,7 @@ const animatedTextDefaultProps = {
   transition: testableTransition(),
 };
 
-function ProgressRing({
+export function ProgressRing({
   value,
   minValue = 0,
   maxValue = 100,
@@ -112,19 +111,6 @@ function ProgressRing({
     textNode
   );
 
-  const ringCommonProps = useMemo(() => {
-    return {
-      strokeDashoffset: progressOffset,
-      strokeLinecap: progressEndcaps,
-      circumference,
-      r: radius,
-      barWidth,
-      cx: radius + barWidth / 2,
-      cy: radius + barWidth / 2,
-      color: progressColor,
-    };
-  }, [progressOffset, progressEndcaps, circumference, radius, barWidth, progressColor]);
-
   return (
     <RingSvg
       role="img"
@@ -139,16 +125,17 @@ function ProgressRing({
         cy={radius + barWidth / 2}
         color={backgroundColor}
       />
-      {animate ? (
-        <MotionRingBar
-          {...ringCommonProps}
-          initial={{strokeDashoffset: circumference}}
-          animate={{strokeDashoffset: progressOffset}}
-          transition={{duration: 1.5, ease: 'easeInOut'}}
-        />
-      ) : (
-        <RingBar {...ringCommonProps} />
-      )}
+      <RingBar
+        strokeDashoffset={progressOffset}
+        strokeLinecap={progressEndcaps}
+        circumference={circumference}
+        r={radius}
+        barWidth={barWidth}
+        cx={radius + barWidth / 2}
+        cy={radius + barWidth / 2}
+        color={progressColor}
+        animate={animate}
+      />
       <foreignObject height="100%" width="100%">
         {text !== undefined && textNode}
       </foreignObject>
@@ -171,6 +158,7 @@ const RingBar = styled('circle')<{
   barWidth: number;
   circumference: number;
   color: string;
+  animate?: boolean;
 }>`
   fill: none;
   stroke: ${p => p.color};
@@ -178,11 +166,9 @@ const RingBar = styled('circle')<{
   stroke-dasharray: ${p => p.circumference} ${p => p.circumference};
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
-  transition:
+  ${p =>
+    p.animate &&
+    `transition:
     stroke-dashoffset 200ms,
-    stroke 100ms;
+    stroke 100ms;`}
 `;
-
-const MotionRingBar = motion.create(RingBar);
-
-export default ProgressRing;

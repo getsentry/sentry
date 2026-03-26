@@ -2,18 +2,18 @@ import {useTheme} from '@emotion/react';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import LoadingError from 'sentry/components/loadingError';
-import PanelBody from 'sentry/components/panels/panelBody';
-import StreamGroup, {LoadingStreamGroup} from 'sentry/components/stream/group';
-import GroupStore from 'sentry/stores/groupStore';
+import {LoadingError} from 'sentry/components/loadingError';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import useApi from 'sentry/utils/useApi';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
-import NoGroupsHandler from './noGroupsHandler';
+import {NoGroupsHandler} from './noGroupsHandler';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
 
 type GroupListBodyProps = {
@@ -70,7 +70,7 @@ function LoadingSkeleton({
   );
 }
 
-function GroupListBody({
+export function GroupListBody({
   groupIds,
   memberList,
   query,
@@ -170,5 +170,3 @@ function GroupList({
     </PanelBody>
   );
 }
-
-export default GroupListBody;

@@ -3,18 +3,17 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventTitleError from 'sentry/components/eventTitleError';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {EventTitleError} from 'sentry/components/eventTitleError';
+import {GroupTitle} from 'sentry/components/groupTitle';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getLocation, isTombstone} from 'sentry/utils/events';
+import {getLocation} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
   data: Group;
@@ -40,7 +39,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
         </IconWrapper>
       )}
       <ErrorBoundary customComponent={() => <EventTitleError />} mini>
-        <StyledEventOrGroupTitle
+        <StyledGroupTitle
           data={props.data}
           // hasSeen is undefined for GroupTombstone
           hasSeen={hasSeen === undefined ? true : hasSeen}
@@ -61,14 +60,6 @@ function IssueTitle(props: IssueTitleProps) {
   const commonEleProps = {
     'data-test-id': status === 'resolved' ? 'resolved-issue' : undefined,
   };
-
-  if (isTombstone(props.data)) {
-    return (
-      <TitleWithoutLink {...commonEleProps}>
-        <IssueTitleChildren data={props.data} organization={organization} />
-      </TitleWithoutLink>
-    );
-  }
 
   return (
     <TitleWithLink
@@ -99,7 +90,7 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
 }
 
 const Title = styled('div')`
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
   & em {
     font-size: ${p => p.theme.font.size.md};
     font-style: normal;
@@ -147,15 +138,8 @@ const TitleWithLink = styled(Link)`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-const TitleWithoutLink = styled('span')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
 
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
+const StyledGroupTitle = styled(GroupTitle)<{
   hasSeen: boolean;
 }>`
   font-weight: ${p => (p.hasSeen ? 400 : 600)};

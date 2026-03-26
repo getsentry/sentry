@@ -4,7 +4,6 @@ import {
   buildConversationTurns,
   extractMessagesFromNodes,
   extractTextFromMessage,
-  findToolCallsBetween,
   getNodeTimestamp,
   mergeEmptyTurns,
   parseAssistantContent,
@@ -16,16 +15,20 @@ import {
 function createMockNode(overrides: {
   id: string;
   attributes?: Record<string, string | number>;
+  endTimestamp?: number;
   startTimestamp?: number;
 }) {
-  const {id, attributes = {}, startTimestamp = 1000} = overrides;
+  const {id, attributes = {}, startTimestamp = 1000, endTimestamp} = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
     type: 'span' as const,
     op: 'gen_ai.generate',
     startTimestamp,
+    endTimestamp: end,
     value: {
       start_timestamp: startTimestamp,
+      end_timestamp: end,
     },
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
@@ -38,16 +41,20 @@ function createMockNode(overrides: {
 function createMockToolNode(overrides: {
   id: string;
   toolName: string;
+  endTimestamp?: number;
   startTimestamp?: number;
 }) {
-  const {id, toolName, startTimestamp = 1000} = overrides;
+  const {id, toolName, startTimestamp = 1000, endTimestamp} = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
     type: 'span' as const,
     op: 'gen_ai.execute_tool',
     startTimestamp,
+    endTimestamp: end,
     value: {
       start_timestamp: startTimestamp,
+      end_timestamp: end,
     },
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
@@ -59,12 +66,16 @@ function createMockToolNode(overrides: {
 
 describe('conversationMessages utilities', () => {
   describe('getNodeTimestamp', () => {
-    it('returns start_timestamp from node value', () => {
-      const node = createMockNode({id: 'node-1', startTimestamp: 1500});
-      expect(getNodeTimestamp(node as any)).toBe(1500);
+    it('returns end_timestamp from node value', () => {
+      const node = createMockNode({
+        id: 'node-1',
+        startTimestamp: 1500,
+        endTimestamp: 1600,
+      });
+      expect(getNodeTimestamp(node as any)).toBe(1600);
     });
 
-    it('returns 0 when start_timestamp is not present', () => {
+    it('returns 0 when no timestamp is present', () => {
       const node = {id: 'node-1', value: {}} as any;
       expect(getNodeTimestamp(node)).toBe(0);
     });
@@ -79,6 +90,14 @@ describe('conversationMessages utilities', () => {
     it('extracts text from array content format', () => {
       const msg = {role: 'user', content: [{text: 'Array message'}]};
       expect(extractTextFromMessage(msg)).toBe('Array message');
+    });
+
+    it('joins multiple array content elements with newlines', () => {
+      const msg = {
+        role: 'user',
+        content: [{text: 'First part'}, {text: 'Second part'}],
+      };
+      expect(extractTextFromMessage(msg)).toBe('First part\nSecond part');
     });
 
     it('extracts text from parts format with content field', () => {
@@ -207,14 +226,26 @@ describe('conversationMessages utilities', () => {
       expect(parseUserContent(node as any)).toBeNull();
     });
 
-    it('returns raw string on parse error', () => {
+    it('returns null on parse error instead of raw string', () => {
       const node = createMockNode({
         id: 'node-1',
         attributes: {
           [SpanFields.GEN_AI_INPUT_MESSAGES]: 'not valid json',
         },
       });
-      expect(parseUserContent(node as any)).toBe('not valid json');
+      expect(parseUserContent(node as any)).toBeNull();
+    });
+
+    it('returns null when request messages JSON is truncated', () => {
+      const truncatedJson =
+        '[{"role":"assistant","content":[{"type":"tool_use","name":"search","input":"{}"}]},{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_123","content":"GoCD API 401 Unautho';
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: truncatedJson,
+        },
+      });
+      expect(parseUserContent(node as any)).toBeNull();
     });
 
     it('returns null when no messages attribute', () => {
@@ -291,23 +322,36 @@ describe('conversationMessages utilities', () => {
       expect(result.toolSpans[0]?.id).toBe('tool-1');
     });
 
-    it('sorts by timestamp', () => {
-      const gen1 = createMockNode({id: 'gen-1', startTimestamp: 2000});
-      const gen2 = createMockNode({id: 'gen-2', startTimestamp: 1000});
+    it('sorts by end timestamp, not start timestamp', () => {
+      // gen-1 starts later but ends first
+      const gen1 = createMockNode({
+        id: 'gen-1',
+        startTimestamp: 2000,
+        endTimestamp: 2100,
+      });
+      // gen-2 starts earlier but ends later
+      const gen2 = createMockNode({
+        id: 'gen-2',
+        startTimestamp: 1000,
+        endTimestamp: 3000,
+      });
       const tool1 = createMockToolNode({
         id: 'tool-1',
         toolName: 'a',
         startTimestamp: 3000,
+        endTimestamp: 3500,
       });
       const tool2 = createMockToolNode({
         id: 'tool-2',
         toolName: 'b',
         startTimestamp: 1500,
+        endTimestamp: 1600,
       });
 
       const result = partitionSpansByType([gen1, gen2, tool1, tool2] as any);
 
-      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-2', 'gen-1']);
+      // Sorted by end_timestamp: gen-1 (2100) before gen-2 (3000)
+      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1', 'gen-2']);
       expect(result.toolSpans.map(s => s.id)).toEqual(['tool-2', 'tool-1']);
     });
 
@@ -324,77 +368,6 @@ describe('conversationMessages utilities', () => {
 
       expect(result.generationSpans).toHaveLength(1);
       expect(result.toolSpans).toHaveLength(0);
-    });
-  });
-
-  describe('findToolCallsBetween', () => {
-    it('finds tools between timestamps', () => {
-      const tool1 = createMockToolNode({
-        id: 'tool-1',
-        toolName: 'search',
-        startTimestamp: 1500,
-      });
-      const tool2 = createMockToolNode({
-        id: 'tool-2',
-        toolName: 'calc',
-        startTimestamp: 1600,
-      });
-      const tool3 = createMockToolNode({
-        id: 'tool-3',
-        toolName: 'outside',
-        startTimestamp: 2500,
-      });
-
-      const result = findToolCallsBetween([tool1, tool2, tool3] as any, 1000, 2000);
-
-      expect(result).toHaveLength(2);
-      expect(result.map(t => t.name)).toEqual(['search', 'calc']);
-    });
-
-    it('excludes tools at exact boundaries', () => {
-      const tool1 = createMockToolNode({
-        id: 'tool-1',
-        toolName: 'at-start',
-        startTimestamp: 1000,
-      });
-      const tool2 = createMockToolNode({
-        id: 'tool-2',
-        toolName: 'at-end',
-        startTimestamp: 2000,
-      });
-      const tool3 = createMockToolNode({
-        id: 'tool-3',
-        toolName: 'inside',
-        startTimestamp: 1500,
-      });
-
-      const result = findToolCallsBetween([tool1, tool2, tool3] as any, 1000, 2000);
-
-      expect(result).toHaveLength(1);
-      expect(result[0]?.name).toBe('inside');
-    });
-
-    it('filters out tools without names', () => {
-      const toolWithName = createMockToolNode({
-        id: 'tool-1',
-        toolName: 'named',
-        startTimestamp: 1500,
-      });
-      const toolWithoutName = {
-        id: 'tool-2',
-        value: {start_timestamp: 1600},
-        attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: 'tool'},
-        errors: new Set(),
-      };
-
-      const result = findToolCallsBetween(
-        [toolWithName, toolWithoutName] as any,
-        1000,
-        2000
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0]?.name).toBe('named');
     });
   });
 
@@ -521,7 +494,10 @@ describe('conversationMessages utilities', () => {
     it('creates user and assistant messages from turns', () => {
       const turns = [
         {
-          generation: {id: 'gen-1', value: {start_timestamp: 1000}} as any,
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
           userContent: 'Hello',
           assistantContent: 'Hi there',
           toolCalls: [],
@@ -546,14 +522,20 @@ describe('conversationMessages utilities', () => {
     it('deduplicates user messages by exact content', () => {
       const turns = [
         {
-          generation: {id: 'gen-1', value: {start_timestamp: 1000}} as any,
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
           userContent: 'Hello',
           assistantContent: 'Response 1',
           toolCalls: [],
           userEmail: undefined,
         },
         {
-          generation: {id: 'gen-2', value: {start_timestamp: 2000}} as any,
+          generation: {
+            id: 'gen-2',
+            value: {start_timestamp: 2000, end_timestamp: 2100},
+          } as any,
           userContent: 'Hello', // Exact same content
           assistantContent: 'Response 2',
           toolCalls: [],
@@ -574,14 +556,20 @@ describe('conversationMessages utilities', () => {
     it('does not deduplicate user messages with different whitespace or case', () => {
       const turns = [
         {
-          generation: {id: 'gen-1', value: {start_timestamp: 1000}} as any,
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
           userContent: 'Hello',
           assistantContent: 'Response 1',
           toolCalls: [],
           userEmail: undefined,
         },
         {
-          generation: {id: 'gen-2', value: {start_timestamp: 2000}} as any,
+          generation: {
+            id: 'gen-2',
+            value: {start_timestamp: 2000, end_timestamp: 2100},
+          } as any,
           userContent: '  HELLO  ', // Different due to whitespace and case
           assistantContent: 'Response 2',
           toolCalls: [],
@@ -598,14 +586,20 @@ describe('conversationMessages utilities', () => {
     it('deduplicates assistant messages by exact content', () => {
       const turns = [
         {
-          generation: {id: 'gen-1', value: {start_timestamp: 1000}} as any,
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
           userContent: 'Question 1',
           assistantContent: 'Same response',
           toolCalls: [],
           userEmail: undefined,
         },
         {
-          generation: {id: 'gen-2', value: {start_timestamp: 2000}} as any,
+          generation: {
+            id: 'gen-2',
+            value: {start_timestamp: 2000, end_timestamp: 2100},
+          } as any,
           userContent: 'Question 2',
           assistantContent: 'Same response', // Exact same content
           toolCalls: [],
@@ -622,7 +616,10 @@ describe('conversationMessages utilities', () => {
     it('attaches tool calls to assistant messages', () => {
       const turns = [
         {
-          generation: {id: 'gen-1', value: {start_timestamp: 1000}} as any,
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
           userContent: 'Question',
           assistantContent: 'Answer',
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
@@ -640,14 +637,20 @@ describe('conversationMessages utilities', () => {
     it('sorts messages by timestamp', () => {
       const turns = [
         {
-          generation: {id: 'gen-1', value: {start_timestamp: 2000}} as any,
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 2000, end_timestamp: 2100},
+          } as any,
           userContent: 'Second',
           assistantContent: 'Second response',
           toolCalls: [],
           userEmail: undefined,
         },
         {
-          generation: {id: 'gen-2', value: {start_timestamp: 1000}} as any,
+          generation: {
+            id: 'gen-2',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
           userContent: 'First',
           assistantContent: 'First response',
           toolCalls: [],

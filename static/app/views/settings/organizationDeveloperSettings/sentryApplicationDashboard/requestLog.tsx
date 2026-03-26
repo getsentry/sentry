@@ -12,21 +12,20 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   SentryApp,
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
@@ -83,6 +82,12 @@ const getEventTypes = memoize((app: SentryApp) => {
         ]
       : []),
     ...issueLinkEvents,
+    ...(app.events.includes('preprod_artifact')
+      ? [
+          'preprod_artifact.size_analysis_completed',
+          'preprod_artifact.build_distribution_completed',
+        ]
+      : []),
   ];
 
   return events;
@@ -130,7 +135,7 @@ function makeRequestLogQueryKey(
   ];
 }
 
-export default function RequestLog({app}: RequestLogProps) {
+export function RequestLog({app}: RequestLogProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [eventType, setEventType] = useState(ALL_EVENTS);
@@ -280,7 +285,7 @@ export default function RequestLog({app}: RequestLogProps) {
 const TableLayout = styled('div')<{hasOrganization: boolean}>`
   display: grid;
   grid-template-columns: 1fr 0.5fr ${p => (p.hasOrganization ? '1fr' : '')} 1fr 1fr;
-  grid-column-gap: ${space(1.5)};
+  grid-column-gap: ${p => p.theme.space.lg};
   width: 100%;
   align-items: center;
 `;
@@ -309,7 +314,7 @@ const PaginationButtons = styled('div')`
 const RequestLogFilters = styled('div')`
   display: flex;
   align-items: center;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 
   > :first-child button,
   > :first-child a {
@@ -329,9 +334,9 @@ const StyledIconOpen = styled(IconOpen)`
 `;
 
 const Tags = styled('div')`
-  margin: -${space(0.5)};
+  margin: -${p => p.theme.space.xs};
 `;
 
 const StyledTag = styled(Tag)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 `;

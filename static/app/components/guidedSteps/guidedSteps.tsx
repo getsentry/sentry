@@ -18,7 +18,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
   children: React.ReactNode;
@@ -43,6 +43,7 @@ interface StepProps {
   isCompleted?: boolean;
   onClick?: () => void;
   optional?: boolean;
+  trailingItems?: React.ReactNode;
 }
 
 type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
@@ -102,16 +103,6 @@ function useGuidedStepsContentValue({
     }
   }, [getFirstIncompleteStep]);
 
-  // On initial load, set the current step to the first incomplete step
-  // if the initial step is not defined.
-  useEffect(() => {
-    if (defined(initialStep)) {
-      return;
-    }
-    const firstIncompleteStep = getFirstIncompleteStep();
-    setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
-  }, [getFirstIncompleteStep, initialStep]);
-
   const handleSetCurrentStep = useCallback(
     (step: number) => {
       setCurrentStep(step);
@@ -119,6 +110,25 @@ function useGuidedStepsContentValue({
     },
     [onStepChange]
   );
+
+  // On initial load, set the current step to the first incomplete step
+  // if the initial step is not defined. If initialStep exceeds the number
+  // of available steps (e.g. the guidedStep URL param persists from a
+  // project with more steps), reset to step 1.
+  useEffect(() => {
+    // Wait for steps to register before running initialization
+    if (totalSteps === 0) {
+      return;
+    }
+    if (defined(initialStep)) {
+      if (initialStep > totalSteps) {
+        handleSetCurrentStep(1);
+      }
+      return;
+    }
+    const firstIncompleteStep = getFirstIncompleteStep();
+    handleSetCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
+  }, [getFirstIncompleteStep, initialStep, totalSteps, handleSetCurrentStep]);
 
   return useMemo(
     () => ({
@@ -158,18 +168,42 @@ function Step(props: StepProps) {
     }
   }, [advanceToNextIncompleteStep, isActive, isCompleted, previousIsCompleted]);
 
+  const headingContent = (
+    <StepButton
+      hasTrailingItems={!!props.trailingItems}
+      disabled={!props.onClick}
+      onClick={props.onClick}
+    >
+      <Flex align="center" gap="lg">
+        <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
+        <StepHeading isActive={isActive}>
+          {props.title}
+          {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
+        </StepHeading>
+        {props.onClick ? <InteractionStateLayer /> : null}
+      </Flex>
+    </StepButton>
+  );
+
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
-      <StepButton area="heading" disabled={!props.onClick} onClick={props.onClick}>
-        <Flex align="center" gap="lg">
-          <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
-          <StepHeading isActive={isActive}>
-            {props.title}
-            {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
-          </StepHeading>
-          {props.onClick ? <InteractionStateLayer /> : null}
+      {props.trailingItems ? (
+        <Flex
+          direction={{xs: 'column', md: 'row'}}
+          align={{xs: 'start', md: 'center'}}
+          paddingLeft={{xs: 'lg', md: '0'}}
+          justify="between"
+          gap="sm"
+          area="heading"
+        >
+          {headingContent}
+          <Flex align="center" onClick={e => e.stopPropagation()}>
+            {props.trailingItems}
+          </Flex>
         </Flex>
-      </StepButton>
+      ) : (
+        headingContent
+      )}
 
       <StepDetails>
         {props.optional ? <StepOptionalLabel>Optional</StepOptionalLabel> : null}
@@ -262,8 +296,11 @@ const StepWrapper = styled('div')`
   }
 `;
 
-const StepButton = styled('button')<{area: string}>`
-  grid-area: ${p => p.area};
+const StepButton = styled('button')<{hasTrailingItems: boolean}>`
+  ${p =>
+    p.hasTrailingItems
+      ? `flex: 1; min-width: 0; text-align: left;`
+      : `grid-area: heading;`}
 
   position: relative;
   background: none;
@@ -334,7 +371,6 @@ const ChildrenWrapper = styled('div')<{isActive: boolean}>`
 `;
 
 const StepDetails = styled('div')`
-  overflow: hidden;
   grid-area: details;
 `;
 

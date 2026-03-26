@@ -7,7 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -17,17 +17,16 @@ import {
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {CommitsFilesSection} from 'sentry/views/releases/drawer/commitsFilesSection';
 import {DeploysCard} from 'sentry/views/releases/drawer/deploysCard';
@@ -322,20 +321,20 @@ export function ReleasesDrawerDetails({
 const Details = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   align-items: start;
 `;
 
 const Title = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SelectableProjectBadges = styled('div')`
   display: flex;
   & > :not(:first-child) {
-    margin-left: -${space(0.5)};
+    margin-left: -${p => p.theme.space.xs};
   }
 `;
 

@@ -1,188 +1,233 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import Duration from 'sentry/components/duration';
-import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import GridEditable from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {Duration} from 'sentry/components/duration';
+import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {RateUnit} from 'sentry/utils/discover/fields';
-import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {unreachable} from 'sentry/utils/unreachable';
 
-type RawDataRow<K extends string> = Record<K, any>;
-
-type DurationDataRow<K extends string> = RawDataRow<K> & {
-  durationAfter: number;
-  durationBefore: number;
+export interface EventRegressionTableRow {
+  group: string;
+  operation: string;
   percentageChange: number;
-};
-
-type ThroughputDataRow<K extends string> = RawDataRow<K> & {
-  percentageChange: number;
-  throughputAfter: number;
-  throughputBefore: number;
-};
-
-interface EventRegressionTableProps<K extends string> {
-  causeType: 'duration' | 'throughput';
-  columns: Array<GridColumnOrder<K>>;
-  data: Array<DurationDataRow<K> | ThroughputDataRow<K>>;
-  isError: boolean;
-  isLoading: boolean;
-  options: Record<
-    string,
-    {
-      defaultValue?: React.ReactNode;
-      // @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
-      link?: (any) =>
-        | {
-            target: LocationDescriptor;
-            onClick?: () => void;
-          }
-        | undefined;
-    }
-  >;
+  description?: string;
+  durationAfter?: number;
+  durationBefore?: number;
+  throughputAfter?: number;
+  throughputBefore?: number;
 }
 
-export function EventRegressionTable<K extends string>(
-  props: EventRegressionTableProps<K>
-) {
-  const columnOrder = useMemo(() => {
-    if (props.causeType === 'throughput') {
-      return [
-        ...props.columns,
-        {key: 'throughputBefore', name: t('Baseline'), width: 150},
-        {key: 'throughputAfter', name: t('Regressed'), width: 150},
-        {key: 'percentageChange', name: t('Change'), width: 150},
-      ];
-    }
-    return [
-      ...props.columns,
-      {key: 'durationBefore', name: t('Baseline'), width: 150},
-      {key: 'durationAfter', name: t('Regressed'), width: 150},
-      {key: 'percentageChange', name: t('Change'), width: 150},
-    ];
-  }, [props.causeType, props.columns]);
+type MetricColumnKey =
+  | 'durationBefore'
+  | 'durationAfter'
+  | 'throughputBefore'
+  | 'throughputAfter'
+  | 'percentageChange';
+type TableColumnKey = 'description' | 'operation' | MetricColumnKey;
+type TableColumn = {
+  key: TableColumnKey;
+  name: ReactNode;
+};
 
-  const renderBodyCell = useMemo(
-    () =>
-      bodyCellRenderer(props.options, {
-        throughputBefore: throughputRenderer,
-        throughputAfter: throughputRenderer,
-        durationBefore: durationRenderer,
-        durationAfter: durationRenderer,
-        percentageChange: changeRenderer,
-      }),
-    [props.options]
-  );
+interface EventRegressionTableProps {
+  causeType: 'duration' | 'throughput';
+  data: EventRegressionTableRow[];
+  isLoading: boolean;
+  onDescriptionLink: (row: EventRegressionTableRow) => LocationDescriptor | undefined;
+  error?: Error | null;
+}
+
+export function EventRegressionTable({
+  causeType,
+  data,
+  error,
+  isLoading,
+  onDescriptionLink,
+}: EventRegressionTableProps) {
+  const columns = useMemo<TableColumn[]>(() => {
+    const [beforeKey, afterKey]: [TableColumnKey, TableColumnKey] =
+      causeType === 'throughput'
+        ? ['throughputBefore', 'throughputAfter']
+        : ['durationBefore', 'durationAfter'];
+
+    return [
+      {key: 'operation', name: t('Operation')},
+      {key: 'description', name: t('Description')},
+      {key: beforeKey, name: t('Baseline')},
+      {key: afterKey, name: t('Regressed')},
+      {key: 'percentageChange', name: t('Change')},
+    ];
+  }, [causeType]);
 
   return (
-    <GridEditable
-      error={props.isError}
-      isLoading={props.isLoading}
-      data={props.data}
-      columnOrder={columnOrder}
-      columnSortBy={[]}
-      grid={{renderHeadCell, renderBodyCell}}
-    />
+    <RegressionTable>
+      <SimpleTable.Header>
+        {columns.map(column => {
+          return (
+            <SimpleTable.HeaderCell
+              key={column.key}
+              style={
+                RIGHT_ALIGNED_COLUMNS.has(column.key) ? RIGHT_ALIGNED_STYLE : undefined
+              }
+            >
+              {column.name}
+            </SimpleTable.HeaderCell>
+          );
+        })}
+      </SimpleTable.Header>
+
+      {isLoading ? (
+        <SkeletonRows columns={columns} />
+      ) : error ? (
+        <SimpleTable.Empty>
+          <Flex align="center" gap="sm">
+            <IconWarning />
+            {error?.message ?? t('There was an error loading data.')}
+          </Flex>
+        </SimpleTable.Empty>
+      ) : data.length === 0 ? (
+        <SimpleTable.Empty>{t('No results found for your query')}</SimpleTable.Empty>
+      ) : (
+        data.map(row => (
+          <SimpleTable.Row key={row.group}>
+            {columns.map(column => (
+              <SimpleTable.RowCell
+                key={column.key}
+                style={
+                  RIGHT_ALIGNED_COLUMNS.has(column.key) ? RIGHT_ALIGNED_STYLE : undefined
+                }
+              >
+                {renderCell(column.key, row, onDescriptionLink)}
+              </SimpleTable.RowCell>
+            ))}
+          </SimpleTable.Row>
+        ))
+      )}
+    </RegressionTable>
   );
 }
 
-const RIGHT_ALIGNED_COLUMNS = new Set([
+function renderCell(
+  columnKey: TableColumnKey,
+  row: EventRegressionTableRow,
+  onDescriptionLink: (row: EventRegressionTableRow) => LocationDescriptor | undefined
+) {
+  switch (columnKey) {
+    case 'throughputBefore':
+    case 'throughputAfter': {
+      const rawValue = row[columnKey];
+      const renderedValue = defined(rawValue)
+        ? formatRate(rawValue, RateUnit.PER_MINUTE)
+        : null;
+      return <CellText numeric>{renderedValue}</CellText>;
+    }
+    case 'durationBefore':
+    case 'durationAfter': {
+      const rawValue = row[columnKey];
+      const renderedValue = defined(rawValue) ? (
+        <Duration seconds={rawValue} fixedDigits={2} abbreviation />
+      ) : null;
+      return <CellText numeric>{renderedValue}</CellText>;
+    }
+    case 'percentageChange': {
+      const change = row.percentageChange;
+      if (change === Infinity) {
+        return <CellText numeric />;
+      }
+      return (
+        <CellText numeric>
+          <Text as="span" variant={changeTextVariant(change)}>
+            {change > 0 ? '+' : ''}
+            {formatPercentage(change)}
+          </Text>
+        </CellText>
+      );
+    }
+    case 'description': {
+      const value = defined(row.description) ? row.description : t('(unnamed span)');
+      const link = onDescriptionLink(row);
+      if (defined(link)) {
+        return (
+          <CellText>
+            <Link to={link}>{value}</Link>
+          </CellText>
+        );
+      }
+      return <CellText>{value}</CellText>;
+    }
+    case 'operation':
+      return <CellText>{row.operation}</CellText>;
+    default:
+      return unreachable(columnKey);
+  }
+}
+
+function SkeletonRows({columns}: {columns: TableColumn[]}) {
+  return (
+    <Fragment>
+      {Array.from({length: 4}).map((_, rowIndex) => (
+        <SimpleTable.Row key={rowIndex}>
+          {columns.map(column => {
+            const isRightAligned = RIGHT_ALIGNED_COLUMNS.has(column.key);
+            return (
+              <SimpleTable.RowCell
+                key={`${column.key}-skeleton-${rowIndex}`}
+                style={isRightAligned ? RIGHT_ALIGNED_STYLE : undefined}
+              >
+                <Placeholder height="16px" width={isRightAligned ? '80px' : '100%'} />
+              </SimpleTable.RowCell>
+            );
+          })}
+        </SimpleTable.Row>
+      ))}
+    </Fragment>
+  );
+}
+
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>([
   'durationBefore',
   'durationAfter',
-  'durationChange',
   'throughputBefore',
   'throughputAfter',
   'percentageChange',
 ]);
 
-function renderHeadCell(column: any): React.ReactNode {
-  return (
-    <SortLink
-      align={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : 'left'}
-      title={column.name}
-      direction={undefined}
-      canSort={false}
-      generateSortLink={() => undefined}
-    />
-  );
-}
+const RIGHT_ALIGNED_STYLE = {
+  justifyContent: 'flex-end',
+  textAlign: 'right',
+} as const;
 
-function bodyCellRenderer(options: any, builtinRenderers: any) {
-  return function renderGridBodyCell(
-    column: any,
-    dataRow: any,
-    _rowIndex: any,
-    _columnIndex: any
-  ): React.ReactNode {
-    const option = options[column.key];
-    const renderer = option?.renderer || builtinRenderers[column.key] || defaultRenderer;
-    return renderer(dataRow[column.key], {dataRow, option});
-  };
-}
-
-function throughputRenderer(throughput: any, {dataRow, option}: any) {
-  const rendered = formatRate(throughput, RateUnit.PER_MINUTE);
-  return <NumberContainer>{wrap(rendered, dataRow, option)}</NumberContainer>;
-}
-
-function durationRenderer(duration: any, {dataRow, option}: any) {
-  const rendered = <Duration seconds={duration} fixedDigits={2} abbreviation />;
-  return <NumberContainer>{wrap(rendered, dataRow, option)}</NumberContainer>;
-}
-
-function changeRenderer(percentageChange: any) {
-  if (percentageChange === Infinity) {
-    return <ChangeContainer change="neutral" />;
-  }
-
-  return (
-    <ChangeContainer
-      change={
-        percentageChange > 0 ? 'positive' : percentageChange < 0 ? 'negative' : 'neutral'
-      }
-    >
-      {percentageChange > 0 ? '+' : ''}
-      {formatPercentage(percentageChange)}
-    </ChangeContainer>
-  );
-}
-
-function defaultRenderer(value: any, {dataRow, option}: any) {
-  return <Container>{wrap(value, dataRow, option)}</Container>;
-}
-
-function wrap(value: any, dataRow: any, option: any) {
-  let rendered = value;
-  if (defined(option)) {
-    if (!defined(value) && defined(option.defaultValue)) {
-      rendered = option.defaultValue;
-    }
-    if (defined(option.link)) {
-      const link = option.link(dataRow);
-      if (defined(link?.target)) {
-        rendered = (
-          <Link to={link.target} onClick={link.onClick}>
-            {rendered}
-          </Link>
-        );
-      }
-    }
-  }
-  return rendered;
-}
-
-const ChangeContainer = styled(NumberContainer)<{
-  change: 'positive' | 'neutral' | 'negative';
-}>`
-  ${p => p.change === 'positive' && `color: ${p.theme.colors.red400};`}
-  ${p => p.change === 'neutral' && `color: ${p.theme.tokens.content.secondary};`}
-  ${p => p.change === 'negative' && `color: ${p.theme.colors.green400};`}
+const RegressionTable = styled(SimpleTable)`
+  grid-template-columns: 100px minmax(100px, 2fr) 150px 150px 100px;
 `;
+
+function changeTextVariant(change: number): 'danger' | 'primary' | 'success' {
+  if (change > 0) {
+    return 'danger';
+  }
+  if (change < 0) {
+    return 'success';
+  }
+  return 'primary';
+}
+
+function CellText({children, numeric}: {children?: ReactNode; numeric?: boolean}) {
+  return (
+    <Container width="100%" overflow="hidden">
+      <Text as="div" align={numeric ? 'right' : undefined} ellipsis tabular={numeric}>
+        {children}
+      </Text>
+    </Container>
+  );
+}

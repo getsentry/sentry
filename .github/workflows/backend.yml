@@ -5,6 +5,7 @@ on:
     branches:
       - master
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
@@ -17,6 +18,7 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
+  SENTRY_SKIP_SELENIUM_PLUGIN: '1'
 
 jobs:
   files-changed:
@@ -26,11 +28,13 @@ jobs:
     # Map a step output to a job output
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
-      backend: ${{ steps.changes.outputs.backend_all }}
+      backend: ${{ steps.changes.outputs.backend_all_without_acceptance }}
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      # When true, skip selective testing and run the full backend suite
+      skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -54,8 +58,7 @@ jobs:
         with:
           node-version-file: '.node-version'
 
-      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
-
+      - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -73,41 +76,190 @@ jobs:
             devservices logs
           fi
 
-  calculate-shards:
-    if: needs.files-changed.outputs.backend == 'true'
+  # Selective testing - only on PRs, determine which tests to run based on coverage data.
+  # This job is skipped on push-to-master where the full suite runs instead.
+  prepare-selective-tests:
+    if: >-
+      needs.files-changed.outputs.backend == 'true' &&
+      needs.files-changed.outputs.skip_selective_testing != 'true' &&
+      github.event_name == 'pull_request'
     needs: files-changed
+    name: prepare selective tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      has-selected-tests: ${{ steps.compute-tests.outputs.has-selected-tests }}
+      test-count: ${{ steps.compute-tests.outputs.test-count }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0 # Need full history for git diff
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13.1'
+
+      - name: Authenticate to Google Cloud
+        id: gcloud-auth
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.3
+        with:
+          project_id: sentry-dev-tooling
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Find coverage data for selective testing
+        id: find-coverage
+        env:
+          GCS_BUCKET: sentry-coverage-data
+        run: |
+          set -euo pipefail
+
+          # Get the base commit (what the PR branches from)
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+
+          echo "Looking for coverage data starting from base commit: $BASE_SHA"
+
+          COVERAGE_SHA=""
+          for sha in $(git rev-list "$BASE_SHA" --max-count=30); do
+            # Check if coverage exists in GCS for this commit
+            if gcloud storage ls "gs://${GCS_BUCKET}/${sha}/" &>/dev/null; then
+              COVERAGE_SHA="$sha"
+              echo "Found coverage data at commit: $sha"
+              break
+            fi
+            echo "No coverage at $sha, checking parent..."
+          done
+
+          if [[ -z "$COVERAGE_SHA" ]]; then
+            echo "No coverage found in last 30 commits, will run full test suite"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "coverage-sha=$COVERAGE_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download coverage database
+        id: download-coverage
+        if: steps.find-coverage.outputs.found == 'true'
+        env:
+          COVERAGE_SHA: ${{ steps.find-coverage.outputs.coverage-sha }}
+        run: |
+          set -euxo pipefail
+          mkdir -p .coverage
+
+          if ! gcloud storage cp "gs://sentry-coverage-data/${COVERAGE_SHA}/.coverage.combined" .coverage/; then
+            echo "Warning: Failed to download coverage file"
+            echo "coverage-file=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ ! -f .coverage/.coverage.combined ]]; then
+            echo "Warning: Coverage file not found after download"
+            ls -la .coverage/ || true
+            echo "coverage-file=" >> "$GITHUB_OUTPUT"
+          else
+            echo "Downloaded coverage file: .coverage/.coverage.combined"
+            echo "coverage-file=.coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          # Get files changed between base and head of PR
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          # Use triple-dot syntax to find the merge-base first, so we only get
+          # changes introduced in this PR, not changes merged to master since branching
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | tr '\n' ' ')
+          echo "Changed files: $CHANGED_FILES"
+          echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
+
+      - name: Compute selected tests
+        id: compute-tests
+        if: steps.download-coverage.outputs.coverage-file != ''
+        env:
+          COVERAGE_DB: ${{ steps.download-coverage.outputs.coverage-file }}
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+        run: make compute-selected-tests
+
+      - name: Upload selected tests artifact
+        if: steps.compute-tests.outputs.has-selected-tests == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: selected-tests-${{ github.run_id }}
+          path: .artifacts/selected-tests.txt
+          retention-days: 1
+
+  calculate-shards:
+    # Use always() so this job runs even when prepare-selective-tests is skipped (master)
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.files-changed.outputs.backend == 'true'
+    needs: [files-changed, prepare-selective-tests]
     name: calculate test shards
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
-      shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
-      shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
+      shard-count: ${{ steps.static-shards.outputs.shard-count || steps.calculate-shards.outputs.shard-count }}
+      shard-indices: ${{ steps.static-shards.outputs.shard-indices || steps.calculate-shards.outputs.shard-indices }}
 
     steps:
+      - name: Use default shards (no selective testing)
+        id: static-shards
+        if: needs.prepare-selective-tests.outputs.has-selected-tests != 'true'
+        # Keep in sync with MAX_SHARDS in .github/workflows/scripts/calculate-backend-test-shards.py
+        run: |
+          echo "shard-count=22" >> "$GITHUB_OUTPUT"
+          echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
 
       - name: Setup sentry env
+        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
           skip-devservices: true
 
+      - name: Download selected tests artifact
+        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: selected-tests-${{ github.run_id }}
+          path: .artifacts/
+
       - name: Calculate test shards
         id: calculate-shards
+        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
+        env:
+          SELECTED_TESTS_FILE: '.artifacts/selected-tests.txt'
+          SELECTED_TEST_COUNT: ${{ needs.prepare-selective-tests.outputs.test-count || '' }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
   backend-test:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: [files-changed, calculate-shards]
+    # Use always() so this job runs even when prepare-selective-tests is skipped (master)
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0'
+    needs: [files-changed, prepare-selective-tests, calculate-shards]
     name: backend test
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: read
       id-token: write
-      actions: read # used for DIM metadata
+      actions: read # used for DIM metadata and job URL lookup
+      pull-requests: write # used to post failure comments
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -120,6 +272,10 @@ jobs:
       # Dynamic total from calculate-shards
       MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
+      # xdist: enabled on master pushes and workflow_dispatch, disabled on PRs
+      PYTHONHASHSEED: ${{ github.event_name != 'pull_request' && '0' || 'random' }}
+      XDIST_PER_WORKER_SNUBA: ${{ github.event_name != 'pull_request' && '1' || '' }}
+      XDIST_WORKERS: ${{ github.event_name != 'pull_request' && '3' || '' }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -130,15 +286,114 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+      - name: Download odiff binary
         run: |
-          make test-python-ci
+          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
+            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
+          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
+          rm odiff-linux-x64
+
+      - name: Bootstrap per-worker Snuba instances
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        run: |
+          set -eo pipefail
+          SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
+          SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+          if [ -z "$SNUBA_IMAGE" ] || [ -z "$SNUBA_NETWORK" ]; then
+            echo "ERROR: Could not inspect snuba-snuba-1 container. Is devservices running?"
+            exit 1
+          fi
+
+          docker stop snuba-snuba-1 || true
+
+          PIDS=()
+          for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
+            (
+              WORKER_DB="default_gw${i}"
+              WORKER_PORT=$((1230 + i))
+              curl -sf 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
+              docker run --rm --network "$SNUBA_NETWORK" \
+                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
+                -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
+                -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
+                -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
+                "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -3
+              docker run -d --name "snuba-gw${i}" --network "$SNUBA_NETWORK" \
+                -p "${WORKER_PORT}:1218" \
+                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
+                -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
+                -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
+                -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
+                -e "DEBUG=1" "$SNUBA_IMAGE" api
+
+              for attempt in $(seq 1 30); do
+                if curl -sf "http://127.0.0.1:${WORKER_PORT}/health" > /dev/null 2>&1; then
+                  echo "snuba-gw${i} healthy on port ${WORKER_PORT}"
+                  break
+                fi
+                if [ "$attempt" -eq 30 ]; then
+                  echo "ERROR: snuba-gw${i} failed health check after 30 attempts"
+                  docker logs "snuba-gw${i}" 2>&1 | tail -20 || true
+                  exit 1
+                fi
+                sleep 2
+              done
+            ) &
+            PIDS+=($!)
+          done
+
+          for pid in "${PIDS[@]}"; do
+            wait "$pid" || { echo "ERROR: Snuba bootstrap subshell (PID $pid) failed"; exit 1; }
+          done
+
+      - name: Download selected tests artifact
+        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: selected-tests-${{ github.run_id }}
+          path: .artifacts/
+
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        env:
+          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+        run: |
+          if [ -n "${XDIST_WORKERS}" ]; then
+            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+            timeout 1200 make test-python-ci || {
+              rc=$?
+              if [ "$rc" -eq 124 ]; then
+                echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
+              fi
+              exit "$rc"
+            }
+          else
+            make test-python-ci
+          fi
+
+      - name: Report failures
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.json
+          PYTEST_ARTIFACT_DIR: pytest-results-backend-${{ github.run_id }}-${{ matrix.instance }}
+        with:
+          script: |
+            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
+            await reportShard({ github, context, core });
 
       - name: Inspect failure
         if: failure()
         run: |
           if command -v devservices; then
             devservices logs
+          fi
+
+          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
+            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
+              echo "--- snuba-gw${i} logs ---"
+              docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
+            done
           fi
 
       - name: Collect test data
@@ -158,6 +413,10 @@ jobs:
     name: backend migration tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -171,6 +430,18 @@ jobs:
       - name: run tests
         run: |
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=120s" make test-python-ci
+
+      - name: Report failures
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.json
+          PYTEST_ARTIFACT_DIR: pytest-results-migration-${{ github.run_id }}
+        with:
+          script: |
+            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
+            await reportShard({ github, context, core });
 
       - name: Inspect failure
         if: failure()
@@ -216,7 +487,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
-      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+      - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
         id: token
         continue-on-error: true
         with:
@@ -256,7 +527,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+      - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
         id: token
         with:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
@@ -319,6 +590,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      actions: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -331,6 +604,18 @@ jobs:
       - name: Run test
         run: |
           make test-monolith-dbs
+
+      - name: Report failures
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PYTEST_JSON_PATH: ${{ github.workspace }}/.artifacts/pytest.monolith-dbs.json
+          PYTEST_ARTIFACT_DIR: pytest-results-monolith-dbs-${{ github.run_id }}
+        with:
+          script: |
+            const { reportShard } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/report-backend-test-failures.js`);
+            await reportShard({ github, context, core });
 
       - name: Inspect failure
         if: failure()
@@ -377,7 +662,7 @@ jobs:
       - run: PYTHONWARNINGS=error::RuntimeWarning mypy
         id: run
 
-      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+      - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
         id: token
         continue-on-error: true
         with:

@@ -1,0 +1,63 @@
+from __future__ import annotations
+
+import logging
+
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    RemoveRepositoryRequest,
+    SeerViewerContext,
+    make_remove_repository_request,
+)
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import seer_tasks
+
+logger = logging.getLogger(__name__)
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.cleanup_seer_repository_preferences",
+    namespace=seer_tasks,
+    processing_deadline_duration=60 * 5,
+    silo_mode=SiloMode.CELL,
+)
+def cleanup_seer_repository_preferences(
+    organization_id: int, repo_external_id: str, repo_provider: str
+) -> None:
+    """
+    Clean up Seer preferences for a deleted repository.
+
+    This task removes a repository from Seer organization preferences when the repository
+    is deleted from an organization's integration.
+    """
+    # Call Seer API to remove repository from organization preferences
+    body = RemoveRepositoryRequest(
+        organization_id=organization_id,
+        repo_provider=repo_provider,
+        repo_external_id=repo_external_id,
+    )
+
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    try:
+        response = make_remove_repository_request(body, viewer_context=viewer_context)
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+        logger.info(
+            "cleanup_seer_repository_preferences.success",
+            extra={
+                "organization_id": organization_id,
+                "repo_external_id": repo_external_id,
+                "repo_provider": repo_provider,
+            },
+        )
+    except Exception as e:
+        logger.exception(
+            "cleanup_seer_repository_preferences.failed",
+            extra={
+                "organization_id": organization_id,
+                "repo_external_id": repo_external_id,
+                "repo_provider": repo_provider,
+                "error": str(e),
+            },
+        )
+        raise

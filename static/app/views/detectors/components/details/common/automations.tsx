@@ -7,22 +7,24 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import useDrawer from 'sentry/components/globalDrawer';
-import LoadingError from 'sentry/components/loadingError';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Pagination} from 'sentry/components/pagination';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
-import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseCursor} from 'sentry/utils/cursor';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useQueryClient} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
@@ -217,6 +219,7 @@ function DetectorAutomationsTable({
 
 export function DetectorDetailsAutomations({detector}: Props) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const {mutate: updateDetector} = useUpdateDetector();
   const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
@@ -234,11 +237,19 @@ export function DetectorDetailsAutomations({detector}: Props) {
         {
           onSuccess: () => {
             addSuccessMessage(t('Connected alerts updated'));
+            // Invalidate the Connected Alerts table query
+            queryClient.invalidateQueries({
+              queryKey: [
+                getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
+                  path: {organizationIdOrSlug: organization.slug},
+                }),
+              ],
+            });
           },
         }
       );
     },
-    [detector.id, updateDetector]
+    [detector.id, updateDetector, queryClient, organization.slug]
   );
 
   const toggleDrawer = () => {

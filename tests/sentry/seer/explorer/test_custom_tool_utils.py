@@ -11,7 +11,7 @@ from sentry.seer.explorer.custom_tool_utils import (
     extract_tool_schema,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import create_test_regions, region_silo_test
+from sentry.testutils.silo import cell_silo_test, create_test_cells
 
 
 # Pydantic models for tool parameters
@@ -117,11 +117,11 @@ class ProcessItemsTool(ExplorerTool[ProcessItemsParams]):
         return "Processed"
 
 
-@region_silo_test
+@cell_silo_test
 class CustomToolUtilsTest(TestCase):
     def setUp(self):
         super().setUp()
-        create_test_regions()
+        create_test_cells()
         self.organization = self.create_organization()
 
     def test_validate_tool_class_nested(self):

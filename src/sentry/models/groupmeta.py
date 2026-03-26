@@ -5,7 +5,7 @@ from django.core.signals import request_finished
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
 
 ERR_CACHE_MISSING = "Cache not populated for instance id=%s"
@@ -79,12 +79,12 @@ class GroupMetaManager(BaseManager["GroupMeta"]):
             pass
 
     def set_value(self, instance, key, value):
-        self.create_or_update(group=instance, key=key, values={"value": value})
+        self.update_or_create(group=instance, key=key, defaults={"value": value})
         self.__cache.setdefault(instance.id, {})
         self.__cache[instance.id][key] = value
 
 
-@region_silo_model
+@cell_silo_model
 class GroupMeta(Model):
     """
     Arbitrary key/value store for Groups.

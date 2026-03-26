@@ -13,7 +13,7 @@ import {
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
@@ -47,15 +47,15 @@ import {
   FieldKind,
   isDeviceClass,
 } from 'sentry/utils/fields';
-import type Measurements from 'sentry/utils/measurements/measurements';
+import type {Measurements} from 'sentry/utils/measurements/measurements';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTags from 'sentry/utils/useTags';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTags} from 'sentry/utils/useTags';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {IssueListSeerComboBox} from 'sentry/views/discover/results/issueListSeerComboBox';
-import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
+import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
 type DataProviderProps = {
   customMeasurements?: CustomMeasurementCollection;
@@ -129,7 +129,7 @@ function ErrorsSearchBar({
   );
 }
 
-function ResultsSearchQueryBuilder(props: Props) {
+export function ResultsSearchQueryBuilder(props: Props) {
   const {
     placeholder,
     portalTarget,
@@ -142,8 +142,6 @@ function ResultsSearchQueryBuilder(props: Props) {
     dataset,
     includeTransactions = true,
   } = props;
-
-  const organization = useOrganization();
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for events, users, tags, and more');
@@ -160,13 +158,12 @@ function ResultsSearchQueryBuilder(props: Props) {
       includeTransactions,
     });
 
-  // AI search is only enabled for Errors dataset
+  // AI search is only enabled for Errors dataset if translate endpoint is enabled
   const isErrorsDataset = dataset === DiscoverDatasets.ERRORS;
-  const areAiFeaturesAllowed =
-    isErrorsDataset &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
+  const organization = useOrganization();
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
 
   const searchBarProps = {
     placeholderText,
@@ -187,7 +184,7 @@ function ResultsSearchQueryBuilder(props: Props) {
     return (
       <SearchQueryBuilderProvider
         initialQuery={props.query ?? ''}
-        enableAISearch={areAiFeaturesAllowed}
+        enableAISearch={hasTranslateEndpoint}
         aiSearchBadgeType="alpha"
         disabled={disabled}
         fieldDefinitionGetter={undefined}
@@ -223,8 +220,6 @@ function ResultsSearchQueryBuilder(props: Props) {
     />
   );
 }
-
-export default ResultsSearchQueryBuilder;
 
 const EXCLUDED_FILTER_KEYS = [FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT];
 
@@ -269,7 +264,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
     },
     {}
   );
-  const featureFlagTags: TagCollection = useMemo(
+  const featureFlagTags = useMemo(
     () =>
       featureFlagsQuery.data?.reduce<TagCollection>((acc, tag) => {
         const key = makeFeatureFlagSearchKey(tag.key);
@@ -279,7 +274,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
     [featureFlagsQuery.data]
   );
 
-  const getTagList: TagCollection = useMemo(() => {
+  const getTagList = useMemo(() => {
     const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
     const orgHasPerformanceView = organization.features.includes('performance-view');
 

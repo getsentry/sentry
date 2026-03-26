@@ -11,13 +11,13 @@ from __future__ import annotations
 import enum
 import logging
 from collections.abc import Mapping
-from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.seer.code_review.utils import SeerEndpoint
 
 from ..metrics import (
     CodeReviewErrorType,
@@ -122,12 +122,9 @@ def handle_check_run_event(
     # Scheduling the work as a task allows us to retry the request if it fails.
     # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
-        github_event=github_event.value,
+        seer_path=SeerEndpoint.PR_REVIEW_RERUN.value,
         # A reduced payload is enough for the task to process.
         event_payload={"original_run_id": validated_event.check_run.external_id},
-        action=validated_event.action,
-        html_url=validated_event.check_run.html_url,
-        enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         tags=tags,
     )
     record_webhook_enqueued(github_event, action)

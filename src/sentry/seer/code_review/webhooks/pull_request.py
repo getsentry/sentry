@@ -142,6 +142,14 @@ def handle_pull_request_event(
         record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
         return
 
+    # If no triggers are configured for this repo, no pr_review was ever sent for it,
+    # so there is nothing for Seer to process on close.
+    if action == PullRequestAction.CLOSED and (
+        org_code_review_settings is None or not org_code_review_settings.triggers
+    ):
+        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
+        return
+
     # Skip draft check for CLOSED actions to ensure Seer receives cleanup notifications
     # even if the PR was converted to draft before closing
     if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:

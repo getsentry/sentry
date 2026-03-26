@@ -7,7 +7,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -27,7 +27,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
@@ -67,7 +67,7 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
         )
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
     def test_simple(self) -> None:
         detector = self.create_detector(
@@ -255,6 +255,10 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         ]
 
     def test_sort_by_latest_group(self) -> None:
+        # delete the project default detectors as they cause flaky sorting results
+        self.error_detector.delete()
+        self.issue_stream_detector.delete()
+
         detector_1 = self.create_detector(
             project=self.project, name="Detector 1", type=MetricIssue.slug
         )
@@ -277,7 +281,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         detector_group_1.date_added = before_now(hours=3)
         detector_group_1.save()
 
-        # detector_2 has the newest grbefore_now
+        # detector_2 has the newest group
         detector_group_2 = DetectorGroup.objects.create(detector=detector_2, group=group_2)
         detector_group_2.date_added = before_now(hours=1)  # Most recent
         detector_group_2.save()
@@ -295,8 +299,6 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             detector_2.name,
             detector_3.name,
             detector_1.name,
-            self.error_detector.name,
-            self.issue_stream_detector.name,
             detector_4.name,  # No groups, should be last
         ]
 
@@ -305,8 +307,6 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id, "sortBy": "latestGroup"}
         )
         assert [d["name"] for d in response2.data] == [
-            self.error_detector.name,
-            self.issue_stream_detector.name,
             detector_4.name,  # No groups, should be first
             detector_1.name,
             detector_3.name,
@@ -754,7 +754,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert {d["name"] for d in response.data} == {self.detector.name, self.detector_2.name}
 
 
-@region_silo_test
+@cell_silo_test
 @with_feature("organizations:incidents")
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     method = "POST"
@@ -1026,6 +1026,19 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert response.data == {"name": ["This field is required."]}
+
+    def test_missing_data_sources(self) -> None:
+        data = {
+            "name": "Test Cron Monitor",
+            "type": MonitorIncidentType.slug,
+            "projectId": self.project.id,
+        }
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+        assert "dataSources" in response.data
 
     def test_empty_query_string(self) -> None:
         data = {**self.valid_data}
@@ -1361,7 +1374,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert detector.owner_team_id == other_team.id
 
 
-@region_silo_test
+@cell_silo_test
 @with_feature("organizations:incidents")
 class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
     method = "PUT"
@@ -1651,7 +1664,7 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert self.error_detector.enabled is True
 
 
-@region_silo_test
+@cell_silo_test
 class ConvertAssigneeValuesTest(APITestCase):
     """Test the convert_assignee_values function"""
 
@@ -1717,7 +1730,7 @@ class ConvertAssigneeValuesTest(APITestCase):
         self.assertEqual(str(result), str(expected))
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
     method = "DELETE"
 
@@ -1752,11 +1765,11 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         self.detector_two.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         assert self.detector_two.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector",
             object_id=self.detector.id,
         ).exists()
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector",
             object_id=self.detector_two.id,
         ).exists()
@@ -1783,7 +1796,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         # Ensure the detector is scheduled for deletion
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector",
             object_id=self.detector.id,
         ).exists()
@@ -1804,7 +1817,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         )
 
         assert self.error_detector.status != ObjectStatus.PENDING_DELETION
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.error_detector.id
         ).exists()
 
@@ -1865,7 +1878,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         # Ensure the detector is scheduled for deletion
         self.detector_two.refresh_from_db()
         assert self.detector_two.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector",
             object_id=self.detector_two.id,
         ).exists()

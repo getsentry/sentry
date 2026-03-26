@@ -8,7 +8,7 @@ from typing import Any, TypedDict, TypeVar
 import sentry_sdk
 from tokenizers import Tokenizer
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import DATA_ROOT
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
@@ -21,8 +21,10 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     is_seer_seat_based_tier_enabled,
     set_project_seer_preference,
+    write_preference_to_sentry_db,
 )
 from sentry.seer.models import SeerProjectPreference
+from sentry.seer.similarity.types import GroupingVersion
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -341,12 +343,15 @@ def stacktrace_exceeds_limits(
     event: Event | GroupEvent,
     variants: dict[str, BaseVariant],
     referrer: ReferrerOptions,
+    model_version: GroupingVersion | None = None,
 ) -> bool:
     """
     Check if a stacktrace exceeds length limits for Seer similarity analysis.
 
-    For platforms that bypass length checks (to maintain consistency with backfilled data),
-    all stacktraces pass through. For other platforms, we use a two-step approach:
+    For V1, platforms that bypass length checks (to maintain consistency with backfilled data)
+    have all stacktraces pass through. For V2, all platforms are subject to length checks.
+
+    If we dont bypass length checks, we use a two-step approach:
     1. First check raw string length - if shorter than token limit, pass immediately
     2. Only if string is long enough to potentially exceed limit, run expensive token count
     """
@@ -369,8 +374,12 @@ def stacktrace_exceeds_limits(
         return False
 
     # Certain platforms were backfilled before we added length filtering, so to keep new events
-    # matching with existing data, we bypass the filter for them (their stacktraces will be truncated)
-    if platform in EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK:
+    # matching with existing data, we bypass the filter for them (their stacktraces will be truncated).
+    # For V2 we apply length checks to all platforms since we're re-embedding everything anyway.
+    if (
+        model_version != GroupingVersion.V2
+        and platform in EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK
+    ):
         metrics.incr(
             "grouping.similarity.stacktrace_length_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -424,6 +433,7 @@ def killswitch_enabled(
     project_id: int | None,
     referrer: ReferrerOptions,
     event: Event | None = None,
+    training_mode: bool = False,
 ) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
@@ -439,7 +449,9 @@ def killswitch_enabled(
         )
         # When it's ingest, `event` will always be defined - the second check is purely for mypy
         if is_ingest and event:
-            record_did_call_seer_metric(event, call_made=False, blocker="global-killswitch")
+            record_did_call_seer_metric(
+                event, call_made=False, blocker="global-killswitch", training_mode=training_mode
+            )
 
         return True
 
@@ -449,7 +461,12 @@ def killswitch_enabled(
             extra=logger_extra,
         )
         if is_ingest and event:
-            record_did_call_seer_metric(event, call_made=False, blocker="similarity-killswitch")
+            record_did_call_seer_metric(
+                event,
+                call_made=False,
+                blocker="similarity-killswitch",
+                training_mode=training_mode,
+            )
 
         return True
 
@@ -461,7 +478,9 @@ def killswitch_enabled(
             extra=logger_extra,
         )
         if is_ingest and event:
-            record_did_call_seer_metric(event, call_made=False, blocker="project-killswitch")
+            record_did_call_seer_metric(
+                event, call_made=False, blocker="project-killswitch", training_mode=training_mode
+            )
 
         return True
 
@@ -564,6 +583,16 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
         set_project_seer_preference(preference)
     except Exception as e:
         sentry_sdk.capture_exception(e)
+        return
+
+    if features.has("organizations:seer-project-settings-dual-write", organization):
+        try:
+            write_preference_to_sentry_db(project, preference)
+        except Exception:
+            logger.exception(
+                "seer.write_preferences.failed",
+                extra={"project_id": project.id, "organization_id": organization.id},
+            )
 
 
 def report_token_count_metric(

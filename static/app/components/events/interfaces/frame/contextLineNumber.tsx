@@ -4,7 +4,6 @@ import classNames from 'classnames';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Coverage} from 'sentry/types/integrations';
 
 interface Props {
@@ -27,7 +26,7 @@ const coverageClass: Record<Coverage, string | undefined> = {
   [Coverage.NOT_APPLICABLE]: undefined,
 };
 
-function ContextLineNumber({
+export function ContextLineNumber({
   lineNumber,
   isActive,
   coverage = Coverage.NOT_APPLICABLE,
@@ -41,8 +40,6 @@ function ContextLineNumber({
   );
 }
 
-export default ContextLineNumber;
-
 const Wrapper = styled('div')`
   background: inherit;
   height: 24px;
@@ -50,7 +47,7 @@ const Wrapper = styled('div')`
   display: inline-block;
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 
   .line-number {
     display: flex;
@@ -60,8 +57,8 @@ const Wrapper = styled('div')`
     justify-content: end;
     height: 100%;
     text-align: right;
-    padding-right: ${space(2)};
-    margin-right: ${space(1.5)};
+    padding-right: ${p => p.theme.space.xl};
+    margin-right: ${p => p.theme.space.lg};
     background: transparent;
     min-width: 58px;
     border-right: 3px solid transparent;

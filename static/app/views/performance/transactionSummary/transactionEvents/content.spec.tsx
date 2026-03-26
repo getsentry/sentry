@@ -5,8 +5,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import EventView from 'sentry/utils/discover/eventView';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -14,7 +14,7 @@ import {
 import {WebVital} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
+import {EventsContent as EventsPageContent} from 'sentry/views/performance/transactionSummary/transactionEvents/content';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 function initializeData() {

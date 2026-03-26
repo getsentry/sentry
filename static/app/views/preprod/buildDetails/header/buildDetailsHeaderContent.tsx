@@ -7,14 +7,14 @@ import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import ConfirmDelete from 'sentry/components/confirmDelete';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import IdBadge from 'sentry/components/idBadge';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Placeholder from 'sentry/components/placeholder';
-import Version from 'sentry/components/version';
+import {Placeholder} from 'sentry/components/placeholder';
+import {Version} from 'sentry/components/version';
 import {
   IconDelete,
   IconDownload,
@@ -24,13 +24,13 @@ import {
   IconTelescope,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
-import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   isSizeInfoCompleted,
@@ -44,15 +44,15 @@ import {useBuildDetailsActions} from './useBuildDetailsActions';
 interface BuildDetailsHeaderContentProps {
   artifactId: string;
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
-  projectId: string;
+  projectSlug: string;
   projectType: string | null;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
-  const router = useRouter();
+  const navigate = useNavigate();
   const isSentryEmployee = useIsSentryEmployee();
-  const {buildDetailsQuery, projectId, artifactId, projectType} = props;
+  const {buildDetailsQuery, projectSlug, artifactId, projectType} = props;
   const {
     isDeletingArtifact,
     isRerunningStatusChecks,
@@ -61,7 +61,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     handleDownloadAction,
     handleRerunStatusChecksAction,
   } = useBuildDetailsActions({
-    projectId,
+    projectId: projectSlug,
     artifactId,
   });
 
@@ -89,11 +89,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  const project = ProjectsStore.getById(projectId);
+  const project = ProjectsStore.getBySlug(projectSlug);
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectSlug, {tab: 'mobile-builds'}),
       label: 'Releases',
     },
   ];
@@ -103,7 +103,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   if (version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(organization.slug, projectId, {
+      to: makeReleasesUrl(organization.slug, projectSlug, {
         query: version,
         tab: 'mobile-builds',
       }),
@@ -138,10 +138,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       project_type: projectType,
       project_slug: project?.slug,
     });
-    router.push(
+    navigate(
       getCompareBuildPath({
         organizationSlug: organization.slug,
-        projectId,
         headArtifactId: buildDetailsData.id,
       })
     );

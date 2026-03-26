@@ -186,6 +186,7 @@ function Segment<Value extends string>({
   const content = (
     <SegmentWrap
       size={size}
+      shapeVariant={props.children ? 'rectangular' : 'square'}
       isSelected={isSelected}
       isDisabled={isDisabled}
       priority={priority}
@@ -257,6 +258,7 @@ const GroupWrap = styled('div')<{
 const SegmentWrap = styled('label')<{
   isSelected: boolean;
   priority: Priority;
+  shapeVariant: 'rectangular' | 'square';
   size: FormSize;
   isDisabled?: boolean;
 }>`
@@ -277,6 +279,7 @@ const SegmentWrap = styled('label')<{
       ...p,
       disabled: p.isDisabled,
       priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default',
+      shapeVariant: p.shapeVariant,
     }),
   })}
 

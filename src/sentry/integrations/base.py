@@ -27,7 +27,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.pipeline.provider import PipelineProvider
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -224,6 +224,9 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     can_add = True
     """whether or not the integration installation be initiated from Sentry"""
 
+    allow_multiple = True
+    """whether multiple installations of this integration are allowed per organization"""
+
     can_disable = False
     """
     if the integration can be uninstalled in Sentry, set to False
@@ -237,10 +240,10 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     the installer's identity to the organization integration
     """
 
-    is_region_restricted: bool = False
+    is_cell_restricted: bool = False
     """
-    Returns True if each integration installation can only be connected on one region of Sentry at a
-    time. It will raise an error if any organization from another region attempts to install it.
+    Returns True if each integration installation can only be connected on one cell of Sentry at a
+    time. It will raise an error if any organization from another cell attempts to install it.
     """
 
     features: frozenset[IntegrationFeatures] = frozenset()
@@ -308,6 +311,14 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
         >>>    return []
         """
         raise NotImplementedError
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        """
+        Return API step objects for this provider's pipeline, or None if API
+        mode is not supported. Override to enable the pipeline API for this
+        integration.
+        """
+        return None
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         """

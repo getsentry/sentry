@@ -7,24 +7,23 @@ import {Link} from '@sentry/scraps/link';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingError from 'sentry/components/loadingError';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingError} from 'sentry/components/loadingError';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import Placeholder from 'sentry/components/placeholder';
-import TextOverflow from 'sentry/components/textOverflow';
-import Version from 'sentry/components/version';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {Version} from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
+import {MissingReleasesButtons} from './missingFeatureButtons/missingReleasesButtons';
 import {SectionHeadingWrapper, SidebarSection} from './styles';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '160px';
@@ -156,7 +155,7 @@ function ReleasesBody({
   );
 }
 
-function ProjectLatestReleases({
+export function ProjectLatestReleases({
   isProjectStabilized,
   location,
   organization,
@@ -230,10 +229,10 @@ const ReleasesTable = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   white-space: nowrap;
   grid-template-columns: 1fr auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   & > * {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
     height: 32px;
   }
 
@@ -261,5 +260,3 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   height: ${PLACEHOLDER_AND_EMPTY_HEIGHT};
   justify-content: center;
 `;
-
-export default ProjectLatestReleases;

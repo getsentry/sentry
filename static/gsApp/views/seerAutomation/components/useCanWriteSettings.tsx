@@ -1,7 +1,7 @@
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export default function useCanWriteSettings() {
+export function useCanWriteSettings() {
   const organization = useOrganization();
   const canWrite = hasEveryAccess(['org:write'], {organization});
 

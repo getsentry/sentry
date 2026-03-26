@@ -4,13 +4,12 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
-import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
+import {NoProjectEmptyState} from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -20,7 +19,7 @@ type Props = {
   superuserNeedsToBeProjectMember?: boolean;
 };
 
-function NoProjectMessage({
+export function NoProjectMessage({
   children,
   organization,
   superuserNeedsToBeProjectMember,
@@ -109,15 +108,13 @@ function NoProjectMessage({
   );
 }
 
-export default NoProjectMessage;
-
 const StyledNoProjectEmptyState = styled(NoProjectEmptyState)`
   width: 100%;
   height: auto;
 `;
 
 const HelpMessage = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Actions = styled((props: GridProps) => (

@@ -1,7 +1,7 @@
 ---
 title: SegmentedControl
 description: A group of buttons that function as a single control for selecting one or multiple options, commonly used for view switchers and filter toggles.
-category: forms
+category: controls
 source: '@sentry/scraps/segmentedControl'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
@@ -18,9 +18,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {IconStats} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/segmentedControl';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/segmentedControl');
 
 `<SegmentedControl>` is a group of buttons that work together as a single control for selecting one option from a set. It provides a compact, visual way to switch between different views, modes, or filter options.
 

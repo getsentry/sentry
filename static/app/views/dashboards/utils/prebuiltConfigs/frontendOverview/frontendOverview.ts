@@ -7,6 +7,10 @@ import {
   DASHBOARD_TITLE,
   FRONTEND_SDK_NAMES,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
@@ -47,7 +51,7 @@ const assetsByTimeSpentQuery = new MutableSearch(
   `has:${SpanFields.NORMALIZED_DESCRIPTION} ${ASSETS_BY_TIME_SPENT_QUERY}`
 );
 
-const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-widget',
@@ -98,7 +102,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   0
 );
 
-const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'issue-counts',
@@ -133,6 +137,13 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           aggregates: ['p75(span.duration)'],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
           orderby: `-sum(span.duration)`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.NORMALIZED_DESCRIPTION,
+              staticDashboardId: 25,
+            },
+          ],
         },
       ],
     },
@@ -200,16 +211,16 @@ const TRANSACTIONS_TABLE: Widget = {
       ],
       fields: TABLE_FIELDS,
       fieldAliases: [
-        t('Starred'),
+        '',
         t('Transaction'),
         t('Project'),
         t('TPM'),
-        t('p50()'),
-        t('p75()'),
-        t('p95()'),
+        WIDGET_COLUMN_LABELS.p50,
+        WIDGET_COLUMN_LABELS.p75,
+        WIDGET_COLUMN_LABELS.p95,
         t('Failure Rate'),
         t('Users'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.timeSpent,
         t('Performance Score'),
       ],
       columns: [
@@ -225,7 +236,7 @@ const TRANSACTIONS_TABLE: Widget = {
     y: 7,
     w: 6,
     h: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -247,4 +258,9 @@ export const FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['firstTransactionEvent'],
+    description: 'Get started with frontend tracing',
+  },
 };

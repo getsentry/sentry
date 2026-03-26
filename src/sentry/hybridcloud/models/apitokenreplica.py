@@ -5,12 +5,12 @@ from django.utils import timezone
 from django.utils.encoding import force_str
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.apiscopes import HasApiScopes
 
 
-@region_silo_model
+@cell_silo_model
 class ApiTokenReplica(Model, HasApiScopes):
     __relocation_scope__ = RelocationScope.Excluded
 

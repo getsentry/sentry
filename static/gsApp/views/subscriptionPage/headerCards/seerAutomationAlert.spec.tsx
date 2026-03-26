@@ -2,16 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
-import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
+import {SeerAutomationAlert} from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 jest.mock('sentry/utils/useDismissAlert');
-jest.mock('sentry/utils/useLocation');
 
 const mockUseDismissAlert = jest.mocked(useDismissAlert);
-const mockUseLocation = jest.mocked(useLocation);
 
 describe('SeerAutomationAlert', () => {
   const defaultOrganization = OrganizationFixture({
@@ -19,21 +16,19 @@ describe('SeerAutomationAlert', () => {
     slug: 'test-org',
   });
 
+  const baseRouterConfig = {
+    location: {
+      pathname: '/settings/test-org/billing/overview/',
+      query: {showSeerAutomationAlert: 'true'},
+    },
+    route: '/settings/:orgId/billing/overview/',
+  };
+
   beforeEach(() => {
     // Default mocks
     mockUseDismissAlert.mockImplementation(() => ({
       dismiss: jest.fn(),
       isDismissed: false,
-    }));
-
-    mockUseLocation.mockImplementation(() => ({
-      query: {showSeerAutomationAlert: 'true'},
-      pathname: '/settings/test-org/billing/overview/',
-      search: '?showSeerAutomationAlert=true',
-      hash: '',
-      state: null,
-      key: 'test',
-      action: 'PUSH',
     }));
   });
 
@@ -42,7 +37,9 @@ describe('SeerAutomationAlert', () => {
   });
 
   it('renders when all conditions are met', () => {
-    render(<SeerAutomationAlert organization={defaultOrganization} />);
+    render(<SeerAutomationAlert organization={defaultOrganization} />, {
+      initialRouterConfig: baseRouterConfig,
+    });
 
     expect(
       screen.getByText(
@@ -58,7 +55,9 @@ describe('SeerAutomationAlert', () => {
   });
 
   it('has correct link to seer automation settings', () => {
-    render(<SeerAutomationAlert organization={defaultOrganization} />);
+    render(<SeerAutomationAlert organization={defaultOrganization} />, {
+      initialRouterConfig: baseRouterConfig,
+    });
 
     const link = screen.getByText('Manage Seer Automation Settings');
     expect(link.closest('a')).toHaveAttribute('href', '/settings/test-org/seer/');
@@ -71,7 +70,9 @@ describe('SeerAutomationAlert', () => {
       isDismissed: false,
     }));
 
-    render(<SeerAutomationAlert organization={defaultOrganization} />);
+    render(<SeerAutomationAlert organization={defaultOrganization} />, {
+      initialRouterConfig: baseRouterConfig,
+    });
 
     const dismissButton = screen.getByLabelText('Dismiss banner');
     await userEvent.click(dismissButton);
@@ -86,7 +87,8 @@ describe('SeerAutomationAlert', () => {
     }));
 
     const {container} = render(
-      <SeerAutomationAlert organization={defaultOrganization} />
+      <SeerAutomationAlert organization={defaultOrganization} />,
+      {initialRouterConfig: baseRouterConfig}
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -98,40 +100,32 @@ describe('SeerAutomationAlert', () => {
     });
 
     const {container} = render(
-      <SeerAutomationAlert organization={organizationWithoutSeer} />
+      <SeerAutomationAlert organization={organizationWithoutSeer} />,
+      {initialRouterConfig: baseRouterConfig}
     );
     expect(container).toBeEmptyDOMElement();
   });
 
   it('does not render when there is no showSeerAutomationAlert query parameter', () => {
-    mockUseLocation.mockImplementation(() => ({
-      query: {}, // No showSeerAutomationAlert
-      pathname: '/settings/test-org/billing/overview/',
-      search: '',
-      hash: '',
-      state: null,
-      key: 'test',
-      action: 'PUSH',
-    }));
-
     const {container} = render(
-      <SeerAutomationAlert organization={defaultOrganization} />
+      <SeerAutomationAlert organization={defaultOrganization} />,
+      {
+        initialRouterConfig: {
+          ...baseRouterConfig,
+          location: {
+            ...baseRouterConfig.location,
+            query: {},
+          },
+        },
+      }
     );
     expect(container).toBeEmptyDOMElement();
   });
 
   it('renders when there is a showSeerAutomationAlert query parameter', () => {
-    mockUseLocation.mockImplementation(() => ({
-      query: {showSeerAutomationAlert: 'true'},
-      pathname: '/settings/test-org/billing/overview/',
-      search: '?showSeerAutomationAlert=true',
-      hash: '',
-      state: null,
-      key: 'test',
-      action: 'PUSH',
-    }));
-
-    render(<SeerAutomationAlert organization={defaultOrganization} />);
+    render(<SeerAutomationAlert organization={defaultOrganization} />, {
+      initialRouterConfig: baseRouterConfig,
+    });
 
     expect(
       screen.getByText(
@@ -141,7 +135,9 @@ describe('SeerAutomationAlert', () => {
   });
 
   it('uses correct dismiss key with organization id', () => {
-    render(<SeerAutomationAlert organization={defaultOrganization} />);
+    render(<SeerAutomationAlert organization={defaultOrganization} />, {
+      initialRouterConfig: baseRouterConfig,
+    });
 
     expect(mockUseDismissAlert).toHaveBeenCalledWith({
       key: `${defaultOrganization.id}:seer-automation-billing-alert`,

@@ -2,15 +2,17 @@ from django.db import models
 from django.db.models import Value
 
 from sentry.constants import ObjectStatus
+from sentry.issues.grouptype import FeedbackGroup
+from sentry.models.group import Group
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import get_unique_active_actions
 
 
-@region_silo_test
+@cell_silo_test
 class TestActionDeduplication(TestCase):
     """
     Tests that we correctly deduplicate actions
@@ -29,6 +31,7 @@ class TestActionDeduplication(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
+        self.group: Group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
 
         self.slack_integration = self.create_integration(
             organization=self.organization,
@@ -69,7 +72,7 @@ class TestActionDeduplication(TestCase):
             id__in=[self.slack_action.id, email_action.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Both actions should remain since they're different types
         result_ids = list(result.values_list("id", flat=True))
@@ -89,7 +92,7 @@ class TestActionDeduplication(TestCase):
             id__in=[self.slack_action.id, email_action.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Only one action should remain
         # The inactive action should be filtered out
@@ -114,7 +117,7 @@ class TestActionDeduplication(TestCase):
             id__in=[slack_action_1.id, slack_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -143,7 +146,7 @@ class TestActionDeduplication(TestCase):
             id__in=[slack_action_1.id, slack_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Both actions should remain since they target different channels
         result_ids = list(result.values_list("id", flat=True))
@@ -169,7 +172,7 @@ class TestActionDeduplication(TestCase):
             id__in=[slack_action_1.id, slack_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -203,7 +206,7 @@ class TestActionDeduplication(TestCase):
             id__in=[slack_action_1.id, slack_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Both actions should remain since they have different data
         result_ids = list(result.values_list("id", flat=True))
@@ -240,7 +243,7 @@ class TestActionDeduplication(TestCase):
             id__in=[slack_action_1.id, slack_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Both actions should remain since they have different data
         result_ids = list(result.values_list("id", flat=True))
@@ -268,7 +271,7 @@ class TestActionDeduplication(TestCase):
             id__in=[email_action_1.id, email_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -291,7 +294,7 @@ class TestActionDeduplication(TestCase):
             id__in=[email_action_1.id, email_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Both actions should remain since they have different targets
         result_ids = list(result.values_list("id", flat=True))
@@ -315,7 +318,7 @@ class TestActionDeduplication(TestCase):
             id__in=[email_action_1.id, email_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Both actions should remain since they have different targets
         result_ids = list(result.values_list("id", flat=True))
@@ -343,7 +346,7 @@ class TestActionDeduplication(TestCase):
             id__in=[email_action_1.id, email_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Both actions should remain since they have different targets
         result_ids = list(result.values_list("id", flat=True))
@@ -378,7 +381,7 @@ class TestActionDeduplication(TestCase):
             id__in=[email_action_1.id, email_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -407,7 +410,7 @@ class TestActionDeduplication(TestCase):
             id__in=[sentry_app_action_1.id, sentry_app_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -434,7 +437,7 @@ class TestActionDeduplication(TestCase):
             id__in=[webhook_action_1.id, webhook_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -449,7 +452,7 @@ class TestActionDeduplication(TestCase):
             id__in=[plugin_action_1.id, plugin_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # One action should remain since its a plugin action
         result_ids = list(result.values_list("id", flat=True))
@@ -481,7 +484,7 @@ class TestActionDeduplication(TestCase):
             id__in=[slack_action.id, pagerduty_action.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Both actions should remain since they're for different integrations
         result_ids = list(result.values_list("id", flat=True))
@@ -518,7 +521,7 @@ class TestActionDeduplication(TestCase):
             id__in=[jira_action_1.id, jira_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Both actions should remain since ticketing actions are deduplicated by integration_id and dynamic form field data
         result_ids = list(result.values_list("id", flat=True))
@@ -554,7 +557,7 @@ class TestActionDeduplication(TestCase):
             id__in=[jira_action_1.id, jira_action_2.id]
         ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Only 1 action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -564,7 +567,7 @@ class TestActionDeduplication(TestCase):
         """Test deduplication with empty queryset."""
         actions_queryset = Action.objects.none()
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Should return empty queryset
         assert list(result) == []
@@ -577,7 +580,7 @@ class TestActionDeduplication(TestCase):
             workflow_id=Value(1, output_field=models.IntegerField())
         )
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
         # Should return the single action
         result_ids = list(result.values_list("id", flat=True))
@@ -585,7 +588,7 @@ class TestActionDeduplication(TestCase):
         assert result_ids[0] == single_action.id
 
     def test_deduplicate_actions_same_actions_different_workflows(self) -> None:
-        """Test that identical actions from different workflows are NOT deduplicated."""
+        """Test that identical actions from different workflows are deduplicated."""
         # Create two identical Slack actions
         slack_action_1 = self.create_action(
             type=Action.Type.SLACK,
@@ -608,6 +611,8 @@ class TestActionDeduplication(TestCase):
         )
 
         # Annotate with different workflow IDs
+        # We don't use this, but it is expected to be present,
+        # so this mostly confirms we don't use it for deduplication.
         actions_queryset = Action.objects.filter(
             id__in=[slack_action_1.id, slack_action_2.id]
         ).annotate(
@@ -618,10 +623,8 @@ class TestActionDeduplication(TestCase):
             )
         )
 
-        result = get_unique_active_actions(actions_queryset)
+        result = get_unique_active_actions(actions_queryset, self.group)
 
-        # Both actions should remain since they're from different workflows
+        # Only one action should remain; we don't take workflow into account for deduplication
         result_ids = list(result.values_list("id", flat=True))
-        assert len(result_ids) == 2
-        assert slack_action_1.id in result_ids
-        assert slack_action_2.id in result_ids
+        assert len(result_ids) == 1

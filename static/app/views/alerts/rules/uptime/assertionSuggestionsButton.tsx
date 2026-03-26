@@ -3,28 +3,28 @@ import {useCallback} from 'react';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {AssertionSuggestionsDrawerContent} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsDrawerContent';
-import type {
-  AndOp,
-  Assertion,
-  AssertionSuggestion,
-  Op,
+import {
+  UptimeOpType,
+  type UptimeAssertion,
+  type UptimeAssertionSuggestion,
+  type UptimeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 /**
  * Adds an `id` field to an assertion Op for the frontend
  */
-function addIdToOp(op: Op): Op {
+function addIdToOp(op: UptimeOp): UptimeOp {
   const id = uniqueId();
   switch (op.op) {
-    case 'and':
-    case 'or':
+    case UptimeOpType.AND:
+    case UptimeOpType.OR:
       return {...op, id, children: op.children.map(addIdToOp)};
-    case 'not':
+    case UptimeOpType.NOT:
       return {...op, id, operand: addIdToOp(op.operand)};
     default:
       return {...op, id};
@@ -35,7 +35,7 @@ interface AssertionSuggestionsButtonProps {
   /**
    * Returns the current assertion value from the form at call time.
    */
-  getCurrentAssertion: () => Assertion | null;
+  getCurrentAssertion: () => UptimeAssertion | null;
   /**
    * Callback to get the current form data for the test request.
    */
@@ -49,7 +49,7 @@ interface AssertionSuggestionsButtonProps {
   /**
    * Callback when user applies a suggestion
    */
-  onApplySuggestion: (updatedAssertion: Assertion) => void;
+  onApplySuggestion: (updatedAssertion: UptimeAssertion) => void;
   /**
    * Button size
    */
@@ -69,19 +69,19 @@ export function AssertionSuggestionsButton({
   const {openDrawer, isDrawerOpen} = useDrawer();
 
   const handleApplySuggestion = useCallback(
-    (suggestion: AssertionSuggestion) => {
+    (suggestion: UptimeAssertionSuggestion) => {
       const newOp = addIdToOp(suggestion.assertion_json);
       // Read the current assertion at apply time so we always merge with
       // the latest form state, preserving any existing assertions.
       const current = getCurrentAssertion();
 
-      const newRoot: AndOp = current?.root
+      const newRoot = current?.root
         ? {
             ...current.root,
             children: [...current.root.children, newOp],
           }
         : {
-            op: 'and',
+            op: UptimeOpType.AND as const,
             id: uniqueId(),
             children: [newOp],
           };

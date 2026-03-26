@@ -6,11 +6,10 @@ import {Slider} from '@sentry/scraps/slider';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-import SliderAndInputWrapper from './sliderAndInputWrapper';
-import SliderLabel from './sliderLabel';
+import {SliderAndInputWrapper} from './sliderAndInputWrapper';
+import {SliderLabel} from './sliderLabel';
 
 type SliderProps = {
   name: string;
@@ -57,19 +56,17 @@ type SliderProps = {
    */
   min?: number;
 
+  onChange?: (
+    value: SliderProps['value'],
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void;
+
   /**
    * This is called when *any* MouseUp or KeyUp event happens.
    * Used for "smart" Fields to trigger a "blur" event. `onChange` can
    * be triggered quite frequently
    */
-  onBlur?: (
-    event: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
-  ) => void;
-
-  onChange?: (
-    value: SliderProps['value'],
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => void;
+  onChangeEnd?: (value: number) => void;
   /**
    * Placeholder for custom input
    */
@@ -86,7 +83,7 @@ type SliderProps = {
   step?: number;
 };
 
-function RangeSlider({
+export function RangeSlider({
   id,
   value,
   allowedValues,
@@ -96,8 +93,8 @@ function RangeSlider({
   placeholder,
   formatLabel,
   className,
-  onBlur,
   onChange,
+  onChangeEnd,
   ref,
   disabledReason,
   showLabel = true,
@@ -143,18 +140,17 @@ function RangeSlider({
     onChange?.(getActualValue(newSliderValue), e);
   }
 
-  function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSliderValue(parseFloat(e.target.value) || 0);
+  function handleSliderChange(newSliderValue: number) {
+    setSliderValue(newSliderValue);
+    // Legacy onChange takes (value, event) but the new Slider no longer provides an event.
+    // Pass a synthetic-like object for backward compat with callers that destructure the event.
+    onChange?.(getActualValue(newSliderValue), {
+      currentTarget: {valueAsNumber: newSliderValue},
+    } as React.ChangeEvent<HTMLInputElement>);
   }
 
-  function handleBlur(
-    e: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
-  ) {
-    if (typeof onBlur !== 'function') {
-      return;
-    }
-
-    onBlur(e);
+  function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setSliderValue(parseFloat(e.target.value) || 0);
   }
 
   function getSliderData() {
@@ -196,9 +192,8 @@ function RangeSlider({
             max={max}
             step={step}
             disabled={disabled}
-            onChange={(_, e) => handleInput(e)}
-            onMouseUp={handleBlur}
-            onKeyUp={handleBlur}
+            onChange={handleSliderChange}
+            onChangeEnd={onChangeEnd}
             value={sliderValue}
             aria-valuetext={labelText}
             aria-label={props['aria-label']}
@@ -222,11 +217,9 @@ function RangeSlider({
 }
 
 const StyledSlider = styled(Slider)`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const StyledInput = styled(Input)<{hasLabel: boolean}>`
-  margin-top: ${p => space(p.hasLabel ? 2 : 1)};
+  margin-top: ${p => (p.hasLabel ? p.theme.space.xl : p.theme.space.md)};
 `;
-
-export default RangeSlider;

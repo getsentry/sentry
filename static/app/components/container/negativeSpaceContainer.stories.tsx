@@ -3,7 +3,9 @@ import {Fragment} from 'react';
 import bgPattern from 'sentry-images/spot/mobile-hero.jpg';
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {InlineCode} from '@sentry/scraps/code';
+
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('NegativeSpaceContainer', story => {
@@ -13,7 +15,7 @@ export default Storybook.story('NegativeSpaceContainer', story => {
         A <Storybook.JSXNode name="NegativeSpaceContainer" /> is a container with a
         diagonal pattern for a background. It will preserve the aspect ratio of whatever
         is inside it. It's a flex element, so the children are free to expand/contract
-        depending on whether things like <kbd>flex-grow: 1</kbd> are set.
+        depending on whether things like <InlineCode>flex-grow: 1</InlineCode> are set.
       </p>
       <p>Here's one with nothing inside it:</p>
       <NegativeSpaceContainer

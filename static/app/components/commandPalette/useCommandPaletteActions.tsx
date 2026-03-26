@@ -1,6 +1,6 @@
 import {useEffect, useId} from 'react';
 
-import slugify from 'sentry/utils/slugify';
+import {slugify} from 'sentry/utils/slugify';
 
 import {useCommandPaletteRegistration} from './context';
 import type {
@@ -39,9 +39,10 @@ function addKeysToChildActions(
   actions: Array<CommandPaletteActionLink | CommandPaletteActionCallback>
 ): Array<CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey> {
   return actions.map(action => {
-    const actionKey = `${id}:${action.type}:${action.display.label
-      .toLowerCase()
-      .replace(/ /g, '-')}`;
+    const label = action.display.label.toLowerCase().replace(/ /g, '-');
+    const disambiguator =
+      action.type === 'navigate' ? `:${JSON.stringify(action.to)}` : '';
+    const actionKey = `${id}:${action.type}:${label}${disambiguator}`;
     return {
       ...action,
       key: actionKey,

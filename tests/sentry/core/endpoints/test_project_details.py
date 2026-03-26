@@ -13,7 +13,7 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.types import DynamicSamplingMode
@@ -1591,7 +1591,7 @@ class ProjectDeleteTest(APITestCase):
                 self.project.organization.slug, self.project.slug, status_code=204
             )
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 
@@ -1626,12 +1626,12 @@ class ProjectDeleteTest(APITestCase):
                 self.project.organization.slug, self.project.slug, status_code=403
             )
 
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 
     @mock.patch(
-        "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
         self, mock_call_seer_delete_project_grouping_records
@@ -1654,7 +1654,7 @@ class ProjectDeleteTest(APITestCase):
                 )
 
         # Should go ahead with deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 
@@ -1673,7 +1673,7 @@ class ProjectDeleteTest(APITestCase):
 
         # Should raise sudo-required and not schedule deletion
         assert resp.data["detail"]["code"] == "sudo-required"
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 

@@ -1,10 +1,11 @@
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import TextField from 'sentry/components/forms/fields/textField';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Input} from '@sentry/scraps/input';
+import {Text} from '@sentry/scraps/text';
+
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
 import {SourceSuggestionType} from 'sentry/views/settings/components/dataScrubbing/types';
@@ -13,19 +14,23 @@ import {
   unarySuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
-import SourceSuggestionExamples from './sourceSuggestionExamples';
+import {SourceSuggestionExamples} from './sourceSuggestionExamples';
 
-const defaultHelp = t(
-  'Where to look. In the simplest case this can be an attribute name.'
-);
+type FieldProps = {
+  'aria-describedby': string;
+  'aria-invalid': boolean;
+  disabled: boolean;
+  id: string;
+  name: string;
+  onBlur: () => void;
+};
 
 type Props = {
+  fieldProps: FieldProps;
   isRegExMatchesSelected: boolean;
   onChange: (value: string) => void;
   suggestions: SourceSuggestion[];
   value: string;
-  error?: string;
-  onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
 };
 
 type State = {
@@ -37,14 +42,14 @@ type State = {
   suggestions: SourceSuggestion[];
 };
 
-class SourceField extends Component<Props, State> {
+export class SourceField extends Component<Props, State> {
   state: State = {
     suggestions: [],
     fieldValues: [],
     activeSuggestion: 0,
     showSuggestions: false,
     hideCaret: false,
-    help: defaultHelp,
+    help: '',
   };
 
   componentDidMount() {
@@ -301,7 +306,7 @@ class SourceField extends Component<Props, State> {
     if (help) {
       if (!isMaybeRegExp) {
         this.setState({
-          help: defaultHelp,
+          help: '',
         });
       }
       return;
@@ -347,7 +352,7 @@ class SourceField extends Component<Props, State> {
     event.persist();
 
     const {key} = event;
-    const {activeSuggestion, suggestions} = this.state;
+    const {activeSuggestion, suggestions, showSuggestions} = this.state;
 
     if (key === 'Backspace' || key === ' ') {
       this.toggleSuggestions(true);
@@ -355,7 +360,10 @@ class SourceField extends Component<Props, State> {
     }
 
     if (key === 'Enter') {
-      this.handleClickSuggestionItem(suggestions[activeSuggestion]!);
+      if (showSuggestions && suggestions.length > 0) {
+        event.preventDefault();
+        this.handleClickSuggestionItem(suggestions[activeSuggestion]!);
+      }
       return;
     }
 
@@ -385,37 +393,31 @@ class SourceField extends Component<Props, State> {
   };
 
   render() {
-    const {error, value, onBlur} = this.props;
+    const {value, fieldProps} = this.props;
     const {showSuggestions, suggestions, activeSuggestion, hideCaret, help} = this.state;
 
     return (
       <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
-        <StyledTextField
+        <StyledInput
+          {...fieldProps}
           data-test-id="source-field"
-          label={t('Source')}
-          name="source"
+          aria-label={t('Source')}
           placeholder={t('Enter a custom attribute, variable or header name')}
-          onChange={this.handleChange}
+          onChange={e => this.handleChange(e.target.value)}
           autoComplete="off"
           value={value}
-          error={error}
-          help={help}
-          onKeyDown={this.handleKeyDown}
-          onBlur={onBlur}
+          onKeyDown={e => this.handleKeyDown(value, e)}
+          onBlur={fieldProps.onBlur}
           onFocus={this.handleFocus}
-          inline={false}
-          flexibleControlStateSize
-          stacked
-          required
-          showHelpInTooltip
         />
+        {help && (
+          <Text size="sm" variant="muted">
+            {help}
+          </Text>
+        )}
         {showSuggestions && suggestions.length > 0 && (
           <Fragment>
-            <Suggestions
-              ref={this.suggestionList}
-              error={error}
-              data-test-id="source-suggestions"
-            >
+            <Suggestions ref={this.suggestionList} data-test-id="source-suggestions">
               {suggestions.slice(0, 50).map((suggestion, index) => (
                 <Suggestion
                   key={suggestion.value}
@@ -449,32 +451,30 @@ class SourceField extends Component<Props, State> {
   }
 }
 
-export default SourceField;
-
 const Wrapper = styled('div')<{hideCaret?: boolean}>`
   position: relative;
   width: 100%;
   ${p => p.hideCaret && `caret-color: transparent;`}
 `;
 
-const StyledTextField = styled(TextField)`
+const StyledInput = styled(Input)`
   z-index: 1002;
   :focus {
     outline: none;
   }
 `;
 
-const Suggestions = styled('ul')<{error?: string}>`
+const Suggestions = styled('ul')`
   position: absolute;
-  width: ${p => (p.error ? 'calc(100% - 34px)' : '100%')};
+  width: 100%;
   padding-left: 0;
   list-style: none;
   margin-bottom: 0;
   box-shadow: 0 2px 0 rgba(37, 11, 54, 0.04);
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 0 0 ${space(0.5)} ${space(0.5)};
+  border-radius: 0 0 ${p => p.theme.space.xs} ${p => p.theme.space.xs};
   background: ${p => p.theme.tokens.background.primary};
-  top: 63px;
+  top: 40px;
   left: 0;
   z-index: 1002;
   overflow: hidden;
@@ -485,9 +485,9 @@ const Suggestions = styled('ul')<{error?: string}>`
 const Suggestion = styled('li')<{active: boolean}>`
   display: grid;
   grid-template-columns: auto 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.md};
   cursor: pointer;
   background: ${p =>

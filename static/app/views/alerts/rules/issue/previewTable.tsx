@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 
 import {indexMembersByProject} from 'sentry/actionCreators/members';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GroupListHeader from 'sentry/components/issues/groupListHeader';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import StreamGroup from 'sentry/components/stream/group';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {StreamGroup} from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
@@ -27,7 +27,7 @@ type Props = {
   pageLinks: string;
 };
 
-function PreviewTable({
+export function PreviewTable({
   groups,
   members,
   pageLinks,
@@ -118,5 +118,3 @@ const StyledPagination = styled(Pagination)`
 const PanelContainer = styled(Panel)`
   container-type: inline-size;
 `;
-
-export default PreviewTable;

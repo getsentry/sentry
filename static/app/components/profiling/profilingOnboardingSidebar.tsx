@@ -3,17 +3,17 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import useDrawer from 'sentry/components/globalDrawer';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -25,23 +25,23 @@ import {
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import platforms from 'sentry/data/platforms';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import OnboardingDrawerStore, {
+import {ConfigStore} from 'sentry/stores/configStore';
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatformSDKForPlatform} from 'sentry/utils/profiling/platforms';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 function splitProjectsByProfilingSupport(projects: Project[]): {
   supported: Project[];
@@ -276,6 +276,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     useSourcePackageRegistries(organization);
 
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -367,17 +368,24 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     <TabSelectionScope>
       <Wrapper>
         {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
-        <CopySetupInstructionsGate>
-          <Container paddingBottom="md">
-            <OnboardingCopyMarkdownButton
-              steps={steps}
-              source="profiling_sidebar_onboarding"
-            />
-          </Container>
-        </CopySetupInstructionsGate>
         <Steps>
           {steps.map((step, index) => {
-            return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
+            return (
+              <Step
+                key={step.title ?? step.type}
+                stepIndex={index}
+                {...step}
+                trailingItems={
+                  index === 0 && copyEnabled ? (
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={steps}
+                      source="profiling_sidebar_onboarding"
+                    />
+                  ) : undefined
+                }
+              />
+            );
           })}
         </Steps>
       </Wrapper>
@@ -386,7 +394,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
 }
 
 const Wrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const Steps = styled('div')`
@@ -397,7 +405,7 @@ const Steps = styled('div')`
 
 const Introduction = styled('div')`
   & > p:not(:last-child) {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 
@@ -408,7 +416,7 @@ const Heading = styled('div')`
   text-transform: uppercase;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const StyledIdBadge = styled(IdBadge)`

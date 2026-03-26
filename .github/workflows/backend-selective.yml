@@ -1,30 +1,43 @@
-name: '[NOT REQUIRED] backend (selective)'
+# Parallel validation workflow: runs sentry backend tests using getsentry's
+# cross-repo coverage DB for selective test selection. Runs alongside the
+# existing backend.yml — not required for merge.
+#
+# Once validated, this will replace prepare-selective-tests in backend.yml.
+name: backend (NOT REQUIRED - selective via getsentry)
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
 
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
 
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
+  SENTRY_SKIP_SELENIUM_PLUGIN: '1'
+
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 jobs:
   files-changed:
     name: detect what files changed
     runs-on: ubuntu-24.04
     timeout-minutes: 3
-    continue-on-error: true
     outputs:
-      api_docs: ${{ steps.changes.outputs.api_docs }}
-      backend: ${{ steps.changes.outputs.backend_all }}
-      backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
-      backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
-      backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
-      migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      backend: ${{ steps.changes.outputs.backend_all_without_acceptance }}
+      skip_selective_testing: "${{ contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -35,131 +48,93 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-  prepare-selective-tests:
-    if: needs.files-changed.outputs.backend == 'true'
+  select-tests:
+    if: >-
+      needs.files-changed.outputs.backend == 'true' &&
+      needs.files-changed.outputs.skip_selective_testing != 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     needs: files-changed
-    name: prepare selective tests
+    name: select tests via getsentry coverage
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    continue-on-error: true
-    permissions:
-      contents: read
-      id-token: write
     outputs:
-      has-coverage: ${{ steps.find-coverage.outputs.found }}
-      coverage-sha: ${{ steps.find-coverage.outputs.coverage-sha }}
-      changed-files: ${{ steps.changed-files.outputs.files }}
-      test-count: ${{ steps.compute-tests.outputs.test-count }}
       has-selected-tests: ${{ steps.compute-tests.outputs.has-selected-tests }}
+      test-count: ${{ steps.compute-tests.outputs.test-count }}
     steps:
+      - name: Get changed files
+        id: changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+
+          CHANGED_FILES=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files --paginate --jq '.[].filename' | tr '\n' ' ')
+          echo "Changed files: $CHANGED_FILES"
+          echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          fetch-depth: 0 # Need full history for git diff
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
-          python-version: '3.13.1'
+          python-version-file: '.python-version'
 
       - name: Authenticate to Google Cloud
-        id: gcloud-auth
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.3
         with:
           project_id: sentry-dev-tooling
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
-      - name: Find coverage data for selective testing
-        id: find-coverage
-        env:
-          GCS_BUCKET: sentry-coverage-data
-        run: |
-          set -euo pipefail
-
-          # Get the base commit (what the PR branches from)
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-
-          echo "Looking for coverage data starting from base commit: $BASE_SHA"
-
-          COVERAGE_SHA=""
-          for sha in $(git rev-list "$BASE_SHA" --max-count=30); do
-            # Check if coverage exists in GCS for this commit
-            if gcloud storage ls "gs://${GCS_BUCKET}/${sha}/" &>/dev/null; then
-              COVERAGE_SHA="$sha"
-              echo "Found coverage data at commit: $sha"
-              break
-            fi
-            echo "No coverage at $sha, checking parent..."
-          done
-
-          if [[ -z "$COVERAGE_SHA" ]]; then
-            echo "No coverage found in last 30 commits, will run full test suite"
-            echo "found=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "found=true" >> "$GITHUB_OUTPUT"
-            echo "coverage-sha=$COVERAGE_SHA" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Download coverage database
         id: download-coverage
-        if: steps.find-coverage.outputs.found == 'true'
-        env:
-          COVERAGE_SHA: ${{ steps.find-coverage.outputs.coverage-sha }}
         run: |
-          set -euxo pipefail
-          mkdir -p .coverage
 
-          if ! gcloud storage cp "gs://sentry-coverage-data/${COVERAGE_SHA}/.coverage.combined" .coverage/; then
-            echo "Warning: Failed to download coverage file"
-            echo "coverage-file=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          mkdir -p .artifacts/coverage
 
-          if [[ ! -f .coverage/.coverage.combined ]]; then
-            echo "Warning: Coverage file not found after download"
-            ls -la .coverage/ || true
+          GCS_PATH="gs://getsentry-coverage-data/latest/.coverage.combined"
+          echo "Fetching coverage DB from: $GCS_PATH"
+          gcloud storage ls -l "$GCS_PATH" 2>/dev/null || true
+
+          if ! gcloud storage cp "$GCS_PATH" \
+            .artifacts/coverage/.coverage.combined 2>/dev/null; then
+            echo "Warning: Failed to download coverage from GCS, will run full test suite"
             echo "coverage-file=" >> "$GITHUB_OUTPUT"
           else
-            echo "Downloaded coverage file: .coverage/.coverage.combined"
-            echo "coverage-file=.coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
+            ls -lh .artifacts/coverage/.coverage.combined
+            echo "coverage-file=.artifacts/coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
           fi
-
-      - name: Get changed files
-        id: changed-files
-        run: |
-          # Get files changed between base and head of PR
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-
-          # Use triple-dot syntax to find the merge-base first, so we only get
-          # changes introduced in this PR, not changes merged to master since branching
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | tr '\n' ' ')
-          echo "Changed files: $CHANGED_FILES"
-          echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
 
       - name: Compute selected tests
         id: compute-tests
         if: steps.download-coverage.outputs.coverage-file != ''
         env:
           COVERAGE_DB: ${{ steps.download-coverage.outputs.coverage-file }}
-          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
-        run: make compute-selected-tests
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+        run: |
+
+
+          python3 .github/workflows/scripts/compute-sentry-selected-tests.py \
+            --coverage-db "$COVERAGE_DB" \
+            --changed-files "$CHANGED_FILES" \
+            --output .artifacts/selected-tests.txt \
+            --github-output
 
       - name: Upload selected tests artifact
         if: steps.compute-tests.outputs.has-selected-tests == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/selected-tests.txt
           retention-days: 1
 
   calculate-shards:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: [files-changed, prepare-selective-tests]
-    name: calculate test shards
+    if: >-
+      needs.files-changed.outputs.backend == 'true' &&
+      needs.files-changed.outputs.skip_selective_testing != 'true'
+    needs: [files-changed, select-tests]
+    name: calculate test shards (selective)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    continue-on-error: true
     outputs:
       shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
       shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
@@ -174,8 +149,8 @@ jobs:
           skip-devservices: true
 
       - name: Download selected tests artifact
-        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
-        uses: actions/download-artifact@v4
+        if: needs.select-tests.outputs.has-selected-tests == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/
@@ -183,31 +158,27 @@ jobs:
       - name: Calculate test shards
         id: calculate-shards
         env:
-          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
-          SELECTED_TEST_COUNT: ${{ needs.prepare-selective-tests.outputs.test-count }}
+          SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+          SELECTED_TEST_COUNT: ${{ needs.select-tests.outputs.test-count || '' }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
-  backend-test-selective:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: [files-changed, prepare-selective-tests, calculate-shards]
-    name: backend tests
+  backend-test:
+    if: >-
+      needs.files-changed.outputs.backend == 'true' &&
+      needs.files-changed.outputs.skip_selective_testing != 'true' &&
+      needs.calculate-shards.outputs.shard-count != '0'
+    needs: [files-changed, select-tests, calculate-shards]
+    name: backend test (selective)
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    continue-on-error: true
-    permissions:
-      contents: read
-      id-token: write
-      actions: read # used for DIM metadata
     strategy:
       fail-fast: false
       matrix:
         instance: ${{ fromJSON(needs.calculate-shards.outputs.shard-indices) }}
-
     env:
       MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
-
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -217,18 +188,25 @@ jobs:
         with:
           mode: backend-ci
 
+      - name: Download odiff binary
+        run: |
+          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
+            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
+          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
+          rm odiff-linux-x64
+
       - name: Download selected tests artifact
-        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
-        uses: actions/download-artifact@v4
+        if: needs.select-tests.outputs.has-selected-tests == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/
 
-      - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        id: run_backend_tests
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
-          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
-        run: make test-python-ci
+          SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+        run: |
+          make test-python-ci
 
       - name: Inspect failure
         if: failure()
@@ -236,14 +214,3 @@ jobs:
           if command -v devservices; then
             devservices logs
           fi
-
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        with:
-          artifact_path: .artifacts/pytest.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}

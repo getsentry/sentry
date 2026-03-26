@@ -18,11 +18,11 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
+@cell_silo_test
 class CreatePreprodStatusCheckTaskTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -89,11 +89,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         mock_provider.create_status_check.return_value = "check_12345"
 
         patcher_client = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
+            "sentry.preprod.vcs.status_checks.size.tasks.get_status_check_client",
             return_value=(mock_client, repository),
         )
         patcher_provider = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
+            "sentry.preprod.vcs.status_checks.size.tasks.get_status_check_provider",
             return_value=mock_provider,
         )
 
@@ -105,11 +105,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         mock_provider = Mock()
 
         patcher_client = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
+            "sentry.preprod.vcs.status_checks.size.tasks.get_status_check_client",
             return_value=(mock_client, None),
         )
         patcher_provider = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
+            "sentry.preprod.vcs.status_checks.size.tasks.get_status_check_provider",
             return_value=mock_provider,
         )
 
@@ -297,11 +297,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
                 if expected_status == StatusCheckStatus.SUCCESS:
                     # SUCCESS only when processed AND has completed size metrics
-                    assert "1 app" in call_kwargs["subtitle"]
+                    assert "1 component" in call_kwargs["subtitle"]
                 elif expected_status == StatusCheckStatus.IN_PROGRESS:
-                    assert "1 app processing" in call_kwargs["subtitle"]
+                    assert "1 component processing" in call_kwargs["subtitle"]
                 elif expected_status == StatusCheckStatus.FAILURE:
-                    assert "1 app errored" in call_kwargs["subtitle"]
+                    assert "1 component errored" in call_kwargs["subtitle"]
 
                 assert call_kwargs["summary"]  # Just check it exists
                 assert call_kwargs["external_id"] == str(preprod_artifact.id)
@@ -417,7 +417,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         call_kwargs = mock_provider.create_status_check.call_args.kwargs
 
         assert call_kwargs["title"] == "Size Analysis"
-        assert call_kwargs["subtitle"] == "3 apps analyzed"  # All processed with completed metrics
+        assert (
+            call_kwargs["subtitle"] == "3 components analyzed"
+        )  # All processed with completed metrics
 
         summary = call_kwargs["summary"]
         assert "com.example.app0" in summary
@@ -483,7 +485,10 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         call_kwargs = mock_provider.create_status_check.call_args.kwargs
 
         assert call_kwargs["title"] == "Size Analysis"
-        assert call_kwargs["subtitle"] == "1 app analyzed, 1 app processing, 1 app errored"
+        assert (
+            call_kwargs["subtitle"]
+            == "1 component analyzed, 1 component processing, 1 component errored"
+        )
         # With no rules configured, status is always NEUTRAL.
         assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
 
@@ -825,6 +830,83 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         assert summary_bytes <= 65535, f"Summary has {summary_bytes} bytes, exceeds GitHub limit"
         assert summary.endswith("..."), "Truncated summary should end with '...'"
+
+    @responses.activate
+    def test_create_preprod_status_check_task_github_enterprise(self):
+        """Test that status checks work with GitHub Enterprise integration."""
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            provider="github_enterprise",
+            head_repo_name="Test-Organization/foo",
+        )
+
+        preprod_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ghe",
+            commit_comparison=commit_comparison,
+        )
+
+        self.create_preprod_artifact_size_metrics(preprod_artifact=preprod_artifact)
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="ghe-1",
+            provider="github_enterprise",
+            metadata={
+                "access_token": "test_token",
+                "expires_at": "2099-01-01T00:00:00Z",
+                "domain_name": "github.example.org/Test-Organization",
+                "account_type": "Organization",
+                "installation_id": "install_id_1",
+                "installation": {
+                    "client_id": "client_id",
+                    "client_secret": "client_secret",
+                    "id": "2",
+                    "name": "test-app",
+                    "private_key": "private_key",
+                    "url": "github.example.org",
+                    "webhook_secret": "webhook_secret",
+                    "verify_ssl": True,
+                },
+            },
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            provider="integrations:github_enterprise",
+            integration_id=integration.id,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://github.example.org/api/v3/repos/Test-Organization/foo/check-runs",
+            status=201,
+            json={"id": 12345, "status": "completed"},
+        )
+
+        with (
+            patch(
+                "sentry.integrations.github_enterprise.client.get_jwt",
+                return_value="jwt_token_1",
+            ),
+            patch(
+                "sentry.integrations.github_enterprise.integration.get_jwt",
+                return_value="jwt_token_1",
+            ),
+        ):
+            with self.tasks():
+                create_preprod_status_check_task(preprod_artifact.id)
+
+        assert len(responses.calls) == 1
+        assert (
+            responses.calls[0].request.url
+            == "https://github.example.org/api/v3/repos/Test-Organization/foo/check-runs"
+        )
+
+        request_body = json.loads(responses.calls[0].request.body)
+        assert request_body["head_sha"] == commit_comparison.head_sha
 
     def test_sibling_deduplication_after_reprocessing(self):
         """Test that get_sibling_artifacts_for_commit() deduplicates by (app_id, artifact_type, build_configuration_id).
@@ -1442,5 +1524,5 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 create_preprod_status_check_task(skipped.id)
 
             kwargs = mock_provider.create_status_check.call_args.kwargs
-            assert str(valid.id) in kwargs["target_url"]
-            assert str(skipped.id) not in kwargs["target_url"]
+            assert f"/size/{valid.id}" in kwargs["target_url"]
+            assert f"/size/{skipped.id}" not in kwargs["target_url"]

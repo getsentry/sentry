@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.apitoken import ApiToken
 from sentry.models.options.organization_option import OrganizationOption
@@ -17,12 +18,13 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import (
     assume_test_silo_mode,
+    cell_silo_test,
     control_silo_test,
-    create_test_regions,
-    region_silo_test,
+    create_test_cells,
 )
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils.slug import ORG_SLUG_PATTERN
@@ -331,8 +333,32 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         organization = Organization.objects.get(id=response.data["id"])
         assert OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
 
+    def test_demo_user_cannot_create_organization(self) -> None:
+        demo_user = self.create_user("demo@example.com")
+        self.login_as(demo_user)
+        with override_options({"demo-mode.enabled": True, "demo-mode.users": [demo_user.id]}):
+            self.get_error_response(name="demo org", slug="demo-org", status_code=403)
+            assert not Organization.objects.filter(slug="demo-org").exists()
 
-@region_silo_test(regions=create_test_regions("de", "us"))
+    def test_demo_user_cannot_create_organization_when_demo_mode_disabled(self) -> None:
+        demo_user = self.create_user("demo@example.com")
+        self.login_as(demo_user)
+        with override_options({"demo-mode.enabled": False, "demo-mode.users": [demo_user.id]}):
+            self.get_error_response(name="demo org", slug="demo-org", status_code=403)
+            assert not Organization.objects.filter(slug="demo-org").exists()
+
+    @patch.object(OrganizationPermission, "has_permission", return_value=True)
+    def test_demo_user_handler_level_guard(self, mock_perm: MagicMock) -> None:
+        """The handler itself blocks demo users even if the permission layer is bypassed."""
+        demo_user = self.create_user("demo@example.com")
+        self.login_as(demo_user)
+        with override_options({"demo-mode.enabled": True, "demo-mode.users": [demo_user.id]}):
+            response = self.get_error_response(name="demo org", slug="demo-org", status_code=403)
+            assert response.data["detail"] == "Demo users are not allowed to create organizations."
+            assert not Organization.objects.filter(slug="demo-org").exists()
+
+
+@cell_silo_test(cells=create_test_cells("de", "us"))
 class OrganizationsCreateInRegionTest(OrganizationIndexTest):
     method = "post"
 
@@ -350,7 +376,7 @@ class OrganizationsCreateInRegionTest(OrganizationIndexTest):
         with assume_test_silo_mode(SiloMode.CONTROL):
             mapping = OrganizationMapping.objects.get(organization_id=organization_id)
         assert mapping
-        assert mapping.region_name == "de"
+        assert mapping.cell_name == "de"
 
 
 @control_silo_test

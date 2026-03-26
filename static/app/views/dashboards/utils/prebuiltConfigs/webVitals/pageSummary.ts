@@ -3,6 +3,7 @@ import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -15,7 +16,9 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'score-breakdown-chart',
       title: t('Score Breakdown'),
-      description: `${t(`Each Web Vital score contributes a different amount to the total score. Refer to the Performance Score wheel for total contribution.`)}`,
+      description: t(
+        `Each Web Vital score contributes a different amount to the total score. Refer to the Performance Score wheel for total contribution.`
+      ),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -207,7 +210,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'ttfb-p75-meter',
-      title: t('P75 Time To First Byte'),
+      title: t('P75 Time to First Byte'),
       description: t(
         'Time until first byte is delivered to the client. Bad TTFB makes the server feel unresponsive.'
       ),
@@ -271,12 +274,13 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
       interval: '5m',
-      tableWidths: [-1, 200, -1, -1, -1, -1, -1],
+      tableWidths: [-1, -1, 200, -1, -1, -1, -1, -1],
       queries: [
         {
           name: '',
           conditions: `has:measurements.lcp`,
           fields: [
+            'project',
             'trace',
             'lcp.element',
             'measurements.lcp',
@@ -287,6 +291,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           ],
           aggregates: [],
           columns: [
+            'project',
             'trace',
             'lcp.element',
             'measurements.lcp',
@@ -317,6 +322,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: '',
           conditions: `has:measurements.inp`,
           fields: [
+            'project',
             'trace',
             'measurements.inp',
             'profile.id',
@@ -326,6 +332,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           ],
           aggregates: [],
           columns: [
+            'project',
             'trace',
             'measurements.inp',
             'profile.id',
@@ -355,6 +362,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: '',
           conditions: `has:measurements.cls`,
           fields: [
+            'project',
             'trace',
             'measurements.cls',
             'profile.id',
@@ -364,6 +372,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           ],
           aggregates: [],
           columns: [
+            'project',
             'trace',
             'measurements.cls',
             'profile.id',
@@ -431,4 +440,5 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.VITAL},
 };

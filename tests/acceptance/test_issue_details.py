@@ -155,9 +155,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="python")
         assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.page.go_to_subtab("activity")
-
-        self.browser.wait_until_test_id("activity-item")
+        self.browser.wait_until_test_id("note-input-form")
 
     def test_resolved(self) -> None:
         event = self.create_sample_event(platform="python")

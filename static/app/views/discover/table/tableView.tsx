@@ -8,10 +8,10 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import GridEditable, {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
-import Truncate from 'sentry/components/truncate';
+import {COL_WIDTH_MINIMUM, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {Truncate} from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -20,7 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,
@@ -40,14 +40,14 @@ import {
   type DiscoverDatasets,
 } from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
@@ -61,9 +61,9 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
-import CellAction, {Actions, updateQuery} from './cellAction';
-import ColumnEditModal, {modalCss} from './columnEditModal';
-import TableActions from './tableActions';
+import {Actions, CellAction, updateQuery} from './cellAction';
+import {ColumnEditModal, modalCss} from './columnEditModal';
+import {TableActions} from './tableActions';
 import {TopResultsIndicator} from './topResultsIndicator';
 import type {TableColumn} from './types';
 
@@ -103,7 +103,7 @@ type TableViewProps = {
  * In most cases, the new EventView object differs from the previous EventView
  * object. The new EventView object is pushed to the location object.
  */
-export default function TableView(props: TableViewProps) {
+export function TableView(props: TableViewProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const {projects} = useProjects();

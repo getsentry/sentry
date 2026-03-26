@@ -1,21 +1,21 @@
 import {useCallback, useMemo} from 'react';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import type {WritableAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -259,11 +259,6 @@ export function LogsTabSeerComboBox() {
     ]
   );
 
-  const areAiFeaturesAllowed =
-    enableAISearch &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
-
   const usePollingEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
@@ -311,7 +306,7 @@ export function LogsTabSeerComboBox() {
     []
   );
 
-  if (!areAiFeaturesAllowed) {
+  if (!enableAISearch) {
     return null;
   }
 

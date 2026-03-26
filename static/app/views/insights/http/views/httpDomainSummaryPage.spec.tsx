@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
@@ -9,14 +8,10 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import {useLocation} from 'sentry/utils/useLocation';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {HTTPDomainSummaryPage} from 'sentry/views/insights/http/views/httpDomainSummaryPage';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 jest.mock('sentry/utils/useReleaseStats');
 
@@ -31,30 +26,13 @@ describe('HTTPDomainSummaryPage', () => {
   let domainMetricsRibbonRequestMock: jest.Mock;
   let regionFilterRequestMock: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    })
-  );
-
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {domain: '*.sentry.dev', statsPeriod: '10d', transactionsCursor: '0:20:0'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/backend/http/domains/`,
+      query: {domain: '*.sentry.dev', statsPeriod: '10d', transactionsCursor: '0:20:0'},
+    },
+    route: `/organizations/:orgId/insights/backend/http/domains/`,
+  };
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -66,6 +44,17 @@ describe('HTTPDomainSummaryPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+    });
 
     regionFilterRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/`,
@@ -186,7 +175,7 @@ describe('HTTPDomainSummaryPage', () => {
   });
 
   it('fetches module data', async () => {
-    render(<HTTPDomainSummaryPage />, {organization});
+    render(<HTTPDomainSummaryPage />, {organization, initialRouterConfig});
 
     await waitFor(() => {
       expect(throughputRequestMock).toHaveBeenNthCalledWith(
@@ -379,7 +368,7 @@ describe('HTTPDomainSummaryPage', () => {
       },
     });
 
-    render(<HTTPDomainSummaryPage />, {organization});
+    render(<HTTPDomainSummaryPage />, {organization, initialRouterConfig});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

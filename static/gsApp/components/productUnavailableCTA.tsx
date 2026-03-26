@@ -5,20 +5,19 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {
   sendReplayOnboardRequest,
   sendUpgradeRequest,
 } from 'getsentry/actionCreators/upsell';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {useAM2UpsellModal} from 'getsentry/hooks/useAM2UpsellModal';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import type {ProductUnavailableUpsellAlert} from 'getsentry/utils/trackGetsentryAnalytics';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 function getUpdatePlanLabel({
   hasSessionReplay,
@@ -284,5 +283,6 @@ export const ProductUnavailableCTA = withSubscription(ProductUnavailableCTAConta
 });
 
 const AlertWithCustomMargin = styled(Alert)`
-  margin: -${space(3)} -${space(4)} ${space(2)} -${space(4)};
+  margin: -${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']}
+    ${p => p.theme.space.xl} -${p => p.theme.space['3xl']};
 `;

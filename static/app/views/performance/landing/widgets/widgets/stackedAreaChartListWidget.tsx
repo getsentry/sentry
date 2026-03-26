@@ -2,18 +2,18 @@ import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
+import {EventsRequest as _EventsRequest} from 'sentry/components/charts/eventsRequest';
+import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
-import Count from 'sentry/components/count';
-import Truncate from 'sentry/components/truncate';
+import {Count} from 'sentry/components/count';
+import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
   canUseMetricsData,
@@ -22,7 +22,7 @@ import {
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {
@@ -64,7 +64,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, organization, InteractiveTitle, fields} = props;
+  const {organization, InteractiveTitle, fields} = props;
   const {setPageDanger} = usePageAlert();
 
   const colors = [...theme.chart.getColorPalette(5)].reverse();
@@ -264,11 +264,6 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
       {...props}
       location={location}
       Subtitle={() => <Subtitle>{t('P75 in Top Transactions')}</Subtitle>}
-      HeaderActions={provided =>
-        ContainerActions && (
-          <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
-        )
-      }
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />

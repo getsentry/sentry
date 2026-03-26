@@ -1,7 +1,7 @@
 import pick from 'lodash/pick';
 
 import {t, tct} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
 import {parseFunction, SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -323,7 +323,7 @@ export function getThresholdUnits(
   }
 
   const parsed = parseFunction(aggregate);
-  if (parsed && parsed.name === 'count') {
+  if (parsed?.name === 'count') {
     return '';
   }
 

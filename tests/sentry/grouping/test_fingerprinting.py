@@ -10,9 +10,11 @@ from sentry.grouping.api import (
     get_grouping_variants_for_event,
     load_grouping_config,
 )
+from sentry.grouping.context import GroupingContext
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.fingerprinting.utils import resolve_fingerprint_values
+from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.grouping.variants import BaseVariant
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
@@ -267,18 +269,35 @@ release:foo                                     -> release-foo
     )
 
 
+@django_db_all  # Because initializing context checks options
 def test_variable_resolution() -> None:
     # TODO: This should be fleshed out to test way more cases, at which point we'll need to add some
     # actual data here
-    event = Event(project_id=908415, event_id="11211231", data={})
+    event = Event(
+        project_id=908415,
+        event_id="11211231",
+        data={
+            "exception": {
+                "values": [
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "That's ball number 6 that Charlie hasn't brought back!",
+                    }
+                ]
+            },
+        },
+    )
+    context = GroupingContext(StrategyConfiguration(), event)
 
     for fingerprint_entry, expected_resolved_value in [
         ("{{ default }}", "{{ default }}"),
         ("{{default}}", "{{ default }}"),
         ("{{  default }}", "{{ default }}"),
         ("{{ dog }}", "<unrecognized-variable-dog>"),
+        ("{{ message }}", "That's ball number <int> that Charlie hasn't brought back!"),
+        ("{{ raw_message }}", "That's ball number 6 that Charlie hasn't brought back!"),
     ]:
-        assert resolve_fingerprint_values([fingerprint_entry], event) == [
+        assert resolve_fingerprint_values([fingerprint_entry], event, context) == [
             expected_resolved_value
         ], f"Entry {fingerprint_entry} resolved incorrectly"
 
@@ -309,6 +328,9 @@ def test_resolves_unknown_variables_correctly_given_config_value() -> None:
     ):
         get_grouping_variants_for_event(event, winter_2023_config)
 
+        context = mock_resolve_fingerprint_values.call_args.args[2]
+        assert isinstance(context, GroupingContext)
+
         assert mock_resolve_fingerprint_values.call_count == 1
         assert mock_apply_custom_title_if_needed.call_count == 1
         assert (
@@ -322,7 +344,7 @@ def test_resolves_unknown_variables_correctly_given_config_value() -> None:
             is True
         )
         assert resolve_fingerprint_values(
-            fingerprint, event, use_legacy_unknown_variable_handling=True
+            fingerprint, event, context, use_legacy_unknown_variable_handling=True
         ) == ["{{ dog }}"]
 
     # Under the new config, we ask for non-legacy behavior, and as a result the unknown fingerprint
@@ -337,6 +359,9 @@ def test_resolves_unknown_variables_correctly_given_config_value() -> None:
     ):
         get_grouping_variants_for_event(event, fall_2025_config)
 
+        context = mock_resolve_fingerprint_values.call_args.args[2]
+        assert isinstance(context, GroupingContext)
+
         assert mock_resolve_fingerprint_values.call_count == 1
         assert mock_apply_custom_title_if_needed.call_count == 1
         assert (
@@ -350,7 +375,7 @@ def test_resolves_unknown_variables_correctly_given_config_value() -> None:
             is False
         )
         assert resolve_fingerprint_values(
-            fingerprint, event, use_legacy_unknown_variable_handling=False
+            fingerprint, event, context, use_legacy_unknown_variable_handling=False
         ) == ["<unrecognized-variable-dog>"]
 
 

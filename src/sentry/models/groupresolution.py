@@ -11,7 +11,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.models.release import Release, follows_semver_versioning_scheme
@@ -19,7 +19,7 @@ from sentry.models.releases.constants import DB_VERSION_LENGTH
 from sentry.utils import metrics
 
 
-@region_silo_model
+@cell_silo_model
 class GroupResolution(Model):
     """
     Describes when a group was marked as resolved.
@@ -132,7 +132,19 @@ class GroupResolution(Model):
                     release_raw = parse_release(release.version, json_loads=orjson.loads).get(
                         "version_raw"
                     )
-                    return compare_version_relay(current_release_raw, release_raw) >= 0
+                    if compare_version_relay(current_release_raw, release_raw) >= 0:
+                        return True
+
+                    # If current_release_version was set under different
+                    # follows_semver conditions (e.g. date ordering when
+                    # follows_semver was False), it may be stale. Fall back to
+                    # comparing the event release against the resolved-in
+                    # release: if the event is on an older version than the fix,
+                    # the resolution still holds.
+                    res_release_raw = parse_release(
+                        res_release_version, json_loads=orjson.loads
+                    ).get("version_raw")
+                    return compare_version_relay(res_release_raw, release_raw) == 1
                 except RelayError:
                     ...
             else:

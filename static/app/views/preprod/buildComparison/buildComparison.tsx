@@ -4,22 +4,19 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   useApiQuery,
   useMutation,
   useQueryClient,
-  type UseApiQueryResult,
 } from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildCompareHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildCompareHeaderContent';
 import {SizeCompareMainContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareMainContent';
@@ -38,38 +35,27 @@ export default function BuildComparison() {
     baseArtifactId?: string;
     headArtifactId?: string;
   }>();
-  const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
-  // TODO(EME-735): Remove this once refactoring is complete and we don't need to extract projects from the URL.
-  if (projectIds.length !== 1) {
-    throw new Error(
-      `Expected exactly one project in query string but got ${projectIds.length}`
-    );
-  }
-  const projectId = projectIds[0]!;
 
-  const headBuildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
-    useApiQuery<BuildDetailsApiResponse>(
-      [
-        getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectId,
-              headArtifactId: headArtifactId!,
-            },
-          }
-        ),
-      ],
-      {
-        staleTime: 0,
-        enabled: !!projectId && !!headArtifactId,
-      }
-    );
+  const headBuildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            headArtifactId: headArtifactId!,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!headArtifactId,
+    }
+  );
 
   const compareUrl = getCompareApiUrl({
     organizationSlug: organization.slug,
-    projectId,
     headArtifactId: headArtifactId!,
     baseArtifactId: baseArtifactId!,
   });
@@ -146,7 +132,6 @@ export default function BuildComparison() {
         <Layout.Header>
           <BuildCompareHeaderContent
             buildDetails={headBuildDetailsQuery.data}
-            projectId={projectId}
             headArtifactId={headArtifactId}
             baseArtifactId={baseArtifactId}
             onRerunComparison={() => rerunComparison()}

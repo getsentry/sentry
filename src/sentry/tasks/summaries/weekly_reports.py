@@ -16,6 +16,8 @@ from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry_sdk import set_tag
+from taskbroker_client.retry import Retry
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import analytics
 from sentry.analytics.events.weekly_report import WeeklyReportSent
@@ -36,8 +38,6 @@ from sentry.tasks.summaries.organization_report_context_factory import (
 )
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
 from sentry.taskworker.namespaces import reports_tasks
-from sentry.taskworker.retry import Retry
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
@@ -102,7 +102,7 @@ class WeeklyReportProgressTracker:
     namespace=reports_tasks,
     retry=Retry(times=5),
     processing_deadline_duration=timedelta(minutes=30),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(timeouts=True)
 def schedule_organizations(
@@ -162,7 +162,7 @@ def schedule_organizations(
     namespace=reports_tasks,
     processing_deadline_duration=60 * 10,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def prepare_organization_report(

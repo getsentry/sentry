@@ -101,6 +101,27 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         """Used for migrating repositories. Checks if the installation has access to the repository."""
         raise NotImplementedError
 
+    @staticmethod
+    def find_repo_info(repositories: list[dict[str, Any]], repo_name: str) -> dict[str, Any] | None:
+        """
+        Find a repository dict by matching identifier first, then name.
+        """
+        for repo_info in repositories:
+            if repo_info.get("identifier") == repo_name:
+                return repo_info
+        for repo_info in repositories:
+            if repo_info.get("name") == repo_name:
+                return repo_info
+        return None
+
+    def get_repository_default_branch(self, repo: Repository) -> str | None:
+        """
+        Resolve a repository's default branch using integration repository metadata.
+        """
+        repositories = self.get_repositories(query=repo.name)
+        repo_info = self.find_repo_info(repositories, repo.name)
+        return repo_info.get("default_branch") if repo_info else None
+
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
         """
         Get all repositories which are in our database but no longer exist as far as
@@ -133,6 +154,10 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             filepath = filepath.lstrip("/")
             try:
                 client = self.get_client()
+            except IntegrationConfigurationError:
+                # This is likely due to access being revoked by the user, or
+                # some other misconfiguration on the integration's side.
+                return None
             except (Identity.DoesNotExist, IntegrationError):
                 sentry_sdk.capture_exception()
                 return None
