@@ -73,14 +73,14 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   }, [dropdownItems, selectedRepository]);
 
   function handleChange(option: {value: string} | null) {
+    // Changing or clearing the repo invalidates downstream state (platform,
+    // features, created project) which are all derived from the selected repo.
+    clearDerivedState();
+
     if (option === null) {
       setSearch('');
       handleRemove();
     } else {
-      // Selecting a new repo invalidates downstream state (platform, features,
-      // created project). Only cleared on selection, not on clear — clearing
-      // is async and error-recovery may restore the previous repo.
-      clearDerivedState();
       const repo = reposByIdentifier.get(option.value);
       if (repo) {
         trackAnalytics('onboarding.scm_connect_repo_selected', {
