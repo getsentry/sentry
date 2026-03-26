@@ -297,6 +297,7 @@ class DashboardDetail extends Component<Props, State> {
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           dashboardPermissions: dashboard.permissions,
           dashboardCreator: dashboard.createdBy,
+          isPrebuiltDashboard: defined(dashboard.prebuiltId),
           widgetInterval: this.props.widgetInterval,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal

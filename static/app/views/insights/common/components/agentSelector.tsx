@@ -13,8 +13,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
+import {
+  AGENT_NAME_FIELDS,
+  resolveAgentName,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getAgentNameSearchFilter,
+  getHasAgentNameFilter,
+} from 'sentry/views/insights/pages/agents/utils/query';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {SpanFields} from 'sentry/views/insights/types';
 
 const LIMIT = 100;
 const AGENT_URL_PARAM = 'agent';
@@ -83,9 +90,9 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
   );
 
   const query = useMemo(() => {
-    const parts = [`has:${SpanFields.GEN_AI_AGENT_NAME}`];
+    const parts = [getHasAgentNameFilter()];
     if (searchQuery) {
-      parts.push(`${SpanFields.GEN_AI_AGENT_NAME}:*${searchQuery}*`);
+      parts.push(getAgentNameSearchFilter(searchQuery));
     }
     return parts.join(' ');
   }, [searchQuery]);
@@ -99,7 +106,7 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
       limit: LIMIT,
       search: query,
       sorts: [{field: 'count()', kind: 'desc'}],
-      fields: [SpanFields.GEN_AI_AGENT_NAME, 'count()'],
+      fields: [...AGENT_NAME_FIELDS, 'count()'],
     },
     referrer
   );
@@ -115,8 +122,8 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
     const list: Array<{label: string; value: string}> = [];
 
     agentData?.forEach(row => {
-      const agentName = row[SpanFields.GEN_AI_AGENT_NAME];
-      if (!agentName || typeof agentName !== 'string' || uniqueAgents.has(agentName)) {
+      const agentName = resolveAgentName(row);
+      if (!agentName || uniqueAgents.has(agentName)) {
         return;
       }
       uniqueAgents.add(agentName);

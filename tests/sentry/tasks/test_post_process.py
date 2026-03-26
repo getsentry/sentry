@@ -50,6 +50,11 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
 from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
+from sentry.seer.autofix.constants import (
+    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
+    FixabilityScoreThresholds,
+)
+from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
@@ -3304,6 +3309,43 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
             )
 
         # Should not call automation since seer_autofix_last_triggered is set
+        mock_run_automation.assert_not_called()
+
+    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
+    @with_feature({"organizations:gen-ai-features": True})
+    def test_triage_signals_skips_with_explorer_last_triggered(
+        self, mock_run_automation, mock_seat_based_tier
+    ):
+        """Test that with event count >= 10 and seer_explorer_autofix_last_triggered set + feature flag, we skip automation."""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Update group times_seen and seer_explorer_autofix_last_triggered
+        group = event.group
+        group.times_seen = AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD
+        group.seer_explorer_autofix_last_triggered = timezone.now()
+        group.seer_fixability_score = FixabilityScoreThresholds.MEDIUM.value
+        group.save()
+
+        def mock_buffer_get(model, columns, filters):
+            return {"times_seen": 9}
+
+        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
+            cache_key = get_issue_summary_cache_key(group.id)
+            cache.set(cache_key, {"summary": "test summary"}, 3600)
+            cache.set(f"seer-project-has-repos:{self.organization.id}:{self.project.id}", True)
+
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+
+        # Should not call automation since seer_explorer_autofix_last_triggered is set
         mock_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")

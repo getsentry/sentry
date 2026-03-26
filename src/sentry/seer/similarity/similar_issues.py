@@ -25,7 +25,7 @@ from sentry.seer.similarity.types import (
 )
 from sentry.tasks.seer.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.utils import json, metrics
-from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -84,9 +84,11 @@ def get_similarity_data_from_seer(
         extra=logger_extra,
     )
 
+    config = options.get("seer.similarity.circuit-breaker-config")
     circuit_breaker = CircuitBreaker(
         SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
-        options.get("seer.similarity.circuit-breaker-config"),
+        config,
+        CountBasedTripStrategy.from_config(config),
     )
 
     try:

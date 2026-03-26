@@ -281,6 +281,32 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
             assert not GroupSeen.objects.filter(group=group, user_id=from_user.id).exists()
             assert GroupSeen.objects.filter(group=group, user_id=to_user.id).count() == 1
 
+    def test_merge_handles_groupsubscription_conflicts(self) -> None:
+        from_user = self.create_user("from-user@example.com")
+        to_user = self.create_user("to-user@example.com")
+        org = self.create_organization(name="subscription-conflict-org")
+
+        with outbox_runner():
+            with assume_test_silo_mode(SiloMode.CELL):
+                self.create_member(user=from_user, organization=org)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            project = self.create_project(organization=org)
+            group = self.create_group(project=project)
+            GroupSubscription.objects.create(
+                project=project, group=group, user_id=from_user.id, is_active=True
+            )
+            GroupSubscription.objects.create(
+                project=project, group=group, user_id=to_user.id, is_active=True
+            )
+
+        with outbox_runner():
+            from_user.merge_to(to_user)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not GroupSubscription.objects.filter(group=group, user_id=from_user.id).exists()
+            assert GroupSubscription.objects.filter(group=group, user_id=to_user.id).count() == 1
+
     @expect_models(
         ORG_MEMBER_MERGE_TESTED,
         OrgAuthToken,

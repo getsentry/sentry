@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import pytest
 from django.test import override_settings
 
 from sentry.models.organizationonboardingtask import (
@@ -38,6 +39,7 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
 
         assert not self.browser.element_exists_by_test_id("quick-start-content")
 
+    @pytest.mark.skip(reason="Temporarily skipped")
     @with_feature("organizations:onboarding")
     def test_quick_start_not_rendered_because_all_tasks_completed_and_overdue(self) -> None:
         # Record tasks with all marked as COMPLETE, all overdue

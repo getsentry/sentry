@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 SeerAutomationSkipReason = Literal[
     "already_has_fixability_score",
     "already_triggered",
+    "already_triggered_explorer",
     "automation_already_dispatched",
     "fixability_too_low",
     "issue_too_old",
@@ -149,6 +150,9 @@ def get_seat_based_seer_automation_skip_reason(
     # Long-term check to avoid re-running
     if group.seer_autofix_last_triggered is not None:
         return "already_triggered"
+
+    if group.seer_explorer_autofix_last_triggered is not None:
+        return "already_triggered_explorer"
 
     # Don't run automation on old issues
     if group.first_seen < (timezone.now() - timedelta(days=14)):
