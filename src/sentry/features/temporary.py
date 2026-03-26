@@ -324,6 +324,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable GitLab as a supported SCM provider for Seer
     manager.add("organizations:seer-gitlab-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disable select orgs from ingesting mobile replay events.
+    # Enable double-read from EAP for session health data validation
+    manager.add("organizations:session-health-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:session-replay-video-disabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable data scrubbing of replay recording payloads in Relay.
     manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
@@ -420,7 +422,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Disable redirects from alert rules to the new workflow_engine UI
     manager.add("organizations:workflow-engine-redirect-opt-out", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use workflow engine serializers to return data for old rule / incident endpoints
-    manager.add("organizations:workflow-engine-rule-serializers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:workflow-engine-rule-serializers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use workflow engine exclusively for ProjectRulesEndpoint.get results.
     # See src/sentry/workflow_engine/docs/legacy_backport.md for context.
     manager.add("organizations:workflow-engine-projectrulesendpoint-get", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)

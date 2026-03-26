@@ -221,6 +221,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/organizations/                               @getsentry/hybrid-cloud
 /tests/sentry/hybridcloud/                               @getsentry/hybrid-cloud
 /tests/sentry/silo/                                      @getsentry/hybrid-cloud
+/tests/sentry/models/test_projectkeymapping.py           @getsentry/hybrid-cloud
 /.agents/skills/hybrid-cloud-*                           @getsentry/hybrid-cloud
 ## End of Hybrid Cloud
 
@@ -570,7 +571,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
+/src/sentry/release_health/eap_sessions_rollout.py                               @getsentry/telemetry-experience
 /tests/sentry/release_health/test_metrics_sessions_v2.py                         @getsentry/telemetry-experience
+/tests/sentry/release_health/test_eap_sessions_rollout.py                        @getsentry/telemetry-experience
 /src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/querying/                                             @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
@@ -793,6 +796,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/preprod/                                   @getsentry/emerge-tools
 /static/app/views/preprod/                             @getsentry/emerge-tools
 /tests/sentry/preprod/                                 @getsentry/emerge-tools
+/bin/preprod/                                          @getsentry/emerge-tools
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity)
