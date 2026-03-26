@@ -34,7 +34,7 @@ export default function CommandPaletteModal({Body}: ModalRenderProps) {
         case 'callback': {
           const path = getActionPath(state);
           const label =
-            path.length > 0 ? `${path} -> ${action.display.label}` : action.display.label;
+            path.length > 0 ? `${path} → ${action.display.label}` : action.display.label;
           trackAnalytics('command_palette.action_selected', {
             organization,
             action: label,
