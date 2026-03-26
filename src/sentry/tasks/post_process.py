@@ -1538,7 +1538,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     # Default behaviour
     if not is_seer_seat_based_tier_enabled(group.organization):
         skip_reason = get_default_seer_automation_skip_reason(group, locks)
-        if skip_reason:
+        if skip_reason is not None:
             metrics.incr(
                 "seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"}
             )
@@ -1548,7 +1548,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     else:
         # Seat-based tier behaviour
         skip_reason = get_seat_based_seer_automation_skip_reason(group)
-        if skip_reason:
+        if skip_reason is not None:
             metrics.incr(
                 "seer.automation.filtered", tags={"reason": skip_reason, "tier": "seat_based"}
             )
