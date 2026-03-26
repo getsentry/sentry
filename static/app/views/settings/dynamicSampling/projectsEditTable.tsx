@@ -3,6 +3,8 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Text} from '@sentry/scraps/text';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -33,6 +35,7 @@ interface Props {
   projectRates: Record<string, string>;
   sampleCounts: ProjectSampleCount[];
   savedProjectRates: Record<string, string>;
+  fieldError?: string;
 }
 
 const EMPTY_ARRAY: any = [];
@@ -47,6 +50,7 @@ export function ProjectsEditTable({
   projectRates,
   savedProjectRates,
   onProjectRatesChange,
+  fieldError,
 }: Props) {
   const {projects, fetching} = useProjects();
   const [isBulkEditEnabled, setIsBulkEditEnabled] = useState(false);
@@ -214,7 +218,14 @@ export function ProjectsEditTable({
               isLoading={isLoading}
               items={items}
             />
-            <Footer>{actions}</Footer>
+            <Footer>
+              {fieldError ? (
+                <Text size="xs" variant="danger">
+                  {fieldError}
+                </Text>
+              ) : null}
+              {actions}
+            </Footer>
           </Fragment>
         )}
       </Panel>
