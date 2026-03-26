@@ -1375,7 +1375,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         "organizations:incidents",
         "organizations:performance-view",
         "organizations:workflow-engine-rule-serializers",
-        "organizations:workflow-engine-projectrulesendpoint-get",
+        "organizations:workflow-engine-combinedruleindex-get",
     ]
 )
 class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTest, APITestCase):

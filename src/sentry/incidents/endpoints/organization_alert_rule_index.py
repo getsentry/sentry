@@ -609,7 +609,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
         if features.has(
             "organizations:workflow-engine-rule-serializers", organization
-        ) or features.has("organizations:workflow-engine-projectrulesendpoint-get", organization):
+        ) or features.has("organizations:workflow-engine-combinedruleindex-get", organization):
             return self._get_workflow_engine(
                 request=request,
                 organization=organization,
