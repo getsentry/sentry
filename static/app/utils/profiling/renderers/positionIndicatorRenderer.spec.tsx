@@ -70,3 +70,4 @@ describe('PositionIndicatorRenderer', () => {
     ]);
   });
 });
+// trivial change for CI testing

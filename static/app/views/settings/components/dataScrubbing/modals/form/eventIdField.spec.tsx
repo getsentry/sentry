@@ -232,3 +232,4 @@ describe('EventIdField', () => {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

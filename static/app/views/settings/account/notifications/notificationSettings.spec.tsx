@@ -93,3 +93,4 @@ describe('NotificationSettings', () => {
     expect(screen.queryByText('Quota')).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

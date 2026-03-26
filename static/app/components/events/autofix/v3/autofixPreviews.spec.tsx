@@ -471,3 +471,4 @@ describe('CodingAgentPreview', () => {
     expect(screen.getByText('completed')).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

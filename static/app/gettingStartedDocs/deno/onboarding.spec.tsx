@@ -30,3 +30,4 @@ describe('deno onboarding docs', () => {
     ).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

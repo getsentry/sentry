@@ -34,3 +34,4 @@ describe('BadgeBadge', () => {
     expect(screen.queryByText('display name')).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

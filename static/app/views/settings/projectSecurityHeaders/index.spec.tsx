@@ -52,3 +52,4 @@ describe('ProjectSecurityHeaders', () => {
     ).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

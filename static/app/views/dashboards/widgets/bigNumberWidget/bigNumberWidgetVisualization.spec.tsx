@@ -184,3 +184,4 @@ describe('BigNumberWidgetVisualization', () => {
     });
   });
 });
+// trivial change for CI testing

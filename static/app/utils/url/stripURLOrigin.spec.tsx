@@ -16,3 +16,4 @@ describe('stripURLOrigin', () => {
     expect(stripURLOrigin(str)).toEqual(str);
   });
 });
+// trivial change for CI testing

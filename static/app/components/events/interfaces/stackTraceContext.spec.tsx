@@ -118,3 +118,4 @@ describe('StacktraceContext', () => {
     expect(screen.getByTestId('stack-view')).toHaveTextContent(StackView.RAW);
   });
 });
+// trivial change for CI testing

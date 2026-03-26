@@ -521,3 +521,4 @@ describe('BuildDetails', () => {
     });
   });
 });
+// trivial change for CI testing

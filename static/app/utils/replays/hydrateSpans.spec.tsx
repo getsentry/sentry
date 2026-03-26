@@ -66,3 +66,4 @@ describe('hydrateSpans', () => {
     expect(hydrateSpans(replayRecord, spans)).toStrictEqual([]);
   });
 });
+// trivial change for CI testing

@@ -40,3 +40,4 @@ describe('useRouteAnalyticsEventNames', () => {
     expect(setEventNames).toHaveBeenCalledWith('a', 'b');
   });
 });
+// trivial change for CI testing

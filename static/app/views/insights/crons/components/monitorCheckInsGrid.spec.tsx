@@ -266,3 +266,4 @@ describe('CheckInRow', () => {
     expect(copyButton).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

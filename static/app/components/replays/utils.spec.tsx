@@ -236,3 +236,4 @@ describe('findVideoSegmentIndex', () => {
     expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toBe(-1);
   });
 });
+// trivial change for CI testing

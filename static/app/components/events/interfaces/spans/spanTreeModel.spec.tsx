@@ -793,3 +793,4 @@ describe('SpanTreeModel', () => {
     expect(spans[3]!.type).toBe('span_group_siblings');
   });
 });
+// trivial change for CI testing

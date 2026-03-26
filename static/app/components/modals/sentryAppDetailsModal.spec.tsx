@@ -174,3 +174,4 @@ describe('SentryAppDetailsModal', () => {
     expect(screen.queryByText('Permissions')).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

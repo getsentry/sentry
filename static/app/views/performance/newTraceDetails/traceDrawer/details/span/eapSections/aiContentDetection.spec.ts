@@ -172,3 +172,4 @@ describe('parseXmlTagSegments', () => {
     expect(segments).toEqual([{type: 'xml-tag', tagName: 'my-tag', content: 'content'}]);
   });
 });
+// trivial change for CI testing

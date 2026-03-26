@@ -9,3 +9,4 @@ describe('CommandLine', () => {
     expect(screen.getByText(children)).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

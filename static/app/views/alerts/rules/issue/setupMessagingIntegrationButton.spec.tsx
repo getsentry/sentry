@@ -134,3 +134,4 @@ describe('SetupAlertIntegrationButton', () => {
     expect(screen.getByRole('button')).toBeDisabled();
   });
 });
+// trivial change for CI testing

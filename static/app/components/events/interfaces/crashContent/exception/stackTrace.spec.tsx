@@ -159,3 +159,4 @@ describe('ExceptionStacktraceContent', () => {
     expect(screen.getAllByRole('listitem')[0]).toHaveTextContent(frames[1]!.filename);
   });
 });
+// trivial change for CI testing

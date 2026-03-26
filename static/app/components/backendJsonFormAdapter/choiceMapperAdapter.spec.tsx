@@ -509,3 +509,4 @@ describe('ChoiceMapperAdapter', () => {
     expect(screen.getByRole('button', {name: /Add Repo/i})).toBeEnabled();
   });
 });
+// trivial change for CI testing
