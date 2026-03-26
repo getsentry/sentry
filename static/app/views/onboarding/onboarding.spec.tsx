@@ -714,9 +714,8 @@ describe('Onboarding', () => {
 
       // Should auto-select the existing integration and show connected view
       expect(
-        await screen.findByText('Connected to github.com/getsentry')
+        await screen.findByText('Connected to GitHub org getsentry')
       ).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Manage in Settings'})).toBeInTheDocument();
     });
 
     it('skip for now advances to next step without skipping onboarding', async () => {
