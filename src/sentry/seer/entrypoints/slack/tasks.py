@@ -95,6 +95,11 @@ def process_mention_for_slack(
         )
         if not user:
             lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.IDENTITY_NOT_LINKED)
+            entrypoint.install.set_thread_status(
+                channel_id=channel_id,
+                thread_ts=thread_ts,
+                summary="",
+            )
             _send_link_identity_prompt(entrypoint=entrypoint)
             return
 

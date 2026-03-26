@@ -256,6 +256,8 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         """
         Set a status indicator in a Slack assistant thread (e.g. "Thinking...").
         The status auto-clears when the bot sends a reply, or after 2 minutes.
+
+        Sending an empty status message will clear the status indicator.
         """
         client = self.get_client()
         try:
