@@ -1535,6 +1535,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
+    # Default behaviour
     if not is_seer_seat_based_tier_enabled(group.organization):
         skip_reason = get_default_seer_automation_skip_reason(group, locks)
         if skip_reason:
@@ -1545,6 +1546,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
         generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
+        # Seat-based tier behaviour
         skip_reason = get_seat_based_seer_automation_skip_reason(group)
         if skip_reason:
             metrics.incr(
@@ -1555,10 +1557,13 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         if group.times_seen_with_pending < 10:
             generate_issue_summary_only.delay(group.id)
         else:
+            # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
+                # Summary exists, run automation directly
                 run_automation_only_task.delay(group.id)
             else:
+                # No summary yet, generate summary + run automation in one go
                 generate_summary_and_run_automation.delay(
                     group.id, trigger_path="seat_based_seer_automation"
                 )
