@@ -100,13 +100,13 @@ from sentry.receivers.outbox import maybe_process_tombstone
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.MY_CATEGORY)
-def process_my_category(object_identifier: int, region_name: str, **kwds: Any) -> None:
+def process_my_category(object_identifier: int, cell_name: str, **kwds: Any) -> None:
     if (instance := maybe_process_tombstone(
-        MyModel, object_identifier, cell_name=region_name
+        MyModel, object_identifier, cell_name=cell_name
     )) is None:
         return
     # Replicate to the specific cell
-    my_cell_service.sync(cell_name=region_name, data=serialize(instance))
+    my_cell_service.sync(cell_name=cell_name, data=serialize(instance))
 ```
 
 ### Template: Control Pure-RPC Receiver
