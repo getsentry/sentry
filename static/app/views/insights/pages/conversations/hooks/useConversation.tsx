@@ -57,7 +57,16 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
   if (span['gen_ai.operation.type']) {
     return true;
   }
-  return span['span.op']?.startsWith('gen_ai.') ?? false;
+  if (span['span.op']?.startsWith('gen_ai.')) {
+    return true;
+  }
+  // Include spans that have I/O messages even without a gen_ai operation type
+  return !!(
+    span['gen_ai.input.messages'] ||
+    span['gen_ai.output.messages'] ||
+    span['gen_ai.request.messages'] ||
+    span['gen_ai.response.text']
+  );
 }
 
 interface UseConversationResult {
