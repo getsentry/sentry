@@ -865,7 +865,11 @@ export function SearchQueryBuilderValueCombobox({
 
       // When selecting from dropdown with no existing value, switch from "contains" to "is"
       let newOp: TermOperator | undefined;
-      if (token.operator === TermOperator.CONTAINS && !token.value.value) {
+      if (
+        token.operator === TermOperator.CONTAINS &&
+        token.value.type === Token.VALUE_TEXT &&
+        !token.value.value
+      ) {
         newOp = token.negated ? TermOperator.NOT_EQUAL : TermOperator.DEFAULT;
       }
 
