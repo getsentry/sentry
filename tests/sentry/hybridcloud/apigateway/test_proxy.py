@@ -352,7 +352,7 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
 
     @responses.activate
     @override_options(CB_ENABLED)
-    def test_5xx_response_records_error(self) -> None:
+    def test_5xx_response_does_not_record_error(self) -> None:
         responses.add(
             responses.GET,
             f"{self.REGION.address}/server-error",
@@ -366,7 +366,7 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
             request = RequestFactory().get("http://sentry.io/server-error")
             resp = proxy_request(request, self.organization.slug, url_name)
         assert resp.status_code == 500
-        mock_breaker.record_error.assert_called_once()
+        mock_breaker.record_error.assert_not_called()
 
     @responses.activate
     @override_options(CB_ENABLED)
