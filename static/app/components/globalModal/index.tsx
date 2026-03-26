@@ -291,10 +291,9 @@ export function GlobalModal({onClose}: Props) {
 
 const fullPageCss = css`
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  top: 50vh;
+  left: 50vw;
+  transform: translate(-50vh, -50vw);
 `;
 
 const Backdrop = styled('div')`
