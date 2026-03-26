@@ -1,5 +1,3 @@
-import React from 'react';
-
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -96,7 +94,7 @@ export function HTTPLandingPage() {
   );
 
   return (
-    <React.Fragment>
+    <Layout.Page>
       <ModuleFeature moduleName={ModuleName.HTTP}>
         <Layout.Body>
           <Layout.Main width="full">
@@ -139,7 +137,7 @@ export function HTTPLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleFeature>
-    </React.Fragment>
+    </Layout.Page>
   );
 }
 

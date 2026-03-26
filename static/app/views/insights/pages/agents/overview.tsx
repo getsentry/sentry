@@ -104,109 +104,113 @@ function AgentsContent({datePageFilterProps}: AgentsOverviewPageProps) {
   useAgentMonitoringTrackPageView();
 
   return (
-    <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
-      <Layout.Body>
-        <Layout.Main width="full">
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <InsightsProjectSelector
-                    resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    onChange={() => {
-                      trackAnalytics('agent-monitoring.page-filter-change', {
-                        organization,
-                        filter: 'project',
-                      });
-                    }}
-                  />
-                  <InsightsEnvironmentSelector
-                    resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    onChange={() => {
-                      trackAnalytics('agent-monitoring.page-filter-change', {
-                        organization,
-                        filter: 'environment',
-                      });
-                    }}
-                  />
-                  <DatePageFilter
-                    {...datePageFilterProps}
-                    resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    onChange={() => {
-                      trackAnalytics('agent-monitoring.page-filter-change', {
-                        organization,
-                        filter: 'date',
-                      });
-                    }}
-                  />
-                </PageFilterBar>
-                <AgentSelector
-                  storageKeyPrefix="agents:agent-filter"
-                  referrer={Referrer.AGENT_SELECTOR}
-                />
-                {!showOnboarding && (
-                  <Flex flex={2}>
-                    <TraceItemSearchQueryBuilder {...agentSpanSearchProps.queryBuilder} />
-                  </Flex>
-                )}
-              </ToolRibbon>
-            </ModuleLayout.Full>
-
-            {showSeerDataBanner && (
+    <Layout.Page>
+      <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
+        <Layout.Body>
+          <Layout.Main width="full">
+            <ModuleLayout.Layout>
               <ModuleLayout.Full>
-                <Alert
-                  variant="warning"
-                  trailingItems={
-                    <Button
-                      aria-label="Dismiss"
-                      icon={<IconClose />}
-                      size="xs"
-                      onClick={dismiss}
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <InsightsProjectSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      onChange={() => {
+                        trackAnalytics('agent-monitoring.page-filter-change', {
+                          organization,
+                          filter: 'project',
+                        });
+                      }}
                     />
-                  }
-                >
-                  SENTRY EMPLOYEES: Transaction size limits make seer instrumentation
-                  incomplete. Data shown here does not reflect actual state.
-                </Alert>
+                    <InsightsEnvironmentSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      onChange={() => {
+                        trackAnalytics('agent-monitoring.page-filter-change', {
+                          organization,
+                          filter: 'environment',
+                        });
+                      }}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      onChange={() => {
+                        trackAnalytics('agent-monitoring.page-filter-change', {
+                          organization,
+                          filter: 'date',
+                        });
+                      }}
+                    />
+                  </PageFilterBar>
+                  <AgentSelector
+                    storageKeyPrefix="agents:agent-filter"
+                    referrer={Referrer.AGENT_SELECTOR}
+                  />
+                  {!showOnboarding && (
+                    <Flex flex={2}>
+                      <TraceItemSearchQueryBuilder
+                        {...agentSpanSearchProps.queryBuilder}
+                      />
+                    </Flex>
+                  )}
+                </ToolRibbon>
               </ModuleLayout.Full>
-            )}
 
-            <ModuleLayout.Full>
-              {showOnboarding ? (
-                <Onboarding />
-              ) : (
-                <Stack gap="xl">
-                  <WidgetGrid rowHeight={210} paddingBottom={0}>
-                    <WidgetGrid.Position1>
-                      <OverviewAgentsRunsChartWidget />
-                    </WidgetGrid.Position1>
-                    <WidgetGrid.Position2>
-                      <OverviewLLMCallsChartWidget />
-                    </WidgetGrid.Position2>
-                    <WidgetGrid.Position3>
-                      <OverviewAgentsDurationChartWidget />
-                    </WidgetGrid.Position3>
-                  </WidgetGrid>
-                  <WidgetGrid rowHeight={260} paddingBottom={0}>
-                    <WidgetGrid.Position1>
-                      <LLMCallsByModelWidget />
-                    </WidgetGrid.Position1>
-                    <WidgetGrid.Position2>
-                      <TokenUsageWidget />
-                    </WidgetGrid.Position2>
-                    <WidgetGrid.Position3>
-                      <ToolUsageWidget />
-                    </WidgetGrid.Position3>
-                  </WidgetGrid>
-                  <IssuesWidget />
-                  <TracesTable openTraceViewDrawer={openTraceViewDrawer} />
-                </Stack>
+              {showSeerDataBanner && (
+                <ModuleLayout.Full>
+                  <Alert
+                    variant="warning"
+                    trailingItems={
+                      <Button
+                        aria-label="Dismiss"
+                        icon={<IconClose />}
+                        size="xs"
+                        onClick={dismiss}
+                      />
+                    }
+                  >
+                    SENTRY EMPLOYEES: Transaction size limits make seer instrumentation
+                    incomplete. Data shown here does not reflect actual state.
+                  </Alert>
+                </ModuleLayout.Full>
               )}
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
-    </SearchQueryBuilderProvider>
+
+              <ModuleLayout.Full>
+                {showOnboarding ? (
+                  <Onboarding />
+                ) : (
+                  <Stack gap="xl">
+                    <WidgetGrid rowHeight={210} paddingBottom={0}>
+                      <WidgetGrid.Position1>
+                        <OverviewAgentsRunsChartWidget />
+                      </WidgetGrid.Position1>
+                      <WidgetGrid.Position2>
+                        <OverviewLLMCallsChartWidget />
+                      </WidgetGrid.Position2>
+                      <WidgetGrid.Position3>
+                        <OverviewAgentsDurationChartWidget />
+                      </WidgetGrid.Position3>
+                    </WidgetGrid>
+                    <WidgetGrid rowHeight={260} paddingBottom={0}>
+                      <WidgetGrid.Position1>
+                        <LLMCallsByModelWidget />
+                      </WidgetGrid.Position1>
+                      <WidgetGrid.Position2>
+                        <TokenUsageWidget />
+                      </WidgetGrid.Position2>
+                      <WidgetGrid.Position3>
+                        <ToolUsageWidget />
+                      </WidgetGrid.Position3>
+                    </WidgetGrid>
+                    <IssuesWidget />
+                    <TracesTable openTraceViewDrawer={openTraceViewDrawer} />
+                  </Stack>
+                )}
+              </ModuleLayout.Full>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </SearchQueryBuilderProvider>
+    </Layout.Page>
   );
 }
 

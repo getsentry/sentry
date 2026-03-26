@@ -59,62 +59,64 @@ function AgentModelsLandingPage({datePageFilterProps}: AgentModelsLandingPagePro
   }
 
   return (
-    <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
-      <ModuleFeature moduleName={ModuleName.AGENT_MODELS}>
-        <Layout.Body>
-          <Layout.Main width="full">
-            <ModuleLayout.Layout>
-              <ModuleLayout.Full>
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <InsightsProjectSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <InsightsEnvironmentSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <DatePageFilter
-                      {...datePageFilterProps}
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                  </PageFilterBar>
-                  {!showOnboarding && (
-                    <Flex flex={2}>
-                      <TraceItemSearchQueryBuilder
-                        {...agentSpanSearchProps.queryBuilder}
+    <Layout.Page>
+      <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
+        <ModuleFeature moduleName={ModuleName.AGENT_MODELS}>
+          <Layout.Body>
+            <Layout.Main width="full">
+              <ModuleLayout.Layout>
+                <ModuleLayout.Full>
+                  <ToolRibbon>
+                    <PageFilterBar condensed>
+                      <InsightsProjectSelector
+                        resetParamsOnChange={[TableUrlParams.CURSOR]}
                       />
-                    </Flex>
-                  )}
-                </ToolRibbon>
-              </ModuleLayout.Full>
+                      <InsightsEnvironmentSelector
+                        resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      />
+                      <DatePageFilter
+                        {...datePageFilterProps}
+                        resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      />
+                    </PageFilterBar>
+                    {!showOnboarding && (
+                      <Flex flex={2}>
+                        <TraceItemSearchQueryBuilder
+                          {...agentSpanSearchProps.queryBuilder}
+                        />
+                      </Flex>
+                    )}
+                  </ToolRibbon>
+                </ModuleLayout.Full>
 
-              <ModuleLayout.Full>
-                {showOnboarding ? (
-                  <Onboarding />
-                ) : (
-                  <Fragment>
-                    <WidgetGrid rowHeight={260}>
-                      <WidgetGrid.Position1>
-                        <TokenCostWidget />
-                      </WidgetGrid.Position1>
-                      <WidgetGrid.Position2>
-                        <TokenUsageWidget />
-                      </WidgetGrid.Position2>
-                      <WidgetGrid.Position3>
-                        <TokenTypesWidget />
-                      </WidgetGrid.Position3>
-                    </WidgetGrid>
-                    <ErrorBoundary mini>
-                      <ModelsTable />
-                    </ErrorBoundary>
-                  </Fragment>
-                )}
-              </ModuleLayout.Full>
-            </ModuleLayout.Layout>
-          </Layout.Main>
-        </Layout.Body>
-      </ModuleFeature>
-    </SearchQueryBuilderProvider>
+                <ModuleLayout.Full>
+                  {showOnboarding ? (
+                    <Onboarding />
+                  ) : (
+                    <Fragment>
+                      <WidgetGrid rowHeight={260}>
+                        <WidgetGrid.Position1>
+                          <TokenCostWidget />
+                        </WidgetGrid.Position1>
+                        <WidgetGrid.Position2>
+                          <TokenUsageWidget />
+                        </WidgetGrid.Position2>
+                        <WidgetGrid.Position3>
+                          <TokenTypesWidget />
+                        </WidgetGrid.Position3>
+                      </WidgetGrid>
+                      <ErrorBoundary mini>
+                        <ModelsTable />
+                      </ErrorBoundary>
+                    </Fragment>
+                  )}
+                </ModuleLayout.Full>
+              </ModuleLayout.Layout>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleFeature>
+      </SearchQueryBuilderProvider>
+    </Layout.Page>
   );
 }
 

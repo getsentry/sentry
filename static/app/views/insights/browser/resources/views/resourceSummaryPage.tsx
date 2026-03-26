@@ -1,5 +1,3 @@
-import React from 'react';
-
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -102,7 +100,7 @@ function ResourceSummary() {
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
 
   return (
-    <React.Fragment>
+    <Layout.Page>
       <FrontendHeader
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headerTitle={spanMetrics[SpanFields.SPAN_DESCRIPTION]}
@@ -170,7 +168,7 @@ function ResourceSummary() {
           </Layout.Main>
         </Layout.Body>
       </ModuleFeature>
-    </React.Fragment>
+    </Layout.Page>
   );
 }
 

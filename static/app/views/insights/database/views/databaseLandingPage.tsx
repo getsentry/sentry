@@ -1,5 +1,3 @@
-import React from 'react';
-
 import type {AlertProps} from '@sentry/scraps/alert';
 import {Alert} from '@sentry/scraps/alert';
 
@@ -129,7 +127,7 @@ export function DatabaseLandingPage() {
       .some(({value}) => value && value > 0);
 
   return (
-    <React.Fragment>
+    <Layout.Page>
       <ModuleFeature moduleName={ModuleName.DB}>
         <Layout.Body>
           <Layout.Main width="full">
@@ -177,7 +175,7 @@ export function DatabaseLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleFeature>
-    </React.Fragment>
+    </Layout.Page>
   );
 }
 

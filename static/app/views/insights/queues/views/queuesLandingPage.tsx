@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -74,7 +72,7 @@ function QueuesLandingPage() {
     : undefined;
 
   return (
-    <Fragment>
+    <Layout.Page>
       <ModuleFeature moduleName={ModuleName.QUEUE}>
         <Layout.Body>
           <Layout.Main width="full">
@@ -104,7 +102,7 @@ function QueuesLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleFeature>
-    </Fragment>
+    </Layout.Page>
   );
 }
 

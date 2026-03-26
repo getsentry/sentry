@@ -230,69 +230,74 @@ function EAPBackendOverviewPage({datePageFilterProps}: EAPBackendOverviewPagePro
   );
 
   return (
-    <Feature
-      features="performance-view"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <Layout.Body>
-        <Layout.Main width="full">
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <InsightsProjectSelector />
-                  <InsightsEnvironmentSelector />
-                  <DatePageFilter {...datePageFilterProps} />
-                </PageFilterBar>
-                {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
-                    organization={organization}
-                    projectIds={searchBarProjectsIds}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(searchBarQuery) ?? ''}
-                  />
-                )}
-              </ToolRibbon>
-            </ModuleLayout.Full>
-            <PageAlert />
-            {showOnboarding ? (
-              <LegacyOnboarding project={onboardingProject} organization={organization} />
-            ) : (
-              <Fragment>
-                <ModuleLayout.Third>
-                  <Stack gap="xl" height="100%" minHeight="502px">
-                    <OverviewRequestsChartWidget />
-                    <OverviewApiLatencyChartWidget />
-                  </Stack>
-                </ModuleLayout.Third>
-                <ModuleLayout.TwoThirds>
-                  <IssuesWidget />
-                </ModuleLayout.TwoThirds>
-                <ModuleLayout.Full>
-                  <TripleRowWidgetWrapper>
-                    <ModuleLayout.Third>
-                      <OverviewJobsChartWidget />
-                    </ModuleLayout.Third>
-                    <ModuleLayout.Third>
-                      <OverviewTimeConsumingQueriesWidget />
-                    </ModuleLayout.Third>
-                    <ModuleLayout.Third>
-                      <OverviewCacheMissChartWidget />
-                    </ModuleLayout.Third>
-                  </TripleRowWidgetWrapper>
-                </ModuleLayout.Full>
-                <ModuleLayout.Full>
-                  <BackendOverviewTable response={response} sort={sorts[1]} />
-                </ModuleLayout.Full>
-              </Fragment>
-            )}
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
-    </Feature>
+    <Layout.Page>
+      <Feature
+        features="performance-view"
+        organization={organization}
+        renderDisabled={NoAccess}
+      >
+        <Layout.Body>
+          <Layout.Main width="full">
+            <ModuleLayout.Layout>
+              <ModuleLayout.Full>
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <InsightsProjectSelector />
+                    <InsightsEnvironmentSelector />
+                    <DatePageFilter {...datePageFilterProps} />
+                  </PageFilterBar>
+                  {!showOnboarding && (
+                    <StyledTransactionNameSearchBar
+                      organization={organization}
+                      projectIds={searchBarProjectsIds}
+                      onSearch={(query: string) => {
+                        handleSearch(query);
+                      }}
+                      query={getFreeTextFromQuery(searchBarQuery) ?? ''}
+                    />
+                  )}
+                </ToolRibbon>
+              </ModuleLayout.Full>
+              <PageAlert />
+              {showOnboarding ? (
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
+              ) : (
+                <Fragment>
+                  <ModuleLayout.Third>
+                    <Stack gap="xl" height="100%" minHeight="502px">
+                      <OverviewRequestsChartWidget />
+                      <OverviewApiLatencyChartWidget />
+                    </Stack>
+                  </ModuleLayout.Third>
+                  <ModuleLayout.TwoThirds>
+                    <IssuesWidget />
+                  </ModuleLayout.TwoThirds>
+                  <ModuleLayout.Full>
+                    <TripleRowWidgetWrapper>
+                      <ModuleLayout.Third>
+                        <OverviewJobsChartWidget />
+                      </ModuleLayout.Third>
+                      <ModuleLayout.Third>
+                        <OverviewTimeConsumingQueriesWidget />
+                      </ModuleLayout.Third>
+                      <ModuleLayout.Third>
+                        <OverviewCacheMissChartWidget />
+                      </ModuleLayout.Third>
+                    </TripleRowWidgetWrapper>
+                  </ModuleLayout.Full>
+                  <ModuleLayout.Full>
+                    <BackendOverviewTable response={response} sort={sorts[1]} />
+                  </ModuleLayout.Full>
+                </Fragment>
+              )}
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </Feature>
+    </Layout.Page>
   );
 }
 

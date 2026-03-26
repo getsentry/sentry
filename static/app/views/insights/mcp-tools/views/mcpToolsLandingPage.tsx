@@ -52,55 +52,59 @@ function McpToolsLandingPage({datePageFilterProps}: McpToolsLandingPageProps) {
   }
 
   return (
-    <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>
-      <ModuleFeature moduleName={ModuleName.MCP_TOOLS}>
-        <Layout.Body>
-          <Layout.Main width="full">
-            <ModuleLayout.Layout>
-              <ModuleLayout.Full>
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <InsightsProjectSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <InsightsEnvironmentSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <DatePageFilter {...datePageFilterProps} />
-                  </PageFilterBar>
-                  {!showOnboarding && (
-                    <Flex flex={2}>
-                      <TraceItemSearchQueryBuilder {...mcpSpanSearchProps.queryBuilder} />
-                    </Flex>
-                  )}
-                </ToolRibbon>
-              </ModuleLayout.Full>
+    <Layout.Page>
+      <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>
+        <ModuleFeature moduleName={ModuleName.MCP_TOOLS}>
+          <Layout.Body>
+            <Layout.Main width="full">
+              <ModuleLayout.Layout>
+                <ModuleLayout.Full>
+                  <ToolRibbon>
+                    <PageFilterBar condensed>
+                      <InsightsProjectSelector
+                        resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      />
+                      <InsightsEnvironmentSelector
+                        resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      />
+                      <DatePageFilter {...datePageFilterProps} />
+                    </PageFilterBar>
+                    {!showOnboarding && (
+                      <Flex flex={2}>
+                        <TraceItemSearchQueryBuilder
+                          {...mcpSpanSearchProps.queryBuilder}
+                        />
+                      </Flex>
+                    )}
+                  </ToolRibbon>
+                </ModuleLayout.Full>
 
-              <ModuleLayout.Full>
-                {showOnboarding ? (
-                  <Onboarding />
-                ) : (
-                  <Fragment>
-                    <WidgetGrid>
-                      <WidgetGrid.Position1>
-                        <McpToolTrafficWidget />
-                      </WidgetGrid.Position1>
-                      <WidgetGrid.Position2>
-                        <McpToolDurationWidget />
-                      </WidgetGrid.Position2>
-                      <WidgetGrid.Position3>
-                        <McpToolErrorRateWidget />
-                      </WidgetGrid.Position3>
-                    </WidgetGrid>
-                    <McpToolsTable />
-                  </Fragment>
-                )}
-              </ModuleLayout.Full>
-            </ModuleLayout.Layout>
-          </Layout.Main>
-        </Layout.Body>
-      </ModuleFeature>
-    </SearchQueryBuilderProvider>
+                <ModuleLayout.Full>
+                  {showOnboarding ? (
+                    <Onboarding />
+                  ) : (
+                    <Fragment>
+                      <WidgetGrid>
+                        <WidgetGrid.Position1>
+                          <McpToolTrafficWidget />
+                        </WidgetGrid.Position1>
+                        <WidgetGrid.Position2>
+                          <McpToolDurationWidget />
+                        </WidgetGrid.Position2>
+                        <WidgetGrid.Position3>
+                          <McpToolErrorRateWidget />
+                        </WidgetGrid.Position3>
+                      </WidgetGrid>
+                      <McpToolsTable />
+                    </Fragment>
+                  )}
+                </ModuleLayout.Full>
+              </ModuleLayout.Layout>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleFeature>
+      </SearchQueryBuilderProvider>
+    </Layout.Page>
   );
 }
 

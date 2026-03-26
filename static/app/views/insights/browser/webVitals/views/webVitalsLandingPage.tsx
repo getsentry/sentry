@@ -1,4 +1,4 @@
-import React, {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -72,7 +72,7 @@ function WebVitalsLandingPage() {
   });
 
   return (
-    <React.Fragment>
+    <Layout.Page>
       <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
           <Layout.Main width="full">
@@ -137,7 +137,7 @@ function WebVitalsLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleFeature>
-    </React.Fragment>
+    </Layout.Page>
   );
 }
 

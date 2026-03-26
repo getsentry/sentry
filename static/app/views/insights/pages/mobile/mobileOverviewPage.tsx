@@ -253,59 +253,64 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   );
 
   return (
-    <Feature
-      features="performance-view"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <Layout.Body>
-        <Layout.Main width="full">
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <InsightsProjectSelector />
-                  <InsightsEnvironmentSelector />
-                  <DatePageFilter {...datePageFilterProps} />
-                </PageFilterBar>
-                {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
+    <Layout.Page>
+      <Feature
+        features="performance-view"
+        organization={organization}
+        renderDisabled={NoAccess}
+      >
+        <Layout.Body>
+          <Layout.Main width="full">
+            <ModuleLayout.Layout>
+              <ModuleLayout.Full>
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <InsightsProjectSelector />
+                    <InsightsEnvironmentSelector />
+                    <DatePageFilter {...datePageFilterProps} />
+                  </PageFilterBar>
+                  {!showOnboarding && (
+                    <StyledTransactionNameSearchBar
+                      organization={organization}
+                      projectIds={searchBarProjectsIds}
+                      onSearch={(query: string) => {
+                        handleSearch(query);
+                      }}
+                      query={getFreeTextFromQuery(searchBarQuery) ?? ''}
+                    />
+                  )}
+                </ToolRibbon>
+              </ModuleLayout.Full>
+              <PageAlert />
+              {hasPlatformizedInsights && <MobileVitalsBanner />}
+              <ModuleLayout.Full>
+                {showOnboarding ? (
+                  <LegacyOnboarding
+                    project={onboardingProject}
                     organization={organization}
-                    projectIds={searchBarProjectsIds}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(searchBarQuery) ?? ''}
                   />
+                ) : (
+                  <PerformanceDisplayProvider
+                    value={{performanceType: ProjectPerformanceType.MOBILE}}
+                  >
+                    <DoubleChartRow
+                      allowedCharts={doubleChartRowCharts}
+                      {...sharedProps}
+                      eventView={doubleChartRowEventView}
+                    />
+                    <TripleChartRow
+                      allowedCharts={tripleChartRowCharts}
+                      {...sharedProps}
+                    />
+                    <MobileOverviewTable response={response} sort={sorts[1]} />
+                  </PerformanceDisplayProvider>
                 )}
-              </ToolRibbon>
-            </ModuleLayout.Full>
-            <PageAlert />
-            {hasPlatformizedInsights && <MobileVitalsBanner />}
-            <ModuleLayout.Full>
-              {showOnboarding ? (
-                <LegacyOnboarding
-                  project={onboardingProject}
-                  organization={organization}
-                />
-              ) : (
-                <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.MOBILE}}
-                >
-                  <DoubleChartRow
-                    allowedCharts={doubleChartRowCharts}
-                    {...sharedProps}
-                    eventView={doubleChartRowEventView}
-                  />
-                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <MobileOverviewTable response={response} sort={sorts[1]} />
-                </PerformanceDisplayProvider>
-              )}
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
-    </Feature>
+              </ModuleLayout.Full>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </Feature>
+    </Layout.Page>
   );
 }
 

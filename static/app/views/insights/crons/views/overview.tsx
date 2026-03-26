@@ -82,7 +82,7 @@ function CronsOverview() {
   };
 
   const page = (
-    <Fragment>
+    <Layout.Page>
       <CronsListPageHeader organization={organization} />
       <Layout.Header unified>
         <Layout.HeaderContent>
@@ -179,7 +179,7 @@ function CronsOverview() {
           )}
         </Layout.Main>
       </Layout.Body>
-    </Fragment>
+    </Layout.Page>
   );
 
   return (

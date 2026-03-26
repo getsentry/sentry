@@ -57,57 +57,59 @@ function AgentToolsLandingPage({datePageFilterProps}: AgentToolsLandingPageProps
   }
 
   return (
-    <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
-      <ModuleFeature moduleName={ModuleName.AGENT_TOOLS}>
-        <Layout.Body>
-          <Layout.Main width="full">
-            <ModuleLayout.Layout>
-              <ModuleLayout.Full>
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <InsightsProjectSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <InsightsEnvironmentSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <DatePageFilter
-                      {...datePageFilterProps}
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                  </PageFilterBar>
-                  {!showOnboarding && (
-                    <Flex flex={2}>
-                      <TraceItemSearchQueryBuilder
-                        {...agentSpanSearchProps.queryBuilder}
+    <Layout.Page>
+      <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
+        <ModuleFeature moduleName={ModuleName.AGENT_TOOLS}>
+          <Layout.Body>
+            <Layout.Main width="full">
+              <ModuleLayout.Layout>
+                <ModuleLayout.Full>
+                  <ToolRibbon>
+                    <PageFilterBar condensed>
+                      <InsightsProjectSelector
+                        resetParamsOnChange={[TableUrlParams.CURSOR]}
                       />
-                    </Flex>
-                  )}
-                </ToolRibbon>
-              </ModuleLayout.Full>
+                      <InsightsEnvironmentSelector
+                        resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      />
+                      <DatePageFilter
+                        {...datePageFilterProps}
+                        resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      />
+                    </PageFilterBar>
+                    {!showOnboarding && (
+                      <Flex flex={2}>
+                        <TraceItemSearchQueryBuilder
+                          {...agentSpanSearchProps.queryBuilder}
+                        />
+                      </Flex>
+                    )}
+                  </ToolRibbon>
+                </ModuleLayout.Full>
 
-              <ModuleLayout.Full>
-                {showOnboarding ? (
-                  <Onboarding />
-                ) : (
-                  <Fragment>
-                    <TwoColumnWidgetGrid rowHeight={260}>
-                      <TwoColumnWidgetGrid.Position1>
-                        <ToolUsageWidget />
-                      </TwoColumnWidgetGrid.Position1>
-                      <TwoColumnWidgetGrid.Position2>
-                        <ToolErrorsWidget />
-                      </TwoColumnWidgetGrid.Position2>
-                    </TwoColumnWidgetGrid>
-                    <ToolsTable />
-                  </Fragment>
-                )}
-              </ModuleLayout.Full>
-            </ModuleLayout.Layout>
-          </Layout.Main>
-        </Layout.Body>
-      </ModuleFeature>
-    </SearchQueryBuilderProvider>
+                <ModuleLayout.Full>
+                  {showOnboarding ? (
+                    <Onboarding />
+                  ) : (
+                    <Fragment>
+                      <TwoColumnWidgetGrid rowHeight={260}>
+                        <TwoColumnWidgetGrid.Position1>
+                          <ToolUsageWidget />
+                        </TwoColumnWidgetGrid.Position1>
+                        <TwoColumnWidgetGrid.Position2>
+                          <ToolErrorsWidget />
+                        </TwoColumnWidgetGrid.Position2>
+                      </TwoColumnWidgetGrid>
+                      <ToolsTable />
+                    </Fragment>
+                  )}
+                </ModuleLayout.Full>
+              </ModuleLayout.Layout>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleFeature>
+      </SearchQueryBuilderProvider>
+    </Layout.Page>
   );
 }
 

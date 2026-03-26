@@ -35,7 +35,7 @@ function SessionsOverview() {
   const showOnboarding = !hasSessionData;
 
   return (
-    <Fragment>
+    <Layout.Page>
       <Layout.Body>
         <Layout.Main width="full">
           <ModuleLayout.Layout>
@@ -58,7 +58,7 @@ function SessionsOverview() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
-    </Fragment>
+    </Layout.Page>
   );
 }
 

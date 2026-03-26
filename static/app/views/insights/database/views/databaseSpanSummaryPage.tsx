@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -140,7 +139,7 @@ export function DatabaseSpanSummaryPage() {
   });
 
   return (
-    <Fragment>
+    <Layout.Page>
       <BackendHeader
         headerTitle={t('Query Summary')}
         breadcrumbs={[
@@ -242,7 +241,7 @@ export function DatabaseSpanSummaryPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleFeature>
-    </Fragment>
+    </Layout.Page>
   );
 }
 

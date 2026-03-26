@@ -1,4 +1,3 @@
-import React from 'react';
 import keyBy from 'lodash/keyBy';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -102,7 +101,7 @@ export function CacheLandingPage() {
   addCustomMeta(meta);
 
   return (
-    <React.Fragment>
+    <Layout.Page>
       <ModuleFeature moduleName={ModuleName.CACHE}>
         <Layout.Body>
           <Layout.Main width="full">
@@ -134,7 +133,7 @@ export function CacheLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleFeature>
-    </React.Fragment>
+    </Layout.Page>
   );
 }
 

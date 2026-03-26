@@ -1,4 +1,4 @@
-import React, {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -128,7 +128,7 @@ function PageOverview() {
       : getWebVitalScoresFromTableDataRow(projectScores?.[0]);
 
   return (
-    <React.Fragment>
+    <Layout.Page>
       <FrontendHeader
         headerTitle={
           <Fragment>
@@ -210,7 +210,7 @@ function PageOverview() {
           </Layout.Side>
         </Layout.Body>
       </ModuleFeature>
-    </React.Fragment>
+    </Layout.Page>
   );
 }
 

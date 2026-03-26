@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -31,7 +31,7 @@ function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
 
   return (
-    <React.Fragment>
+    <Layout.Page>
       <PageAlertProvider>
         <ModuleFeature moduleName={ModuleName.RESOURCE}>
           <Layout.Body>
@@ -68,7 +68,7 @@ function ResourcesLandingPage() {
           </Layout.Body>
         </ModuleFeature>
       </PageAlertProvider>
-    </React.Fragment>
+    </Layout.Page>
   );
 }
 

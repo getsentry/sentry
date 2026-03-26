@@ -147,97 +147,102 @@ function FrontendOverviewPage({datePageFilterProps}: FrontendOverviewPageProps) 
   ].map(project => project.id);
 
   return (
-    <Feature
-      features="performance-view"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <Layout.Body>
-        <Layout.Main width="full">
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <InsightsProjectSelector />
-                  <InsightsEnvironmentSelector />
-                  <DatePageFilter {...datePageFilterProps} />
-                </PageFilterBar>
-                {!showOnboarding && (
-                  <Fragment>
-                    <CompactSelect
-                      value={spanOp}
-                      menuTitle={t('Filter by operation')}
-                      options={[
-                        {value: 'all', label: t('All Transactions')},
-                        {value: 'pageload', label: t('Pageload')},
-                        {value: 'navigation', label: t('Navigation')},
-                      ]}
-                      onChange={(selectedOption: SelectOption<PageSpanOps>) => {
-                        navigate({
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            [SPAN_OP_QUERY_PARAM]: selectedOption.value,
-                          },
-                        });
-                      }}
+    <Layout.Page>
+      <Feature
+        features="performance-view"
+        organization={organization}
+        renderDisabled={NoAccess}
+      >
+        <Layout.Body>
+          <Layout.Main width="full">
+            <ModuleLayout.Layout>
+              <ModuleLayout.Full>
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <InsightsProjectSelector />
+                    <InsightsEnvironmentSelector />
+                    <DatePageFilter {...datePageFilterProps} />
+                  </PageFilterBar>
+                  {!showOnboarding && (
+                    <Fragment>
+                      <CompactSelect
+                        value={spanOp}
+                        menuTitle={t('Filter by operation')}
+                        options={[
+                          {value: 'all', label: t('All Transactions')},
+                          {value: 'pageload', label: t('Pageload')},
+                          {value: 'navigation', label: t('Navigation')},
+                        ]}
+                        onChange={(selectedOption: SelectOption<PageSpanOps>) => {
+                          navigate({
+                            pathname: location.pathname,
+                            query: {
+                              ...location.query,
+                              [SPAN_OP_QUERY_PARAM]: selectedOption.value,
+                            },
+                          });
+                        }}
+                      />
+                      <StyledTransactionNameSearchBar
+                        organization={organization}
+                        projectIds={searchBarProjectsIds}
+                        onSearch={(query: string) => {
+                          handleSearch(query);
+                        }}
+                        query={getFreeTextFromQuery(searchBarQuery) ?? ''}
+                      />
+                    </Fragment>
+                  )}
+                </ToolRibbon>
+              </ModuleLayout.Full>
+              <PageAlert />
+              {showOnboarding ? (
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
+              ) : (
+                <Fragment>
+                  <ModuleLayout.Full>
+                    <TripleRowWidgetWrapper>
+                      <ModuleLayout.Third>
+                        <OverviewTransactionThroughputChartWidget />
+                      </ModuleLayout.Third>
+                      <ModuleLayout.Third>
+                        <OverviewTransactionDurationChartWidget />
+                      </ModuleLayout.Third>
+                      <ModuleLayout.Third>
+                        <OverviewIssuesWidget />
+                      </ModuleLayout.Third>
+                    </TripleRowWidgetWrapper>
+                  </ModuleLayout.Full>
+                  <ModuleLayout.Full>
+                    <TripleRowWidgetWrapper>
+                      <ModuleLayout.Third>
+                        <WebVitalsWidget />
+                      </ModuleLayout.Third>
+                      <ModuleLayout.Third>
+                        <OverviewAssetsByTimeSpentWidget />
+                      </ModuleLayout.Third>
+                      <ModuleLayout.Third>
+                        <OverviewTimeConsumingRequestsWidget />
+                      </ModuleLayout.Third>
+                    </TripleRowWidgetWrapper>
+                  </ModuleLayout.Full>
+                  <ModuleLayout.Full>
+                    <FrontendOverviewTable
+                      displayPerfScore={displayPerfScore}
+                      response={response}
+                      sort={sorts[1]}
                     />
-                    <StyledTransactionNameSearchBar
-                      organization={organization}
-                      projectIds={searchBarProjectsIds}
-                      onSearch={(query: string) => {
-                        handleSearch(query);
-                      }}
-                      query={getFreeTextFromQuery(searchBarQuery) ?? ''}
-                    />
-                  </Fragment>
-                )}
-              </ToolRibbon>
-            </ModuleLayout.Full>
-            <PageAlert />
-            {showOnboarding ? (
-              <LegacyOnboarding project={onboardingProject} organization={organization} />
-            ) : (
-              <Fragment>
-                <ModuleLayout.Full>
-                  <TripleRowWidgetWrapper>
-                    <ModuleLayout.Third>
-                      <OverviewTransactionThroughputChartWidget />
-                    </ModuleLayout.Third>
-                    <ModuleLayout.Third>
-                      <OverviewTransactionDurationChartWidget />
-                    </ModuleLayout.Third>
-                    <ModuleLayout.Third>
-                      <OverviewIssuesWidget />
-                    </ModuleLayout.Third>
-                  </TripleRowWidgetWrapper>
-                </ModuleLayout.Full>
-                <ModuleLayout.Full>
-                  <TripleRowWidgetWrapper>
-                    <ModuleLayout.Third>
-                      <WebVitalsWidget />
-                    </ModuleLayout.Third>
-                    <ModuleLayout.Third>
-                      <OverviewAssetsByTimeSpentWidget />
-                    </ModuleLayout.Third>
-                    <ModuleLayout.Third>
-                      <OverviewTimeConsumingRequestsWidget />
-                    </ModuleLayout.Third>
-                  </TripleRowWidgetWrapper>
-                </ModuleLayout.Full>
-                <ModuleLayout.Full>
-                  <FrontendOverviewTable
-                    displayPerfScore={displayPerfScore}
-                    response={response}
-                    sort={sorts[1]}
-                  />
-                </ModuleLayout.Full>
-              </Fragment>
-            )}
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
-    </Feature>
+                  </ModuleLayout.Full>
+                </Fragment>
+              )}
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </Feature>
+    </Layout.Page>
   );
 }
 

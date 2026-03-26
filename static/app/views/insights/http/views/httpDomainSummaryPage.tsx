@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -147,7 +147,7 @@ export function HTTPDomainSummaryPage() {
   };
 
   return (
-    <React.Fragment>
+    <Layout.Page>
       {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
       {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
       {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
@@ -254,7 +254,7 @@ export function HTTPDomainSummaryPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleFeature>
-    </React.Fragment>
+    </Layout.Page>
   );
 }
 

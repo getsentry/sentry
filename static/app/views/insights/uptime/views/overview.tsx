@@ -69,7 +69,7 @@ export default function UptimeOverview() {
   );
 
   const page = (
-    <Fragment>
+    <Layout.Page>
       <Layout.Header unified>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -166,7 +166,7 @@ export default function UptimeOverview() {
           )}
         </Layout.Main>
       </Layout.Body>
-    </Fragment>
+    </Layout.Page>
   );
 
   return (

@@ -69,70 +69,74 @@ function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
   }
 
   return (
-    <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>
-      <Feature
-        features="performance-view"
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <Layout.Body>
-          <Layout.Main width="full">
-            <ModuleLayout.Layout>
-              <ModuleLayout.Full>
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <InsightsProjectSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <InsightsEnvironmentSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <DatePageFilter {...datePageFilterProps} />
-                  </PageFilterBar>
-                  {!showOnboarding && (
-                    <Flex flex={2}>
-                      <TraceItemSearchQueryBuilder {...mcpSpanSearchProps.queryBuilder} />
-                    </Flex>
-                  )}
-                </ToolRibbon>
-              </ModuleLayout.Full>
+    <Layout.Page>
+      <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>
+        <Feature
+          features="performance-view"
+          organization={organization}
+          renderDisabled={NoAccess}
+        >
+          <Layout.Body>
+            <Layout.Main width="full">
+              <ModuleLayout.Layout>
+                <ModuleLayout.Full>
+                  <ToolRibbon>
+                    <PageFilterBar condensed>
+                      <InsightsProjectSelector
+                        resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      />
+                      <InsightsEnvironmentSelector
+                        resetParamsOnChange={[TableUrlParams.CURSOR]}
+                      />
+                      <DatePageFilter {...datePageFilterProps} />
+                    </PageFilterBar>
+                    {!showOnboarding && (
+                      <Flex flex={2}>
+                        <TraceItemSearchQueryBuilder
+                          {...mcpSpanSearchProps.queryBuilder}
+                        />
+                      </Flex>
+                    )}
+                  </ToolRibbon>
+                </ModuleLayout.Full>
 
-              <ModuleLayout.Full>
-                {showOnboarding ? (
-                  <Onboarding />
-                ) : (
-                  <Fragment>
-                    <WidgetGrid>
-                      <WidgetGrid.Position1>
-                        <McpTrafficWidget />
-                      </WidgetGrid.Position1>
-                      <WidgetGrid.Position2>
-                        <McpTrafficByClientWidget />
-                      </WidgetGrid.Position2>
-                      <WidgetGrid.Position3>
-                        <McpTransportWidget />
-                      </WidgetGrid.Position3>
-                    </WidgetGrid>
-                    <WidgetGrid>
-                      <WidgetGrid.Position1>
-                        <McpToolTrafficWidget />
-                      </WidgetGrid.Position1>
-                      <WidgetGrid.Position2>
-                        <McpResourceTrafficWidget />
-                      </WidgetGrid.Position2>
-                      <WidgetGrid.Position3>
-                        <McpPromptTrafficWidget />
-                      </WidgetGrid.Position3>
-                    </WidgetGrid>
-                    <McpOverviewTable />
-                  </Fragment>
-                )}
-              </ModuleLayout.Full>
-            </ModuleLayout.Layout>
-          </Layout.Main>
-        </Layout.Body>
-      </Feature>
-    </SearchQueryBuilderProvider>
+                <ModuleLayout.Full>
+                  {showOnboarding ? (
+                    <Onboarding />
+                  ) : (
+                    <Fragment>
+                      <WidgetGrid>
+                        <WidgetGrid.Position1>
+                          <McpTrafficWidget />
+                        </WidgetGrid.Position1>
+                        <WidgetGrid.Position2>
+                          <McpTrafficByClientWidget />
+                        </WidgetGrid.Position2>
+                        <WidgetGrid.Position3>
+                          <McpTransportWidget />
+                        </WidgetGrid.Position3>
+                      </WidgetGrid>
+                      <WidgetGrid>
+                        <WidgetGrid.Position1>
+                          <McpToolTrafficWidget />
+                        </WidgetGrid.Position1>
+                        <WidgetGrid.Position2>
+                          <McpResourceTrafficWidget />
+                        </WidgetGrid.Position2>
+                        <WidgetGrid.Position3>
+                          <McpPromptTrafficWidget />
+                        </WidgetGrid.Position3>
+                      </WidgetGrid>
+                      <McpOverviewTable />
+                    </Fragment>
+                  )}
+                </ModuleLayout.Full>
+              </ModuleLayout.Layout>
+            </Layout.Main>
+          </Layout.Body>
+        </Feature>
+      </SearchQueryBuilderProvider>
+    </Layout.Page>
   );
 }
 

@@ -54,7 +54,7 @@ function DestinationSummaryPage() {
   });
 
   return (
-    <Fragment>
+    <Layout.Page>
       <BackendHeader
         headerTitle={destination}
         breadcrumbs={[
@@ -150,7 +150,7 @@ function DestinationSummaryPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleFeature>
-    </Fragment>
+    </Layout.Page>
   );
 }
 
