@@ -1507,6 +1507,8 @@ static/gsAdmin/components/addGiftBudgetAction.tsx
 static/gsAdmin/components/addGiftEventsAction.spec.tsx
 static/gsAdmin/components/addGiftEventsAction.tsx
 static/gsAdmin/components/addOrRemoveOrgModal.tsx
+static/gsAdmin/components/addToStartupProgramAction.spec.tsx
+static/gsAdmin/components/addToStartupProgramAction.tsx
 static/gsAdmin/components/adminConfirmationModal.spec.tsx
 static/gsAdmin/components/adminConfirmationModal.tsx
 static/gsAdmin/components/beacons/beaconCheckins.tsx
