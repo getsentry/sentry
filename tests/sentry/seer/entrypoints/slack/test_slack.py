@@ -10,6 +10,7 @@ from sentry.notifications.platform.templates.seer import SeerAutofixUpdate, Seer
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.slack.entrypoint import (
+    EntrypointSetupError,
     SlackAutofixCachePayload,
     SlackAutofixEntrypoint,
     SlackExplorerCachePayload,
@@ -489,7 +490,6 @@ class SlackExplorerEntrypointTest(TestCase):
     def setUp(self):
         self.slack_user_id = "UXXXXXXXXX2"
         self.channel_id = "CXXXXXXXXX2"
-        self.message_ts = "1712345678.111111"
         self.thread_ts = "1712345678.222222"
         self.integration = self.create_integration(
             organization=self.organization,
@@ -502,7 +502,6 @@ class SlackExplorerEntrypointTest(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             channel_id=self.channel_id,
-            message_ts=self.message_ts,
             thread_ts=thread_ts if thread_ts is not None else self.thread_ts,
             slack_user_id=self.slack_user_id,
         )
@@ -510,32 +509,18 @@ class SlackExplorerEntrypointTest(TestCase):
     def test_init_success(self):
         ep = self._get_entrypoint()
         assert ep.channel_id == self.channel_id
-        assert ep.message_ts == self.message_ts
         assert ep.thread_ts == self.thread_ts
         assert ep.organization_id == self.organization.id
         assert ep.slack_user_id == self.slack_user_id
         assert ep.install.model.id == self.integration.id
         assert ep.thread == SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
 
-    def test_init_defaults_thread_ts_to_message_ts_when_none(self):
-        ep = SlackExplorerEntrypoint(
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
-            channel_id=self.channel_id,
-            message_ts=self.message_ts,
-            thread_ts=None,
-            slack_user_id=self.slack_user_id,
-        )
-        assert ep.thread_ts == self.message_ts
-        assert ep.thread["thread_ts"] == self.message_ts
-
     def test_init_raises_if_integration_not_found(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(EntrypointSetupError):
             SlackExplorerEntrypoint(
                 integration_id=99999,
                 organization_id=self.organization.id,
                 channel_id=self.channel_id,
-                message_ts=self.message_ts,
                 thread_ts=self.thread_ts,
                 slack_user_id=self.slack_user_id,
             )
@@ -545,12 +530,11 @@ class SlackExplorerEntrypointTest(TestCase):
         return_value=[],
     )
     def test_init_raises_if_no_org_integration(self, mock_get_ois):
-        with pytest.raises(ValueError):
+        with pytest.raises(EntrypointSetupError):
             SlackExplorerEntrypoint(
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
                 channel_id=self.channel_id,
-                message_ts=self.message_ts,
                 thread_ts=self.thread_ts,
                 slack_user_id=self.slack_user_id,
             )
@@ -591,7 +575,6 @@ class SlackExplorerEntrypointTest(TestCase):
         SlackExplorerCachePayload(**payload)  # validates TypedDict structure
         assert payload["organization_id"] == self.organization.id
         assert payload["integration_id"] == self.integration.id
-        assert payload["message_ts"] == self.message_ts
         assert payload["thread"]["thread_ts"] == self.thread_ts
         assert payload["thread"]["channel_id"] == self.channel_id
 

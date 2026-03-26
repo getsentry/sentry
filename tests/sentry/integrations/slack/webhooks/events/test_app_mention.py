@@ -11,6 +11,10 @@ APP_MENTION_EVENT = {
     "event_ts": "1234567890.123456",
 }
 
+AUTHORIZATIONS_DATA = {
+    "authorizations": [{"user_id": "U0BOT", "is_bot": True}],
+}
+
 THREADED_APP_MENTION_EVENT = {
     **APP_MENTION_EVENT,
     "thread_ts": "1234567890.000001",
@@ -21,7 +25,9 @@ class AppMentionEventTest(BaseEventTest):
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_dispatches_task(self, mock_apply_async):
         with self.feature("organizations:seer-slack-explorer"):
-            resp = self.post_webhook(event_data=THREADED_APP_MENTION_EVENT)
+            resp = self.post_webhook(
+                event_data=THREADED_APP_MENTION_EVENT, data=AUTHORIZATIONS_DATA
+            )
 
         assert resp.status_code == 200
         mock_apply_async.assert_called_once()
@@ -29,10 +35,31 @@ class AppMentionEventTest(BaseEventTest):
         assert kwargs["integration_id"] == self.integration.id
         assert kwargs["organization_id"] == self.organization.id
         assert kwargs["channel_id"] == "C1234567890"
-        assert kwargs["thread_ts"] == "1234567890.123456"
+        assert kwargs["thread_ts"] == "1234567890.000001"
         assert kwargs["text"] == THREADED_APP_MENTION_EVENT["text"]
         assert kwargs["slack_user_id"] == "U1234567890"
-        assert "message_ts" not in kwargs
+        assert kwargs["bot_user_id"] == "U0BOT"
+
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_dispatches_task_no_authorizations(self, mock_apply_async):
+        with self.feature("organizations:seer-slack-explorer"):
+            resp = self.post_webhook(event_data=THREADED_APP_MENTION_EVENT)
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_called_once()
+        kwargs = mock_apply_async.call_args[1]["kwargs"]
+        assert kwargs["bot_user_id"] == ""
+
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_non_threaded_dispatches_task(self, mock_apply_async):
+        """Non-threaded mentions still dispatch, using ts as the thread_ts fallback."""
+        with self.feature("organizations:seer-slack-explorer"):
+            resp = self.post_webhook(event_data=APP_MENTION_EVENT)
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_called_once()
+        kwargs = mock_apply_async.call_args[1]["kwargs"]
+        assert kwargs["thread_ts"] == APP_MENTION_EVENT["ts"]
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_feature_flag_disabled(self, mock_apply_async):

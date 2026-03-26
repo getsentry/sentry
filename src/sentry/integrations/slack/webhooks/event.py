@@ -357,11 +357,31 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
             channel_id = data.get("channel")
             text = data.get("text")
-            thread_ts = data.get("ts")
+            thread_ts = data.get("thread_ts") or data.get("ts")
 
-            if not channel_id or not text or not thread_ts:
-                lifecycle.record_halt(AppMentionHaltReason.MISSING_CHANNEL_OR_TEXT)
+            if not channel_id or not text or not thread_ts or not slack_request.user_id:
+                lifecycle.record_halt(AppMentionHaltReason.MISSING_EVENT_DATA)
                 return self.respond()
+
+            try:
+                client = SlackSdkClient(integration_id=slack_request.integration.id)
+                client.assistant_threads_setStatus(
+                    channel_id=channel_id,
+                    thread_ts=thread_ts,
+                    status="Thinking...",
+                )
+            except Exception:
+                _logger.exception(
+                    "slack.assistant_threads_setStatus.failed",
+                    extra={
+                        "integration_id": slack_request.integration.id,
+                        "channel_id": channel_id,
+                        "thread_ts": thread_ts,
+                    },
+                )
+
+            authorizations = slack_request.data.get("authorizations") or []
+            bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
 
             process_mention_for_slack.apply_async(
                 kwargs={
@@ -371,10 +391,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     "thread_ts": thread_ts,
                     "text": text,
                     "slack_user_id": slack_request.user_id,
+                    "bot_user_id": bot_user_id,
                 }
             )
-
-        return self.respond()
+            return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     def post(self, request: Request) -> Response:
