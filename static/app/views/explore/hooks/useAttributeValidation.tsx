@@ -48,7 +48,7 @@ export function extractFilterKeys(parsedQuery: ParseResult | null): string[] {
  * Uses useApiQuery for automatic deduplication, caching, and
  * stale response handling.
  */
-export function useAsyncAttributeValidation(
+export function useAttributeValidation(
   itemType: TraceItemDataset,
   filterKeys: string[],
   projects?: PageFilters['projects']

@@ -5,8 +5,8 @@ import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {
   extractFilterKeys,
-  useAsyncAttributeValidation,
-} from 'sentry/views/explore/hooks/useAsyncAttributeValidation';
+  useAttributeValidation,
+} from 'sentry/views/explore/hooks/useAttributeValidation';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 describe('extractFilterKeys', () => {
@@ -63,7 +63,7 @@ describe('extractFilterKeys', () => {
   });
 });
 
-describe('useAsyncAttributeValidation', () => {
+describe('useAttributeValidation', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
@@ -86,7 +86,7 @@ describe('useAsyncAttributeValidation', () => {
 
   it('returns empty array when filterKeys is empty', () => {
     const {result} = renderHookWithProviders(() =>
-      useAsyncAttributeValidation(TraceItemDataset.SPANS, [])
+      useAttributeValidation(TraceItemDataset.SPANS, [])
     );
 
     expect(result.current).toEqual([]);
@@ -105,7 +105,7 @@ describe('useAsyncAttributeValidation', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useAsyncAttributeValidation(TraceItemDataset.SPANS, ['span.op', 'bad.key'])
+      useAttributeValidation(TraceItemDataset.SPANS, ['span.op', 'bad.key'])
     );
 
     await waitFor(() => {
@@ -126,7 +126,7 @@ describe('useAsyncAttributeValidation', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useAsyncAttributeValidation(TraceItemDataset.SPANS, ['span.op', 'span.duration'])
+      useAttributeValidation(TraceItemDataset.SPANS, ['span.op', 'span.duration'])
     );
 
     await waitFor(() => {
@@ -148,11 +148,7 @@ describe('useAsyncAttributeValidation', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useAsyncAttributeValidation(TraceItemDataset.SPANS, [
-        'bad.one',
-        'bad.two',
-        'good.key',
-      ])
+      useAttributeValidation(TraceItemDataset.SPANS, ['bad.one', 'bad.two', 'good.key'])
     );
 
     await waitFor(() => {
@@ -172,7 +168,7 @@ describe('useAsyncAttributeValidation', () => {
     });
 
     renderHookWithProviders(() =>
-      useAsyncAttributeValidation(TraceItemDataset.LOGS, ['log.level'])
+      useAttributeValidation(TraceItemDataset.LOGS, ['log.level'])
     );
 
     await waitFor(() => {
@@ -205,7 +201,7 @@ describe('useAsyncAttributeValidation', () => {
     });
 
     renderHookWithProviders(() =>
-      useAsyncAttributeValidation(TraceItemDataset.SPANS, ['span.op'], [2, 3])
+      useAttributeValidation(TraceItemDataset.SPANS, ['span.op'], [2, 3])
     );
 
     await waitFor(() => {
@@ -227,9 +223,7 @@ describe('useAsyncAttributeValidation', () => {
       body: {attributes: {}},
     });
 
-    renderHookWithProviders(() =>
-      useAsyncAttributeValidation(TraceItemDataset.SPANS, [])
-    );
+    renderHookWithProviders(() => useAttributeValidation(TraceItemDataset.SPANS, []));
 
     expect(mockRequest).not.toHaveBeenCalled();
   });

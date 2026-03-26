@@ -15,8 +15,8 @@ import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
 import {
   extractFilterKeys,
-  useAsyncAttributeValidation,
-} from 'sentry/views/explore/hooks/useAsyncAttributeValidation';
+  useAttributeValidation,
+} from 'sentry/views/explore/hooks/useAttributeValidation';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -117,7 +117,7 @@ export function useTraceItemSearchQueryBuilderProps({
     () => extractFilterKeys(parseSearch(currentQuery)),
     [currentQuery]
   );
-  const invalidFilterKeys = useAsyncAttributeValidation(itemType, filterKeys, projects);
+  const invalidFilterKeys = useAttributeValidation(itemType, filterKeys, projects);
 
   const wrappedOnChange = useCallback(
     (query: string, state: CallbackSearchState) => {
