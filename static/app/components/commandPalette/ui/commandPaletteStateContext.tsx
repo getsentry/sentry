@@ -1,14 +1,24 @@
 import {createContext, useContext, useReducer} from 'react';
 
+import {
+  openCommandPaletteDeprecated,
+  toggleCommandPalette,
+} from 'sentry/actionCreators/modal';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {unreachable} from 'sentry/utils/unreachable';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type CommandPaletteState = {
+  open: boolean;
   query: string;
   selectedAction: CommandPaletteActionWithKey | null;
 };
 
+export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
+
 export type CommandPaletteAction =
+  | {type: 'toggle modal'}
   | {query: string; type: 'set query'}
   | {action: CommandPaletteActionWithKey; type: 'set selected action'}
   | {type: 'trigger action'}
@@ -24,6 +34,11 @@ function commandPaletteReducer(
 ): CommandPaletteState {
   const type = action.type;
   switch (type) {
+    case 'toggle modal':
+      return {
+        ...state,
+        open: !state.open,
+      };
     case 'set query':
       return {...state, query: action.query};
     case 'set selected action':
@@ -46,7 +61,7 @@ export function useCommandPaletteState(): CommandPaletteState {
   return ctx;
 }
 
-export function useCommandPaletteDispatch(): React.Dispatch<CommandPaletteAction> {
+export function useCommandPaletteDispatch(): CommandPaletteDispatch {
   const ctx = useContext(CommandPaletteDispatchContext);
   if (ctx === null) {
     throw new Error(
@@ -66,6 +81,7 @@ export function CommandPaletteStateProvider({
   const [state, dispatch] = useReducer(commandPaletteReducer, {
     query: '',
     selectedAction: null,
+    open: false,
   });
 
   return (
@@ -75,4 +91,26 @@ export function CommandPaletteStateProvider({
       </CommandPaletteStateContext.Provider>
     </CommandPaletteDispatchContext.Provider>
   );
+}
+
+export function CommandPaletteHotkeys() {
+  const state = useCommandPaletteState();
+  const dispatch = useCommandPaletteDispatch();
+  const organization = useOrganization();
+
+  useHotkeys([
+    {
+      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+      includeInputs: true,
+      callback: () => {
+        if (organization.features.includes('cmd-k-supercharged')) {
+          toggleCommandPalette({}, organization, state, dispatch, 'keyboard');
+        } else {
+          openCommandPaletteDeprecated();
+        }
+      },
+    },
+  ]);
+
+  return null;
 }

@@ -41,6 +41,11 @@ seer_anomaly_detection_default_connection_pool = connection_from_url(
     timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
+seer_grouping_default_connection_pool = connection_from_url(
+    settings.SEER_GROUPING_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
+)
+
 
 @sentry_sdk.tracing.trace
 def make_signed_seer_api_request(
@@ -517,6 +522,24 @@ def make_compare_distributions_request(
     return make_signed_seer_api_request(
         seer_anomaly_detection_default_connection_pool,
         "/v1/workflows/compare/cohort",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+class DeleteGroupingRecordsByProjectRequest(TypedDict):
+    project_id: int
+
+
+def make_delete_grouping_records_by_project_request(
+    body: DeleteGroupingRecordsByProjectRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_grouping_default_connection_pool,
+        "/v0/issues/similar-issues/grouping-record/delete",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

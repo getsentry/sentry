@@ -65,6 +65,7 @@ from sentry.scm.private.provider import (
     UpdateCheckRunProtocol,
     UpdatePullRequestProtocol,
 )
+from sentry.scm.private.rate_limit import RateLimitProvider
 from sentry.scm.types import (
     SHA,
     ActionResult,
@@ -144,6 +145,7 @@ class SourceCodeManager(Facade):
         integration: Integration | RpcIntegration,
         *,
         referrer: Referrer = "shared",
+        rate_limit_provider: RateLimitProvider | None = None,
         record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
     ) -> Self:
         provider = initialize_provider(
@@ -151,7 +153,7 @@ class SourceCodeManager(Facade):
             repository.id,
             fetch_repository=lambda _, __: map_repository_model_to_repository(repository),
             fetch_service_provider=lambda oid, repo: map_integration_to_provider(
-                oid, integration, repo
+                oid, integration, repo, rate_limit_provider=rate_limit_provider
             ),
         )
 

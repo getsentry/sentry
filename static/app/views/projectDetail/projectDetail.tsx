@@ -140,7 +140,7 @@ export function ProjectDetail() {
     function syncProjectWithSlug() {
       if (projectId && projectId !== projectQueryParam) {
         // if someone visits /organizations/sentry/projects/javascript/ (without ?project=XXX) we need to update URL and globalSelection with the right project ID
-        updateProjects([Number(projectId)], undefined);
+        updateProjects([Number(projectId)], undefined, undefined);
         navigate(
           {pathname: location.pathname, query: {...location.query, project: projectId}},
           {replace: true}
