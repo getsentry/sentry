@@ -10,11 +10,7 @@ import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {
-  getContractDaysLeft,
-  hasPartnerMigrationFeature,
-  isTeamPlanFamily,
-} from 'getsentry/utils/billing';
+import {getContractDaysLeft, hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function PartnerPlanEndingBanner({
@@ -48,9 +44,6 @@ export function PartnerPlanEndingBanner({
   };
 
   const partnerPlanName = subscription.partner?.partnership.displayName;
-  const planToUpgradeTo = isTeamPlanFamily(subscription.planDetails)
-    ? 'Team'
-    : 'Business';
 
   return (
     <Flex
@@ -83,7 +76,7 @@ export function PartnerPlanEndingBanner({
             onClick={() => handleAnalytics()}
             to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_banner`}
           >
-            {t('Upgrade to %s', planToUpgradeTo)}
+            {t('Upgrade to a Paid Plan')}
           </LinkButton>
         </Stack>
       </div>
