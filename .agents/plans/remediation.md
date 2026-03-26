@@ -371,7 +371,24 @@ adding `Layout.Page` there.
 
 ## Instructions for sub-agents
 
-When assigned a group:
+### Step 1 — Branch off master
+
+Always branch from `master`, not from the audit branch (`jb/ref/page-audit`). The audit
+branch contains generated `.agents/` files that must never appear in migration PRs.
+
+```bash
+cd /Users/jonasbadalic/code/sentry2
+git fetch origin
+git checkout master
+git pull origin master
+git checkout -b JonasBa/ref/layout-page-<group-slug>
+```
+
+Replace `<group-slug>` with a short kebab-case identifier for the group, e.g.
+`issue-detail-tabs`, `monitors`, `admin`, `stats`, `perf-summary`, `insights`, `alerts`,
+`standalone-pages`, `isolated-pages`.
+
+### Step 2 — Make the changes
 
 1. **Read the wrapper or leaf file** before making any changes.
 2. **Check for existing `Layout.Page` usage** (grep for `Layout\.Page` and
@@ -384,9 +401,47 @@ When assigned a group:
 5. **Check for double-wrapping**: after a wrapper fix, grep the child components for their own
    `Layout.Page` usage and remove it if the parent now provides it. Pay special attention to
    tabs noted as already-compliant in the group description.
-6. **Run pre-commit** on modified files before finishing:
-   ```bash
-   cd /Users/jonasbadalic/code/sentry2 && .venv/bin/pre-commit run --files <file1> [file2 ...]
-   ```
-7. **Do not** change any logic, props, state, or styling beyond adding `Layout.Page`. This is a
+6. **Do not** change any logic, props, state, or styling beyond adding `Layout.Page`. This is a
    structural wrapping change only.
+
+### Step 3 — Run pre-commit
+
+```bash
+cd /Users/jonasbadalic/code/sentry2 && .venv/bin/pre-commit run --files <file1> [file2 ...]
+```
+
+Fix any reported issues and re-run until it passes.
+
+### Step 4 — Commit (source files only)
+
+Stage only the modified route/component files. Do **not** stage anything under `.agents/`:
+
+```bash
+git add static/app/views/...   # only the changed component files
+git status                     # verify .agents/ is not staged
+git commit -m "ref(layout): use Layout.Page on <group name>"
+```
+
+Example commit messages:
+
+- `ref(layout): use Layout.Page on issue detail tabs`
+- `ref(layout): use Layout.Page on monitors`
+- `ref(layout): use Layout.Page on admin`
+
+### Step 5 — Open a draft PR
+
+```bash
+gh pr create \
+  --title "ref(layout): use Layout.Page on <group name>" \
+  --body "Wraps non-compliant routes in the <group> area with Layout.Page.
+Part of the Layout.Page audit remediation.
+
+## Changes
+- <one line per file or wrapper changed>
+
+## Verification
+Loaded each affected route in the browser and confirmed it renders inside a <main> element." \
+  --draft
+```
+
+The PR title must follow the pattern: **`ref(layout): use Layout.Page on <group name>`**
