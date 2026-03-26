@@ -206,11 +206,13 @@ export function useConversation(
         environment: selection.environments,
         start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
         end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
+        per_page: 1000,
       }
     : {
         project: selection.projects,
         environment: selection.environments,
         ...normalizeDateTimeParams(selection.datetime),
+        per_page: 1000,
       };
 
   const conversationQuery = useApiQuery<ConversationApiSpan[]>(
