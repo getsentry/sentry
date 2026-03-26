@@ -115,7 +115,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     if (state.query.length > 0 && state.query !== lastTrackedQueryRef.current) {
       queryTimerRef.current = setTimeout(() => {
         lastTrackedQueryRef.current = state.query;
-        trackAnalytics('command_palette.query', {
+        trackAnalytics('command_palette.searched', {
           organization,
           query: state.query,
           result_count: filteredActions.length,

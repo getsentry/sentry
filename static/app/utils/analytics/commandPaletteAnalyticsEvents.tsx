@@ -36,7 +36,7 @@ type CommandPaletteActionSelectedEvent = {
   session_id: string;
 };
 
-type CommandPaletteQueryEvent = {
+type CommandPaletteSearchedEvent = {
   /** The search query */
   query: string;
   /** Number of results returned for the query */
@@ -74,7 +74,7 @@ export type CommandPaletteEventParameters = {
   'command_palette.closed': CommandPaletteClosedEvent;
   'command_palette.no_results': CommandPaletteNoResultsEvent;
   'command_palette.opened': CommandPaletteOpenedEvent;
-  'command_palette.query': CommandPaletteQueryEvent;
+  'command_palette.searched': CommandPaletteSearchedEvent;
   'command_palette.session': CommandPaletteSessionEvent;
 };
 
@@ -84,7 +84,7 @@ export const commandPaletteEventMap: Record<CommandPaletteEventKey, string> = {
   'command_palette.opened': 'Command Palette: Opened',
   'command_palette.closed': 'Command Palette: Closed',
   'command_palette.action_selected': 'Command Palette: Action Selected',
-  'command_palette.query': 'Command Palette: Query',
+  'command_palette.searched': 'Command Palette: Searched',
   'command_palette.no_results': 'Command Palette: No Results',
   'command_palette.session': 'Command Palette: Session',
 };
