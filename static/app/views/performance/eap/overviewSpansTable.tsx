@@ -1,12 +1,18 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Duration} from 'sentry/components/duration';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Pagination, type CursorHandler} from 'sentry/components/pagination';
+import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
@@ -17,6 +23,11 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {
+  getSpanOperationName,
+  SPAN_OP_BREAKDOWN_FIELDS,
+} from 'sentry/utils/discover/fields';
+import {toPercent} from 'sentry/utils/number/toPercent';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import type {Theme} from 'sentry/utils/theme';
@@ -36,6 +47,8 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const LIMIT = 50;
 
+const SPAN_OPS_BREAKDOWN_COLUMN_KEY = 'span_ops_breakdown.relative';
+
 const BASE_FIELDS: SpanProperty[] = [
   'span_id',
   'user.id',
@@ -51,6 +64,11 @@ const BASE_FIELDS: SpanProperty[] = [
   'thread.id',
   'precise.start_ts',
   'precise.finish_ts',
+  'spans.browser',
+  'spans.db',
+  'spans.http',
+  'spans.resource',
+  'spans.ui',
 ];
 
 type OverviewSpansColumn = GridColumnHeader<
@@ -62,12 +80,18 @@ type OverviewSpansColumn = GridColumnHeader<
   | 'timestamp'
   | 'replayId'
   | 'profile.id'
+  | typeof SPAN_OPS_BREAKDOWN_COLUMN_KEY
 >;
 
 const BASE_COLUMN_ORDER: OverviewSpansColumn[] = [
   {key: 'span_id', name: t('Span ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'user.display', name: t('User'), width: COL_WIDTH_UNDEFINED},
   {key: 'request.method', name: t('HTTP Method'), width: COL_WIDTH_UNDEFINED},
+  {
+    key: SPAN_OPS_BREAKDOWN_COLUMN_KEY,
+    name: t('Operation Duration'),
+    width: COL_WIDTH_UNDEFINED,
+  },
   {key: 'span.duration', name: t('Total Duration'), width: COL_WIDTH_UNDEFINED},
   {key: 'trace', name: t('Trace ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'timestamp', name: t('Timestamp'), width: COL_WIDTH_UNDEFINED},
@@ -106,9 +130,7 @@ export function OverviewSpansTable({eventView, transactionName}: Props) {
     project !== undefined &&
     projectSupportsReplay(project);
 
-  const fields: SpanProperty[] = showReplayColumn
-    ? BASE_FIELDS.concat('replayId')
-    : BASE_FIELDS;
+  const fields = showReplayColumn ? BASE_FIELDS.concat('replayId') : BASE_FIELDS;
 
   const columnOrder: OverviewSpansColumn[] = [
     ...BASE_COLUMN_ORDER,
@@ -193,13 +215,28 @@ export function OverviewSpansTable({eventView, transactionName}: Props) {
         columnOrder={columnOrder}
         columnSortBy={[{key: sort.field, order: sort.kind}]}
         grid={{
-          renderHeadCell: column =>
-            renderHeadCell({
+          renderHeadCell: column => {
+            if (column.key === SPAN_OPS_BREAKDOWN_COLUMN_KEY) {
+              return (
+                <Fragment>
+                  <span>{column.name}</span>
+                  <StyledQuestionTooltip
+                    size="xs"
+                    position="top"
+                    title={t(
+                      'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
+                    )}
+                  />
+                </Fragment>
+              );
+            }
+            return renderHeadCell({
               column,
               sort,
               location,
               sortParameterName: QueryParameterNames.SPANS_SORT,
-            }),
+            });
+          },
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
         }}
@@ -303,6 +340,10 @@ function renderBodyCell(
     );
   }
 
+  if (column.key === SPAN_OPS_BREAKDOWN_COLUMN_KEY) {
+    return renderOperationDurationCell(row, theme);
+  }
+
   if (!meta || !meta?.fields) {
     return row[column.key];
   }
@@ -318,3 +359,97 @@ function renderBodyCell(
 
   return rendered;
 }
+
+function renderOperationDurationCell(row: Record<string, any>, theme: Theme) {
+  const sumOfSpanTime = SPAN_OP_BREAKDOWN_FIELDS.reduce(
+    (prev, curr) =>
+      curr in row && typeof row[curr] === 'number' ? prev + row[curr] : prev,
+    0
+  );
+  const cumulativeSpanOpBreakdown = Math.max(sumOfSpanTime, row['span.duration'] ?? 0);
+
+  if (
+    SPAN_OP_BREAKDOWN_FIELDS.every(
+      field => !(field in row) || typeof row[field] !== 'number'
+    ) ||
+    cumulativeSpanOpBreakdown === 0
+  ) {
+    return (
+      <Duration
+        seconds={(row['span.duration'] ?? 0) / 1000}
+        fixedDigits={2}
+        abbreviation
+      />
+    );
+  }
+
+  let otherPercentage = 1;
+
+  return (
+    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
+      {SPAN_OP_BREAKDOWN_FIELDS.map(field => {
+        if (!(field in row) || typeof row[field] !== 'number') {
+          return null;
+        }
+
+        const operationName = getSpanOperationName(field) ?? 'op';
+        const spanOpDuration = row[field];
+        const widthPercentage = spanOpDuration / cumulativeSpanOpBreakdown;
+        otherPercentage = otherPercentage - widthPercentage;
+        if (widthPercentage === 0) {
+          return null;
+        }
+        return (
+          <div key={operationName} style={{width: toPercent(widthPercentage || 0)}}>
+            <Tooltip
+              title={
+                <div>
+                  <div>{operationName}</div>
+                  <div>
+                    <Duration
+                      seconds={spanOpDuration / 1000}
+                      fixedDigits={2}
+                      abbreviation
+                    />
+                  </div>
+                </div>
+              }
+              containerDisplayMode="block"
+            >
+              <RectangleRelativeOpsBreakdown
+                style={{
+                  backgroundColor: pickBarColor(operationName, theme),
+                }}
+              />
+            </Tooltip>
+          </div>
+        );
+      })}
+      <div key="other" style={{width: toPercent(otherPercentage || 0)}}>
+        <Tooltip title={<div>{t('Other')}</div>} containerDisplayMode="block">
+          <OtherRelativeOpsBreakdown />
+        </Tooltip>
+      </div>
+    </RelativeOpsBreakdown>
+  );
+}
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  position: relative;
+  top: 1px;
+  left: 4px;
+`;
+
+const RelativeOpsBreakdown = styled('div')`
+  position: relative;
+  display: flex;
+`;
+
+const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
+  position: relative;
+  width: 100%;
+`;
+
+const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
+  background-color: ${p => p.theme.colors.gray100};
+`;
