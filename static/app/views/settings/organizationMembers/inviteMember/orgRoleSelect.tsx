@@ -17,6 +17,7 @@ const Label = styled('label')`
   flex: 1;
   align-items: center;
   margin-bottom: 0;
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 type Props = {
