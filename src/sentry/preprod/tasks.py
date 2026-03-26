@@ -31,8 +31,6 @@ from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_
 from sentry.preprod.quotas import (
     has_installable_quota,
     has_size_quota,
-    should_run_distribution,
-    should_run_size,
 )
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import (
@@ -63,9 +61,7 @@ logger = logging.getLogger(__name__)
 # Typed RPC stub — the body is never called. The decorator registers the task signature
 # with the external namespace; dispatch happens via process_artifact.apply_async().
 @launchpad_tasks.register(name="process_artifact")
-def process_artifact(
-    artifact_id: str, project_id: str, organization_id: str, requested_features: list[str]
-) -> None:
+def process_artifact(artifact_id: str, project_id: str, organization_id: str) -> None:
     pass
 
 
@@ -164,12 +160,12 @@ def assemble_preprod_artifact(
         except Exception:
             pass
 
+    if features.has("organizations:launchpad-taskbroker-rollout", organization):
+        _dispatch_taskbroker_shadow(project_id, org_id, artifact_id)
+
     kafka_dispatched = _dispatch_kafka(project_id, org_id, artifact_id, checksum)
     if not kafka_dispatched:
         return
-
-    if features.has("organizations:launchpad-taskbroker-rollout", organization):
-        _dispatch_taskbroker_shadow(project_id, org_id, artifact_id)
 
     logger.info(
         "Finished preprod artifact row creation and kafka dispatch",
@@ -1015,24 +1011,19 @@ def _dispatch_taskbroker_shadow(project_id: int, org_id: int, artifact_id: int) 
     # state management here (mirroring project_preprod_artifact_update.py). Currently
     # omitted to avoid racing with the primary Kafka consumer path.
     try:
-        requested_features: list[PreprodFeature] = []
-        artifact = PreprodArtifact.objects.select_related("project__organization").get(
-            id=artifact_id
+        logger.info(
+            "preprod.dispatch_taskbroker_shadow",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "preprod_artifact_id": artifact_id,
+            },
         )
-
-        run_size, _ = should_run_size(artifact)
-        if run_size:
-            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-
-        run_distribution, _ = should_run_distribution(artifact)
-        if run_distribution:
-            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
         process_artifact.delay(
             artifact_id=str(artifact_id),
             project_id=str(project_id),
             organization_id=str(org_id),
-            requested_features=[feature.value for feature in requested_features],
         )
     except Exception:
         logger.exception(
