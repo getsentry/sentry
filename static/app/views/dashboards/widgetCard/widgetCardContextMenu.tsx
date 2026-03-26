@@ -386,6 +386,15 @@ export function getMenuOptions(
               id: undefined,
               dashboardId: undefined,
               layout: undefined,
+              queries: widget.queries.map(query => ({
+                ...query,
+                conditions:
+                  applyDashboardFilters(
+                    query.conditions,
+                    dashboardFilters,
+                    widget.widgetType
+                  ) ?? '',
+              })),
             },
           ],
           actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
