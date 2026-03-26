@@ -44,7 +44,9 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   const sessionIdRef = useRef(uniqueId('cmd-palette-'));
 
   const stateRef = useRef(state);
-  stateRef.current = state;
+  useEffect(() => {
+    stateRef.current = state;
+  });
 
   const openedAtRef = useRef(Date.now());
   const actionsSelectedRef = useRef(0);
