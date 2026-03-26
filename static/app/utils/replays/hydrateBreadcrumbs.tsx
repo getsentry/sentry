@@ -58,3 +58,4 @@ export function replayInitBreadcrumb(
     type: BreadcrumbType.INIT, // For compatibility reasons. See BreadcrumbType
   };
 }
+// trivial change for CI testing

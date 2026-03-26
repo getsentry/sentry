@@ -487,3 +487,4 @@ describe('VideoReplayer - with ending gap', () => {
     expect(inst._isPlaying).toBe(false);
   });
 });
+// trivial change for CI testing

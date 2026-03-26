@@ -390,3 +390,4 @@ describe('View Hierarchy', () => {
     expect(screen.getByText(/no scene tree data/)).toBeInTheDocument();
   });
 });
+// trivial change for CI testing
