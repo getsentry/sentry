@@ -372,6 +372,7 @@ const ChildrenWrapper = styled('div')<{isActive: boolean}>`
 
 const StepDetails = styled('div')`
   grid-area: details;
+  min-width: 0;
 `;
 
 GuidedSteps.Step = Step;
