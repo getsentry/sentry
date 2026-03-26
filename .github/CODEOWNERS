@@ -221,6 +221,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/organizations/                               @getsentry/hybrid-cloud
 /tests/sentry/hybridcloud/                               @getsentry/hybrid-cloud
 /tests/sentry/silo/                                      @getsentry/hybrid-cloud
+/tests/sentry/models/test_projectkeymapping.py           @getsentry/hybrid-cloud
 /.agents/skills/hybrid-cloud-*                           @getsentry/hybrid-cloud
 ## End of Hybrid Cloud
 
@@ -794,6 +795,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/preprod/                             @getsentry/emerge-tools
 /tests/sentry/preprod/                                 @getsentry/emerge-tools
 /static/app/components/events/eventInsightDiff.tsx     @getsentry/emerge-tools
+/bin/preprod/                                          @getsentry/emerge-tools
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity)
