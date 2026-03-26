@@ -1,19 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { keyframes } from "@emotion/react";
-import styled from "@emotion/styled";
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {keyframes} from '@emotion/react';
+import styled from '@emotion/styled';
 
-import { Button } from "@sentry/scraps/button";
-import { Flex } from "@sentry/scraps/layout";
-import { Text } from "@sentry/scraps/text";
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import { Client } from "sentry/api";
-import { IconAdd, IconSubtract } from "sentry/icons";
-import { t } from "sentry/locale";
-import { formatDuration } from "sentry/utils/duration/formatDuration";
+import {Client} from 'sentry/api';
+import {IconAdd, IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {
   ComparisonState,
   type SnapshotComparisonRunInfo,
-} from "sentry/views/preprod/types/snapshotTypes";
+} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SnapshotDevToolsProps {
   hasBaseArtifact: boolean;
@@ -38,7 +38,7 @@ export function SnapshotDevTools({
   const comparisonCompletedAt = comparisonRunInfo?.completed_at;
   const comparisonDurationMs = comparisonRunInfo?.duration_ms;
   const [devToolsCollapsed, setDevToolsCollapsed] = useState(
-    () => localStorage.getItem("snapshot-dev-tools-collapsed") === "true",
+    () => localStorage.getItem('snapshot-dev-tools-collapsed') === 'true'
   );
   const [recompareLoading, setRecompareLoading] = useState(false);
   const [recompareError, setRecompareError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export function SnapshotDevTools({
     () =>
       comparisonState === ComparisonState.PENDING ||
       comparisonState === ComparisonState.PROCESSING,
-    [comparisonState],
+    [comparisonState]
   );
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export function SnapshotDevTools({
 
   const setCollapsed = (collapsed: boolean) => {
     setDevToolsCollapsed(collapsed);
-    localStorage.setItem("snapshot-dev-tools-collapsed", String(collapsed));
+    localStorage.setItem('snapshot-dev-tools-collapsed', String(collapsed));
   };
 
   const handleRecompare = useCallback(() => {
@@ -70,30 +70,30 @@ export function SnapshotDevTools({
     clientRef.current.request(
       `/organizations/${organizationSlug}/preprodartifacts/snapshots/${snapshotId}/recompare/`,
       {
-        method: "POST",
+        method: 'POST',
         success: () => {
           setRecompareLoading(false);
           refetch();
         },
         error: (err: any) => {
           setRecompareLoading(false);
-          setRecompareError(err?.responseJSON?.detail ?? "Failed to recompare");
+          setRecompareError(err?.responseJSON?.detail ?? 'Failed to recompare');
         },
-      },
+      }
     );
   }, [organizationSlug, snapshotId, refetch]);
 
   let stateLabel: string;
   if (comparisonState === ComparisonState.PROCESSING) {
-    stateLabel = t("Processing...");
+    stateLabel = t('Processing...');
   } else if (comparisonState === ComparisonState.PENDING) {
-    stateLabel = t("Queued...");
+    stateLabel = t('Queued...');
   } else if (comparisonState === ComparisonState.FAILED) {
-    stateLabel = t("Failed");
+    stateLabel = t('Failed');
   } else if (comparisonCompletedAt) {
-    stateLabel = t("Done");
+    stateLabel = t('Done');
   } else {
-    stateLabel = t("No comparison");
+    stateLabel = t('No comparison');
   }
 
   return (
@@ -101,13 +101,13 @@ export function SnapshotDevTools({
       {devToolsCollapsed ? (
         <Flex align="center" justify="center" gap="xs">
           <Text size="xs" variant="muted">
-            {t("temp dev tools")}
+            {t('temp dev tools')}
           </Text>
           <Button
             size="zero"
             priority="transparent"
             icon={<IconAdd size="xs" />}
-            aria-label={t("Expand")}
+            aria-label={t('Expand')}
             onClick={() => setCollapsed(false)}
           />
         </Flex>
@@ -117,12 +117,12 @@ export function SnapshotDevTools({
             size="zero"
             priority="transparent"
             icon={<IconSubtract size="xs" />}
-            aria-label={t("Collapse")}
+            aria-label={t('Collapse')}
             onClick={() => setCollapsed(true)}
           />
           <Flex align="center" justify="center">
             <Text size="xs" variant="muted">
-              {t("temp dev tools")}
+              {t('temp dev tools')}
             </Text>
           </Flex>
         </Flex>
@@ -131,19 +131,19 @@ export function SnapshotDevTools({
         <Flex align="center" gap="sm">
           <StatusPill>
             <Text size="xs" variant="muted">
-              {t("Mode:")}
+              {t('Mode:')}
             </Text>
             <Text size="xs" bold>
-              {hasBaseArtifact ? t("Diff") : t("Solo")}
+              {hasBaseArtifact ? t('Diff') : t('Solo')}
             </Text>
           </StatusPill>
           <Text size="xs" variant="muted">
-            {"|"}
+            {'|'}
           </Text>
           <StatusPill>
             <PulsingDot active={polling} />
             <Text size="xs" variant="muted">
-              {t("State:")}
+              {t('State:')}
             </Text>
             <Text size="xs" bold>
               {stateLabel}
@@ -151,13 +151,13 @@ export function SnapshotDevTools({
           </StatusPill>
           {comparisonCompletedAt && (
             <Text size="xs" variant="muted">
-              {"|"}
+              {'|'}
             </Text>
           )}
           {comparisonCompletedAt && (
             <Flex align="center" gap="xs">
               <Text size="xs" variant="muted">
-                {t("Last run:")}
+                {t('Last run:')}
               </Text>
               <Text size="xs" bold>
                 {new Date(comparisonCompletedAt).toLocaleTimeString()}
@@ -166,45 +166,41 @@ export function SnapshotDevTools({
           )}
           {comparisonDurationMs !== undefined && (
             <Text size="xs" variant="muted">
-              {"|"}
+              {'|'}
             </Text>
           )}
           {comparisonDurationMs !== undefined && (
             <Flex align="center" gap="xs">
               <Text size="xs" variant="muted">
-                {t("comparison e2e:")}
+                {t('comparison e2e:')}
               </Text>
               <Text size="xs" bold>
                 {formatDuration({
-                  duration: [comparisonDurationMs, "ms"],
-                  precision: "sec",
-                  style: "h:mm:ss",
+                  duration: [comparisonDurationMs, 'ms'],
+                  precision: 'sec',
+                  style: 'h:mm:ss',
                 })}
               </Text>
             </Flex>
           )}
           {hasBaseArtifact && (
             <Text size="xs" variant="muted">
-              {"|"}
+              {'|'}
             </Text>
           )}
           {hasBaseArtifact && (
-            <Button
-              size="xs"
-              onClick={handleRecompare}
-              disabled={recompareLoading}
-            >
-              {recompareLoading ? t("Queuing...") : t("Re-run Comparison")}
+            <Button size="xs" onClick={handleRecompare} disabled={recompareLoading}>
+              {recompareLoading ? t('Queuing...') : t('Re-run Comparison')}
             </Button>
           )}
           {hasBaseArtifact && (
             <Text size="xs" variant="muted">
-              {"|"}
+              {'|'}
             </Text>
           )}
           {hasBaseArtifact && (
             <Button size="xs" onClick={onToggleView}>
-              {isSoloView ? "View as diff" : "View as soloooooo"}
+              {isSoloView ? 'View as diff' : 'View as soloooooo'}
             </Button>
           )}
         </Flex>
@@ -223,40 +219,39 @@ const pulse = keyframes`
   50% { opacity: 0.3; }
 `;
 
-const DevToolsBox = styled("div")`
+const DevToolsBox = styled('div')`
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: ${(p) => p.theme.space.xs};
-  padding: ${(p) => p.theme.space.sm} ${(p) => p.theme.space.md};
-  border: 1px dashed ${(p) => p.theme.tokens.border.primary};
-  border-radius: ${(p) => p.theme.radius.md};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 
-  &:not([data-collapsed="true"]) {
+  &:not([data-collapsed='true']) {
     padding-right: 48px;
   }
 `;
 
 const CollapseButton = styled(Button)`
   position: absolute;
-  top: ${(p) => p.theme.space.xs};
-  right: ${(p) => p.theme.space.xs};
+  top: ${p => p.theme.space.xs};
+  right: ${p => p.theme.space.xs};
 `;
 
-const StatusPill = styled("div")`
+const StatusPill = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${(p) => p.theme.space.xs};
-  padding: 2px ${(p) => p.theme.space.sm};
-  border: 1px solid ${(p) => p.theme.tokens.border.accent};
+  gap: ${p => p.theme.space.xs};
+  padding: 2px ${p => p.theme.space.sm};
+  border: 1px solid ${p => p.theme.tokens.border.accent};
   border-radius: 12px;
 `;
 
-const PulsingDot = styled("div")<{ active: boolean }>`
+const PulsingDot = styled('div')<{active: boolean}>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${(p) =>
-    p.active ? p.theme.colors.yellow300 : p.theme.colors.gray200};
-  animation: ${(p) => (p.active ? pulse : "none")} 1.2s ease-in-out infinite;
+  background: ${p => (p.active ? p.theme.colors.yellow300 : p.theme.colors.gray200)};
+  animation: ${p => (p.active ? pulse : 'none')} 1.2s ease-in-out infinite;
 `;
