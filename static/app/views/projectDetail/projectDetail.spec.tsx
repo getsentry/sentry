@@ -144,6 +144,7 @@ describe('ProjectDetail', () => {
     await waitFor(() => {
       expect(pageFilters.updateProjects).toHaveBeenCalledWith(
         [Number(project.id)],
+        undefined,
         undefined
       );
     });
