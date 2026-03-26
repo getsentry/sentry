@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -818,24 +819,28 @@ function SeerFloatingActionButton(props: SeerFloatingActionButtonProps) {
           right={theme.space.lg}
           style={{zIndex: theme.zIndex.sidebarPanel}}
         >
-          <MotionButton
+          <SeerButton
             initial={{opacity: 0, scale: 0.9, y: 20}}
             animate={{opacity: 1, scale: 1, y: 0}}
             exit={{opacity: 0, scale: 0.9, y: 20}}
             transition={{duration: 0.2, ease: [0.4, 0, 0.2, 1]}}
             size="sm"
             {...rest}
+            icon={<IconSeer />}
           >
             <Flex align="center" gap="sm">
-              <IconSeer size="sm" />
               <Text size="sm">{t('Ask Seer')}</Text>
-              <Text size="xs" variant="muted">
-                <Hotkey value="command+/" />
-              </Text>
+              <Hotkey variant="debossed" value="command+/" />
             </Flex>
-          </MotionButton>
+          </SeerButton>
         </Container>
       )}
     </AnimatePresence>
   );
 }
+
+const SeerButton = styled(MotionButton)`
+  & > span:last-child {
+    overflow: visible;
+  }
+`;

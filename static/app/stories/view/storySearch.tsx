@@ -6,9 +6,8 @@ import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {Badge} from '@sentry/scraps/badge';
 import {ListBox} from '@sentry/scraps/compactSelect';
-import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useHotkeys, Hotkey} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
 import {Text} from '@sentry/scraps/text';
 
@@ -157,7 +156,7 @@ function SearchInput(
       </InputGroup.LeadingItems>
       <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
       <InputGroup.TrailingItems>
-        <Badge variant="internal">/</Badge>
+        <Hotkey value="/" />
       </InputGroup.TrailingItems>
     </InputGroup>
   );
