@@ -20,6 +20,7 @@ from sentry.models.repository import Repository
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.pipeline.types import PipelineStepAction
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.signals import receivers_raise_on_send
@@ -695,6 +696,238 @@ class FinishPipelineTestCase(IntegrationTestCase):
             assert action.status == ObjectStatus.ACTIVE
             # Ensure that the second action is still disabled
             assert action2.status == ObjectStatus.DISABLED
+
+
+@control_silo_test
+@patch(
+    "sentry.integrations.example.ExampleIntegrationProvider.build_integration",
+    side_effect=naive_build_integration,
+)
+class ApiFinishPipelineTestCase(IntegrationTestCase):
+    provider = ExampleIntegrationProvider
+    cells = (
+        Cell("na", 0, "North America", RegionCategory.MULTI_TENANT),
+        Cell("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
+    )
+    external_id = "dummy_id-123"
+
+    @pytest.fixture(autouse=True)
+    def _register_example_plugin(self) -> Generator[None]:
+        plugins.register(ExamplePlugin)
+        yield
+        plugins.unregister(ExamplePlugin)
+
+    @pytest.fixture(autouse=True)
+    def _modify_provider(self):
+        with patch.multiple(
+            self.provider,
+            needs_default_identity=False,
+            is_cell_restricted=False,
+        ):
+            yield
+
+    def _setup_cell_restriction(self):
+        self.provider.is_cell_restricted = True
+        na_orgs = [
+            self.create_organization(name="na_org"),
+            self.create_organization(name="na_org_2"),
+        ]
+        integration = self.create_provider_integration(
+            name="test", external_id=self.external_id, provider=self.provider.key
+        )
+        with (
+            receivers_raise_on_send(),
+            outbox_runner(),
+            unguarded_write(using=router.db_for_write(OrganizationMapping)),
+        ):
+            for org in na_orgs:
+                integration.add_organization(org)
+                mapping = OrganizationMapping.objects.get(organization_id=org.id)
+                mapping.update(cell_name="na")
+
+    def test_api_finish_pipeline_success(self, *args) -> None:
+        data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+        }
+        self.pipeline.state.data = data
+        result = self.pipeline.api_finish_pipeline()
+
+        assert result.action == PipelineStepAction.COMPLETE
+        assert result.data["id"] is not None
+
+        integration = Integration.objects.get(
+            provider=self.provider.key, external_id=self.external_id
+        )
+        assert integration.name == data["name"]
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration_id=integration.id
+        ).exists()
+
+    def test_api_finish_pipeline_disallow_with_no_permission(self, *args) -> None:
+        member_user = self.create_user()
+        self.create_member(user=member_user, organization=self.organization, role="member")
+        self.login_as(member_user)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            rpc_organization = serialize_rpc_organization(self.organization)
+
+        self.request = self.make_request(member_user)
+
+        self.pipeline = IntegrationPipeline(
+            request=self.request,
+            organization=rpc_organization,
+            provider_key=self.provider.key,
+        )
+        self.pipeline.initialize()
+        self.save_session()
+
+        data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+        }
+        self.pipeline.state.data = data
+
+        result = self.pipeline.api_finish_pipeline()
+        assert result.action == PipelineStepAction.ERROR
+        assert (
+            result.data["detail"]
+            == "You must be an organization owner, manager or admin to install this integration."
+        )
+
+    def test_api_finish_pipeline_disallow_with_removed_membership(self, *args) -> None:
+        member_user = self.create_user()
+        om = self.create_member(user=member_user, organization=self.organization, role="manager")
+        self.login_as(member_user)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            rpc_organization = serialize_rpc_organization(self.organization)
+
+        self.request = self.make_request(member_user)
+
+        self.pipeline = IntegrationPipeline(
+            request=self.request,
+            organization=rpc_organization,
+            provider_key=self.provider.key,
+        )
+        self.pipeline.initialize()
+        self.save_session()
+
+        data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+        }
+        self.pipeline.state.data = data
+        with outbox_runner(), assume_test_silo_mode_of(OrganizationMember):
+            om.delete()
+
+        result = self.pipeline.api_finish_pipeline()
+        assert result.action == PipelineStepAction.ERROR
+        assert (
+            result.data["detail"]
+            == "You must be an organization owner, manager or admin to install this integration."
+        )
+
+    def test_api_finish_pipeline_disallow_with_no_org_context(self, *args) -> None:
+        data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+        }
+        self.pipeline.state.data = data
+
+        with patch(
+            "sentry.integrations.pipeline.organization_service.get_organization_by_id",
+            return_value=None,
+        ):
+            result = self.pipeline.api_finish_pipeline()
+
+        assert result.action == PipelineStepAction.ERROR
+        assert (
+            result.data["detail"]
+            == "You must be an organization owner, manager or admin to install this integration."
+        )
+
+    @patch("sentry.signals.integration_added.send_robust")
+    def test_api_finish_pipeline_cell_restriction_failure(self, *args) -> None:
+        self._setup_cell_restriction()
+
+        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            mapping.update(cell_name="eu")
+
+        self.pipeline.state.data = {"external_id": self.external_id}
+        with override_cells(self.cells):
+            result = self.pipeline.api_finish_pipeline()
+            assert result.action == PipelineStepAction.ERROR
+            assert (
+                result.data["detail"]
+                == "This integration has already been installed on another Sentry organization which resides in a different cell. Installation could not be completed."
+            )
+
+    @patch("sentry.signals.integration_added.send_robust")
+    def test_api_finish_pipeline_cell_restriction_success(self, *args) -> None:
+        self._setup_cell_restriction()
+
+        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            mapping.update(cell_name="na")
+
+        self.pipeline.state.data = {"external_id": self.external_id}
+        with override_cells(self.cells):
+            result = self.pipeline.api_finish_pipeline()
+            assert result.action == PipelineStepAction.COMPLETE
+
+    def test_api_finish_pipeline_identity_conflict(self, *args) -> None:
+        self.provider.needs_default_identity = True
+        new_user = self.create_user()
+        integration = self.create_provider_integration(
+            provider=self.provider.key,
+            external_id=self.external_id,
+            metadata={"url": "https://example.com"},
+        )
+        identity_provider = self.create_identity_provider(
+            external_id=self.external_id, type="slack"
+        )
+        Identity.objects.create(
+            idp_id=identity_provider.id, external_id="AccountId", user_id=new_user.id
+        )
+        self.pipeline.state.data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+            "user_identity": {
+                "type": "slack",
+                "external_id": "AccountId",
+                "scopes": [],
+                "data": {},
+            },
+        }
+
+        result = self.pipeline.api_finish_pipeline()
+        assert result.action == PipelineStepAction.ERROR
+        assert (
+            result.data["detail"]
+            == "The provided Slack account is linked to a different Sentry user. To continue linking the current Sentry user, please use a different Slack account."
+        )
+        assert not OrganizationIntegration.objects.filter(integration_id=integration.id).exists()
+
+    def test_api_finish_pipeline_add_organization_integrity_error(self, *args) -> None:
+        data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+        }
+        self.pipeline.state.data = data
+
+        with patch.object(Integration, "add_organization", return_value=None):
+            result = self.pipeline.api_finish_pipeline()
+
+        assert result.action == PipelineStepAction.ERROR
+        assert result.data["detail"] == "Could not create the integration for this organization."
 
 
 @control_silo_test
