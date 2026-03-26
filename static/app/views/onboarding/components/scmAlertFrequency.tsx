@@ -54,31 +54,29 @@ function AlertOptionCard({
         aria-checked={isSelected}
         onClick={onSelect}
         tabIndex={0}
-        onKeyDown={e => {
+        onKeyDown={(e: React.KeyboardEvent) => {
           if (e.key === ' ' || e.key === 'Enter') {
             e.preventDefault();
             onSelect();
           }
         }}
       >
-        {containerProps => (
-          <Flex gap="md" align="start" {...containerProps} style={{cursor: 'pointer'}}>
-            <Container padding="xs 0 0 0">
-              {() => <Radio size="sm" readOnly checked={isSelected} tabIndex={-1} />}
-            </Container>
-            <Text
-              bold={isSelected}
-              style={{flex: 1, lineHeight: '22px'}}
-              size="md"
-              density="comfortable"
-            >
-              {label}
-            </Text>
-            <Flex align="center" style={{paddingTop: 2}}>
-              {icon}
-            </Flex>
+        <Flex gap="md" align="start" style={{cursor: 'pointer'}}>
+          <Container padding="xs 0 0 0">
+            <Radio size="sm" readOnly checked={isSelected} tabIndex={-1} />
+          </Container>
+          <Text
+            bold={isSelected}
+            style={{flex: 1, lineHeight: '22px'}}
+            size="md"
+            density="comfortable"
+          >
+            {label}
+          </Text>
+          <Flex align="center" style={{paddingTop: 2}}>
+            {icon}
           </Flex>
-        )}
+        </Flex>
       </Container>
       {children}
     </Stack>
