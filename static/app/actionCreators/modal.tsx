@@ -1,3 +1,7 @@
+import type {
+  CommandPaletteState,
+  CommandPaletteDispatch,
+} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
@@ -152,19 +156,28 @@ export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
 export async function toggleCommandPalette(
   options: ModalOptions = {},
   organization: Organization,
-  isOpen: boolean,
+  state: CommandPaletteState,
+  dispatch: CommandPaletteDispatch,
   source: 'button' | 'keyboard'
 ) {
-  if (isOpen) {
-    closeModal();
-    return;
-  }
-
   const {default: Modal, modalCss} =
     await import('sentry/components/commandPalette/ui/modal');
 
-  trackAnalytics('command_palette.opened', {organization, source});
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  function closeCommandPaletteModal() {
+    dispatch({type: 'toggle modal'});
+  }
+
+  if (state.open) {
+    closeCommandPaletteModal();
+    closeModal();
+  } else {
+    trackAnalytics('command_palette.opened', {organization, source});
+    dispatch({type: 'toggle modal'});
+    openModal(deps => <Modal {...deps} {...options} />, {
+      modalCss,
+      onClose: closeCommandPaletteModal,
+    });
+  }
 }
 type RecoveryModalOptions = {
   authenticatorName: string;
