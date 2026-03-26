@@ -500,7 +500,20 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
     processing_deadline_duration=30,
     silo_mode=SiloMode.CONTROL,
 )
+
+# TODO(cells): remove once in-flight tasks with old name have drained
 def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
+    clear_cell_cache(sentry_app_id=sentry_app_id, cell_name=region_name)
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.clear_cell_cache",
+    namespace=sentryapp_control_tasks,
+    retry=Retry(times=3, delay=60 * 5),
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.CONTROL,
+)
+def clear_cell_cache(sentry_app_id: int, cell_name: str) -> None:
     try:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
     except SentryApp.DoesNotExist:
@@ -519,23 +532,23 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 
     # Clear application_id cache
     cell_caching_service.clear_key(
-        key=get_by_application_id.key_from(sentry_app.application_id), cell_name=region_name
+        key=get_by_application_id.key_from(sentry_app.application_id), cell_name=cell_name
     )
 
-    # Limit our operations to the region this outbox is for.
+    # Limit our operations to the cell this outbox is for.
     # This could be a single query if we use raw_sql.
-    region_query = OrganizationMapping.objects.filter(
-        organization_id__in=list(install_map.keys()), cell_name=region_name
+    cell_query = OrganizationMapping.objects.filter(
+        organization_id__in=list(install_map.keys()), cell_name=cell_name
     ).values("organization_id")
-    for region_row in region_query:
+    for cell_row in cell_query:
         cell_caching_service.clear_key(
-            key=get_installations_for_organization.key_from(region_row["organization_id"]),
-            cell_name=region_name,
+            key=get_installations_for_organization.key_from(cell_row["organization_id"]),
+            cell_name=cell_name,
         )
-        installs = install_map[region_row["organization_id"]]
+        installs = install_map[cell_row["organization_id"]]
         for install_id in installs:
             cell_caching_service.clear_key(
-                key=get_installation.key_from(install_id), cell_name=region_name
+                key=get_installation.key_from(install_id), cell_name=cell_name
             )
 
 

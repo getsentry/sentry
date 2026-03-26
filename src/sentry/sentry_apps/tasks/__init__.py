@@ -1,7 +1,7 @@
 from .sentry_apps import (
     broadcast_webhooks_for_organization,
     build_comment_webhook,
-    clear_region_cache,
+    clear_cell_cache,
     create_or_update_service_hooks_for_sentry_app,
     installation_webhook,
     process_resource_change_bound,
@@ -16,7 +16,7 @@ from .service_hooks import process_service_hook
 __all__ = (
     "broadcast_webhooks_for_organization",
     "build_comment_webhook",
-    "clear_region_cache",
+    "clear_cell_cache",
     "create_or_update_service_hooks_for_sentry_app",
     "installation_webhook",
     "process_resource_change_bound",

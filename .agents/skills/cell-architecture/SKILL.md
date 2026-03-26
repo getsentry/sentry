@@ -199,6 +199,8 @@ This applies to:
 - DB columns: new columns must be nullable or have defaults; don't drop a column in the same deploy that stops writing it; when **renaming a Python field**, set `db_column="old_name"` to avoid a schema migration entirely — the DB column stays unchanged and is safe across rolling deploys
 - API response shape changes
 - Any data written to outboxes, queues, or caches that may be read by older code
+- **Taskworker/Celery task names and kwargs** — the `name=` string is serialized into Kafka/the broker; in-flight tasks carry the old name and old kwarg names. Keep the old name registered during the transition (via `alias=` on `@instrumented_task`, or by keeping the old task as a shim that calls the new function directly). Remove it in a follow-up deploy once the queue has drained.
+- Taskworker/Celery task `name=` strings and kwarg names — see [Task Renames](#task-renames) below
 
 #### region -> cell Rename
 
