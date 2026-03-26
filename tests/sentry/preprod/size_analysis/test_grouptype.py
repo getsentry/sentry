@@ -12,6 +12,7 @@ from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisDetectorValidator,
     PreprodSizeAnalysisGroupType,
     SizeAnalysisDataPacket,
+    SizeAnalysisValue,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -838,7 +839,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             config={"threshold_type": threshold_type, "measurement": measurement},
             workflow_condition_group=self.condition_group,
         )
-        packet_data: dict[str, Any] = {
+        packet_data: SizeAnalysisValue = {
             "head_install_size_bytes": head_install,
             "head_download_size_bytes": head_download,
         }
