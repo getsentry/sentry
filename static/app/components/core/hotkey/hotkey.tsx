@@ -24,9 +24,10 @@ export interface HotkeyProps {
    * ```
    */
   value: string | string[];
+  variant?: 'embossed' | 'debossed';
 }
 
-export function Hotkey({value}: HotkeyProps) {
+export function Hotkey({value, variant}: HotkeyProps) {
   const isMac = detectIsMac();
 
   const keySets = toArray(value).map(v => v.trim().split('+'));
@@ -44,25 +45,29 @@ export function Hotkey({value}: HotkeyProps) {
   }
 
   return (
-    <StyledKbd>
+    <WrapperKbd variant={variant}>
       {finalKeys.map((glyph, i) => (
-        <Kbd key={i}>{glyph}</Kbd>
+        <StyledKbd key={i}>{glyph}</StyledKbd>
       ))}
-    </StyledKbd>
+    </WrapperKbd>
   );
 }
 
+const WrapperKbd = styled(Kbd)`
+  padding: 0 ${p => p.theme.space.xs};
+  gap: ${p => p.theme.space['2xs']};
+`;
+
 const StyledKbd = styled('kbd')`
+  color: inherit;
   display: inline-flex;
   align-items: center;
-  gap: ${p => p.theme.space.xs};
+  justify-content: center;
+  margin: 0;
   font-family: inherit;
   font-size: inherit;
   background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
+  border: 0;
+  border-radius: ${p => p.theme.radius['2xs']};
   box-shadow: none;
-  border-radius: 0;
-  color: ${p => p.theme.tokens.content.primary};
 `;
