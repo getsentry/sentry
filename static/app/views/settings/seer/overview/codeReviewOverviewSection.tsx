@@ -12,7 +12,7 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
-import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
+import {useSeerSupportedProviderIds} from 'sentry/components/events/autofix/utils';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {IconRefresh, IconSettings} from 'sentry/icons';
@@ -26,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useCodeReviewOverviewSection() {
   const organization = useOrganization();
+  const seerSupportedProviderIds = useSeerSupportedProviderIds();
 
   const queryOptions = organizationRepositoriesInfiniteOptions({
     organization,
@@ -38,7 +39,9 @@ export function useCodeReviewOverviewSection() {
         pages.flatMap(page => page.json),
         'externalId'
       ).filter(repository => repository.externalId);
-      const seerRepos = repos.filter(r => isSupportedAutofixProvider(r.provider));
+      const seerRepos = repos.filter(r =>
+        seerSupportedProviderIds.includes(r.provider.id)
+      );
       const reposWithCodeReview = seerRepos.filter(r => r.settings?.enabledCodeReview);
       return {
         queryKey: queryOptions.queryKey,
