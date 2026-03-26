@@ -18,9 +18,9 @@ export default function SeerAutomationSCM() {
   return (
     <AnalyticsArea name="scm">
       <SeerSettingsPageWrapper>
-        <SentryDocumentTitle title={t('Source Code Management')} />
+        <SentryDocumentTitle title={t('Repositories')} />
         <SettingsPageHeader
-          title={t('Source Code Management')}
+          title={t('Repositories')}
           subtitle={tct(
             `Integrate with a Seer compatible [scm:Source Code Management] provider and then connect repositories with Sentry. Seer needs read access to your source code to perform code review, and analyze your issues. [read_the_docs:Read the docs] and our [privacy:AI Privacy Principles] to learn more.`,
             {

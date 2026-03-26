@@ -30,7 +30,7 @@ describe('ExploreCharts', () => {
             setVisualizes={() => {}}
             samplingMode={SAMPLING_MODE.HIGH_ACCURACY}
             rawSpanCounts={{
-              highAccuracy: {count: 0, isLoading: true},
+              total: {count: 0, isLoading: true},
               normal: {count: 0, isLoading: true},
             }}
           />

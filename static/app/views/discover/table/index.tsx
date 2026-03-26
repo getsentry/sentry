@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {CursorHandler} from 'sentry/components/pagination';
 import {Pagination} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
@@ -12,8 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type {LocationQuery} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar, isFieldsSimilar} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';

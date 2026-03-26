@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
@@ -54,6 +54,7 @@ from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, EAPPageTokenCursor
 from sentry.utils.snuba import SnubaError
 
@@ -409,7 +410,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     # Unable to infer based on selected fields and query string, so run both queries.
                     else:
                         map = {}
-                        with ThreadPoolExecutor(max_workers=3) as exe:
+                        with ContextPropagatingThreadPoolExecutor(max_workers=3) as exe:
                             futures = {
                                 exe.submit(
                                     _data_fn, dataset_query, offset, limit, scoped_query

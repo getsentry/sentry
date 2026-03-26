@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import wait
 from typing import Any
 from uuid import UUID
 
@@ -33,6 +33,7 @@ from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimit
 from sentry.services.eventstore.models import Event
 from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -434,7 +435,7 @@ def _process_message(
 @sentry_sdk.tracing.trace
 @metrics.wraps("occurrence_consumer.process_batch")
 def process_occurrence_batch(
-    worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]
+    worker: ContextPropagatingThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]
 ) -> None:
     """
     Receives batches of occurrences. This function will take the batch

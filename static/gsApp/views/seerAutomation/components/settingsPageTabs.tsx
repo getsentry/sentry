@@ -16,14 +16,14 @@ export function SettingsPageTabs() {
     showNewSeer(organization)
       ? [
           [t('Overview'), '/seer/'],
-          [t('Source Code Management'), '/seer/scm/'],
+          [t('Repositories'), '/seer/scm/'],
           [t('Autofix'), '/seer/projects/'],
           [t('Code Review'), '/seer/repos/'],
         ]
       : [
           [t('Autofix'), '/seer/'],
           [t('Code Review'), '/seer/repos/'],
-          [t('Source Code Management'), '/seer/scm/'],
+          [t('Repositories'), '/seer/scm/'],
         ]
   ) satisfies Array<[string, string]>;
 

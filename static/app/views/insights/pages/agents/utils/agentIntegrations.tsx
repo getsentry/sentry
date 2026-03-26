@@ -62,3 +62,8 @@ export const NODE_AGENT_INTEGRATIONS = [
   AgentIntegration.OPENAI,
   AgentIntegration.MANUAL,
 ];
+
+export const DENO_AGENT_INTEGRATIONS = [
+  AgentIntegration.VERCEL_AI,
+  AgentIntegration.MANUAL,
+];

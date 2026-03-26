@@ -25,7 +25,7 @@ import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {ScatterSeries} from 'sentry/components/charts/series/scatterSeries';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

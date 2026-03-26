@@ -9,7 +9,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
-import hookIntegrationFeatures from 'getsentry/hooks/integrationFeatures';
+import {hookIntegrationFeatures} from 'getsentry/hooks/integrationFeatures';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 

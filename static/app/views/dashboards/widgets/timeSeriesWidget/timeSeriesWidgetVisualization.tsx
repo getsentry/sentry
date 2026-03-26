@@ -172,16 +172,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const plottablesByType = groupBy(props.plottables, plottable => plottable.dataType);
 
-  // Count up the field types of all the plottables
-  const fieldTypeCounts = mapValues(plottablesByType, plottables => plottables.length);
-
-  // Sort the field types by how many plottables use each one
-  const axisTypes = Object.keys(fieldTypeCounts)
-    .toSorted(
-      // `dataTypes` is extracted from `dataTypeCounts`, so the counts are guaranteed to exist
-      (a, b) => fieldTypeCounts[b]! - fieldTypeCounts[a]!
-    )
-    .filter(axisType => !!axisType); // `TimeSeries` allows for a `null` data type , though it's not likely
+  // Get unique axis types in order of first appearance, treating the first
+  // aggregate as primary. This avoids axis flipping when thresholds or other
+  // plottables inflate the count of a particular data type.
+  const axisTypes: string[] = [];
+  for (const plottable of props.plottables) {
+    if (plottable.dataType && !axisTypes.includes(plottable.dataType)) {
+      axisTypes.push(plottable.dataType);
+    }
+  }
 
   // Partition the types between the two axes
   let leftYAxisDataTypes: string[] = [];
@@ -195,11 +194,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     leftYAxisDataTypes = axisTypes.slice(0, 1);
     rightYAxisDataTypes = axisTypes.slice(1, 2);
   } else if (axisTypes.length > 2 && axisTypes.at(0) === FALLBACK_TYPE) {
-    // There are multiple types, and the most popular one is the fallback. Don't
+    // There are multiple types, and the first one is the fallback. Don't
     // bother creating a second fallback axis, plot everything on the left
     leftYAxisDataTypes = axisTypes;
   } else {
-    // There are multiple types. Assign the most popular type to the left axis,
+    // There are multiple types. Assign the first type to the left axis,
     // the rest to the right axis
     leftYAxisDataTypes = axisTypes.slice(0, 1);
     rightYAxisDataTypes = axisTypes.slice(1);
@@ -381,7 +380,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
 
-        return formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined);
+        return escape(
+          formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
+        );
       },
       truncate: false,
       utc: utc ?? false,
