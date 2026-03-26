@@ -96,14 +96,12 @@ export function ScmConnect({onComplete}: StepProps) {
             <ScmRepoSelector integration={effectiveIntegration} />
             <AnimatePresence>
               {selectedRepository ? (
-                <motion.div
+                <MotionScmBenefitsCard
                   exit={{opacity: 0}}
                   initial={{opacity: 0}}
                   animate={{opacity: 1}}
                   key="benefits"
-                >
-                  <ScmBenefitsCard />
-                </motion.div>
+                />
               ) : null}
             </AnimatePresence>
           </MotionStack>
@@ -159,3 +157,4 @@ export function ScmConnect({onComplete}: StepProps) {
 }
 
 const MotionStack = motion.create(Stack);
+const MotionScmBenefitsCard = motion.create(ScmBenefitsCard);

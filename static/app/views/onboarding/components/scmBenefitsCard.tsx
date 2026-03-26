@@ -1,3 +1,5 @@
+import type {HTMLAttributes, Ref} from 'react';
+
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -29,13 +31,14 @@ const BENEFITS = [
   },
 ] as const;
 
-interface ScmBenefitsCardProps {
+interface ScmBenefitsCardProps extends HTMLAttributes<HTMLDivElement> {
+  ref?: Ref<HTMLDivElement>;
   showTitle?: boolean;
 }
 
-export function ScmBenefitsCard({showTitle}: ScmBenefitsCardProps) {
+export function ScmBenefitsCard({showTitle, ref, ...props}: ScmBenefitsCardProps) {
   return (
-    <Container border="secondary" padding="xl" radius="md">
+    <Container ref={ref} border="secondary" padding="xl" radius="md" {...props}>
       <Stack gap="2xl">
         {showTitle && (
           <Text variant="muted" size="md" bold density="comfortable">
