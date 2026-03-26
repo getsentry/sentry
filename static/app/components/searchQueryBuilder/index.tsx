@@ -127,10 +127,16 @@ export interface SearchQueryBuilderProps {
    */
   getTagKeys?: GetTagKeys;
   /**
+   * List of filter key strings that are invalid.
+   * When provided, tokens with matching keys will display a warning state.
+   * The parent component is responsible for fetching and determining invalid keys.
+   */
+  invalidFilterKeys?: string[];
+
+  /**
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
-
   label?: string;
   /**
    * Allows for key suggestions to be rendered when the value matches the pattern.
@@ -174,11 +180,11 @@ export interface SearchQueryBuilderProps {
    */
   portalTarget?: HTMLElement | null;
   queryInterface?: QueryInterfaceType;
+
   /**
    * If provided, saves and displays recent searches of the given type.
    */
   recentSearches?: SavedSearchType;
-
   /**
    * When set, provided keys will override default raw search capabilities, while
    * replacing it with options that include the provided keys, and the user's input
@@ -194,14 +200,6 @@ export interface SearchQueryBuilderProps {
    * to the left of the clear button.
    */
   trailingItems?: React.ReactNode;
-  /**
-   * Optional async function to validate filter keys in batch.
-   * Called with an array of unique filter key strings from the current query.
-   * Should return a map of key -> warning message for keys that fail validation.
-   * Keys not present in the returned record are considered valid.
-   * Results are displayed as warnings alongside any sync getFilterTokenWarning results.
-   */
-  validateFilterKeys?: (keys: string[]) => Promise<Record<string, React.ReactNode>>;
 }
 
 function ActionButtons({

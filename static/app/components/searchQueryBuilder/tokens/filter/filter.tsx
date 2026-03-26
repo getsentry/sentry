@@ -203,7 +203,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
-  const {dispatch, asyncTokenWarnings} = useSearchQueryBuilder();
+  const {dispatch, invalidFilterKeys} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -227,15 +227,14 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const tokenHasError = 'invalid' in token && defined(token.invalid);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
-  const asyncWarning = asyncTokenWarnings?.[getKeyName(token.key)];
-  const tokenHasAsyncWarning = defined(asyncWarning);
+  const isInvalidFilterKey = invalidFilterKeys.includes(getKeyName(token.key));
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
       state={
-        tokenHasWarning || tokenHasAsyncWarning
+        tokenHasWarning || isInvalidFilterKey
           ? 'warning'
           : tokenHasError
             ? 'invalid'
@@ -251,7 +250,11 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         columnCount={4}
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
-        asyncWarning={asyncWarning}
+        warning={
+          isInvalidFilterKey
+            ? t('Invalid key. "%s" is not a supported search key.', getKeyName(token.key))
+            : undefined
+        }
       >
         {token.filter === FilterType.IS || token.filter === FilterType.HAS ? null : (
           <BaseGridCell {...gridCellProps}>

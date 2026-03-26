@@ -16,7 +16,6 @@ import type {
   SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import {useAsyncFilterKeyValidation} from 'sentry/components/searchQueryBuilder/hooks/useAsyncFilterKeyValidation';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
@@ -41,7 +40,6 @@ interface SearchQueryBuilderContextData {
   aiSearchBadgeType: 'alpha' | 'beta';
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
-  asyncTokenWarnings: Record<string, React.ReactNode>;
   autoSubmitSeer: boolean;
   committedQuery: string;
   currentInputValueRef: React.RefObject<string>;
@@ -63,6 +61,7 @@ interface SearchQueryBuilderContextData {
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: GetTagValues;
   handleSearch: (query: string) => void;
+  invalidFilterKeys: string[];
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
   query: string;
@@ -130,7 +129,7 @@ export function SearchQueryBuilderProvider({
   filterKeyAliases,
   caseInsensitive,
   onCaseInsensitiveClick,
-  validateFilterKeys,
+  invalidFilterKeys,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -201,7 +200,10 @@ export function SearchQueryBuilderProvider({
 
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
-  const asyncTokenWarnings = useAsyncFilterKeyValidation(parsedQuery, validateFilterKeys);
+  const stableInvalidFilterKeys = useMemo(
+    () => invalidFilterKeys ?? [],
+    [invalidFilterKeys]
+  );
 
   const previousQuery = usePrevious(state.query);
   const firstRender = useRef(true);
@@ -247,7 +249,7 @@ export function SearchQueryBuilderProvider({
     return {
       ...state,
       aiSearchBadgeType,
-      asyncTokenWarnings,
+      invalidFilterKeys: stableInvalidFilterKeys,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
@@ -290,7 +292,6 @@ export function SearchQueryBuilderProvider({
     };
   }, [
     aiSearchBadgeType,
-    asyncTokenWarnings,
     autoSubmitSeer,
     caseInsensitive,
     disabled,
@@ -307,6 +308,7 @@ export function SearchQueryBuilderProvider({
     getTagKeys,
     getTagValues,
     handleSearch,
+    stableInvalidFilterKeys,
     matchKeySuggestions,
     onCaseInsensitiveClick,
     parseQuery,
