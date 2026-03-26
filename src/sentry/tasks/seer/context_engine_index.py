@@ -8,6 +8,9 @@ from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcRemoteException
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
@@ -44,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.context_engine_index.index_org_project_knowledge",
+    name="sentry.tasks.seer.context_engine_index.index_org_project_knowledge",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,
 )
@@ -133,7 +136,7 @@ def index_org_project_knowledge(org_id: int) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.context_engine_index.build_service_map",
+    name="sentry.tasks.seer.context_engine_index.build_service_map",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,  # 10 minutes
     retry=Retry(times=3, on=(SnubaRPCRateLimitExceeded,), delay=60),
@@ -214,9 +217,9 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     """
     Get the list of allowed organizations for context engine indexing.
 
-    Divides all active orgs into 24 buckets via md5 hash of org ID. Only the bucket matching the current
-    hour is checked for the seer-explorer-context-engine feature flag, keeping feature check
-    volume at ~1/24th of total orgs.
+    Divides all active orgs with github integration (Seer prerequisite) into 24 buckets via md5 hash.
+    Only the bucket matching the current hour is checked for the seer-explorer-context-engine
+    feature flag, keeping feature check volume at ~1/24th of total orgs.
     """
     with sentry_sdk.start_span(
         op="explorer.context_engine.get_allowed_org_ids_context_engine_indexing"
@@ -224,25 +227,49 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
         now = datetime.now(UTC)
         TOTAL_HOURLY_SLOTS = 24
 
+        scm_org_ids = integration_service.get_organization_ids_with_providers(
+            providers=[
+                IntegrationProviderSlug.GITHUB.value,
+                IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            ],
+            status=ObjectStatus.ACTIVE,
+        )
+        logger.info(
+            "SCM integration enabled org ids fetched",
+            extra={"count": len(scm_org_ids)},
+        )
+
+        hourly_scm_org_ids = [
+            org_id
+            for org_id in scm_org_ids
+            if int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == now.hour
+        ]
+        logger.info(
+            "SCM integration enabled org ids for current hour",
+            extra={"count": len(hourly_scm_org_ids)},
+        )
+
         eligible_org_ids: list[int] = []
 
         for org in RangeQuerySetWrapper(
-            Organization.objects.filter(status=ObjectStatus.ACTIVE),
+            Organization.objects.filter(id__in=hourly_scm_org_ids, status=ObjectStatus.ACTIVE),
             result_value_getter=lambda o: o.id,
         ):
-            # Ordering of these if blocks is very crucial. We want to check the hour first as
-            # checking the feature flag is an expensive operation and we want to avoid it if possible.
-            if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == now.hour:
-                if features.has("organizations:seer-explorer-context-engine", org):
-                    eligible_org_ids.append(org.id)
+            if features.has("organizations:seer-explorer-context-engine", org):
+                eligible_org_ids.append(org.id)
 
+        logger.info(
+            "Eligible org ids for context engine indexing",
+            extra={"count": len(eligible_org_ids), "some_org_ids": eligible_org_ids[:10]},
+        )
         return eligible_org_ids
 
 
 @instrumented_task(
-    name="sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
+    name="sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks",
     namespace=seer_tasks,
     processing_deadline_duration=30 * 60,
+    retry=Retry(times=3, on=(RpcRemoteException,), delay=60),
 )
 def schedule_context_engine_indexing_tasks() -> None:
     """
@@ -280,7 +307,7 @@ def schedule_context_engine_indexing_tasks() -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.context_engine_index.index_sentry_knowledge",
+    name="sentry.tasks.seer.context_engine_index.index_sentry_knowledge",
     namespace=seer_tasks,
     processing_deadline_duration=30,
 )

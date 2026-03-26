@@ -1,6 +1,6 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   act,
@@ -184,9 +184,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('responds to page filter changes, async e.g. from back button nav', async () => {
-    const mockRouter = RouterFixture({
-      location: {pathname: '/organizations/org-slug/issues/', query: {}},
-    });
+    const navigate = jest.fn();
 
     render(<ProjectPageFilter />, {
       organization,
@@ -199,7 +197,13 @@ describe('ProjectPageFilter', () => {
     expect(await screen.findByRole('button', {name: 'My Projects'})).toBeInTheDocument();
 
     // Edit store value
-    act(() => updateProjects([2], mockRouter));
+    act(() =>
+      updateProjects(
+        [2],
+        LocationFixture({pathname: '/organizations/org-slug/issues/', query: {}}),
+        navigate
+      )
+    );
 
     // <ProjectPageFilter /> is updated
 

@@ -977,6 +977,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
+    "sentry.workflow_engine.tasks.cleanup",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
     # Used for tests
@@ -1001,6 +1002,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
+    },
+    "prune-old-fire-history": {
+        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_fire_history",
+        "schedule": timedelta(minutes=2),
     },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
@@ -1148,12 +1153,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
     "context-engine-index": {
-        "task": "seer:sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
+        "task": "seer:sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks",
         # Offset by 30 minutes from seer-explorer-index to spread load
         "schedule": crontab("30", "*/1", "*", "*", "*"),
     },
     "index-sentry-knowledge": {
-        "task": "seer:sentry.tasks.context_engine_index.index_sentry_knowledge",
+        "task": "seer:sentry.tasks.seer.context_engine_index.index_sentry_knowledge",
         # Run once a month at midnight
         "schedule": crontab("0", "0", "*", "1", "*"),
     },
