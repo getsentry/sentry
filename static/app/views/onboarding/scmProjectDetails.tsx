@@ -64,7 +64,11 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     <K extends keyof AlertRuleOptions>(key: K, value: AlertRuleOptions[K]) => {
       setAlertRuleConfig(prev => ({...prev, [key]: value}));
       if (key === 'alertSetting') {
-        const optionMap = {0: 'high_priority', 1: 'custom', 2: 'create_later'};
+        const optionMap: Record<number, string> = {
+          0: 'high_priority',
+          1: 'custom',
+          2: 'create_later',
+        };
         trackAnalytics('onboarding.scm_project_details_alert_selected', {
           organization,
           option: optionMap[value as number] ?? String(value),
