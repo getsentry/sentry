@@ -888,7 +888,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
         assert evidence.value == "Install Size, Absolute Diff > 500.0 KB (+1.0 MB)"
 
     def test_evidence_relative_diff_download_size(self):
-        self._create_condition(Condition.GREATER_OR_EQUAL, 0.05)
+        self._create_condition(Condition.GREATER_OR_EQUAL, 5)
         occurrence = self._evaluate(
             "relative_diff",
             "download_size",

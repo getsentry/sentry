@@ -105,11 +105,7 @@ def _build_evidence_text(
         threshold_label = _THRESHOLD_TYPE_LABELS.get(threshold_type, threshold_type)
 
         if threshold_type == "relative_diff":
-            comparison_value = condition.comparison
-            if isinstance(comparison_value, float) and comparison_value < 1:
-                formatted_threshold = f"{comparison_value * 100:g}%"
-            else:
-                formatted_threshold = f"{comparison_value}%"
+            formatted_threshold = f"{condition.comparison}%"
         else:
             formatted_threshold = format_bytes_base10(int(condition.comparison))
 
