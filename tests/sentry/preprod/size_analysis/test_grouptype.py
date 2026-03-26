@@ -871,10 +871,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
         evidence = occurrence.evidence_display[0]
         assert evidence.name == "Size Analysis"
         assert evidence.important is True
-        lines = evidence.value.split("\n")
-        assert lines[0] == "Measurement: Install Size"
-        assert lines[1] == "Threshold: Absolute Size > 1.0 MB"
-        assert lines[2] == "Size: 5.0 MB"
+        assert evidence.value == "Install Size, Absolute Size > 1.0 MB (5.0 MB)"
 
     def test_evidence_absolute_diff_install_size(self):
         self._create_condition(Condition.GREATER_OR_EQUAL, 500000)
@@ -887,10 +884,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             base_download=2500000,
         )
         evidence = occurrence.evidence_display[0]
-        lines = evidence.value.split("\n")
-        assert lines[0] == "Measurement: Install Size"
-        assert lines[1] == "Threshold: Absolute Diff ≥ 500.0 KB"
-        assert lines[2] == "Size: 4.0 MB → 5.0 MB (+1.0 MB)"
+        assert evidence.value == "Install Size, Absolute Diff > 500.0 KB (+1.0 MB)"
 
     def test_evidence_relative_diff_download_size(self):
         self._create_condition(Condition.GREATER_OR_EQUAL, 0.05)
@@ -903,10 +897,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             base_download=2500000,
         )
         evidence = occurrence.evidence_display[0]
-        lines = evidence.value.split("\n")
-        assert lines[0] == "Measurement: Download Size"
-        assert lines[1] == "Threshold: Relative Diff ≥ 5%"
-        assert lines[2] == "Size: 2.5 MB → 3.0 MB (+20.0%)"
+        assert evidence.value == "Download Size, Relative Diff > 5% (+20.0%)"
 
     def _make_metadata(self, platform: str, artifact_type: int) -> dict[str, Any]:
         head_artifact = self.create_preprod_artifact(
@@ -946,8 +937,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             metadata=metadata,
         )
         evidence = occurrence.evidence_display[0]
-        lines = evidence.value.split("\n")
-        assert lines[0] == "Measurement: Uncompressed Size"
+        assert evidence.value == "Uncompressed Size, Absolute Size > 1.0 MB (5.0 MB)"
 
     def test_evidence_apple_shows_install_size(self):
         self._create_condition(Condition.GREATER, 1000000)
@@ -960,5 +950,4 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             metadata=metadata,
         )
         evidence = occurrence.evidence_display[0]
-        lines = evidence.value.split("\n")
-        assert lines[0] == "Measurement: Install Size"
+        assert evidence.value == "Install Size, Absolute Size > 1.0 MB (5.0 MB)"

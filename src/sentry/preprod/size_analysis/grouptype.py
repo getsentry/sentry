@@ -61,15 +61,6 @@ def _artifact_to_tags(artifact: PreprodArtifact) -> dict[str, str]:
     return tags
 
 
-_OPERATOR_SYMBOLS: dict[str, str] = {
-    "gte": "≥",
-    "gt": ">",
-    "lte": "≤",
-    "lt": "<",
-    "eq": "=",
-    "ne": "≠",
-}
-
 _THRESHOLD_TYPE_LABELS: dict[str, str] = {
     "absolute_diff": "Absolute Diff",
     "relative_diff": "Relative Diff",
@@ -96,40 +87,35 @@ def _build_evidence_text(
     data_packet: SizeAnalysisDataPacket,
     platform: str,
 ) -> str:
-    """Build a human-readable evidence string for Slack/Jira notifications.
+    """Build a single-line evidence string for Slack/Jira notifications.
 
-    Output format:
-        Measurement: Install Size
-        Threshold: Absolute Diff ≥ 1.0 MB
-        Size: 45.2 MB → 47.5 MB (+2.3 MB)
+    Format: {measurement}, {threshold_type} > {threshold_value} ({actual_value})
+    Example: Install Size, Absolute Diff > 1.0 MB (+1.0 MB)
     """
     from sentry.preprod.utils import format_bytes_base10
 
     measurement = detector_config["measurement"]
     threshold_type = detector_config["threshold_type"]
-
-    # Line 1: Measurement
     measurement_label = _get_measurement_label(measurement, platform)
-    lines = [f"Measurement: {measurement_label}"]
 
-    # Line 2: Threshold (metric type + operator + value)
+    # Threshold: type > value
+    threshold_part = ""
     if evaluation_result.condition_results:
         condition = evaluation_result.condition_results[0].condition
-        operator_symbol = _OPERATOR_SYMBOLS.get(condition.type, condition.type)
         threshold_label = _THRESHOLD_TYPE_LABELS.get(threshold_type, threshold_type)
 
         if threshold_type == "relative_diff":
             comparison_value = condition.comparison
             if isinstance(comparison_value, float) and comparison_value < 1:
-                formatted_value = f"{comparison_value * 100:g}%"
+                formatted_threshold = f"{comparison_value * 100:g}%"
             else:
-                formatted_value = f"{comparison_value}%"
+                formatted_threshold = f"{comparison_value}%"
         else:
-            formatted_value = format_bytes_base10(int(condition.comparison))
+            formatted_threshold = format_bytes_base10(int(condition.comparison))
 
-        lines.append(f"Threshold: {threshold_label} {operator_symbol} {formatted_value}")
+        threshold_part = f", {threshold_label} > {formatted_threshold}"
 
-    # Line 3: Size
+    # Actual value
     match measurement:
         case "install_size":
             head_bytes = data_packet.packet["head_install_size_bytes"]
@@ -141,22 +127,18 @@ def _build_evidence_text(
             head_bytes = 0
             base_bytes = None
 
-    head_formatted = format_bytes_base10(head_bytes)
-
     if threshold_type == "absolute" or base_bytes is None:
-        lines.append(f"Size: {head_formatted}")
+        actual_value = format_bytes_base10(head_bytes)
+    elif threshold_type == "relative_diff":
+        pct = ((head_bytes - base_bytes) / base_bytes) * 100 if base_bytes else 0
+        actual_value = f"+{pct:.1f}%"
     else:
-        base_formatted = format_bytes_base10(base_bytes)
-        if threshold_type == "relative_diff":
-            pct = ((head_bytes - base_bytes) / base_bytes) * 100 if base_bytes else 0
-            lines.append(f"Size: {base_formatted} → {head_formatted} (+{pct:.1f}%)")
-        else:
-            delta = head_bytes - base_bytes
-            delta_formatted = format_bytes_base10(abs(delta))
-            sign = "+" if delta >= 0 else "-"
-            lines.append(f"Size: {base_formatted} → {head_formatted} ({sign}{delta_formatted})")
+        delta = head_bytes - base_bytes
+        delta_formatted = format_bytes_base10(abs(delta))
+        sign = "+" if delta >= 0 else "-"
+        actual_value = f"{sign}{delta_formatted}"
 
-    return "\n".join(lines)
+    return f"{measurement_label}{threshold_part} ({actual_value})"
 
 
 class SizeAnalysisMetadata(TypedDict):
