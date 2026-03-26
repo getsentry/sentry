@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: '0,30 * * * *'
 
+# Prevent overlapping coverage runs from stacking up (e.g. schedule + workflow_call).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: false
+
 env:
   SENTRY_SKIP_SELENIUM_PLUGIN: '1'
 
@@ -98,7 +103,15 @@ jobs:
         with:
           mode: backend-ci
 
+      - name: Cache odiff binary
+        id: odiff-cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /usr/local/bin/odiff
+          key: odiff-bin-4.3.2-linux-x64
+
       - name: Download odiff binary
+        if: steps.odiff-cache.outputs.cache-hit != 'true'
         run: |
           curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
             | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
