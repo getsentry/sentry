@@ -35,6 +35,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {usePrebuiltDashboardUrlBuilder} from 'sentry/views/dashboards/utils/usePrebuiltDashboardUrl';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
@@ -81,6 +84,8 @@ export function ProjectDetail() {
   }, [hasTransactions, hasSessions]);
 
   const {setPageInfo, pageAlert} = usePageAlert();
+  const isPlatformized = useHasPlatformizedInsights();
+  const buildPrebuiltDashboardUrl = usePrebuiltDashboardUrlBuilder();
   const {orgId, projectId: projectSlug} = params;
   const msg = useMemo(
     () =>
@@ -89,12 +94,29 @@ export function ProjectDetail() {
         {
           settingsLink: <Link to={`/settings/${orgId}/projects/${projectSlug}/`} />,
           sessionHealth: (
-            <Link to={`/organizations/${orgId}/insights/mobile/sessions/`} />
+            <Link
+              to={
+                isPlatformized
+                  ? (buildPrebuiltDashboardUrl(
+                      PrebuiltDashboardId.MOBILE_SESSION_HEALTH
+                    ) ?? `/organizations/${orgId}/dashboards/`)
+                  : `/organizations/${orgId}/insights/mobile/sessions/`
+              }
+            />
           ),
-          backendOverview: <Link to={`/organizations/${orgId}/insights/backend/`} />,
+          backendOverview: (
+            <Link
+              to={
+                isPlatformized
+                  ? (buildPrebuiltDashboardUrl(PrebuiltDashboardId.BACKEND_OVERVIEW) ??
+                    `/organizations/${orgId}/dashboards/`)
+                  : `/organizations/${orgId}/insights/backend/`
+              }
+            />
+          ),
         }
       ),
-    [orgId, projectSlug]
+    [orgId, projectSlug, isPlatformized, buildPrebuiltDashboardUrl]
   );
   useEffect(() => {
     if (pageAlert?.message !== msg) {

@@ -29,6 +29,9 @@ import {t} from 'sentry/locale';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {usePrebuiltDashboardUrlBuilder} from 'sentry/views/dashboards/utils/usePrebuiltDashboardUrl';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
@@ -49,6 +52,18 @@ function useNavigationActions(): CommandPaletteAction[] {
   const prefix = `/organizations/${slug}`;
   const {starredViews} = useStarredIssueViews();
   const {data: starredDashboards = []} = useGetStarredDashboards();
+  const isPlatformized = useHasPlatformizedInsights();
+  const buildPrebuiltDashboardUrl = usePrebuiltDashboardUrlBuilder();
+
+  const getInsightsUrl = (
+    prebuiltId: PrebuiltDashboardId,
+    fallbackPath: string
+  ): string => {
+    if (isPlatformized) {
+      return buildPrebuiltDashboardUrl(prebuiltId) ?? `${prefix}/dashboards/`;
+    }
+    return `${prefix}/insights/${fallbackPath}/`;
+  };
 
   const issuesChildren: CommandPaletteActionChild[] = [
     makeCommandPaletteLink({
@@ -159,19 +174,22 @@ function useNavigationActions(): CommandPaletteAction[] {
       display: {
         label: t('Frontend'),
       },
-      to: `${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`,
+      to: getInsightsUrl(
+        PrebuiltDashboardId.FRONTEND_OVERVIEW,
+        FRONTEND_LANDING_SUB_PATH
+      ),
     }),
     makeCommandPaletteLink({
       display: {
         label: t('Backend'),
       },
-      to: `${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`,
+      to: getInsightsUrl(PrebuiltDashboardId.BACKEND_OVERVIEW, BACKEND_LANDING_SUB_PATH),
     }),
     makeCommandPaletteLink({
       display: {
         label: t('Mobile'),
       },
-      to: `${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`,
+      to: getInsightsUrl(PrebuiltDashboardId.MOBILE_VITALS, MOBILE_LANDING_SUB_PATH),
     }),
     makeCommandPaletteLink({
       display: {
