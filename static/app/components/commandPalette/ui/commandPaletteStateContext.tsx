@@ -1,7 +1,14 @@
 import {createContext, useContext, useReducer, useRef} from 'react';
 
+import {
+  openCommandPaletteDeprecated,
+  toggleCommandPalette,
+} from 'sentry/actionCreators/modal';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {unreachable} from 'sentry/utils/unreachable';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type LinkedList = {
   previous: LinkedList | null;
@@ -109,6 +116,27 @@ export function CommandPaletteStateProvider({
  * Traverses the linked list from oldest to newest and returns the labels of
  * all actions in the stack, suitable for building breadcrumb strings.
  */
+export function CommandPaletteHotkeys() {
+  const organization = useOrganization();
+  const {visible} = useGlobalModal();
+
+  useHotkeys([
+    {
+      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+      includeInputs: true,
+      callback: () => {
+        if (organization.features.includes('cmd-k-supercharged')) {
+          toggleCommandPalette({}, organization, visible, 'keyboard');
+        } else {
+          openCommandPaletteDeprecated();
+        }
+      },
+    },
+  ]);
+
+  return null;
+}
+
 export function getActionPath(state: CommandPaletteState): string {
   const path: string[] = [];
   let node = state.action;
