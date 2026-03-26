@@ -3,6 +3,12 @@ name: Enforce License Compliance
 on:
   pull_request:
 
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   enforce-license-compliance:
     runs-on: ubuntu-latest
