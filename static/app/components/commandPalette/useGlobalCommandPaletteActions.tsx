@@ -277,15 +277,17 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       actions: settingsChildren,
     }),
-    makeCommandPaletteGroup({
-      groupingKey: 'navigate',
-      display: {
-        label: t('Project Settings'),
-        icon: <IconSettings />,
-      },
-      actions: projectSettingsChildren,
-    }),
-  ];
+    organization.features.includes('cmd-k-supercharged')
+      ? makeCommandPaletteGroup({
+          groupingKey: 'navigate',
+          display: {
+            label: t('Project Settings'),
+            icon: <IconSettings />,
+          },
+          actions: projectSettingsChildren,
+        })
+      : null,
+  ].filter(Boolean);
 }
 
 function useNavigationToggleCollapsed(): CommandPaletteAction {
