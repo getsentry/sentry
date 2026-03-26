@@ -160,7 +160,10 @@ export function CommandPalette(props: CommandPaletteProps) {
                           size="xs"
                           priority="transparent"
                           icon={<IconArrow direction="left" aria-hidden />}
-                          onClick={() => dispatch({type: 'pop action'})}
+                          onClick={() => {
+                            dispatch({type: 'pop action'});
+                            state.input.current?.focus();
+                          }}
                           aria-label={t('Return to previous action')}
                           {...containerProps}
                         />
@@ -218,7 +221,10 @@ export function CommandPalette(props: CommandPaletteProps) {
                       size="xs"
                       priority="transparent"
                       icon={<IconClose size="xs" aria-hidden />}
-                      onClick={() => dispatch({type: 'reset'})}
+                      onClick={() => {
+                        dispatch({type: 'reset'});
+                        state.input.current?.focus();
+                      }}
                       aria-label={t('Reset')}
                     />
                   ) : null}
