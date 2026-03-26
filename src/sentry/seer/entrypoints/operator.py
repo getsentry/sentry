@@ -810,9 +810,6 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                     continue
 
                 if cache_payload.get("organization_id") != organization.id:
-                    # run_id is globally unique in Seer, so only one entrypoint will
-                    # have a cache entry per run. An org mismatch here is anomalous;
-                    # return rather than continue to abort the entire method.
                     lifecycle.record_failure(failure_reason="org_mismatch")
                     return
 
