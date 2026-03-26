@@ -98,7 +98,7 @@ def process_mention_for_slack(
             entrypoint.install.set_thread_status(
                 channel_id=channel_id,
                 thread_ts=thread_ts,
-                summary="",
+                status="",
             )
             _send_link_identity_prompt(entrypoint=entrypoint)
             return
