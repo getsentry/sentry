@@ -60,10 +60,6 @@ type CommandPaletteActionMenuItem = MenuListItemProps & {
   hideCheck?: boolean;
 };
 
-type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
-  priority: number;
-};
-
 interface CommandPaletteProps {
   onAction: (action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>) => void;
 }
@@ -319,7 +315,7 @@ const COMMAND_PALETTE_GROUP_KEY_CONFIG: Record<CommandPaletteGroupKey, string> =
 };
 
 function groupActionsBySection(
-  actions: CommandPaletteActionWithPriority[]
+  actions: CommandPaletteActionWithKey[]
 ): CommandPaletteActionMenuItem[] {
   const itemsBySection = new Map<string, CommandPaletteActionMenuItem[]>();
   for (const action of actions) {
@@ -341,22 +337,22 @@ function groupActionsBySection(
 
 function search(
   query: string,
-  actions: CommandPaletteActionWithPriority[]
-): CommandPaletteActionWithPriority[] {
+  actions: CommandPaletteActionWithKey[]
+): CommandPaletteActionWithKey[] {
   if (query.length === 0) {
-    return actions.filter(a => a.priority === 0);
+    return actions;
   }
 
   const normalizedQuery = query.toLowerCase();
 
-  const scored = actions.map(action => {
+  const scored = actions.map((action, index) => {
     const label = typeof action.display.label === 'string' ? action.display.label : '';
     const details =
       typeof action.display.details === 'string' ? action.display.details : '';
     const keywords = action.keywords?.join(' ') ?? '';
     const searchText = [label, details, keywords].filter(Boolean).join(' ');
     const result = fzf(searchText, normalizedQuery, false);
-    return {action, score: result.score, matched: result.end !== -1};
+    return {action, score: result.score, matched: result.end !== -1, index};
   });
 
   const matched = scored.filter(r => r.matched);
@@ -365,9 +361,9 @@ function search(
   );
 
   const sortedMatches = matched.toSorted((a, b) => {
-    const priorityDiff = a.action.priority - b.action.priority;
-    if (priorityDiff !== 0) return priorityDiff;
-    return b.score - a.score;
+    const scoreDiff = b.score - a.score;
+    if (scoreDiff !== 0) return scoreDiff;
+    return a.index - b.index;
   });
 
   return [
@@ -403,15 +399,15 @@ function makeMenuItemFromAction(
 
 function flattenActions(
   actions: CommandPaletteActionWithKey[]
-): CommandPaletteActionWithPriority[] {
-  const flattened: CommandPaletteActionWithPriority[] = [];
+): CommandPaletteActionWithKey[] {
+  const flattened: CommandPaletteActionWithKey[] = [];
 
   for (const action of actions) {
     if (action.hidden) {
       continue;
     }
 
-    flattened.push({...action, priority: 0});
+    flattened.push(action);
 
     if (action.type === 'group') {
       if (!action.actions.length) {
