@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -27,8 +26,9 @@ import {
 import {ScmAlertFrequency} from './components/scmAlertFrequency';
 import {ScmStepFooter} from './components/scmStepFooter';
 import {ScmStepHeader} from './components/scmStepHeader';
-import {SCM_STEP_CONTENT_WIDTH} from './consts';
 import type {StepProps} from './types';
+
+const PROJECT_DETAILS_WIDTH = '285px';
 
 export function ScmProjectDetails({onComplete}: StepProps) {
   const organization = useOrganization();
@@ -136,91 +136,80 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         )}
       />
 
-      <LayoutGroup>
-        <MotionStack
-          gap="2xl"
-          width="100%"
-          maxWidth={SCM_STEP_CONTENT_WIDTH}
-          layout="position"
-        >
-          <Stack gap="sm">
-            <Flex gap="md" align="center" justify="center">
-              <IconProject size="md" variant="secondary" />
-              <Text bold size="lg" density="comfortable">
-                {t('Give your project a name')}
-              </Text>
-            </Flex>
-            <Input
-              type="text"
-              placeholder={t('project-name')}
-              value={projectNameResolved}
-              onChange={e => setProjectName(slugify(e.target.value))}
-              onBlur={() => {
-                if (projectName !== null) {
-                  trackAnalytics('onboarding.scm_project_details_name_edited', {
-                    organization,
-                    custom: projectName !== defaultName,
-                  });
-                }
-              }}
-            />
-          </Stack>
-
-          <Stack gap="sm">
-            <Flex gap="md" align="center" justify="center">
-              <IconGroup size="md" />
-              <Text bold size="lg" density="comfortable">
-                {t('Assign a team')}
-              </Text>
-            </Flex>
-            <TeamSelector
-              allowCreate
-              name="team"
-              aria-label={t('Select a Team')}
-              clearable={false}
-              placeholder={t('Select a Team')}
-              teamFilter={(tm: Team) => tm.access.includes('team:admin')}
-              value={teamSlugResolved}
-              onChange={({value}: {value: string}) => {
-                setTeamSlug(value);
-                trackAnalytics('onboarding.scm_project_details_team_selected', {
-                  organization,
-                  team: value,
-                });
-              }}
-            />
-          </Stack>
-
-          <Stack gap="sm">
-            <Flex gap="md" align="center" justify="center">
-              <IconSiren size="md" />
-              <Text bold size="lg" density="comfortable">
-                {t('Alert frequency')}
-              </Text>
-            </Flex>
-            <Text variant="muted" size="lg" density="comfortable" align="center">
-              {t('Get notified when things go wrong')}
+      <Stack gap="2xl" width="100%" maxWidth={PROJECT_DETAILS_WIDTH}>
+        <Stack gap="sm">
+          <Flex gap="md" align="center" justify="center">
+            <IconProject size="md" variant="secondary" />
+            <Text bold size="lg" density="comfortable">
+              {t('Give your project a name')}
             </Text>
-            <ScmAlertFrequency {...alertRuleConfig} onFieldChange={handleAlertChange} />
-          </Stack>
-        </MotionStack>
+          </Flex>
+          <Input
+            type="text"
+            placeholder={t('project-name')}
+            value={projectNameResolved}
+            onChange={e => setProjectName(slugify(e.target.value))}
+            onBlur={() => {
+              if (projectName !== null) {
+                trackAnalytics('onboarding.scm_project_details_name_edited', {
+                  organization,
+                  custom: projectName !== defaultName,
+                });
+              }
+            }}
+          />
+        </Stack>
 
-        <MotionStack layout="position" width="100%" align="center">
-          <ScmStepFooter>
-            <Button
-              priority="primary"
-              onClick={handleCreateProject}
-              disabled={!canSubmit}
-              busy={createProjectAndRules.isPending}
-              icon={<IconProject />}
-            >
-              {t('Create project')}
-            </Button>
-          </ScmStepFooter>
-        </MotionStack>
-      </LayoutGroup>
+        <Stack gap="sm">
+          <Flex gap="md" align="center" justify="center">
+            <IconGroup size="md" />
+            <Text bold size="lg" density="comfortable">
+              {t('Assign a team')}
+            </Text>
+          </Flex>
+          <TeamSelector
+            allowCreate
+            name="team"
+            aria-label={t('Select a Team')}
+            clearable={false}
+            placeholder={t('Select a Team')}
+            teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+            value={teamSlugResolved}
+            onChange={({value}: {value: string}) => {
+              setTeamSlug(value);
+              trackAnalytics('onboarding.scm_project_details_team_selected', {
+                organization,
+                team: value,
+              });
+            }}
+          />
+        </Stack>
+
+        <Stack gap="sm">
+          <Flex gap="md" align="center" justify="center">
+            <IconSiren size="md" />
+            <Text bold size="lg" density="comfortable">
+              {t('Alert frequency')}
+            </Text>
+          </Flex>
+          <Text variant="muted" size="lg" density="comfortable" align="center">
+            {t('Get notified when things go wrong')}
+          </Text>
+          <ScmAlertFrequency {...alertRuleConfig} onFieldChange={handleAlertChange} />
+        </Stack>
+      </Stack>
+
+      <ScmStepFooter>
+        <Button
+          priority="primary"
+          onClick={handleCreateProject}
+          disabled={!canSubmit}
+          busy={createProjectAndRules.isPending}
+          icon={<IconProject />}
+        >
+          {t('Create project')}
+        </Button>
+      </ScmStepFooter>
     </Flex>
   );
 }
-
-const MotionStack = motion.create(Stack);
