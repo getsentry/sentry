@@ -502,15 +502,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     "failures": len(result.get("failures", [])),
                 },
             )
-        except Group.DoesNotExist:
-            logger.exception(
-                "autofix.on_completion_hook.coding_agent_handoff_group_not_found",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "group_id": group.id,
-                },
-            )
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.coding_agent_handoff_failed",

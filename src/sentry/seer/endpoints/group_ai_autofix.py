@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -225,7 +225,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         """Handle POST for Explorer-based autofix."""
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
         step = data.get("step", "root_cause")
@@ -241,12 +241,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     {
                         "detail": "run_id and either integration_id or provider are required for coding_agent_handoff"
                     },
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             if integration_id and provider:
                 return Response(
                     {"detail": "Cannot specify both integration_id and provider"},
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             result = trigger_coding_agent_handoff(
@@ -256,16 +256,18 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 provider=provider,
                 user_id=request.user.id if request.user else None,
             )
-            return Response(result, status=202)
+            return Response(result, status=status.HTTP_202_ACCEPTED)
 
         if step == "open_pr":
             if not run_id:
-                return Response({"detail": "run_id is required for open_pr"}, status=400)
+                return Response(
+                    {"detail": "run_id is required for open_pr"}, status=status.HTTP_400_BAD_REQUEST
+                )
             try:
                 trigger_push_changes(group, run_id)
-            except SeerPermissionError as e:
-                raise PermissionDenied(str(e))
-            return Response({"run_id": run_id}, status=202)
+            except SeerPermissionError:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
 
         # Handle all built-in Seer steps
         try:
@@ -278,7 +280,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 intelligence_level=data["intelligence_level"],
                 user_context=data.get("user_context"),
             )
-            return Response({"run_id": run_id}, status=202)
+            return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
         except SeerPermissionError as e:
             raise PermissionDenied(str(e))
 
@@ -286,7 +288,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         """Handle POST for legacy autofix."""
         serializer = AutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
 
