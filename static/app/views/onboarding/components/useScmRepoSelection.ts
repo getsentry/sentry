@@ -151,7 +151,7 @@ export function useScmRepoSelection({
 
   return {
     // Busy while adding/removing a repo or while existing repos are still
-    // loading. The UI disables the CompactSelect and remove button when true.
+    // loading. The UI disables the Select and remove button when true.
     busy: busy || existingReposPending,
     handleSelect,
     handleRemove,

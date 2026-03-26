@@ -256,7 +256,11 @@ export function OnboardingWithoutContext() {
   });
 
   const goNextStep = useCallback(
-    (step: StepDescriptor, platform?: OnboardingSelectedSDK) => {
+    (
+      step: StepDescriptor,
+      platform?: OnboardingSelectedSDK,
+      query?: Record<string, string[]>
+    ) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
@@ -268,7 +272,8 @@ export function OnboardingWithoutContext() {
         return;
       }
 
-      navigate(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+      const pathname = `/onboarding/${organization.slug}/${nextStep.id}/`;
+      navigate(query ? normalizeUrl({pathname, query}) : normalizeUrl(pathname));
     },
     [organization.slug, navigate, onboardingSteps, onboardingContext.selectedPlatform]
   );
@@ -373,9 +378,9 @@ export function OnboardingWithoutContext() {
               <stepObj.Component
                 data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
-                onComplete={platform => {
+                onComplete={(platform, query) => {
                   if (stepObj) {
-                    goNextStep(stepObj, platform);
+                    goNextStep(stepObj, platform, query);
                   }
                 }}
                 recentCreatedProject={recentCreatedProject}
