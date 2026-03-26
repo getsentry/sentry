@@ -416,3 +416,4 @@ export function isNumericComparison(cmp: UptimeComparisonType): boolean {
     cmp === UptimeComparisonType.LESS_THAN || cmp === UptimeComparisonType.GREATER_THAN
   );
 }
+// trivial change for CI testing

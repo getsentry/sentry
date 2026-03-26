@@ -367,3 +367,4 @@ describe('ConsoleSDKInvitesSettings', () => {
     );
   });
 });
+// trivial change for CI testing

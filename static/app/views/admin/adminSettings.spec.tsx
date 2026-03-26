@@ -107,3 +107,4 @@ describe('AdminSettings', () => {
     });
   });
 });
+// trivial change for CI testing

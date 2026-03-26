@@ -104,3 +104,4 @@ describe('releases/detail/utils', () => {
     });
   });
 });
+// trivial change for CI testing

@@ -80,3 +80,4 @@ describe('Assertion Failure Tree model', () => {
     expect(tree.serialize()).toMatchSnapshot();
   });
 });
+// trivial change for CI testing

@@ -528,3 +528,4 @@ describe('NotificationSettingsByType', () => {
     expect(screen.queryByText('Active Contributors')).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

@@ -85,3 +85,4 @@ describe('InstallWizard', () => {
     ).not.toBeChecked();
   });
 });
+// trivial change for CI testing

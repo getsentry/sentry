@@ -199,3 +199,4 @@ const InvitesTable = styled(SimpleTable)`
   margin-top: 1em;
   grid-template-columns: 1fr 2fr;
 `;
+// trivial change for CI testing

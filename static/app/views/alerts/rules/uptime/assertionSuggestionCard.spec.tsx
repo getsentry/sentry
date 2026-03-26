@@ -152,3 +152,4 @@ describe('AssertionSuggestionCardPlaceholder', () => {
     expect(placeholders).toHaveLength(6);
   });
 });
+// trivial change for CI testing

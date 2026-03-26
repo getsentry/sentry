@@ -69,3 +69,4 @@ describe('AdminRelays', () => {
     await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
   });
 });
+// trivial change for CI testing

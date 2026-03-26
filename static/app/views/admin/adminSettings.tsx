@@ -98,3 +98,4 @@ export default function AdminSettings() {
     </div>
   );
 }
+// trivial change for CI testing

@@ -52,3 +52,4 @@ describe('AccountSecuritySessionHistory', () => {
     (isDemoModeActive as jest.Mock).mockReset();
   });
 });
+// trivial change for CI testing

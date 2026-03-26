@@ -620,3 +620,4 @@ const ConfigurationPanel = styled(Panel)`
     }
   }
 `;
+// trivial change for CI testing

@@ -138,3 +138,4 @@ export class PermissionsObserver extends Component<Props, State> {
     );
   }
 }
+// trivial change for CI testing

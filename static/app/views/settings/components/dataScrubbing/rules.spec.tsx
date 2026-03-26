@@ -53,3 +53,4 @@ describe('Rules', () => {
     expect(screen.queryByRole('button', {name: 'Edit Rule'})).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

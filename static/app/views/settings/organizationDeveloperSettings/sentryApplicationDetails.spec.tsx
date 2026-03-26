@@ -606,3 +606,4 @@ describe('Sentry Application Details', () => {
     });
   });
 });
+// trivial change for CI testing

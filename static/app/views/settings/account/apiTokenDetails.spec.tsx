@@ -147,3 +147,4 @@ describe('ApiNewToken', () => {
     expect(indicators.addErrorMessage).toHaveBeenCalled();
   });
 });
+// trivial change for CI testing

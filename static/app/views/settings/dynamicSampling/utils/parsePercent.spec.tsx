@@ -26,3 +26,4 @@ describe('parsePercent', () => {
     expect(parsePercent(null)).toBe(0);
   });
 });
+// trivial change for CI testing

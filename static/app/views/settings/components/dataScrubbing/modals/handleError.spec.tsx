@@ -17,3 +17,4 @@ describe('Data Scrubbing handleError', () => {
     expect(error.message.toLowerCase().startsWith('an unknown error')).toBeFalsy();
   });
 });
+// trivial change for CI testing

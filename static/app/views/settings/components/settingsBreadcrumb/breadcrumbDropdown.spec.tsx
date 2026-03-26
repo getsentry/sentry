@@ -108,3 +108,4 @@ describe('Settings Breadcrumb Dropdown', () => {
     expect(screen.getByText('baz')).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

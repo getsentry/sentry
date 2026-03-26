@@ -52,3 +52,4 @@ describe('ApiTokenRow', () => {
     expect(screen.getByLabelText('Token preview')).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

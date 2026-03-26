@@ -85,3 +85,4 @@ describe('NotificationSettingsByEntity', () => {
     expect(projectsMock).toHaveBeenCalledTimes(1);
   });
 });
+// trivial change for CI testing

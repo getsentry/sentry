@@ -204,3 +204,4 @@ describe('ApiApplicationDetails', () => {
     ).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing
