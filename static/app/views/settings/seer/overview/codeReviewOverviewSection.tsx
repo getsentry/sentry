@@ -219,9 +219,10 @@ export function CodeReviewOverviewSection({
                 size="xs"
                 busy={isPending}
                 disabled={
-                  !canWrite || field.state.value
+                  !canWrite ||
+                  (field.state.value
                     ? reposWithCodeReviewCount === seerReposCount
-                    : seerReposCount - reposWithCodeReviewCount === seerReposCount
+                    : seerReposCount - reposWithCodeReviewCount === seerReposCount)
                 }
                 onClick={() => {
                   handleToggleCodeReview(field.state.value);
