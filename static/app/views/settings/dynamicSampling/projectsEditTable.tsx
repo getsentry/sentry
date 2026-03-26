@@ -8,6 +8,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
+import {sampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
@@ -39,16 +40,11 @@ interface Props {
 const EMPTY_ARRAY: any = [];
 
 function getProjectRateError(rate: string): string | undefined {
-  if (rate === '') {
-    return t('This field is required');
+  const result = sampleRateField.safeParse(rate);
+  if (result.success) {
+    return undefined;
   }
-  if (isNaN(Number(rate))) {
-    return t('Please enter a valid number');
-  }
-  if (Number(rate) < 0 || Number(rate) > 100) {
-    return t('Must be between 0% and 100%');
-  }
-  return undefined;
+  return result.error.issues[0]?.message;
 }
 
 export function ProjectsEditTable({
