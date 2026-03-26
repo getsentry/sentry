@@ -42,11 +42,13 @@ jobs:
           path: sentry-api-schema
 
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        if: steps.changes.outputs.api_docs == 'true'
         id: setup-node
         with:
           node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
+        if: steps.changes.outputs.api_docs == 'true'
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
         run: |

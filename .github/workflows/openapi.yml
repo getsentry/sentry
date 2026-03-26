@@ -51,6 +51,7 @@ jobs:
           node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
+        if: steps.changes.outputs.api_docs == 'true'
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
         run: |
