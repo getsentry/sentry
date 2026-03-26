@@ -304,7 +304,7 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
             request = RequestFactory().get("http://sentry.io/get")
             proxy_request(request, self.organization.slug, url_name)
         key_used = mock_breaker_class.call_args[0][0]
-        assert key_used == f"apigateway.proxy.{self.REGION.name}"
+        assert key_used == f"apigateway.proxy.{self.CELL.name}"
 
     @responses.activate
     def test_circuit_breaker_disabled_by_default(self) -> None:
@@ -339,7 +339,7 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
     def test_timeout_records_error(self) -> None:
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/timeout",
+            f"{self.CELL.address}/timeout",
             body=Timeout(),
         )
         with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
@@ -355,7 +355,7 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
     def test_5xx_response_records_error(self) -> None:
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/server-error",
+            f"{self.CELL.address}/server-error",
             status=500,
             body=json.dumps({"detail": "internal server error"}),
             content_type="application/json",
