@@ -259,17 +259,22 @@ Components to check:
 ```
 ### <Agent Letter> — <Area Name>
 
-| Route path | Component | Layout.Page |
-|------------|-----------|-------------|
-| /path/     | sentry/views/… | YES |
-| /path/     | sentry/views/… | NO |
-| /path/     | sentry/views/… | INHERITED (SettingsWrapper) |
-| /path/     | —              | REDIRECT — skip |
+| Parametrized path | Component | Layout.Page |
+|-------------------|-----------|-------------|
+| /organizations/:orgId/issues/:groupId/ | sentry/views/… | YES |
+| /organizations/:orgId/issues/:groupId/ | sentry/views/… | NO |
+| /organizations/:orgId/settings/        | sentry/views/… | INHERITED (SettingsWrapper) |
+| /organizations/:orgId/old-path/        | —              | REDIRECT — skip |
 
 **Parent wrapper:** <WrapperName> — uses Layout.Page: YES/NO
 **Missing count:** N
 **Notes:** e.g. "uses styled(Layout.Page) as StyledLayoutPage", "conditionally wraps based on feature flag", etc.
 ```
+
+The parametrized path must be the **full resolved path** as it would appear in the browser,
+including any org/project/id segments from parent route segments. Reconstruct it by walking up
+the route tree and joining all `path` segments. For `withOrgPath: true` routes, prefix with
+`/organizations/:orgId`.
 
 ## Aggregation Step
 
