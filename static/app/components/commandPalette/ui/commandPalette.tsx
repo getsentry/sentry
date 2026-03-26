@@ -82,20 +82,14 @@ export function CommandPalette(props: CommandPaletteProps) {
     preload(errorIllustration, {as: 'image'});
   }
 
-  const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
-    if (
-      state.action?.value.action.type === 'group' &&
-      state.action.value.action.actions.length > 0
-    ) {
-      return flattenActions(state.action.value.action.actions);
-    }
-    return flattenActions(actions);
-  }, [actions, state.action]);
+  const filteredActions = useMemo(() => {
+    const scopedActions =
+      state.action?.value.action.type === 'group'
+        ? state.action.value.action.actions
+        : actions;
 
-  const filteredActions = useMemo(
-    () => search(state.query, displayedActions),
-    [state.query, displayedActions]
-  );
+    return search(state.query, flattenActions(scopedActions));
+  }, [state.query, actions, state.action]);
 
   const sections = useMemo(
     () => groupActionsBySection(filteredActions),
@@ -408,8 +402,7 @@ function makeMenuItemFromAction(
 }
 
 function flattenActions(
-  actions: CommandPaletteActionWithKey[],
-  parentLabel?: string
+  actions: CommandPaletteActionWithKey[]
 ): CommandPaletteActionWithPriority[] {
   const flattened: CommandPaletteActionWithPriority[] = [];
 
@@ -418,25 +411,15 @@ function flattenActions(
       continue;
     }
 
-    if (parentLabel) {
-      flattened.push({
-        ...action,
-        display: {
-          ...action.display,
-          label: `${parentLabel} → ${action.display.label}`,
-        },
-        priority: 1,
-      });
-    } else {
-      flattened.push({...action, priority: 0});
-    }
+    flattened.push({...action, priority: 0});
 
-    if (action.type === 'group' && action.actions.length > 0) {
-      const childParentLabel = parentLabel
-        ? `${parentLabel} → ${action.display.label}`
-        : action.display.label;
-
-      flattened.push(...flattenActions(action.actions, childParentLabel));
+    if (action.type === 'group') {
+      if (!action.actions.length) {
+        Sentry.logger.warn('Command palette group has no children', {
+          group: action.display.label,
+        });
+      }
+      flattened.push(...flattenActions(action.actions));
     }
   }
 
