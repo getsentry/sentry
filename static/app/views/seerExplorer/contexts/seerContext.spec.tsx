@@ -102,26 +102,31 @@ describe('registerSeerContext — nesting', () => {
       </SeerContextProvider>
     );
 
-    // Wait for the cascade of registration effects to settle
+    // Wait for the cascade of registration effects to settle, then assert the
+    // entire nested shape in one pass so the failure message shows the full tree.
     await waitFor(() => {
-      const snapshot = getSnapshot();
-
-      expect(snapshot.nodes).toHaveLength(1);
-
-      const [dashboard] = snapshot.nodes;
-      expect(dashboard?.nodeType).toBe('dashboard');
-      expect(dashboard?.data).toEqual({name: 'Backend Health'});
-      expect(dashboard?.children).toHaveLength(1);
-
-      const [widget] = dashboard?.children ?? [];
-      expect(widget?.nodeType).toBe('widget');
-      // Widgets carry multiple fields to verify non-trivial payloads
-      expect(widget?.data).toEqual({title: 'Error Rate', type: 'timeseries', unit: 'ms'});
-      expect(widget?.children).toHaveLength(1);
-
-      const [chart] = widget?.children ?? [];
-      expect(chart?.nodeType).toBe('chart');
-      expect(chart?.data).toEqual({label: 'p99'});
+      expect(getSnapshot()).toEqual({
+        version: expect.any(Number),
+        nodes: [
+          {
+            nodeType: 'dashboard',
+            data: {name: 'Backend Health'},
+            children: [
+              {
+                nodeType: 'widget',
+                data: {title: 'Error Rate', type: 'timeseries', unit: 'ms'},
+                children: [
+                  {
+                    nodeType: 'chart',
+                    data: {label: 'p99'},
+                    children: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
     });
   });
 });
