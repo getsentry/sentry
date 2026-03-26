@@ -245,10 +245,20 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
               selectedPlatform={baseSdk}
               onConfigure={selectedFramework => {
                 applyPlatformSelection(selectedFramework);
+                trackAnalytics('onboarding.scm_platform_selected', {
+                  organization,
+                  platform: selectedFramework.key,
+                  source: 'manual',
+                });
                 closeModal();
               }}
               onSkip={() => {
                 applyPlatformSelection(baseSdk);
+                trackAnalytics('onboarding.scm_platform_selected', {
+                  organization,
+                  platform: platformKey,
+                  source: 'manual',
+                });
                 closeModal();
               }}
               newOrg
