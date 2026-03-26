@@ -55,17 +55,13 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   });
 
   useEffect(() => {
-    analyticsState.current.state = state;
-  });
-
-  // Track any query input as interaction immediately (not debounced)
-  useEffect(() => {
     if (state.query.length > 0) {
       analyticsState.current.hadInteraction = true;
     }
-  }, [state.query]);
+    analyticsState.current.state = state;
+  }, [state]);
 
-  // Debounced query tracking (500ms)
+  // Debounced query tracking
   useEffect(() => {
     const s = analyticsState.current;
     if (state.query.length === 0 || state.query === s.lastTrackedQuery) {
