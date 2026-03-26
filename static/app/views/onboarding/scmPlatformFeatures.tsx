@@ -446,7 +446,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
               }}
               styles={{container: base => ({...base, width: '100%'})}}
             />
-            {hasScmConnected && (
+            {hasScmConnected && !isDetectionError && (
               <Button size="xs" priority="link" onClick={handleBackToRecommended}>
                 {t('Back to recommended platforms')}
               </Button>
