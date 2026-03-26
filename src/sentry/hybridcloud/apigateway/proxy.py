@@ -146,6 +146,7 @@ async def proxy_cell_request(
     target_url = urljoin(cell.address, request.path)
 
     content_encoding = request.headers.get("Content-Encoding")
+    content_length = request.headers.get("Content-Length")
     header_dict = clean_proxy_headers(request.headers)
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
@@ -165,6 +166,11 @@ async def proxy_cell_request(
         data = get_raw_body_async(request)
     else:
         data = BodyAsyncWrapper(request.body)
+        # With request streaming, and without `Content-Length` header,
+        # `httpx` will set chunked transfer encoding. Upstream doesn't support that,
+        # thus we re-add this header if it was present in the original request.
+        if content_length:
+            header_dict["Content-Length"] = content_length
 
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
