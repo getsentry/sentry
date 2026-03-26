@@ -59,12 +59,13 @@ export function ProjectSampling() {
     [sampleRatesQuery.data]
   );
 
-  const [savedProjectRates, setSavedProjectRates] = useState<Record<string, string>>({});
+  const [savedProjectRates, setSavedProjectRates] =
+    useState<Record<string, string>>(projectRates);
 
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
-      projectRates: {} as Record<string, string>,
+      projectRates,
     },
     validators: {
       onDynamic: projectSamplingSchema,
