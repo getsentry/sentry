@@ -31,14 +31,17 @@ import {
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
-import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import {
+  MISSING_DATA_MESSAGE,
+  NUMBER_MIN_VALUE,
+} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
   TabularColumn,
   TimeSeries,
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
+import {formatBreakdownLegendValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatBreakdownLegendValue';
 import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
@@ -304,6 +307,7 @@ function VisualizationWidgetContent({
         // TODO: to simplify things, we only support one widget query for explore urls right now
         // Otherwise we have to map the correct widget query to the timeseries result
         if (
+          organization.features.includes('visibility-explore-view') &&
           firstColumn &&
           typeof firstColumnGroupByValue === 'string' &&
           widget.queries.length === 1 &&
@@ -359,7 +363,16 @@ function VisualizationWidgetContent({
               {labelContent}
             </Tooltip>
             <TextAlignRight>
-              {value === null ? '—' : formatTooltipValue(value, dataType, dataUnit)}
+              {dataType === 'number' &&
+              value !== null &&
+              value > 0 &&
+              value < NUMBER_MIN_VALUE ? (
+                <Tooltip title={value.toLocaleString()}>
+                  <span>{formatBreakdownLegendValue(value, dataType, dataUnit)}</span>
+                </Tooltip>
+              ) : (
+                formatBreakdownLegendValue(value, dataType, dataUnit)
+              )}
             </TextAlignRight>
           </Fragment>
         );

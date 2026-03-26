@@ -1,5 +1,4 @@
 from collections.abc import Callable, Sequence
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -71,6 +70,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
 
 POSSIBLE_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
@@ -321,7 +321,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
         def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
             futures = []
-            with ThreadPoolExecutor(
+            with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=len(POSSIBLE_ATTRIBUTE_TYPES),
             ) as pool:

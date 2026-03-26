@@ -15,6 +15,7 @@ class _DetectorCacheKey(NamedTuple):
 _detectors_by_data_source = CacheMapping[_DetectorCacheKey, list[Detector]](
     lambda key: f"{key.source_type}:{key.source_id}",
     namespace="detector:detectors_by_data_source",
+    ttl_seconds=CACHE_TTL,
 )
 
 
@@ -29,7 +30,7 @@ def get_detectors_by_data_source(source_id: str, query_type: str) -> list[Detect
         if detectors is None:
             metrics_tags["cache_hit"] = "false"
             detectors = _query_detectors(source_id, query_type)
-            _detectors_by_data_source.set(cache_key, detectors, CACHE_TTL)
+            _detectors_by_data_source.set(cache_key, detectors)
         else:
             metrics_tags["cache_hit"] = "true"
 

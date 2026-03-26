@@ -6,7 +6,9 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 
-function getProviderConfigUrl(integration: OrganizationIntegration): string | null {
+export function getProviderConfigUrl(
+  integration: OrganizationIntegration
+): string | null {
   const {externalId, provider, domainName, accountType} = integration;
   if (!externalId) {
     return null;

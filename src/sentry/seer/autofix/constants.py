@@ -1,5 +1,9 @@
 import enum
 
+# An issue group must have >= this number of occurrences in order to be
+# a target for 'workflow' autofix.
+AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10
+
 
 class FixabilityScoreThresholds(enum.Enum):
     SUPER_HIGH = 0.76

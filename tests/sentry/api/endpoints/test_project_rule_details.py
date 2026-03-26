@@ -24,6 +24,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow
@@ -1934,28 +1935,6 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
 
 class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):
-    def assert_serializer_parity(
-        self,
-        legacy: Mapping[str, Any],
-        we: Mapping[str, Any],
-        known_differences: set[str] | None = None,
-    ) -> None:
-        if known_differences is None:
-            known_differences = set()
-        mismatches: list[str] = []
-        for field in set(list(legacy.keys()) + list(we.keys())):
-            if field in known_differences:
-                continue
-            if field not in we:
-                mismatches.append(f"Missing from workflow engine: {field}")
-            elif field not in legacy:
-                mismatches.append(f"Extra in workflow engine: {field}")
-            elif legacy[field] != we[field]:
-                mismatches.append(f"{field}: legacy={legacy[field]!r}, we={we[field]!r}")
-        assert not mismatches, "Legacy vs workflow engine serializer differences:\n" + "\n".join(
-            mismatches
-        )
-
     def test_dual_written_rule_parity(self) -> None:
         rule = self.create_project_rule(
             project=self.project,
@@ -1996,7 +1975,7 @@ class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):
             )
 
         assert legacy_response.data["id"] == str(rule.id)
-        self.assert_serializer_parity(legacy_response.data, we_response.data)
+        assert_serializer_parity(old=legacy_response.data, new=we_response.data)
 
     def test_dual_written_rule_with_filters_parity(self) -> None:
         rule = self.create_project_rule(
@@ -2035,4 +2014,4 @@ class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):
             )
 
         assert legacy_response.data["id"] == str(rule.id)
-        self.assert_serializer_parity(legacy_response.data, we_response.data)
+        assert_serializer_parity(old=legacy_response.data, new=we_response.data)

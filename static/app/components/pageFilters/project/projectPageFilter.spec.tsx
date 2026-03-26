@@ -1,6 +1,6 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   act,
@@ -184,9 +184,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('responds to page filter changes, async e.g. from back button nav', async () => {
-    const mockRouter = RouterFixture({
-      location: {pathname: '/organizations/org-slug/issues/', query: {}},
-    });
+    const navigate = jest.fn();
 
     render(<ProjectPageFilter />, {
       organization,
@@ -199,7 +197,13 @@ describe('ProjectPageFilter', () => {
     expect(await screen.findByRole('button', {name: 'My Projects'})).toBeInTheDocument();
 
     // Edit store value
-    act(() => updateProjects([2], mockRouter));
+    act(() =>
+      updateProjects(
+        [2],
+        LocationFixture({pathname: '/organizations/org-slug/issues/', query: {}}),
+        navigate
+      )
+    );
 
     // <ProjectPageFilter /> is updated
 
@@ -1006,6 +1010,72 @@ describe('ProjectPageFilter', () => {
 
       expect(
         await screen.findByRole('button', {name: 'only-project'})
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('edge case: user with no member projects', () => {
+    it('shows "All Projects" label when URL has -1 and user has no member projects', async () => {
+      // User has access to projects but is not a member of any
+      const nonMemberProjects = [
+        ProjectFixture({id: '1', slug: 'project-1', isMember: false}),
+        ProjectFixture({id: '2', slug: 'project-2', isMember: false}),
+        ProjectFixture({id: '3', slug: 'project-3', isMember: false}),
+      ];
+      ProjectsStore.loadInitialData(nonMemberProjects);
+
+      // URL has -1 (All Projects sentinel)
+      PageFiltersStore.onInitializeUrlState({
+        projects: [-1],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+
+      render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {project: '-1'},
+          },
+        },
+      });
+
+      // Should display "All Projects", not a count like "3" or enumerated list
+      expect(
+        await screen.findByRole('button', {name: 'All Projects'})
+      ).toBeInTheDocument();
+    });
+
+    it('expands to "All Projects" when empty URL and user has no member projects', async () => {
+      // User has access to projects but is not a member of any
+      const nonMemberProjects = [
+        ProjectFixture({id: '1', slug: 'project-1', isMember: false}),
+        ProjectFixture({id: '2', slug: 'project-2', isMember: false}),
+      ];
+      ProjectsStore.loadInitialData(nonMemberProjects);
+
+      // Empty URL defaults to "My Projects", but user has no member projects
+      // The initializeUrlState logic should set it to ALL_ACCESS_PROJECTS
+      PageFiltersStore.onInitializeUrlState({
+        projects: [-1],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+
+      render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {},
+          },
+        },
+      });
+
+      // Should display "All Projects" since user has no member projects
+      expect(
+        await screen.findByRole('button', {name: 'All Projects'})
       ).toBeInTheDocument();
     });
   });

@@ -13,7 +13,7 @@ import type {
 import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 
-import type SpanTreeModel from './spanTreeModel';
+import type {SpanTreeModel} from './spanTreeModel';
 import type {
   AggregateSpanType,
   GapSpanType,

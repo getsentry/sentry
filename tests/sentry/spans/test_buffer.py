@@ -9,7 +9,7 @@ import orjson
 import pytest
 import sentry_kafka_schemas
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
-from sentry_redis_tools.clients import StrictRedis
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
@@ -39,7 +39,6 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.process-segments.schema-validation": 1.0,
-    "spans.buffer.done-flush-conditional-zrem": False,
     "spans.buffer.write-distributed-payloads": False,
     "spans.buffer.read-distributed-payloads": False,
     "spans.buffer.write-merged-payloads": True,
@@ -118,7 +117,7 @@ def buffer(request):
             yield buf
 
 
-def assert_ttls(client: StrictRedis[bytes]):
+def assert_ttls(client: StrictRedis[bytes] | RedisCluster[bytes]):
     """
     Check that all keys have a TTL, because if the consumer dies before
     flushing, we should not leak memory.
@@ -128,7 +127,7 @@ def assert_ttls(client: StrictRedis[bytes]):
         assert client.ttl(k) > -1, k
 
 
-def assert_clean(client: StrictRedis[bytes]):
+def assert_clean(client: StrictRedis[bytes] | RedisCluster[bytes]):
     """
     Check that there's no leakage.
 
@@ -1159,7 +1158,7 @@ def test_partition_routing_stable_across_rebalance() -> None:
         assert_clean(buf.client)
 
 
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.done-flush-conditional-zrem": True})
+@override_options(DEFAULT_OPTIONS)
 def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> None:
     """
     Regression test: new spans arriving between flush_segments and
@@ -1228,7 +1227,7 @@ def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> 
     assert_clean(buffer.client)
 
 
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.done-flush-conditional-zrem": True})
+@override_options(DEFAULT_OPTIONS)
 def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
     """
     When no new spans arrive between flush_segments and done_flush_segments,
@@ -1266,7 +1265,7 @@ def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
     assert_clean(buffer.client)
 
 
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.done-flush-conditional-zrem": True})
+@override_options(DEFAULT_OPTIONS)
 def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
     """
     Test Phase 2 safety: even if Phase 1 (conditional ZREM) succeeds because the
@@ -1380,16 +1379,36 @@ def _dspan(
     )
 
 
-@pytest.fixture(params=["phase1", "phase2", "phase3"])
+@pytest.fixture(
+    params=[
+        pytest.param(("cluster", phase), id=f"cluster-{phase}")
+        for phase in DISTRIBUTED_PHASE_OPTIONS
+    ]
+    + [pytest.param(("single", phase), id=f"single-{phase}") for phase in DISTRIBUTED_PHASE_OPTIONS]
+)
 def distributed_buffer(request):
-    opts = DISTRIBUTED_PHASE_OPTIONS[request.param]
+    redis_type, phase = request.param
+    opts = DISTRIBUTED_PHASE_OPTIONS[phase]
     with override_options(opts):
-        buf = SpansBuffer(assigned_shards=list(range(32)))
-        buf.client.flushdb()
-        yield buf
+        if redis_type == "cluster":
+            from sentry.testutils.helpers.redis import use_redis_cluster
+            from sentry.utils import redis as redis_utils
+
+            with use_redis_cluster(
+                "span-buffer",
+                with_settings={"SENTRY_SPAN_BUFFER_CLUSTER": "span-buffer"},
+            ):
+                buf = SpansBuffer(assigned_shards=list(range(32)))
+                buf.client.flushall()
+                yield buf
+                redis_utils.redis_clusters._clusters_bytes.pop("span-buffer", None)
+        else:
+            buf = SpansBuffer(assigned_shards=list(range(32)))
+            buf.client.flushdb()
+            yield buf
 
 
-def assert_clean_distributed(client: StrictRedis[bytes]):
+def assert_clean_distributed(client: StrictRedis[bytes] | RedisCluster[bytes]):
     remaining = [x for x in client.keys("*") if b":hrs:" not in x]
     assert not remaining, f"Leaked keys: {remaining}"
 

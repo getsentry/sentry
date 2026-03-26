@@ -30,12 +30,12 @@ export function FilterSelectorTrigger({
   const {isFetching} = queryResult;
   const {tag} = globalFilter;
 
-  const shouldShowBadge =
-    !isFetching &&
-    activeFilterValues.length > 1 &&
-    activeFilterValues.length !== options.length;
-  const isAllSelected =
-    activeFilterValues.length === 0 || activeFilterValues.length === options.length;
+  const shouldShowBadge = !isFetching && activeFilterValues.length > 1;
+  // "All" means no filter is applied (empty selection). We intentionally avoid
+  // comparing against options.length because when tag values fail to load,
+  // options only contains the already-selected values — making a length
+  // comparison a tautology that incorrectly shows "All".
+  const isAllSelected = activeFilterValues.length === 0;
 
   const tagKey = prettifyTagKey(tag.key);
   const filterValue = activeFilterValues[0] ?? '';

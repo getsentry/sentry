@@ -10,6 +10,7 @@ from sentry.models.group import Group
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import get_issue_summary
 from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
 
     try:
         with sentry_sdk.start_span(op="ai_summary.fetch_issue_summary_for_alert"):
-            with concurrent.futures.ThreadPoolExecutor() as executor:
+            with ContextPropagatingThreadPoolExecutor() as executor:
                 future = executor.submit(
                     get_issue_summary, group, source=SeerAutomationSource.ALERT
                 )
