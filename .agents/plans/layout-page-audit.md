@@ -254,17 +254,31 @@ Components to check:
 
 ---
 
+## Output Files
+
+Each agent writes its results to a dedicated file **as it processes each route** — do not
+buffer and write at the end. This way partial results are preserved if the agent is interrupted.
+
+Output file path: `.agents/plans/results/<agent-letter>.md`
+
+Example: Agent A → `.agents/plans/results/a.md`, Agent B → `.agents/plans/results/b.md`, etc.
+
+Create the file before starting analysis, then append each row as soon as the component has
+been checked.
+
 ## Output Format (required from each agent)
 
-```
+File content structure:
+
+```markdown
 ### <Agent Letter> — <Area Name>
 
-| Parametrized path | Component | Layout.Page |
-|-------------------|-----------|-------------|
-| /organizations/:orgId/issues/:groupId/ | sentry/views/… | YES |
-| /organizations/:orgId/issues/:groupId/ | sentry/views/… | NO |
+| Parametrized path                      | Component      | Layout.Page                 |
+| -------------------------------------- | -------------- | --------------------------- |
+| /organizations/:orgId/issues/:groupId/ | sentry/views/… | YES                         |
+| /organizations/:orgId/issues/:groupId/ | sentry/views/… | NO                          |
 | /organizations/:orgId/settings/        | sentry/views/… | INHERITED (SettingsWrapper) |
-| /organizations/:orgId/old-path/        | —              | REDIRECT — skip |
+| /organizations/:orgId/old-path/        | —              | REDIRECT — skip             |
 
 **Parent wrapper:** <WrapperName> — uses Layout.Page: YES/NO
 **Missing count:** N
@@ -278,5 +292,5 @@ the route tree and joining all `path` segments. For `withOrgPath: true` routes, 
 
 ## Aggregation Step
 
-After all agents complete, collect every row where `Layout.Page = NO` and sort by area.
-That final list is the remediation backlog.
+After all agents complete, collect every row where `Layout.Page = NO` across all result files
+and sort by area. That final list is the remediation backlog.
