@@ -1,9 +1,10 @@
 import logging
 from collections.abc import Sequence
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import UTC, datetime
 
-from django.db import connections, router, transaction
+from django.db import connections, router
 from django.db.models import (
     Case,
     DateTimeField,
@@ -112,6 +113,26 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def _postgres_jit_disabled(using: str):
+    """
+    Disable PostgreSQL JIT compilation on the given database connection for the duration of
+    the block.
+
+    Uses session-level SET/RESET rather than SET LOCAL (which requires a transaction) so that
+    callers don't need to open a transaction — important when the calling code may issue queries
+    against multiple databases.
+    """
+    with connections[using].cursor() as cursor:
+        cursor.execute("SET jit = off")
+    try:
+        yield
+    finally:
+        with connections[using].cursor() as cursor:
+            cursor.execute("RESET jit")
+
 
 # Sentinel values for incident_status annotation when sorting combined rules
 # Used to ensure proper sort order for rules without active incidents
@@ -519,7 +540,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         def has_type(rule_type: str) -> bool:
             return not type_filter or rule_type in type_filter
 
-        # Disable JIT for the combined paginator queries.
+        # Disable JIT on the Detector/DetectorGroup database for the combined paginator queries.
         # The planner thinks our metric detector query is going to be very slow because DetectorGroup
         # in general has many Groups per Detector, even though for metrics detectors (our case here) it's effectively
         # one-to-one.
@@ -528,11 +549,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         # Disabling it makes this endpoint considerably faster.
         # The risk of other regression here should be low; our API endpoint isn't generally doing the sort of bulk
         # work that benefits from JIT.
-        db = router.db_for_write(Detector)
-        with transaction.atomic(using=db):
-            with connections[db].cursor() as cursor:
-                cursor.execute("SET LOCAL jit = off")
-
+        #
+        # Note: Monitor lives on a different database, so we can't use a transaction here
+        # (SET LOCAL would require one). Session-level SET + RESET is fine for a request-scoped
+        # connection.
+        with _postgres_jit_disabled(using=router.db_for_write(Detector)):
             intermediaries: list[CombinedQuerysetIntermediary] = []
             if has_type("alert_rule"):
                 intermediaries.append(CombinedQuerysetIntermediary(metric_detectors, sort_key))
