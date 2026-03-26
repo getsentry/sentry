@@ -5,7 +5,6 @@ import type {Location, Query} from 'history';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   SelectedReplayIndexProvider,
@@ -118,7 +117,7 @@ function GroupReplaysContent({group}: Props) {
   if (!eventView) {
     // Shown on load and no replay data available
     return (
-      <StyledLayoutPage withPadding>
+      <StyledLayoutPage>
         <Stack>
           <ReplayFilterMessage />
           <Flex align="center" gap="md">
@@ -145,7 +144,7 @@ function GroupReplaysContent({group}: Props) {
 
   return (
     <SelectedReplayIndexProvider>
-      <StyledLayoutPage withPadding>
+      <StyledLayoutPage>
         <Stack>
           <ReplayFilterMessage />
           <Flex align="center" gap="md">
@@ -325,7 +324,7 @@ function ReplayOverlay({
   );
 }
 
-const StyledLayoutPage = styled(Layout.Page)`
+const StyledLayoutPage = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   gap: ${p => p.theme.space.lg};
   border: 1px solid ${p => p.theme.tokens.border.primary};

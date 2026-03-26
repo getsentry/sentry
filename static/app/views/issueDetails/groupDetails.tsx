@@ -10,6 +10,7 @@ import {TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import {useDrawer} from 'sentry/components/globalDrawer';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -921,16 +922,18 @@ function GroupDetails() {
         <SampleEventAlert project={group.project} organization={organization} />
       )}
       <SentryDocumentTitle noSuffix title={getGroupDetailsTitle()}>
-        <PageFiltersContainer
-          skipLoadLastUsed
-          forceProject={group?.project}
-          shouldForceProject
-        >
-          {config?.showFeedbackWidget && <FloatingFeedbackButton />}
-          <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
-            <Outlet />
-          </GroupDetailsPageContent>
-        </PageFiltersContainer>
+        <Layout.Page>
+          <PageFiltersContainer
+            skipLoadLastUsed
+            forceProject={group?.project}
+            shouldForceProject
+          >
+            {config?.showFeedbackWidget && <FloatingFeedbackButton />}
+            <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
+              <Outlet />
+            </GroupDetailsPageContent>
+          </PageFiltersContainer>
+        </Layout.Page>
       </SentryDocumentTitle>
     </Fragment>
   );
