@@ -7,7 +7,7 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseScmRepoSelectionOptions {
@@ -78,17 +78,16 @@ export function useScmRepoSelection({
     // query filtered by name to avoid pagination issues with the full list.
     setBusy(true);
     try {
-      const matches = await fetchMutation<Repository[]>({
-        url: `/organizations/${organization.slug}/repos/`,
-        method: 'GET',
-        options: {
+      const matches: Repository[] = await QUERY_API_CLIENT.requestPromise(
+        `/organizations/${organization.slug}/repos/`,
+        {
           query: {
             status: 'active',
             integration_id: integration.id,
             query: repo.identifier,
           },
-        },
-      });
+        }
+      );
       const existing = matches?.find(r => r.externalSlug === repo.identifier);
 
       if (existing) {
