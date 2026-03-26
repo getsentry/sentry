@@ -4,12 +4,12 @@ import {useTheme} from '@emotion/react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Container} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {HotkeysLabel} from 'sentry/components/hotkeysLabel';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
@@ -830,7 +830,7 @@ function SeerFloatingActionButton(props: SeerFloatingActionButtonProps) {
               <IconSeer size="sm" />
               <Text size="sm">{t('Ask Seer')}</Text>
               <Text size="xs" variant="muted">
-                <HotkeysLabel value={['command+/', 'ctrl+/']} />
+                <Hotkey value="command+/" />
               </Text>
             </Flex>
           </MotionButton>
