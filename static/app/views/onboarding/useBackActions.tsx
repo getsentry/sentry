@@ -36,9 +36,7 @@ export function useBackActions({
   const currentStep = onboardingSteps[stepIndex];
 
   const deleteRecentCreatedProject = useCallback(
-    async ({
-      preserveOnboardingState = false,
-    }: {preserveOnboardingState?: boolean} = {}) => {
+    async (preserveOnboardingState = false) => {
       if (!recentCreatedProject) {
         return;
       }
@@ -120,9 +118,7 @@ export function useBackActions({
         // store data and skip project creation.
         // In the SCM flow, preserve context so the user keeps their SCM
         // connection, repo selection, and feature choices.
-        await deleteRecentCreatedProject({
-          preserveOnboardingState: prevStep.id === 'scm-project-details',
-        });
+        await deleteRecentCreatedProject(prevStep.id === 'scm-project-details');
       }
 
       if (!browserBackButton) {
