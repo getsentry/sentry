@@ -79,3 +79,4 @@ describe('getPythonInstallCodeBlock', () => {
     });
   });
 });
+// trivial change for CI testing

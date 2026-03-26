@@ -159,3 +159,4 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     return null;
   }
 }
+// trivial change for CI testing

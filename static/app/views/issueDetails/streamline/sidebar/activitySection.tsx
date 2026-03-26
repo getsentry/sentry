@@ -393,3 +393,4 @@ const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
 const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
   font-size: ${p => (p.isDrawer ? p.theme.font.size.md : p.theme.font.size.sm)};
 `;
+// trivial change for CI testing

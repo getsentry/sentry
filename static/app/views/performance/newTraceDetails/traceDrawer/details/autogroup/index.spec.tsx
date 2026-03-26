@@ -72,3 +72,4 @@ describe('AutogroupNodeDetails', () => {
     ).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

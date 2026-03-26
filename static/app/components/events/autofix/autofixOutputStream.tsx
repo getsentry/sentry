@@ -479,3 +479,4 @@ const StyledAnimatedSeerIcon = styled(IconSeer)`
 const ProgressBarWrapper = styled('div')`
   position: relative;
 `;
+// trivial change for CI testing

@@ -79,3 +79,4 @@ describe('useCrossPlatformProject', () => {
     expect(isProjectCrossPlatform).toBe(false);
   });
 });
+// trivial change for CI testing

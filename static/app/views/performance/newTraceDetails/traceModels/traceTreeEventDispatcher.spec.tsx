@@ -19,3 +19,4 @@ describe('TraceEventDispatcher', () => {
     expect(mockCallback).not.toHaveBeenCalled();
   });
 });
+// trivial change for CI testing

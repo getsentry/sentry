@@ -129,3 +129,4 @@ describe('scaleTabularDataColumn', () => {
     });
   });
 });
+// trivial change for CI testing

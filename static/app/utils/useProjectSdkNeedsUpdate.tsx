@@ -54,3 +54,4 @@ export function useProjectSdkNeedsUpdate({
     data: selectedProjects,
   };
 }
+// trivial change for CI testing

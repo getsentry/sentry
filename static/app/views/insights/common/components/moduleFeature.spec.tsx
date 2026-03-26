@@ -42,3 +42,4 @@ describe('ModulePageProviders', () => {
     await screen.findByText(`Module Content`);
   });
 });
+// trivial change for CI testing

@@ -1453,3 +1453,4 @@ export function DashboardDetailWithInjectedProps(
     />
   );
 }
+// trivial change for CI testing

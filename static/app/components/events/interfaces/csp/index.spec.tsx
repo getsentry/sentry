@@ -40,3 +40,4 @@ describe('Csp report entry', () => {
     ).toBeInTheDocument(); // tooltip description
   });
 });
+// trivial change for CI testing

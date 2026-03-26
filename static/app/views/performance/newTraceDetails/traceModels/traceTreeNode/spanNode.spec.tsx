@@ -388,3 +388,4 @@ describe('SpanNode', () => {
     });
   });
 });
+// trivial change for CI testing

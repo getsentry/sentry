@@ -21,3 +21,4 @@ describe('utils/replaceAtArrayIndex', () => {
     expect(replaceAtArrayIndex(arr2, 2, 40)).toEqual([1, 2, 40]);
   });
 });
+// trivial change for CI testing

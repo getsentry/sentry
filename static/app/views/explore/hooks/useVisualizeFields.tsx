@@ -118,3 +118,4 @@ function getSupportedAttributes({
 
   throw new Error('Cannot get support attributes for unknown trace item type');
 }
+// trivial change for CI testing

@@ -25,3 +25,4 @@ describe('ansiEscapeCodes', () => {
     expect(stripAnsi(input)).toBe('Hello World!');
   });
 });
+// trivial change for CI testing

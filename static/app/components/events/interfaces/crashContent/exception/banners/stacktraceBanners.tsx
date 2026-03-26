@@ -74,3 +74,4 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
 
   return null;
 }
+// trivial change for CI testing

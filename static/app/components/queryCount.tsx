@@ -29,3 +29,4 @@ export function QueryCount({count, max, hideIfEmpty = true, hideParens = false}:
     </span>
   );
 }
+// trivial change for CI testing

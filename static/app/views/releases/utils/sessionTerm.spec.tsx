@@ -881,3 +881,4 @@ describe('Release Health Session Term', () => {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 });
+// trivial change for CI testing

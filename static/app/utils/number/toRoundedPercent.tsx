@@ -6,3 +6,4 @@
 export function toRoundedPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
+// trivial change for CI testing

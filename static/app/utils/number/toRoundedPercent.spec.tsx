@@ -5,3 +5,4 @@ describe('toRoundedPercent', () => {
     expect(toRoundedPercent(0.666)).toBe('67%');
   });
 });
+// trivial change for CI testing

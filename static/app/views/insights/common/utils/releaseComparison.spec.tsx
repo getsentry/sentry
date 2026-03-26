@@ -15,3 +15,4 @@ describe('appendReleaseFilters', () => {
     expect(result).toBe('transaction.op:ui.load release:v1.0.0');
   });
 });
+// trivial change for CI testing

@@ -740,3 +740,4 @@ describe('SeerDrawer', () => {
     expect(screen.queryByText('Hand Off to Cursor Cloud Agents')).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

@@ -299,3 +299,4 @@ describe('SdkUpdateAlert', () => {
     expect(screen.getByText(/Update to the latest version\./)).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

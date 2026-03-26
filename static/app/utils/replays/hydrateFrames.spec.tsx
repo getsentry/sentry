@@ -39,3 +39,4 @@ describe('hydrateFrames', () => {
     expect(spanFrames).toHaveLength(4);
   });
 });
+// trivial change for CI testing

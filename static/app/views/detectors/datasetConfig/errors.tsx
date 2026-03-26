@@ -141,3 +141,4 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
     return aggregate;
   },
 };
+// trivial change for CI testing

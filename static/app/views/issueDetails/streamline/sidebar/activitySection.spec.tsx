@@ -377,3 +377,4 @@ describe('StreamlinedActivitySection', () => {
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

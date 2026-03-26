@@ -129,3 +129,4 @@ const Dot = styled('span')<{variant: StatusIndicatorVariant}>`
     animation: ${gentlePulse} 2.2s cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
   }
 `;
+// trivial change for CI testing

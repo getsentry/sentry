@@ -882,3 +882,4 @@ describe('isAfterOp', () => {
     expect(isAfterOp(statusOp, 'any', 'other')).toBe(false);
   });
 });
+// trivial change for CI testing

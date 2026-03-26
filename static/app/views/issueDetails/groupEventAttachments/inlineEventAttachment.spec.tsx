@@ -68,3 +68,4 @@ describe('InlineEventAttachment', () => {
     expect(screen.getByRole('link', {name: 'View the replay'})).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

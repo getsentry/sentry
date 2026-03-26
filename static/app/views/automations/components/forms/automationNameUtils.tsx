@@ -89,3 +89,4 @@ export function getAutomationName(builderState: AutomationBuilderState): string 
 
 // Export constants for testing
 export {MAX_ACTIONS_IN_NAME, MAX_NAME_LENGTH};
+// trivial change for CI testing

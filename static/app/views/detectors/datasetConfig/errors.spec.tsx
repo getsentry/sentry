@@ -33,3 +33,4 @@ describe('DetectorErrorsConfig.toSnubaQueryString', () => {
     expect(result).toBe('event.type:error is:unresolved');
   });
 });
+// trivial change for CI testing

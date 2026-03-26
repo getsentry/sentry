@@ -91,3 +91,4 @@ describe('TransactionNodeDetails', () => {
     expect(screen.getAllByText(/GET \/api\/users/).length).toBeGreaterThan(0);
   });
 });
+// trivial change for CI testing
