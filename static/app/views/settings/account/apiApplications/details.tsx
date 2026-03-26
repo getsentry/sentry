@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import trimEnd from 'lodash/trimEnd';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -54,6 +55,7 @@ function ApiApplicationsDetails() {
   const queryClient = useQueryClient();
 
   const urlPrefix = ConfigStore.get('urlPrefix');
+  const oauthBaseUrl = `${trimEnd(urlPrefix, '/')}/oauth`;
 
   const {
     data: app,
@@ -173,12 +175,27 @@ function ApiApplicationsDetails() {
             )}
 
             <FieldGroup label={t('Authorization URL')} flexibleControlStateSize>
-              <TextCopyInput>{`${urlPrefix}/oauth/authorize/`}</TextCopyInput>
+              <TextCopyInput>{`${oauthBaseUrl}/authorize/`}</TextCopyInput>
             </FieldGroup>
 
             <FieldGroup label={t('Token URL')} flexibleControlStateSize>
-              <TextCopyInput>{`${urlPrefix}/oauth/token/`}</TextCopyInput>
+              <TextCopyInput>{`${oauthBaseUrl}/token/`}</TextCopyInput>
             </FieldGroup>
+
+            {app.isPublic && (
+              <Fragment>
+                <FieldGroup
+                  label={t('Device Authorization URL')}
+                  flexibleControlStateSize
+                >
+                  <TextCopyInput>{`${oauthBaseUrl}/device/code/`}</TextCopyInput>
+                </FieldGroup>
+
+                <FieldGroup label={t('Device Verification URL')} flexibleControlStateSize>
+                  <TextCopyInput>{`${oauthBaseUrl}/device/`}</TextCopyInput>
+                </FieldGroup>
+              </Fragment>
+            )}
           </PanelBody>
         </Panel>
       </Form>
