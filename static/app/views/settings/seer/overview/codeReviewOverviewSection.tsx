@@ -91,7 +91,9 @@ export function CodeReviewOverviewSection({
   const {mutate: mutateRepositorySettings} = useBulkUpdateRepositorySettings({
     onSettled: mutations => {
       // Invalidate the repositories query to get the updated settings
-      queryClient.invalidateQueries({queryKey});
+      if (queryKey) {
+        queryClient.invalidateQueries({queryKey});
+      }
       (mutations ?? []).forEach(mutation => {
         // Invalidate related queries
         queryClient.invalidateQueries({
