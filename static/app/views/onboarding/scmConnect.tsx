@@ -85,7 +85,6 @@ export function ScmConnect({onComplete}: StepProps) {
             gap="xl"
             width="100%"
             maxWidth={SCM_STEP_CONTENT_WIDTH}
-            exit={{opacity: 0}}
           >
             <Tag variant="success" icon={<IconCheckmark />}>
               {t(
@@ -114,7 +113,6 @@ export function ScmConnect({onComplete}: StepProps) {
             gap="2xl"
             width="100%"
             maxWidth={SCM_STEP_CONTENT_WIDTH}
-            exit={{opacity: 0}}
           >
             <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
             <ScmBenefitsCard showTitle />
