@@ -129,6 +129,7 @@ export interface DataWidgetViewerModalOptions {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
+  isPrebuiltDashboard?: boolean;
   onEdit?: () => void;
   widgetInterval?: string;
 }
@@ -197,6 +198,7 @@ function DataWidgetViewerModal(props: Props) {
     widgetLegendState,
     dashboardPermissions,
     dashboardCreator,
+    isPrebuiltDashboard,
     widgetInterval,
   } = props;
   const theme = useTheme();
@@ -616,13 +618,14 @@ function DataWidgetViewerModal(props: Props) {
 
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const hasEditAccess = checkUserHasEditAccess(
-    currentUser,
-    userTeams,
-    organization,
-    dashboardPermissions,
-    dashboardCreator
-  );
+  const hasEditAccess =
+    checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    ) && !isPrebuiltDashboard;
 
   const shouldRenderChartVisualization =
     widget.displayType !== DisplayType.TABLE &&

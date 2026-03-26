@@ -30,6 +30,7 @@ interface TextWidgetViewerModalOptions {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
+  isPrebuiltDashboard?: boolean;
   onEdit?: () => void;
 }
 
@@ -53,16 +54,18 @@ function TextWidgetViewerModal(props: Props) {
     widgetLegendState,
     dashboardPermissions,
     dashboardCreator,
+    isPrebuiltDashboard,
   } = props;
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const hasEditAccess = checkUserHasEditAccess(
-    currentUser,
-    userTeams,
-    organization,
-    dashboardPermissions,
-    dashboardCreator
-  );
+  const hasEditAccess =
+    checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    ) && !isPrebuiltDashboard;
 
   return (
     <Fragment>
