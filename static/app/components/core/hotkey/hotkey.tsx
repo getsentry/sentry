@@ -62,4 +62,7 @@ const StyledKbd = styled('kbd')`
   border: none;
   padding: 0;
   margin: 0;
+  box-shadow: none;
+  border-radius: 0;
+  color: ${p => p.theme.tokens.content.primary};
 `;
