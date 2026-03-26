@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
+from sentry.utils.query import bulk_delete_objects
 from sentry.workflow_engine.models import WorkflowFireHistory
 from sentry.workflow_engine.tasks.cleanup import (
     FIRE_HISTORY_RETENTION_DAYS,
@@ -53,7 +55,7 @@ class TestPruneOldFireHistory(TestCase):
         for row in rows:
             assert WorkflowFireHistory.objects.filter(id=row.id).exists()
 
-    @patch("sentry.workflow_engine.tasks.cleanup.FIRE_HISTORY_BATCH_SIZE", 10)
+    @override_options({"workflow_engine.fire_history_cleanup.batch_size": 10})
     def test_multiple_batches(self) -> None:
         old_ids = []
         for _ in range(25):
@@ -67,7 +69,12 @@ class TestPruneOldFireHistory(TestCase):
         mock_metrics.incr.assert_called_once()
         assert mock_metrics.incr.call_args.kwargs["amount"] >= 2
 
-    @patch("sentry.workflow_engine.tasks.cleanup.FIRE_HISTORY_BATCH_SIZE", 10)
+    @override_options(
+        {
+            "workflow_engine.fire_history_cleanup.batch_size": 10,
+            "workflow_engine.fire_history_cleanup.time_limit_seconds": 5.0,
+        }
+    )
     @patch("sentry.workflow_engine.tasks.cleanup.time")
     def test_time_bounded_leaves_remaining_rows(self, mock_time: MagicMock) -> None:
         # start=0, first check=0 (run batch), second check=6 (exit)
@@ -83,6 +90,24 @@ class TestPruneOldFireHistory(TestCase):
 
         remaining = WorkflowFireHistory.objects.filter(id__in=old_ids).count()
         assert remaining == 15  # only one batch of 10 was deleted
+
+    @override_options({"workflow_engine.fire_history_cleanup.batch_size": 5})
+    def test_options_honored(self) -> None:
+        old_ids = []
+        for _ in range(12):
+            obj = self._create_fire_history(days_ago=FIRE_HISTORY_RETENTION_DAYS + 1)
+            old_ids.append(obj.id)
+
+        with patch(
+            "sentry.workflow_engine.tasks.cleanup.bulk_delete_objects",
+            wraps=bulk_delete_objects,
+        ) as spy:
+            prune_old_fire_history()
+
+        for call in spy.call_args_list:
+            assert call.kwargs["limit"] == 5
+
+        assert WorkflowFireHistory.objects.filter(id__in=old_ids).count() == 0
 
     def test_metrics_emitted(self) -> None:
         self._create_fire_history(days_ago=FIRE_HISTORY_RETENTION_DAYS + 1)

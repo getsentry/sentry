@@ -1,6 +1,5 @@
 import {Fragment, useCallback} from 'react';
 
-import {closeModal} from 'sentry/actionCreators/modal';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {
   useCommandPaletteDispatch,
@@ -14,7 +13,11 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function CommandPaletteContent() {
+interface CommandPaletteContentProps {
+  onClose: () => void;
+}
+
+export function CommandPaletteContent({onClose}: CommandPaletteContentProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
 
@@ -25,6 +28,8 @@ export function CommandPaletteContent() {
 
   const handleSelect = useCallback(
     (action: CommandPaletteActionWithKey) => {
+      dispatch({type: 'trigger action'});
+
       const actionType = action.type;
       switch (actionType) {
         case 'group':
@@ -56,9 +61,9 @@ export function CommandPaletteContent() {
           unreachable(actionType);
           break;
       }
-      closeModal();
+      onClose();
     },
-    [navigate, dispatch, organization, selectedAction, query]
+    [navigate, dispatch, organization, selectedAction, query, onClose]
   );
 
   return (

@@ -595,6 +595,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/js/fixtures/detectedPlatform.ts                                           @getsentry/value-discovery
 /static/app/views/projectInstall/                                                @getsentry/value-discovery
 /src/sentry/onboarding_tasks/                                                    @getsentry/value-discovery
+/static/app/components/pipeline/                                                 @getsentry/value-discovery
 ## End of Value Discovery
 
 ## ML & AI
@@ -801,6 +802,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/pageFilters/                   @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
+/static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering
 /static/less/                                         @getsentry/design-engineering
 /static/app/views/settings/                           @getsentry/design-engineering

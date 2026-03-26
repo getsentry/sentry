@@ -170,7 +170,6 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
                         if (key !== null && key !== undefined) {
                           const action = filteredActions.find(a => a.key === key);
                           if (action) {
-                            dispatch({type: 'trigger action'});
                             onAction(action);
                           }
                         }
@@ -207,8 +206,6 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
                 Sentry.logger.error('Command palette action not found', {key});
                 return;
               }
-
-              dispatch({type: 'trigger action'});
               onAction(action);
             }}
           />
