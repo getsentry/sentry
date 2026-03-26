@@ -866,6 +866,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/scm/                                                      @getsentry/scm
 ## End of SCM
 
+## SCM Frontend
+/static/app/components/repositories                                   @getsentry/coding-workflows-sentry-frontend @getsentry/scm
+## End of SCM Frontend
+
 # End of Coding Workflows
 
 # Conduit
