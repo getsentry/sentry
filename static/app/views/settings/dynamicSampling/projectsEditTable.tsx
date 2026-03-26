@@ -52,6 +52,7 @@ export function ProjectsEditTable({
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
 
   const projectRates = useStore(form.baseStore, s => s.values.projectRates);
+  const fieldMeta = form.state.fieldMeta;
 
   const dataByProjectId = useMemo(
     () =>
@@ -132,9 +133,10 @@ export function ProjectsEditTable({
           project,
           initialSampleRate: savedProjectRates[project.id]!,
           sampleRate: projectRates[project.id]!,
+          error: fieldMeta[`projectRates.${project.id}`]?.errors?.[0]?.message,
         };
       }),
-    [dataByProjectId, savedProjectRates, projects, projectRates]
+    [dataByProjectId, fieldMeta, savedProjectRates, projects, projectRates]
   );
 
   const totalSpanCount = useMemo(
@@ -211,7 +213,6 @@ export function ProjectsEditTable({
               period={period}
               isLoading={isLoading}
               items={items}
-              form={form}
             />
             <Footer>{actions}</Footer>
           </Fragment>
