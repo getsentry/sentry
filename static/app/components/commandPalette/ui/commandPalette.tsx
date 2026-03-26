@@ -137,7 +137,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       if (action.type === 'group') {
         trackAnalytics('command_palette.action_selected', {
           organization,
-          action: action.display.label as string,
+          action: action.display.label,
           query: state.query,
         });
         dispatch({type: 'push action', action});
