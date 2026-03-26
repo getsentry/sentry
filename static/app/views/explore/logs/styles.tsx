@@ -126,20 +126,17 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 `;
 
-export const LogTable = styled(Table)`
+function ContentsTable(props: React.ComponentProps<typeof Table>) {
+  return <Table contentsBody {...props} />;
+}
+
+export const LogTable = styled(ContentsTable)`
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   margin-bottom: 0;
   overflow-x: hidden;
-
-  /* PanelBody inside Table's Panel wrapper needs flex sizing to let
-     LogTableBody fill the available height and scroll internally. */
-  > div {
-    flex: 1;
-    min-height: 0;
-  }
 `;
 
 export const LogTableBody = styled(TableBody)<{
