@@ -39,7 +39,7 @@ export function PartnerPlanEndingBanner({
       subscription,
       organization,
       daysLeft,
-      partner: subscription.partner.partnership.id,
+      partner: subscription.partner?.partnership.id,
     });
   };
 
