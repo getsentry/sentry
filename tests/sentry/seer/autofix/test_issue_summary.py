@@ -1412,3 +1412,13 @@ class TestGetAutomationStoppingPoint(TestCase):
         mock_preference.return_value = "open_pr"
 
         assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.ROOT_CAUSE
+
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_reads_preference_from_sentry_db(self, mock_fixability):
+        mock_fixability.return_value = 0.80
+        self.group.project.update_option("sentry:seer_automated_run_stopping_point", "solution")
+
+        with self.feature("organizations:seer-project-settings-read-from-sentry"):
+            result = get_automation_stopping_point(self.group)
+
+        assert result == AutofixStoppingPoint.SOLUTION

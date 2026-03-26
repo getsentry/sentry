@@ -35,6 +35,7 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
     make_get_project_preference_request,
+    read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
@@ -510,7 +511,11 @@ def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint:
     """
     fixability_score = get_and_update_group_fixability_score(group)
     fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
-    user_preference = _fetch_user_preference(group.project.id)
+    if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
+        pref = read_preference_from_sentry_db(group.project)
+        user_preference = pref.automated_run_stopping_point if pref else None
+    else:
+        user_preference = _fetch_user_preference(group.project.id)
     return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
 
 
