@@ -84,6 +84,8 @@ RUN : \
 COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/
 COPY ./self-hosted/docker-entrypoint.sh /
 
+RUN pip install https://github.com/getsentry/sentry-nodestore-s3/archive/main.zip
+
 # note: sentry help is needed here since the earlier invocation doesn't have pipefail
 RUN : double-check some built files are available \
     && test -f /usr/src/sentry/src/sentry/loader/_registry.json \
