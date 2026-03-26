@@ -43,7 +43,7 @@ function lerp(min: number, max: number, t: number): number {
 function useAnimationTiming() {
   const ref = useRef<HTMLDivElement>(null);
   const [duration, setDuration] = useState(DURATION.MAX);
-  const [delay, setDelay] = useState(DURATION.MAX);
+  const [delay, setDelay] = useState(DELAY.MAX);
 
   useResizeObserver({
     ref,
