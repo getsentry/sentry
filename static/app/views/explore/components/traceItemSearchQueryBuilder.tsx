@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
@@ -13,7 +13,10 @@ import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
-import {useAsyncAttributeValidation} from 'sentry/views/explore/hooks/useAsyncAttributeValidation';
+import {
+  extractFilterKeys,
+  useAsyncAttributeValidation,
+} from 'sentry/views/explore/hooks/useAsyncAttributeValidation';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -109,25 +112,19 @@ export function useTraceItemSearchQueryBuilderProps({
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
 
-  const [invalidFilterKeys, validateKeys] = useAsyncAttributeValidation(
-    itemType,
-    projects
+  const [currentQuery, setCurrentQuery] = useState(initialQuery ?? '');
+  const filterKeys = useMemo(
+    () => extractFilterKeys(parseSearch(currentQuery)),
+    [currentQuery]
   );
-
-  const initialValidationDone = useRef(false);
-  useEffect(() => {
-    if (initialValidationDone.current || !initialQuery) return;
-    initialValidationDone.current = true;
-
-    validateKeys(parseSearch(initialQuery));
-  }, [initialQuery, validateKeys]);
+  const invalidFilterKeys = useAsyncAttributeValidation(itemType, filterKeys, projects);
 
   const wrappedOnChange = useCallback(
     (query: string, state: CallbackSearchState) => {
-      validateKeys(state.parsedQuery);
+      setCurrentQuery(query);
       onChange?.(query, state);
     },
-    [onChange, validateKeys]
+    [onChange]
   );
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
