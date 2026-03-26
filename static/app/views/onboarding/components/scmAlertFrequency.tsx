@@ -1,5 +1,3 @@
-import {AnimatePresence, motion} from 'framer-motion';
-
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
@@ -8,7 +6,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconClock, IconFix, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {
   type AlertRuleOptions,
   INTERVAL_CHOICES,
@@ -101,72 +98,53 @@ export function ScmAlertFrequency({
           isSelected={isCustomSelected}
           onSelect={() => onFieldChange('alertSetting', RuleAction.CUSTOMIZED_ALERTS)}
         >
-          <AnimatePresence initial={false}>
-            {isCustomSelected && (
-              <motion.div
-                initial={{height: 0, opacity: 0}}
-                animate={{
-                  height: 'auto',
-                  opacity: 1,
-                  transition: testableTransition({duration: 0.2}),
-                }}
-                exit={{
-                  height: 0,
-                  opacity: 0,
-                  transition: testableTransition({duration: 0.15}),
-                }}
-                style={{overflow: 'hidden'}}
-              >
-                <Flex paddingLeft="3xl">
-                  <Stack
-                    gap="md"
-                    paddingLeft="3xl"
-                    width="100%"
-                    style={{
-                      borderLeft: `2px solid var(--border-accent, var(--accent400))`,
-                    }}
-                  >
-                    <Stack gap="xs" width="100%">
-                      <Text size="md" density="comfortable">
-                        {t('When there are more than')}
-                      </Text>
-                      <Flex gap="md" width="100%">
-                        <div style={{width: 91}}>
-                          <Input
-                            size="sm"
-                            type="number"
-                            min="0"
-                            placeholder="10"
-                            value={threshold}
-                            onChange={e => onFieldChange('threshold', e.target.value)}
-                          />
-                        </div>
-                        <div style={{flex: 1}}>
-                          <Select
-                            size="sm"
-                            value={metric}
-                            options={METRIC_CHOICES}
-                            onChange={option => onFieldChange('metric', option.value)}
-                          />
-                        </div>
-                      </Flex>
-                    </Stack>
-                    <Stack gap="xs" width="100%">
-                      <Text size="md" density="comfortable">
-                        {t('a unique error in')}
-                      </Text>
-                      <Select
-                        size="sm"
-                        value={interval}
-                        options={INTERVAL_CHOICES}
-                        onChange={option => onFieldChange('interval', option.value)}
-                      />
-                    </Stack>
-                  </Stack>
+          <Flex paddingLeft="3xl">
+            <Stack
+              gap="md"
+              paddingLeft="3xl"
+              width="100%"
+              style={{
+                borderLeft: `2px solid var(--border-accent, var(--accent400))`,
+              }}
+            >
+              <Stack gap="xs" width="100%">
+                <Text size="md" density="comfortable">
+                  {t('When there are more than')}
+                </Text>
+                <Flex gap="md" width="100%">
+                  <div style={{width: 91}}>
+                    <Input
+                      size="sm"
+                      type="number"
+                      min="0"
+                      placeholder="10"
+                      value={threshold}
+                      onChange={e => onFieldChange('threshold', e.target.value)}
+                    />
+                  </div>
+                  <div style={{flex: 1}}>
+                    <Select
+                      size="sm"
+                      value={metric}
+                      options={METRIC_CHOICES}
+                      onChange={option => onFieldChange('metric', option.value)}
+                    />
+                  </div>
                 </Flex>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </Stack>
+              <Stack gap="xs" width="100%">
+                <Text size="md" density="comfortable">
+                  {t('a unique error in')}
+                </Text>
+                <Select
+                  size="sm"
+                  value={interval}
+                  options={INTERVAL_CHOICES}
+                  onChange={option => onFieldChange('interval', option.value)}
+                />
+              </Stack>
+            </Stack>
+          </Flex>
         </AlertOptionCard>
 
         <AlertOptionCard
