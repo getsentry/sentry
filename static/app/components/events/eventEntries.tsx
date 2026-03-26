@@ -41,6 +41,7 @@ type Props = {
   className?: string;
   event?: Event;
   group?: Group;
+  hideEntryTypes?: EntryType[];
   isShare?: boolean;
   showTagSummary?: boolean;
 };
@@ -51,6 +52,7 @@ function EventEntries({
   event,
   group,
   className,
+  hideEntryTypes,
   isShare = false,
   showTagSummary = true,
 }: Props) {
@@ -109,6 +111,7 @@ function EventEntries({
         group={group}
         organization={organization}
         isShare={isShare}
+        hideEntryTypes={hideEntryTypes}
       />
       {hasContext && <EventContexts group={group} event={event} />}
       <EventExtraData event={event} />
@@ -168,20 +171,25 @@ function Entries({
   organization,
   hideBeforeReplayEntries = false,
   hideBreadCrumbs = false,
+  hideEntryTypes,
 }: {
   definedEvent: Event;
   projectSlug: string;
   hideBeforeReplayEntries?: boolean;
   hideBreadCrumbs?: boolean;
+  hideEntryTypes?: EntryType[];
   isShare?: boolean;
 } & Pick<Props, 'group' | 'organization'>) {
   if (!Array.isArray(definedEvent.entries)) {
     return null;
   }
 
-  const [beforeReplayEntries, afterReplayEntries] = partitionEntriesForReplay(
-    definedEvent.entries
-  );
+  const filteredEntries = hideEntryTypes
+    ? definedEvent.entries.filter(e => !hideEntryTypes.includes(e.type))
+    : definedEvent.entries;
+
+  const [beforeReplayEntries, afterReplayEntries] =
+    partitionEntriesForReplay(filteredEntries);
 
   const eventEntryProps = {
     projectSlug,
