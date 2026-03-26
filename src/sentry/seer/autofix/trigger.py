@@ -29,6 +29,7 @@ SeerAutomationSkipReason = Union[
         "already_triggered",
         "already_triggered_explorer",
         "automation_already_dispatched",
+        "below_occurrence_threshold",
         "fixability_too_low",
         "issue_too_old",
         "lock_already_held",
@@ -141,7 +142,7 @@ def get_seat_based_seer_automation_skip_reason(
         if is_seer_scanner_rate_limited(group.project, group.organization):
             return "rate_limited"
 
-        return None
+        return "below_occurrence_threshold"
 
     # Event count >= threshold: run automation
     # Long-term check to avoid re-running
