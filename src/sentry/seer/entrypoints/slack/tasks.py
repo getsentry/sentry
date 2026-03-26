@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import logging
 
+from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
 from taskbroker_client.retry import Retry
 
 from sentry.identity.services.identity import identity_service
-from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
-from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
+from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
@@ -95,7 +95,12 @@ def process_mention_for_slack(
         )
         if not user:
             lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.IDENTITY_NOT_LINKED)
-            _send_link_identity_prompt(entrypoint=entrypoint)
+            entrypoint.install.set_thread_status(
+                channel_id=channel_id,
+                thread_ts=thread_ts,
+                status="",
+            )
+            _send_link_identity_prompt(entrypoint=entrypoint, thread_ts=thread_ts)
             return
 
         prompt = extract_prompt(text, bot_user_id)
@@ -146,6 +151,7 @@ def _resolve_user(
 def _send_link_identity_prompt(
     *,
     entrypoint: SlackExplorerEntrypoint,
+    thread_ts: str,
 ) -> None:
     """Send an ephemeral message prompting the user to link their Slack identity to Sentry."""
     associate_url = build_linking_url(
@@ -154,12 +160,27 @@ def _send_link_identity_prompt(
         channel_id=entrypoint.channel_id,
         response_url=None,
     )
-    client = SlackSdkClient(integration_id=entrypoint.integration.id)
+    renderable = _build_link_identity_renderable(associate_url)
+    entrypoint.install.send_threaded_ephemeral_message(
+        slack_user_id=entrypoint.slack_user_id,
+        channel_id=entrypoint.channel_id,
+        renderable=renderable,
+        thread_ts=thread_ts,
+    )
+
+
+def _build_link_identity_renderable(associate_url: str) -> SlackRenderable:
+    """Build a SlackRenderable prompting the user to link their Slack identity to Sentry."""
     message = "Link your Slack identity to Sentry to use this feature."
-    builder = SlackPromptLinkMessageBuilder(associate_url, message=message)
-    client.chat_postEphemeral(
-        channel=entrypoint.channel_id,
-        user=entrypoint.slack_user_id,
+    return SlackRenderable(
+        blocks=[
+            MarkdownBlock(text=message),
+            ActionsBlock(
+                elements=[
+                    LinkButtonElement(text="Link", url=associate_url),
+                    ButtonElement(text="Cancel", value="ignore"),
+                ]
+            ),
+        ],
         text=message,
-        **builder.as_payload(),
     )
