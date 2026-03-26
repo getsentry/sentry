@@ -9,7 +9,12 @@ import sentry_sdk
 from tokenizers import Tokenizer
 
 from sentry import features, options
-from sentry.constants import DATA_ROOT
+from sentry.constants import (
+    AUTO_OPEN_PRS_DEFAULT,
+    DATA_ROOT,
+    SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
+)
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.variants import BaseVariant
@@ -23,7 +28,11 @@ from sentry.seer.autofix.utils import (
     set_project_seer_preference,
     write_preference_to_sentry_db,
 )
-from sentry.seer.models import SeerProjectPreference
+from sentry.seer.models import (
+    AutofixHandoffPoint,
+    SeerAutomationHandoffConfiguration,
+    SeerProjectPreference,
+)
 from sentry.seer.similarity.types import GroupingVersion
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
@@ -564,21 +573,51 @@ def set_default_project_seer_scanner_automation(
 
 
 def set_default_project_auto_open_prs(organization: Organization, project: Project) -> None:
-    """Called once at project creation time to set the initial auto open PRs."""
+    """Called once at project creation time to set the initial automated run stopping
+    point and automation handoff.
+
+    Reads org options (default_automated_run_stopping_point, auto_open_prs, default_coding_agent,
+    default_coding_agent_integration_id) and writes the corresponding project-level
+    options (stopping point, handoff config).
+
+    When auto_open_prs is True, stopping_point is forced to open_pr regardless of
+    default_stopping_point.
+    """
     if not is_seer_seat_based_tier_enabled(organization):
         return
 
-    stopping_point = AutofixStoppingPoint.CODE_CHANGES
-    if organization.get_option("sentry:auto_open_prs"):
+    auto_open_prs = bool(organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT))
+    if auto_open_prs:
         stopping_point = AutofixStoppingPoint.OPEN_PR
+    else:
+        stopping_point = organization.get_option(
+            "sentry:default_stopping_point", SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
 
-    # We need to make an API call to Seer to set this preference
+    coding_agent = organization.get_option(
+        "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
+    )
+    coding_agent_integration_id = organization.get_option(
+        "sentry:seer_default_coding_agent_integration_id", None
+    )
+
+    automation_handoff: SeerAutomationHandoffConfiguration | None = None
+    if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
+        automation_handoff = SeerAutomationHandoffConfiguration(
+            handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
+            target=coding_agent,
+            integration_id=coding_agent_integration_id,
+            auto_create_pr=auto_open_prs,
+        )
+
     preference = SeerProjectPreference(
         organization_id=organization.id,
         project_id=project.id,
         repositories=[],
         automated_run_stopping_point=stopping_point,
+        automation_handoff=automation_handoff,
     )
+
     try:
         set_project_seer_preference(preference)
     except Exception as e:

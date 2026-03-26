@@ -58,6 +58,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
@@ -560,6 +561,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enableSeerCoding: bool
     defaultCodingAgent: str | None
     defaultCodingAgentIntegrationId: int | None
+    defaultAutomatedRunStoppingPoint: str
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
@@ -740,6 +742,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "defaultCodingAgentIntegrationId": obj.get_option(
                 "sentry:seer_default_coding_agent_integration_id",
                 None,
+            ),
+            "defaultAutomatedRunStoppingPoint": obj.get_option(
+                "sentry:default_automated_run_stopping_point",
+                SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
             ),
             "autoOpenPrs": bool(
                 obj.get_option(
