@@ -466,6 +466,14 @@ export const useSeerExplorer = () => {
       return undefined;
     }
 
+    const isTimedOut = Date.now() - optimistic.createdAt > 30_000;
+
+    if (isTimedOut) {
+      setOptimistic(null);
+      setDeletedFromIndex(null);
+      return undefined;
+    }
+
     const currentSignature = JSON.stringify(
       (apiData?.session?.blocks || []).map(b => [
         b.id,
@@ -475,33 +483,27 @@ export const useSeerExplorer = () => {
       ])
     );
 
-    if (currentSignature === optimistic.baselineSignature) {
-      return undefined;
-    }
+    if (currentSignature !== optimistic.baselineSignature) {
+      const serverBlocks = apiData?.session?.blocks || [];
+      const hasAssistantResponse = serverBlocks.some(
+        (b, i) => i >= optimistic.insertIndex && b.message.role === 'assistant'
+      );
 
-    const serverBlocks = apiData?.session?.blocks || [];
-    const hasAssistantResponse = serverBlocks.some(
-      (b, i) => i >= optimistic.insertIndex && b.message.role === 'assistant'
-    );
-    const isTimedOut = Date.now() - optimistic.createdAt > 30_000;
-
-    if (hasAssistantResponse || isTimedOut) {
-      setOptimistic(null);
-      setDeletedFromIndex(null);
-      return undefined;
-    }
-
-    // Schedule a forced clear at the 30s mark in case no new poll data arrives
-    const remaining = 30_000 - (Date.now() - optimistic.createdAt);
-    if (remaining > 0) {
-      const timer = setTimeout(() => {
+      if (hasAssistantResponse) {
         setOptimistic(null);
         setDeletedFromIndex(null);
-      }, remaining);
-      return () => clearTimeout(timer);
+        return undefined;
+      }
     }
 
-    return undefined;
+    // Always schedule the safety timeout so the optimistic UI cannot persist
+    // indefinitely when the server data signature never diverges from baseline.
+    const remaining = 30_000 - (Date.now() - optimistic.createdAt);
+    const timer = setTimeout(() => {
+      setOptimistic(null);
+      setDeletedFromIndex(null);
+    }, remaining);
+    return () => clearTimeout(timer);
   }, [apiData?.session?.blocks, optimistic]);
 
   // Detect PR creation errors and show error messages
