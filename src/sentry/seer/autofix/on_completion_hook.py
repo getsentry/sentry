@@ -531,12 +531,22 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     "integration_id": handoff_config.integration_id,
                 },
             )
-            preference_response = get_project_seer_preferences(group.project_id)
-            if preference_response and preference_response.preference:
-                updated_preference = preference_response.preference.copy(
-                    update={"automation_handoff": None}
+            try:
+                preference_response = get_project_seer_preferences(group.project_id)
+                if preference_response and preference_response.preference:
+                    updated_preference = preference_response.preference.copy(
+                        update={"automation_handoff": None}
+                    )
+                    set_project_seer_preference(updated_preference)
+            except (SeerApiError, SeerApiResponseValidationError):
+                logger.exception(
+                    "autofix.on_completion_hook.clear_handoff_preference_failed",
+                    extra={
+                        "run_id": run_id,
+                        "organization_id": organization.id,
+                        "project_id": group.project_id,
+                    },
                 )
-                set_project_seer_preference(updated_preference)
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.coding_agent_handoff_failed",

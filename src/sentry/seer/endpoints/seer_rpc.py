@@ -589,7 +589,7 @@ def trigger_coding_agent_launch(
             trigger_source=AutofixTriggerSource(trigger_source),
         )
         return {"success": True}
-    except NotFound:
+    except NotFound as e:
         logger.exception(
             "coding_agent.rpc_launch_error",
             extra={
@@ -598,7 +598,10 @@ def trigger_coding_agent_launch(
                 "run_id": run_id,
             },
         )
-        return {"success": False, "error_code": "integration_not_found"}
+        error_message = str(e)
+        if "Integration not found" in error_message:
+            return {"success": False, "error_code": "integration_not_found"}
+        return {"success": False}
     except (PermissionDenied, ValidationError, APIException):
         logger.exception(
             "coding_agent.rpc_launch_error",
