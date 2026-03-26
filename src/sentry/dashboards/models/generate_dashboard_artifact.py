@@ -17,6 +17,7 @@ DisplayType = Literal[
     "table",
     "big_number",
     "top_n",
+    "categorical_bar",
 ]
 
 # Hardcode maintained lists for now, not all widget types are well suited for dashboard generation.
